@@ -1,0 +1,1995 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>POS Bodeguitas - Kaserita SmartPOS</title>
+  
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            slate: {
+              750: '#293548',
+              850: '#172033',
+              950: '#0b1120',
+            }
+          }
+        }
+      }
+    }
+  </script>
+
+  <!-- React 18, ReactDOM y Babel Standalone -->
+  <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+  <!-- Supabase JS Client CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+  <!-- Canvas Confetti -->
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+
+  <style>
+    body {
+      user-select: none;
+      -webkit-user-select: none;
+    }
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: #0f172a;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #334155;
+      border-radius: 4px;
+    }
+  </style>
+</head>
+<body class="bg-slate-900 text-slate-100 h-screen overflow-hidden font-sans">
+  <div id="root"></div>
+
+  <!-- Aplicación React + Supabase con Todos los Módulos -->
+  <script type="text/babel">
+    const { useState, useEffect, useRef, useMemo } = React;
+
+    const generarUUID = () => {
+      if (typeof crypto !== 'undefined' && crypto.randomUUID) {
+        return crypto.randomUUID();
+      }
+      return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+        const r = Math.random() * 16 | 0, v = c === 'x' ? r : (r & 0x3 | 0x8);
+        return v.toString(16);
+      });
+    };
+
+    const PRODUCTOS_SEMILLA = [
+      { cod_ean: '775012300001', descripcion: 'Leche Gloria Entera 400g (Azul)', precio_costo: 3.50, precio_venta: 4.20, categoria: 'Lácteos', unidad: 'UND' },
+      { cod_ean: '775012300002', descripcion: 'Arroz Extra Costeño 1kg', precio_costo: 4.10, precio_venta: 5.00, categoria: 'Abarrotes', unidad: 'UND' },
+      { cod_ean: '775012300003', descripcion: 'Aceite Vegetal Primor Clásico 900ml', precio_costo: 7.80, precio_venta: 9.50, categoria: 'Abarrotes', unidad: 'UND' },
+      { cod_ean: '775012300004', descripcion: 'Gaseosa Inca Kola 500ml', precio_costo: 2.20, precio_venta: 3.00, categoria: 'Bebidas', unidad: 'UND' },
+      { cod_ean: '775012300005', descripcion: 'Gaseosa Coca Cola 500ml', precio_costo: 2.80, precio_venta: 3.50, categoria: 'Bebidas', unidad: 'UND' },
+      { cod_ean: '775012300006', descripcion: 'Galletas Margarita Field Paquete x 6', precio_costo: 2.50, precio_venta: 3.20, categoria: 'Golosinas', unidad: 'UND' },
+      { cod_ean: '775012300007', descripcion: 'Pollo Fresco Entero (por KG)', precio_costo: 7.50, precio_venta: 9.80, categoria: 'Carnes', unidad: 'KG' },
+      { cod_ean: '775012300008', descripcion: 'Papa Amarilla Seleccionada (por KG)', precio_costo: 2.20, precio_venta: 3.50, categoria: 'Verduras', unidad: 'KG' },
+      { cod_ean: '775012300009', descripcion: 'Huevos Pardos Granja (Docena)', precio_costo: 7.00, precio_venta: 8.50, categoria: 'Frescos', unidad: 'UND' },
+      { cod_ean: '775012300010', descripcion: 'Detergente Opal Ultra 800g', precio_costo: 6.20, precio_venta: 7.80, categoria: 'Limpieza', unidad: 'UND' }
+    ];
+
+    function PosApp() {
+      // --- Supabase Config ---
+      const [supabaseUrl, setSupabaseUrl] = useState(
+        localStorage.getItem('pos_sb_url') || 'https://hzmrsbeamtbloudmxjrp.supabase.co'
+      );
+      const [supabaseKey, setSupabaseKey] = useState(
+        localStorage.getItem('pos_sb_key') || 'sb_publishable_RHAkd7pZIadDnSQClFdjMQ_lrG3p-gw'
+      );
+      const [modalConfig, setModalConfig] = useState(false);
+
+      // --- Sesión (Tabla `usuarios`) ---
+      const [sesion, setSesion] = useState(() => {
+        const g = localStorage.getItem('pos_user_session');
+        return g ? JSON.parse(g) : null;
+      });
+
+      // --- Auth Form ---
+      const [authTab, setAuthTab] = useState('login');
+      const [formLogin, setFormLogin] = useState({ dni: '', pin: '' });
+      const [formRegistro, setFormRegistro] = useState({ nombreBodega: '', nombreDueno: '', dni: '', pin: '' });
+      const [cargandoAuth, setCargandoAuth] = useState(false);
+
+      // --- Bodega & Cajeros ---
+      const bodegaId = sesion?.bodega?.id || sesion?.usuario?.bodega_id;
+      const bodegaNombre = sesion?.bodega?.nombre || 'Mi Bodega';
+      const usuarioActivo = sesion?.usuario || null;
+      const [listaCajeros, setListaCajeros] = useState([]);
+      const [cajeroSeleccionado, setCajeroSeleccionado] = useState(null);
+
+      // --- Productos & Búsqueda ---
+      const [productos, setProductos] = useState([]);
+      const [categoriaFiltro, setCategoriaFiltro] = useState('TODOS');
+      const [busqueda, setBusqueda] = useState('');
+      const [cargandoProductos, setCargandoProductos] = useState(false);
+
+      // --- Turno de Caja ---
+      const [turnoActivo, setTurnoActivo] = useState(null);
+      const [modalTurno, setModalTurno] = useState(false);
+      const [montoApertura, setMontoApertura] = useState('100.00');
+      const [mostrarFormNuevoCajero, setMostrarFormNuevoCajero] = useState(false);
+      const [formNuevoCajero, setFormNuevoCajero] = useState({ nombre: '', dni: '', rol: 'cajero' });
+
+      // --- Arqueo y Cierre de Caja ---
+      const [modalCierreCaja, setModalCierreCaja] = useState(false);
+      const [montoConteoEfectivo, setMontoConteoEfectivo] = useState('');
+      const [resumenCierre, setResumenCierre] = useState(null);
+
+      // --- Carrito & Ventas en Espera (Park Sales) ---
+      const [carrito, setCarrito] = useState([]);
+      const [ventasEnEspera, setVentasEnEspera] = useState(() => {
+        const p = localStorage.getItem('pos_ventas_espera');
+        return p ? JSON.parse(p) : [];
+      });
+      const [modalVentasEspera, setModalVentasEspera] = useState(false);
+
+      // --- Modal de Cantidad / Balanza (Gramos / Unidades) ---
+      const [modalCantidad, setModalCantidad] = useState(false);
+      const [productoSeleccionadoCantidad, setProductoSeleccionadoCantidad] = useState(null);
+      const [inputCantidad, setInputCantidad] = useState('1');
+
+      // --- Cliente & Créditos ---
+      const [dniCliente, setDniCliente] = useState('99999999');
+      const [clienteActual, setClienteActual] = useState(null);
+      const [modalNuevoCliente, setModalNuevoCliente] = useState(false);
+      const [formCliente, setFormCliente] = useState({ dni: '', nombre: '', telefono: '', correo: '', limiteCredito: '300.00' });
+      const [modalCobrarDeudas, setModalCobrarDeudas] = useState(false);
+      const [clientesDeudores, setClientesDeudores] = useState([]);
+      const [deudorSeleccionado, setDeudorSeleccionado] = useState(null);
+      const [montoAbonoDeuda, setMontoAbonoDeuda] = useState('');
+
+      // --- Módulo: Nuevo Producto (Catálogo) ---
+      const [modalNuevoProducto, setModalNuevoProducto] = useState(false);
+      const [formProducto, setFormProducto] = useState({
+        cod_ean: '',
+        descripcion: '',
+        precio_costo: '',
+        precio_venta: '',
+        categoria: 'Abarrotes',
+        unidad: 'UND'
+      });
+
+      // --- Módulo: Entrada de Mercadería (Compras) ---
+      const [modalEntradaMercaderia, setModalEntradaMercaderia] = useState(false);
+      const [compraCabecera, setCompraCabecera] = useState({ proveedor: 'Distribuidora Central', ruc: '', nroComprobante: '' });
+      const [compraItems, setCompraItems] = useState([]);
+      const [compraItemTemp, setCompraItemTemp] = useState({ productoId: '', cantidad: 1, costoUnitario: '' });
+
+      // --- Módulo: Historial de Ventas del Día ---
+      const [modalHistorial, setModalHistorial] = useState(false);
+      const [ventasDelDia, setVentasDelDia] = useState([]);
+      const [cargandoHistorial, setCargandoHistorial] = useState(false);
+
+      // --- Cobro / Pagos ---
+      const [medioPago, setMedioPago] = useState('EFECTIVO');
+      const [montoRecibido, setMontoRecibido] = useState('');
+      const [procesandoVenta, setProcesandoVenta] = useState(false);
+      const [ventaCompletada, setVentaCompletada] = useState(null);
+
+      // --- Diagnóstico y Notificaciones ---
+      const [errorDetalle, setErrorDetalle] = useState(null);
+      const [toast, setToast] = useState({ visible: false, texto: '', tipo: 'info' });
+      const [menuMas, setMenuMas] = useState(false);
+      const inputBusquedaRef = useRef(null);
+
+      // Cliente Supabase
+      const sbClient = useMemo(() => {
+        if (supabaseUrl && supabaseKey && window.supabase) {
+          try {
+            return window.supabase.createClient(supabaseUrl.trim(), supabaseKey.trim());
+          } catch (e) {
+            console.error('Error Supabase client:', e);
+            return null;
+          }
+        }
+        return null;
+      }, [supabaseUrl, supabaseKey]);
+
+      const notificar = (texto, tipo = 'info') => {
+        setToast({ visible: true, texto, tipo });
+        setTimeout(() => setToast({ visible: false, texto: '', tipo: 'info' }), 4000);
+      };
+
+      const guardarSesion = (datos) => {
+        setSesion(datos);
+        localStorage.setItem('pos_user_session', JSON.stringify(datos));
+      };
+
+      const cerrarSesion = () => {
+        setSesion(null);
+        setCajeroSeleccionado(null);
+        localStorage.removeItem('pos_user_session');
+        setCarrito([]);
+        setTurnoActivo(null);
+        notificar('Has cerrado sesión.', 'info');
+      };
+
+      // Guardar ventas en espera
+      const guardarVentasEnEsperaLS = (lista) => {
+        setVentasEnEspera(lista);
+        localStorage.setItem('pos_ventas_espera', JSON.stringify(lista));
+      };
+
+      // Cargar cajeros
+      const cargarCajeros = async () => {
+        if (!sbClient || !bodegaId) return;
+        try {
+          const { data } = await sbClient
+            .from('cajeros')
+            .select('*')
+            .eq('bodega_id', bodegaId)
+            .eq('activo', true)
+            .order('nombre', { ascending: true });
+
+          const cjs = data || [];
+          setListaCajeros(cjs);
+          if (cjs.length > 0 && !cajeroSeleccionado) {
+            setCajeroSeleccionado(cjs[0]);
+          }
+        } catch (err) {
+          console.warn(err);
+        }
+      };
+
+      // ==========================================
+      // PRODUCTOS & CATÁLOGO
+      // ==========================================
+      const cargarProductos = async (termino = '') => {
+        if (!bodegaId) return;
+        setCargandoProductos(true);
+        if (sbClient) {
+          try {
+            let query = sbClient
+              .from('productos')
+              .select('*')
+              .eq('bodega_id', bodegaId)
+              .order('descripcion', { ascending: true });
+
+            if (termino.trim()) {
+              const b = termino.trim();
+              query = query.or(`cod_ean.ilike.%${b}%,descripcion.ilike.%${b}%,categoria.ilike.%${b}%`);
+            }
+
+            const { data, error } = await query;
+            if (error) throw error;
+
+            if (data && data.length > 0) {
+              setProductos(data);
+            } else {
+              const demo = PRODUCTOS_SEMILLA.map((p, i) => ({ ...p, id: i + 1, bodega_id: bodegaId }));
+              setProductos(demo);
+            }
+          } catch (err) {
+            const demo = PRODUCTOS_SEMILLA.map((p, i) => ({ ...p, id: i + 1, bodega_id: bodegaId }));
+            setProductos(demo);
+          } finally {
+            setCargandoProductos(false);
+          }
+        } else {
+          const demo = PRODUCTOS_SEMILLA.map((p, i) => ({ ...p, id: i + 1, bodega_id: bodegaId }));
+          setProductos(demo);
+          setCargandoProductos(false);
+        }
+      };
+
+      useEffect(() => {
+        if (sesion && bodegaId) {
+          cargarProductos(busqueda);
+          cargarCajeros();
+          obtenerOCrearCliente('99999999');
+          verificarTurno();
+        }
+      }, [sesion, bodegaId, sbClient]);
+
+      // Categorías
+      const categorias = useMemo(() => {
+        const cats = new Set(productos.map(p => p.categoria).filter(Boolean));
+        return ['TODOS', ...Array.from(cats)];
+      }, [productos]);
+
+      const productosFiltrados = useMemo(() => {
+        if (categoriaFiltro === 'TODOS') return productos;
+        return productos.filter(p => p.categoria === categoriaFiltro);
+      }, [productos, categoriaFiltro]);
+
+      // ==========================================
+      // SELECCIÓN Y CANTIDAD / BALANZA DE PRODUCTO
+      // ==========================================
+      const handleClicProducto = (prod) => {
+        const esKG = prod.unidad === 'KG' || (prod.descripcion || '').toLowerCase().includes('kg');
+        if (esKG) {
+          setProductoSeleccionadoCantidad(prod);
+          setInputCantidad('1.000');
+          setModalCantidad(true);
+        } else {
+          agregarAlCarrito(prod, 1);
+        }
+      };
+
+      const confirmarCantidadBalanza = () => {
+        if (!productoSeleccionadoCantidad) return;
+        const cant = parseFloat(inputCantidad) || 1;
+        if (cant <= 0) {
+          notificar('Ingresa una cantidad válida.', 'error');
+          return;
+        }
+        agregarAlCarrito(productoSeleccionadoCantidad, cant);
+        setModalCantidad(false);
+        setProductoSeleccionadoCantidad(null);
+      };
+
+      const agregarAlCarrito = (producto, cantidad = 1) => {
+        const cantNum = parseFloat(cantidad) || 1;
+        setCarrito(prev => {
+          const idx = prev.findIndex(item => item.productoId === producto.id);
+          const precioUnit = Number(producto.precio_venta) || 0;
+          if (idx >= 0) {
+            const actual = prev[idx];
+            const nuevaCant = +(actual.cantidad + cantNum).toFixed(3);
+            const nuevo = [...prev];
+            nuevo[idx] = {
+              ...actual,
+              cantidad: nuevaCant,
+              subtotal: +(nuevaCant * actual.precioUnitario).toFixed(2)
+            };
+            return nuevo;
+          } else {
+            return [
+              ...prev,
+              {
+                productoId: producto.id,
+                cod_ean: producto.cod_ean,
+                descripcion: producto.descripcion,
+                precioUnitario: precioUnit,
+                cantidad: cantNum,
+                subtotal: +(cantNum * precioUnit).toFixed(2),
+                unidad: producto.unidad || 'UND'
+              }
+            ];
+          }
+        });
+        notificar(`Añadido: ${producto.descripcion}`, 'success');
+      };
+
+      // ==========================================
+      // LECTOR DE CÓDIGO DE BARRAS / BUSCADOR
+      // ==========================================
+      const handleKeyDownBusqueda = (e) => {
+        if (e.key === 'Enter') {
+          e.preventDefault();
+          const term = busqueda.trim().toLowerCase();
+          if (!term) return;
+
+          const exactoEan = productos.find(p => (p.cod_ean || '').toLowerCase() === term);
+          if (exactoEan) {
+            handleClicProducto(exactoEan);
+            setBusqueda('');
+            return;
+          }
+
+          const coincidencias = productos.filter(
+            p => (p.descripcion || '').toLowerCase().includes(term) || (p.cod_ean || '').includes(term)
+          );
+          if (coincidencias.length === 1) {
+            handleClicProducto(coincidencias[0]);
+            setBusqueda('');
+          } else {
+            cargarProductos(term);
+          }
+        }
+      };
+
+      const cambiarCantidadCarrito = (productoId, delta) => {
+        setCarrito(prev =>
+          prev.map(item => {
+            if (item.productoId === productoId) {
+              const step = item.unidad === 'KG' ? 0.250 : 1;
+              const nCant = +(item.cantidad + (delta * step)).toFixed(3);
+              if (nCant <= 0) return null;
+              return {
+                ...item,
+                cantidad: nCant,
+                subtotal: +(nCant * item.precioUnitario).toFixed(2)
+              };
+            }
+            return item;
+          }).filter(Boolean)
+        );
+      };
+
+      const eliminarItemCarrito = (productoId) => {
+        setCarrito(prev => prev.filter(item => item.productoId !== productoId));
+      };
+
+      const totalVenta = useMemo(() => {
+        return +carrito.reduce((acc, item) => acc + item.subtotal, 0).toFixed(2);
+      }, [carrito]);
+
+      const vuelto = useMemo(() => {
+        if (medioPago !== 'EFECTIVO' || !montoRecibido) return 0;
+        const recibido = parseFloat(montoRecibido) || 0;
+        return +(recibido - totalVenta).toFixed(2);
+      }, [montoRecibido, totalVenta, medioPago]);
+
+      // ==========================================
+      // ⏸️ VENTAS EN ESPERA (PARK SALES)
+      // ==========================================
+      const aparcarVentaActual = () => {
+        if (carrito.length === 0) return;
+        const nuevaVentaEspera = {
+          id: Date.now(),
+          hora: new Date().toLocaleTimeString('es-PE', { hour: '2-digit', minute: '2-digit' }),
+          items: [...carrito],
+          total: totalVenta,
+          cliente: clienteActual
+        };
+
+        const nuevaLista = [...ventasEnEspera, nuevaVentaEspera];
+        guardarVentasEnEsperaLS(nuevaLista);
+        setCarrito([]);
+        notificar('Venta puesta en espera ⏸️', 'info');
+      };
+
+      const recuperarVentaEspera = (index) => {
+        const v = ventasEnEspera[index];
+        if (!v) return;
+        setCarrito(v.items);
+        if (v.cliente) setClienteActual(v.cliente);
+        const nuevaLista = ventasEnEspera.filter((_, i) => i !== index);
+        guardarVentasEnEsperaLS(nuevaLista);
+        setModalVentasEspera(false);
+        notificar('Venta recuperada al carrito.', 'success');
+      };
+
+      const borrarVentaEspera = (index) => {
+        const nuevaLista = ventasEnEspera.filter((_, i) => i !== index);
+        guardarVentasEnEsperaLS(nuevaLista);
+        notificar('Venta en espera eliminada.', 'info');
+      };
+
+      // ==========================================
+      // CLIENTE & GESTIÓN DE CRÉDITOS
+      // ==========================================
+      const obtenerOCrearCliente = async (dni = '99999999') => {
+        const dniLimpio = dni.trim() || '99999999';
+        if (!sbClient || !bodegaId) {
+          const mock = { id: generarUUID(), bodega_id: bodegaId, dni: dniLimpio, nombre_completo: dniLimpio === '99999999' ? 'Desconocido' : `CLIENTE DNI ${dniLimpio}`, saldo_actual: 0 };
+          setClienteActual(mock);
+          return mock;
+        }
+
+        try {
+          const { data } = await sbClient
+            .from('clientes')
+            .select('*')
+            .eq('bodega_id', bodegaId)
+            .eq('dni', dniLimpio)
+            .maybeSingle();
+
+          if (data) {
+            setClienteActual(data);
+            return data;
+          }
+
+          const nuevo = {
+            bodega_id: bodegaId,
+            dni: dniLimpio,
+            nombre_completo: dniLimpio === '99999999' ? 'Desconocido' : `CLIENTE DNI ${dniLimpio}`,
+            saldo_actual: 0.00
+          };
+
+          const { data: creado } = await sbClient
+            .from('clientes')
+            .insert([nuevo])
+            .select()
+            .single();
+
+          setClienteActual(creado || nuevo);
+          return creado || nuevo;
+        } catch (err) {
+          console.warn(err);
+        }
+      };
+
+      const handleGuardarNuevoCliente = async (e) => {
+        e.preventDefault();
+        const { dni, nombre, limiteCredito } = formCliente;
+        if (!dni.trim() || !nombre.trim()) {
+          notificar('DNI y Nombre son obligatorios.', 'error');
+          return;
+        }
+
+        try {
+          if (sbClient) {
+            const { data, error } = await sbClient
+              .from('clientes')
+              .insert([{
+                bodega_id: bodegaId,
+                dni: dni.trim(),
+                nombre_completo: nombre.trim(),
+                saldo_actual: 0.00
+              }])
+              .select()
+              .single();
+
+            if (error) throw error;
+            setClienteActual(data);
+            setDniCliente(data.dni);
+          } else {
+            const cLocal = { id: generarUUID(), bodega_id: bodegaId, dni: dni.trim(), nombre_completo: nombre.trim(), saldo_actual: 0 };
+            setClienteActual(cLocal);
+            setDniCliente(cLocal.dni);
+          }
+
+          setModalNuevoCliente(false);
+          setFormCliente({ dni: '', nombre: '', telefono: '', correo: '', limiteCredito: '300.00' });
+          notificar(`¡Cliente "${nombre}" registrado con éxito!`, 'success');
+        } catch (err) {
+          notificar(`Error: ${err.message}`, 'error');
+        }
+      };
+
+      // Cargar deudores
+      const abrirModuloCobroDeudas = async () => {
+        setModalCobrarDeudas(true);
+        if (sbClient && bodegaId) {
+          try {
+            const { data } = await sbClient
+              .from('clientes')
+              .select('*')
+              .eq('bodega_id', bodegaId)
+              .gt('saldo_actual', 0)
+              .order('saldo_actual', { ascending: false });
+
+            setClientesDeudores(data || []);
+          } catch (err) {
+            console.warn(err);
+          }
+        }
+      };
+
+      const procesarPagoDeudaCliente = async () => {
+        if (!deudorSeleccionado) return;
+        const abono = parseFloat(montoAbonoDeuda) || 0;
+        if (abono <= 0) {
+          notificar('Ingresa un monto de abono mayor a 0.', 'error');
+          return;
+        }
+
+        const saldoAnterior = Number(deudorSeleccionado.saldo_actual) || 0;
+        const nuevoSaldo = Math.max(0, +(saldoAnterior - abono).toFixed(2));
+
+        if (sbClient) {
+          try {
+            await sbClient
+              .from('clientes')
+              .update({ saldo_actual: nuevoSaldo })
+              .eq('id', deudorSeleccionado.id);
+          } catch (err) {
+            console.error(err);
+          }
+        }
+
+        // Lanzar Confeti 🎉
+        confetti({ particleCount: 120, spread: 70, origin: { y: 0.6 } });
+
+        notificar(`¡Pago de S/ ${abono.toFixed(2)} registrado! Saldo restante: S/ ${nuevoSaldo.toFixed(2)}`, 'success');
+        setMontoAbonoDeuda('');
+        setDeudorSeleccionado(null);
+        abrirModuloCobroDeudas();
+      };
+
+      // ==========================================
+      // NUEVO PRODUCTO (CATÁLOGO)
+      // ==========================================
+      const handleCrearNuevoProducto = async (e) => {
+        e.preventDefault();
+        const { descripcion, precio_venta, precio_costo, cod_ean, categoria, unidad } = formProducto;
+        if (!descripcion.trim() || !precio_venta) {
+          notificar('Descripción y Precio de Venta son obligatorios.', 'error');
+          return;
+        }
+
+        try {
+          const payload = {
+            bodega_id: bodegaId,
+            descripcion: descripcion.trim(),
+            cod_ean: cod_ean.trim() || null,
+            precio_costo: Number(precio_costo) || 0,
+            precio_venta: Number(precio_venta) || 0,
+            categoria: categoria.trim() || 'General'
+          };
+
+          if (sbClient) {
+            const { error } = await sbClient.from('productos').insert([payload]);
+            if (error) throw error;
+          }
+
+          setModalNuevoProducto(false);
+          setFormProducto({ cod_ean: '', descripcion: '', precio_costo: '', precio_venta: '', categoria: 'Abarrotes', unidad: 'UND' });
+          cargarProductos();
+          notificar(`¡Producto "${descripcion}" guardado en el catálogo!`, 'success');
+        } catch (err) {
+          notificar(`Error: ${err.message}`, 'error');
+        }
+      };
+
+      // ==========================================
+      // ENTRADA DE MERCADERÍA (COMPRAS)
+      // ==========================================
+      const agregarItemEntradaMercaderia = () => {
+        const prod = productos.find(p => p.id === compraItemTemp.productoId);
+        if (!prod || !compraItemTemp.costoUnitario) {
+          notificar('Selecciona producto y costo unitario.', 'error');
+          return;
+        }
+        const cant = Number(compraItemTemp.cantidad) || 1;
+        const costo = Number(compraItemTemp.costoUnitario) || 0;
+        const sub = +(cant * costo).toFixed(2);
+
+        setCompraItems(prev => [
+          ...prev,
+          {
+            productoId: prod.id,
+            descripcion: prod.descripcion,
+            cantidad: cant,
+            costoUnitario: costo,
+            subtotal: sub
+          }
+        ]);
+        setCompraItemTemp({ productoId: '', cantidad: 1, costoUnitario: '' });
+      };
+
+      const guardarEntradaMercaderia = async () => {
+        if (compraItems.length === 0) {
+          notificar('Agrega productos a la compra.', 'error');
+          return;
+        }
+        const totalCompra = compraItems.reduce((acc, i) => acc + i.subtotal, 0);
+
+        try {
+          if (sbClient) {
+            const { data: cData, error: cErr } = await sbClient
+              .from('compras')
+              .insert([{
+                bodega_id: bodegaId,
+                cajero_id: cajeroSeleccionado?.id,
+                nro_comprobante: compraCabecera.nroComprobante || `COMP-${Date.now().toString().slice(-6)}`,
+                total_compra: totalCompra,
+                fecha: new Date().toISOString()
+              }])
+              .select()
+              .single();
+
+            if (!cErr && cData) {
+              const detalles = compraItems.map(item => ({
+                compra_id: cData.id,
+                producto_id: item.productoId,
+                cantidad: item.cantidad,
+                costo_unitario: item.costoUnitario,
+                subtotal: item.subtotal
+              }));
+              await sbClient.from('compras_detalle').insert(detalles);
+
+              // Actualizar precio de costo en productos
+              for (const it of compraItems) {
+                await sbClient
+                  .from('productos')
+                  .update({ precio_costo: it.costoUnitario })
+                  .eq('id', it.productoId);
+              }
+            }
+          }
+
+          setModalEntradaMercaderia(false);
+          setCompraItems([]);
+          cargarProductos();
+          notificar(`¡Entrada de mercadería por S/ ${totalCompra.toFixed(2)} registrada!`, 'success');
+        } catch (err) {
+          notificar(`Error: ${err.message}`, 'error');
+        }
+      };
+
+      // ==========================================
+      // HISTORIAL DE VENTAS DEL DÍA & ANULACIÓN
+      // ==========================================
+      const abrirHistorialDelDia = async () => {
+        setModalHistorial(true);
+        setCargandoHistorial(true);
+        if (sbClient && bodegaId) {
+          try {
+            const hoy = new Date();
+            hoy.setHours(0, 0, 0, 0);
+
+            const { data } = await sbClient
+              .from('ventas')
+              .select('*, clientes(nombre_completo), ventas_detalle(*, productos(descripcion))')
+              .eq('bodega_id', bodegaId)
+              .gte('created_at', hoy.toISOString())
+              .order('created_at', { ascending: false });
+
+            setVentasDelDia(data || []);
+          } catch (err) {
+            console.warn(err);
+          } finally {
+            setCargandoHistorial(false);
+          }
+        } else {
+          setCargandoHistorial(false);
+        }
+      };
+
+      const anularVentaHoy = async (ventaId, nroBoleta) => {
+        if (!confirm(`¿Estás seguro de ANULAR la boleta ${nroBoleta}? Esta acción es permanente.`)) return;
+
+        try {
+          if (sbClient) {
+            await sbClient.from('ventas').delete().eq('id', ventaId);
+          }
+          setVentasDelDia(prev => prev.filter(v => v.id !== ventaId));
+          notificar(`Boleta ${nroBoleta} anulada correctamente.`, 'info');
+        } catch (err) {
+          notificar(`Error al anular: ${err.message}`, 'error');
+        }
+      };
+
+      // ==========================================
+      // ARQUEO Y CIERRE DE CAJA
+      // ==========================================
+      const handleCierreConArqueo = async () => {
+        if (!turnoActivo) return;
+        const montoReal = parseFloat(montoConteoEfectivo) || 0;
+        const montoIni = Number(turnoActivo.monto_inicial) || 0;
+
+        // Calcular ventas en efectivo del turno
+        let ventasEfectivo = 0;
+        if (sbClient) {
+          const { data: vts } = await sbClient
+            .from('ventas')
+            .select('total_venta')
+            .eq('turno_caja_id', turnoActivo.id)
+            .eq('medio_pago', 'EFECTIVO');
+
+          ventasEfectivo = (vts || []).reduce((acc, v) => acc + Number(v.total_venta), 0);
+        }
+
+        const esperado = +(montoIni + ventasEfectivo).toFixed(2);
+        const dif = +(montoReal - esperado).toFixed(2);
+
+        if (sbClient) {
+          try {
+            await sbClient
+              .from('turnos_caja')
+              .update({
+                fecha_cierre: new Date().toISOString(),
+                monto_final_real: montoReal,
+                ventas_sistema: ventasEfectivo,
+                diferencia: dif,
+                estado: 'cerrado'
+              })
+              .eq('id', turnoActivo.id);
+          } catch (err) {
+            console.error(err);
+          }
+        }
+
+        setResumenCierre({
+          inicio: montoIni,
+          ventas: ventasEfectivo,
+          esperado,
+          real: montoReal,
+          diferencia: dif
+        });
+
+        setModalCierreCaja(false);
+        setTurnoActivo(null);
+        setMontoConteoEfectivo('');
+      };
+
+      // Turno activo check
+      const verificarTurno = async () => {
+        if (!sbClient || !bodegaId) return;
+        try {
+          const { data } = await sbClient
+            .from('turnos_caja')
+            .select('*')
+            .eq('bodega_id', bodegaId)
+            .or('estado.ilike.%abierto%,estado.ilike.%open%,estado.ilike.%activo%')
+            .order('fecha_apertura', { ascending: false })
+            .limit(1)
+            .maybeSingle();
+
+          if (data) setTurnoActivo(data);
+        } catch (err) {
+          console.warn(err);
+        }
+      };
+
+      // Abrir turno
+      const handleAbrirTurno = async () => {
+        const monto = parseFloat(montoApertura) || 0;
+        const cajeroFinal = cajeroSeleccionado || listaCajeros[0];
+
+        if (!cajeroFinal || !cajeroFinal.id) {
+          notificar('Selecciona un cajero.', 'error');
+          return;
+        }
+
+        if (sbClient) {
+          try {
+            let { data, error } = await sbClient
+              .from('turnos_caja')
+              .insert([{
+                bodega_id: bodegaId,
+                cajero_id: cajeroFinal.id,
+                monto_inicial: monto,
+                fecha_apertura: new Date().toISOString(),
+                ventas_sistema: 0.00
+              }])
+              .select()
+              .single();
+
+            if (data) {
+              setTurnoActivo(data);
+              setModalTurno(false);
+              notificar(`Turno abierto con: ${cajeroFinal.nombre}`, 'success');
+              return;
+            }
+          } catch (err) {
+            console.warn(err);
+          }
+        }
+
+        setTurnoActivo({ id: generarUUID(), bodega_id: bodegaId, cajero_id: cajeroFinal.id, monto_inicial: monto, estado: 'abierto', fecha_apertura: new Date().toISOString() });
+        setModalTurno(false);
+        notificar('Turno abierto.', 'info');
+      };
+
+      // Cobrar venta
+      const handleCobrar = async () => {
+        if (carrito.length === 0) {
+          notificar('El carrito está vacío.', 'error');
+          return;
+        }
+        if (medioPago === 'EFECTIVO' && montoRecibido && parseFloat(montoRecibido) < totalVenta) {
+          notificar('Monto recibido insuficiente.', 'error');
+          return;
+        }
+
+        // Validación de crédito
+        if (medioPago === 'CREDITO') {
+          if (!clienteActual || clienteActual.dni === '99999999') {
+            notificar('Para vender a crédito debes seleccionar un cliente registrado.', 'error');
+            setModalNuevoCliente(true);
+            return;
+          }
+        }
+
+        setProcesandoVenta(true);
+        const correlativo = `B001-${String(Date.now()).slice(-8)}`;
+
+        try {
+          if (sbClient) {
+            const idTurnoReal = turnoActivo?.id;
+            const cajeroFinal = cajeroSeleccionado || listaCajeros[0];
+
+            let idClienteReal = clienteActual?.id;
+            const payloadVenta = {
+              bodega_id: bodegaId,
+              turno_caja_id: idTurnoReal || null,
+              cajero_id: cajeroFinal?.id,
+              cliente_id: idClienteReal || null,
+              nro_boleta: correlativo,
+              medio_pago: medioPago,
+              total_venta: totalVenta
+            };
+
+            const { data: vCreada, error: vErr } = await sbClient
+              .from('ventas')
+              .insert([payloadVenta])
+              .select()
+              .single();
+
+            if (vErr) throw vErr;
+
+            const payloadDetalles = carrito.map(item => ({
+              venta_id: vCreada.id,
+              producto_id: typeof item.productoId === 'string' && item.productoId.length > 10 ? item.productoId : null,
+              cantidad: Number(item.cantidad),
+              precio_unitario: Number(item.precioUnitario),
+              subtotal: Number(item.subtotal)
+            }));
+
+            await sbClient.from('ventas_detalle').insert(payloadDetalles);
+
+            // Si es crédito, actualizar saldo
+            if (medioPago === 'CREDITO' && idClienteReal) {
+              const saldoAct = Number(clienteActual.saldo_actual) || 0;
+              await sbClient
+                .from('clientes')
+                .update({ saldo_actual: +(saldoAct + totalVenta).toFixed(2) })
+                .eq('id', idClienteReal);
+            }
+          }
+
+          const resultado = {
+            nro_boleta: correlativo,
+            medio_pago: medioPago,
+            total_venta: totalVenta,
+            items: [...carrito],
+            cliente: clienteActual?.nombre_completo || 'Desconocido',
+            cajero: cajeroSeleccionado?.nombre || usuarioActivo?.nombre || 'Cajero',
+            fecha: new Date().toLocaleTimeString()
+          };
+
+          setVentaCompletada(resultado);
+          setCarrito([]);
+          setMontoRecibido('');
+          notificar(`¡Venta completada! Boleta: ${correlativo}`, 'success');
+        } catch (err) {
+          notificar(`Error al registrar venta: ${err.message}`, 'error');
+        } finally {
+          setProcesandoVenta(false);
+        }
+      };
+
+      // =========================================================================
+      // VISTA 1: AUTH (LOGIN / REGISTRO)
+      // =========================================================================
+      if (!sesion) {
+        return (
+          <div className="flex flex-col items-center justify-center min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-indigo-950 text-slate-100 p-4 select-none">
+            {toast.visible && (
+              <div className={`fixed top-6 right-6 z-50 px-4 py-2.5 rounded-lg shadow-2xl text-xs font-semibold border transition-all animate-bounce ${toast.tipo === 'error' ? 'bg-rose-900 text-rose-100 border-rose-500' : 'bg-emerald-900 text-emerald-100 border-emerald-500'}`}>
+                {toast.texto}
+              </div>
+            )}
+
+            <div className="max-w-md w-full bg-slate-850/90 border border-slate-700/80 rounded-3xl p-6 md:p-8 shadow-2xl backdrop-blur-md space-y-6">
+              <div className="text-center space-y-2">
+                <div className="inline-flex items-center justify-center w-14 h-14 bg-emerald-600 rounded-2xl shadow-lg text-white text-2xl font-black mb-1">
+                  POS
+                </div>
+                <h1 className="text-2xl font-black tracking-tight text-white">Bodeguita SmartPOS</h1>
+                <p className="text-xs text-slate-400">Punto de Venta Multi-Tienda & Inventario</p>
+              </div>
+
+              <div className="flex bg-slate-900/90 p-1 rounded-xl border border-slate-750">
+                <button
+                  type="button"
+                  onClick={() => setAuthTab('login')}
+                  className={`flex-1 py-2 text-xs font-bold rounded-lg transition ${authTab === 'login' ? 'bg-emerald-600 text-white shadow-md' : 'text-slate-400 hover:text-slate-200'}`}
+                >
+                  🔑 Iniciar Sesión
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setAuthTab('register')}
+                  className={`flex-1 py-2 text-xs font-bold rounded-lg transition ${authTab === 'register' ? 'bg-indigo-600 text-white shadow-md' : 'text-slate-400 hover:text-slate-200'}`}
+                >
+                  🏪 Crear Bodega
+                </button>
+              </div>
+
+              {authTab === 'login' && (
+                <form onSubmit={async (e) => {
+                  e.preventDefault();
+                  setCargandoAuth(true);
+                  try {
+                    const { data: usuario } = await sbClient.from('usuarios').select('*').eq('dni', formLogin.dni.trim()).eq('pin_acceso', formLogin.pin.trim()).single();
+                    if (!usuario) throw new Error('DNI o PIN incorrecto.');
+                    const { data: bodega } = await sbClient.from('bodegas').select('*').eq('id', usuario.bodega_id).single();
+                    guardarSesion({ usuario, bodega: bodega || { id: usuario.bodega_id, nombre: 'Mi Bodega' } });
+                    notificar(`¡Bienvenido ${usuario.nombre}!`, 'success');
+                  } catch (err) {
+                    notificar(err.message, 'error');
+                  } finally {
+                    setCargandoAuth(false);
+                  }
+                }} className="space-y-4">
+                  <div>
+                    <label className="text-xs font-semibold text-slate-300 block mb-1">DNI del Usuario:</label>
+                    <input
+                      type="text"
+                      required
+                      maxLength={8}
+                      placeholder="8 dígitos"
+                      value={formLogin.dni}
+                      onChange={(e) => setFormLogin({ ...formLogin, dni: e.target.value })}
+                      className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3.5 py-2.5 text-sm text-white focus:outline-none focus:border-emerald-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-xs font-semibold text-slate-300 block mb-1">PIN de Acceso:</label>
+                    <input
+                      type="password"
+                      required
+                      maxLength={6}
+                      placeholder="••••"
+                      value={formLogin.pin}
+                      onChange={(e) => setFormLogin({ ...formLogin, pin: e.target.value })}
+                      className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3.5 py-2.5 text-sm text-white tracking-widest focus:outline-none focus:border-emerald-500"
+                    />
+                  </div>
+                  <button
+                    type="submit"
+                    disabled={cargandoAuth}
+                    className="w-full py-3.5 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black text-sm uppercase rounded-xl transition shadow-lg disabled:opacity-50"
+                  >
+                    {cargandoAuth ? 'Verificando...' : '⚡ Ingresar a Caja'}
+                  </button>
+                </form>
+              )}
+
+              {authTab === 'register' && (
+                <form onSubmit={async (e) => {
+                  e.preventDefault();
+                  setCargandoAuth(true);
+                  try {
+                    const { data: bCreada } = await sbClient.from('bodegas').insert([{ nombre: formRegistro.nombreBodega.trim() }]).select().single();
+                    const { data: uCreado } = await sbClient.from('usuarios').insert([{ bodega_id: bCreada.id, nombre: formRegistro.nombreDueno.trim(), dni: formRegistro.dni.trim(), pin_acceso: formRegistro.pin.trim(), rol: 'dueno', activo: true }]).select().single();
+                    await sbClient.from('cajeros').insert([{ bodega_id: bCreada.id, nombre: formRegistro.nombreDueno.trim(), dni: formRegistro.dni.trim(), rol: 'dueno', activo: true }]);
+                    await sbClient.from('clientes').insert([{ bodega_id: bCreada.id, dni: '99999999', nombre_completo: 'Desconocido', saldo_actual: 0 }]);
+                    const prods = PRODUCTOS_SEMILLA.map(p => ({ ...p, bodega_id: bCreada.id }));
+                    await sbClient.from('productos').insert(prods);
+                    guardarSesion({ usuario: uCreado, bodega: bCreada });
+                    notificar(`¡Bodega creada con éxito!`, 'success');
+                  } catch (err) {
+                    notificar(err.message, 'error');
+                  } finally {
+                    setCargandoAuth(false);
+                  }
+                }} className="space-y-3">
+                  <div>
+                    <label className="text-xs font-semibold text-slate-300 block mb-1">Nombre de Bodega:</label>
+                    <input
+                      type="text"
+                      required
+                      placeholder="Ej: Bodega Don Pepe"
+                      value={formRegistro.nombreBodega}
+                      onChange={(e) => setFormRegistro({ ...formRegistro, nombreBodega: e.target.value })}
+                      className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-1.5 text-xs text-white focus:outline-none focus:border-indigo-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-xs font-semibold text-slate-300 block mb-1">Dueño:</label>
+                    <input
+                      type="text"
+                      required
+                      placeholder="Ej: Juan Pérez"
+                      value={formRegistro.nombreDueno}
+                      onChange={(e) => setFormRegistro({ ...formRegistro, nombreDueno: e.target.value })}
+                      className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-1.5 text-xs text-white focus:outline-none focus:border-indigo-500"
+                    />
+                  </div>
+                  <div className="grid grid-cols-2 gap-2">
+                    <div>
+                      <label className="text-xs font-semibold text-slate-300 block mb-1">DNI:</label>
+                      <input
+                        type="text"
+                        required
+                        maxLength={8}
+                        value={formRegistro.dni}
+                        onChange={(e) => setFormRegistro({ ...formRegistro, dni: e.target.value })}
+                        className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-1.5 text-xs text-white focus:outline-none focus:border-indigo-500"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-xs font-semibold text-slate-300 block mb-1">PIN:</label>
+                      <input
+                        type="password"
+                        required
+                        maxLength={6}
+                        value={formRegistro.pin}
+                        onChange={(e) => setFormRegistro({ ...formRegistro, pin: e.target.value })}
+                        className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-1.5 text-xs text-white tracking-widest focus:outline-none focus:border-indigo-500"
+                      />
+                    </div>
+                  </div>
+                  <button
+                    type="submit"
+                    disabled={cargandoAuth}
+                    className="w-full py-3 bg-indigo-600 hover:bg-indigo-500 text-white font-black text-xs uppercase rounded-xl transition shadow-lg disabled:opacity-50"
+                  >
+                    🚀 Crear Bodega y Entrar
+                  </button>
+                </form>
+              )}
+
+              <div className="pt-2 border-t border-slate-750 flex items-center justify-between text-xs">
+                <button type="button" onClick={() => {
+                  const demoB = 'a0000000-0000-0000-0000-000000000001';
+                  const demoU = { id: 'c0000000-0000-0000-0000-000000000001', bodega_id: demoB, nombre: 'Dueño Demo', dni: '12345678', rol: 'dueno', activo: true };
+                  setListaCajeros([demoU]);
+                  setCajeroSeleccionado(demoU);
+                  guardarSesion({ usuario: demoU, bodega: { id: demoB, nombre: 'Bodega Demo' } });
+                }} className="text-slate-400 hover:text-amber-400">
+                  ⚡ Modo Demo Local
+                </button>
+                <button type="button" onClick={() => setModalConfig(true)} className="text-slate-400 hover:text-slate-200">
+                  ⚙️ Config Supabase
+                </button>
+              </div>
+            </div>
+          </div>
+        );
+      }
+
+      // =========================================================================
+      // VISTA 2: POS INTERFACE COMPLETO
+      // =========================================================================
+      return (
+        <div className="flex flex-col h-screen bg-slate-900 text-slate-100 font-sans select-none">
+          {/* Header Superior */}
+          <header className="flex items-center justify-between px-5 py-2.5 bg-slate-800 border-b border-slate-700 shadow-md">
+            <div className="flex items-center gap-4">
+              <div className="flex items-center gap-2">
+                <span className="px-2.5 py-1 bg-emerald-600 rounded-lg text-white font-black text-lg tracking-wider shadow">
+                  POS
+                </span>
+                <div>
+                  <h1 className="text-base font-bold tracking-tight text-white leading-tight">
+                    {bodegaNombre}
+                  </h1>
+                  <div className="flex items-center gap-2">
+                    <span className="text-[11px] text-slate-400">Cajero en Turno:</span>
+                    <span className="text-xs font-bold text-emerald-400 bg-emerald-950/60 px-2 py-0.5 rounded border border-emerald-800/50">
+                      👤 {cajeroSeleccionado?.nombre || usuarioActivo?.nombre}
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Botón de Menú Rápido "Más Módulos" */}
+              <div className="relative">
+                <button
+                  onClick={() => setMenuMas(!menuMas)}
+                  className="px-3 py-1.5 bg-slate-700 hover:bg-slate-650 text-slate-200 text-xs font-bold rounded-lg border border-slate-600 flex items-center gap-1.5 transition"
+                >
+                  📑 Módulos <span className="text-[10px]">▼</span>
+                </button>
+
+                {menuMas && (
+                  <div className="absolute left-0 mt-1.5 w-52 bg-slate-850 border border-slate-700 rounded-xl shadow-2xl py-1.5 z-50 text-xs space-y-0.5">
+                    <button
+                      onClick={() => { setModalNuevoProducto(true); setMenuMas(false); }}
+                      className="w-full text-left px-3.5 py-2 hover:bg-slate-750 flex items-center gap-2 text-slate-200 font-medium"
+                    >
+                      📦 + Nuevo Producto
+                    </button>
+                    <button
+                      onClick={() => { setModalEntradaMercaderia(true); setMenuMas(false); }}
+                      className="w-full text-left px-3.5 py-2 hover:bg-slate-750 flex items-center gap-2 text-slate-200 font-medium"
+                    >
+                      📥 Entrada Mercadería
+                    </button>
+                    <button
+                      onClick={() => { abrirModuloCobroDeudas(); setMenuMas(false); }}
+                      className="w-full text-left px-3.5 py-2 hover:bg-slate-750 flex items-center gap-2 text-amber-400 font-semibold"
+                    >
+                      💳 Cuentas por Cobrar (Fiados)
+                    </button>
+                    <button
+                      onClick={() => { abrirHistorialDelDia(); setMenuMas(false); }}
+                      className="w-full text-left px-3.5 py-2 hover:bg-slate-750 flex items-center gap-2 text-slate-200 font-medium"
+                    >
+                      📜 Historial de Ventas Hoy
+                    </button>
+                    <div className="border-t border-slate-750 my-1"></div>
+                    <button
+                      onClick={() => { setModalNuevoCliente(true); setMenuMas(false); }}
+                      className="w-full text-left px-3.5 py-2 hover:bg-slate-750 flex items-center gap-2 text-slate-300 font-medium"
+                    >
+                      👤 + Registrar Cliente
+                    </button>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Opciones Derecha: Turno & Salir */}
+            <div className="flex items-center gap-3">
+              {turnoActivo ? (
+                <div className="flex items-center gap-2">
+                  <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+                    <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+                    Turno Abierto
+                  </span>
+                  <button
+                    onClick={() => setModalCierreCaja(true)}
+                    className="px-3 py-1.5 text-xs font-semibold bg-rose-700 hover:bg-rose-600 text-white rounded transition shadow-sm"
+                  >
+                    🔒 Cerrar Caja
+                  </button>
+                </div>
+              ) : (
+                <div className="flex items-center gap-2">
+                  <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-amber-500/20 text-amber-300 border border-amber-500/30">
+                    <span className="w-2 h-2 rounded-full bg-amber-400"></span>
+                    Caja Cerrada
+                  </span>
+                  <button
+                    onClick={() => setModalTurno(true)}
+                    className="px-3 py-1.5 text-xs font-bold bg-emerald-600 hover:bg-emerald-500 text-white rounded transition shadow flex items-center gap-1"
+                  >
+                    ⚡ Abrir Turno
+                  </button>
+                </div>
+              )}
+
+              <button
+                onClick={cerrarSesion}
+                className="px-2.5 py-1.5 bg-slate-700 hover:bg-slate-650 text-slate-300 hover:text-white text-xs font-medium rounded-md border border-slate-600 transition flex items-center gap-1"
+              >
+                🚪 Salir
+              </button>
+            </div>
+          </header>
+
+          {/* Toast */}
+          {toast.visible && (
+            <div className={`fixed top-14 right-6 z-50 px-4 py-2.5 rounded-lg shadow-2xl text-xs font-semibold border transition-all animate-bounce ${toast.tipo === 'error' ? 'bg-rose-900 text-rose-100 border-rose-500' : 'bg-emerald-900 text-emerald-100 border-emerald-500'}`}>
+              {toast.texto}
+            </div>
+          )}
+
+          {/* Layout Principal */}
+          <div className="flex flex-1 overflow-hidden">
+            {/* Catálogo y Búsqueda */}
+            <section className="flex-1 flex flex-col border-r border-slate-800 bg-slate-900/60 p-4 gap-3 overflow-hidden">
+              <div className="flex gap-2">
+                <div className="relative flex-1">
+                  <input
+                    ref={inputBusquedaRef}
+                    type="text"
+                    value={busqueda}
+                    onChange={(e) => setBusqueda(e.target.value)}
+                    onKeyDown={handleKeyDownBusqueda}
+                    placeholder="Escanear Código EAN o buscar producto (Enter para agregar)..."
+                    className="w-full bg-slate-800 border border-slate-700 text-white placeholder-slate-400 text-sm rounded-lg pl-10 pr-4 py-2.5 focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition shadow-inner"
+                    autoFocus
+                  />
+                  <span className="absolute left-3.5 top-2.5 text-slate-400 text-sm">🔍</span>
+                </div>
+                <button
+                  onClick={() => cargarProductos(busqueda)}
+                  className="px-4 py-2.5 bg-slate-800 hover:bg-slate-750 text-slate-200 text-xs font-bold rounded-lg border border-slate-700 transition"
+                >
+                  Buscar
+                </button>
+                {busqueda && (
+                  <button
+                    onClick={() => {
+                      setBusqueda('');
+                      cargarProductos('');
+                    }}
+                    className="px-3 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-400 text-xs rounded-lg border border-slate-700"
+                  >
+                    ✕
+                  </button>
+                )}
+              </div>
+
+              {/* Categorías */}
+              <div className="flex gap-1.5 overflow-x-auto pb-1 text-xs">
+                {categorias.map(cat => (
+                  <button
+                    key={cat}
+                    onClick={() => setCategoriaFiltro(cat)}
+                    className={`px-3 py-1 rounded-full whitespace-nowrap font-medium transition ${categoriaFiltro === cat ? 'bg-emerald-600 text-white font-bold shadow' : 'bg-slate-800 text-slate-400 hover:bg-slate-750 border border-slate-750'}`}
+                  >
+                    {cat}
+                  </button>
+                ))}
+              </div>
+
+              {/* Grilla de Productos */}
+              <div className="flex-1 overflow-y-auto pr-1">
+                {cargandoProductos ? (
+                  <div className="flex flex-col items-center justify-center h-48 text-slate-400 gap-2">
+                    <div className="w-8 h-8 border-4 border-emerald-500 border-t-transparent rounded-full animate-spin"></div>
+                    <p className="text-xs">Cargando productos...</p>
+                  </div>
+                ) : productosFiltrados.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center h-48 text-slate-500 text-center">
+                    <p className="text-base font-semibold">No se encontraron productos</p>
+                    <p className="text-xs text-slate-600 mt-1">Usa el menú "Más" para registrar nuevos productos.</p>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2.5">
+                    {productosFiltrados.map((prod) => (
+                      <button
+                        key={prod.id}
+                        onClick={() => handleClicProducto(prod)}
+                        className="flex flex-col justify-between text-left p-3 bg-slate-800/90 hover:bg-slate-750 hover:border-emerald-500/80 border border-slate-700/80 rounded-xl transition duration-150 shadow-sm active:scale-95 group"
+                      >
+                        <div>
+                          <div className="flex justify-between items-center">
+                            <span className="text-[9px] font-mono text-emerald-400 bg-emerald-950/70 px-1.5 py-0.5 rounded border border-emerald-800/50">
+                              {prod.cod_ean || 'EAN'}
+                            </span>
+                            <span className="text-[9px] font-bold text-slate-400 uppercase">
+                              {prod.unidad || 'UND'}
+                            </span>
+                          </div>
+                          <h3 className="text-xs font-semibold text-slate-200 mt-1.5 line-clamp-2 group-hover:text-white leading-snug">
+                            {prod.descripcion}
+                          </h3>
+                        </div>
+                        <div className="mt-2.5 pt-1.5 border-t border-slate-700/50 flex items-center justify-between w-full">
+                          <span className="text-[10px] text-slate-400">Precio</span>
+                          <span className="text-sm font-black text-emerald-400">
+                            S/ {Number(prod.precio_venta).toFixed(2)}
+                          </span>
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </section>
+
+            {/* Carrito, Cliente y Cobro */}
+            <section className="w-[430px] lg:w-[460px] flex flex-col bg-slate-850 border-l border-slate-700 shadow-2xl">
+              {/* Cliente Selector */}
+              <div className="p-3 bg-slate-800 border-b border-slate-700">
+                <div className="flex items-center gap-2">
+                  <span className="text-[11px] text-slate-400 font-bold uppercase tracking-wider">Cliente:</span>
+                  <input
+                    type="text"
+                    value={dniCliente}
+                    onChange={(e) => setDniCliente(e.target.value)}
+                    onKeyDown={(e) => e.key === 'Enter' && obtenerOCrearCliente(dniCliente)}
+                    placeholder="DNI / RUC"
+                    className="w-24 bg-slate-900 border border-slate-700 text-xs text-white px-2 py-1 rounded focus:outline-none focus:border-emerald-500"
+                  />
+                  <button
+                    onClick={() => obtenerOCrearCliente(dniCliente)}
+                    className="px-2.5 py-1 text-xs bg-slate-700 hover:bg-slate-600 text-white rounded font-medium transition"
+                  >
+                    Buscar
+                  </button>
+                  <button
+                    onClick={() => setModalNuevoCliente(true)}
+                    className="text-[10px] text-emerald-400 hover:underline ml-auto"
+                  >
+                    + Nuevo Cliente
+                  </button>
+                </div>
+                {clienteActual && (
+                  <div className="mt-1.5 flex items-center justify-between text-xs text-slate-300">
+                    <span className="font-semibold truncate max-w-[240px]">
+                      👤 {clienteActual.nombre_completo}
+                    </span>
+                    {clienteActual.saldo_actual > 0 && (
+                      <span className="text-[11px] text-rose-400 font-bold">
+                        Deuda: S/ {Number(clienteActual.saldo_actual).toFixed(2)}
+                      </span>
+                    )}
+                  </div>
+                )}
+              </div>
+
+              {/* Encabezado Carrito & Ventas en Espera */}
+              <div className="flex items-center justify-between px-3 py-2 bg-slate-800/60 border-b border-slate-700">
+                <span className="text-xs font-bold text-slate-300 uppercase tracking-wider">
+                  Carrito ({carrito.reduce((a, c) => a + c.cantidad, 0)} ítems)
+                </span>
+                <div className="flex gap-2">
+                  {carrito.length > 0 && (
+                    <button
+                      onClick={aparcarVentaActual}
+                      className="text-[11px] text-amber-400 hover:text-amber-300 font-bold transition"
+                    >
+                      ⏸️ Pausar
+                    </button>
+                  )}
+                  {ventasEnEspera.length > 0 && (
+                    <button
+                      onClick={() => setModalVentasEspera(true)}
+                      className="text-[11px] text-indigo-400 hover:text-indigo-300 font-bold"
+                    >
+                      Recuperar ({ventasEnEspera.length})
+                    </button>
+                  )}
+                  {carrito.length > 0 && (
+                    <button
+                      onClick={() => setCarrito([])}
+                      className="text-[11px] text-rose-400 hover:text-rose-300 transition"
+                    >
+                      Vaciar
+                    </button>
+                  )}
+                </div>
+              </div>
+
+              {/* Lista Ítems */}
+              <div className="flex-1 overflow-y-auto p-2.5 space-y-1.5">
+                {carrito.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center h-full text-slate-500 text-center p-4">
+                    <span className="text-3xl mb-1">🛒</span>
+                    <p className="text-xs font-semibold">Carrito vacío</p>
+                    <p className="text-[11px] text-slate-500 mt-0.5">
+                      Haz clic en un producto o escanea su código de barras.
+                    </p>
+                  </div>
+                ) : (
+                  carrito.map((item) => (
+                    <div
+                      key={item.productoId}
+                      className="flex items-center justify-between p-2 bg-slate-900/90 border border-slate-750 rounded-lg"
+                    >
+                      <div className="flex-1 pr-2 min-w-0">
+                        <p className="text-xs font-medium text-slate-200 truncate">
+                          {item.descripcion}
+                        </p>
+                        <p className="text-[10px] text-slate-400">
+                          S/ {item.precioUnitario.toFixed(2)} / {item.unidad || 'UND'}
+                        </p>
+                      </div>
+
+                      <div className="flex items-center gap-1 bg-slate-800 px-1 py-0.5 rounded border border-slate-700">
+                        <button
+                          onClick={() => cambiarCantidadCarrito(item.productoId, -1)}
+                          className="w-5 h-5 flex items-center justify-center text-xs font-bold text-slate-300 hover:bg-slate-700 rounded"
+                        >
+                          -
+                        </button>
+                        <span className="w-8 text-center text-xs font-bold text-emerald-400">
+                          {item.cantidad}
+                        </span>
+                        <button
+                          onClick={() => cambiarCantidadCarrito(item.productoId, 1)}
+                          className="w-5 h-5 flex items-center justify-center text-xs font-bold text-slate-300 hover:bg-slate-700 rounded"
+                        >
+                          +
+                        </button>
+                      </div>
+
+                      <div className="w-16 text-right pl-2">
+                        <span className="text-xs font-bold text-white block">
+                          S/ {item.subtotal.toFixed(2)}
+                        </span>
+                        <button
+                          onClick={() => eliminarItemCarrito(item.productoId)}
+                          className="text-[9px] text-rose-400 hover:text-rose-300"
+                        >
+                          Eliminar
+                        </button>
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+
+              {/* Panel Cobro */}
+              <div className="p-3.5 bg-slate-800 border-t border-slate-700 space-y-2.5">
+                <div>
+                  <div className="grid grid-cols-4 gap-1.5">
+                    {['EFECTIVO', 'YAPE', 'TARJETA', 'CREDITO'].map((metodo) => (
+                      <button
+                        key={metodo}
+                        onClick={() => setMedioPago(metodo)}
+                        className={`py-1.5 text-xs font-bold rounded-lg border transition ${
+                          medioPago === metodo
+                            ? metodo === 'CREDITO' ? 'bg-amber-600 border-amber-400 text-white shadow' : 'bg-emerald-600 border-emerald-400 text-white shadow'
+                            : 'bg-slate-900 border-slate-700 text-slate-400 hover:bg-slate-750'
+                        }`}
+                      >
+                        {metodo === 'CREDITO' ? '📝 CRÉDITO' : metodo}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {medioPago === 'EFECTIVO' && (
+                  <div className="grid grid-cols-2 gap-2 bg-slate-900 p-2 rounded-lg border border-slate-750">
+                    <div>
+                      <label className="text-[10px] text-slate-400 block">Paga con (S/):</label>
+                      <input
+                        type="number"
+                        step="0.50"
+                        value={montoRecibido}
+                        onChange={(e) => setMontoRecibido(e.target.value)}
+                        placeholder="0.00"
+                        className="w-full bg-slate-800 border border-slate-700 rounded px-2 py-0.5 text-xs font-bold text-white focus:outline-none focus:border-emerald-500"
+                      />
+                    </div>
+                    <div className="text-right">
+                      <span className="text-[10px] text-slate-400 block">Vuelto:</span>
+                      <span className={`text-sm font-black ${vuelto < 0 ? 'text-rose-400' : 'text-emerald-400'}`}>
+                        S/ {vuelto > 0 ? vuelto.toFixed(2) : '0.00'}
+                      </span>
+                    </div>
+                  </div>
+                )}
+
+                <div className="flex items-center justify-between pt-0.5">
+                  <span className="text-xs font-bold text-slate-300 uppercase tracking-wider">
+                    Total a Cobrar:
+                  </span>
+                  <span className="text-2xl font-black text-emerald-400">
+                    S/ {totalVenta.toFixed(2)}
+                  </span>
+                </div>
+
+                <button
+                  onClick={handleCobrar}
+                  disabled={procesandoVenta || carrito.length === 0 || !turnoActivo}
+                  className={`w-full py-3.5 rounded-xl font-black text-sm tracking-wider transition uppercase shadow-lg ${
+                    !turnoActivo
+                      ? 'bg-slate-700 text-slate-500 cursor-not-allowed'
+                      : procesandoVenta || carrito.length === 0
+                      ? 'bg-slate-750 text-slate-500 cursor-not-allowed border border-slate-700'
+                      : medioPago === 'CREDITO'
+                      ? 'bg-amber-500 hover:bg-amber-400 text-slate-950 active:scale-[0.98]'
+                      : 'bg-emerald-500 hover:bg-emerald-400 text-slate-950 active:scale-[0.98]'
+                  }`}
+                >
+                  {!turnoActivo ? '⚠️ Abre un Turno para Cobrar' : procesandoVenta ? 'Registrando Venta...' : medioPago === 'CREDITO' ? '📝 Registrar Venta a Crédito' : '⚡ Cobrar e Imprimir Boleta'}
+                </button>
+              </div>
+            </section>
+          </div>
+
+          {/* ========================================================================= */}
+          {/* MODALES ADICIONALES */}
+          {/* ========================================================================= */}
+
+          {/* Modal: Cantidad / Balanza para Peso KG */}
+          {modalCantidad && productoSeleccionadoCantidad && (
+            <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4">
+              <div className="bg-slate-800 border border-slate-700 rounded-2xl max-w-xs w-full p-5 shadow-2xl space-y-4 text-center">
+                <h3 className="text-sm font-bold text-white leading-tight">{productoSeleccionadoCantidad.descripcion}</h3>
+                <p className="text-xs text-slate-400">Ingresa la cantidad o peso en KG:</p>
+                <div className="flex items-center justify-center gap-2">
+                  <input
+                    type="number"
+                    step="0.005"
+                    min="0.001"
+                    value={inputCantidad}
+                    onChange={(e) => setInputCantidad(e.target.value)}
+                    className="w-32 bg-slate-900 border border-slate-700 text-center font-mono font-bold text-xl text-emerald-400 p-2 rounded-xl focus:outline-none focus:border-emerald-500"
+                    autoFocus
+                  />
+                  <span className="text-sm font-bold text-slate-300">KG</span>
+                </div>
+                <div className="flex gap-2 pt-1">
+                  <button onClick={() => setModalCantidad(false)} className="flex-1 py-2 bg-slate-700 rounded-lg text-xs font-semibold">Cancelar</button>
+                  <button onClick={confirmarCantidadBalanza} className="flex-1 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-xs font-bold shadow">Aceptar</button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Modal: Nuevo Producto */}
+          {modalNuevoProducto && (
+            <div className="fixed inset-0 bg-black/85 flex items-center justify-center z-50 p-4">
+              <div className="bg-slate-800 border border-slate-700 rounded-2xl max-w-md w-full p-5 shadow-2xl space-y-3">
+                <div className="flex justify-between items-center">
+                  <h3 className="text-base font-bold text-white">📦 Registrar Nuevo Producto</h3>
+                  <button onClick={() => setModalNuevoProducto(false)} className="text-slate-400 hover:text-white">✕</button>
+                </div>
+                <form onSubmit={handleCrearNuevoProducto} className="space-y-2.5">
+                  <div>
+                    <label className="text-[11px] text-slate-400 block mb-1">Descripción / Nombre:</label>
+                    <input
+                      type="text"
+                      required
+                      placeholder="Ej: Galletas Oreo x 6"
+                      value={formProducto.descripcion}
+                      onChange={(e) => setFormProducto({ ...formProducto, descripcion: e.target.value })}
+                      className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-1.5 text-xs text-white"
+                    />
+                  </div>
+                  <div className="grid grid-cols-2 gap-2">
+                    <div>
+                      <label className="text-[11px] text-slate-400 block mb-1">Precio Venta (S/):</label>
+                      <input
+                        type="number"
+                        step="0.10"
+                        required
+                        placeholder="0.00"
+                        value={formProducto.precio_venta}
+                        onChange={(e) => setFormProducto({ ...formProducto, precio_venta: e.target.value })}
+                        className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-1.5 text-xs text-white"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-[11px] text-slate-400 block mb-1">Precio Costo (S/):</label>
+                      <input
+                        type="number"
+                        step="0.10"
+                        placeholder="0.00"
+                        value={formProducto.precio_costo}
+                        onChange={(e) => setFormProducto({ ...formProducto, precio_costo: e.target.value })}
+                        className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-1.5 text-xs text-white"
+                      />
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-2 gap-2">
+                    <div>
+                      <label className="text-[11px] text-slate-400 block mb-1">Código EAN / Barras:</label>
+                      <input
+                        type="text"
+                        placeholder="Opcional"
+                        value={formProducto.cod_ean}
+                        onChange={(e) => setFormProducto({ ...formProducto, cod_ean: e.target.value })}
+                        className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-1.5 text-xs text-white"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-[11px] text-slate-400 block mb-1">Unidad:</label>
+                      <select
+                        value={formProducto.unidad}
+                        onChange={(e) => setFormProducto({ ...formProducto, unidad: e.target.value })}
+                        className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-1.5 text-xs text-white"
+                      >
+                        <option value="UND">Unidad (UND)</option>
+                        <option value="KG">Kilogramo (KG)</option>
+                      </select>
+                    </div>
+                  </div>
+                  <button type="submit" className="w-full py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs rounded-xl shadow mt-2">
+                    Guardar Producto
+                  </button>
+                </form>
+              </div>
+            </div>
+          )}
+
+          {/* Modal: Entrada de Mercadería (Compras) */}
+          {modalEntradaMercaderia && (
+            <div className="fixed inset-0 bg-black/85 flex items-center justify-center z-50 p-4">
+              <div className="bg-slate-800 border border-slate-700 rounded-2xl max-w-lg w-full p-5 shadow-2xl space-y-3">
+                <div className="flex justify-between items-center">
+                  <h3 className="text-base font-bold text-white">📥 Entrada de Mercadería (Compras)</h3>
+                  <button onClick={() => setModalEntradaMercaderia(false)} className="text-slate-400 hover:text-white">✕</button>
+                </div>
+
+                <div className="grid grid-cols-2 gap-2">
+                  <input
+                    type="text"
+                    placeholder="Proveedor / Distribuidor"
+                    value={compraCabecera.proveedor}
+                    onChange={(e) => setCompraCabecera({ ...compraCabecera, proveedor: e.target.value })}
+                    className="bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1.5 text-xs text-white"
+                  />
+                  <input
+                    type="text"
+                    placeholder="N° Factura / Guía"
+                    value={compraCabecera.nroComprobante}
+                    onChange={(e) => setCompraCabecera({ ...compraCabecera, nroComprobante: e.target.value })}
+                    className="bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1.5 text-xs text-white"
+                  />
+                </div>
+
+                {/* Agregar Ítem */}
+                <div className="p-3 bg-slate-900 rounded-xl border border-slate-750 space-y-2">
+                  <span className="text-[11px] font-bold text-indigo-400 block">Agregar Producto a la Entrada:</span>
+                  <div className="grid grid-cols-3 gap-2">
+                    <select
+                      value={compraItemTemp.productoId}
+                      onChange={(e) => setCompraItemTemp({ ...compraItemTemp, productoId: e.target.value })}
+                      className="col-span-3 bg-slate-800 border border-slate-700 rounded-lg px-2.5 py-1.5 text-xs text-white"
+                    >
+                      <option value="">-- Seleccionar Producto --</option>
+                      {productos.map(p => (
+                        <option key={p.id} value={p.id}>{p.descripcion}</option>
+                      ))}
+                    </select>
+                    <input
+                      type="number"
+                      placeholder="Cantidad"
+                      value={compraItemTemp.cantidad}
+                      onChange={(e) => setCompraItemTemp({ ...compraItemTemp, cantidad: e.target.value })}
+                      className="bg-slate-800 border border-slate-700 rounded-lg px-2 py-1 text-xs text-white"
+                    />
+                    <input
+                      type="number"
+                      step="0.10"
+                      placeholder="Costo Unit."
+                      value={compraItemTemp.costoUnitario}
+                      onChange={(e) => setCompraItemTemp({ ...compraItemTemp, costoUnitario: e.target.value })}
+                      className="bg-slate-800 border border-slate-700 rounded-lg px-2 py-1 text-xs text-white"
+                    />
+                    <button
+                      type="button"
+                      onClick={agregarItemEntradaMercaderia}
+                      className="bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs rounded-lg py-1"
+                    >
+                      + Añadir
+                    </button>
+                  </div>
+                </div>
+
+                {/* Lista de Ítems Comprados */}
+                <div className="max-h-40 overflow-y-auto space-y-1">
+                  {compraItems.map((it, idx) => (
+                    <div key={idx} className="flex justify-between items-center text-xs bg-slate-900 p-2 rounded-lg border border-slate-800">
+                      <span>{it.cantidad}x {it.descripcion} (S/ {it.costoUnitario.toFixed(2)})</span>
+                      <span className="font-bold text-emerald-400">S/ {it.subtotal.toFixed(2)}</span>
+                    </div>
+                  ))}
+                </div>
+
+                <div className="flex justify-between items-center pt-2 border-t border-slate-700">
+                  <span className="font-bold text-sm">Total Compra:</span>
+                  <span className="font-black text-lg text-emerald-400">
+                    S/ {compraItems.reduce((a, c) => a + c.subtotal, 0).toFixed(2)}
+                  </span>
+                </div>
+
+                <button onClick={guardarEntradaMercaderia} className="w-full py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs rounded-xl shadow">
+                  Confirmar Entrada de Mercadería
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* Modal: Cobrar Deudas / Créditos */}
+          {modalCobrarDeudas && (
+            <div className="fixed inset-0 bg-black/85 flex items-center justify-center z-50 p-4">
+              <div className="bg-slate-800 border border-slate-700 rounded-2xl max-w-md w-full p-5 shadow-2xl space-y-3">
+                <div className="flex justify-between items-center">
+                  <h3 className="text-base font-bold text-white">💳 Cuentas por Cobrar (Deudas)</h3>
+                  <button onClick={() => setModalCobrarDeudas(false)} className="text-slate-400 hover:text-white">✕</button>
+                </div>
+
+                {deudorSeleccionado ? (
+                  <div className="p-3 bg-slate-900 rounded-xl border border-amber-500/50 space-y-3">
+                    <div className="flex justify-between">
+                      <span className="font-bold text-xs text-white">👤 {deudorSeleccionado.nombre_completo}</span>
+                      <button onClick={() => setDeudorSeleccionado(null)} className="text-[11px] text-slate-400 underline">Cambiar</button>
+                    </div>
+                    <div className="text-xs">
+                      <p>DNI: {deudorSeleccionado.dni}</p>
+                      <p className="text-rose-400 font-bold mt-1 text-sm">Deuda Actual: S/ {Number(deudorSeleccionado.saldo_actual).toFixed(2)}</p>
+                    </div>
+                    <div>
+                      <label className="text-[11px] text-slate-400 block mb-1">Monto a Abonar (S/):</label>
+                      <input
+                        type="number"
+                        step="1.00"
+                        placeholder="0.00"
+                        value={montoAbonoDeuda}
+                        onChange={(e) => setMontoAbonoDeuda(e.target.value)}
+                        className="w-full bg-slate-800 border border-slate-700 rounded-lg p-2 text-sm font-bold text-white focus:outline-none focus:border-emerald-500"
+                      />
+                    </div>
+                    <button onClick={procesarPagoDeudaCliente} className="w-full py-2 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs rounded-xl shadow">
+                      ✓ Registrar Pago de Deuda
+                    </button>
+                  </div>
+                ) : (
+                  <div className="max-h-60 overflow-y-auto space-y-1.5">
+                    {clientesDeudores.length === 0 ? (
+                      <p className="text-xs text-slate-400 text-center py-6">¡No hay clientes con deuda pendiente!</p>
+                    ) : (
+                      clientesDeudores.map(cl => (
+                        <div
+                          key={cl.id}
+                          onClick={() => { setDeudorSeleccionado(cl); setMontoAbonoDeuda(String(cl.saldo_actual)); }}
+                          className="flex justify-between items-center p-2.5 bg-slate-900 hover:bg-slate-750 border border-slate-750 rounded-xl cursor-pointer transition"
+                        >
+                          <div>
+                            <p className="text-xs font-bold text-slate-200">{cl.nombre_completo}</p>
+                            <p className="text-[10px] text-slate-400">DNI: {cl.dni}</p>
+                          </div>
+                          <span className="text-sm font-black text-rose-400">S/ {Number(cl.saldo_actual).toFixed(2)}</span>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* Modal: Historial de Ventas del Día */}
+          {modalHistorial && (
+            <div className="fixed inset-0 bg-black/85 flex items-center justify-center z-50 p-4">
+              <div className="bg-slate-800 border border-slate-700 rounded-2xl max-w-xl w-full p-5 shadow-2xl space-y-3">
+                <div className="flex justify-between items-center">
+                  <h3 className="text-base font-bold text-white">📜 Ventas Realizadas Hoy</h3>
+                  <button onClick={() => setModalHistorial(false)} className="text-slate-400 hover:text-white">✕</button>
+                </div>
+
+                <div className="grid grid-cols-3 gap-2 text-center text-xs">
+                  <div className="bg-slate-900 p-2 rounded-lg border border-slate-750">
+                    <span className="text-slate-400 block text-[10px]">Total Ventas</span>
+                    <span className="font-bold text-sm text-white">{ventasDelDia.length}</span>
+                  </div>
+                  <div className="bg-slate-900 p-2 rounded-lg border border-slate-750">
+                    <span className="text-slate-400 block text-[10px]">Efectivo</span>
+                    <span className="font-bold text-sm text-emerald-400">
+                      S/ {ventasDelDia.filter(v => v.medio_pago === 'EFECTIVO').reduce((a, c) => a + Number(c.total_venta), 0).toFixed(2)}
+                    </span>
+                  </div>
+                  <div className="bg-slate-900 p-2 rounded-lg border border-slate-750">
+                    <span className="text-slate-400 block text-[10px]">Total General</span>
+                    <span className="font-black text-sm text-emerald-400">
+                      S/ {ventasDelDia.reduce((a, c) => a + Number(c.total_venta), 0).toFixed(2)}
+                    </span>
+                  </div>
+                </div>
+
+                <div className="max-h-64 overflow-y-auto space-y-1.5">
+                  {cargandoHistorial ? (
+                    <p className="text-xs text-center py-6 text-slate-400">Cargando ventas...</p>
+                  ) : ventasDelDia.length === 0 ? (
+                    <p className="text-xs text-center py-6 text-slate-500">No hay ventas registradas hoy.</p>
+                  ) : (
+                    ventasDelDia.map(v => (
+                      <div key={v.id} className="flex justify-between items-center p-2.5 bg-slate-900 rounded-lg border border-slate-800 text-xs">
+                        <div>
+                          <p className="font-bold text-white font-mono">{v.nro_boleta} - <span className="text-slate-400 font-sans">{v.medio_pago}</span></p>
+                          <p className="text-[10px] text-slate-400">{new Date(v.created_at).toLocaleTimeString()} · {v.clientes?.nombre_completo || 'Cliente'}</p>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <span className="font-black text-emerald-400 text-sm">S/ {Number(v.total_venta).toFixed(2)}</span>
+                          <button
+                            onClick={() => anularVentaHoy(v.id, v.nro_boleta)}
+                            className="text-[10px] bg-rose-950/80 hover:bg-rose-900 text-rose-300 px-2 py-1 rounded border border-rose-800"
+                            title="Anular venta"
+                          >
+                            Anular
+                          </button>
+                        </div>
+                      </div>
+                    ))
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Modal: Cierre de Caja con Arqueo */}
+          {modalCierreCaja && (
+            <div className="fixed inset-0 bg-black/85 flex items-center justify-center z-50 p-4">
+              <div className="bg-slate-800 border border-slate-700 rounded-2xl max-w-sm w-full p-5 shadow-2xl space-y-3 text-center">
+                <h3 className="text-base font-bold text-white">🔒 Cierre de Turno y Arqueo de Caja</h3>
+                <p className="text-xs text-slate-300">Cuenta todo el dinero en efectivo que tienes físicamente en la caja e ingrésalo:</p>
+                <input
+                  type="number"
+                  step="0.50"
+                  placeholder="0.00"
+                  value={montoConteoEfectivo}
+                  onChange={(e) => setMontoConteoEfectivo(e.target.value)}
+                  className="w-full bg-slate-900 border border-slate-700 rounded-xl p-2.5 text-center text-xl font-black text-emerald-400 focus:outline-none"
+                  autoFocus
+                />
+                <div className="flex gap-2 pt-2">
+                  <button onClick={() => setModalCierreCaja(false)} className="flex-1 py-2 bg-slate-700 text-xs font-semibold rounded-lg">Cancelar</button>
+                  <button onClick={handleCierreConArqueo} className="flex-1 py-2 bg-rose-600 hover:bg-rose-500 text-white text-xs font-bold rounded-lg shadow">Confirmar Cierre</button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Modal: Resumen de Arqueo */}
+          {resumenCierre && (
+            <div className="fixed inset-0 bg-black/85 flex items-center justify-center z-50 p-4">
+              <div className="bg-slate-800 border border-slate-700 rounded-2xl max-w-sm w-full p-5 shadow-2xl space-y-3 text-center">
+                <h3 className="text-base font-bold text-white">📊 Resumen del Turno</h3>
+                <div className="bg-slate-900 p-3 rounded-xl border border-slate-800 text-xs space-y-1.5 text-left font-mono">
+                  <div className="flex justify-between"><span>Fondo Inicial:</span><span>S/ {resumenCierre.inicio.toFixed(2)}</span></div>
+                  <div className="flex justify-between"><span>+ Ventas Efectivo:</span><span>S/ {resumenCierre.ventas.toFixed(2)}</span></div>
+                  <div className="border-t border-slate-800 pt-1 flex justify-between font-bold"><span>= Debería haber:</span><span>S/ {resumenCierre.esperado.toFixed(2)}</span></div>
+                  <div className="flex justify-between text-emerald-400 font-bold"><span>Tú contaste:</span><span>S/ {resumenCierre.real.toFixed(2)}</span></div>
+                  <div className={`border-t border-slate-800 pt-1 flex justify-between font-black text-sm ${resumenCierre.diferencia === 0 ? 'text-emerald-400' : resumenCierre.diferencia > 0 ? 'text-blue-400' : 'text-rose-400'}`}>
+                    <span>Diferencia:</span><span>{resumenCierre.diferencia === 0 ? '✓ Cuadre Perfecto' : `S/ ${resumenCierre.diferencia.toFixed(2)}`}</span>
+                  </div>
+                </div>
+                <button onClick={() => setResumenCierre(null)} className="w-full py-2.5 bg-emerald-600 text-white font-bold text-xs rounded-xl">Entendido</button>
+              </div>
+            </div>
+          )}
+
+          {/* Modal: Ventas en Espera */}
+          {modalVentasEspera && (
+            <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4">
+              <div className="bg-slate-800 border border-slate-700 rounded-2xl max-w-sm w-full p-5 shadow-2xl space-y-3">
+                <div className="flex justify-between items-center">
+                  <h3 className="text-sm font-bold text-white">⏸️ Ventas en Espera</h3>
+                  <button onClick={() => setModalVentasEspera(false)} className="text-slate-400">✕</button>
+                </div>
+                <div className="space-y-2 max-h-56 overflow-y-auto">
+                  {ventasEnEspera.map((v, i) => (
+                    <div key={v.id} className="flex justify-between items-center p-2 bg-slate-900 rounded-lg border border-slate-750 text-xs">
+                      <div>
+                        <p className="font-bold text-white">🕒 {v.hora} · S/ {v.total.toFixed(2)}</p>
+                        <p className="text-[10px] text-slate-400">{v.items.length} ítems</p>
+                      </div>
+                      <div className="flex gap-1.5">
+                        <button onClick={() => recuperarVentaEspera(i)} className="px-2 py-1 bg-emerald-600 text-white text-[10px] font-bold rounded">Recuperar</button>
+                        <button onClick={() => borrarVentaEspera(i)} className="px-1.5 py-1 bg-rose-900 text-rose-200 text-[10px] rounded">✕</button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Modal: Apertura Turno */}
+          {modalTurno && (
+            <div className="fixed inset-0 bg-black/85 flex items-center justify-center z-50 p-4">
+              <div className="bg-slate-800 border border-emerald-500/80 rounded-2xl max-w-md w-full p-6 shadow-2xl space-y-4">
+                <h2 className="text-base font-bold text-white">💼 Apertura de Turno de Caja</h2>
+                <div>
+                  <label className="text-xs font-semibold text-slate-300 block mb-1">Cajero:</label>
+                  <select
+                    value={cajeroSeleccionado?.id || ''}
+                    onChange={(e) => {
+                      const f = listaCajeros.find(c => c.id === e.target.value);
+                      if (f) setCajeroSeleccionado(f);
+                    }}
+                    className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white"
+                  >
+                    {listaCajeros.map(c => (
+                      <option key={c.id} value={c.id}>👤 {c.nombre} ({c.rol || 'Cajero'})</option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="text-xs font-semibold text-slate-300 block mb-1">Monto Inicial (S/):</label>
+                  <input
+                    type="number"
+                    step="1.00"
+                    value={montoApertura}
+                    onChange={(e) => setMontoApertura(e.target.value)}
+                    className="w-full bg-slate-900 border border-slate-700 rounded-xl p-2.5 text-lg font-bold text-white"
+                  />
+                </div>
+                <div className="flex gap-2">
+                  <button onClick={() => setModalTurno(false)} className="flex-1 py-2 bg-slate-700 text-xs font-semibold rounded-xl">Cancelar</button>
+                  <button onClick={handleAbrirTurno} className="flex-1 py-2 bg-emerald-600 text-white text-xs font-bold rounded-xl shadow">Confirmar y Abrir</button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Modal: Boleta Emitida */}
+          {ventaCompletada && (
+            <div className="fixed inset-0 bg-black/85 flex items-center justify-center z-50 p-4">
+              <div className="bg-slate-850 border border-slate-700 rounded-2xl max-w-sm w-full p-5 shadow-2xl text-center space-y-3">
+                <div className="w-12 h-12 bg-emerald-500/20 text-emerald-400 rounded-full flex items-center justify-center mx-auto text-xl font-bold">✓</div>
+                <h3 className="text-lg font-black text-white">¡Venta Exitosa!</h3>
+                <p className="text-xs text-slate-300 font-mono">Boleta: <span className="text-emerald-400 font-bold">{ventaCompletada.nro_boleta}</span></p>
+                <div className="bg-slate-900 p-3 rounded-lg text-left text-xs font-mono space-y-1 text-slate-300 border border-slate-800">
+                  <p><strong>Pago:</strong> {ventaCompletada.medio_pago}</p>
+                  <p><strong>Cliente:</strong> {ventaCompletada.cliente}</p>
+                  <div className="border-t border-slate-700 pt-1 mt-1 flex justify-between font-bold text-sm text-emerald-400">
+                    <span>TOTAL:</span><span>S/ {ventaCompletada.total_venta.toFixed(2)}</span>
+                  </div>
+                </div>
+                <div className="flex gap-2">
+                  <button onClick={() => window.print()} className="flex-1 py-2 bg-slate-700 text-white font-bold text-xs rounded-xl">🖨️ Imprimir</button>
+                  <button onClick={() => setVentaCompletada(null)} className="flex-1 py-2 bg-emerald-600 text-white font-bold text-xs rounded-xl shadow">Nueva Venta</button>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+      );
+    }
+
+    ReactDOM.createRoot(document.getElementById('root')).render(<PosApp />);
+  </script>
+</body>
+</html>
