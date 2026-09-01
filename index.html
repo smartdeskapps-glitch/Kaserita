@@ -804,11 +804,14 @@
       const verificarTurno = async () => {
         if (!sbClient || !bodegaId) return;
         try {
+          // Un turno se considera abierto si su estado lo indica O si aún no tiene
+          // fecha_cierre (indicador más confiable, no depende de qué texto haya
+          // quedado guardado en `estado`).
           const { data } = await sbClient
             .from('turnos_caja')
             .select('*')
             .eq('bodega_id', bodegaId)
-            .or('estado.ilike.%abierto%,estado.ilike.%open%,estado.ilike.%activo%')
+            .or('estado.ilike.%abierto%,estado.ilike.%open%,estado.ilike.%activo%,fecha_cierre.is.null')
             .order('fecha_apertura', { ascending: false })
             .limit(1)
             .maybeSingle();
@@ -838,7 +841,8 @@
                 cajero_id: cajeroFinal.id,
                 monto_inicial: monto,
                 fecha_apertura: new Date().toISOString(),
-                ventas_sistema: 0.00
+                ventas_sistema: 0.00,
+                estado: 'ABIERTO'
               }])
               .select()
               .single();
