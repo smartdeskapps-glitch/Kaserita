@@ -368,6 +368,7 @@
       const streamNativoRef = useRef(null);
       const detectorLoopRef = useRef(null);
       const [usandoDetectorNativo, setUsandoDetectorNativo] = useState(false);
+      const [metodoForzado, setMetodoForzado] = useState(null); // null | 'html5qr' | 'nativo'
 
       // Cliente Supabase
       const sbClient = useMemo(() => {
@@ -686,7 +687,8 @@
       useEffect(() => {
         if (!modalEscaner) return;
         setErrorEscaner('');
-        setUsandoDetectorNativo('BarcodeDetector' in window);
+        const usarNativo = metodoForzado === 'html5qr' ? false : ('BarcodeDetector' in window);
+        setUsandoDetectorNativo(usarNativo);
         let activo = true;
 
         const detenerTodo = () => {
@@ -763,15 +765,28 @@
 
             const detector = new window.BarcodeDetector({ formats: formatos });
 
+            // Se captura cada fotograma en un canvas oculto y se analiza esa
+            // imagen (no el <video> en vivo): pasar el video directamente al
+            // detector es poco confiable en varios Android/Chrome y suele
+            // "funcionar" (se ve la cámara) sin detectar nunca nada.
+            const canvas = document.createElement('canvas');
+            const ctx = canvas.getContext('2d', { willReadFrequently: true });
+
             const loop = async () => {
               if (!activo || !videoNativoRef.current) return;
-              try {
-                const resultados = await detector.detect(videoNativoRef.current);
-                if (resultados && resultados.length > 0) {
-                  handleCodigoEscaneado(resultados[0].rawValue);
-                }
-              } catch (e) { /* fotograma no procesable, se sigue intentando */ }
-              detectorLoopRef.current = requestAnimationFrame(loop);
+              const video = videoNativoRef.current;
+              if (video.readyState >= 2 && video.videoWidth > 0) {
+                canvas.width = video.videoWidth;
+                canvas.height = video.videoHeight;
+                ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+                try {
+                  const resultados = await detector.detect(canvas);
+                  if (resultados && resultados.length > 0) {
+                    handleCodigoEscaneado(resultados[0].rawValue);
+                  }
+                } catch (e) { /* fotograma no procesable, se sigue intentando */ }
+              }
+              if (activo) detectorLoopRef.current = requestAnimationFrame(loop);
             };
             loop();
           } catch (err) {
@@ -782,7 +797,7 @@
           }
         };
 
-        if ('BarcodeDetector' in window) {
+        if (usarNativo) {
           iniciarDetectorNativo();
         } else {
           iniciarHtml5Qrcode();
@@ -792,7 +807,7 @@
           activo = false;
           detenerTodo();
         };
-      }, [modalEscaner]);
+      }, [modalEscaner, metodoForzado]);
 
       const cambiarCantidadCarrito = (productoId, delta) => {
         setCarrito(prev =>
@@ -2627,8 +2642,15 @@
                 )}
               </div>
 
-              <div className="p-4 bg-stone-950/90 text-center">
+              <div className="p-4 bg-stone-950/90 text-center space-y-1.5">
                 <p className="text-xs text-stone-400">Apunta la cámara al código de barras del producto.</p>
+                <button
+                  type="button"
+                  onClick={() => setMetodoForzado(usandoDetectorNativo ? 'html5qr' : 'nativo')}
+                  className="text-[11px] text-orange-400 underline"
+                >
+                  ¿No detecta? Probar con el otro método ({usandoDetectorNativo ? 'clásico' : 'nativo'})
+                </button>
               </div>
             </div>
           )}
