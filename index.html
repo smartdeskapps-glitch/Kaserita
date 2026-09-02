@@ -1060,6 +1060,7 @@
           return;
         }
         ultimoEscaneoRef.current = { codigo: codigoLimpio, hora: ahora };
+        if (navigator.vibrate) navigator.vibrate(60);
 
         if (modoEscaner === 'inventario') {
           if (filaEscaneandoIndex !== null) {
@@ -2778,7 +2779,7 @@
         <div className="flex h-screen bg-stone-50 text-stone-900 font-sans select-none overflow-hidden">
           {/* Toast */}
           {toast.visible && (
-            <div className={`fixed top-[4.75rem] inset-x-4 md:top-4 md:inset-x-auto md:right-4 md:max-w-xs z-[60] flex items-center gap-2.5 px-4 py-3 rounded-xl shadow-xl border-l-4 bg-white text-xs font-semibold ${toast.tipo === 'error' ? 'border-rose-500 text-rose-700' : 'border-emerald-500 text-emerald-700'}`}>
+            <div className={`fixed top-[4.75rem] inset-x-4 md:top-4 md:inset-x-auto md:right-4 md:max-w-xs z-[100] flex items-center gap-2.5 px-4 py-3 rounded-xl shadow-xl border-l-4 bg-white text-xs font-semibold ${toast.tipo === 'error' ? 'border-rose-500 text-rose-700' : 'border-emerald-500 text-emerald-700'}`}>
               <i className={`fa-solid ${toast.tipo === 'error' ? 'fa-circle-exclamation' : 'fa-circle-check'} text-sm shrink-0`}></i>
               {toast.texto}
             </div>
