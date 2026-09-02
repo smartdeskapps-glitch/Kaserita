@@ -78,6 +78,11 @@
       });
     };
 
+    // ID fijo usado únicamente por "Modo Demo Local" (no corresponde a ninguna
+    // bodega real). Solo en ese caso se muestra el catálogo de ejemplo; una
+    // bodega real sin productos debe ver un catálogo vacío de verdad.
+    const BODEGA_DEMO_ID = 'a0000000-0000-0000-0000-000000000001';
+
     const PRODUCTOS_SEMILLA = [
       { cod_ean: '775012300001', descripcion: 'Leche Gloria Entera 400g (Azul)', precio_costo: 3.50, precio_venta: 4.20, categoria: 'Lácteos', unidad: 'UND' },
       { cod_ean: '775012300002', descripcion: 'Arroz Extra Costeño 1kg', precio_costo: 4.10, precio_venta: 5.00, categoria: 'Abarrotes', unidad: 'UND' },
@@ -300,6 +305,12 @@
         unidad: 'UND'
       });
 
+      // --- Módulo: Inventario Inicial (carga de varios productos a la vez) ---
+      const filaInventarioVacia = () => ({ descripcion: '', cod_ean: '', categoria: 'Abarrotes', precio_costo: '', precio_venta: '', unidad: 'UND' });
+      const [modalInventarioInicial, setModalInventarioInicial] = useState(false);
+      const [filasInventario, setFilasInventario] = useState([filaInventarioVacia()]);
+      const [guardandoInventario, setGuardandoInventario] = useState(false);
+
       // --- Módulo: Entrada de Mercadería (Compras) ---
       const [modalEntradaMercaderia, setModalEntradaMercaderia] = useState(false);
       const [compraCabecera, setCompraCabecera] = useState({ proveedor: 'Distribuidora Central', ruc: '', nroComprobante: '' });
@@ -412,18 +423,25 @@
 
             if (data && data.length > 0) {
               setProductos(data);
-            } else {
+            } else if (bodegaId === BODEGA_DEMO_ID) {
               const demo = PRODUCTOS_SEMILLA.map((p, i) => ({ ...p, id: i + 1, bodega_id: bodegaId }));
               setProductos(demo);
+            } else {
+              setProductos([]);
             }
           } catch (err) {
-            const demo = PRODUCTOS_SEMILLA.map((p, i) => ({ ...p, id: i + 1, bodega_id: bodegaId }));
-            setProductos(demo);
+            if (bodegaId === BODEGA_DEMO_ID) {
+              const demo = PRODUCTOS_SEMILLA.map((p, i) => ({ ...p, id: i + 1, bodega_id: bodegaId }));
+              setProductos(demo);
+            } else {
+              setProductos([]);
+              notificar(`No se pudo cargar el catálogo: ${err.message}`, 'error');
+            }
           } finally {
             setCargandoProductos(false);
           }
         } else {
-          const demo = PRODUCTOS_SEMILLA.map((p, i) => ({ ...p, id: i + 1, bodega_id: bodegaId }));
+          const demo = bodegaId === BODEGA_DEMO_ID ? PRODUCTOS_SEMILLA.map((p, i) => ({ ...p, id: i + 1, bodega_id: bodegaId })) : [];
           setProductos(demo);
           setCargandoProductos(false);
         }
@@ -898,6 +916,56 @@
         setBoletasDeudor([]);
         setDeudorSeleccionado(null);
         abrirModuloCobroDeudas();
+      };
+
+      // ==========================================
+      // INVENTARIO INICIAL (carga de varios productos a la vez)
+      // ==========================================
+      const actualizarFilaInventario = (index, campo, valor) => {
+        setFilasInventario((prev) => prev.map((fila, i) => (i === index ? { ...fila, [campo]: valor } : fila)));
+      };
+
+      const agregarFilaInventario = () => {
+        setFilasInventario((prev) => [...prev, filaInventarioVacia()]);
+      };
+
+      const eliminarFilaInventario = (index) => {
+        setFilasInventario((prev) => (prev.length > 1 ? prev.filter((_, i) => i !== index) : prev));
+      };
+
+      const guardarInventarioInicial = async () => {
+        const filasValidas = filasInventario.filter((f) => f.descripcion.trim() && f.precio_venta);
+        if (filasValidas.length === 0) {
+          notificar('Completa al menos un producto con descripción y precio de venta.', 'error');
+          return;
+        }
+
+        setGuardandoInventario(true);
+        try {
+          const payload = filasValidas.map((f) => ({
+            bodega_id: bodegaId,
+            descripcion: f.descripcion.trim(),
+            cod_ean: f.cod_ean.trim() || null,
+            categoria: f.categoria.trim() || 'General',
+            precio_costo: Number(f.precio_costo) || 0,
+            precio_venta: Number(f.precio_venta) || 0,
+            unidad: f.unidad === 'KG' ? 'KG' : 'UND'
+          }));
+
+          if (sbClient) {
+            const { error } = await sbClient.from('productos').insert(payload);
+            if (error) throw error;
+          }
+
+          setModalInventarioInicial(false);
+          setFilasInventario([filaInventarioVacia()]);
+          cargarProductos();
+          notificar(`¡${payload.length} producto(s) agregados a tu inventario!`, 'success');
+        } catch (err) {
+          notificar(`Error al guardar el inventario: ${err.message}`, 'error');
+        } finally {
+          setGuardandoInventario(false);
+        }
       };
 
       // ==========================================
@@ -1421,16 +1489,12 @@
                     const { error: errCliente } = await sbClient.from('clientes').insert([{ bodega_id: bCreada.id, dni: '99999999', nombre_completo: 'Desconocido', saldo_actual: 0 }]);
                     if (errCliente) throw errCliente;
 
-                    const prods = PRODUCTOS_SEMILLA.map(p => ({ ...p, bodega_id: bCreada.id }));
-                    const { error: errProductos } = await sbClient.from('productos').insert(prods);
-                    if (errProductos) {
-                      // No bloquea la creación de la bodega: se puede seguir y registrar productos manualmente.
-                      console.warn('No se pudieron cargar los productos de ejemplo:', errProductos.message);
-                      notificar(`Bodega creada, pero los productos de ejemplo no se pudieron cargar: ${errProductos.message}`, 'error');
-                    }
-
                     guardarSesion({ usuario: uCreado, bodega: bCreada });
-                    if (!errProductos) notificar(`¡Bodega creada con éxito!`, 'success');
+                    notificar(`¡Bodega creada con éxito! Ahora registra tu inventario.`, 'success');
+                    // Como bodega nueva no tiene productos aún, se lleva directo a
+                    // cargar el inventario inicial en vez de sembrar datos de ejemplo
+                    // que no corresponden al negocio real del dueño.
+                    setModalInventarioInicial(true);
                   } catch (err) {
                     notificar(err.message, 'error');
                   } finally {
@@ -1495,11 +1559,10 @@
 
               <div className="pt-2 border-t border-stone-800 flex items-center justify-between text-xs">
                 <button type="button" onClick={() => {
-                  const demoB = 'a0000000-0000-0000-0000-000000000001';
-                  const demoU = { id: 'c0000000-0000-0000-0000-000000000001', bodega_id: demoB, nombre: 'Dueño Demo', dni: '12345678', rol: 'dueno', activo: true };
+                  const demoU = { id: 'c0000000-0000-0000-0000-000000000001', bodega_id: BODEGA_DEMO_ID, nombre: 'Dueño Demo', dni: '12345678', rol: 'dueno', activo: true };
                   setListaCajeros([demoU]);
                   setCajeroSeleccionado(demoU);
-                  guardarSesion({ usuario: demoU, bodega: { id: demoB, nombre: 'Bodega Demo' } });
+                  guardarSesion({ usuario: demoU, bodega: { id: BODEGA_DEMO_ID, nombre: 'Bodega Demo' } });
                 }} className="text-stone-400 hover:text-amber-400">
                   ⚡ Modo Demo Local
                 </button>
@@ -1575,6 +1638,7 @@
             <SidebarIcon icon="fa-receipt" label="Historial de Ventas" onClick={abrirHistorialDelDia} />
             <SidebarIcon icon="fa-hand-holding-dollar" label="Cuentas por Cobrar" onClick={abrirModuloCobroDeudas} />
             <div className="w-8 h-px bg-stone-800 my-2"></div>
+            <SidebarIcon icon="fa-boxes-stacked" label="Registrar Inventario" onClick={() => setModalInventarioInicial(true)} />
             <SidebarIcon icon="fa-truck-ramp-box" label="Entrada de Mercadería" onClick={() => setModalEntradaMercaderia(true)} />
             <SidebarIcon icon="fa-box-open" label="Nuevo Producto" onClick={() => setModalNuevoProducto(true)} />
             <SidebarIcon icon="fa-user-plus" label="Nuevo Cliente" onClick={() => setModalNuevoCliente(true)} />
@@ -1717,10 +1781,26 @@
                     <div className="w-8 h-8 border-4 border-orange-500 border-t-transparent rounded-full animate-spin"></div>
                     <p className="text-xs">Cargando productos...</p>
                   </div>
+                ) : productos.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center h-full text-center px-4">
+                    <div className="w-16 h-16 rounded-2xl bg-orange-500/10 flex items-center justify-center mb-3">
+                      <i className="fa-solid fa-boxes-stacked text-2xl text-orange-400"></i>
+                    </div>
+                    <p className="text-base font-bold text-white">Aún no tienes productos registrados</p>
+                    <p className="text-xs text-stone-500 mt-1 max-w-xs">
+                      Antes de vender, registra el inventario de tu negocio: qué productos tienes, sus precios y si se venden por unidad o por peso.
+                    </p>
+                    <button
+                      onClick={() => setModalInventarioInicial(true)}
+                      className="mt-4 px-5 py-2.5 bg-orange-500 hover:bg-orange-400 text-white text-sm font-bold rounded-xl shadow-lg shadow-orange-500/25 flex items-center gap-2"
+                    >
+                      <i className="fa-solid fa-boxes-stacked"></i> Registrar mi Inventario
+                    </button>
+                  </div>
                 ) : productosFiltrados.length === 0 ? (
                   <div className="flex flex-col items-center justify-center h-48 text-stone-500 text-center">
                     <p className="text-base font-semibold">No se encontraron productos</p>
-                    <p className="text-xs text-stone-600 mt-1">Usa el botón de nuevo producto para registrar el primero.</p>
+                    <p className="text-xs text-stone-600 mt-1">Prueba con otra búsqueda o categoría.</p>
                   </div>
                 ) : (
                   <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
@@ -2065,6 +2145,9 @@
             <div className="md:hidden fixed inset-0 bg-black/70 z-[60] flex items-end" onClick={() => setMenuMas(false)}>
               <div className="w-full bg-stone-900 border-t border-stone-800 rounded-t-3xl p-4 pb-6 space-y-1" onClick={(e) => e.stopPropagation()}>
                 <div className="w-10 h-1 bg-stone-700 rounded-full mx-auto mb-2"></div>
+                <button onClick={() => { setModalInventarioInicial(true); setMenuMas(false); }} className="w-full text-left px-3.5 py-3 rounded-xl hover:bg-stone-800 flex items-center gap-3 text-orange-400 font-semibold text-sm">
+                  <i className="fa-solid fa-boxes-stacked w-5"></i> Registrar Inventario
+                </button>
                 <button onClick={() => { setModalNuevoProducto(true); setMenuMas(false); }} className="w-full text-left px-3.5 py-3 rounded-xl hover:bg-stone-800 flex items-center gap-3 text-stone-200 font-medium text-sm">
                   <i className="fa-solid fa-box-open w-5 text-orange-400"></i> Nuevo Producto
                 </button>
@@ -2113,6 +2196,106 @@
                 <div className="flex gap-2 pt-1">
                   <button onClick={() => setModalCantidad(false)} className="flex-1 py-2 bg-stone-800 rounded-lg text-xs font-semibold">Cancelar</button>
                   <button onClick={confirmarCantidadBalanza} className="flex-1 py-2 bg-orange-600 hover:bg-orange-500 text-white rounded-lg text-xs font-bold shadow">Aceptar</button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Modal: Inventario Inicial (carga de varios productos a la vez) */}
+          {modalInventarioInicial && (
+            <div className="fixed inset-0 bg-black/85 flex items-center justify-center z-50 p-4">
+              <div className="bg-stone-900 border border-stone-800 rounded-2xl max-w-2xl w-full p-5 shadow-2xl space-y-3 max-h-[90vh] flex flex-col">
+                <div className="flex justify-between items-start shrink-0">
+                  <div>
+                    <h3 className="text-base font-bold text-white flex items-center gap-2">
+                      <i className="fa-solid fa-boxes-stacked text-orange-400"></i> Registrar mi Inventario
+                    </h3>
+                    <p className="text-[11px] text-stone-400 mt-0.5">Agrega todos los productos que vendes, uno debajo del otro.</p>
+                  </div>
+                  <button onClick={() => setModalInventarioInicial(false)} className="text-stone-400 hover:text-white shrink-0">✕</button>
+                </div>
+
+                <div className="flex-1 overflow-y-auto space-y-2 pr-1">
+                  {filasInventario.map((fila, idx) => (
+                    <div key={idx} className="p-3 bg-stone-950 border border-stone-800 rounded-xl space-y-2 relative">
+                      {filasInventario.length > 1 && (
+                        <button
+                          onClick={() => eliminarFilaInventario(idx)}
+                          className="absolute top-2 right-2 w-6 h-6 flex items-center justify-center text-stone-500 hover:text-rose-400 hover:bg-stone-900 rounded-lg transition"
+                          title="Quitar producto"
+                        >
+                          <i className="fa-solid fa-xmark text-xs"></i>
+                        </button>
+                      )}
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pr-6">
+                        <input
+                          type="text"
+                          placeholder="Descripción del producto *"
+                          value={fila.descripcion}
+                          onChange={(e) => actualizarFilaInventario(idx, 'descripcion', e.target.value)}
+                          className="sm:col-span-2 bg-stone-900 border border-stone-800 rounded-lg px-3 py-1.5 text-xs text-white focus:outline-none focus:border-orange-500"
+                        />
+                        <input
+                          type="text"
+                          placeholder="Código EAN (opcional)"
+                          value={fila.cod_ean}
+                          onChange={(e) => actualizarFilaInventario(idx, 'cod_ean', e.target.value)}
+                          className="bg-stone-900 border border-stone-800 rounded-lg px-3 py-1.5 text-xs text-white focus:outline-none focus:border-orange-500"
+                        />
+                        <input
+                          type="text"
+                          placeholder="Categoría"
+                          value={fila.categoria}
+                          onChange={(e) => actualizarFilaInventario(idx, 'categoria', e.target.value)}
+                          className="bg-stone-900 border border-stone-800 rounded-lg px-3 py-1.5 text-xs text-white focus:outline-none focus:border-orange-500"
+                        />
+                        <input
+                          type="number"
+                          step="0.10"
+                          placeholder="Precio costo (S/)"
+                          value={fila.precio_costo}
+                          onChange={(e) => actualizarFilaInventario(idx, 'precio_costo', e.target.value)}
+                          className="bg-stone-900 border border-stone-800 rounded-lg px-3 py-1.5 text-xs text-white focus:outline-none focus:border-orange-500"
+                        />
+                        <input
+                          type="number"
+                          step="0.10"
+                          placeholder="Precio venta (S/) *"
+                          value={fila.precio_venta}
+                          onChange={(e) => actualizarFilaInventario(idx, 'precio_venta', e.target.value)}
+                          className="bg-stone-900 border border-stone-800 rounded-lg px-3 py-1.5 text-xs text-white focus:outline-none focus:border-orange-500"
+                        />
+                        <select
+                          value={fila.unidad}
+                          onChange={(e) => actualizarFilaInventario(idx, 'unidad', e.target.value)}
+                          className="sm:col-span-2 bg-stone-900 border border-stone-800 rounded-lg px-3 py-1.5 text-xs text-white focus:outline-none focus:border-orange-500"
+                        >
+                          <option value="UND">Se vende por Unidad (UND)</option>
+                          <option value="KG">Se vende por Peso (KG) — balanza</option>
+                        </select>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                <div className="shrink-0 space-y-2 pt-1">
+                  <button
+                    onClick={agregarFilaInventario}
+                    className="w-full py-2 bg-stone-800 hover:bg-stone-700 text-stone-200 text-xs font-semibold rounded-xl border border-stone-700 border-dashed flex items-center justify-center gap-1.5"
+                  >
+                    <i className="fa-solid fa-plus"></i> Agregar otro producto
+                  </button>
+                  <button
+                    onClick={guardarInventarioInicial}
+                    disabled={guardandoInventario}
+                    className="w-full py-2.5 bg-orange-600 hover:bg-orange-500 disabled:opacity-60 text-white font-bold text-xs rounded-xl shadow flex items-center justify-center gap-1.5"
+                  >
+                    {guardandoInventario ? (
+                      <><i className="fa-solid fa-spinner fa-spin"></i> Guardando...</>
+                    ) : (
+                      <><i className="fa-solid fa-check"></i> Guardar Inventario</>
+                    )}
+                  </button>
                 </div>
               </div>
             </div>
