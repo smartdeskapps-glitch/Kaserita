@@ -1231,30 +1231,32 @@
               .insert([{
                 bodega_id: bodegaId,
                 cajero_id: cajeroSeleccionado?.id,
+                proveedor_nombre: compraCabecera.proveedor || null,
                 nro_comprobante: compraCabecera.nroComprobante || `COMP-${Date.now().toString().slice(-6)}`,
-                total_compra: totalCompra,
-                fecha: new Date().toISOString()
+                total: totalCompra,
+                fecha_registro: new Date().toISOString()
               }])
               .select()
               .single();
 
-            if (!cErr && cData) {
-              const detalles = compraItems.map(item => ({
-                compra_id: cData.id,
-                producto_id: item.productoId,
-                cantidad: item.cantidad,
-                costo_unitario: item.costoUnitario,
-                subtotal: item.subtotal
-              }));
-              await sbClient.from('compras_detalle').insert(detalles);
+            if (cErr) throw cErr;
 
-              // Actualizar precio de costo en productos
-              for (const it of compraItems) {
-                await sbClient
-                  .from('productos')
-                  .update({ precio_costo: it.costoUnitario })
-                  .eq('id', it.productoId);
-              }
+            const detalles = compraItems.map(item => ({
+              compra_id: cData.id,
+              producto_id: item.productoId,
+              cantidad: item.cantidad,
+              costo_unitario: item.costoUnitario,
+              subtotal: item.subtotal
+            }));
+            const { error: detErr } = await sbClient.from('compras_detalle').insert(detalles);
+            if (detErr) throw detErr;
+
+            // Actualizar precio de costo en productos
+            for (const it of compraItems) {
+              await sbClient
+                .from('productos')
+                .update({ precio_costo: it.costoUnitario })
+                .eq('id', it.productoId);
             }
           }
 
@@ -1263,7 +1265,7 @@
           cargarProductos();
           notificar(`¡Entrada de mercadería por S/ ${totalCompra.toFixed(2)} registrada!`, 'success');
         } catch (err) {
-          notificar(`Error: ${err.message}`, 'error');
+          notificar(`Error al registrar la entrada: ${err.message}`, 'error');
         }
       };
 
