@@ -68,10 +68,10 @@
       height: 6px;
     }
     ::-webkit-scrollbar-track {
-      background: #0c0a09;
+      background: #f5f5f4;
     }
     ::-webkit-scrollbar-thumb {
-      background: #44403c;
+      background: #d6d3d1;
       border-radius: 4px;
     }
 
@@ -93,7 +93,7 @@
     }
   </style>
 </head>
-<body class="bg-stone-950 text-stone-100 h-screen overflow-hidden font-sans">
+<body class="bg-stone-50 text-stone-900 h-screen overflow-hidden font-sans">
   <div id="root"></div>
 
   <script>
@@ -171,7 +171,7 @@
               key={t}
               type="button"
               onClick={() => presionar(t)}
-              className="py-2 bg-stone-900 hover:bg-stone-800 border border-stone-800 rounded-lg text-sm font-bold text-stone-200 active:scale-95 transition"
+              className="py-2 bg-stone-100 hover:bg-stone-200 border border-stone-200 rounded-lg text-sm font-bold text-stone-800 active:scale-95 transition"
             >
               {t}
             </button>
@@ -197,7 +197,7 @@
       const costoNum = Number(costo) || 0;
       const sugerido = +(costoNum * (1 + (Number(margen) || 0) / 100)).toFixed(2);
       return (
-        <div className="flex items-end gap-1.5 bg-stone-950/60 border border-stone-800 rounded-lg p-1.5 mt-1">
+        <div className="flex items-end gap-1.5 bg-stone-50/60 border border-stone-200 rounded-lg p-1.5 mt-1">
           <div className="flex-1">
             <label className="text-xs text-stone-500 block">Margen %:</label>
             <input
@@ -205,7 +205,7 @@
               step="1"
               value={margen}
               onChange={(e) => setMargen(e.target.value)}
-              className="w-full bg-stone-900 border border-stone-700 rounded px-2 py-1 text-xs text-white"
+              className="w-full bg-stone-100 border border-stone-300 rounded px-2 py-1 text-xs text-stone-900"
             />
           </div>
           <span className="text-xs text-stone-500 pb-1.5">→ S/ {sugerido.toFixed(2)}</span>
@@ -270,17 +270,17 @@
 
       return (
         <div className="fixed inset-0 bg-black/85 flex items-center justify-center z-50 p-4">
-          <div className="bg-stone-900 border border-stone-800 rounded-2xl max-w-xs w-full p-5 shadow-2xl text-center space-y-3">
-            <h3 className="text-base font-bold text-white">Pago con {medioPago}</h3>
-            <p className="text-sm text-stone-300">
-              Monto: <span className="font-black text-orange-400 text-lg">S/ {Number(monto).toFixed(2)}</span>
+          <div className="bg-stone-100 border border-stone-200 rounded-2xl max-w-xs w-full p-5 shadow-2xl text-center space-y-3">
+            <h3 className="text-base font-bold text-stone-900">Pago con {medioPago}</h3>
+            <p className="text-sm text-stone-700">
+              Monto: <span className="font-black text-orange-600 text-lg">S/ {Number(monto).toFixed(2)}</span>
             </p>
             {qrImg ? (
               <div className="bg-white p-3 rounded-xl inline-block">
                 <img src={qrImg} alt={`QR ${medioPago}`} className="w-44 h-44 object-contain" />
               </div>
             ) : (
-              <div className="bg-stone-950 border border-dashed border-stone-700 rounded-xl p-5 text-xs text-stone-400">
+              <div className="bg-stone-50 border border-dashed border-stone-300 rounded-xl p-5 text-xs text-stone-600">
                 Aún no has guardado el QR de {medioPago} de tu bodega.
               </div>
             )}
@@ -288,7 +288,7 @@
             <button
               type="button"
               onClick={() => inputRef.current?.click()}
-              className="w-full py-2 bg-stone-800 hover:bg-stone-700 text-white text-xs font-semibold rounded-lg"
+              className="w-full py-2 bg-stone-200 hover:bg-stone-300 text-stone-900 text-xs font-semibold rounded-lg"
             >
               {qrImg ? 'Cambiar imagen del QR' : `Subir QR de ${medioPago}`}
             </button>
@@ -303,12 +303,12 @@
     // Ícono de la barra lateral de navegación (desktop) / barra inferior (mobile).
     function SidebarIcon({ icon, label, texto, badge, tone = 'default', active = false, onClick }) {
       const toneClasses = tone === 'rose'
-        ? 'text-rose-400 hover:bg-rose-500/10 hover:text-rose-300'
+        ? 'text-rose-600 hover:bg-rose-500/10 hover:text-rose-600'
         : tone === 'orange'
-        ? 'text-orange-400 hover:bg-orange-500/10 hover:text-orange-300'
+        ? 'text-orange-600 hover:bg-orange-500/10 hover:text-orange-600'
         : active
         ? 'bg-orange-500 text-white shadow-lg shadow-orange-500/25'
-        : 'text-stone-400 hover:bg-stone-800 hover:text-stone-200';
+        : 'text-stone-600 hover:bg-stone-200 hover:text-stone-800';
       return (
         <button
           type="button"
@@ -319,7 +319,7 @@
           <span className="relative">
             <i className={`fa-solid ${icon} text-base`}></i>
             {badge > 0 && (
-              <span className="absolute -top-1.5 -right-2.5 bg-orange-500 text-white text-[10px] font-bold rounded-full min-w-[16px] h-4 px-1 flex items-center justify-center ring-2 ring-stone-900">
+              <span className="absolute -top-1.5 -right-2.5 bg-orange-500 text-white text-[10px] font-bold rounded-full min-w-[16px] h-4 px-1 flex items-center justify-center ring-2 ring-stone-100">
                 {badge}
               </span>
             )}
@@ -334,16 +334,16 @@
     // Cada categoría tiene su ícono de línea y un color de acento propio, para que
     // el catálogo se lea de un vistazo sin depender de fotos de producto.
     const CATEGORIA_ESTILO = {
-      'Lácteos':   { icono: 'fa-mug-hot',       color: 'text-sky-300',    fondo: 'from-sky-500/20 to-sky-500/5' },
-      'Abarrotes': { icono: 'fa-wheat-awn',     color: 'text-amber-300',  fondo: 'from-amber-500/20 to-amber-500/5' },
-      'Bebidas':   { icono: 'fa-bottle-water',  color: 'text-cyan-300',   fondo: 'from-cyan-500/20 to-cyan-500/5' },
-      'Golosinas': { icono: 'fa-cookie-bite',   color: 'text-pink-300',   fondo: 'from-pink-500/20 to-pink-500/5' },
-      'Carnes':    { icono: 'fa-drumstick-bite',color: 'text-rose-300',   fondo: 'from-rose-500/20 to-rose-500/5' },
-      'Verduras':  { icono: 'fa-carrot',        color: 'text-lime-300',   fondo: 'from-lime-500/20 to-lime-500/5' },
-      'Frescos':   { icono: 'fa-egg',           color: 'text-orange-200', fondo: 'from-orange-400/20 to-orange-400/5' },
-      'Limpieza':  { icono: 'fa-pump-soap',     color: 'text-violet-300', fondo: 'from-violet-500/20 to-violet-500/5' }
+      'Lácteos':   { icono: 'fa-mug-hot',       color: 'text-sky-600',    fondo: 'from-sky-500/20 to-sky-500/5' },
+      'Abarrotes': { icono: 'fa-wheat-awn',     color: 'text-amber-600',  fondo: 'from-amber-500/20 to-amber-500/5' },
+      'Bebidas':   { icono: 'fa-bottle-water',  color: 'text-cyan-600',   fondo: 'from-cyan-500/20 to-cyan-500/5' },
+      'Golosinas': { icono: 'fa-cookie-bite',   color: 'text-pink-600',   fondo: 'from-pink-500/20 to-pink-500/5' },
+      'Carnes':    { icono: 'fa-drumstick-bite',color: 'text-rose-600',   fondo: 'from-rose-500/20 to-rose-500/5' },
+      'Verduras':  { icono: 'fa-carrot',        color: 'text-lime-600',   fondo: 'from-lime-500/20 to-lime-500/5' },
+      'Frescos':   { icono: 'fa-egg',           color: 'text-orange-600', fondo: 'from-orange-400/20 to-orange-400/5' },
+      'Limpieza':  { icono: 'fa-pump-soap',     color: 'text-violet-600', fondo: 'from-violet-500/20 to-violet-500/5' }
     };
-    const estiloCategoria = (cat) => CATEGORIA_ESTILO[cat] || { icono: 'fa-box', color: 'text-stone-300', fondo: 'from-stone-600/20 to-stone-600/5' };
+    const estiloCategoria = (cat) => CATEGORIA_ESTILO[cat] || { icono: 'fa-box', color: 'text-stone-700', fondo: 'from-stone-400/20 to-stone-400/5' };
 
     function PosApp() {
       // --- Supabase Config ---
@@ -2338,34 +2338,34 @@
       // =========================================================================
       if (!sesion) {
         return (
-          <div className="flex flex-col items-center justify-center min-h-screen bg-gradient-to-br from-stone-950 via-stone-950 to-amber-950 text-stone-100 p-4 select-none">
+          <div className="flex flex-col items-center justify-center min-h-screen bg-gradient-to-br from-stone-50 via-stone-50 to-orange-100 text-stone-900 p-4 select-none">
             {toast.visible && (
               <div className={`fixed top-6 right-6 z-50 px-4 py-2.5 rounded-lg shadow-2xl text-xs font-semibold border transition-all animate-bounce ${toast.tipo === 'error' ? 'bg-rose-900 text-rose-100 border-rose-500' : 'bg-orange-900 text-orange-100 border-orange-500'}`}>
                 {toast.texto}
               </div>
             )}
 
-            <div className="max-w-md w-full bg-stone-900/90 border border-stone-800/80 rounded-3xl p-6 md:p-8 shadow-2xl backdrop-blur-md space-y-6">
+            <div className="max-w-md w-full bg-stone-100/90 border border-stone-200/80 rounded-3xl p-6 md:p-8 shadow-2xl backdrop-blur-md space-y-6">
               <div className="text-center space-y-2">
                 <div className="inline-flex items-center justify-center w-14 h-14 bg-orange-500 rounded-2xl shadow-lg text-white text-2xl font-black mb-1">
                   K
                 </div>
-                <h1 className="text-2xl font-black tracking-tight text-white">Kaserita</h1>
-                <p className="text-xs text-stone-400">Punto de Venta para tu Bodega o Negocio</p>
+                <h1 className="text-2xl font-black tracking-tight text-stone-900">Kaserita</h1>
+                <p className="text-xs text-stone-600">Punto de Venta para tu Bodega o Negocio</p>
               </div>
 
-              <div className="flex bg-stone-950/90 p-1 rounded-xl border border-stone-800">
+              <div className="flex bg-stone-50/90 p-1 rounded-xl border border-stone-200">
                 <button
                   type="button"
                   onClick={() => setAuthTab('login')}
-                  className={`flex-1 py-2 text-xs font-bold rounded-lg transition ${authTab === 'login' ? 'bg-orange-600 text-white shadow-md' : 'text-stone-400 hover:text-stone-200'}`}
+                  className={`flex-1 py-2 text-xs font-bold rounded-lg transition ${authTab === 'login' ? 'bg-orange-600 text-white shadow-md' : 'text-stone-600 hover:text-stone-800'}`}
                 >
                   🔑 Iniciar Sesión
                 </button>
                 <button
                   type="button"
                   onClick={() => setAuthTab('register')}
-                  className={`flex-1 py-2 text-xs font-bold rounded-lg transition ${authTab === 'register' ? 'bg-amber-600 text-white shadow-md' : 'text-stone-400 hover:text-stone-200'}`}
+                  className={`flex-1 py-2 text-xs font-bold rounded-lg transition ${authTab === 'register' ? 'bg-amber-600 text-white shadow-md' : 'text-stone-600 hover:text-stone-800'}`}
                 >
                   🏪 Crear Bodega
                 </button>
@@ -2388,7 +2388,7 @@
                   }
                 }} className="space-y-4">
                   <div>
-                    <label className="text-xs font-semibold text-stone-300 block mb-1">DNI del Usuario:</label>
+                    <label className="text-xs font-semibold text-stone-700 block mb-1">DNI del Usuario:</label>
                     <input
                       type="text"
                       required
@@ -2396,11 +2396,11 @@
                       placeholder="8 dígitos"
                       value={formLogin.dni}
                       onChange={(e) => setFormLogin({ ...formLogin, dni: e.target.value })}
-                      className="w-full bg-stone-950 border border-stone-800 rounded-xl px-3.5 py-2.5 text-sm text-white focus:outline-none focus:border-orange-500"
+                      className="w-full bg-stone-50 border border-stone-200 rounded-xl px-3.5 py-2.5 text-sm text-stone-900 focus:outline-none focus:border-orange-500"
                     />
                   </div>
                   <div>
-                    <label className="text-xs font-semibold text-stone-300 block mb-1">PIN de Acceso:</label>
+                    <label className="text-xs font-semibold text-stone-700 block mb-1">PIN de Acceso:</label>
                     <input
                       type="password"
                       required
@@ -2408,13 +2408,13 @@
                       placeholder="••••"
                       value={formLogin.pin}
                       onChange={(e) => setFormLogin({ ...formLogin, pin: e.target.value })}
-                      className="w-full bg-stone-950 border border-stone-800 rounded-xl px-3.5 py-2.5 text-sm text-white tracking-widest focus:outline-none focus:border-orange-500"
+                      className="w-full bg-stone-50 border border-stone-200 rounded-xl px-3.5 py-2.5 text-sm text-stone-900 tracking-widest focus:outline-none focus:border-orange-500"
                     />
                   </div>
                   <button
                     type="submit"
                     disabled={cargandoAuth}
-                    className="w-full py-3.5 bg-orange-500 hover:bg-orange-400 text-stone-950 font-black text-sm uppercase rounded-xl transition shadow-lg disabled:opacity-50"
+                    className="w-full py-3.5 bg-orange-500 hover:bg-orange-400 text-stone-50 font-black text-sm uppercase rounded-xl transition shadow-lg disabled:opacity-50"
                   >
                     {cargandoAuth ? 'Verificando...' : '⚡ Ingresar a Caja'}
                   </button>
@@ -2451,48 +2451,48 @@
                   }
                 }} className="space-y-3">
                   <div>
-                    <label className="text-xs font-semibold text-stone-300 block mb-1">Nombre de Bodega:</label>
+                    <label className="text-xs font-semibold text-stone-700 block mb-1">Nombre de Bodega:</label>
                     <input
                       type="text"
                       required
                       placeholder="Ej: Bodega Don Pepe"
                       value={formRegistro.nombreBodega}
                       onChange={(e) => setFormRegistro({ ...formRegistro, nombreBodega: e.target.value })}
-                      className="w-full bg-stone-950 border border-stone-800 rounded-xl px-3 py-1.5 text-xs text-white focus:outline-none focus:border-amber-500"
+                      className="w-full bg-stone-50 border border-stone-200 rounded-xl px-3 py-1.5 text-xs text-stone-900 focus:outline-none focus:border-amber-500"
                     />
                   </div>
                   <div>
-                    <label className="text-xs font-semibold text-stone-300 block mb-1">Dueño:</label>
+                    <label className="text-xs font-semibold text-stone-700 block mb-1">Dueño:</label>
                     <input
                       type="text"
                       required
                       placeholder="Ej: Juan Pérez"
                       value={formRegistro.nombreDueno}
                       onChange={(e) => setFormRegistro({ ...formRegistro, nombreDueno: e.target.value })}
-                      className="w-full bg-stone-950 border border-stone-800 rounded-xl px-3 py-1.5 text-xs text-white focus:outline-none focus:border-amber-500"
+                      className="w-full bg-stone-50 border border-stone-200 rounded-xl px-3 py-1.5 text-xs text-stone-900 focus:outline-none focus:border-amber-500"
                     />
                   </div>
                   <div className="grid grid-cols-2 gap-2">
                     <div>
-                      <label className="text-xs font-semibold text-stone-300 block mb-1">DNI:</label>
+                      <label className="text-xs font-semibold text-stone-700 block mb-1">DNI:</label>
                       <input
                         type="text"
                         required
                         maxLength={8}
                         value={formRegistro.dni}
                         onChange={(e) => setFormRegistro({ ...formRegistro, dni: e.target.value })}
-                        className="w-full bg-stone-950 border border-stone-800 rounded-xl px-3 py-1.5 text-xs text-white focus:outline-none focus:border-amber-500"
+                        className="w-full bg-stone-50 border border-stone-200 rounded-xl px-3 py-1.5 text-xs text-stone-900 focus:outline-none focus:border-amber-500"
                       />
                     </div>
                     <div>
-                      <label className="text-xs font-semibold text-stone-300 block mb-1">PIN:</label>
+                      <label className="text-xs font-semibold text-stone-700 block mb-1">PIN:</label>
                       <input
                         type="password"
                         required
                         maxLength={6}
                         value={formRegistro.pin}
                         onChange={(e) => setFormRegistro({ ...formRegistro, pin: e.target.value })}
-                        className="w-full bg-stone-950 border border-stone-800 rounded-xl px-3 py-1.5 text-xs text-white tracking-widest focus:outline-none focus:border-amber-500"
+                        className="w-full bg-stone-50 border border-stone-200 rounded-xl px-3 py-1.5 text-xs text-stone-900 tracking-widest focus:outline-none focus:border-amber-500"
                       />
                     </div>
                   </div>
@@ -2506,16 +2506,16 @@
                 </form>
               )}
 
-              <div className="pt-2 border-t border-stone-800 flex items-center justify-between text-xs">
+              <div className="pt-2 border-t border-stone-200 flex items-center justify-between text-xs">
                 <button type="button" onClick={() => {
                   const demoU = { id: 'c0000000-0000-0000-0000-000000000001', bodega_id: BODEGA_DEMO_ID, nombre: 'Dueño Demo', dni: '12345678', rol: 'dueno', activo: true };
                   setListaCajeros([demoU]);
                   setCajeroSeleccionado(demoU);
                   guardarSesion({ usuario: demoU, bodega: { id: BODEGA_DEMO_ID, nombre: 'Bodega Demo' } });
-                }} className="text-stone-400 hover:text-amber-400">
+                }} className="text-stone-600 hover:text-amber-600">
                   ⚡ Modo Demo Local
                 </button>
-                <button type="button" onClick={() => setModalConfig(true)} className="text-stone-400 hover:text-stone-200">
+                <button type="button" onClick={() => setModalConfig(true)} className="text-stone-600 hover:text-stone-800">
                   ⚙️ Config Supabase
                 </button>
               </div>
@@ -2524,27 +2524,27 @@
             {/* Modal: Configuración de Supabase */}
             {modalConfig && (
               <div className="fixed inset-0 bg-black/85 flex items-center justify-center z-50 p-4">
-                <div className="bg-stone-900 border border-stone-800 rounded-2xl max-w-sm w-full p-5 shadow-2xl space-y-3">
+                <div className="bg-stone-100 border border-stone-200 rounded-2xl max-w-sm w-full p-5 shadow-2xl space-y-3">
                   <div className="flex justify-between items-center">
-                    <h3 className="text-sm font-bold text-white">⚙️ Configuración de Supabase</h3>
-                    <button onClick={() => setModalConfig(false)} className="text-stone-400 hover:text-white">✕</button>
+                    <h3 className="text-sm font-bold text-stone-900">⚙️ Configuración de Supabase</h3>
+                    <button onClick={() => setModalConfig(false)} className="text-stone-600 hover:text-stone-900">✕</button>
                   </div>
                   <div>
-                    <label className="text-xs text-stone-400 block mb-1">Supabase URL:</label>
+                    <label className="text-xs text-stone-600 block mb-1">Supabase URL:</label>
                     <input
                       type="text"
                       value={supabaseUrl}
                       onChange={(e) => setSupabaseUrl(e.target.value)}
-                      className="w-full bg-stone-950 border border-stone-800 rounded-lg px-3 py-1.5 text-xs text-white focus:outline-none focus:border-orange-500"
+                      className="w-full bg-stone-50 border border-stone-200 rounded-lg px-3 py-1.5 text-xs text-stone-900 focus:outline-none focus:border-orange-500"
                     />
                   </div>
                   <div>
-                    <label className="text-xs text-stone-400 block mb-1">Supabase Anon/Publishable Key:</label>
+                    <label className="text-xs text-stone-600 block mb-1">Supabase Anon/Publishable Key:</label>
                     <input
                       type="text"
                       value={supabaseKey}
                       onChange={(e) => setSupabaseKey(e.target.value)}
-                      className="w-full bg-stone-950 border border-stone-800 rounded-lg px-3 py-1.5 text-xs text-white focus:outline-none focus:border-orange-500"
+                      className="w-full bg-stone-50 border border-stone-200 rounded-lg px-3 py-1.5 text-xs text-stone-900 focus:outline-none focus:border-orange-500"
                     />
                   </div>
                   <button
@@ -2569,7 +2569,7 @@
       // VISTA 2: POS INTERFACE COMPLETO
       // =========================================================================
       return (
-        <div className="flex h-screen bg-stone-950 text-stone-100 font-sans select-none overflow-hidden">
+        <div className="flex h-screen bg-stone-50 text-stone-900 font-sans select-none overflow-hidden">
           {/* Toast */}
           {toast.visible && (
             <div className={`fixed top-4 right-4 z-[60] px-4 py-2.5 rounded-lg shadow-2xl text-xs font-semibold border transition-all animate-bounce ${toast.tipo === 'error' ? 'bg-rose-900 text-rose-100 border-rose-500' : 'bg-orange-900 text-orange-100 border-orange-500'}`}>
@@ -2578,7 +2578,7 @@
           )}
 
           {/* Sidebar de navegación (solo desktop) */}
-          <aside className="hidden md:flex flex-col items-center w-24 bg-stone-900 border-r border-stone-800/80 py-3 gap-0.5 shrink-0 overflow-y-auto">
+          <aside className="hidden md:flex flex-col items-center w-24 bg-stone-100 border-r border-stone-200/80 py-3 gap-0.5 shrink-0 overflow-y-auto">
             <div className="w-11 h-11 bg-gradient-to-br from-orange-400 to-orange-600 rounded-2xl flex items-center justify-center text-white font-extrabold text-lg shadow-lg shadow-orange-500/25 mb-3 shrink-0">
               K
             </div>
@@ -2591,7 +2591,7 @@
             <SidebarIcon icon="fa-box" label="Registrar Merma" texto="Merma" onClick={() => setModalMerma(true)} />
             {esAdmin && (
               <>
-                <div className="w-10 h-px bg-stone-800 my-2 shrink-0"></div>
+                <div className="w-10 h-px bg-stone-200 my-2 shrink-0"></div>
                 <SidebarIcon icon="fa-boxes-stacked" label="Registrar Inventario" texto="Inventario" onClick={() => setModalInventarioInicial(true)} />
                 <SidebarIcon icon="fa-truck-ramp-box" label="Entrada de Mercadería" texto="Mercadería" onClick={() => setModalEntradaMercaderia(true)} />
                 <SidebarIcon icon="fa-box-open" label="Nuevo Producto" texto="Producto" onClick={() => setModalNuevoProducto(true)} />
@@ -2611,13 +2611,13 @@
 
           {/* Columna Central: Catálogo (Order Line) */}
           <div className="flex-1 flex flex-col overflow-hidden">
-            <header className="flex items-center justify-between px-4 md:px-6 py-3.5 bg-stone-900 border-b border-stone-800/80 gap-3">
+            <header className="flex items-center justify-between px-4 md:px-6 py-3.5 bg-stone-100 border-b border-stone-200/80 gap-3">
               <div className="flex items-center gap-3 min-w-0">
                 <div className="md:hidden w-9 h-9 bg-gradient-to-br from-orange-400 to-orange-600 rounded-xl flex items-center justify-center text-white font-extrabold text-sm shadow-lg shadow-orange-500/25 shrink-0">
                   K
                 </div>
                 <div className="min-w-0">
-                  <h1 className="text-sm md:text-base font-bold text-white leading-tight truncate">{bodegaNombre}</h1>
+                  <h1 className="text-sm md:text-base font-bold text-stone-900 leading-tight truncate">{bodegaNombre}</h1>
                   <p className="text-xs text-stone-500 truncate flex items-center gap-1.5">
                     <i className="fa-solid fa-user text-xs"></i>
                     {cajeroSeleccionado?.nombre || usuarioActivo?.nombre}
@@ -2628,7 +2628,7 @@
                 {turnoActivo ? (
                   <button
                     onClick={() => setModalCierreCaja(true)}
-                    className="hidden sm:inline-flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-semibold bg-orange-500/10 text-orange-300 border border-orange-500/25 hover:bg-orange-500/20 transition"
+                    className="hidden sm:inline-flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-semibold bg-orange-500/10 text-orange-600 border border-orange-500/25 hover:bg-orange-500/20 transition"
                   >
                     <span className="w-1.5 h-1.5 rounded-full bg-orange-400 animate-pulse"></span> Turno Abierto
                   </button>
@@ -2642,7 +2642,7 @@
                 )}
                 <button
                   onClick={() => setMenuMas(true)}
-                  className="md:hidden w-10 h-10 flex items-center justify-center bg-stone-800 border border-stone-700 rounded-xl text-stone-300 hover:text-white transition"
+                  className="md:hidden w-10 h-10 flex items-center justify-center bg-stone-200 border border-stone-300 rounded-xl text-stone-700 hover:text-stone-900 transition"
                   title="Más opciones"
                 >
                   <i className="fa-solid fa-ellipsis"></i>
@@ -2653,7 +2653,7 @@
                 >
                   <i className="fa-solid fa-cart-shopping text-sm"></i>
                   {carrito.length > 0 && (
-                    <span className="absolute -top-1 -right-1 bg-white text-orange-600 rounded-full min-w-[18px] h-[18px] px-1 text-xs flex items-center justify-center font-bold ring-2 ring-stone-900">
+                    <span className="absolute -top-1 -right-1 bg-white text-orange-600 rounded-full min-w-[18px] h-[18px] px-1 text-xs flex items-center justify-center font-bold ring-2 ring-stone-100">
                       {carrito.length}
                     </span>
                   )}
@@ -2672,14 +2672,14 @@
                     onChange={(e) => setBusqueda(e.target.value)}
                     onKeyDown={handleKeyDownBusqueda}
                     placeholder="Escanear código o buscar producto..."
-                    className="w-full bg-stone-900 border border-stone-800 text-white placeholder-stone-500 text-sm rounded-xl pl-10 pr-4 py-2.5 focus:outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500 transition"
+                    className="w-full bg-stone-100 border border-stone-200 text-stone-900 placeholder-stone-500 text-sm rounded-xl pl-10 pr-4 py-2.5 focus:outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500 transition"
                     autoFocus
                   />
                   <i className="fa-solid fa-barcode absolute left-4 top-3.5 text-stone-500 text-sm"></i>
                 </div>
                 <button
                   onClick={() => cargarProductos(busqueda)}
-                  className="px-4 py-2.5 bg-stone-800 hover:bg-stone-700 text-stone-200 text-xs font-semibold rounded-xl border border-stone-700 transition"
+                  className="px-4 py-2.5 bg-stone-200 hover:bg-stone-300 text-stone-800 text-xs font-semibold rounded-xl border border-stone-300 transition"
                 >
                   <i className="fa-solid fa-magnifying-glass"></i>
                 </button>
@@ -2696,7 +2696,7 @@
                       setBusqueda('');
                       cargarProductos('');
                     }}
-                    className="px-3 py-2.5 bg-stone-900 hover:bg-stone-800 text-stone-400 text-xs rounded-xl border border-stone-800"
+                    className="px-3 py-2.5 bg-stone-100 hover:bg-stone-200 text-stone-600 text-xs rounded-xl border border-stone-200"
                   >
                     ✕
                   </button>
@@ -2710,16 +2710,16 @@
                     <button
                       key={v.id}
                       onClick={() => recuperarVentaEspera(i)}
-                      className="shrink-0 w-44 text-left p-2.5 bg-stone-900 border border-stone-800 rounded-xl hover:border-orange-500/60 transition"
+                      className="shrink-0 w-44 text-left p-2.5 bg-stone-100 border border-stone-200 rounded-xl hover:border-orange-500/60 transition"
                     >
-                      <div className="flex justify-between items-center text-xs font-bold text-orange-400 mb-1">
+                      <div className="flex justify-between items-center text-xs font-bold text-orange-600 mb-1">
                         <span><i className="fa-solid fa-pause text-[8px]"></i> En espera</span>
                         <span>{v.hora}</span>
                       </div>
-                      <p className="text-xs font-semibold text-white truncate">{v.cliente?.nombre_completo || 'Cliente'}</p>
+                      <p className="text-xs font-semibold text-stone-900 truncate">{v.cliente?.nombre_completo || 'Cliente'}</p>
                       <div className="flex justify-between items-center mt-1">
-                        <span className="text-xs text-stone-400">{v.items.length} ítems</span>
-                        <span className="text-xs font-black text-orange-400">S/ {v.total.toFixed(2)}</span>
+                        <span className="text-xs text-stone-600">{v.items.length} ítems</span>
+                        <span className="text-xs font-black text-orange-600">S/ {v.total.toFixed(2)}</span>
                       </div>
                     </button>
                   ))}
@@ -2732,7 +2732,7 @@
                   <button
                     key={cat}
                     onClick={() => setCategoriaFiltro(cat)}
-                    className={`px-3 py-1.5 rounded-full whitespace-nowrap font-semibold transition ${categoriaFiltro === cat ? 'bg-orange-500 text-white shadow' : 'bg-stone-900 text-stone-400 hover:bg-stone-800 border border-stone-800'}`}
+                    className={`px-3 py-1.5 rounded-full whitespace-nowrap font-semibold transition ${categoriaFiltro === cat ? 'bg-orange-500 text-white shadow' : 'bg-stone-100 text-stone-600 hover:bg-stone-200 border border-stone-200'}`}
                   >
                     {cat}
                   </button>
@@ -2742,16 +2742,16 @@
               {/* Grilla de Productos */}
               <div className="flex-1 overflow-y-auto pr-1">
                 {cargandoProductos ? (
-                  <div className="flex flex-col items-center justify-center h-48 text-stone-400 gap-2">
+                  <div className="flex flex-col items-center justify-center h-48 text-stone-600 gap-2">
                     <div className="w-8 h-8 border-4 border-orange-500 border-t-transparent rounded-full animate-spin"></div>
                     <p className="text-xs">Cargando productos...</p>
                   </div>
                 ) : productos.length === 0 ? (
                   <div className="flex flex-col items-center justify-center h-full text-center px-4">
                     <div className="w-16 h-16 rounded-2xl bg-orange-500/10 flex items-center justify-center mb-3">
-                      <i className="fa-solid fa-boxes-stacked text-2xl text-orange-400"></i>
+                      <i className="fa-solid fa-boxes-stacked text-2xl text-orange-600"></i>
                     </div>
-                    <p className="text-base font-bold text-white">Aún no tienes productos registrados</p>
+                    <p className="text-base font-bold text-stone-900">Aún no tienes productos registrados</p>
                     <p className="text-xs text-stone-500 mt-1 max-w-xs">
                       Antes de vender, registra el inventario de tu negocio: qué productos tienes, sus precios y si se venden por unidad o por peso.
                     </p>
@@ -2765,7 +2765,7 @@
                 ) : productosFiltrados.length === 0 ? (
                   <div className="flex flex-col items-center justify-center h-48 text-stone-500 text-center">
                     <p className="text-base font-semibold">No se encontraron productos</p>
-                    <p className="text-xs text-stone-600 mt-1">Prueba con otra búsqueda o categoría.</p>
+                    <p className="text-xs text-stone-400 mt-1">Prueba con otra búsqueda o categoría.</p>
                   </div>
                 ) : (
                   <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
@@ -2778,13 +2778,13 @@
                         tabIndex={0}
                         onClick={() => handleClicProducto(prod)}
                         onKeyDown={(e) => { if (e.key === 'Enter') handleClicProducto(prod); }}
-                        className="text-left bg-gradient-to-b from-stone-900 to-stone-900/60 border border-stone-800 rounded-2xl overflow-hidden hover:border-orange-500/50 hover:-translate-y-0.5 hover:shadow-xl hover:shadow-black/40 transition-all duration-200 active:scale-[0.98] group cursor-pointer relative"
+                        className="text-left bg-gradient-to-b from-stone-100 to-stone-100/60 border border-stone-200 rounded-2xl overflow-hidden hover:border-orange-500/50 hover:-translate-y-0.5 hover:shadow-xl hover:shadow-black/40 transition-all duration-200 active:scale-[0.98] group cursor-pointer relative"
                       >
                         {esAdmin && (
                           <button
                             type="button"
                             onClick={(e) => { e.stopPropagation(); abrirEdicionProducto(prod); }}
-                            className="absolute top-2 left-2 z-10 w-6 h-6 flex items-center justify-center bg-stone-950/80 hover:bg-stone-900 text-stone-300 hover:text-orange-400 rounded-lg transition"
+                            className="absolute top-2 left-2 z-10 w-6 h-6 flex items-center justify-center bg-stone-50/80 hover:bg-stone-100 text-stone-700 hover:text-orange-600 rounded-lg transition"
                             title="Editar producto"
                           >
                             <i className="fa-solid fa-pen text-xs"></i>
@@ -2793,29 +2793,29 @@
                         <div className={`h-20 md:h-24 flex items-center justify-center bg-gradient-to-br ${est.fondo} relative`}>
                           <i className={`fa-solid ${est.icono} ${est.color} text-2xl md:text-3xl opacity-90 group-hover:scale-110 transition-transform duration-200`}></i>
                           {prod.unidad === 'KG' && (
-                            <span className="absolute top-2 right-2 text-xs font-bold text-stone-900 bg-white/90 px-1.5 py-0.5 rounded-md">
+                            <span className="absolute top-2 right-2 text-xs font-bold text-stone-100 bg-white/90 px-1.5 py-0.5 rounded-md">
                               KG
                             </span>
                           )}
                         </div>
                         <div className="p-3">
-                          <h3 className="text-xs font-semibold text-stone-100 line-clamp-2 leading-snug group-hover:text-white min-h-[2rem]">
+                          <h3 className="text-xs font-semibold text-stone-900 line-clamp-2 leading-snug group-hover:text-stone-900 min-h-[2rem]">
                             {prod.descripcion}
                           </h3>
-                          <div className="mt-2 pt-2 border-t border-stone-800/80 flex items-end justify-between">
+                          <div className="mt-2 pt-2 border-t border-stone-200/80 flex items-end justify-between">
                             <span className="text-xs font-medium text-stone-500 tracking-wide uppercase">
                               {prod.categoria || 'General'}
                             </span>
-                            <span className="text-sm font-extrabold text-orange-400 tabular-nums">
+                            <span className="text-sm font-extrabold text-orange-600 tabular-nums">
                               S/ {Number(prod.precio_venta).toFixed(2)}
                             </span>
                           </div>
                           {prod.stock_actual !== null && prod.stock_actual !== undefined && (
                             <div className={`mt-1.5 text-xs font-semibold flex items-center gap-1 ${
                               Number(prod.stock_actual) <= 0
-                                ? 'text-rose-400'
+                                ? 'text-rose-600'
                                 : Number(prod.stock_actual) <= Number(prod.stock_min || 5)
-                                ? 'text-amber-400'
+                                ? 'text-amber-600'
                                 : 'text-stone-500'
                             }`}>
                               <i className="fa-solid fa-boxes-stacked text-[8px]"></i>
@@ -2833,45 +2833,45 @@
           </div>
 
           {/* Panel Derecho: Resumen de Venta y Cobro (overlay en mobile, fijo en desktop) */}
-          <section className={`${mostrarResumenMobile ? 'flex' : 'hidden'} md:flex flex-col w-full md:w-[400px] lg:w-[440px] bg-stone-900 border-l border-stone-800 fixed md:static inset-0 z-50 md:z-auto`}>
+          <section className={`${mostrarResumenMobile ? 'flex' : 'hidden'} md:flex flex-col w-full md:w-[400px] lg:w-[440px] bg-stone-100 border-l border-stone-200 fixed md:static inset-0 z-50 md:z-auto`}>
             {/* Encabezado del resumen (solo mobile trae botón de cerrar) */}
-            <div className="flex items-center justify-between px-4 py-3 border-b border-stone-800 md:hidden">
-              <h2 className="text-sm font-black text-white">Resumen de Venta</h2>
-              <button onClick={() => setMostrarResumenMobile(false)} className="text-stone-400 hover:text-white text-lg">✕</button>
+            <div className="flex items-center justify-between px-4 py-3 border-b border-stone-200 md:hidden">
+              <h2 className="text-sm font-black text-stone-900">Resumen de Venta</h2>
+              <button onClick={() => setMostrarResumenMobile(false)} className="text-stone-600 hover:text-stone-900 text-lg">✕</button>
             </div>
 
             {/* Cliente Selector */}
-            <div className="p-3 bg-stone-900 border-b border-stone-800">
+            <div className="p-3 bg-stone-100 border-b border-stone-200">
               <div className="flex items-center gap-2">
-                <span className="text-xs text-stone-400 font-bold uppercase tracking-wider">Cliente:</span>
+                <span className="text-xs text-stone-600 font-bold uppercase tracking-wider">Cliente:</span>
                 <input
                   type="text"
                   value={dniCliente}
                   onChange={(e) => setDniCliente(e.target.value)}
                   onKeyDown={(e) => e.key === 'Enter' && obtenerOCrearCliente(dniCliente)}
                   placeholder="DNI / RUC"
-                  className="w-24 bg-stone-800 border border-stone-700 text-xs text-white px-2 py-1 rounded focus:outline-none focus:border-orange-500"
+                  className="w-24 bg-stone-200 border border-stone-300 text-xs text-stone-900 px-2 py-1 rounded focus:outline-none focus:border-orange-500"
                 />
                 <button
                   onClick={() => obtenerOCrearCliente(dniCliente)}
-                  className="px-2.5 py-1 text-xs bg-stone-800 hover:bg-stone-700 text-white rounded font-medium transition"
+                  className="px-2.5 py-1 text-xs bg-stone-200 hover:bg-stone-300 text-stone-900 rounded font-medium transition"
                 >
                   Buscar
                 </button>
                 <button
                   onClick={() => setModalNuevoCliente(true)}
-                  className="text-xs text-orange-400 hover:underline ml-auto"
+                  className="text-xs text-orange-600 hover:underline ml-auto"
                 >
                   + Nuevo Cliente
                 </button>
               </div>
               {clienteActual && (
-                <div className="mt-1.5 flex items-center justify-between text-xs text-stone-300">
+                <div className="mt-1.5 flex items-center justify-between text-xs text-stone-700">
                   <span className="font-semibold truncate max-w-[240px]">
                     <i className="fa-solid fa-user text-xs text-stone-500"></i> {clienteActual.nombre_completo}
                   </span>
                   {clienteActual.saldo_actual > 0 && (
-                    <span className="text-xs text-rose-400 font-bold">
+                    <span className="text-xs text-rose-600 font-bold">
                       Deuda: S/ {Number(clienteActual.saldo_actual).toFixed(2)}
                     </span>
                   )}
@@ -2880,15 +2880,15 @@
             </div>
 
             {/* Encabezado Carrito */}
-            <div className="flex items-center justify-between px-3 py-2 bg-stone-900 border-b border-stone-800">
-              <span className="text-xs font-bold text-stone-300 uppercase tracking-wider">
+            <div className="flex items-center justify-between px-3 py-2 bg-stone-100 border-b border-stone-200">
+              <span className="text-xs font-bold text-stone-700 uppercase tracking-wider">
                 Carrito ({carrito.reduce((a, c) => a + c.cantidad, 0)} ítems)
               </span>
               <div className="flex gap-2">
                 {carrito.length > 0 && (
                   <button
                     onClick={aparcarVentaActual}
-                    className="text-xs text-orange-400 hover:text-orange-300 font-bold transition"
+                    className="text-xs text-orange-600 hover:text-orange-600 font-bold transition"
                   >
                     <i className="fa-solid fa-pause text-xs"></i> Pausar
                   </button>
@@ -2896,7 +2896,7 @@
                 {carrito.length > 0 && (
                   <button
                     onClick={() => setCarrito([])}
-                    className="text-xs text-rose-400 hover:text-rose-300 transition"
+                    className="text-xs text-rose-600 hover:text-rose-600 transition"
                   >
                     Vaciar
                   </button>
@@ -2908,7 +2908,7 @@
             <div className="flex-1 overflow-y-auto p-2.5 space-y-1.5">
               {carrito.length === 0 ? (
                 <div className="flex flex-col items-center justify-center h-full text-stone-500 text-center p-4">
-                  <i className="fa-solid fa-basket-shopping text-3xl mb-2 text-stone-700"></i>
+                  <i className="fa-solid fa-basket-shopping text-3xl mb-2 text-stone-300"></i>
                   <p className="text-xs font-semibold">Carrito vacío</p>
                   <p className="text-xs text-stone-500 mt-0.5">
                     Toca un producto o escanea su código de barras.
@@ -2918,10 +2918,10 @@
                 carrito.map((item) => (
                   <div
                     key={item.productoId}
-                    className="flex items-center gap-2.5 p-2.5 bg-stone-800/40 border border-stone-800 rounded-xl hover:border-stone-700 transition"
+                    className="flex items-center gap-2.5 p-2.5 bg-stone-200/40 border border-stone-200 rounded-xl hover:border-stone-300 transition"
                   >
                     <div className="flex-1 min-w-0">
-                      <p className="text-xs font-semibold text-stone-100 truncate">
+                      <p className="text-xs font-semibold text-stone-900 truncate">
                         {item.descripcion}
                       </p>
                       <p className="text-xs text-stone-500 tabular-nums">
@@ -2929,31 +2929,31 @@
                       </p>
                     </div>
 
-                    <div className="flex items-center gap-1 bg-stone-900 p-1 rounded-lg border border-stone-700 shrink-0">
+                    <div className="flex items-center gap-1 bg-stone-100 p-1 rounded-lg border border-stone-300 shrink-0">
                       <button
                         onClick={() => cambiarCantidadCarrito(item.productoId, -1)}
-                        className="w-6 h-6 flex items-center justify-center text-xs text-stone-400 hover:bg-stone-700 hover:text-white rounded-md transition"
+                        className="w-6 h-6 flex items-center justify-center text-xs text-stone-600 hover:bg-stone-300 hover:text-stone-900 rounded-md transition"
                       >
                         <i className="fa-solid fa-minus text-xs"></i>
                       </button>
-                      <span className="w-9 text-center text-xs font-bold text-orange-400 tabular-nums">
+                      <span className="w-9 text-center text-xs font-bold text-orange-600 tabular-nums">
                         {item.cantidad}
                       </span>
                       <button
                         onClick={() => cambiarCantidadCarrito(item.productoId, 1)}
-                        className="w-6 h-6 flex items-center justify-center text-xs text-stone-400 hover:bg-stone-700 hover:text-white rounded-md transition"
+                        className="w-6 h-6 flex items-center justify-center text-xs text-stone-600 hover:bg-stone-300 hover:text-stone-900 rounded-md transition"
                       >
                         <i className="fa-solid fa-plus text-xs"></i>
                       </button>
                     </div>
 
                     <div className="w-[68px] text-right shrink-0">
-                      <span className="text-xs font-bold text-white block tabular-nums">
+                      <span className="text-xs font-bold text-stone-900 block tabular-nums">
                         S/ {item.subtotal.toFixed(2)}
                       </span>
                       <button
                         onClick={() => eliminarItemCarrito(item.productoId)}
-                        className="text-xs text-stone-500 hover:text-rose-400 transition"
+                        className="text-xs text-stone-500 hover:text-rose-600 transition"
                       >
                         <i className="fa-solid fa-trash-can text-xs"></i> Quitar
                       </button>
@@ -2964,7 +2964,7 @@
             </div>
 
             {/* Panel Cobro */}
-            <div className="p-3.5 bg-stone-900 border-t border-stone-800 space-y-2.5">
+            <div className="p-3.5 bg-stone-100 border-t border-stone-200 space-y-2.5">
               <div>
                 <div className="grid grid-cols-3 gap-1.5">
                   {[
@@ -2981,7 +2981,7 @@
                       className={`flex flex-col items-center gap-1 py-2 text-xs font-semibold rounded-xl border transition ${
                         medioPago === m.id
                           ? 'bg-orange-500 border-orange-400 text-white shadow-lg shadow-orange-500/20'
-                          : 'bg-stone-800/60 border-stone-700 text-stone-400 hover:bg-stone-800 hover:text-stone-200'
+                          : 'bg-stone-200/60 border-stone-300 text-stone-600 hover:bg-stone-200 hover:text-stone-800'
                       }`}
                     >
                       <i className={`fa-solid ${m.icono} text-sm`}></i>
@@ -2992,10 +2992,10 @@
               </div>
 
               {medioPago === 'EFECTIVO' && (
-                <div className="bg-stone-800/60 p-2 rounded-lg border border-stone-800 space-y-1">
+                <div className="bg-stone-200/60 p-2 rounded-lg border border-stone-200 space-y-1">
                   <div className="grid grid-cols-2 gap-2">
                     <div>
-                      <label className="text-xs text-stone-400 block">Paga con (S/):</label>
+                      <label className="text-xs text-stone-600 block">Paga con (S/):</label>
                       <input
                         type="text"
                         inputMode="decimal"
@@ -3003,12 +3003,12 @@
                         onFocus={() => setCampoTeclado('recibido')}
                         onChange={(e) => setMontoRecibido(e.target.value)}
                         placeholder="0.00"
-                        className="w-full bg-stone-900 border border-stone-700 rounded px-2 py-0.5 text-xs font-bold text-white focus:outline-none focus:border-orange-500"
+                        className="w-full bg-stone-100 border border-stone-300 rounded px-2 py-0.5 text-xs font-bold text-stone-900 focus:outline-none focus:border-orange-500"
                       />
                     </div>
                     <div className="text-right">
-                      <span className="text-xs text-stone-400 block">Vuelto:</span>
-                      <span className={`text-sm font-black ${vuelto < 0 ? 'text-rose-400' : 'text-orange-400'}`}>
+                      <span className="text-xs text-stone-600 block">Vuelto:</span>
+                      <span className={`text-sm font-black ${vuelto < 0 ? 'text-rose-600' : 'text-orange-600'}`}>
                         S/ {vuelto > 0 ? vuelto.toFixed(2) : '0.00'}
                       </span>
                     </div>
@@ -3016,7 +3016,7 @@
                   <button
                     type="button"
                     onClick={() => setCampoTeclado(campoTeclado === 'recibido' ? null : 'recibido')}
-                    className="text-xs text-stone-400 hover:text-stone-200 underline"
+                    className="text-xs text-stone-600 hover:text-stone-800 underline"
                   >
                     <i className="fa-solid fa-calculator"></i> {campoTeclado === 'recibido' ? 'Ocultar teclado' : 'Teclado numérico'}
                   </button>
@@ -3025,11 +3025,11 @@
               )}
 
               {(medioPago === 'YAPE' || medioPago === 'PLIN') && (
-                <div className="bg-stone-800/60 p-2 rounded-lg border border-stone-800 text-center">
+                <div className="bg-stone-200/60 p-2 rounded-lg border border-stone-200 text-center">
                   <button
                     type="button"
                     onClick={() => setMedioQR(medioPago)}
-                    className="w-full py-2 bg-stone-700 hover:bg-stone-600 text-white text-xs font-bold rounded-lg"
+                    className="w-full py-2 bg-stone-300 hover:bg-stone-400 text-stone-900 text-xs font-bold rounded-lg"
                   >
                     <i className="fa-solid fa-qrcode"></i> Mostrar QR de {medioPago}
                   </button>
@@ -3039,8 +3039,8 @@
               {medioPago === 'CREDITO' && (
                 <div className={`p-2 rounded-lg border text-xs ${
                   (!clienteActual || clienteActual.dni === '99999999')
-                    ? 'bg-rose-950/40 border-rose-800/50 text-rose-300'
-                    : 'bg-orange-950/30 border-orange-800/50 text-orange-300'
+                    ? 'bg-rose-950/40 border-rose-800/50 text-rose-600'
+                    : 'bg-orange-950/30 border-orange-800/50 text-orange-600'
                 }`}>
                   {(!clienteActual || clienteActual.dni === '99999999') ? (
                     'Asigna un cliente registrado para vender a crédito.'
@@ -3051,9 +3051,9 @@
               )}
 
               {medioPago === 'MIXTO' && (
-                <div className="bg-stone-800/60 p-2 rounded-lg border border-stone-800 space-y-1.5">
+                <div className="bg-stone-200/60 p-2 rounded-lg border border-stone-200 space-y-1.5">
                   <div>
-                    <label className="text-xs text-stone-400 block">Monto en Tarjeta/Otro (S/):</label>
+                    <label className="text-xs text-stone-600 block">Monto en Tarjeta/Otro (S/):</label>
                     <input
                       type="text"
                       inputMode="decimal"
@@ -3061,18 +3061,18 @@
                       onFocus={() => setCampoTeclado('mixtoOtro')}
                       onChange={(e) => setMontoMixtoOtro(e.target.value)}
                       placeholder="0.00"
-                      className="w-full bg-stone-900 border border-stone-700 rounded px-2 py-0.5 text-xs font-bold text-white focus:outline-none focus:border-orange-500"
+                      className="w-full bg-stone-100 border border-stone-300 rounded px-2 py-0.5 text-xs font-bold text-stone-900 focus:outline-none focus:border-orange-500"
                     />
                   </div>
 
-                  <div className="grid grid-cols-2 gap-2 pt-1 border-t border-stone-800">
+                  <div className="grid grid-cols-2 gap-2 pt-1 border-t border-stone-200">
                     <div>
-                      <label className="text-xs text-stone-400 block">Falta en efectivo:</label>
-                      <span className="text-sm font-black text-amber-400">S/ {efectivoRequeridoMixto.toFixed(2)}</span>
+                      <label className="text-xs text-stone-600 block">Falta en efectivo:</label>
+                      <span className="text-sm font-black text-amber-600">S/ {efectivoRequeridoMixto.toFixed(2)}</span>
                     </div>
                     <div className="text-right">
-                      <label className="text-xs text-stone-400 block">Vuelto:</label>
-                      <span className={`text-sm font-black ${vueltoMixto < 0 ? 'text-rose-400' : 'text-orange-400'}`}>
+                      <label className="text-xs text-stone-600 block">Vuelto:</label>
+                      <span className={`text-sm font-black ${vueltoMixto < 0 ? 'text-rose-600' : 'text-orange-600'}`}>
                         S/ {vueltoMixto > 0 ? vueltoMixto.toFixed(2) : '0.00'}
                       </span>
                     </div>
@@ -3080,7 +3080,7 @@
 
                   {efectivoRequeridoMixto > 0 && (
                     <div>
-                      <label className="text-xs text-stone-400 block">Recibe en efectivo (S/):</label>
+                      <label className="text-xs text-stone-600 block">Recibe en efectivo (S/):</label>
                       <input
                         type="text"
                         inputMode="decimal"
@@ -3088,7 +3088,7 @@
                         onFocus={() => setCampoTeclado('mixtoRecibido')}
                         onChange={(e) => setMontoMixtoRecibido(e.target.value)}
                         placeholder="0.00"
-                        className="w-full bg-stone-900 border border-stone-700 rounded px-2 py-0.5 text-xs font-bold text-white focus:outline-none focus:border-orange-500"
+                        className="w-full bg-stone-100 border border-stone-300 rounded px-2 py-0.5 text-xs font-bold text-stone-900 focus:outline-none focus:border-orange-500"
                       />
                     </div>
                   )}
@@ -3099,11 +3099,11 @@
                 </div>
               )}
 
-              <div className="flex items-center justify-between pt-1 pb-0.5 border-t border-stone-800">
-                <span className="text-xs font-semibold text-stone-400 uppercase tracking-wider pt-2">
+              <div className="flex items-center justify-between pt-1 pb-0.5 border-t border-stone-200">
+                <span className="text-xs font-semibold text-stone-600 uppercase tracking-wider pt-2">
                   Total a Cobrar
                 </span>
-                <span className="text-2xl font-extrabold text-white tabular-nums pt-2">
+                <span className="text-2xl font-extrabold text-stone-900 tabular-nums pt-2">
                   S/ {totalVenta.toFixed(2)}
                 </span>
               </div>
@@ -3113,7 +3113,7 @@
                 disabled={procesandoVenta || carrito.length === 0 || !turnoActivo}
                 className={`w-full py-3.5 rounded-xl font-bold text-sm transition-all flex items-center justify-center gap-2 ${
                   !turnoActivo || procesandoVenta || carrito.length === 0
-                    ? 'bg-stone-800 text-stone-600 cursor-not-allowed'
+                    ? 'bg-stone-200 text-stone-400 cursor-not-allowed'
                     : 'bg-orange-500 hover:bg-orange-400 text-white shadow-lg shadow-orange-500/25 active:scale-[0.98]'
                 }`}
               >
@@ -3133,48 +3133,48 @@
           {/* Hoja de "Más módulos" (solo mobile) */}
           {menuMas && (
             <div className="md:hidden fixed inset-0 bg-black/70 z-[60] flex items-end" onClick={() => setMenuMas(false)}>
-              <div className="w-full bg-stone-900 border-t border-stone-800 rounded-t-3xl p-4 pb-6 space-y-1" onClick={(e) => e.stopPropagation()}>
-                <div className="w-10 h-1 bg-stone-700 rounded-full mx-auto mb-2"></div>
-                <button onClick={() => { abrirModuloCobroDeudas(); setMenuMas(false); }} className="w-full text-left px-3.5 py-3 rounded-xl hover:bg-stone-800 flex items-center gap-3 text-orange-400 font-semibold text-sm">
+              <div className="w-full bg-stone-100 border-t border-stone-200 rounded-t-3xl p-4 pb-6 space-y-1" onClick={(e) => e.stopPropagation()}>
+                <div className="w-10 h-1 bg-stone-300 rounded-full mx-auto mb-2"></div>
+                <button onClick={() => { abrirModuloCobroDeudas(); setMenuMas(false); }} className="w-full text-left px-3.5 py-3 rounded-xl hover:bg-stone-200 flex items-center gap-3 text-orange-600 font-semibold text-sm">
                   <i className="fa-solid fa-hand-holding-dollar w-5"></i> Cuentas por Cobrar
                 </button>
-                <button onClick={() => { abrirHistorialDelDia(); setMenuMas(false); }} className="w-full text-left px-3.5 py-3 rounded-xl hover:bg-stone-800 flex items-center gap-3 text-stone-200 font-medium text-sm">
-                  <i className="fa-solid fa-receipt w-5 text-orange-400"></i> Historial de Ventas Hoy
+                <button onClick={() => { abrirHistorialDelDia(); setMenuMas(false); }} className="w-full text-left px-3.5 py-3 rounded-xl hover:bg-stone-200 flex items-center gap-3 text-stone-800 font-medium text-sm">
+                  <i className="fa-solid fa-receipt w-5 text-orange-600"></i> Historial de Ventas Hoy
                 </button>
-                <button onClick={() => { setModalNuevoCliente(true); setMenuMas(false); }} className="w-full text-left px-3.5 py-3 rounded-xl hover:bg-stone-800 flex items-center gap-3 text-stone-200 font-medium text-sm">
-                  <i className="fa-solid fa-user-plus w-5 text-orange-400"></i> Registrar Cliente
+                <button onClick={() => { setModalNuevoCliente(true); setMenuMas(false); }} className="w-full text-left px-3.5 py-3 rounded-xl hover:bg-stone-200 flex items-center gap-3 text-stone-800 font-medium text-sm">
+                  <i className="fa-solid fa-user-plus w-5 text-orange-600"></i> Registrar Cliente
                 </button>
-                <button onClick={() => { setModalStockBajo(true); setMenuMas(false); }} className="w-full text-left px-3.5 py-3 rounded-xl hover:bg-stone-800 flex items-center gap-3 text-stone-200 font-medium text-sm">
-                  <i className="fa-solid fa-triangle-exclamation w-5 text-amber-400"></i> Stock Bajo {cantidadStockBajo > 0 && `(${cantidadStockBajo})`}
+                <button onClick={() => { setModalStockBajo(true); setMenuMas(false); }} className="w-full text-left px-3.5 py-3 rounded-xl hover:bg-stone-200 flex items-center gap-3 text-stone-800 font-medium text-sm">
+                  <i className="fa-solid fa-triangle-exclamation w-5 text-amber-600"></i> Stock Bajo {cantidadStockBajo > 0 && `(${cantidadStockBajo})`}
                 </button>
-                <button onClick={() => { setModalMerma(true); setMenuMas(false); }} className="w-full text-left px-3.5 py-3 rounded-xl hover:bg-stone-800 flex items-center gap-3 text-stone-200 font-medium text-sm">
-                  <i className="fa-solid fa-box w-5 text-amber-400"></i> Registrar Merma
+                <button onClick={() => { setModalMerma(true); setMenuMas(false); }} className="w-full text-left px-3.5 py-3 rounded-xl hover:bg-stone-200 flex items-center gap-3 text-stone-800 font-medium text-sm">
+                  <i className="fa-solid fa-box w-5 text-amber-600"></i> Registrar Merma
                 </button>
                 {esAdmin && (
                   <>
-                    <div className="border-t border-stone-800 my-1"></div>
-                    <button onClick={() => { setModalInventarioInicial(true); setMenuMas(false); }} className="w-full text-left px-3.5 py-3 rounded-xl hover:bg-stone-800 flex items-center gap-3 text-orange-400 font-semibold text-sm">
+                    <div className="border-t border-stone-200 my-1"></div>
+                    <button onClick={() => { setModalInventarioInicial(true); setMenuMas(false); }} className="w-full text-left px-3.5 py-3 rounded-xl hover:bg-stone-200 flex items-center gap-3 text-orange-600 font-semibold text-sm">
                       <i className="fa-solid fa-boxes-stacked w-5"></i> Registrar Inventario
                     </button>
-                    <button onClick={() => { setModalNuevoProducto(true); setMenuMas(false); }} className="w-full text-left px-3.5 py-3 rounded-xl hover:bg-stone-800 flex items-center gap-3 text-stone-200 font-medium text-sm">
-                      <i className="fa-solid fa-box-open w-5 text-orange-400"></i> Nuevo Producto
+                    <button onClick={() => { setModalNuevoProducto(true); setMenuMas(false); }} className="w-full text-left px-3.5 py-3 rounded-xl hover:bg-stone-200 flex items-center gap-3 text-stone-800 font-medium text-sm">
+                      <i className="fa-solid fa-box-open w-5 text-orange-600"></i> Nuevo Producto
                     </button>
-                    <button onClick={() => { setModalEntradaMercaderia(true); setMenuMas(false); }} className="w-full text-left px-3.5 py-3 rounded-xl hover:bg-stone-800 flex items-center gap-3 text-stone-200 font-medium text-sm">
-                      <i className="fa-solid fa-truck-ramp-box w-5 text-orange-400"></i> Entrada de Mercadería
+                    <button onClick={() => { setModalEntradaMercaderia(true); setMenuMas(false); }} className="w-full text-left px-3.5 py-3 rounded-xl hover:bg-stone-200 flex items-center gap-3 text-stone-800 font-medium text-sm">
+                      <i className="fa-solid fa-truck-ramp-box w-5 text-orange-600"></i> Entrada de Mercadería
                     </button>
-                    <button onClick={() => { abrirGestionClientes(); setMenuMas(false); }} className="w-full text-left px-3.5 py-3 rounded-xl hover:bg-stone-800 flex items-center gap-3 text-stone-200 font-medium text-sm">
-                      <i className="fa-solid fa-users w-5 text-orange-400"></i> Clientes (editar)
+                    <button onClick={() => { abrirGestionClientes(); setMenuMas(false); }} className="w-full text-left px-3.5 py-3 rounded-xl hover:bg-stone-200 flex items-center gap-3 text-stone-800 font-medium text-sm">
+                      <i className="fa-solid fa-users w-5 text-orange-600"></i> Clientes (editar)
                     </button>
-                    <button onClick={() => { abrirGestionCajeros(); setMenuMas(false); }} className="w-full text-left px-3.5 py-3 rounded-xl hover:bg-stone-800 flex items-center gap-3 text-stone-200 font-medium text-sm">
-                      <i className="fa-solid fa-user-group w-5 text-orange-400"></i> Cajeros y Empleados
+                    <button onClick={() => { abrirGestionCajeros(); setMenuMas(false); }} className="w-full text-left px-3.5 py-3 rounded-xl hover:bg-stone-200 flex items-center gap-3 text-stone-800 font-medium text-sm">
+                      <i className="fa-solid fa-user-group w-5 text-orange-600"></i> Cajeros y Empleados
                     </button>
-                    <button onClick={() => { setModalGasto(true); setMenuMas(false); }} className="w-full text-left px-3.5 py-3 rounded-xl hover:bg-stone-800 flex items-center gap-3 text-rose-400 font-semibold text-sm">
+                    <button onClick={() => { setModalGasto(true); setMenuMas(false); }} className="w-full text-left px-3.5 py-3 rounded-xl hover:bg-stone-200 flex items-center gap-3 text-rose-600 font-semibold text-sm">
                       <i className="fa-solid fa-money-bill-transfer w-5"></i> Registrar Gasto
                     </button>
                   </>
                 )}
-                <div className="border-t border-stone-800 my-1"></div>
-                <button onClick={() => { cerrarSesion(); setMenuMas(false); }} className="w-full text-left px-3.5 py-3 rounded-xl hover:bg-stone-800 flex items-center gap-3 text-rose-400 font-semibold text-sm">
+                <div className="border-t border-stone-200 my-1"></div>
+                <button onClick={() => { cerrarSesion(); setMenuMas(false); }} className="w-full text-left px-3.5 py-3 rounded-xl hover:bg-stone-200 flex items-center gap-3 text-rose-600 font-semibold text-sm">
                   <i className="fa-solid fa-right-from-bracket w-5"></i> Cerrar Sesión
                 </button>
               </div>
@@ -3188,9 +3188,9 @@
           {/* Modal: Cantidad / Balanza para Peso KG */}
           {modalCantidad && productoSeleccionadoCantidad && (
             <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4">
-              <div className="bg-stone-900 border border-stone-800 rounded-2xl max-w-xs w-full p-5 shadow-2xl space-y-4 text-center">
-                <h3 className="text-sm font-bold text-white leading-tight">{productoSeleccionadoCantidad.descripcion}</h3>
-                <p className="text-xs text-stone-400">Ingresa la cantidad o peso en KG:</p>
+              <div className="bg-stone-100 border border-stone-200 rounded-2xl max-w-xs w-full p-5 shadow-2xl space-y-4 text-center">
+                <h3 className="text-sm font-bold text-stone-900 leading-tight">{productoSeleccionadoCantidad.descripcion}</h3>
+                <p className="text-xs text-stone-600">Ingresa la cantidad o peso en KG:</p>
                 <div className="flex items-center justify-center gap-2">
                   <input
                     type="number"
@@ -3198,13 +3198,13 @@
                     min="0.001"
                     value={inputCantidad}
                     onChange={(e) => setInputCantidad(e.target.value)}
-                    className="w-32 bg-stone-950 border border-stone-800 text-center font-mono font-bold text-xl text-orange-400 p-2 rounded-xl focus:outline-none focus:border-orange-500"
+                    className="w-32 bg-stone-50 border border-stone-200 text-center font-mono font-bold text-xl text-orange-600 p-2 rounded-xl focus:outline-none focus:border-orange-500"
                     autoFocus
                   />
-                  <span className="text-sm font-bold text-stone-300">KG</span>
+                  <span className="text-sm font-bold text-stone-700">KG</span>
                 </div>
                 <div className="flex gap-2 pt-1">
-                  <button onClick={() => setModalCantidad(false)} className="flex-1 py-2 bg-stone-800 rounded-lg text-xs font-semibold">Cancelar</button>
+                  <button onClick={() => setModalCantidad(false)} className="flex-1 py-2 bg-stone-200 rounded-lg text-xs font-semibold">Cancelar</button>
                   <button onClick={confirmarCantidadBalanza} className="flex-1 py-2 bg-orange-600 hover:bg-orange-500 text-white rounded-lg text-xs font-bold shadow">Aceptar</button>
                 </div>
               </div>
@@ -3214,13 +3214,13 @@
           {/* Modal: Lector de Código de Barras por Cámara */}
           {modalEscaner && (
             <div className="fixed inset-0 bg-black z-[70] flex flex-col">
-              <div className="flex items-center justify-between px-4 py-3 bg-stone-950/90">
-                <h3 className="text-sm font-bold text-white flex items-center gap-2">
-                  <i className="fa-solid fa-camera text-orange-400"></i> Escanear Código de Barras
+              <div className="flex items-center justify-between px-4 py-3 bg-stone-50/90">
+                <h3 className="text-sm font-bold text-stone-900 flex items-center gap-2">
+                  <i className="fa-solid fa-camera text-orange-600"></i> Escanear Código de Barras
                 </h3>
                 <button
                   onClick={() => setModalEscaner(false)}
-                  className="w-9 h-9 flex items-center justify-center bg-stone-800 rounded-xl text-stone-300 hover:text-white"
+                  className="w-9 h-9 flex items-center justify-center bg-stone-200 rounded-xl text-stone-700 hover:text-stone-900"
                 >
                   <i className="fa-solid fa-xmark"></i>
                 </button>
@@ -3233,20 +3233,20 @@
                 </div>
 
                 {errorEscaner && (
-                  <div className="absolute inset-0 flex flex-col items-center justify-center text-center p-6 bg-stone-950">
-                    <i className="fa-solid fa-video-slash text-3xl text-rose-400 mb-3"></i>
-                    <p className="text-sm font-semibold text-white">{errorEscaner}</p>
+                  <div className="absolute inset-0 flex flex-col items-center justify-center text-center p-6 bg-stone-50">
+                    <i className="fa-solid fa-video-slash text-3xl text-rose-600 mb-3"></i>
+                    <p className="text-sm font-semibold text-stone-900">{errorEscaner}</p>
                     <p className="text-xs text-stone-500 mt-1">Verifica que le diste permiso de cámara a esta página en tu navegador.</p>
                   </div>
                 )}
               </div>
 
-              <div className="p-4 bg-stone-950/90 text-center space-y-1.5">
-                <p className="text-xs text-stone-400">Apunta la cámara al código de barras del producto.</p>
+              <div className="p-4 bg-stone-50/90 text-center space-y-1.5">
+                <p className="text-xs text-stone-600">Apunta la cámara al código de barras del producto.</p>
                 <button
                   type="button"
                   onClick={() => setMetodoForzado(usandoDetectorNativo ? 'html5qr' : 'nativo')}
-                  className="text-xs text-orange-400 underline"
+                  className="text-xs text-orange-600 underline"
                 >
                   ¿No detecta? Probar con el otro método ({usandoDetectorNativo ? 'clásico' : 'nativo'})
                 </button>
@@ -3257,29 +3257,29 @@
           {/* Modal: Inventario Inicial (carga de varios productos a la vez) */}
           {modalInventarioInicial && (
             <div className="fixed inset-0 bg-black/85 flex items-center justify-center z-50 p-4">
-              <div className="bg-stone-900 border border-stone-800 rounded-2xl max-w-2xl w-full p-5 shadow-2xl space-y-3 max-h-[90vh] flex flex-col">
+              <div className="bg-stone-100 border border-stone-200 rounded-2xl max-w-2xl w-full p-5 shadow-2xl space-y-3 max-h-[90vh] flex flex-col">
                 <div className="flex justify-between items-start shrink-0">
                   <div>
-                    <h3 className="text-base font-bold text-white flex items-center gap-2">
-                      <i className="fa-solid fa-boxes-stacked text-orange-400"></i> Registrar mi Inventario
+                    <h3 className="text-base font-bold text-stone-900 flex items-center gap-2">
+                      <i className="fa-solid fa-boxes-stacked text-orange-600"></i> Registrar mi Inventario
                     </h3>
-                    <p className="text-xs text-stone-400 mt-0.5">Agrega todos los productos que vendes, uno debajo del otro.</p>
+                    <p className="text-xs text-stone-600 mt-0.5">Agrega todos los productos que vendes, uno debajo del otro.</p>
                   </div>
-                  <button onClick={() => setModalInventarioInicial(false)} className="text-stone-400 hover:text-white shrink-0">✕</button>
+                  <button onClick={() => setModalInventarioInicial(false)} className="text-stone-600 hover:text-stone-900 shrink-0">✕</button>
                 </div>
 
                 <div className="flex-1 overflow-y-auto space-y-2 pr-1">
                   {filasInventario.map((fila, idx) => {
                     const esExistente = !!fila.productoExistenteId;
                     const sugerencias = sugerenciasParaFila(fila);
-                    const claseCampoVinculado = 'bg-stone-900/40 border border-stone-800 rounded-lg px-3 py-1.5 text-xs text-stone-400 cursor-not-allowed';
-                    const claseCampoNormal = 'bg-stone-900 border border-stone-800 rounded-lg px-3 py-1.5 text-xs text-white focus:outline-none focus:border-orange-500';
+                    const claseCampoVinculado = 'bg-stone-100/40 border border-stone-200 rounded-lg px-3 py-1.5 text-xs text-stone-600 cursor-not-allowed';
+                    const claseCampoNormal = 'bg-stone-100 border border-stone-200 rounded-lg px-3 py-1.5 text-xs text-stone-900 focus:outline-none focus:border-orange-500';
                     return (
-                    <div key={idx} className={`p-3 rounded-xl space-y-2 relative border ${esExistente ? 'bg-orange-950/20 border-orange-700/40' : 'bg-stone-950 border-stone-800'}`}>
+                    <div key={idx} className={`p-3 rounded-xl space-y-2 relative border ${esExistente ? 'bg-orange-950/20 border-orange-700/40' : 'bg-stone-50 border-stone-200'}`}>
                       {filasInventario.length > 1 && (
                         <button
                           onClick={() => eliminarFilaInventario(idx)}
-                          className="absolute top-2 right-2 w-6 h-6 flex items-center justify-center text-stone-500 hover:text-rose-400 hover:bg-stone-900 rounded-lg transition"
+                          className="absolute top-2 right-2 w-6 h-6 flex items-center justify-center text-stone-500 hover:text-rose-600 hover:bg-stone-100 rounded-lg transition"
                           title="Quitar producto"
                         >
                           <i className="fa-solid fa-xmark text-xs"></i>
@@ -3287,9 +3287,9 @@
                       )}
 
                       {esExistente && (
-                        <div className="flex items-center justify-between text-xs font-semibold text-orange-300 pr-6">
+                        <div className="flex items-center justify-between text-xs font-semibold text-orange-600 pr-6">
                           <span><i className="fa-solid fa-check-circle mr-1"></i> Producto existente — se sumará al stock</span>
-                          <button type="button" onClick={() => desvincularFilaInventario(idx)} className="underline text-stone-400 hover:text-stone-200">
+                          <button type="button" onClick={() => desvincularFilaInventario(idx)} className="underline text-stone-600 hover:text-stone-800">
                             Quitar vínculo
                           </button>
                         </div>
@@ -3306,13 +3306,13 @@
                             className={`w-full ${esExistente ? claseCampoVinculado : claseCampoNormal}`}
                           />
                           {sugerencias.length > 0 && (
-                            <div className="absolute z-10 top-full left-0 right-0 mt-1 bg-stone-800 border border-stone-700 rounded-lg shadow-xl overflow-hidden">
+                            <div className="absolute z-10 top-full left-0 right-0 mt-1 bg-stone-200 border border-stone-300 rounded-lg shadow-xl overflow-hidden">
                               {sugerencias.map((s) => (
                                 <button
                                   type="button"
                                   key={s.id}
                                   onClick={() => vincularProductoExistenteEnFila(idx, s)}
-                                  className="w-full text-left px-3 py-2 text-xs text-stone-200 hover:bg-stone-700 flex items-center justify-between gap-2"
+                                  className="w-full text-left px-3 py-2 text-xs text-stone-800 hover:bg-stone-300 flex items-center justify-between gap-2"
                                 >
                                   <span className="truncate">{s.descripcion}</span>
                                   <span className="text-stone-500 shrink-0">S/ {Number(s.precio_venta).toFixed(2)}</span>
@@ -3333,7 +3333,7 @@
                           <button
                             type="button"
                             onClick={() => abrirEscanerParaFilaInventario(idx)}
-                            className="absolute right-1.5 top-1/2 -translate-y-1/2 w-6 h-6 flex items-center justify-center text-stone-400 hover:text-orange-400 transition"
+                            className="absolute right-1.5 top-1/2 -translate-y-1/2 w-6 h-6 flex items-center justify-center text-stone-600 hover:text-orange-600 transition"
                             title="Escanear código de barras"
                           >
                             <i className="fa-solid fa-camera text-xs"></i>
@@ -3389,7 +3389,7 @@
                 <div className="shrink-0 space-y-2 pt-1">
                   <button
                     onClick={agregarFilaInventario}
-                    className="w-full py-2 bg-stone-800 hover:bg-stone-700 text-stone-200 text-xs font-semibold rounded-xl border border-stone-700 border-dashed flex items-center justify-center gap-1.5"
+                    className="w-full py-2 bg-stone-200 hover:bg-stone-300 text-stone-800 text-xs font-semibold rounded-xl border border-stone-300 border-dashed flex items-center justify-center gap-1.5"
                   >
                     <i className="fa-solid fa-plus"></i> Agregar otro producto
                   </button>
@@ -3412,20 +3412,20 @@
           {/* Modal: Registrar Merma */}
           {modalMerma && (
             <div className="fixed inset-0 bg-black/85 flex items-center justify-center z-50 p-4">
-              <div className="bg-stone-900 border border-stone-800 rounded-2xl max-w-sm w-full p-5 shadow-2xl space-y-3">
+              <div className="bg-stone-100 border border-stone-200 rounded-2xl max-w-sm w-full p-5 shadow-2xl space-y-3">
                 <div className="flex justify-between items-center">
-                  <h3 className="text-base font-bold text-white flex items-center gap-2">
-                    <i className="fa-solid fa-triangle-exclamation text-amber-400"></i> Registrar Merma
+                  <h3 className="text-base font-bold text-stone-900 flex items-center gap-2">
+                    <i className="fa-solid fa-triangle-exclamation text-amber-600"></i> Registrar Merma
                   </h3>
-                  <button onClick={() => setModalMerma(false)} className="text-stone-400 hover:text-white">✕</button>
+                  <button onClick={() => setModalMerma(false)} className="text-stone-600 hover:text-stone-900">✕</button>
                 </div>
-                <p className="text-xs text-stone-400">Para productos vencidos, rotos, robados o perdidos. Se descuenta del stock automáticamente.</p>
+                <p className="text-xs text-stone-600">Para productos vencidos, rotos, robados o perdidos. Se descuenta del stock automáticamente.</p>
                 <div>
-                  <label className="text-xs text-stone-400 block mb-1">Producto:</label>
+                  <label className="text-xs text-stone-600 block mb-1">Producto:</label>
                   <select
                     value={formMerma.productoId}
                     onChange={(e) => setFormMerma({ ...formMerma, productoId: e.target.value })}
-                    className="w-full bg-stone-950 border border-stone-800 rounded-lg px-3 py-1.5 text-xs text-white"
+                    className="w-full bg-stone-50 border border-stone-200 rounded-lg px-3 py-1.5 text-xs text-stone-900"
                   >
                     <option value="">-- Seleccionar producto --</option>
                     {productos.map((p) => (
@@ -3435,21 +3435,21 @@
                 </div>
                 <div className="grid grid-cols-2 gap-2">
                   <div>
-                    <label className="text-xs text-stone-400 block mb-1">Cantidad:</label>
+                    <label className="text-xs text-stone-600 block mb-1">Cantidad:</label>
                     <input
                       type="number"
                       step="0.10"
                       value={formMerma.cantidad}
                       onChange={(e) => setFormMerma({ ...formMerma, cantidad: e.target.value })}
-                      className="w-full bg-stone-950 border border-stone-800 rounded-lg px-3 py-1.5 text-xs text-white"
+                      className="w-full bg-stone-50 border border-stone-200 rounded-lg px-3 py-1.5 text-xs text-stone-900"
                     />
                   </div>
                   <div>
-                    <label className="text-xs text-stone-400 block mb-1">Motivo:</label>
+                    <label className="text-xs text-stone-600 block mb-1">Motivo:</label>
                     <select
                       value={formMerma.motivo}
                       onChange={(e) => setFormMerma({ ...formMerma, motivo: e.target.value })}
-                      className="w-full bg-stone-950 border border-stone-800 rounded-lg px-3 py-1.5 text-xs text-white"
+                      className="w-full bg-stone-50 border border-stone-200 rounded-lg px-3 py-1.5 text-xs text-stone-900"
                     >
                       <option value="Vencido">Vencido</option>
                       <option value="Roto/Dañado">Roto/Dañado</option>
@@ -3472,20 +3472,20 @@
           {/* Modal: Registrar Gasto */}
           {modalGasto && (
             <div className="fixed inset-0 bg-black/85 flex items-center justify-center z-50 p-4">
-              <div className="bg-stone-900 border border-stone-800 rounded-2xl max-w-sm w-full p-5 shadow-2xl space-y-3">
+              <div className="bg-stone-100 border border-stone-200 rounded-2xl max-w-sm w-full p-5 shadow-2xl space-y-3">
                 <div className="flex justify-between items-center">
-                  <h3 className="text-base font-bold text-white flex items-center gap-2">
-                    <i className="fa-solid fa-money-bill-transfer text-rose-400"></i> Registrar Gasto
+                  <h3 className="text-base font-bold text-stone-900 flex items-center gap-2">
+                    <i className="fa-solid fa-money-bill-transfer text-rose-600"></i> Registrar Gasto
                   </h3>
-                  <button onClick={() => setModalGasto(false)} className="text-stone-400 hover:text-white">✕</button>
+                  <button onClick={() => setModalGasto(false)} className="text-stone-600 hover:text-stone-900">✕</button>
                 </div>
                 <div className="grid grid-cols-2 gap-2">
                   <div>
-                    <label className="text-xs text-stone-400 block mb-1">Categoría:</label>
+                    <label className="text-xs text-stone-600 block mb-1">Categoría:</label>
                     <select
                       value={formGasto.categoria}
                       onChange={(e) => setFormGasto({ ...formGasto, categoria: e.target.value })}
-                      className="w-full bg-stone-950 border border-stone-800 rounded-lg px-3 py-1.5 text-xs text-white"
+                      className="w-full bg-stone-50 border border-stone-200 rounded-lg px-3 py-1.5 text-xs text-stone-900"
                     >
                       <option value="Servicios">Servicios (luz, agua, internet)</option>
                       <option value="Transporte">Transporte</option>
@@ -3495,31 +3495,31 @@
                     </select>
                   </div>
                   <div>
-                    <label className="text-xs text-stone-400 block mb-1">Monto (S/):</label>
+                    <label className="text-xs text-stone-600 block mb-1">Monto (S/):</label>
                     <input
                       type="number"
                       step="0.10"
                       value={formGasto.monto}
                       onChange={(e) => setFormGasto({ ...formGasto, monto: e.target.value })}
-                      className="w-full bg-stone-950 border border-stone-800 rounded-lg px-3 py-1.5 text-xs text-white"
+                      className="w-full bg-stone-50 border border-stone-200 rounded-lg px-3 py-1.5 text-xs text-stone-900"
                     />
                   </div>
                 </div>
                 <div>
-                  <label className="text-xs text-stone-400 block mb-1">Descripción:</label>
+                  <label className="text-xs text-stone-600 block mb-1">Descripción:</label>
                   <input
                     type="text"
                     value={formGasto.descripcion}
                     onChange={(e) => setFormGasto({ ...formGasto, descripcion: e.target.value })}
-                    className="w-full bg-stone-950 border border-stone-800 rounded-lg px-3 py-1.5 text-xs text-white"
+                    className="w-full bg-stone-50 border border-stone-200 rounded-lg px-3 py-1.5 text-xs text-stone-900"
                   />
                 </div>
                 <div>
-                  <label className="text-xs text-stone-400 block mb-1">Pagado con:</label>
+                  <label className="text-xs text-stone-600 block mb-1">Pagado con:</label>
                   <select
                     value={formGasto.tipoPago}
                     onChange={(e) => setFormGasto({ ...formGasto, tipoPago: e.target.value })}
-                    className="w-full bg-stone-950 border border-stone-800 rounded-lg px-3 py-1.5 text-xs text-white"
+                    className="w-full bg-stone-50 border border-stone-200 rounded-lg px-3 py-1.5 text-xs text-stone-900"
                   >
                     <option value="Caja Chica">Caja Chica (efectivo de la caja)</option>
                     <option value="Otro">Otro (no afecta el arqueo de caja)</option>
@@ -3539,27 +3539,27 @@
           {/* Modal: Productos con Stock Bajo */}
           {modalStockBajo && (
             <div className="fixed inset-0 bg-black/85 flex items-center justify-center z-50 p-4">
-              <div className="bg-stone-900 border border-stone-800 rounded-2xl max-w-md w-full p-5 shadow-2xl space-y-3 max-h-[85vh] flex flex-col">
+              <div className="bg-stone-100 border border-stone-200 rounded-2xl max-w-md w-full p-5 shadow-2xl space-y-3 max-h-[85vh] flex flex-col">
                 <div className="flex justify-between items-center shrink-0">
-                  <h3 className="text-base font-bold text-white flex items-center gap-2">
-                    <i className="fa-solid fa-triangle-exclamation text-amber-400"></i> Stock Bajo / Por Agotarse
+                  <h3 className="text-base font-bold text-stone-900 flex items-center gap-2">
+                    <i className="fa-solid fa-triangle-exclamation text-amber-600"></i> Stock Bajo / Por Agotarse
                   </h3>
-                  <button onClick={() => setModalStockBajo(false)} className="text-stone-400 hover:text-white">✕</button>
+                  <button onClick={() => setModalStockBajo(false)} className="text-stone-600 hover:text-stone-900">✕</button>
                 </div>
                 <div className="flex-1 overflow-y-auto space-y-1.5">
                   {productos.filter((p) => p.stock_actual != null && Number(p.stock_actual) <= Number(p.stock_min || 5)).length === 0 ? (
-                    <p className="text-xs text-emerald-400 text-center py-8">✓ Todo tu stock está en buen nivel.</p>
+                    <p className="text-xs text-emerald-600 text-center py-8">✓ Todo tu stock está en buen nivel.</p>
                   ) : (
                     productos
                       .filter((p) => p.stock_actual != null && Number(p.stock_actual) <= Number(p.stock_min || 5))
                       .sort((a, b) => Number(a.stock_actual) - Number(b.stock_actual))
                       .map((p) => (
-                        <div key={p.id} className="flex items-center justify-between p-2.5 bg-stone-950 border border-stone-800 rounded-xl">
+                        <div key={p.id} className="flex items-center justify-between p-2.5 bg-stone-50 border border-stone-200 rounded-xl">
                           <div>
-                            <p className="text-xs font-semibold text-stone-200">{p.descripcion}</p>
+                            <p className="text-xs font-semibold text-stone-800">{p.descripcion}</p>
                             <p className="text-xs text-stone-500">Mínimo: {p.stock_min || 5}</p>
                           </div>
-                          <span className={`text-sm font-black ${Number(p.stock_actual) <= 0 ? 'text-rose-400' : 'text-amber-400'}`}>
+                          <span className={`text-sm font-black ${Number(p.stock_actual) <= 0 ? 'text-rose-600' : 'text-amber-600'}`}>
                             {Number(p.stock_actual) <= 0 ? 'Sin stock' : `${p.stock_actual}`}
                           </span>
                         </div>
@@ -3573,42 +3573,42 @@
           {/* Modal: Editar / Desactivar Producto */}
           {modalEditarProducto && formEditarProducto && (
             <div className="fixed inset-0 bg-black/85 flex items-center justify-center z-50 p-4">
-              <div className="bg-stone-900 border border-stone-800 rounded-2xl max-w-md w-full p-5 shadow-2xl space-y-3">
+              <div className="bg-stone-100 border border-stone-200 rounded-2xl max-w-md w-full p-5 shadow-2xl space-y-3">
                 <div className="flex justify-between items-center">
-                  <h3 className="text-base font-bold text-white flex items-center gap-2">
-                    <i className="fa-solid fa-pen text-orange-400"></i> Editar Producto
+                  <h3 className="text-base font-bold text-stone-900 flex items-center gap-2">
+                    <i className="fa-solid fa-pen text-orange-600"></i> Editar Producto
                   </h3>
-                  <button onClick={() => setModalEditarProducto(false)} className="text-stone-400 hover:text-white">✕</button>
+                  <button onClick={() => setModalEditarProducto(false)} className="text-stone-600 hover:text-stone-900">✕</button>
                 </div>
                 <div className="space-y-2.5">
                   <div>
-                    <label className="text-xs text-stone-400 block mb-1">Descripción / Nombre:</label>
+                    <label className="text-xs text-stone-600 block mb-1">Descripción / Nombre:</label>
                     <input
                       type="text"
                       value={formEditarProducto.descripcion}
                       onChange={(e) => setFormEditarProducto({ ...formEditarProducto, descripcion: e.target.value })}
-                      className="w-full bg-stone-950 border border-stone-800 rounded-lg px-3 py-1.5 text-xs text-white"
+                      className="w-full bg-stone-50 border border-stone-200 rounded-lg px-3 py-1.5 text-xs text-stone-900"
                     />
                   </div>
                   <div className="grid grid-cols-2 gap-2">
                     <div>
-                      <label className="text-xs text-stone-400 block mb-1">Precio Venta (S/):</label>
+                      <label className="text-xs text-stone-600 block mb-1">Precio Venta (S/):</label>
                       <input
                         type="number"
                         step="0.10"
                         value={formEditarProducto.precio_venta}
                         onChange={(e) => setFormEditarProducto({ ...formEditarProducto, precio_venta: e.target.value })}
-                        className="w-full bg-stone-950 border border-stone-800 rounded-lg px-3 py-1.5 text-xs text-white"
+                        className="w-full bg-stone-50 border border-stone-200 rounded-lg px-3 py-1.5 text-xs text-stone-900"
                       />
                     </div>
                     <div>
-                      <label className="text-xs text-stone-400 block mb-1">Precio Costo (S/):</label>
+                      <label className="text-xs text-stone-600 block mb-1">Precio Costo (S/):</label>
                       <input
                         type="number"
                         step="0.10"
                         value={formEditarProducto.precio_costo}
                         onChange={(e) => setFormEditarProducto({ ...formEditarProducto, precio_costo: e.target.value })}
-                        className="w-full bg-stone-950 border border-stone-800 rounded-lg px-3 py-1.5 text-xs text-white"
+                        className="w-full bg-stone-50 border border-stone-200 rounded-lg px-3 py-1.5 text-xs text-stone-900"
                       />
                       {Number(formEditarProducto.precio_costo) > 0 && (
                         <CalculadoraMargen
@@ -3620,44 +3620,44 @@
                   </div>
                   <div className="grid grid-cols-2 gap-2">
                     <div>
-                      <label className="text-xs text-stone-400 block mb-1">Código EAN:</label>
+                      <label className="text-xs text-stone-600 block mb-1">Código EAN:</label>
                       <input
                         type="text"
                         value={formEditarProducto.cod_ean}
                         onChange={(e) => setFormEditarProducto({ ...formEditarProducto, cod_ean: e.target.value })}
-                        className="w-full bg-stone-950 border border-stone-800 rounded-lg px-3 py-1.5 text-xs text-white"
+                        className="w-full bg-stone-50 border border-stone-200 rounded-lg px-3 py-1.5 text-xs text-stone-900"
                       />
                     </div>
                     <div>
-                      <label className="text-xs text-stone-400 block mb-1">Categoría:</label>
+                      <label className="text-xs text-stone-600 block mb-1">Categoría:</label>
                       <input
                         type="text"
                         value={formEditarProducto.categoria}
                         onChange={(e) => setFormEditarProducto({ ...formEditarProducto, categoria: e.target.value })}
-                        className="w-full bg-stone-950 border border-stone-800 rounded-lg px-3 py-1.5 text-xs text-white"
+                        className="w-full bg-stone-50 border border-stone-200 rounded-lg px-3 py-1.5 text-xs text-stone-900"
                       />
                     </div>
                   </div>
                   <div className="grid grid-cols-2 gap-2">
                     <div>
-                      <label className="text-xs text-stone-400 block mb-1">Unidad:</label>
+                      <label className="text-xs text-stone-600 block mb-1">Unidad:</label>
                       <select
                         value={formEditarProducto.unidad}
                         onChange={(e) => setFormEditarProducto({ ...formEditarProducto, unidad: e.target.value })}
-                        className="w-full bg-stone-950 border border-stone-800 rounded-lg px-3 py-1.5 text-xs text-white"
+                        className="w-full bg-stone-50 border border-stone-200 rounded-lg px-3 py-1.5 text-xs text-stone-900"
                       >
                         <option value="UND">Unidad (UND)</option>
                         <option value="KG">Kilogramo (KG)</option>
                       </select>
                     </div>
                     <div>
-                      <label className="text-xs text-stone-400 block mb-1">Stock actual:</label>
+                      <label className="text-xs text-stone-600 block mb-1">Stock actual:</label>
                       <input
                         type="number"
                         step="0.10"
                         value={formEditarProducto.stock_actual}
                         onChange={(e) => setFormEditarProducto({ ...formEditarProducto, stock_actual: e.target.value })}
-                        className="w-full bg-stone-950 border border-stone-800 rounded-lg px-3 py-1.5 text-xs text-white"
+                        className="w-full bg-stone-50 border border-stone-200 rounded-lg px-3 py-1.5 text-xs text-stone-900"
                       />
                     </div>
                   </div>
@@ -3665,7 +3665,7 @@
                 <div className="flex gap-2 pt-1">
                   <button
                     onClick={desactivarProducto}
-                    className="px-4 py-2.5 bg-rose-950/60 hover:bg-rose-900 text-rose-300 text-xs font-semibold rounded-xl border border-rose-800"
+                    className="px-4 py-2.5 bg-rose-950/60 hover:bg-rose-900 text-rose-600 text-xs font-semibold rounded-xl border border-rose-800"
                   >
                     <i className="fa-solid fa-trash-can"></i>
                   </button>
@@ -3684,26 +3684,26 @@
           {/* Modal: Nuevo Producto */}
           {modalNuevoProducto && (
             <div className="fixed inset-0 bg-black/85 flex items-center justify-center z-50 p-4">
-              <div className="bg-stone-900 border border-stone-800 rounded-2xl max-w-md w-full p-5 shadow-2xl space-y-3">
+              <div className="bg-stone-100 border border-stone-200 rounded-2xl max-w-md w-full p-5 shadow-2xl space-y-3">
                 <div className="flex justify-between items-center">
-                  <h3 className="text-base font-bold text-white">📦 Registrar Nuevo Producto</h3>
-                  <button onClick={() => setModalNuevoProducto(false)} className="text-stone-400 hover:text-white">✕</button>
+                  <h3 className="text-base font-bold text-stone-900">📦 Registrar Nuevo Producto</h3>
+                  <button onClick={() => setModalNuevoProducto(false)} className="text-stone-600 hover:text-stone-900">✕</button>
                 </div>
                 <form onSubmit={handleCrearNuevoProducto} className="space-y-2.5">
                   <div>
-                    <label className="text-xs text-stone-400 block mb-1">Descripción / Nombre:</label>
+                    <label className="text-xs text-stone-600 block mb-1">Descripción / Nombre:</label>
                     <input
                       type="text"
                       required
                       placeholder="Ej: Galletas Oreo x 6"
                       value={formProducto.descripcion}
                       onChange={(e) => setFormProducto({ ...formProducto, descripcion: e.target.value })}
-                      className="w-full bg-stone-950 border border-stone-800 rounded-lg px-3 py-1.5 text-xs text-white"
+                      className="w-full bg-stone-50 border border-stone-200 rounded-lg px-3 py-1.5 text-xs text-stone-900"
                     />
                   </div>
                   <div className="grid grid-cols-2 gap-2">
                     <div>
-                      <label className="text-xs text-stone-400 block mb-1">Precio Venta (S/):</label>
+                      <label className="text-xs text-stone-600 block mb-1">Precio Venta (S/):</label>
                       <input
                         type="number"
                         step="0.10"
@@ -3711,18 +3711,18 @@
                         placeholder="0.00"
                         value={formProducto.precio_venta}
                         onChange={(e) => setFormProducto({ ...formProducto, precio_venta: e.target.value })}
-                        className="w-full bg-stone-950 border border-stone-800 rounded-lg px-3 py-1.5 text-xs text-white"
+                        className="w-full bg-stone-50 border border-stone-200 rounded-lg px-3 py-1.5 text-xs text-stone-900"
                       />
                     </div>
                     <div>
-                      <label className="text-xs text-stone-400 block mb-1">Precio Costo (S/):</label>
+                      <label className="text-xs text-stone-600 block mb-1">Precio Costo (S/):</label>
                       <input
                         type="number"
                         step="0.10"
                         placeholder="0.00"
                         value={formProducto.precio_costo}
                         onChange={(e) => setFormProducto({ ...formProducto, precio_costo: e.target.value })}
-                        className="w-full bg-stone-950 border border-stone-800 rounded-lg px-3 py-1.5 text-xs text-white"
+                        className="w-full bg-stone-50 border border-stone-200 rounded-lg px-3 py-1.5 text-xs text-stone-900"
                       />
                       {Number(formProducto.precio_costo) > 0 && (
                         <CalculadoraMargen
@@ -3734,19 +3734,19 @@
                   </div>
                   <div className="grid grid-cols-2 gap-2">
                     <div>
-                      <label className="text-xs text-stone-400 block mb-1">Código EAN / Barras:</label>
+                      <label className="text-xs text-stone-600 block mb-1">Código EAN / Barras:</label>
                       <div className="relative">
                         <input
                           type="text"
                           placeholder="Opcional"
                           value={formProducto.cod_ean}
                           onChange={(e) => setFormProducto({ ...formProducto, cod_ean: e.target.value })}
-                          className="w-full bg-stone-950 border border-stone-800 rounded-lg pl-3 pr-9 py-1.5 text-xs text-white"
+                          className="w-full bg-stone-50 border border-stone-200 rounded-lg pl-3 pr-9 py-1.5 text-xs text-stone-900"
                         />
                         <button
                           type="button"
                           onClick={() => { setModoEscaner('producto-simple'); setModalEscaner(true); }}
-                          className="absolute right-1.5 top-1/2 -translate-y-1/2 w-6 h-6 flex items-center justify-center text-stone-400 hover:text-orange-400 transition"
+                          className="absolute right-1.5 top-1/2 -translate-y-1/2 w-6 h-6 flex items-center justify-center text-stone-600 hover:text-orange-600 transition"
                           title="Escanear código de barras"
                         >
                           <i className="fa-solid fa-camera text-xs"></i>
@@ -3754,11 +3754,11 @@
                       </div>
                     </div>
                     <div>
-                      <label className="text-xs text-stone-400 block mb-1">Unidad:</label>
+                      <label className="text-xs text-stone-600 block mb-1">Unidad:</label>
                       <select
                         value={formProducto.unidad}
                         onChange={(e) => setFormProducto({ ...formProducto, unidad: e.target.value })}
-                        className="w-full bg-stone-950 border border-stone-800 rounded-lg px-3 py-1.5 text-xs text-white"
+                        className="w-full bg-stone-50 border border-stone-200 rounded-lg px-3 py-1.5 text-xs text-stone-900"
                       >
                         <option value="UND">Unidad (UND)</option>
                         <option value="KG">Kilogramo (KG)</option>
@@ -3766,14 +3766,14 @@
                     </div>
                   </div>
                   <div>
-                    <label className="text-xs text-stone-400 block mb-1">Cantidad que tienes ahora (stock):</label>
+                    <label className="text-xs text-stone-600 block mb-1">Cantidad que tienes ahora (stock):</label>
                     <input
                       type="number"
                       step="0.10"
                       placeholder="0"
                       value={formProducto.stock_actual}
                       onChange={(e) => setFormProducto({ ...formProducto, stock_actual: e.target.value })}
-                      className="w-full bg-stone-950 border border-stone-800 rounded-lg px-3 py-1.5 text-xs text-white"
+                      className="w-full bg-stone-50 border border-stone-200 rounded-lg px-3 py-1.5 text-xs text-stone-900"
                     />
                   </div>
                   <button type="submit" className="w-full py-2.5 bg-orange-600 hover:bg-orange-500 text-white font-bold text-xs rounded-xl shadow mt-2">
@@ -3787,10 +3787,10 @@
           {/* Modal: Entrada de Mercadería (Compras) */}
           {modalEntradaMercaderia && (
             <div className="fixed inset-0 bg-black/85 flex items-center justify-center z-50 p-4">
-              <div className="bg-stone-900 border border-stone-800 rounded-2xl max-w-lg w-full p-5 shadow-2xl space-y-3">
+              <div className="bg-stone-100 border border-stone-200 rounded-2xl max-w-lg w-full p-5 shadow-2xl space-y-3">
                 <div className="flex justify-between items-center">
-                  <h3 className="text-base font-bold text-white">📥 Entrada de Mercadería (Compras)</h3>
-                  <button onClick={() => setModalEntradaMercaderia(false)} className="text-stone-400 hover:text-white">✕</button>
+                  <h3 className="text-base font-bold text-stone-900">📥 Entrada de Mercadería (Compras)</h3>
+                  <button onClick={() => setModalEntradaMercaderia(false)} className="text-stone-600 hover:text-stone-900">✕</button>
                 </div>
 
                 <div className="grid grid-cols-2 gap-2">
@@ -3799,25 +3799,25 @@
                     placeholder="Proveedor / Distribuidor"
                     value={compraCabecera.proveedor}
                     onChange={(e) => setCompraCabecera({ ...compraCabecera, proveedor: e.target.value })}
-                    className="bg-stone-950 border border-stone-800 rounded-lg px-2.5 py-1.5 text-xs text-white"
+                    className="bg-stone-50 border border-stone-200 rounded-lg px-2.5 py-1.5 text-xs text-stone-900"
                   />
                   <input
                     type="text"
                     placeholder="N° Factura / Guía"
                     value={compraCabecera.nroComprobante}
                     onChange={(e) => setCompraCabecera({ ...compraCabecera, nroComprobante: e.target.value })}
-                    className="bg-stone-950 border border-stone-800 rounded-lg px-2.5 py-1.5 text-xs text-white"
+                    className="bg-stone-50 border border-stone-200 rounded-lg px-2.5 py-1.5 text-xs text-stone-900"
                   />
                 </div>
 
                 {/* Agregar Ítem */}
-                <div className="p-3 bg-stone-950 rounded-xl border border-stone-800 space-y-2">
-                  <span className="text-xs font-bold text-amber-400 block">Agregar Producto a la Entrada:</span>
+                <div className="p-3 bg-stone-50 rounded-xl border border-stone-200 space-y-2">
+                  <span className="text-xs font-bold text-amber-600 block">Agregar Producto a la Entrada:</span>
                   <div className="grid grid-cols-3 gap-2">
                     <select
                       value={compraItemTemp.productoId}
                       onChange={(e) => setCompraItemTemp({ ...compraItemTemp, productoId: e.target.value })}
-                      className="col-span-3 bg-stone-900 border border-stone-800 rounded-lg px-2.5 py-1.5 text-xs text-white"
+                      className="col-span-3 bg-stone-100 border border-stone-200 rounded-lg px-2.5 py-1.5 text-xs text-stone-900"
                     >
                       <option value="">-- Seleccionar Producto --</option>
                       {productos.map(p => (
@@ -3829,7 +3829,7 @@
                       placeholder="Cantidad"
                       value={compraItemTemp.cantidad}
                       onChange={(e) => setCompraItemTemp({ ...compraItemTemp, cantidad: e.target.value })}
-                      className="bg-stone-900 border border-stone-800 rounded-lg px-2 py-1 text-xs text-white"
+                      className="bg-stone-100 border border-stone-200 rounded-lg px-2 py-1 text-xs text-stone-900"
                     />
                     <input
                       type="number"
@@ -3837,7 +3837,7 @@
                       placeholder="Costo Unit."
                       value={compraItemTemp.costoUnitario}
                       onChange={(e) => setCompraItemTemp({ ...compraItemTemp, costoUnitario: e.target.value })}
-                      className="bg-stone-900 border border-stone-800 rounded-lg px-2 py-1 text-xs text-white"
+                      className="bg-stone-100 border border-stone-200 rounded-lg px-2 py-1 text-xs text-stone-900"
                     />
                     <button
                       type="button"
@@ -3852,16 +3852,16 @@
                 {/* Lista de Ítems Comprados */}
                 <div className="max-h-40 overflow-y-auto space-y-1">
                   {compraItems.map((it, idx) => (
-                    <div key={idx} className="flex justify-between items-center text-xs bg-stone-950 p-2 rounded-lg border border-stone-900">
+                    <div key={idx} className="flex justify-between items-center text-xs bg-stone-50 p-2 rounded-lg border border-stone-100">
                       <span>{it.cantidad}x {it.descripcion} (S/ {it.costoUnitario.toFixed(2)})</span>
-                      <span className="font-bold text-orange-400">S/ {it.subtotal.toFixed(2)}</span>
+                      <span className="font-bold text-orange-600">S/ {it.subtotal.toFixed(2)}</span>
                     </div>
                   ))}
                 </div>
 
-                <div className="flex justify-between items-center pt-2 border-t border-stone-800">
+                <div className="flex justify-between items-center pt-2 border-t border-stone-200">
                   <span className="font-bold text-sm">Total Compra:</span>
-                  <span className="font-black text-lg text-orange-400">
+                  <span className="font-black text-lg text-orange-600">
                     S/ {compraItems.reduce((a, c) => a + c.subtotal, 0).toFixed(2)}
                   </span>
                 </div>
@@ -3876,38 +3876,38 @@
           {/* Modal: Cobrar Deudas / Créditos */}
           {modalCobrarDeudas && (
             <div className="fixed inset-0 bg-black/85 flex items-center justify-center z-50 p-4">
-              <div className="bg-stone-900 border border-stone-800 rounded-2xl max-w-md w-full p-5 shadow-2xl space-y-3 max-h-[90vh] overflow-y-auto">
+              <div className="bg-stone-100 border border-stone-200 rounded-2xl max-w-md w-full p-5 shadow-2xl space-y-3 max-h-[90vh] overflow-y-auto">
                 <div className="flex justify-between items-center">
-                  <h3 className="text-base font-bold text-white flex items-center gap-2">
-                    <i className="fa-solid fa-hand-holding-dollar text-orange-400"></i> Cuentas por Cobrar
+                  <h3 className="text-base font-bold text-stone-900 flex items-center gap-2">
+                    <i className="fa-solid fa-hand-holding-dollar text-orange-600"></i> Cuentas por Cobrar
                   </h3>
-                  <button onClick={() => setModalCobrarDeudas(false)} className="text-stone-400 hover:text-white">✕</button>
+                  <button onClick={() => setModalCobrarDeudas(false)} className="text-stone-600 hover:text-stone-900">✕</button>
                 </div>
 
                 {deudorSeleccionado ? (
-                  <div className="p-3 bg-stone-950 rounded-xl border border-amber-500/40 space-y-3">
+                  <div className="p-3 bg-stone-50 rounded-xl border border-amber-500/40 space-y-3">
                     <div className="flex justify-between items-center">
-                      <span className="font-bold text-xs text-white flex items-center gap-1.5">
-                        <i className="fa-solid fa-user text-orange-400"></i> {deudorSeleccionado.nombre_completo}
+                      <span className="font-bold text-xs text-stone-900 flex items-center gap-1.5">
+                        <i className="fa-solid fa-user text-orange-600"></i> {deudorSeleccionado.nombre_completo}
                       </span>
-                      <button onClick={() => { setDeudorSeleccionado(null); setBoletasDeudor([]); }} className="text-xs text-stone-400 underline">Cambiar</button>
+                      <button onClick={() => { setDeudorSeleccionado(null); setBoletasDeudor([]); }} className="text-xs text-stone-600 underline">Cambiar</button>
                     </div>
                     <div className="text-xs">
-                      <p className="text-stone-400">DNI: {deudorSeleccionado.dni}</p>
-                      <p className="text-rose-400 font-bold mt-1 text-sm">Deuda Actual: S/ {Number(deudorSeleccionado.saldo_actual).toFixed(2)}</p>
+                      <p className="text-stone-600">DNI: {deudorSeleccionado.dni}</p>
+                      <p className="text-rose-600 font-bold mt-1 text-sm">Deuda Actual: S/ {Number(deudorSeleccionado.saldo_actual).toFixed(2)}</p>
                     </div>
 
                     {/* Detalle de boletas: por defecto solo lo que aún se debe */}
-                    <div className="bg-stone-900 rounded-lg border border-stone-800 p-2 max-h-40 overflow-y-auto">
+                    <div className="bg-stone-100 rounded-lg border border-stone-200 p-2 max-h-40 overflow-y-auto">
                       <div className="flex items-center justify-between mb-1.5">
-                        <p className="text-xs font-bold text-stone-400 uppercase tracking-wide">
+                        <p className="text-xs font-bold text-stone-600 uppercase tracking-wide">
                           {mostrarHistorialCompletoDeuda ? 'Historial completo de compras' : 'Boletas pendientes de pago'}
                         </p>
                         {boletasDeudorConEstado.some((b) => b.pagada) && (
                           <button
                             type="button"
                             onClick={() => setMostrarHistorialCompletoDeuda((v) => !v)}
-                            className="text-xs text-orange-400 underline shrink-0"
+                            className="text-xs text-orange-600 underline shrink-0"
                           >
                             {mostrarHistorialCompletoDeuda ? 'Ver solo pendientes' : `Ver historial completo (${boletasDeudorConEstado.length})`}
                           </button>
@@ -3918,16 +3918,16 @@
                       ) : boletasDeudorConEstado.length === 0 ? (
                         <p className="text-xs text-stone-500 text-center py-3">Sin boletas a crédito registradas.</p>
                       ) : (mostrarHistorialCompletoDeuda ? boletasDeudorConEstado : boletasPendientesDeuda).length === 0 ? (
-                        <p className="text-xs text-emerald-400 text-center py-3">✓ No hay boletas pendientes.</p>
+                        <p className="text-xs text-emerald-600 text-center py-3">✓ No hay boletas pendientes.</p>
                       ) : (
                         <div className="space-y-2">
                           {(mostrarHistorialCompletoDeuda ? boletasDeudorConEstado : boletasPendientesDeuda).map((b) => (
-                            <div key={b.id} className={`text-xs border-b border-stone-800 last:border-0 pb-1.5 last:pb-0 ${b.pagada ? 'opacity-50' : ''}`}>
-                              <div className="flex justify-between font-semibold text-stone-200">
+                            <div key={b.id} className={`text-xs border-b border-stone-200 last:border-0 pb-1.5 last:pb-0 ${b.pagada ? 'opacity-50' : ''}`}>
+                              <div className="flex justify-between font-semibold text-stone-800">
                                 <span className="font-mono">
-                                  {b.nro_boleta} {b.pagada && <span className="text-emerald-400 font-sans">(Pagada)</span>}
+                                  {b.nro_boleta} {b.pagada && <span className="text-emerald-600 font-sans">(Pagada)</span>}
                                 </span>
-                                <span className="text-orange-400">S/ {Number(b.total_venta).toFixed(2)}</span>
+                                <span className="text-orange-600">S/ {Number(b.total_venta).toFixed(2)}</span>
                               </div>
                               <p className="text-stone-500">
                                 {new Date(b.fecha_hora).toLocaleDateString('es-PE')} ·{' '}
@@ -3943,7 +3943,7 @@
                     <div className="grid grid-cols-2 gap-2">
                       <button
                         onClick={descargarEstadoCuenta}
-                        className="py-2 bg-stone-800 hover:bg-stone-700 text-stone-200 text-xs font-semibold rounded-xl border border-stone-700 flex items-center justify-center gap-1.5"
+                        className="py-2 bg-stone-200 hover:bg-stone-300 text-stone-800 text-xs font-semibold rounded-xl border border-stone-300 flex items-center justify-center gap-1.5"
                       >
                         <i className="fa-solid fa-file-pdf"></i> Descargar PDF
                       </button>
@@ -3956,14 +3956,14 @@
                     </div>
 
                     <div>
-                      <label className="text-xs text-stone-400 block mb-1">Monto a Abonar (S/):</label>
+                      <label className="text-xs text-stone-600 block mb-1">Monto a Abonar (S/):</label>
                       <input
                         type="number"
                         step="1.00"
                         placeholder="0.00"
                         value={montoAbonoDeuda}
                         onChange={(e) => setMontoAbonoDeuda(e.target.value)}
-                        className="w-full bg-stone-900 border border-stone-800 rounded-lg p-2 text-sm font-bold text-white focus:outline-none focus:border-orange-500"
+                        className="w-full bg-stone-100 border border-stone-200 rounded-lg p-2 text-sm font-bold text-stone-900 focus:outline-none focus:border-orange-500"
                       />
                     </div>
                     <button onClick={procesarPagoDeudaCliente} className="w-full py-2 bg-orange-600 hover:bg-orange-500 text-white font-bold text-xs rounded-xl shadow flex items-center justify-center gap-1.5">
@@ -3973,19 +3973,19 @@
                 ) : (
                   <div className="max-h-60 overflow-y-auto space-y-1.5">
                     {clientesDeudores.length === 0 ? (
-                      <p className="text-xs text-stone-400 text-center py-6">¡No hay clientes con deuda pendiente!</p>
+                      <p className="text-xs text-stone-600 text-center py-6">¡No hay clientes con deuda pendiente!</p>
                     ) : (
                       clientesDeudores.map(cl => (
                         <div
                           key={cl.id}
                           onClick={() => seleccionarDeudor(cl)}
-                          className="flex justify-between items-center p-2.5 bg-stone-950 hover:bg-stone-800 border border-stone-800 rounded-xl cursor-pointer transition"
+                          className="flex justify-between items-center p-2.5 bg-stone-50 hover:bg-stone-200 border border-stone-200 rounded-xl cursor-pointer transition"
                         >
                           <div>
-                            <p className="text-xs font-bold text-stone-200">{cl.nombre_completo}</p>
-                            <p className="text-xs text-stone-400">DNI: {cl.dni}</p>
+                            <p className="text-xs font-bold text-stone-800">{cl.nombre_completo}</p>
+                            <p className="text-xs text-stone-600">DNI: {cl.dni}</p>
                           </div>
-                          <span className="text-sm font-black text-rose-400">S/ {Number(cl.saldo_actual).toFixed(2)}</span>
+                          <span className="text-sm font-black text-rose-600">S/ {Number(cl.saldo_actual).toFixed(2)}</span>
                         </div>
                       ))
                     )}
@@ -3998,60 +3998,60 @@
           {/* Modal: Gestión de Cajeros */}
           {modalGestionCajeros && (
             <div className="fixed inset-0 bg-black/85 flex items-center justify-center z-50 p-4">
-              <div className="bg-stone-900 border border-stone-800 rounded-2xl max-w-md w-full p-5 shadow-2xl space-y-3 max-h-[90vh] flex flex-col">
+              <div className="bg-stone-100 border border-stone-200 rounded-2xl max-w-md w-full p-5 shadow-2xl space-y-3 max-h-[90vh] flex flex-col">
                 <div className="flex justify-between items-center shrink-0">
-                  <h3 className="text-base font-bold text-white flex items-center gap-2">
-                    <i className="fa-solid fa-user-group text-orange-400"></i> Cajeros y Empleados
+                  <h3 className="text-base font-bold text-stone-900 flex items-center gap-2">
+                    <i className="fa-solid fa-user-group text-orange-600"></i> Cajeros y Empleados
                   </h3>
-                  <button onClick={() => setModalGestionCajeros(false)} className="text-stone-400 hover:text-white">✕</button>
+                  <button onClick={() => setModalGestionCajeros(false)} className="text-stone-600 hover:text-stone-900">✕</button>
                 </div>
 
                 {mostrarFormNuevoCajero ? (
-                  <div className="p-3 bg-stone-950 rounded-xl border border-orange-700/40 space-y-2.5">
+                  <div className="p-3 bg-stone-50 rounded-xl border border-orange-700/40 space-y-2.5">
                     <div>
-                      <label className="text-xs text-stone-400 block mb-1">Nombre:</label>
+                      <label className="text-xs text-stone-600 block mb-1">Nombre:</label>
                       <input
                         type="text"
                         value={formNuevoCajero.nombre}
                         onChange={(e) => setFormNuevoCajero({ ...formNuevoCajero, nombre: e.target.value })}
-                        className="w-full bg-stone-900 border border-stone-800 rounded-lg px-3 py-1.5 text-xs text-white"
+                        className="w-full bg-stone-100 border border-stone-200 rounded-lg px-3 py-1.5 text-xs text-stone-900"
                       />
                     </div>
                     <div className="grid grid-cols-2 gap-2">
                       <div>
-                        <label className="text-xs text-stone-400 block mb-1">DNI:</label>
+                        <label className="text-xs text-stone-600 block mb-1">DNI:</label>
                         <input
                           type="text"
                           maxLength={8}
                           value={formNuevoCajero.dni}
                           onChange={(e) => setFormNuevoCajero({ ...formNuevoCajero, dni: e.target.value })}
-                          className="w-full bg-stone-900 border border-stone-800 rounded-lg px-3 py-1.5 text-xs text-white"
+                          className="w-full bg-stone-100 border border-stone-200 rounded-lg px-3 py-1.5 text-xs text-stone-900"
                         />
                       </div>
                       <div>
-                        <label className="text-xs text-stone-400 block mb-1">PIN de acceso:</label>
+                        <label className="text-xs text-stone-600 block mb-1">PIN de acceso:</label>
                         <input
                           type="password"
                           maxLength={6}
                           value={formNuevoCajero.pin}
                           onChange={(e) => setFormNuevoCajero({ ...formNuevoCajero, pin: e.target.value })}
-                          className="w-full bg-stone-900 border border-stone-800 rounded-lg px-3 py-1.5 text-xs text-white tracking-widest"
+                          className="w-full bg-stone-100 border border-stone-200 rounded-lg px-3 py-1.5 text-xs text-stone-900 tracking-widest"
                         />
                       </div>
                     </div>
                     <div>
-                      <label className="text-xs text-stone-400 block mb-1">Rol:</label>
+                      <label className="text-xs text-stone-600 block mb-1">Rol:</label>
                       <select
                         value={formNuevoCajero.rol}
                         onChange={(e) => setFormNuevoCajero({ ...formNuevoCajero, rol: e.target.value })}
-                        className="w-full bg-stone-900 border border-stone-800 rounded-lg px-3 py-1.5 text-xs text-white"
+                        className="w-full bg-stone-100 border border-stone-200 rounded-lg px-3 py-1.5 text-xs text-stone-900"
                       >
                         <option value="cajero">Cajero (solo vender y cobrar)</option>
                         <option value="administrador">Administrador (acceso completo)</option>
                       </select>
                     </div>
                     <div className="flex gap-2 pt-1">
-                      <button onClick={() => setMostrarFormNuevoCajero(false)} className="flex-1 py-2 bg-stone-800 text-stone-200 text-xs font-semibold rounded-xl">
+                      <button onClick={() => setMostrarFormNuevoCajero(false)} className="flex-1 py-2 bg-stone-200 text-stone-800 text-xs font-semibold rounded-xl">
                         Cancelar
                       </button>
                       <button
@@ -4067,7 +4067,7 @@
                   <>
                     <button
                       onClick={() => setMostrarFormNuevoCajero(true)}
-                      className="w-full py-2.5 bg-stone-800 hover:bg-stone-700 text-stone-200 text-xs font-semibold rounded-xl border border-stone-700 border-dashed flex items-center justify-center gap-1.5 shrink-0"
+                      className="w-full py-2.5 bg-stone-200 hover:bg-stone-300 text-stone-800 text-xs font-semibold rounded-xl border border-stone-300 border-dashed flex items-center justify-center gap-1.5 shrink-0"
                     >
                       <i className="fa-solid fa-user-plus"></i> Agregar Nuevo Cajero
                     </button>
@@ -4078,17 +4078,17 @@
                         <p className="text-xs text-stone-500 text-center py-6">Sin cajeros registrados.</p>
                       ) : (
                         cajerosGestion.map((c) => (
-                          <div key={c.id} className={`flex items-center justify-between p-2.5 bg-stone-950 border border-stone-800 rounded-xl ${!c.activo ? 'opacity-50' : ''}`}>
+                          <div key={c.id} className={`flex items-center justify-between p-2.5 bg-stone-50 border border-stone-200 rounded-xl ${!c.activo ? 'opacity-50' : ''}`}>
                             <div>
-                              <p className="text-xs font-semibold text-stone-200">
-                                {c.nombre} {!c.activo && <span className="text-rose-400 font-sans">(Inactivo)</span>}
+                              <p className="text-xs font-semibold text-stone-800">
+                                {c.nombre} {!c.activo && <span className="text-rose-600 font-sans">(Inactivo)</span>}
                               </p>
                               <p className="text-xs text-stone-500 capitalize">DNI: {c.dni} · {c.rol}</p>
                             </div>
                             <div className="flex items-center gap-1.5 shrink-0">
                               <button
                                 onClick={() => restablecerPinCajero(c)}
-                                className="text-xs font-semibold px-2 py-1 rounded-lg bg-stone-800 text-stone-300 hover:bg-stone-700"
+                                className="text-xs font-semibold px-2 py-1 rounded-lg bg-stone-200 text-stone-700 hover:bg-stone-300"
                                 title="Restablecer PIN"
                               >
                                 <i className="fa-solid fa-key"></i>
@@ -4097,7 +4097,7 @@
                                 <button
                                   onClick={() => alternarActivoCajero(c)}
                                   className={`text-xs font-semibold px-2.5 py-1 rounded-lg ${
-                                    c.activo ? 'bg-rose-950/60 text-rose-300 hover:bg-rose-900' : 'bg-emerald-950/60 text-emerald-300 hover:bg-emerald-900'
+                                    c.activo ? 'bg-rose-950/60 text-rose-600 hover:bg-rose-900' : 'bg-emerald-950/60 text-emerald-600 hover:bg-emerald-900'
                                   }`}
                                 >
                                   {c.activo ? 'Desactivar' : 'Reactivar'}
@@ -4117,57 +4117,57 @@
           {/* Modal: Gestión de Clientes (listar / editar) */}
           {modalGestionClientes && (
             <div className="fixed inset-0 bg-black/85 flex items-center justify-center z-50 p-4">
-              <div className="bg-stone-900 border border-stone-800 rounded-2xl max-w-lg w-full p-5 shadow-2xl space-y-3 max-h-[90vh] flex flex-col">
+              <div className="bg-stone-100 border border-stone-200 rounded-2xl max-w-lg w-full p-5 shadow-2xl space-y-3 max-h-[90vh] flex flex-col">
                 <div className="flex justify-between items-center shrink-0">
-                  <h3 className="text-base font-bold text-white flex items-center gap-2">
-                    <i className="fa-solid fa-users text-orange-400"></i> Clientes
+                  <h3 className="text-base font-bold text-stone-900 flex items-center gap-2">
+                    <i className="fa-solid fa-users text-orange-600"></i> Clientes
                   </h3>
-                  <button onClick={() => { setModalGestionClientes(false); setClienteEditando(null); }} className="text-stone-400 hover:text-white">✕</button>
+                  <button onClick={() => { setModalGestionClientes(false); setClienteEditando(null); }} className="text-stone-600 hover:text-stone-900">✕</button>
                 </div>
 
                 {clienteEditando ? (
-                  <div className="p-3 bg-stone-950 rounded-xl border border-orange-700/40 space-y-2.5">
+                  <div className="p-3 bg-stone-50 rounded-xl border border-orange-700/40 space-y-2.5">
                     <div className="flex justify-between items-center">
-                      <span className="text-xs font-bold text-white">DNI: {clienteEditando.dni}</span>
-                      <button onClick={() => setClienteEditando(null)} className="text-xs text-stone-400 underline">Volver a la lista</button>
+                      <span className="text-xs font-bold text-stone-900">DNI: {clienteEditando.dni}</span>
+                      <button onClick={() => setClienteEditando(null)} className="text-xs text-stone-600 underline">Volver a la lista</button>
                     </div>
                     <div>
-                      <label className="text-xs text-stone-400 block mb-1">Nombre Completo:</label>
+                      <label className="text-xs text-stone-600 block mb-1">Nombre Completo:</label>
                       <input
                         type="text"
                         value={formEditarCliente.nombre_completo}
                         onChange={(e) => setFormEditarCliente({ ...formEditarCliente, nombre_completo: e.target.value })}
-                        className="w-full bg-stone-900 border border-stone-800 rounded-lg px-3 py-1.5 text-xs text-white"
+                        className="w-full bg-stone-100 border border-stone-200 rounded-lg px-3 py-1.5 text-xs text-stone-900"
                       />
                     </div>
                     <div className="grid grid-cols-2 gap-2">
                       <div>
-                        <label className="text-xs text-stone-400 block mb-1">Teléfono:</label>
+                        <label className="text-xs text-stone-600 block mb-1">Teléfono:</label>
                         <input
                           type="text"
                           value={formEditarCliente.telefono}
                           onChange={(e) => setFormEditarCliente({ ...formEditarCliente, telefono: e.target.value })}
-                          className="w-full bg-stone-900 border border-stone-800 rounded-lg px-3 py-1.5 text-xs text-white"
+                          className="w-full bg-stone-100 border border-stone-200 rounded-lg px-3 py-1.5 text-xs text-stone-900"
                         />
                       </div>
                       <div>
-                        <label className="text-xs text-stone-400 block mb-1">Correo:</label>
+                        <label className="text-xs text-stone-600 block mb-1">Correo:</label>
                         <input
                           type="text"
                           value={formEditarCliente.correo}
                           onChange={(e) => setFormEditarCliente({ ...formEditarCliente, correo: e.target.value })}
-                          className="w-full bg-stone-900 border border-stone-800 rounded-lg px-3 py-1.5 text-xs text-white"
+                          className="w-full bg-stone-100 border border-stone-200 rounded-lg px-3 py-1.5 text-xs text-stone-900"
                         />
                       </div>
                     </div>
                     <div>
-                      <label className="text-xs text-stone-400 block mb-1">Límite de Crédito (S/):</label>
+                      <label className="text-xs text-stone-600 block mb-1">Límite de Crédito (S/):</label>
                       <input
                         type="number"
                         step="10"
                         value={formEditarCliente.limite_credito}
                         onChange={(e) => setFormEditarCliente({ ...formEditarCliente, limite_credito: e.target.value })}
-                        className="w-full bg-stone-900 border border-stone-800 rounded-lg px-3 py-1.5 text-sm font-bold text-orange-400"
+                        className="w-full bg-stone-100 border border-stone-200 rounded-lg px-3 py-1.5 text-sm font-bold text-orange-600"
                       />
                       <p className="text-xs text-stone-500 mt-1">Deuda actual: S/ {Number(clienteEditando.saldo_actual || 0).toFixed(2)} (no editable aquí)</p>
                     </div>
@@ -4187,12 +4187,12 @@
                         placeholder="Buscar por nombre o DNI..."
                         value={busquedaClientes}
                         onChange={(e) => setBusquedaClientes(e.target.value)}
-                        className="flex-1 bg-stone-950 border border-stone-800 rounded-xl px-3 py-2 text-xs text-white"
+                        className="flex-1 bg-stone-50 border border-stone-200 rounded-xl px-3 py-2 text-xs text-stone-900"
                       />
                       {clientesLista.length > 0 && (
                         <button
                           onClick={exportarClientesExcel}
-                          className="px-3 py-2 bg-stone-800 hover:bg-stone-700 text-stone-300 text-xs font-semibold rounded-xl flex items-center gap-1.5"
+                          className="px-3 py-2 bg-stone-200 hover:bg-stone-300 text-stone-700 text-xs font-semibold rounded-xl flex items-center gap-1.5"
                           title="Exportar a Excel"
                         >
                           <i className="fa-solid fa-file-excel"></i>
@@ -4209,15 +4209,15 @@
                           <button
                             key={c.id}
                             onClick={() => abrirEdicionCliente(c)}
-                            className="w-full flex items-center justify-between p-2.5 bg-stone-950 hover:bg-stone-800 border border-stone-800 rounded-xl transition text-left"
+                            className="w-full flex items-center justify-between p-2.5 bg-stone-50 hover:bg-stone-200 border border-stone-200 rounded-xl transition text-left"
                           >
                             <div>
-                              <p className="text-xs font-semibold text-stone-200">{c.nombre_completo}</p>
+                              <p className="text-xs font-semibold text-stone-800">{c.nombre_completo}</p>
                               <p className="text-xs text-stone-500">DNI: {c.dni} {c.telefono && `· ${c.telefono}`}</p>
                             </div>
                             <div className="text-right shrink-0">
                               {Number(c.saldo_actual) > 0 && (
-                                <span className="text-xs font-bold text-rose-400 block">Debe S/ {Number(c.saldo_actual).toFixed(2)}</span>
+                                <span className="text-xs font-bold text-rose-600 block">Debe S/ {Number(c.saldo_actual).toFixed(2)}</span>
                               )}
                               <span className="text-xs text-stone-500">Límite S/ {Number(c.limite_credito || 0).toFixed(2)}</span>
                             </div>
@@ -4234,61 +4234,61 @@
           {/* Modal: Nuevo Cliente con Límite de Crédito */}
           {modalNuevoCliente && (
             <div className="fixed inset-0 bg-black/85 flex items-center justify-center z-50 p-4">
-              <div className="bg-stone-900 border border-stone-800 rounded-2xl max-w-sm w-full p-5 shadow-2xl space-y-3">
+              <div className="bg-stone-100 border border-stone-200 rounded-2xl max-w-sm w-full p-5 shadow-2xl space-y-3">
                 <div className="flex justify-between items-center">
-                  <h3 className="text-base font-bold text-white">👤 Registrar Nuevo Cliente</h3>
-                  <button onClick={() => setModalNuevoCliente(false)} className="text-stone-400 hover:text-white">✕</button>
+                  <h3 className="text-base font-bold text-stone-900">👤 Registrar Nuevo Cliente</h3>
+                  <button onClick={() => setModalNuevoCliente(false)} className="text-stone-600 hover:text-stone-900">✕</button>
                 </div>
                 <form onSubmit={handleGuardarNuevoCliente} className="space-y-2.5">
                   <div>
-                    <label className="text-xs text-stone-400 block mb-1">DNI *</label>
+                    <label className="text-xs text-stone-600 block mb-1">DNI *</label>
                     <input
                       type="text"
                       required
                       value={formCliente.dni}
                       onChange={(e) => setFormCliente({ ...formCliente, dni: e.target.value })}
-                      className="w-full bg-stone-950 border border-stone-800 rounded-lg px-3 py-1.5 text-xs text-white"
+                      className="w-full bg-stone-50 border border-stone-200 rounded-lg px-3 py-1.5 text-xs text-stone-900"
                     />
                   </div>
                   <div>
-                    <label className="text-xs text-stone-400 block mb-1">Nombre Completo *</label>
+                    <label className="text-xs text-stone-600 block mb-1">Nombre Completo *</label>
                     <input
                       type="text"
                       required
                       value={formCliente.nombre}
                       onChange={(e) => setFormCliente({ ...formCliente, nombre: e.target.value })}
-                      className="w-full bg-stone-950 border border-stone-800 rounded-lg px-3 py-1.5 text-xs text-white"
+                      className="w-full bg-stone-50 border border-stone-200 rounded-lg px-3 py-1.5 text-xs text-stone-900"
                     />
                   </div>
                   <div className="grid grid-cols-2 gap-2">
                     <div>
-                      <label className="text-xs text-stone-400 block mb-1">Teléfono</label>
+                      <label className="text-xs text-stone-600 block mb-1">Teléfono</label>
                       <input
                         type="text"
                         value={formCliente.telefono}
                         onChange={(e) => setFormCliente({ ...formCliente, telefono: e.target.value })}
-                        className="w-full bg-stone-950 border border-stone-800 rounded-lg px-3 py-1.5 text-xs text-white"
+                        className="w-full bg-stone-50 border border-stone-200 rounded-lg px-3 py-1.5 text-xs text-stone-900"
                       />
                     </div>
                     <div>
-                      <label className="text-xs text-stone-400 block mb-1">Correo</label>
+                      <label className="text-xs text-stone-600 block mb-1">Correo</label>
                       <input
                         type="text"
                         value={formCliente.correo}
                         onChange={(e) => setFormCliente({ ...formCliente, correo: e.target.value })}
-                        className="w-full bg-stone-950 border border-stone-800 rounded-lg px-3 py-1.5 text-xs text-white"
+                        className="w-full bg-stone-50 border border-stone-200 rounded-lg px-3 py-1.5 text-xs text-stone-900"
                       />
                     </div>
                   </div>
                   <div>
-                    <label className="text-xs text-stone-400 block mb-1">Límite de Crédito (S/) *</label>
+                    <label className="text-xs text-stone-600 block mb-1">Límite de Crédito (S/) *</label>
                     <input
                       type="number"
                       step="10"
                       required
                       value={formCliente.limiteCredito}
                       onChange={(e) => setFormCliente({ ...formCliente, limiteCredito: e.target.value })}
-                      className="w-full bg-stone-950 border border-stone-800 rounded-lg px-3 py-1.5 text-sm font-bold text-orange-400"
+                      className="w-full bg-stone-50 border border-stone-200 rounded-lg px-3 py-1.5 text-sm font-bold text-orange-600"
                     />
                   </div>
                   <button type="submit" className="w-full py-2.5 bg-orange-600 hover:bg-orange-500 text-white font-bold text-xs rounded-xl shadow mt-2">
@@ -4302,31 +4302,31 @@
           {/* Modal: Historial de Ventas del Día */}
           {modalHistorial && (
             <div className="fixed inset-0 bg-black/85 flex items-center justify-center z-50 p-4">
-              <div className="bg-stone-900 border border-stone-800 rounded-2xl max-w-xl w-full p-5 shadow-2xl space-y-3">
+              <div className="bg-stone-100 border border-stone-200 rounded-2xl max-w-xl w-full p-5 shadow-2xl space-y-3">
                 <div className="flex justify-between items-center">
-                  <h3 className="text-base font-bold text-white flex items-center gap-2">
-                    <i className="fa-solid fa-receipt text-orange-400"></i> Historial de Ventas
+                  <h3 className="text-base font-bold text-stone-900 flex items-center gap-2">
+                    <i className="fa-solid fa-receipt text-orange-600"></i> Historial de Ventas
                   </h3>
-                  <button onClick={() => setModalHistorial(false)} className="text-stone-400 hover:text-white">✕</button>
+                  <button onClick={() => setModalHistorial(false)} className="text-stone-600 hover:text-stone-900">✕</button>
                 </div>
 
                 <div className="flex flex-wrap items-end gap-2">
                   <div>
-                    <label className="text-xs text-stone-400 block mb-1">Desde:</label>
+                    <label className="text-xs text-stone-600 block mb-1">Desde:</label>
                     <input
                       type="date"
                       value={fechaInicioHistorial}
                       onChange={(e) => setFechaInicioHistorial(e.target.value)}
-                      className="bg-stone-950 border border-stone-800 rounded-lg px-2 py-1.5 text-xs text-white"
+                      className="bg-stone-50 border border-stone-200 rounded-lg px-2 py-1.5 text-xs text-stone-900"
                     />
                   </div>
                   <div>
-                    <label className="text-xs text-stone-400 block mb-1">Hasta:</label>
+                    <label className="text-xs text-stone-600 block mb-1">Hasta:</label>
                     <input
                       type="date"
                       value={fechaFinHistorial}
                       onChange={(e) => setFechaFinHistorial(e.target.value)}
-                      className="bg-stone-950 border border-stone-800 rounded-lg px-2 py-1.5 text-xs text-white"
+                      className="bg-stone-50 border border-stone-200 rounded-lg px-2 py-1.5 text-xs text-stone-900"
                     />
                   </div>
                   <button
@@ -4337,7 +4337,7 @@
                   </button>
                   <button
                     onClick={abrirHistorialDelDia}
-                    className="px-3 py-1.5 bg-stone-800 hover:bg-stone-700 text-stone-300 text-xs font-semibold rounded-lg"
+                    className="px-3 py-1.5 bg-stone-200 hover:bg-stone-300 text-stone-700 text-xs font-semibold rounded-lg"
                   >
                     Hoy
                   </button>
@@ -4346,12 +4346,12 @@
                     placeholder="Buscar N° de boleta..."
                     value={busquedaBoletaHistorial}
                     onChange={(e) => setBusquedaBoletaHistorial(e.target.value)}
-                    className="flex-1 min-w-[140px] bg-stone-950 border border-stone-800 rounded-lg px-3 py-1.5 text-xs text-white"
+                    className="flex-1 min-w-[140px] bg-stone-50 border border-stone-200 rounded-lg px-3 py-1.5 text-xs text-stone-900"
                   />
                   {esAdmin && ventasDelDia.length > 0 && (
                     <button
                       onClick={exportarVentasExcel}
-                      className="px-3 py-1.5 bg-stone-800 hover:bg-stone-700 text-stone-300 text-xs font-semibold rounded-lg flex items-center gap-1.5"
+                      className="px-3 py-1.5 bg-stone-200 hover:bg-stone-300 text-stone-700 text-xs font-semibold rounded-lg flex items-center gap-1.5"
                       title="Exportar a Excel"
                     >
                       <i className="fa-solid fa-file-excel"></i> Excel
@@ -4360,27 +4360,27 @@
                 </div>
 
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-center text-xs">
-                  <div className="bg-stone-950 p-2 rounded-lg border border-stone-800">
-                    <span className="text-stone-400 block text-xs">Ventas</span>
-                    <span className="font-bold text-sm text-white">{ventasDelDia.filter(v => !v.anulada).length}</span>
+                  <div className="bg-stone-50 p-2 rounded-lg border border-stone-200">
+                    <span className="text-stone-600 block text-xs">Ventas</span>
+                    <span className="font-bold text-sm text-stone-900">{ventasDelDia.filter(v => !v.anulada).length}</span>
                   </div>
-                  <div className="bg-stone-950 p-2 rounded-lg border border-stone-800">
-                    <span className="text-stone-400 block text-xs">Efectivo</span>
-                    <span className="font-bold text-sm text-orange-400">
+                  <div className="bg-stone-50 p-2 rounded-lg border border-stone-200">
+                    <span className="text-stone-600 block text-xs">Efectivo</span>
+                    <span className="font-bold text-sm text-orange-600">
                       S/ {ventasDelDia.filter(v => !v.anulada && v.medio_pago === 'EFECTIVO').reduce((a, c) => a + Number(c.total_venta), 0).toFixed(2)}
                     </span>
                   </div>
                   {esAdmin && (
-                    <div className="bg-stone-950 p-2 rounded-lg border border-emerald-800/40">
-                      <span className="text-stone-400 block text-xs">Ganancia</span>
-                      <span className="font-bold text-sm text-emerald-400">
+                    <div className="bg-stone-50 p-2 rounded-lg border border-emerald-800/40">
+                      <span className="text-stone-600 block text-xs">Ganancia</span>
+                      <span className="font-bold text-sm text-emerald-600">
                         S/ {ventasDelDia.filter(v => !v.anulada).reduce((a, c) => a + Number(c.utilidad_total || 0), 0).toFixed(2)}
                       </span>
                     </div>
                   )}
-                  <div className="bg-stone-950 p-2 rounded-lg border border-stone-800">
-                    <span className="text-stone-400 block text-xs">Total General</span>
-                    <span className="font-black text-sm text-orange-400">
+                  <div className="bg-stone-50 p-2 rounded-lg border border-stone-200">
+                    <span className="text-stone-600 block text-xs">Total General</span>
+                    <span className="font-black text-sm text-orange-600">
                       S/ {ventasDelDia.filter(v => !v.anulada).reduce((a, c) => a + Number(c.total_venta), 0).toFixed(2)}
                     </span>
                   </div>
@@ -4388,24 +4388,24 @@
 
                 <div className="max-h-64 overflow-y-auto space-y-1.5">
                   {cargandoHistorial ? (
-                    <p className="text-xs text-center py-6 text-stone-400">Cargando ventas...</p>
+                    <p className="text-xs text-center py-6 text-stone-600">Cargando ventas...</p>
                   ) : ventasDelDia.filter(v => v.nro_boleta.toLowerCase().includes(busquedaBoletaHistorial.trim().toLowerCase())).length === 0 ? (
                     <p className="text-xs text-center py-6 text-stone-500">No hay ventas en ese rango.</p>
                   ) : (
                     ventasDelDia.filter(v => v.nro_boleta.toLowerCase().includes(busquedaBoletaHistorial.trim().toLowerCase())).map(v => (
-                      <div key={v.id} className={`flex justify-between items-center p-2.5 rounded-lg border text-xs ${v.anulada ? 'bg-rose-950/30 border-rose-900/60 opacity-60' : 'bg-stone-950 border-stone-900'}`}>
+                      <div key={v.id} className={`flex justify-between items-center p-2.5 rounded-lg border text-xs ${v.anulada ? 'bg-rose-950/30 border-rose-900/60 opacity-60' : 'bg-stone-50 border-stone-100'}`}>
                         <div>
-                          <p className="font-bold text-white font-mono">
-                            {v.nro_boleta} - <span className="text-stone-400 font-sans">{v.medio_pago}</span>
-                            {v.anulada && <span className="text-rose-400 font-sans"> (ANULADA)</span>}
+                          <p className="font-bold text-stone-900 font-mono">
+                            {v.nro_boleta} - <span className="text-stone-600 font-sans">{v.medio_pago}</span>
+                            {v.anulada && <span className="text-rose-600 font-sans"> (ANULADA)</span>}
                           </p>
-                          <p className="text-xs text-stone-400">{new Date(v.fecha_hora).toLocaleString('es-PE', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })} · {v.clientes?.nombre_completo || 'Cliente'}</p>
+                          <p className="text-xs text-stone-600">{new Date(v.fecha_hora).toLocaleString('es-PE', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })} · {v.clientes?.nombre_completo || 'Cliente'}</p>
                         </div>
                         <div className="flex items-center gap-2">
-                          <span className="font-black text-orange-400 text-sm">S/ {Number(v.total_venta).toFixed(2)}</span>
+                          <span className="font-black text-orange-600 text-sm">S/ {Number(v.total_venta).toFixed(2)}</span>
                           <button
                             onClick={() => setReciboReimpresion(v)}
-                            className="text-xs bg-stone-800 hover:bg-stone-800 text-stone-200 px-2 py-1 rounded border border-stone-800"
+                            className="text-xs bg-stone-200 hover:bg-stone-200 text-stone-800 px-2 py-1 rounded border border-stone-200"
                             title="Reimprimir boleta"
                           >
                             🖨️
@@ -4413,7 +4413,7 @@
                           {!v.anulada && esAdmin && (
                             <button
                               onClick={() => anularVentaHoy(v)}
-                              className="text-xs bg-rose-950/80 hover:bg-rose-900 text-rose-300 px-2 py-1 rounded border border-rose-800"
+                              className="text-xs bg-rose-950/80 hover:bg-rose-900 text-rose-600 px-2 py-1 rounded border border-rose-800"
                               title="Anular venta"
                             >
                               Anular
@@ -4431,20 +4431,20 @@
           {/* Modal: Cierre de Caja con Arqueo */}
           {modalCierreCaja && (
             <div className="fixed inset-0 bg-black/85 flex items-center justify-center z-50 p-4">
-              <div className="bg-stone-900 border border-stone-800 rounded-2xl max-w-sm w-full p-5 shadow-2xl space-y-3 text-center">
-                <h3 className="text-base font-bold text-white">🔒 Cierre de Turno y Arqueo de Caja</h3>
-                <p className="text-xs text-stone-300">Cuenta todo el dinero en efectivo que tienes físicamente en la caja e ingrésalo:</p>
+              <div className="bg-stone-100 border border-stone-200 rounded-2xl max-w-sm w-full p-5 shadow-2xl space-y-3 text-center">
+                <h3 className="text-base font-bold text-stone-900">🔒 Cierre de Turno y Arqueo de Caja</h3>
+                <p className="text-xs text-stone-700">Cuenta todo el dinero en efectivo que tienes físicamente en la caja e ingrésalo:</p>
                 <input
                   type="number"
                   step="0.50"
                   placeholder="0.00"
                   value={montoConteoEfectivo}
                   onChange={(e) => setMontoConteoEfectivo(e.target.value)}
-                  className="w-full bg-stone-950 border border-stone-800 rounded-xl p-2.5 text-center text-xl font-black text-orange-400 focus:outline-none"
+                  className="w-full bg-stone-50 border border-stone-200 rounded-xl p-2.5 text-center text-xl font-black text-orange-600 focus:outline-none"
                   autoFocus
                 />
                 <div className="flex gap-2 pt-2">
-                  <button onClick={() => setModalCierreCaja(false)} className="flex-1 py-2 bg-stone-800 text-xs font-semibold rounded-lg">Cancelar</button>
+                  <button onClick={() => setModalCierreCaja(false)} className="flex-1 py-2 bg-stone-200 text-xs font-semibold rounded-lg">Cancelar</button>
                   <button onClick={handleCierreConArqueo} className="flex-1 py-2 bg-rose-600 hover:bg-rose-500 text-white text-xs font-bold rounded-lg shadow">Confirmar Cierre</button>
                 </div>
               </div>
@@ -4454,17 +4454,17 @@
           {/* Modal: Resumen de Arqueo */}
           {resumenCierre && (
             <div className="fixed inset-0 bg-black/85 flex items-center justify-center z-50 p-4">
-              <div className="bg-stone-900 border border-stone-800 rounded-2xl max-w-sm w-full p-5 shadow-2xl space-y-3 text-center">
-                <h3 className="text-base font-bold text-white">📊 Resumen del Turno</h3>
-                <div className="bg-stone-950 p-3 rounded-xl border border-stone-900 text-xs space-y-1.5 text-left font-mono">
+              <div className="bg-stone-100 border border-stone-200 rounded-2xl max-w-sm w-full p-5 shadow-2xl space-y-3 text-center">
+                <h3 className="text-base font-bold text-stone-900">📊 Resumen del Turno</h3>
+                <div className="bg-stone-50 p-3 rounded-xl border border-stone-100 text-xs space-y-1.5 text-left font-mono">
                   <div className="flex justify-between"><span>Fondo Inicial:</span><span>S/ {resumenCierre.inicio.toFixed(2)}</span></div>
                   <div className="flex justify-between"><span>+ Ventas Efectivo:</span><span>S/ {resumenCierre.ventas.toFixed(2)}</span></div>
                   {resumenCierre.gastos > 0 && (
-                    <div className="flex justify-between text-rose-400"><span>- Gastos (Caja Chica):</span><span>S/ {resumenCierre.gastos.toFixed(2)}</span></div>
+                    <div className="flex justify-between text-rose-600"><span>- Gastos (Caja Chica):</span><span>S/ {resumenCierre.gastos.toFixed(2)}</span></div>
                   )}
-                  <div className="border-t border-stone-900 pt-1 flex justify-between font-bold"><span>= Debería haber:</span><span>S/ {resumenCierre.esperado.toFixed(2)}</span></div>
-                  <div className="flex justify-between text-orange-400 font-bold"><span>Tú contaste:</span><span>S/ {resumenCierre.real.toFixed(2)}</span></div>
-                  <div className={`border-t border-stone-900 pt-1 flex justify-between font-black text-sm ${resumenCierre.diferencia === 0 ? 'text-orange-400' : resumenCierre.diferencia > 0 ? 'text-blue-400' : 'text-rose-400'}`}>
+                  <div className="border-t border-stone-100 pt-1 flex justify-between font-bold"><span>= Debería haber:</span><span>S/ {resumenCierre.esperado.toFixed(2)}</span></div>
+                  <div className="flex justify-between text-orange-600 font-bold"><span>Tú contaste:</span><span>S/ {resumenCierre.real.toFixed(2)}</span></div>
+                  <div className={`border-t border-stone-100 pt-1 flex justify-between font-black text-sm ${resumenCierre.diferencia === 0 ? 'text-orange-600' : resumenCierre.diferencia > 0 ? 'text-blue-600' : 'text-rose-600'}`}>
                     <span>Diferencia:</span><span>{resumenCierre.diferencia === 0 ? '✓ Cuadre Perfecto' : `S/ ${resumenCierre.diferencia.toFixed(2)}`}</span>
                   </div>
                 </div>
@@ -4476,17 +4476,17 @@
           {/* Modal: Ventas en Espera */}
           {modalVentasEspera && (
             <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4">
-              <div className="bg-stone-900 border border-stone-800 rounded-2xl max-w-sm w-full p-5 shadow-2xl space-y-3">
+              <div className="bg-stone-100 border border-stone-200 rounded-2xl max-w-sm w-full p-5 shadow-2xl space-y-3">
                 <div className="flex justify-between items-center">
-                  <h3 className="text-sm font-bold text-white">⏸️ Ventas en Espera</h3>
-                  <button onClick={() => setModalVentasEspera(false)} className="text-stone-400">✕</button>
+                  <h3 className="text-sm font-bold text-stone-900">⏸️ Ventas en Espera</h3>
+                  <button onClick={() => setModalVentasEspera(false)} className="text-stone-600">✕</button>
                 </div>
                 <div className="space-y-2 max-h-56 overflow-y-auto">
                   {ventasEnEspera.map((v, i) => (
-                    <div key={v.id} className="flex justify-between items-center p-2 bg-stone-950 rounded-lg border border-stone-800 text-xs">
+                    <div key={v.id} className="flex justify-between items-center p-2 bg-stone-50 rounded-lg border border-stone-200 text-xs">
                       <div>
-                        <p className="font-bold text-white">🕒 {v.hora} · S/ {v.total.toFixed(2)}</p>
-                        <p className="text-xs text-stone-400">{v.items.length} ítems</p>
+                        <p className="font-bold text-stone-900">🕒 {v.hora} · S/ {v.total.toFixed(2)}</p>
+                        <p className="text-xs text-stone-600">{v.items.length} ítems</p>
                       </div>
                       <div className="flex gap-1.5">
                         <button onClick={() => recuperarVentaEspera(i)} className="px-2 py-1 bg-orange-600 text-white text-xs font-bold rounded">Recuperar</button>
@@ -4502,17 +4502,17 @@
           {/* Modal: Apertura Turno */}
           {modalTurno && (
             <div className="fixed inset-0 bg-black/85 flex items-center justify-center z-50 p-4">
-              <div className="bg-stone-900 border border-orange-500/80 rounded-2xl max-w-md w-full p-6 shadow-2xl space-y-4">
-                <h2 className="text-base font-bold text-white">💼 Apertura de Turno de Caja</h2>
+              <div className="bg-stone-100 border border-orange-500/80 rounded-2xl max-w-md w-full p-6 shadow-2xl space-y-4">
+                <h2 className="text-base font-bold text-stone-900">💼 Apertura de Turno de Caja</h2>
                 <div>
-                  <label className="text-xs font-semibold text-stone-300 block mb-1">Cajero:</label>
+                  <label className="text-xs font-semibold text-stone-700 block mb-1">Cajero:</label>
                   <select
                     value={cajeroSeleccionado?.id || ''}
                     onChange={(e) => {
                       const f = listaCajeros.find(c => c.id === e.target.value);
                       if (f) setCajeroSeleccionado(f);
                     }}
-                    className="w-full bg-stone-950 border border-stone-800 rounded-xl px-3 py-2 text-xs text-white"
+                    className="w-full bg-stone-50 border border-stone-200 rounded-xl px-3 py-2 text-xs text-stone-900"
                   >
                     {listaCajeros.map(c => (
                       <option key={c.id} value={c.id}>👤 {c.nombre} ({c.rol || 'Cajero'})</option>
@@ -4520,17 +4520,17 @@
                   </select>
                 </div>
                 <div>
-                  <label className="text-xs font-semibold text-stone-300 block mb-1">Monto Inicial (S/):</label>
+                  <label className="text-xs font-semibold text-stone-700 block mb-1">Monto Inicial (S/):</label>
                   <input
                     type="number"
                     step="1.00"
                     value={montoApertura}
                     onChange={(e) => setMontoApertura(e.target.value)}
-                    className="w-full bg-stone-950 border border-stone-800 rounded-xl p-2.5 text-lg font-bold text-white"
+                    className="w-full bg-stone-50 border border-stone-200 rounded-xl p-2.5 text-lg font-bold text-stone-900"
                   />
                 </div>
                 <div className="flex gap-2">
-                  <button onClick={() => setModalTurno(false)} className="flex-1 py-2 bg-stone-800 text-xs font-semibold rounded-xl">Cancelar</button>
+                  <button onClick={() => setModalTurno(false)} className="flex-1 py-2 bg-stone-200 text-xs font-semibold rounded-xl">Cancelar</button>
                   <button onClick={handleAbrirTurno} className="flex-1 py-2 bg-orange-600 text-white text-xs font-bold rounded-xl shadow">Confirmar y Abrir</button>
                 </div>
               </div>
@@ -4540,19 +4540,19 @@
           {/* Modal: Boleta Emitida */}
           {ventaCompletada && (
             <div className="fixed inset-0 bg-black/85 flex items-center justify-center z-50 p-4">
-              <div className="bg-stone-900 border border-stone-800 rounded-2xl max-w-sm w-full p-5 shadow-2xl text-center space-y-3">
-                <div className="w-12 h-12 bg-orange-500/20 text-orange-400 rounded-full flex items-center justify-center mx-auto text-xl font-bold">✓</div>
-                <h3 className="text-lg font-black text-white">¡Venta Exitosa!</h3>
-                <p className="text-xs text-stone-300 font-mono">Boleta: <span className="text-orange-400 font-bold">{ventaCompletada.nro_boleta}</span></p>
-                <div className="bg-stone-950 p-3 rounded-lg text-left text-xs font-mono space-y-1 text-stone-300 border border-stone-900">
+              <div className="bg-stone-100 border border-stone-200 rounded-2xl max-w-sm w-full p-5 shadow-2xl text-center space-y-3">
+                <div className="w-12 h-12 bg-orange-500/20 text-orange-600 rounded-full flex items-center justify-center mx-auto text-xl font-bold">✓</div>
+                <h3 className="text-lg font-black text-stone-900">¡Venta Exitosa!</h3>
+                <p className="text-xs text-stone-700 font-mono">Boleta: <span className="text-orange-600 font-bold">{ventaCompletada.nro_boleta}</span></p>
+                <div className="bg-stone-50 p-3 rounded-lg text-left text-xs font-mono space-y-1 text-stone-700 border border-stone-100">
                   <p><strong>Pago:</strong> {ventaCompletada.medio_pago}</p>
                   <p><strong>Cliente:</strong> {ventaCompletada.cliente}</p>
-                  <div className="border-t border-stone-800 pt-1 mt-1 flex justify-between font-bold text-sm text-orange-400">
+                  <div className="border-t border-stone-200 pt-1 mt-1 flex justify-between font-bold text-sm text-orange-600">
                     <span>TOTAL:</span><span>S/ {ventaCompletada.total_venta.toFixed(2)}</span>
                   </div>
                 </div>
                 <div className="flex gap-2">
-                  <button onClick={() => window.print()} className="flex-1 py-2 bg-stone-800 text-white font-bold text-xs rounded-xl">🖨️ Imprimir</button>
+                  <button onClick={() => window.print()} className="flex-1 py-2 bg-stone-200 text-stone-900 font-bold text-xs rounded-xl">🖨️ Imprimir</button>
                   <button onClick={() => setVentaCompletada(null)} className="flex-1 py-2 bg-orange-600 text-white font-bold text-xs rounded-xl shadow">Nueva Venta</button>
                 </div>
               </div>
@@ -4581,18 +4581,18 @@
           {/* Modal: Reimpresión de Boleta desde el Historial */}
           {reciboReimpresion && (
             <div className="fixed inset-0 bg-black/85 flex items-center justify-center z-50 p-4">
-              <div className="bg-stone-900 border border-stone-800 rounded-2xl max-w-sm w-full p-5 shadow-2xl text-center space-y-3">
-                <div className="w-12 h-12 bg-stone-800 text-stone-200 rounded-full flex items-center justify-center mx-auto text-xl">🖨️</div>
-                <h3 className="text-lg font-black text-white">Reimpresión de Boleta</h3>
-                <p className="text-xs text-stone-300 font-mono">Boleta: <span className="text-orange-400 font-bold">{reciboReimpresion.nro_boleta}</span></p>
+              <div className="bg-stone-100 border border-stone-200 rounded-2xl max-w-sm w-full p-5 shadow-2xl text-center space-y-3">
+                <div className="w-12 h-12 bg-stone-200 text-stone-800 rounded-full flex items-center justify-center mx-auto text-xl">🖨️</div>
+                <h3 className="text-lg font-black text-stone-900">Reimpresión de Boleta</h3>
+                <p className="text-xs text-stone-700 font-mono">Boleta: <span className="text-orange-600 font-bold">{reciboReimpresion.nro_boleta}</span></p>
                 {reciboReimpresion.anulada && (
-                  <p className="text-xs font-bold text-rose-400">⚠️ Esta venta está ANULADA</p>
+                  <p className="text-xs font-bold text-rose-600">⚠️ Esta venta está ANULADA</p>
                 )}
-                <div className="bg-stone-950 p-3 rounded-lg text-left text-xs font-mono space-y-1 text-stone-300 border border-stone-900 max-h-56 overflow-y-auto">
+                <div className="bg-stone-50 p-3 rounded-lg text-left text-xs font-mono space-y-1 text-stone-700 border border-stone-100 max-h-56 overflow-y-auto">
                   <p><strong>Pago:</strong> {reciboReimpresion.medio_pago}</p>
                   <p><strong>Cliente:</strong> {reciboReimpresion.clientes?.nombre_completo || 'Cliente'}</p>
                   {(reciboReimpresion.ventas_detalle || []).length > 0 ? (
-                    <div className="border-t border-stone-800 pt-1 mt-1 space-y-0.5">
+                    <div className="border-t border-stone-200 pt-1 mt-1 space-y-0.5">
                       {reciboReimpresion.ventas_detalle.map((d, i) => (
                         <div key={i} className="flex justify-between">
                           <span>{d.productos?.descripcion || 'Producto'} x{d.cantidad}</span>
@@ -4601,14 +4601,14 @@
                       ))}
                     </div>
                   ) : (
-                    <p className="text-stone-500 border-t border-stone-800 pt-1 mt-1">Sin detalle de productos disponible.</p>
+                    <p className="text-stone-500 border-t border-stone-200 pt-1 mt-1">Sin detalle de productos disponible.</p>
                   )}
-                  <div className="border-t border-stone-800 pt-1 mt-1 flex justify-between font-bold text-sm text-orange-400">
+                  <div className="border-t border-stone-200 pt-1 mt-1 flex justify-between font-bold text-sm text-orange-600">
                     <span>TOTAL:</span><span>S/ {Number(reciboReimpresion.total_venta).toFixed(2)}</span>
                   </div>
                 </div>
                 <div className="flex gap-2">
-                  <button onClick={() => window.print()} className="flex-1 py-2 bg-stone-800 text-white font-bold text-xs rounded-xl">🖨️ Imprimir</button>
+                  <button onClick={() => window.print()} className="flex-1 py-2 bg-stone-200 text-stone-900 font-bold text-xs rounded-xl">🖨️ Imprimir</button>
                   <button onClick={() => setReciboReimpresion(null)} className="flex-1 py-2 bg-orange-600 text-white font-bold text-xs rounded-xl shadow">Cerrar</button>
                 </div>
               </div>
