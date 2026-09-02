@@ -1151,16 +1151,10 @@
         // de imagen innecesario que solo agrega procesamiento.
         const iniciarFallback = async () => {
           try {
-            const formatos = [
-              Html5QrcodeSupportedFormats.EAN_13,
-              Html5QrcodeSupportedFormats.EAN_8,
-              Html5QrcodeSupportedFormats.UPC_A,
-              Html5QrcodeSupportedFormats.UPC_E,
-              Html5QrcodeSupportedFormats.CODE_128,
-              Html5QrcodeSupportedFormats.CODE_39,
-              Html5QrcodeSupportedFormats.QR_CODE
-            ];
-            const lector = new Html5Qrcode('lector-fallback', { formatsToSupport: formatos, verbose: false });
+            // Sin restringir "formatsToSupport": por defecto ya soporta
+            // EAN/UPC/CODE_128/QR, y ese enum no viene expuesto como global
+            // en el build minificado que se carga desde el CDN.
+            const lector = new Html5Qrcode('lector-fallback', { verbose: false });
             fallbackReaderRef.current = lector;
 
             let intentos = 0;
