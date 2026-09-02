@@ -238,11 +238,18 @@
             <div style={{ fontSize: 10 }}>Cliente: {cliente}</div>
             {anulada && <div style={{ fontWeight: 'bold', fontSize: 12 }}>*** ANULADA ***</div>}
           </div>
+          <div style={{ textAlign: 'center', fontSize: 9, fontWeight: 'bold', border: '1px solid #000', padding: '3px 4px', margin: '4px 0' }}>
+            DOCUMENTO SIN VALOR TRIBUTARIO
+            <br />No válido como comprobante de pago ante SUNAT. Solo informativo.
+          </div>
           <div style={{ borderTop: '1px dashed #000', margin: '4px 0' }}></div>
           {items.map((it, i) => (
-            <div key={i} style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11 }}>
-              <span>{it.descripcion} x{it.cantidad}</span>
-              <span>S/ {Number(it.subtotal).toFixed(2)}</span>
+            <div key={i} style={{ marginBottom: 2 }}>
+              <div style={{ fontSize: 11 }}>{it.descripcion}</div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 10 }}>
+                <span>{it.cantidad} {it.unidad || 'UND'} x S/ {Number(it.precioUnitario || 0).toFixed(2)}</span>
+                <span>S/ {Number(it.subtotal).toFixed(2)}</span>
+              </div>
             </div>
           ))}
           <div style={{ borderTop: '1px dashed #000', margin: '4px 0' }}></div>
@@ -1609,7 +1616,7 @@
         try {
           const { data, error } = await sbClient
             .from('ventas')
-            .select('*, ventas_detalle(*, productos(descripcion))')
+            .select('*, ventas_detalle(*, productos(descripcion, unidad))')
             .eq('cliente_id', cliente.id)
             .eq('medio_pago', 'CREDITO')
             .eq('anulada', false)
@@ -2136,7 +2143,7 @@
 
             const { data, error } = await sbClient
               .from('ventas')
-              .select('*, clientes(nombre_completo), ventas_detalle(*, productos(descripcion))')
+              .select('*, clientes(nombre_completo), ventas_detalle(*, productos(descripcion, unidad))')
               .eq('bodega_id', bodegaId)
               .gte('fecha_hora', inicio.toISOString())
               .lte('fecha_hora', fin.toISOString())
@@ -4895,6 +4902,8 @@
                 items={(reciboReimpresion.ventas_detalle || []).map(d => ({
                   descripcion: d.productos?.descripcion || d.descripcion || 'Producto',
                   cantidad: d.cantidad,
+                  precioUnitario: d.precio_unitario,
+                  unidad: d.productos?.unidad || 'UND',
                   subtotal: d.subtotal
                 }))}
                 total={reciboReimpresion.total_venta}
