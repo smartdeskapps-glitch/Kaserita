@@ -315,11 +315,12 @@
         precio_costo: '',
         precio_venta: '',
         categoria: 'Abarrotes',
-        unidad: 'UND'
+        unidad: 'UND',
+        stock_actual: ''
       });
 
       // --- Módulo: Inventario Inicial (carga de varios productos a la vez) ---
-      const filaInventarioVacia = () => ({ descripcion: '', cod_ean: '', categoria: 'Abarrotes', precio_costo: '', precio_venta: '', unidad: 'UND' });
+      const filaInventarioVacia = () => ({ descripcion: '', cod_ean: '', categoria: 'Abarrotes', precio_costo: '', precio_venta: '', unidad: 'UND', stock_actual: '' });
       const [modalInventarioInicial, setModalInventarioInicial] = useState(false);
       const [filasInventario, setFilasInventario] = useState([filaInventarioVacia()]);
       const [guardandoInventario, setGuardandoInventario] = useState(false);
@@ -551,6 +552,18 @@
             ];
           }
         });
+
+        // Solo advierte si el stock está bajo o agotado; no bloquea la venta
+        // (el conteo puede tener un pequeño desfase o vender algo aún no registrado).
+        if (producto.stock_actual !== null && producto.stock_actual !== undefined) {
+          if (Number(producto.stock_actual) <= 0) {
+            notificar(`⚠️ "${producto.descripcion}" figura sin stock, pero se agregó igual.`, 'error');
+            return;
+          } else if (Number(producto.stock_actual) <= Number(producto.stock_min || 5)) {
+            notificar(`⚠️ Stock bajo de "${producto.descripcion}" (quedan ${producto.stock_actual}).`, 'error');
+            return;
+          }
+        }
         notificar(`Añadido: ${producto.descripcion}`, 'success');
       };
 
@@ -1144,7 +1157,8 @@
             categoria: f.categoria.trim() || 'General',
             precio_costo: Number(f.precio_costo) || 0,
             precio_venta: Number(f.precio_venta) || 0,
-            unidad: f.unidad === 'KG' ? 'KG' : 'UND'
+            unidad: f.unidad === 'KG' ? 'KG' : 'UND',
+            stock_actual: f.stock_actual === '' ? 0 : Number(f.stock_actual) || 0
           }));
 
           if (sbClient) {
@@ -1168,7 +1182,7 @@
       // ==========================================
       const handleCrearNuevoProducto = async (e) => {
         e.preventDefault();
-        const { descripcion, precio_venta, precio_costo, cod_ean, categoria, unidad } = formProducto;
+        const { descripcion, precio_venta, precio_costo, cod_ean, categoria, unidad, stock_actual } = formProducto;
         if (!descripcion.trim() || !precio_venta) {
           notificar('Descripción y Precio de Venta son obligatorios.', 'error');
           return;
@@ -1182,7 +1196,8 @@
             precio_costo: Number(precio_costo) || 0,
             precio_venta: Number(precio_venta) || 0,
             categoria: categoria.trim() || 'General',
-            unidad: unidad === 'KG' ? 'KG' : 'UND'
+            unidad: unidad === 'KG' ? 'KG' : 'UND',
+            stock_actual: stock_actual === '' ? 0 : Number(stock_actual) || 0
           };
 
           if (sbClient) {
@@ -1191,7 +1206,7 @@
           }
 
           setModalNuevoProducto(false);
-          setFormProducto({ cod_ean: '', descripcion: '', precio_costo: '', precio_venta: '', categoria: 'Abarrotes', unidad: 'UND' });
+          setFormProducto({ cod_ean: '', descripcion: '', precio_costo: '', precio_venta: '', categoria: 'Abarrotes', unidad: 'UND', stock_actual: '' });
           cargarProductos();
           notificar(`¡Producto "${descripcion}" guardado en el catálogo!`, 'success');
         } catch (err) {
@@ -1260,11 +1275,17 @@
             const { error: detErr } = await sbClient.from('compras_detalle').insert(detalles);
             if (detErr) throw detErr;
 
-            // Actualizar precio de costo en productos
+            // Actualizar precio de costo y sumar el stock recibido en cada producto
             for (const it of compraItems) {
+              const { data: prodActual } = await sbClient
+                .from('productos')
+                .select('stock_actual')
+                .eq('id', it.productoId)
+                .single();
+              const stockPrevio = prodActual && prodActual.stock_actual !== null ? Number(prodActual.stock_actual) : 0;
               await sbClient
                 .from('productos')
-                .update({ precio_costo: it.costoUnitario })
+                .update({ precio_costo: it.costoUnitario, stock_actual: +(stockPrevio + Number(it.cantidad)).toFixed(3) })
                 .eq('id', it.productoId);
             }
           }
@@ -1335,6 +1356,21 @@
               .from('ventas')
               .update({ anulada: true, motivo_anulacion: motivo })
               .eq('id', venta.id);
+
+            // Reponer el stock de los productos de esta venta
+            for (const d of (venta.ventas_detalle || [])) {
+              if (d.producto_id) {
+                const { data: prodActual } = await sbClient
+                  .from('productos')
+                  .select('stock_actual')
+                  .eq('id', d.producto_id)
+                  .single();
+                if (prodActual && prodActual.stock_actual !== null) {
+                  const nuevoStock = +(Number(prodActual.stock_actual) + Number(d.cantidad)).toFixed(3);
+                  await sbClient.from('productos').update({ stock_actual: nuevoStock }).eq('id', d.producto_id);
+                }
+              }
+            }
           }
           setVentasDelDia(prev => prev.map(v => v.id === venta.id ? { ...v, anulada: true, motivo_anulacion: motivo } : v));
           notificar(`Boleta ${venta.nro_boleta} anulada correctamente.`, 'info');
@@ -1564,6 +1600,21 @@
                 .from('clientes')
                 .update({ saldo_actual: +(saldoAct + totalVenta).toFixed(2) })
                 .eq('id', idClienteReal);
+            }
+
+            // Descontar el stock vendido de cada producto real (no de catálogo de demo)
+            for (const item of carrito) {
+              if (typeof item.productoId === 'string' && item.productoId.length > 10) {
+                const { data: prodActual } = await sbClient
+                  .from('productos')
+                  .select('stock_actual')
+                  .eq('id', item.productoId)
+                  .single();
+                if (prodActual && prodActual.stock_actual !== null) {
+                  const nuevoStock = Math.max(0, +(Number(prodActual.stock_actual) - Number(item.cantidad)).toFixed(3));
+                  await sbClient.from('productos').update({ stock_actual: nuevoStock }).eq('id', item.productoId);
+                }
+              }
             }
           }
 
@@ -2050,6 +2101,18 @@
                               S/ {Number(prod.precio_venta).toFixed(2)}
                             </span>
                           </div>
+                          {prod.stock_actual !== null && prod.stock_actual !== undefined && (
+                            <div className={`mt-1.5 text-[9px] font-semibold flex items-center gap-1 ${
+                              Number(prod.stock_actual) <= 0
+                                ? 'text-rose-400'
+                                : Number(prod.stock_actual) <= Number(prod.stock_min || 5)
+                                ? 'text-amber-400'
+                                : 'text-stone-500'
+                            }`}>
+                              <i className="fa-solid fa-boxes-stacked text-[8px]"></i>
+                              {Number(prod.stock_actual) <= 0 ? 'Sin stock' : `Stock: ${prod.stock_actual}`}
+                            </div>
+                          )}
                         </div>
                       </button>
                       );
@@ -2533,10 +2596,18 @@
                           onChange={(e) => actualizarFilaInventario(idx, 'precio_venta', e.target.value)}
                           className="bg-stone-900 border border-stone-800 rounded-lg px-3 py-1.5 text-xs text-white focus:outline-none focus:border-orange-500"
                         />
+                        <input
+                          type="number"
+                          step="0.10"
+                          placeholder="Cantidad que tienes ahora (stock)"
+                          value={fila.stock_actual}
+                          onChange={(e) => actualizarFilaInventario(idx, 'stock_actual', e.target.value)}
+                          className="bg-stone-900 border border-stone-800 rounded-lg px-3 py-1.5 text-xs text-white focus:outline-none focus:border-orange-500"
+                        />
                         <select
                           value={fila.unidad}
                           onChange={(e) => actualizarFilaInventario(idx, 'unidad', e.target.value)}
-                          className="sm:col-span-2 bg-stone-900 border border-stone-800 rounded-lg px-3 py-1.5 text-xs text-white focus:outline-none focus:border-orange-500"
+                          className="bg-stone-900 border border-stone-800 rounded-lg px-3 py-1.5 text-xs text-white focus:outline-none focus:border-orange-500"
                         >
                           <option value="UND">Se vende por Unidad (UND)</option>
                           <option value="KG">Se vende por Peso (KG) — balanza</option>
@@ -2646,6 +2717,17 @@
                         <option value="KG">Kilogramo (KG)</option>
                       </select>
                     </div>
+                  </div>
+                  <div>
+                    <label className="text-[11px] text-stone-400 block mb-1">Cantidad que tienes ahora (stock):</label>
+                    <input
+                      type="number"
+                      step="0.10"
+                      placeholder="0"
+                      value={formProducto.stock_actual}
+                      onChange={(e) => setFormProducto({ ...formProducto, stock_actual: e.target.value })}
+                      className="w-full bg-stone-950 border border-stone-800 rounded-lg px-3 py-1.5 text-xs text-white"
+                    />
                   </div>
                   <button type="submit" className="w-full py-2.5 bg-orange-600 hover:bg-orange-500 text-white font-bold text-xs rounded-xl shadow mt-2">
                     Guardar Producto
