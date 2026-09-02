@@ -436,17 +436,40 @@
       const cargarCajeros = async () => {
         if (!sbClient || !bodegaId) return;
         try {
-          const { data } = await sbClient
+          let { data } = await sbClient
             .from('cajeros')
             .select('*')
             .eq('bodega_id', bodegaId)
             .eq('activo', true)
             .order('nombre', { ascending: true });
 
-          const cjs = data || [];
+          let cjs = data || [];
+
+          // Auto-reparación: si quien inició sesión no tiene su propio registro
+          // en 'cajeros' (puede pasar en bodegas antiguas, o si se perdió el
+          // insert al crear la cuenta), se crea aquí mismo con su mismo rol,
+          // para que nunca se quede sin su nivel de acceso real.
+          if (usuarioActivo && !cjs.some((c) => c.dni === usuarioActivo.dni)) {
+            const { data: propio, error: errPropio } = await sbClient
+              .from('cajeros')
+              .insert([{
+                bodega_id: bodegaId,
+                nombre: usuarioActivo.nombre,
+                dni: usuarioActivo.dni,
+                rol: usuarioActivo.rol || 'dueno',
+                activo: true
+              }])
+              .select()
+              .single();
+            if (!errPropio && propio) {
+              cjs = [...cjs, propio].sort((a, b) => a.nombre.localeCompare(b.nombre));
+            }
+          }
+
           setListaCajeros(cjs);
           if (cjs.length > 0 && !cajeroSeleccionado) {
-            setCajeroSeleccionado(cjs[0]);
+            const propio = cjs.find((c) => c.dni === usuarioActivo?.dni);
+            setCajeroSeleccionado(propio || cjs[0]);
           }
         } catch (err) {
           console.warn(err);
