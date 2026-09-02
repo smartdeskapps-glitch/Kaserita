@@ -263,6 +263,11 @@
       const usuarioActivo = sesion?.usuario || null;
       const [listaCajeros, setListaCajeros] = useState([]);
       const [cajeroSeleccionado, setCajeroSeleccionado] = useState(null);
+      // El "rol activo" es el de quien está atendiendo la caja en este momento
+      // (el cajero elegido al abrir turno), no necesariamente el de quien inició
+      // sesión en el dispositivo -- para dar permisos según quién opera la caja.
+      const rolActivo = (cajeroSeleccionado?.rol || usuarioActivo?.rol || 'cajero').toLowerCase();
+      const esAdmin = rolActivo === 'dueno' || rolActivo === 'administrador';
 
       // --- Productos & Búsqueda ---
       const [productos, setProductos] = useState([]);
@@ -274,8 +279,12 @@
       const [turnoActivo, setTurnoActivo] = useState(null);
       const [modalTurno, setModalTurno] = useState(false);
       const [montoApertura, setMontoApertura] = useState('100.00');
+      const [modalGestionCajeros, setModalGestionCajeros] = useState(false);
+      const [cajerosGestion, setCajerosGestion] = useState([]);
+      const [cargandoCajerosGestion, setCargandoCajerosGestion] = useState(false);
       const [mostrarFormNuevoCajero, setMostrarFormNuevoCajero] = useState(false);
-      const [formNuevoCajero, setFormNuevoCajero] = useState({ nombre: '', dni: '', rol: 'cajero' });
+      const [formNuevoCajero, setFormNuevoCajero] = useState({ nombre: '', dni: '', pin: '', rol: 'cajero' });
+      const [guardandoNuevoCajero, setGuardandoNuevoCajero] = useState(false);
 
       // --- Arqueo y Cierre de Caja ---
       const [modalCierreCaja, setModalCierreCaja] = useState(false);
@@ -308,6 +317,15 @@
       const [montoAbonoDeuda, setMontoAbonoDeuda] = useState('');
       const [mostrarHistorialCompletoDeuda, setMostrarHistorialCompletoDeuda] = useState(false);
 
+      // --- Módulo: Gestión de Clientes (listar / editar) ---
+      const [modalGestionClientes, setModalGestionClientes] = useState(false);
+      const [clientesLista, setClientesLista] = useState([]);
+      const [cargandoClientes, setCargandoClientes] = useState(false);
+      const [busquedaClientes, setBusquedaClientes] = useState('');
+      const [clienteEditando, setClienteEditando] = useState(null);
+      const [formEditarCliente, setFormEditarCliente] = useState(null);
+      const [guardandoEdicionCliente, setGuardandoEdicionCliente] = useState(false);
+
       // --- Módulo: Nuevo Producto (Catálogo) ---
       const [modalNuevoProducto, setModalNuevoProducto] = useState(false);
       const [formProducto, setFormProducto] = useState({
@@ -319,6 +337,12 @@
         unidad: 'UND',
         stock_actual: ''
       });
+
+      // --- Módulo: Editar / Desactivar Producto ---
+      const [modalEditarProducto, setModalEditarProducto] = useState(false);
+      const [productoEditando, setProductoEditando] = useState(null);
+      const [formEditarProducto, setFormEditarProducto] = useState(null);
+      const [guardandoEdicionProducto, setGuardandoEdicionProducto] = useState(false);
 
       // --- Módulo: Inventario Inicial (carga de varios productos a la vez) ---
       const filaInventarioVacia = () => ({ descripcion: '', cod_ean: '', categoria: 'Abarrotes', precio_costo: '', precio_venta: '', unidad: 'UND', stock_actual: '', productoExistenteId: null });
@@ -430,6 +454,99 @@
       };
 
       // ==========================================
+      // GESTIÓN DE CAJEROS (agregar empleados, activar/desactivar acceso)
+      // ==========================================
+      const abrirGestionCajeros = async () => {
+        setModalGestionCajeros(true);
+        setMostrarFormNuevoCajero(false);
+        if (!sbClient || !bodegaId) return;
+        setCargandoCajerosGestion(true);
+        try {
+          const { data, error } = await sbClient
+            .from('cajeros')
+            .select('*')
+            .eq('bodega_id', bodegaId)
+            .order('nombre', { ascending: true });
+          if (error) throw error;
+          setCajerosGestion(data || []);
+        } catch (err) {
+          notificar(`No se pudo cargar la lista de cajeros: ${err.message}`, 'error');
+        } finally {
+          setCargandoCajerosGestion(false);
+        }
+      };
+
+      // Crea el acceso de un nuevo empleado: un registro en 'usuarios' (para
+      // poder iniciar sesión con DNI+PIN) y otro en 'cajeros' (para
+      // seleccionarlo al abrir turno y quedar asociado a sus ventas).
+      const registrarNuevoCajeroCompleto = async () => {
+        const { nombre, dni, pin, rol } = formNuevoCajero;
+        if (!nombre.trim() || !dni.trim() || !pin.trim()) {
+          notificar('Nombre, DNI y PIN son obligatorios.', 'error');
+          return;
+        }
+        setGuardandoNuevoCajero(true);
+        try {
+          if (sbClient) {
+            const { error: errUsuario } = await sbClient.from('usuarios').insert([{
+              bodega_id: bodegaId,
+              nombre: nombre.trim(),
+              dni: dni.trim(),
+              pin_acceso: pin.trim(),
+              rol: rol,
+              activo: true
+            }]);
+            if (errUsuario) throw errUsuario;
+
+            const { error: errCajero } = await sbClient.from('cajeros').insert([{
+              bodega_id: bodegaId,
+              nombre: nombre.trim(),
+              dni: dni.trim(),
+              rol: rol,
+              activo: true
+            }]);
+            if (errCajero) throw errCajero;
+          }
+          setFormNuevoCajero({ nombre: '', dni: '', pin: '', rol: 'cajero' });
+          setMostrarFormNuevoCajero(false);
+          abrirGestionCajeros();
+          cargarCajeros();
+          notificar(`¡Cajero "${nombre}" registrado! Ya puede iniciar sesión con su DNI y PIN.`, 'success');
+        } catch (err) {
+          notificar(`Error al registrar cajero: ${err.message}`, 'error');
+        } finally {
+          setGuardandoNuevoCajero(false);
+        }
+      };
+
+      // Activa/desactiva el acceso del cajero: bloquea su login (usuarios) y lo
+      // saca del selector de turno (cajeros), sin borrar su historial de ventas.
+      const alternarActivoCajero = async (cajero) => {
+        const nuevoEstado = !cajero.activo;
+        try {
+          if (sbClient) {
+            const { error: err1 } = await sbClient
+              .from('cajeros')
+              .update({ activo: nuevoEstado })
+              .eq('id', cajero.id);
+            if (err1) throw err1;
+
+            const { error: err2 } = await sbClient
+              .from('usuarios')
+              .update({ activo: nuevoEstado })
+              .eq('bodega_id', bodegaId)
+              .eq('dni', cajero.dni);
+            if (err2) console.warn('No se pudo actualizar el acceso de login:', err2.message);
+          }
+          setCajerosGestion((prev) => prev.map((c) => (c.id === cajero.id ? { ...c, activo: nuevoEstado } : c)));
+          cargarCajeros();
+          notificar(nuevoEstado ? `${cajero.nombre} reactivado.` : `${cajero.nombre} desactivado.`, 'info');
+        } catch (err) {
+          notificar(`Error: ${err.message}`, 'error');
+        }
+      };
+
+      // ==========================================
       // PRODUCTOS & CATÁLOGO
       // ==========================================
       const cargarProductos = async (termino = '') => {
@@ -451,8 +568,14 @@
             const { data, error } = await query;
             if (error) throw error;
 
-            if (data && data.length > 0) {
-              setProductos(data);
+            // Se filtra "activo" en el cliente (no en la consulta) para que la
+            // app no se rompa si todavía no corriste la migración que agrega
+            // esa columna: un producto sin el campo (undefined) se sigue
+            // mostrando con normalidad.
+            const visibles = (data || []).filter((p) => p.activo !== false);
+
+            if (visibles.length > 0) {
+              setProductos(visibles);
             } else if (bodegaId === BODEGA_DEMO_ID) {
               const demo = PRODUCTOS_SEMILLA.map((p, i) => ({ ...p, id: i + 1, bodega_id: bodegaId }));
               setProductos(demo);
@@ -1010,6 +1133,75 @@
         }
       };
 
+      // ==========================================
+      // GESTIÓN DE CLIENTES (listar / editar)
+      // ==========================================
+      const abrirGestionClientes = async () => {
+        setModalGestionClientes(true);
+        setClienteEditando(null);
+        if (!sbClient || !bodegaId) return;
+        setCargandoClientes(true);
+        try {
+          const { data, error } = await sbClient
+            .from('clientes')
+            .select('*')
+            .eq('bodega_id', bodegaId)
+            .order('nombre_completo', { ascending: true });
+          if (error) throw error;
+          setClientesLista(data || []);
+        } catch (err) {
+          notificar(`No se pudo cargar la lista de clientes: ${err.message}`, 'error');
+        } finally {
+          setCargandoClientes(false);
+        }
+      };
+
+      const clientesFiltradosGestion = () => {
+        const t = busquedaClientes.trim().toLowerCase();
+        if (!t) return clientesLista;
+        return clientesLista.filter(
+          (c) => (c.nombre_completo || '').toLowerCase().includes(t) || (c.dni || '').includes(t)
+        );
+      };
+
+      const abrirEdicionCliente = (cliente) => {
+        setClienteEditando(cliente);
+        setFormEditarCliente({
+          nombre_completo: cliente.nombre_completo || '',
+          telefono: cliente.telefono || '',
+          correo: cliente.correo || '',
+          limite_credito: cliente.limite_credito != null ? String(cliente.limite_credito) : '0'
+        });
+      };
+
+      const guardarEdicionCliente = async () => {
+        if (!clienteEditando || !formEditarCliente) return;
+        if (!formEditarCliente.nombre_completo.trim()) {
+          notificar('El nombre es obligatorio.', 'error');
+          return;
+        }
+        setGuardandoEdicionCliente(true);
+        try {
+          const payload = {
+            nombre_completo: formEditarCliente.nombre_completo.trim(),
+            telefono: formEditarCliente.telefono.trim() || null,
+            correo: formEditarCliente.correo.trim() || null,
+            limite_credito: Number(formEditarCliente.limite_credito) || 0
+          };
+          if (sbClient) {
+            const { error } = await sbClient.from('clientes').update(payload).eq('id', clienteEditando.id);
+            if (error) throw error;
+          }
+          setClientesLista((prev) => prev.map((c) => (c.id === clienteEditando.id ? { ...c, ...payload } : c)));
+          setClienteEditando(null);
+          notificar('Cliente actualizado.', 'success');
+        } catch (err) {
+          notificar(`Error al guardar: ${err.message}`, 'error');
+        } finally {
+          setGuardandoEdicionCliente(false);
+        }
+      };
+
       // Al elegir un deudor, cargar el detalle de sus boletas a crédito pendientes
       const seleccionarDeudor = async (cliente) => {
         setDeudorSeleccionado(cliente);
@@ -1337,6 +1529,72 @@
           notificar(`¡Producto "${descripcion}" guardado en el catálogo!`, 'success');
         } catch (err) {
           notificar(`Error: ${err.message}`, 'error');
+        }
+      };
+
+      // ==========================================
+      // EDITAR / DESACTIVAR PRODUCTO
+      // ==========================================
+      const abrirEdicionProducto = (prod) => {
+        setProductoEditando(prod);
+        setFormEditarProducto({
+          descripcion: prod.descripcion || '',
+          cod_ean: prod.cod_ean || '',
+          categoria: prod.categoria || 'General',
+          precio_costo: prod.precio_costo != null ? String(prod.precio_costo) : '',
+          precio_venta: prod.precio_venta != null ? String(prod.precio_venta) : '',
+          unidad: prod.unidad || 'UND',
+          stock_actual: prod.stock_actual != null ? String(prod.stock_actual) : ''
+        });
+        setModalEditarProducto(true);
+      };
+
+      const guardarEdicionProducto = async () => {
+        if (!productoEditando || !formEditarProducto) return;
+        if (!formEditarProducto.descripcion.trim() || !formEditarProducto.precio_venta) {
+          notificar('Descripción y Precio de Venta son obligatorios.', 'error');
+          return;
+        }
+        setGuardandoEdicionProducto(true);
+        try {
+          const payload = {
+            descripcion: formEditarProducto.descripcion.trim(),
+            cod_ean: formEditarProducto.cod_ean.trim() || generarCodigoInterno(),
+            categoria: formEditarProducto.categoria.trim() || 'General',
+            precio_costo: Number(formEditarProducto.precio_costo) || 0,
+            precio_venta: Number(formEditarProducto.precio_venta) || 0,
+            unidad: formEditarProducto.unidad === 'KG' ? 'KG' : 'UND',
+            stock_actual: formEditarProducto.stock_actual === '' ? null : Number(formEditarProducto.stock_actual)
+          };
+          if (sbClient) {
+            const { error } = await sbClient.from('productos').update(payload).eq('id', productoEditando.id);
+            if (error) throw error;
+          }
+          setModalEditarProducto(false);
+          setProductoEditando(null);
+          cargarProductos(busqueda);
+          notificar('Producto actualizado.', 'success');
+        } catch (err) {
+          notificar(`Error al guardar: ${err.message}`, 'error');
+        } finally {
+          setGuardandoEdicionProducto(false);
+        }
+      };
+
+      const desactivarProducto = async () => {
+        if (!productoEditando) return;
+        if (!confirm(`¿Quitar "${productoEditando.descripcion}" del catálogo? No se borra tu historial de ventas, solo deja de aparecer para vender.`)) return;
+        try {
+          if (sbClient) {
+            const { error } = await sbClient.from('productos').update({ activo: false }).eq('id', productoEditando.id);
+            if (error) throw error;
+          }
+          setModalEditarProducto(false);
+          setProductoEditando(null);
+          cargarProductos(busqueda);
+          notificar('Producto quitado del catálogo.', 'info');
+        } catch (err) {
+          notificar(`Error al quitar el producto: ${err.message}`, 'error');
         }
       };
 
@@ -2027,11 +2285,17 @@
             <SidebarIcon icon="fa-clock-rotate-left" label="Ventas en Espera" badge={ventasEnEspera.length} onClick={() => setModalVentasEspera(true)} />
             <SidebarIcon icon="fa-receipt" label="Historial de Ventas" onClick={abrirHistorialDelDia} />
             <SidebarIcon icon="fa-hand-holding-dollar" label="Cuentas por Cobrar" onClick={abrirModuloCobroDeudas} />
-            <div className="w-8 h-px bg-stone-800 my-2"></div>
-            <SidebarIcon icon="fa-boxes-stacked" label="Registrar Inventario" onClick={() => setModalInventarioInicial(true)} />
-            <SidebarIcon icon="fa-truck-ramp-box" label="Entrada de Mercadería" onClick={() => setModalEntradaMercaderia(true)} />
-            <SidebarIcon icon="fa-box-open" label="Nuevo Producto" onClick={() => setModalNuevoProducto(true)} />
             <SidebarIcon icon="fa-user-plus" label="Nuevo Cliente" onClick={() => setModalNuevoCliente(true)} />
+            {esAdmin && (
+              <>
+                <div className="w-8 h-px bg-stone-800 my-2"></div>
+                <SidebarIcon icon="fa-boxes-stacked" label="Registrar Inventario" onClick={() => setModalInventarioInicial(true)} />
+                <SidebarIcon icon="fa-truck-ramp-box" label="Entrada de Mercadería" onClick={() => setModalEntradaMercaderia(true)} />
+                <SidebarIcon icon="fa-box-open" label="Nuevo Producto" onClick={() => setModalNuevoProducto(true)} />
+                <SidebarIcon icon="fa-users" label="Clientes (editar)" onClick={abrirGestionClientes} />
+                <SidebarIcon icon="fa-user-group" label="Cajeros y Empleados" onClick={abrirGestionCajeros} />
+              </>
+            )}
             <div className="flex-1"></div>
             {turnoActivo ? (
               <SidebarIcon icon="fa-lock" label="Cerrar Caja" tone="rose" onClick={() => setModalCierreCaja(true)} />
@@ -2204,11 +2468,24 @@
                     {productosFiltrados.map((prod) => {
                       const est = estiloCategoria(prod.categoria);
                       return (
-                      <button
+                      <div
                         key={prod.id}
+                        role="button"
+                        tabIndex={0}
                         onClick={() => handleClicProducto(prod)}
-                        className="text-left bg-gradient-to-b from-stone-900 to-stone-900/60 border border-stone-800 rounded-2xl overflow-hidden hover:border-orange-500/50 hover:-translate-y-0.5 hover:shadow-xl hover:shadow-black/40 transition-all duration-200 active:scale-[0.98] group"
+                        onKeyDown={(e) => { if (e.key === 'Enter') handleClicProducto(prod); }}
+                        className="text-left bg-gradient-to-b from-stone-900 to-stone-900/60 border border-stone-800 rounded-2xl overflow-hidden hover:border-orange-500/50 hover:-translate-y-0.5 hover:shadow-xl hover:shadow-black/40 transition-all duration-200 active:scale-[0.98] group cursor-pointer relative"
                       >
+                        {esAdmin && (
+                          <button
+                            type="button"
+                            onClick={(e) => { e.stopPropagation(); abrirEdicionProducto(prod); }}
+                            className="absolute top-2 left-2 z-10 w-6 h-6 flex items-center justify-center bg-stone-950/80 hover:bg-stone-900 text-stone-300 hover:text-orange-400 rounded-lg transition"
+                            title="Editar producto"
+                          >
+                            <i className="fa-solid fa-pen text-[10px]"></i>
+                          </button>
+                        )}
                         <div className={`h-20 md:h-24 flex items-center justify-center bg-gradient-to-br ${est.fondo} relative`}>
                           <i className={`fa-solid ${est.icono} ${est.color} text-2xl md:text-3xl opacity-90 group-hover:scale-110 transition-transform duration-200`}></i>
                           {prod.unidad === 'KG' && (
@@ -2242,7 +2519,7 @@
                             </div>
                           )}
                         </div>
-                      </button>
+                      </div>
                       );
                     })}
                   </div>
@@ -2554,15 +2831,6 @@
             <div className="md:hidden fixed inset-0 bg-black/70 z-[60] flex items-end" onClick={() => setMenuMas(false)}>
               <div className="w-full bg-stone-900 border-t border-stone-800 rounded-t-3xl p-4 pb-6 space-y-1" onClick={(e) => e.stopPropagation()}>
                 <div className="w-10 h-1 bg-stone-700 rounded-full mx-auto mb-2"></div>
-                <button onClick={() => { setModalInventarioInicial(true); setMenuMas(false); }} className="w-full text-left px-3.5 py-3 rounded-xl hover:bg-stone-800 flex items-center gap-3 text-orange-400 font-semibold text-sm">
-                  <i className="fa-solid fa-boxes-stacked w-5"></i> Registrar Inventario
-                </button>
-                <button onClick={() => { setModalNuevoProducto(true); setMenuMas(false); }} className="w-full text-left px-3.5 py-3 rounded-xl hover:bg-stone-800 flex items-center gap-3 text-stone-200 font-medium text-sm">
-                  <i className="fa-solid fa-box-open w-5 text-orange-400"></i> Nuevo Producto
-                </button>
-                <button onClick={() => { setModalEntradaMercaderia(true); setMenuMas(false); }} className="w-full text-left px-3.5 py-3 rounded-xl hover:bg-stone-800 flex items-center gap-3 text-stone-200 font-medium text-sm">
-                  <i className="fa-solid fa-truck-ramp-box w-5 text-orange-400"></i> Entrada de Mercadería
-                </button>
                 <button onClick={() => { abrirModuloCobroDeudas(); setMenuMas(false); }} className="w-full text-left px-3.5 py-3 rounded-xl hover:bg-stone-800 flex items-center gap-3 text-orange-400 font-semibold text-sm">
                   <i className="fa-solid fa-hand-holding-dollar w-5"></i> Cuentas por Cobrar
                 </button>
@@ -2572,6 +2840,26 @@
                 <button onClick={() => { setModalNuevoCliente(true); setMenuMas(false); }} className="w-full text-left px-3.5 py-3 rounded-xl hover:bg-stone-800 flex items-center gap-3 text-stone-200 font-medium text-sm">
                   <i className="fa-solid fa-user-plus w-5 text-orange-400"></i> Registrar Cliente
                 </button>
+                {esAdmin && (
+                  <>
+                    <div className="border-t border-stone-800 my-1"></div>
+                    <button onClick={() => { setModalInventarioInicial(true); setMenuMas(false); }} className="w-full text-left px-3.5 py-3 rounded-xl hover:bg-stone-800 flex items-center gap-3 text-orange-400 font-semibold text-sm">
+                      <i className="fa-solid fa-boxes-stacked w-5"></i> Registrar Inventario
+                    </button>
+                    <button onClick={() => { setModalNuevoProducto(true); setMenuMas(false); }} className="w-full text-left px-3.5 py-3 rounded-xl hover:bg-stone-800 flex items-center gap-3 text-stone-200 font-medium text-sm">
+                      <i className="fa-solid fa-box-open w-5 text-orange-400"></i> Nuevo Producto
+                    </button>
+                    <button onClick={() => { setModalEntradaMercaderia(true); setMenuMas(false); }} className="w-full text-left px-3.5 py-3 rounded-xl hover:bg-stone-800 flex items-center gap-3 text-stone-200 font-medium text-sm">
+                      <i className="fa-solid fa-truck-ramp-box w-5 text-orange-400"></i> Entrada de Mercadería
+                    </button>
+                    <button onClick={() => { abrirGestionClientes(); setMenuMas(false); }} className="w-full text-left px-3.5 py-3 rounded-xl hover:bg-stone-800 flex items-center gap-3 text-stone-200 font-medium text-sm">
+                      <i className="fa-solid fa-users w-5 text-orange-400"></i> Clientes (editar)
+                    </button>
+                    <button onClick={() => { abrirGestionCajeros(); setMenuMas(false); }} className="w-full text-left px-3.5 py-3 rounded-xl hover:bg-stone-800 flex items-center gap-3 text-stone-200 font-medium text-sm">
+                      <i className="fa-solid fa-user-group w-5 text-orange-400"></i> Cajeros y Empleados
+                    </button>
+                  </>
+                )}
                 <div className="border-t border-stone-800 my-1"></div>
                 <button onClick={() => { cerrarSesion(); setMenuMas(false); }} className="w-full text-left px-3.5 py-3 rounded-xl hover:bg-stone-800 flex items-center gap-3 text-rose-400 font-semibold text-sm">
                   <i className="fa-solid fa-right-from-bracket w-5"></i> Cerrar Sesión
@@ -2802,6 +3090,111 @@
                     ) : (
                       <><i className="fa-solid fa-check"></i> Guardar Inventario</>
                     )}
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Modal: Editar / Desactivar Producto */}
+          {modalEditarProducto && formEditarProducto && (
+            <div className="fixed inset-0 bg-black/85 flex items-center justify-center z-50 p-4">
+              <div className="bg-stone-900 border border-stone-800 rounded-2xl max-w-md w-full p-5 shadow-2xl space-y-3">
+                <div className="flex justify-between items-center">
+                  <h3 className="text-base font-bold text-white flex items-center gap-2">
+                    <i className="fa-solid fa-pen text-orange-400"></i> Editar Producto
+                  </h3>
+                  <button onClick={() => setModalEditarProducto(false)} className="text-stone-400 hover:text-white">✕</button>
+                </div>
+                <div className="space-y-2.5">
+                  <div>
+                    <label className="text-[11px] text-stone-400 block mb-1">Descripción / Nombre:</label>
+                    <input
+                      type="text"
+                      value={formEditarProducto.descripcion}
+                      onChange={(e) => setFormEditarProducto({ ...formEditarProducto, descripcion: e.target.value })}
+                      className="w-full bg-stone-950 border border-stone-800 rounded-lg px-3 py-1.5 text-xs text-white"
+                    />
+                  </div>
+                  <div className="grid grid-cols-2 gap-2">
+                    <div>
+                      <label className="text-[11px] text-stone-400 block mb-1">Precio Venta (S/):</label>
+                      <input
+                        type="number"
+                        step="0.10"
+                        value={formEditarProducto.precio_venta}
+                        onChange={(e) => setFormEditarProducto({ ...formEditarProducto, precio_venta: e.target.value })}
+                        className="w-full bg-stone-950 border border-stone-800 rounded-lg px-3 py-1.5 text-xs text-white"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-[11px] text-stone-400 block mb-1">Precio Costo (S/):</label>
+                      <input
+                        type="number"
+                        step="0.10"
+                        value={formEditarProducto.precio_costo}
+                        onChange={(e) => setFormEditarProducto({ ...formEditarProducto, precio_costo: e.target.value })}
+                        className="w-full bg-stone-950 border border-stone-800 rounded-lg px-3 py-1.5 text-xs text-white"
+                      />
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-2 gap-2">
+                    <div>
+                      <label className="text-[11px] text-stone-400 block mb-1">Código EAN:</label>
+                      <input
+                        type="text"
+                        value={formEditarProducto.cod_ean}
+                        onChange={(e) => setFormEditarProducto({ ...formEditarProducto, cod_ean: e.target.value })}
+                        className="w-full bg-stone-950 border border-stone-800 rounded-lg px-3 py-1.5 text-xs text-white"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-[11px] text-stone-400 block mb-1">Categoría:</label>
+                      <input
+                        type="text"
+                        value={formEditarProducto.categoria}
+                        onChange={(e) => setFormEditarProducto({ ...formEditarProducto, categoria: e.target.value })}
+                        className="w-full bg-stone-950 border border-stone-800 rounded-lg px-3 py-1.5 text-xs text-white"
+                      />
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-2 gap-2">
+                    <div>
+                      <label className="text-[11px] text-stone-400 block mb-1">Unidad:</label>
+                      <select
+                        value={formEditarProducto.unidad}
+                        onChange={(e) => setFormEditarProducto({ ...formEditarProducto, unidad: e.target.value })}
+                        className="w-full bg-stone-950 border border-stone-800 rounded-lg px-3 py-1.5 text-xs text-white"
+                      >
+                        <option value="UND">Unidad (UND)</option>
+                        <option value="KG">Kilogramo (KG)</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className="text-[11px] text-stone-400 block mb-1">Stock actual:</label>
+                      <input
+                        type="number"
+                        step="0.10"
+                        value={formEditarProducto.stock_actual}
+                        onChange={(e) => setFormEditarProducto({ ...formEditarProducto, stock_actual: e.target.value })}
+                        className="w-full bg-stone-950 border border-stone-800 rounded-lg px-3 py-1.5 text-xs text-white"
+                      />
+                    </div>
+                  </div>
+                </div>
+                <div className="flex gap-2 pt-1">
+                  <button
+                    onClick={desactivarProducto}
+                    className="px-4 py-2.5 bg-rose-950/60 hover:bg-rose-900 text-rose-300 text-xs font-semibold rounded-xl border border-rose-800"
+                  >
+                    <i className="fa-solid fa-trash-can"></i>
+                  </button>
+                  <button
+                    onClick={guardarEdicionProducto}
+                    disabled={guardandoEdicionProducto}
+                    className="flex-1 py-2.5 bg-orange-600 hover:bg-orange-500 disabled:opacity-60 text-white font-bold text-xs rounded-xl shadow"
+                  >
+                    {guardandoEdicionProducto ? 'Guardando...' : 'Guardar Cambios'}
                   </button>
                 </div>
               </div>
@@ -3116,6 +3509,222 @@
             </div>
           )}
 
+          {/* Modal: Gestión de Cajeros */}
+          {modalGestionCajeros && (
+            <div className="fixed inset-0 bg-black/85 flex items-center justify-center z-50 p-4">
+              <div className="bg-stone-900 border border-stone-800 rounded-2xl max-w-md w-full p-5 shadow-2xl space-y-3 max-h-[90vh] flex flex-col">
+                <div className="flex justify-between items-center shrink-0">
+                  <h3 className="text-base font-bold text-white flex items-center gap-2">
+                    <i className="fa-solid fa-user-group text-orange-400"></i> Cajeros y Empleados
+                  </h3>
+                  <button onClick={() => setModalGestionCajeros(false)} className="text-stone-400 hover:text-white">✕</button>
+                </div>
+
+                {mostrarFormNuevoCajero ? (
+                  <div className="p-3 bg-stone-950 rounded-xl border border-orange-700/40 space-y-2.5">
+                    <div>
+                      <label className="text-[11px] text-stone-400 block mb-1">Nombre:</label>
+                      <input
+                        type="text"
+                        value={formNuevoCajero.nombre}
+                        onChange={(e) => setFormNuevoCajero({ ...formNuevoCajero, nombre: e.target.value })}
+                        className="w-full bg-stone-900 border border-stone-800 rounded-lg px-3 py-1.5 text-xs text-white"
+                      />
+                    </div>
+                    <div className="grid grid-cols-2 gap-2">
+                      <div>
+                        <label className="text-[11px] text-stone-400 block mb-1">DNI:</label>
+                        <input
+                          type="text"
+                          maxLength={8}
+                          value={formNuevoCajero.dni}
+                          onChange={(e) => setFormNuevoCajero({ ...formNuevoCajero, dni: e.target.value })}
+                          className="w-full bg-stone-900 border border-stone-800 rounded-lg px-3 py-1.5 text-xs text-white"
+                        />
+                      </div>
+                      <div>
+                        <label className="text-[11px] text-stone-400 block mb-1">PIN de acceso:</label>
+                        <input
+                          type="password"
+                          maxLength={6}
+                          value={formNuevoCajero.pin}
+                          onChange={(e) => setFormNuevoCajero({ ...formNuevoCajero, pin: e.target.value })}
+                          className="w-full bg-stone-900 border border-stone-800 rounded-lg px-3 py-1.5 text-xs text-white tracking-widest"
+                        />
+                      </div>
+                    </div>
+                    <div>
+                      <label className="text-[11px] text-stone-400 block mb-1">Rol:</label>
+                      <select
+                        value={formNuevoCajero.rol}
+                        onChange={(e) => setFormNuevoCajero({ ...formNuevoCajero, rol: e.target.value })}
+                        className="w-full bg-stone-900 border border-stone-800 rounded-lg px-3 py-1.5 text-xs text-white"
+                      >
+                        <option value="cajero">Cajero (solo vender y cobrar)</option>
+                        <option value="administrador">Administrador (acceso completo)</option>
+                      </select>
+                    </div>
+                    <div className="flex gap-2 pt-1">
+                      <button onClick={() => setMostrarFormNuevoCajero(false)} className="flex-1 py-2 bg-stone-800 text-stone-200 text-xs font-semibold rounded-xl">
+                        Cancelar
+                      </button>
+                      <button
+                        onClick={registrarNuevoCajeroCompleto}
+                        disabled={guardandoNuevoCajero}
+                        className="flex-1 py-2 bg-orange-600 hover:bg-orange-500 disabled:opacity-60 text-white font-bold text-xs rounded-xl shadow"
+                      >
+                        {guardandoNuevoCajero ? 'Guardando...' : 'Crear Acceso'}
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <>
+                    <button
+                      onClick={() => setMostrarFormNuevoCajero(true)}
+                      className="w-full py-2.5 bg-stone-800 hover:bg-stone-700 text-stone-200 text-xs font-semibold rounded-xl border border-stone-700 border-dashed flex items-center justify-center gap-1.5 shrink-0"
+                    >
+                      <i className="fa-solid fa-user-plus"></i> Agregar Nuevo Cajero
+                    </button>
+                    <div className="flex-1 overflow-y-auto space-y-1.5">
+                      {cargandoCajerosGestion ? (
+                        <p className="text-xs text-stone-500 text-center py-6">Cargando...</p>
+                      ) : cajerosGestion.length === 0 ? (
+                        <p className="text-xs text-stone-500 text-center py-6">Sin cajeros registrados.</p>
+                      ) : (
+                        cajerosGestion.map((c) => (
+                          <div key={c.id} className={`flex items-center justify-between p-2.5 bg-stone-950 border border-stone-800 rounded-xl ${!c.activo ? 'opacity-50' : ''}`}>
+                            <div>
+                              <p className="text-xs font-semibold text-stone-200">
+                                {c.nombre} {!c.activo && <span className="text-rose-400 font-sans">(Inactivo)</span>}
+                              </p>
+                              <p className="text-[10px] text-stone-500 capitalize">DNI: {c.dni} · {c.rol}</p>
+                            </div>
+                            {c.rol !== 'dueno' && (
+                              <button
+                                onClick={() => alternarActivoCajero(c)}
+                                className={`text-[11px] font-semibold px-2.5 py-1 rounded-lg ${
+                                  c.activo ? 'bg-rose-950/60 text-rose-300 hover:bg-rose-900' : 'bg-emerald-950/60 text-emerald-300 hover:bg-emerald-900'
+                                }`}
+                              >
+                                {c.activo ? 'Desactivar' : 'Reactivar'}
+                              </button>
+                            )}
+                          </div>
+                        ))
+                      )}
+                    </div>
+                  </>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* Modal: Gestión de Clientes (listar / editar) */}
+          {modalGestionClientes && (
+            <div className="fixed inset-0 bg-black/85 flex items-center justify-center z-50 p-4">
+              <div className="bg-stone-900 border border-stone-800 rounded-2xl max-w-lg w-full p-5 shadow-2xl space-y-3 max-h-[90vh] flex flex-col">
+                <div className="flex justify-between items-center shrink-0">
+                  <h3 className="text-base font-bold text-white flex items-center gap-2">
+                    <i className="fa-solid fa-users text-orange-400"></i> Clientes
+                  </h3>
+                  <button onClick={() => { setModalGestionClientes(false); setClienteEditando(null); }} className="text-stone-400 hover:text-white">✕</button>
+                </div>
+
+                {clienteEditando ? (
+                  <div className="p-3 bg-stone-950 rounded-xl border border-orange-700/40 space-y-2.5">
+                    <div className="flex justify-between items-center">
+                      <span className="text-xs font-bold text-white">DNI: {clienteEditando.dni}</span>
+                      <button onClick={() => setClienteEditando(null)} className="text-[11px] text-stone-400 underline">Volver a la lista</button>
+                    </div>
+                    <div>
+                      <label className="text-[11px] text-stone-400 block mb-1">Nombre Completo:</label>
+                      <input
+                        type="text"
+                        value={formEditarCliente.nombre_completo}
+                        onChange={(e) => setFormEditarCliente({ ...formEditarCliente, nombre_completo: e.target.value })}
+                        className="w-full bg-stone-900 border border-stone-800 rounded-lg px-3 py-1.5 text-xs text-white"
+                      />
+                    </div>
+                    <div className="grid grid-cols-2 gap-2">
+                      <div>
+                        <label className="text-[11px] text-stone-400 block mb-1">Teléfono:</label>
+                        <input
+                          type="text"
+                          value={formEditarCliente.telefono}
+                          onChange={(e) => setFormEditarCliente({ ...formEditarCliente, telefono: e.target.value })}
+                          className="w-full bg-stone-900 border border-stone-800 rounded-lg px-3 py-1.5 text-xs text-white"
+                        />
+                      </div>
+                      <div>
+                        <label className="text-[11px] text-stone-400 block mb-1">Correo:</label>
+                        <input
+                          type="text"
+                          value={formEditarCliente.correo}
+                          onChange={(e) => setFormEditarCliente({ ...formEditarCliente, correo: e.target.value })}
+                          className="w-full bg-stone-900 border border-stone-800 rounded-lg px-3 py-1.5 text-xs text-white"
+                        />
+                      </div>
+                    </div>
+                    <div>
+                      <label className="text-[11px] text-stone-400 block mb-1">Límite de Crédito (S/):</label>
+                      <input
+                        type="number"
+                        step="10"
+                        value={formEditarCliente.limite_credito}
+                        onChange={(e) => setFormEditarCliente({ ...formEditarCliente, limite_credito: e.target.value })}
+                        className="w-full bg-stone-900 border border-stone-800 rounded-lg px-3 py-1.5 text-sm font-bold text-orange-400"
+                      />
+                      <p className="text-[10px] text-stone-500 mt-1">Deuda actual: S/ {Number(clienteEditando.saldo_actual || 0).toFixed(2)} (no editable aquí)</p>
+                    </div>
+                    <button
+                      onClick={guardarEdicionCliente}
+                      disabled={guardandoEdicionCliente}
+                      className="w-full py-2.5 bg-orange-600 hover:bg-orange-500 disabled:opacity-60 text-white font-bold text-xs rounded-xl shadow"
+                    >
+                      {guardandoEdicionCliente ? 'Guardando...' : 'Guardar Cambios'}
+                    </button>
+                  </div>
+                ) : (
+                  <>
+                    <input
+                      type="text"
+                      placeholder="Buscar por nombre o DNI..."
+                      value={busquedaClientes}
+                      onChange={(e) => setBusquedaClientes(e.target.value)}
+                      className="w-full bg-stone-950 border border-stone-800 rounded-xl px-3 py-2 text-xs text-white shrink-0"
+                    />
+                    <div className="flex-1 overflow-y-auto space-y-1.5">
+                      {cargandoClientes ? (
+                        <p className="text-xs text-stone-500 text-center py-6">Cargando...</p>
+                      ) : clientesFiltradosGestion().length === 0 ? (
+                        <p className="text-xs text-stone-500 text-center py-6">Sin clientes registrados.</p>
+                      ) : (
+                        clientesFiltradosGestion().map((c) => (
+                          <button
+                            key={c.id}
+                            onClick={() => abrirEdicionCliente(c)}
+                            className="w-full flex items-center justify-between p-2.5 bg-stone-950 hover:bg-stone-800 border border-stone-800 rounded-xl transition text-left"
+                          >
+                            <div>
+                              <p className="text-xs font-semibold text-stone-200">{c.nombre_completo}</p>
+                              <p className="text-[10px] text-stone-500">DNI: {c.dni} {c.telefono && `· ${c.telefono}`}</p>
+                            </div>
+                            <div className="text-right shrink-0">
+                              {Number(c.saldo_actual) > 0 && (
+                                <span className="text-[11px] font-bold text-rose-400 block">Debe S/ {Number(c.saldo_actual).toFixed(2)}</span>
+                              )}
+                              <span className="text-[10px] text-stone-500">Límite S/ {Number(c.limite_credito || 0).toFixed(2)}</span>
+                            </div>
+                          </button>
+                        ))
+                      )}
+                    </div>
+                  </>
+                )}
+              </div>
+            </div>
+          )}
+
           {/* Modal: Nuevo Cliente con Límite de Crédito */}
           {modalNuevoCliente && (
             <div className="fixed inset-0 bg-black/85 flex items-center justify-center z-50 p-4">
@@ -3236,7 +3845,7 @@
                           >
                             🖨️
                           </button>
-                          {!v.anulada && (
+                          {!v.anulada && esAdmin && (
                             <button
                               onClick={() => anularVentaHoy(v)}
                               className="text-[10px] bg-rose-950/80 hover:bg-rose-900 text-rose-300 px-2 py-1 rounded border border-rose-800"
