@@ -918,7 +918,8 @@
             cod_ean: cod_ean.trim() || null,
             precio_costo: Number(precio_costo) || 0,
             precio_venta: Number(precio_venta) || 0,
-            categoria: categoria.trim() || 'General'
+            categoria: categoria.trim() || 'General',
+            unidad: unidad === 'KG' ? 'KG' : 'UND'
           };
 
           if (sbClient) {
@@ -1408,14 +1409,28 @@
                   e.preventDefault();
                   setCargandoAuth(true);
                   try {
-                    const { data: bCreada } = await sbClient.from('bodegas').insert([{ nombre: formRegistro.nombreBodega.trim() }]).select().single();
-                    const { data: uCreado } = await sbClient.from('usuarios').insert([{ bodega_id: bCreada.id, nombre: formRegistro.nombreDueno.trim(), dni: formRegistro.dni.trim(), pin_acceso: formRegistro.pin.trim(), rol: 'dueno', activo: true }]).select().single();
-                    await sbClient.from('cajeros').insert([{ bodega_id: bCreada.id, nombre: formRegistro.nombreDueno.trim(), dni: formRegistro.dni.trim(), rol: 'dueno', activo: true }]);
-                    await sbClient.from('clientes').insert([{ bodega_id: bCreada.id, dni: '99999999', nombre_completo: 'Desconocido', saldo_actual: 0 }]);
+                    const { data: bCreada, error: errBodega } = await sbClient.from('bodegas').insert([{ nombre: formRegistro.nombreBodega.trim() }]).select().single();
+                    if (errBodega) throw errBodega;
+
+                    const { data: uCreado, error: errUsuario } = await sbClient.from('usuarios').insert([{ bodega_id: bCreada.id, nombre: formRegistro.nombreDueno.trim(), dni: formRegistro.dni.trim(), pin_acceso: formRegistro.pin.trim(), rol: 'dueno', activo: true }]).select().single();
+                    if (errUsuario) throw errUsuario;
+
+                    const { error: errCajero } = await sbClient.from('cajeros').insert([{ bodega_id: bCreada.id, nombre: formRegistro.nombreDueno.trim(), dni: formRegistro.dni.trim(), rol: 'dueno', activo: true }]);
+                    if (errCajero) throw errCajero;
+
+                    const { error: errCliente } = await sbClient.from('clientes').insert([{ bodega_id: bCreada.id, dni: '99999999', nombre_completo: 'Desconocido', saldo_actual: 0 }]);
+                    if (errCliente) throw errCliente;
+
                     const prods = PRODUCTOS_SEMILLA.map(p => ({ ...p, bodega_id: bCreada.id }));
-                    await sbClient.from('productos').insert(prods);
+                    const { error: errProductos } = await sbClient.from('productos').insert(prods);
+                    if (errProductos) {
+                      // No bloquea la creación de la bodega: se puede seguir y registrar productos manualmente.
+                      console.warn('No se pudieron cargar los productos de ejemplo:', errProductos.message);
+                      notificar(`Bodega creada, pero los productos de ejemplo no se pudieron cargar: ${errProductos.message}`, 'error');
+                    }
+
                     guardarSesion({ usuario: uCreado, bodega: bCreada });
-                    notificar(`¡Bodega creada con éxito!`, 'success');
+                    if (!errProductos) notificar(`¡Bodega creada con éxito!`, 'success');
                   } catch (err) {
                     notificar(err.message, 'error');
                   } finally {
