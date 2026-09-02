@@ -38,6 +38,9 @@
   <!-- Canvas Confetti -->
   <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
 
+  <!-- Generación de PDF en el navegador (sin backend) -->
+  <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
+
   <style>
     body {
       user-select: none;
@@ -282,6 +285,8 @@
       const [modalCobrarDeudas, setModalCobrarDeudas] = useState(false);
       const [clientesDeudores, setClientesDeudores] = useState([]);
       const [deudorSeleccionado, setDeudorSeleccionado] = useState(null);
+      const [boletasDeudor, setBoletasDeudor] = useState([]);
+      const [cargandoDetalleDeudor, setCargandoDetalleDeudor] = useState(false);
       const [montoAbonoDeuda, setMontoAbonoDeuda] = useState('');
 
       // --- Módulo: Nuevo Producto (Catálogo) ---
@@ -730,6 +735,127 @@
         }
       };
 
+      // Al elegir un deudor, cargar el detalle de sus boletas a crédito pendientes
+      const seleccionarDeudor = async (cliente) => {
+        setDeudorSeleccionado(cliente);
+        setMontoAbonoDeuda(String(cliente.saldo_actual));
+        setBoletasDeudor([]);
+        if (!sbClient) return;
+        setCargandoDetalleDeudor(true);
+        try {
+          const { data, error } = await sbClient
+            .from('ventas')
+            .select('*, ventas_detalle(*, productos(descripcion))')
+            .eq('cliente_id', cliente.id)
+            .eq('medio_pago', 'CREDITO')
+            .eq('anulada', false)
+            .order('fecha_hora', { ascending: false });
+          if (error) throw error;
+          setBoletasDeudor(data || []);
+        } catch (err) {
+          console.warn('Error al cargar boletas del deudor:', err.message);
+        } finally {
+          setCargandoDetalleDeudor(false);
+        }
+      };
+
+      // Genera el PDF de estado de cuenta en el propio navegador (sin backend).
+      const generarPDFEstadoCuenta = (cliente, boletas) => {
+        const { jsPDF } = window.jspdf;
+        const doc = new jsPDF();
+        let y = 18;
+
+        doc.setFontSize(16);
+        doc.setFont(undefined, 'bold');
+        doc.text('Estado de Cuenta', 14, y);
+        y += 8;
+        doc.setFontSize(10);
+        doc.setFont(undefined, 'normal');
+        doc.text(`Bodega: ${bodegaNombre}`, 14, y); y += 6;
+        doc.text(`Cliente: ${cliente.nombre_completo}  -  DNI: ${cliente.dni}`, 14, y); y += 6;
+        doc.text(`Fecha de emisión: ${new Date().toLocaleString('es-PE')}`, 14, y); y += 10;
+
+        doc.setFont(undefined, 'bold');
+        doc.text('Boleta', 14, y);
+        doc.text('Fecha', 50, y);
+        doc.text('Detalle', 80, y);
+        doc.text('Total', 196, y, { align: 'right' });
+        doc.setFont(undefined, 'normal');
+        y += 3;
+        doc.line(14, y, 196, y);
+        y += 6;
+
+        if (boletas.length === 0) {
+          doc.text('Sin boletas a crédito registradas.', 14, y);
+          y += 8;
+        }
+
+        boletas.forEach((b) => {
+          const detalle = (b.ventas_detalle || [])
+            .map((d) => `${d.productos?.descripcion || 'Producto'} x${d.cantidad}`)
+            .join(', ') || 'Sin detalle disponible';
+          const fecha = new Date(b.fecha_hora).toLocaleDateString('es-PE');
+          const lineasDetalle = doc.splitTextToSize(detalle, 105);
+
+          if (y > 265) { doc.addPage(); y = 20; }
+
+          doc.text(b.nro_boleta, 14, y);
+          doc.text(fecha, 50, y);
+          doc.text(lineasDetalle, 80, y);
+          doc.text(`S/ ${Number(b.total_venta).toFixed(2)}`, 196, y, { align: 'right' });
+          y += Math.max(6, lineasDetalle.length * 5);
+        });
+
+        y += 4;
+        doc.line(14, y, 196, y);
+        y += 9;
+        doc.setFontSize(13);
+        doc.setFont(undefined, 'bold');
+        doc.text(`TOTAL ADEUDADO: S/ ${Number(cliente.saldo_actual).toFixed(2)}`, 196, y, { align: 'right' });
+
+        return doc;
+      };
+
+      const descargarEstadoCuenta = () => {
+        if (!deudorSeleccionado) return;
+        const doc = generarPDFEstadoCuenta(deudorSeleccionado, boletasDeudor);
+        doc.save(`Estado_Cuenta_${deudorSeleccionado.dni}.pdf`);
+      };
+
+      // Comparte el PDF directo a WhatsApp vía el share nativo del celular (sin API);
+      // en desktop, donde no se puede adjuntar archivos así, descarga el PDF y abre
+      // WhatsApp Web con el chat listo para adjuntarlo manualmente.
+      const enviarEstadoCuentaWhatsApp = async (cliente) => {
+        const doc = generarPDFEstadoCuenta(cliente, boletasDeudor);
+        const nombreArchivo = `Estado_Cuenta_${cliente.dni}.pdf`;
+        const blob = doc.output('blob');
+
+        try {
+          const archivo = new File([blob], nombreArchivo, { type: 'application/pdf' });
+          if (navigator.canShare && navigator.canShare({ files: [archivo] })) {
+            await navigator.share({
+              files: [archivo],
+              title: 'Estado de Cuenta',
+              text: `Estado de cuenta de ${cliente.nombre_completo} - ${bodegaNombre}`
+            });
+            return;
+          }
+        } catch (err) {
+          if (err?.name === 'AbortError') return; // el cajero canceló el share
+          console.warn('No se pudo compartir directamente, usando alternativa:', err.message);
+        }
+
+        doc.save(nombreArchivo);
+        const soloNumeros = (cliente.telefono || '').replace(/\D/g, '');
+        const telConCodigo = soloNumeros.length === 9 ? `51${soloNumeros}` : soloNumeros;
+        const mensaje = encodeURIComponent(
+          `Hola ${cliente.nombre_completo}, te comparto tu estado de cuenta de ${bodegaNombre}. Adjunta el PDF que se acaba de descargar. Total adeudado: S/ ${Number(cliente.saldo_actual).toFixed(2)}`
+        );
+        const urlWhatsapp = telConCodigo ? `https://wa.me/${telConCodigo}?text=${mensaje}` : `https://wa.me/?text=${mensaje}`;
+        window.open(urlWhatsapp, '_blank');
+        notificar('Se descargó el PDF. Adjúntalo manualmente en el chat de WhatsApp que se abrió.', 'info');
+      };
+
       const procesarPagoDeudaCliente = async () => {
         if (!deudorSeleccionado) return;
         const abono = parseFloat(montoAbonoDeuda) || 0;
@@ -747,6 +873,18 @@
               .from('clientes')
               .update({ saldo_actual: nuevoSaldo })
               .eq('id', deudorSeleccionado.id);
+
+            const { error: errPago } = await sbClient.from('pagos_credito').insert([{
+              bodega_id: bodegaId,
+              cliente_id: deudorSeleccionado.id,
+              cajero_id: cajeroSeleccionado?.id || null,
+              monto_pagado: abono,
+              saldo_anterior: saldoAnterior,
+              saldo_restante: nuevoSaldo,
+              medio_pago: 'EFECTIVO',
+              fecha: new Date().toISOString()
+            }]);
+            if (errPago) console.warn('No se pudo registrar el historial de pago:', errPago.message);
           } catch (err) {
             console.error(err);
           }
@@ -757,6 +895,7 @@
 
         notificar(`¡Pago de S/ ${abono.toFixed(2)} registrado! Saldo restante: S/ ${nuevoSaldo.toFixed(2)}`, 'success');
         setMontoAbonoDeuda('');
+        setBoletasDeudor([]);
         setDeudorSeleccionado(null);
         abrirModuloCobroDeudas();
       };
@@ -2132,22 +2271,68 @@
           {/* Modal: Cobrar Deudas / Créditos */}
           {modalCobrarDeudas && (
             <div className="fixed inset-0 bg-black/85 flex items-center justify-center z-50 p-4">
-              <div className="bg-stone-900 border border-stone-800 rounded-2xl max-w-md w-full p-5 shadow-2xl space-y-3">
+              <div className="bg-stone-900 border border-stone-800 rounded-2xl max-w-md w-full p-5 shadow-2xl space-y-3 max-h-[90vh] overflow-y-auto">
                 <div className="flex justify-between items-center">
-                  <h3 className="text-base font-bold text-white">💳 Cuentas por Cobrar (Deudas)</h3>
+                  <h3 className="text-base font-bold text-white flex items-center gap-2">
+                    <i className="fa-solid fa-hand-holding-dollar text-orange-400"></i> Cuentas por Cobrar
+                  </h3>
                   <button onClick={() => setModalCobrarDeudas(false)} className="text-stone-400 hover:text-white">✕</button>
                 </div>
 
                 {deudorSeleccionado ? (
-                  <div className="p-3 bg-stone-950 rounded-xl border border-amber-500/50 space-y-3">
-                    <div className="flex justify-between">
-                      <span className="font-bold text-xs text-white">👤 {deudorSeleccionado.nombre_completo}</span>
-                      <button onClick={() => setDeudorSeleccionado(null)} className="text-[11px] text-stone-400 underline">Cambiar</button>
+                  <div className="p-3 bg-stone-950 rounded-xl border border-amber-500/40 space-y-3">
+                    <div className="flex justify-between items-center">
+                      <span className="font-bold text-xs text-white flex items-center gap-1.5">
+                        <i className="fa-solid fa-user text-orange-400"></i> {deudorSeleccionado.nombre_completo}
+                      </span>
+                      <button onClick={() => { setDeudorSeleccionado(null); setBoletasDeudor([]); }} className="text-[11px] text-stone-400 underline">Cambiar</button>
                     </div>
                     <div className="text-xs">
-                      <p>DNI: {deudorSeleccionado.dni}</p>
+                      <p className="text-stone-400">DNI: {deudorSeleccionado.dni}</p>
                       <p className="text-rose-400 font-bold mt-1 text-sm">Deuda Actual: S/ {Number(deudorSeleccionado.saldo_actual).toFixed(2)}</p>
                     </div>
+
+                    {/* Detalle de boletas a crédito pendientes */}
+                    <div className="bg-stone-900 rounded-lg border border-stone-800 p-2 max-h-40 overflow-y-auto">
+                      <p className="text-[10px] font-bold text-stone-400 uppercase tracking-wide mb-1.5">Detalle de compras a crédito</p>
+                      {cargandoDetalleDeudor ? (
+                        <p className="text-[11px] text-stone-500 text-center py-3">Cargando...</p>
+                      ) : boletasDeudor.length === 0 ? (
+                        <p className="text-[11px] text-stone-500 text-center py-3">Sin boletas a crédito registradas.</p>
+                      ) : (
+                        <div className="space-y-2">
+                          {boletasDeudor.map((b) => (
+                            <div key={b.id} className="text-[11px] border-b border-stone-800 last:border-0 pb-1.5 last:pb-0">
+                              <div className="flex justify-between font-semibold text-stone-200">
+                                <span className="font-mono">{b.nro_boleta}</span>
+                                <span className="text-orange-400">S/ {Number(b.total_venta).toFixed(2)}</span>
+                              </div>
+                              <p className="text-stone-500">
+                                {new Date(b.fecha_hora).toLocaleDateString('es-PE')} ·{' '}
+                                {(b.ventas_detalle || []).map(d => `${d.productos?.descripcion || 'Producto'} x${d.cantidad}`).join(', ') || 'Sin detalle'}
+                              </p>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Estado de cuenta: PDF y WhatsApp */}
+                    <div className="grid grid-cols-2 gap-2">
+                      <button
+                        onClick={descargarEstadoCuenta}
+                        className="py-2 bg-stone-800 hover:bg-stone-700 text-stone-200 text-xs font-semibold rounded-xl border border-stone-700 flex items-center justify-center gap-1.5"
+                      >
+                        <i className="fa-solid fa-file-pdf"></i> Descargar PDF
+                      </button>
+                      <button
+                        onClick={() => enviarEstadoCuentaWhatsApp(deudorSeleccionado)}
+                        className="py-2 bg-green-600 hover:bg-green-500 text-white text-xs font-semibold rounded-xl flex items-center justify-center gap-1.5"
+                      >
+                        <i className="fa-brands fa-whatsapp"></i> Enviar por WhatsApp
+                      </button>
+                    </div>
+
                     <div>
                       <label className="text-[11px] text-stone-400 block mb-1">Monto a Abonar (S/):</label>
                       <input
@@ -2159,8 +2344,8 @@
                         className="w-full bg-stone-900 border border-stone-800 rounded-lg p-2 text-sm font-bold text-white focus:outline-none focus:border-orange-500"
                       />
                     </div>
-                    <button onClick={procesarPagoDeudaCliente} className="w-full py-2 bg-orange-600 hover:bg-orange-500 text-white font-bold text-xs rounded-xl shadow">
-                      ✓ Registrar Pago de Deuda
+                    <button onClick={procesarPagoDeudaCliente} className="w-full py-2 bg-orange-600 hover:bg-orange-500 text-white font-bold text-xs rounded-xl shadow flex items-center justify-center gap-1.5">
+                      <i className="fa-solid fa-check"></i> Registrar Pago de Deuda
                     </button>
                   </div>
                 ) : (
@@ -2171,7 +2356,7 @@
                       clientesDeudores.map(cl => (
                         <div
                           key={cl.id}
-                          onClick={() => { setDeudorSeleccionado(cl); setMontoAbonoDeuda(String(cl.saldo_actual)); }}
+                          onClick={() => seleccionarDeudor(cl)}
                           className="flex justify-between items-center p-2.5 bg-stone-950 hover:bg-stone-800 border border-stone-800 rounded-xl cursor-pointer transition"
                         >
                           <div>
