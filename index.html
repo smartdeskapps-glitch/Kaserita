@@ -459,11 +459,6 @@
       const [formMerma, setFormMerma] = useState({ productoId: '', cantidad: '', motivo: 'Vencido' });
       const [guardandoMerma, setGuardandoMerma] = useState(false);
 
-      // --- Módulo: Gastos (salidas de caja) ---
-      const [modalGasto, setModalGasto] = useState(false);
-      const [formGasto, setFormGasto] = useState({ categoria: 'Otros', descripcion: '', monto: '', tipoPago: 'Caja Chica' });
-      const [guardandoGasto, setGuardandoGasto] = useState(false);
-
       // --- Vista: Productos con Stock Bajo ---
       const [modalStockBajo, setModalStockBajo] = useState(false);
 
@@ -1843,39 +1838,6 @@
       };
 
       // ==========================================
-      // GASTOS (salidas de dinero de la caja/negocio)
-      // ==========================================
-      const registrarGastoCaja = async () => {
-        const monto = Number(formGasto.monto) || 0;
-        if (!formGasto.descripcion.trim() || monto <= 0) {
-          notificar('Completa la descripción y un monto válido.', 'error');
-          return;
-        }
-        setGuardandoGasto(true);
-        try {
-          if (sbClient) {
-            const { error } = await sbClient.from('gastos').insert([{
-              bodega_id: bodegaId,
-              cajero_id: cajeroSeleccionado?.id || null,
-              fecha: new Date().toISOString(),
-              categoria: formGasto.categoria,
-              descripcion: formGasto.descripcion.trim(),
-              monto: monto,
-              tipo_pago: formGasto.tipoPago
-            }]);
-            if (error) throw error;
-          }
-          setModalGasto(false);
-          setFormGasto({ categoria: 'Otros', descripcion: '', monto: '', tipoPago: 'Caja Chica' });
-          notificar(`Gasto de S/ ${monto.toFixed(2)} registrado.`, 'info');
-        } catch (err) {
-          notificar(`Error al registrar el gasto: ${err.message}`, 'error');
-        } finally {
-          setGuardandoGasto(false);
-        }
-      };
-
-      // ==========================================
       // ENTRADA DE MERCADERÍA (COMPRAS)
       // ==========================================
       const agregarItemEntradaMercaderia = () => {
@@ -2073,7 +2035,6 @@
 
         // Calcular ventas en efectivo del turno
         let ventasEfectivo = 0;
-        let gastosCajaChica = 0;
         if (sbClient) {
           const { data: vts } = await sbClient
             .from('ventas')
@@ -2082,20 +2043,9 @@
             .eq('medio_pago', 'EFECTIVO');
 
           ventasEfectivo = (vts || []).reduce((acc, v) => acc + Number(v.total_venta), 0);
-
-          // Los gastos pagados con "Caja Chica" salen del mismo efectivo físico,
-          // así que también hay que restarlos de lo que debería haber en caja.
-          const { data: gts } = await sbClient
-            .from('gastos')
-            .select('monto')
-            .eq('bodega_id', bodegaId)
-            .eq('tipo_pago', 'Caja Chica')
-            .gte('fecha', turnoActivo.fecha_apertura);
-
-          gastosCajaChica = (gts || []).reduce((acc, g) => acc + Number(g.monto), 0);
         }
 
-        const esperado = +(montoIni + ventasEfectivo - gastosCajaChica).toFixed(2);
+        const esperado = +(montoIni + ventasEfectivo).toFixed(2);
         const dif = +(montoReal - esperado).toFixed(2);
 
         if (sbClient) {
@@ -2118,7 +2068,6 @@
         setResumenCierre({
           inicio: montoIni,
           ventas: ventasEfectivo,
-          gastos: gastosCajaChica,
           esperado,
           real: montoReal,
           diferencia: dif
@@ -2610,7 +2559,6 @@
                 <SidebarIcon icon="fa-box-open" label="Nuevo Producto" texto="Producto" onClick={() => setModalNuevoProducto(true)} />
                 <SidebarIcon icon="fa-users" label="Clientes (editar)" texto="Clientes" onClick={abrirGestionClientes} />
                 <SidebarIcon icon="fa-user-group" label="Cajeros y Empleados" texto="Cajeros" onClick={abrirGestionCajeros} />
-                <SidebarIcon icon="fa-money-bill-transfer" label="Registrar Gasto" texto="Gasto" onClick={() => setModalGasto(true)} />
               </>
             )}
             <div className="flex-1 min-h-2"></div>
@@ -3201,9 +3149,6 @@
                     <button onClick={() => { abrirGestionCajeros(); setMenuMas(false); }} className="w-full text-left px-3.5 py-3 rounded-xl hover:bg-stone-200 flex items-center gap-3 text-stone-800 font-medium text-sm">
                       <i className="fa-solid fa-user-group w-5 text-orange-600"></i> Cajeros y Empleados
                     </button>
-                    <button onClick={() => { setModalGasto(true); setMenuMas(false); }} className="w-full text-left px-3.5 py-3 rounded-xl hover:bg-stone-200 flex items-center gap-3 text-rose-600 font-semibold text-sm">
-                      <i className="fa-solid fa-money-bill-transfer w-5"></i> Registrar Gasto
-                    </button>
                   </>
                 )}
                 <div className="border-t border-stone-200 my-1"></div>
@@ -3497,73 +3442,6 @@
                   className="w-full py-2.5 bg-amber-600 hover:bg-amber-500 disabled:opacity-60 text-white font-bold text-xs rounded-xl shadow"
                 >
                   {guardandoMerma ? 'Guardando...' : 'Registrar Merma'}
-                </button>
-              </div>
-            </div>
-          )}
-
-          {/* Modal: Registrar Gasto */}
-          {modalGasto && (
-            <div className="fixed inset-0 bg-black/85 flex items-center justify-center z-50 p-4">
-              <div className="bg-stone-100 border border-stone-200 rounded-2xl max-w-sm w-full p-5 shadow-2xl space-y-3">
-                <div className="flex justify-between items-center">
-                  <h3 className="text-base font-bold text-stone-900 flex items-center gap-2">
-                    <i className="fa-solid fa-money-bill-transfer text-rose-600"></i> Registrar Gasto
-                  </h3>
-                  <button onClick={() => setModalGasto(false)} className="text-stone-600 hover:text-stone-900">✕</button>
-                </div>
-                <div className="grid grid-cols-2 gap-2">
-                  <div>
-                    <label className="text-xs text-stone-600 block mb-1">Categoría:</label>
-                    <select
-                      value={formGasto.categoria}
-                      onChange={(e) => setFormGasto({ ...formGasto, categoria: e.target.value })}
-                      className="w-full bg-stone-50 border border-stone-200 rounded-lg px-3 py-1.5 text-xs text-stone-900"
-                    >
-                      <option value="Servicios">Servicios (luz, agua, internet)</option>
-                      <option value="Transporte">Transporte</option>
-                      <option value="Limpieza">Limpieza</option>
-                      <option value="Mantenimiento">Mantenimiento</option>
-                      <option value="Otros">Otros</option>
-                    </select>
-                  </div>
-                  <div>
-                    <label className="text-xs text-stone-600 block mb-1">Monto (S/):</label>
-                    <input
-                      type="number"
-                      step="0.10"
-                      value={formGasto.monto}
-                      onChange={(e) => setFormGasto({ ...formGasto, monto: e.target.value })}
-                      className="w-full bg-stone-50 border border-stone-200 rounded-lg px-3 py-1.5 text-xs text-stone-900"
-                    />
-                  </div>
-                </div>
-                <div>
-                  <label className="text-xs text-stone-600 block mb-1">Descripción:</label>
-                  <input
-                    type="text"
-                    value={formGasto.descripcion}
-                    onChange={(e) => setFormGasto({ ...formGasto, descripcion: e.target.value })}
-                    className="w-full bg-stone-50 border border-stone-200 rounded-lg px-3 py-1.5 text-xs text-stone-900"
-                  />
-                </div>
-                <div>
-                  <label className="text-xs text-stone-600 block mb-1">Pagado con:</label>
-                  <select
-                    value={formGasto.tipoPago}
-                    onChange={(e) => setFormGasto({ ...formGasto, tipoPago: e.target.value })}
-                    className="w-full bg-stone-50 border border-stone-200 rounded-lg px-3 py-1.5 text-xs text-stone-900"
-                  >
-                    <option value="Caja Chica">Caja Chica (efectivo de la caja)</option>
-                    <option value="Otro">Otro (no afecta el arqueo de caja)</option>
-                  </select>
-                </div>
-                <button
-                  onClick={registrarGastoCaja}
-                  disabled={guardandoGasto}
-                  className="w-full py-2.5 bg-rose-700 hover:bg-rose-600 disabled:opacity-60 text-white font-bold text-xs rounded-xl shadow"
-                >
-                  {guardandoGasto ? 'Guardando...' : 'Registrar Gasto'}
                 </button>
               </div>
             </div>
@@ -4492,9 +4370,6 @@
                 <div className="bg-stone-50 p-3 rounded-xl border border-stone-100 text-xs space-y-1.5 text-left font-mono">
                   <div className="flex justify-between"><span>Fondo Inicial:</span><span>S/ {resumenCierre.inicio.toFixed(2)}</span></div>
                   <div className="flex justify-between"><span>+ Ventas Efectivo:</span><span>S/ {resumenCierre.ventas.toFixed(2)}</span></div>
-                  {resumenCierre.gastos > 0 && (
-                    <div className="flex justify-between text-rose-600"><span>- Gastos (Caja Chica):</span><span>S/ {resumenCierre.gastos.toFixed(2)}</span></div>
-                  )}
                   <div className="border-t border-stone-100 pt-1 flex justify-between font-bold"><span>= Debería haber:</span><span>S/ {resumenCierre.esperado.toFixed(2)}</span></div>
                   <div className="flex justify-between text-orange-600 font-bold"><span>Tú contaste:</span><span>S/ {resumenCierre.real.toFixed(2)}</span></div>
                   <div className={`border-t border-stone-100 pt-1 flex justify-between font-black text-sm ${resumenCierre.diferencia === 0 ? 'text-orange-600' : resumenCierre.diferencia > 0 ? 'text-blue-600' : 'text-rose-600'}`}>
