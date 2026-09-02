@@ -1171,7 +1171,12 @@
         const iniciarDetectorNativo = async () => {
           try {
             const stream = await navigator.mediaDevices.getUserMedia({
-              video: { facingMode: { ideal: 'environment' } }
+              video: {
+                facingMode: { ideal: 'environment' },
+                width: { ideal: 1920 },
+                height: { ideal: 1080 },
+                frameRate: { ideal: 30 }
+              }
             });
             if (!activo) {
               stream.getTracks().forEach((t) => t.stop());
@@ -1179,8 +1184,9 @@
             }
             streamNativoRef.current = stream;
             if (!videoNativoRef.current) return;
-            videoNativoRef.current.srcObject = stream;
-            await videoNativoRef.current.play();
+            const video = videoNativoRef.current;
+            video.srcObject = stream;
+            await video.play();
 
             let formatos = ['ean_13', 'ean_8', 'upc_a', 'upc_e', 'code_128', 'code_39', 'qr_code'];
             try {
@@ -1191,30 +1197,37 @@
 
             const detector = new window.BarcodeDetector({ formats: formatos });
 
-            // Se captura cada fotograma en un canvas oculto y se analiza esa
-            // imagen (no el <video> en vivo): pasar el video directamente al
-            // detector es poco confiable en varios Android/Chrome y suele
-            // "funcionar" (se ve la cámara) sin detectar nunca nada.
-            const canvas = document.createElement('canvas');
-            const ctx = canvas.getContext('2d', { willReadFrequently: true });
+            // Se analiza el <video> en vivo directamente, sin pasar por un
+            // canvas intermedio: dibujar cada fotograma en un canvas y
+            // volver a codificarlo agrega demora y pierde nitidez, que era
+            // justo lo que hacía fallar la detección antes. El loop usa
+            // requestAnimationFrame con una bandera "detectando" para no
+            // encolar una detección nueva mientras la anterior sigue en
+            // curso, aprovechando cada fotograma disponible sin saturar.
+            let detectando = false;
 
-            const loop = async () => {
-              if (!activo || !videoNativoRef.current) return;
-              const video = videoNativoRef.current;
-              if (video.readyState >= 2 && video.videoWidth > 0) {
-                canvas.width = video.videoWidth;
-                canvas.height = video.videoHeight;
-                ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-                try {
-                  const resultados = await detector.detect(canvas);
-                  if (resultados && resultados.length > 0) {
+            const loop = () => {
+              if (!activo) return;
+              detectorLoopRef.current = requestAnimationFrame(loop);
+              if (detectando || video.readyState < 2) return;
+              detectando = true;
+              detector.detect(video)
+                .then((resultados) => {
+                  detectando = false;
+                  if (activo && resultados && resultados.length > 0) {
                     handleCodigoEscaneado(resultados[0].rawValue);
                   }
-                } catch (e) { /* fotograma no procesable, se sigue intentando */ }
-              }
-              if (activo) detectorLoopRef.current = requestAnimationFrame(loop);
+                })
+                .catch(() => { detectando = false; });
             };
-            loop();
+
+            if (video.readyState >= 2) {
+              loop();
+            } else {
+              video.addEventListener('canplay', () => { if (activo) loop(); }, { once: true });
+              // Respaldo por si "canplay" no dispara en algún navegador.
+              setTimeout(() => { if (activo && !detectorLoopRef.current) loop(); }, 1500);
+            }
           } catch (err) {
             if (!activo) return;
             console.warn('Detector nativo no disponible, usando reserva:', err);
