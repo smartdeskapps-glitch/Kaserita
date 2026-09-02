@@ -1093,12 +1093,14 @@
       const abrirEscanerParaVenta = () => {
         setModoEscaner('venta');
         setFilaEscaneandoIndex(null);
+        setMetodoForzado(null);
         setModalEscaner(true);
       };
 
       const abrirEscanerParaFilaInventario = (idx) => {
         setModoEscaner('inventario');
         setFilaEscaneandoIndex(idx);
+        setMetodoForzado(null);
         setModalEscaner(true);
       };
 
@@ -1113,6 +1115,7 @@
         setErrorEscaner('');
         const usarNativo = metodoForzado === 'html5qr' ? false : ('BarcodeDetector' in window);
         setUsandoDetectorNativo(usarNativo);
+        console.log('[escaner] método elegido:', usarNativo ? 'nativo (BarcodeDetector)' : 'ZXing', '| metodoForzado:', metodoForzado);
         let activo = true;
 
         const detenerTodo = () => {
@@ -1153,18 +1156,25 @@
             zxingReaderRef.current = reader;
             if (!videoNativoRef.current) return;
 
+            let intentos = 0;
             await reader.decodeFromConstraints(
               { video: { facingMode: { ideal: 'environment' } } },
               videoNativoRef.current,
-              (resultado) => {
+              (resultado, err2) => {
                 if (!activo) return;
-                if (resultado) handleCodigoEscaneado(resultado.getText());
+                intentos++;
+                if (intentos % 40 === 0) console.log('[escaner] ZXing sigue intentando, frames analizados:', intentos);
+                if (resultado) {
+                  console.log('[escaner] ZXing detectó:', resultado.getText());
+                  handleCodigoEscaneado(resultado.getText());
+                }
               }
             );
+            console.log('[escaner] ZXing: cámara conectada, esperando código...');
           } catch (err) {
             if (!activo) return;
             setErrorEscaner('No se pudo acceder a la cámara. Revisa los permisos del navegador.');
-            console.warn('Error al iniciar la cámara (ZXing):', err);
+            console.warn('[escaner] Error al iniciar la cámara (ZXing):', err);
           }
         };
 
@@ -1195,6 +1205,7 @@
               if (filtrados.length > 0) formatos = filtrados;
             } catch (e) { /* si falla, se intenta con la lista por defecto */ }
 
+            console.log('[escaner] formatos usados:', formatos);
             const detector = new window.BarcodeDetector({ formats: formatos });
 
             // Se analiza el <video> en vivo directamente, sin pasar por un
@@ -1205,20 +1216,24 @@
             // encolar una detección nueva mientras la anterior sigue en
             // curso, aprovechando cada fotograma disponible sin saturar.
             let detectando = false;
+            let frames = 0;
 
             const loop = () => {
               if (!activo) return;
               detectorLoopRef.current = requestAnimationFrame(loop);
               if (detectando || video.readyState < 2) return;
               detectando = true;
+              frames++;
+              if (frames % 60 === 0) console.log('[escaner] nativo sigue intentando, frames analizados:', frames, '| readyState:', video.readyState, '| tamaño:', video.videoWidth, 'x', video.videoHeight);
               detector.detect(video)
                 .then((resultados) => {
                   detectando = false;
                   if (activo && resultados && resultados.length > 0) {
+                    console.log('[escaner] nativo detectó:', resultados[0].rawValue);
                     handleCodigoEscaneado(resultados[0].rawValue);
                   }
                 })
-                .catch(() => { detectando = false; });
+                .catch((e) => { detectando = false; console.warn('[escaner] error en detect():', e); });
             };
 
             if (video.readyState >= 2) {
@@ -1230,7 +1245,7 @@
             }
           } catch (err) {
             if (!activo) return;
-            console.warn('Detector nativo no disponible, usando reserva:', err);
+            console.warn('[escaner] Detector nativo no disponible, usando reserva:', err);
             setUsandoDetectorNativo(false);
             iniciarZXing();
           }
@@ -3886,7 +3901,7 @@
                         />
                         <button
                           type="button"
-                          onClick={() => { setModoEscaner('producto-simple'); setModalEscaner(true); }}
+                          onClick={() => { setModoEscaner('producto-simple'); setMetodoForzado(null); setModalEscaner(true); }}
                           className="absolute right-1.5 top-1/2 -translate-y-1/2 w-6 h-6 flex items-center justify-center text-stone-600 hover:text-orange-600 transition"
                           title="Escanear código de barras"
                         >
