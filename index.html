@@ -334,15 +334,24 @@
     // Cada categoría tiene su ícono de línea y un color de acento propio, para que
     // el catálogo se lea de un vistazo sin depender de fotos de producto.
     const CATEGORIA_ESTILO = {
-      'Lácteos':   { icono: 'fa-mug-hot',       color: 'text-sky-600',    fondo: 'from-sky-500/20 to-sky-500/5' },
-      'Abarrotes': { icono: 'fa-wheat-awn',     color: 'text-amber-600',  fondo: 'from-amber-500/20 to-amber-500/5' },
-      'Bebidas':   { icono: 'fa-bottle-water',  color: 'text-cyan-600',   fondo: 'from-cyan-500/20 to-cyan-500/5' },
-      'Golosinas': { icono: 'fa-cookie-bite',   color: 'text-pink-600',   fondo: 'from-pink-500/20 to-pink-500/5' },
-      'Carnes':    { icono: 'fa-drumstick-bite',color: 'text-rose-600',   fondo: 'from-rose-500/20 to-rose-500/5' },
-      'Verduras':  { icono: 'fa-carrot',        color: 'text-lime-600',   fondo: 'from-lime-500/20 to-lime-500/5' },
-      'Frescos':   { icono: 'fa-egg',           color: 'text-orange-600', fondo: 'from-orange-400/20 to-orange-400/5' },
-      'Limpieza':  { icono: 'fa-pump-soap',     color: 'text-violet-600', fondo: 'from-violet-500/20 to-violet-500/5' }
+      'Lácteos':          { icono: 'fa-mug-hot',        color: 'text-sky-600',     fondo: 'from-sky-500/20 to-sky-500/5' },
+      'Abarrotes':        { icono: 'fa-wheat-awn',      color: 'text-amber-600',   fondo: 'from-amber-500/20 to-amber-500/5' },
+      'Bebidas':          { icono: 'fa-bottle-water',   color: 'text-cyan-600',    fondo: 'from-cyan-500/20 to-cyan-500/5' },
+      'Golosinas':        { icono: 'fa-cookie-bite',    color: 'text-pink-600',    fondo: 'from-pink-500/20 to-pink-500/5' },
+      'Carnes':           { icono: 'fa-drumstick-bite', color: 'text-rose-600',    fondo: 'from-rose-500/20 to-rose-500/5' },
+      'Verduras':         { icono: 'fa-carrot',         color: 'text-lime-600',    fondo: 'from-lime-500/20 to-lime-500/5' },
+      'Frescos':          { icono: 'fa-egg',            color: 'text-orange-600',  fondo: 'from-orange-400/20 to-orange-400/5' },
+      'Limpieza':         { icono: 'fa-pump-soap',      color: 'text-violet-600',  fondo: 'from-violet-500/20 to-violet-500/5' },
+      'Panadería':        { icono: 'fa-bread-slice',    color: 'text-yellow-700',  fondo: 'from-yellow-500/20 to-yellow-500/5' },
+      'Cuidado Personal': { icono: 'fa-pump-medical',   color: 'text-teal-600',    fondo: 'from-teal-500/20 to-teal-500/5' },
+      'Licores':          { icono: 'fa-wine-bottle',    color: 'text-fuchsia-600', fondo: 'from-fuchsia-500/20 to-fuchsia-500/5' },
+      'Mascotas':         { icono: 'fa-paw',            color: 'text-indigo-600',  fondo: 'from-indigo-500/20 to-indigo-500/5' },
+      'Otros':            { icono: 'fa-box',            color: 'text-stone-600',   fondo: 'from-stone-400/20 to-stone-400/5' }
     };
+    // Lista fija de categorías típicas de una bodega: siempre aparecen en el
+    // filtro y en los formularios de todas las bodegas, para que el cajero
+    // elija de la lista en vez de escribir una nueva cada vez.
+    const CATEGORIAS_BODEGA = Object.keys(CATEGORIA_ESTILO);
     const estiloCategoria = (cat) => CATEGORIA_ESTILO[cat] || { icono: 'fa-box', color: 'text-stone-700', fondo: 'from-stone-400/20 to-stone-400/5' };
 
     function PosApp() {
@@ -792,8 +801,9 @@
 
       // Categorías
       const categorias = useMemo(() => {
-        const cats = new Set(productos.map(p => p.categoria).filter(Boolean));
-        return ['TODOS', ...Array.from(cats)];
+        const extra = new Set(productos.map(p => p.categoria).filter(Boolean));
+        CATEGORIAS_BODEGA.forEach(c => extra.delete(c));
+        return ['TODOS', ...CATEGORIAS_BODEGA, ...Array.from(extra)];
       }, [productos]);
 
       const productosFiltrados = useMemo(() => {
@@ -3357,14 +3367,17 @@
                             <i className="fa-solid fa-camera text-xs"></i>
                           </button>
                         </div>
-                        <input
-                          type="text"
-                          placeholder="Categoría"
+                        <select
                           value={fila.categoria}
                           disabled={esExistente}
                           onChange={(e) => actualizarFilaInventario(idx, 'categoria', e.target.value)}
                           className={esExistente ? claseCampoVinculado : claseCampoNormal}
-                        />
+                        >
+                          {!CATEGORIAS_BODEGA.includes(fila.categoria) && fila.categoria && (
+                            <option value={fila.categoria}>{fila.categoria}</option>
+                          )}
+                          {CATEGORIAS_BODEGA.map(c => <option key={c} value={c}>{c}</option>)}
+                        </select>
                         <input
                           type="number"
                           step="0.10"
@@ -3581,12 +3594,16 @@
                     </div>
                     <div>
                       <label className="text-xs text-stone-600 block mb-1">Categoría:</label>
-                      <input
-                        type="text"
+                      <select
                         value={formEditarProducto.categoria}
                         onChange={(e) => setFormEditarProducto({ ...formEditarProducto, categoria: e.target.value })}
                         className="w-full bg-stone-50 border border-stone-200 rounded-lg px-3 py-1.5 text-xs text-stone-900"
-                      />
+                      >
+                        {!CATEGORIAS_BODEGA.includes(formEditarProducto.categoria) && formEditarProducto.categoria && (
+                          <option value={formEditarProducto.categoria}>{formEditarProducto.categoria}</option>
+                        )}
+                        {CATEGORIAS_BODEGA.map(c => <option key={c} value={c}>{c}</option>)}
+                      </select>
                     </div>
                   </div>
                   <div className="grid grid-cols-2 gap-2">
@@ -3715,6 +3732,16 @@
                         <option value="KG">Kilogramo (KG)</option>
                       </select>
                     </div>
+                  </div>
+                  <div>
+                    <label className="text-xs text-stone-600 block mb-1">Categoría:</label>
+                    <select
+                      value={formProducto.categoria}
+                      onChange={(e) => setFormProducto({ ...formProducto, categoria: e.target.value })}
+                      className="w-full bg-stone-50 border border-stone-200 rounded-lg px-3 py-1.5 text-xs text-stone-900"
+                    >
+                      {CATEGORIAS_BODEGA.map(c => <option key={c} value={c}>{c}</option>)}
+                    </select>
                   </div>
                   <div>
                     <label className="text-xs text-stone-600 block mb-1">Cantidad que tienes ahora (stock):</label>
