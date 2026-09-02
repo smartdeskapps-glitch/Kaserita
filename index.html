@@ -62,6 +62,23 @@
       background: #44403c;
       border-radius: 4px;
     }
+
+    /* Formato de ticket angosto (impresora térmica 80mm) al imprimir.
+       Se oculta todo menos el recibo marcado con #recibo-imprimible. */
+    @media print {
+      body * { visibility: hidden; }
+      #recibo-imprimible, #recibo-imprimible * { visibility: visible; }
+      #recibo-imprimible {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        color: #000;
+        background: #fff;
+        font-family: 'Courier New', monospace;
+      }
+      @page { size: 80mm auto; margin: 2mm; }
+    }
   </style>
 </head>
 <body class="bg-stone-950 text-stone-100 h-screen overflow-hidden font-sans">
@@ -136,6 +153,36 @@
           >
             Limpiar
           </button>
+        </div>
+      );
+    }
+
+    // Ticket con formato de impresora térmica (80mm): invisible en pantalla
+    // (clase sr-only) pero se muestra en su lugar al imprimir gracias al CSS
+    // @media print de la cabecera, que oculta todo lo demás.
+    function ReciboImprimible({ bodega, boleta, fecha, cliente, medioPago, items, total, anulada }) {
+      return (
+        <div id="recibo-imprimible" className="sr-only">
+          <div style={{ textAlign: 'center', marginBottom: 6 }}>
+            <div style={{ fontWeight: 'bold', fontSize: 14 }}>{bodega}</div>
+            <div style={{ fontSize: 10 }}>Boleta: {boleta}</div>
+            <div style={{ fontSize: 10 }}>{fecha}</div>
+            <div style={{ fontSize: 10 }}>Cliente: {cliente}</div>
+            {anulada && <div style={{ fontWeight: 'bold', fontSize: 12 }}>*** ANULADA ***</div>}
+          </div>
+          <div style={{ borderTop: '1px dashed #000', margin: '4px 0' }}></div>
+          {items.map((it, i) => (
+            <div key={i} style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11 }}>
+              <span>{it.descripcion} x{it.cantidad}</span>
+              <span>S/ {Number(it.subtotal).toFixed(2)}</span>
+            </div>
+          ))}
+          <div style={{ borderTop: '1px dashed #000', margin: '4px 0' }}></div>
+          <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 'bold', fontSize: 13 }}>
+            <span>TOTAL</span><span>S/ {Number(total).toFixed(2)}</span>
+          </div>
+          <div style={{ fontSize: 10, marginTop: 4 }}>Medio de pago: {medioPago}</div>
+          <div style={{ textAlign: 'center', fontSize: 10, marginTop: 10 }}>¡Gracias por su compra!</div>
         </div>
       );
     }
@@ -343,6 +390,19 @@
       const [productoEditando, setProductoEditando] = useState(null);
       const [formEditarProducto, setFormEditarProducto] = useState(null);
       const [guardandoEdicionProducto, setGuardandoEdicionProducto] = useState(false);
+
+      // --- Módulo: Mermas (pérdidas de producto) ---
+      const [modalMerma, setModalMerma] = useState(false);
+      const [formMerma, setFormMerma] = useState({ productoId: '', cantidad: '', motivo: 'Vencido' });
+      const [guardandoMerma, setGuardandoMerma] = useState(false);
+
+      // --- Módulo: Gastos (salidas de caja) ---
+      const [modalGasto, setModalGasto] = useState(false);
+      const [formGasto, setFormGasto] = useState({ categoria: 'Otros', descripcion: '', monto: '', tipoPago: 'Caja Chica' });
+      const [guardandoGasto, setGuardandoGasto] = useState(false);
+
+      // --- Vista: Productos con Stock Bajo ---
+      const [modalStockBajo, setModalStockBajo] = useState(false);
 
       // --- Módulo: Inventario Inicial (carga de varios productos a la vez) ---
       const filaInventarioVacia = () => ({ descripcion: '', cod_ean: '', categoria: 'Abarrotes', precio_costo: '', precio_venta: '', unidad: 'UND', stock_actual: '', productoExistenteId: null });
@@ -646,6 +706,11 @@
         if (categoriaFiltro === 'TODOS') return productos;
         return productos.filter(p => p.categoria === categoriaFiltro);
       }, [productos, categoriaFiltro]);
+
+      const cantidadStockBajo = useMemo(
+        () => productos.filter((p) => p.stock_actual != null && Number(p.stock_actual) <= Number(p.stock_min || 5)).length,
+        [productos]
+      );
 
       // Como los abonos se descuentan del saldo total del cliente (no boleta por
       // boleta), acá se marcan como "pagadas" las boletas más antiguas hasta
@@ -1626,6 +1691,84 @@
       };
 
       // ==========================================
+      // MERMAS (pérdidas de producto: vencido, roto, robado, etc.)
+      // ==========================================
+      const registrarMermaProducto = async () => {
+        const prod = productos.find((p) => p.id === formMerma.productoId);
+        const cant = Number(formMerma.cantidad) || 0;
+        if (!prod || cant <= 0) {
+          notificar('Selecciona un producto y una cantidad válida.', 'error');
+          return;
+        }
+        setGuardandoMerma(true);
+        try {
+          const totalCosto = +(cant * (Number(prod.precio_costo) || 0)).toFixed(2);
+          if (sbClient) {
+            const { error } = await sbClient.from('mermas').insert([{
+              bodega_id: bodegaId,
+              producto_id: prod.id,
+              cajero_id: cajeroSeleccionado?.id || null,
+              fecha: new Date().toISOString(),
+              cantidad: cant,
+              motivo: formMerma.motivo,
+              total_costo: totalCosto
+            }]);
+            if (error) throw error;
+
+            // Descuenta la merma del stock, igual que una venta
+            const stockPrevio = prod.stock_actual != null ? Number(prod.stock_actual) : null;
+            if (stockPrevio !== null) {
+              await sbClient
+                .from('productos')
+                .update({ stock_actual: Math.max(0, +(stockPrevio - cant).toFixed(3)) })
+                .eq('id', prod.id);
+            }
+          }
+          setModalMerma(false);
+          setFormMerma({ productoId: '', cantidad: '', motivo: 'Vencido' });
+          cargarProductos(busqueda);
+          notificar(`Merma registrada: ${cant} x ${prod.descripcion} (S/ ${totalCosto.toFixed(2)}).`, 'info');
+        } catch (err) {
+          notificar(`Error al registrar la merma: ${err.message}`, 'error');
+        } finally {
+          setGuardandoMerma(false);
+        }
+      };
+
+      // ==========================================
+      // GASTOS (salidas de dinero de la caja/negocio)
+      // ==========================================
+      const registrarGastoCaja = async () => {
+        const monto = Number(formGasto.monto) || 0;
+        if (!formGasto.descripcion.trim() || monto <= 0) {
+          notificar('Completa la descripción y un monto válido.', 'error');
+          return;
+        }
+        setGuardandoGasto(true);
+        try {
+          if (sbClient) {
+            const { error } = await sbClient.from('gastos').insert([{
+              bodega_id: bodegaId,
+              cajero_id: cajeroSeleccionado?.id || null,
+              fecha: new Date().toISOString(),
+              categoria: formGasto.categoria,
+              descripcion: formGasto.descripcion.trim(),
+              monto: monto,
+              tipo_pago: formGasto.tipoPago
+            }]);
+            if (error) throw error;
+          }
+          setModalGasto(false);
+          setFormGasto({ categoria: 'Otros', descripcion: '', monto: '', tipoPago: 'Caja Chica' });
+          notificar(`Gasto de S/ ${monto.toFixed(2)} registrado.`, 'info');
+        } catch (err) {
+          notificar(`Error al registrar el gasto: ${err.message}`, 'error');
+        } finally {
+          setGuardandoGasto(false);
+        }
+      };
+
+      // ==========================================
       // ENTRADA DE MERCADERÍA (COMPRAS)
       // ==========================================
       const agregarItemEntradaMercaderia = () => {
@@ -1810,6 +1953,7 @@
 
         // Calcular ventas en efectivo del turno
         let ventasEfectivo = 0;
+        let gastosCajaChica = 0;
         if (sbClient) {
           const { data: vts } = await sbClient
             .from('ventas')
@@ -1818,9 +1962,20 @@
             .eq('medio_pago', 'EFECTIVO');
 
           ventasEfectivo = (vts || []).reduce((acc, v) => acc + Number(v.total_venta), 0);
+
+          // Los gastos pagados con "Caja Chica" salen del mismo efectivo físico,
+          // así que también hay que restarlos de lo que debería haber en caja.
+          const { data: gts } = await sbClient
+            .from('gastos')
+            .select('monto')
+            .eq('bodega_id', bodegaId)
+            .eq('tipo_pago', 'Caja Chica')
+            .gte('fecha', turnoActivo.fecha_apertura);
+
+          gastosCajaChica = (gts || []).reduce((acc, g) => acc + Number(g.monto), 0);
         }
 
-        const esperado = +(montoIni + ventasEfectivo).toFixed(2);
+        const esperado = +(montoIni + ventasEfectivo - gastosCajaChica).toFixed(2);
         const dif = +(montoReal - esperado).toFixed(2);
 
         if (sbClient) {
@@ -1843,6 +1998,7 @@
         setResumenCierre({
           inicio: montoIni,
           ventas: ventasEfectivo,
+          gastos: gastosCajaChica,
           esperado,
           real: montoReal,
           diferencia: dif
@@ -2322,6 +2478,8 @@
             <SidebarIcon icon="fa-receipt" label="Historial de Ventas" onClick={abrirHistorialDelDia} />
             <SidebarIcon icon="fa-hand-holding-dollar" label="Cuentas por Cobrar" onClick={abrirModuloCobroDeudas} />
             <SidebarIcon icon="fa-user-plus" label="Nuevo Cliente" onClick={() => setModalNuevoCliente(true)} />
+            <SidebarIcon icon="fa-triangle-exclamation" label="Stock Bajo" badge={cantidadStockBajo} tone={cantidadStockBajo > 0 ? 'orange' : 'default'} onClick={() => setModalStockBajo(true)} />
+            <SidebarIcon icon="fa-box" label="Registrar Merma" onClick={() => setModalMerma(true)} />
             {esAdmin && (
               <>
                 <div className="w-8 h-px bg-stone-800 my-2"></div>
@@ -2330,6 +2488,7 @@
                 <SidebarIcon icon="fa-box-open" label="Nuevo Producto" onClick={() => setModalNuevoProducto(true)} />
                 <SidebarIcon icon="fa-users" label="Clientes (editar)" onClick={abrirGestionClientes} />
                 <SidebarIcon icon="fa-user-group" label="Cajeros y Empleados" onClick={abrirGestionCajeros} />
+                <SidebarIcon icon="fa-money-bill-transfer" label="Registrar Gasto" onClick={() => setModalGasto(true)} />
               </>
             )}
             <div className="flex-1"></div>
@@ -2876,6 +3035,12 @@
                 <button onClick={() => { setModalNuevoCliente(true); setMenuMas(false); }} className="w-full text-left px-3.5 py-3 rounded-xl hover:bg-stone-800 flex items-center gap-3 text-stone-200 font-medium text-sm">
                   <i className="fa-solid fa-user-plus w-5 text-orange-400"></i> Registrar Cliente
                 </button>
+                <button onClick={() => { setModalStockBajo(true); setMenuMas(false); }} className="w-full text-left px-3.5 py-3 rounded-xl hover:bg-stone-800 flex items-center gap-3 text-stone-200 font-medium text-sm">
+                  <i className="fa-solid fa-triangle-exclamation w-5 text-amber-400"></i> Stock Bajo {cantidadStockBajo > 0 && `(${cantidadStockBajo})`}
+                </button>
+                <button onClick={() => { setModalMerma(true); setMenuMas(false); }} className="w-full text-left px-3.5 py-3 rounded-xl hover:bg-stone-800 flex items-center gap-3 text-stone-200 font-medium text-sm">
+                  <i className="fa-solid fa-box w-5 text-amber-400"></i> Registrar Merma
+                </button>
                 {esAdmin && (
                   <>
                     <div className="border-t border-stone-800 my-1"></div>
@@ -2893,6 +3058,9 @@
                     </button>
                     <button onClick={() => { abrirGestionCajeros(); setMenuMas(false); }} className="w-full text-left px-3.5 py-3 rounded-xl hover:bg-stone-800 flex items-center gap-3 text-stone-200 font-medium text-sm">
                       <i className="fa-solid fa-user-group w-5 text-orange-400"></i> Cajeros y Empleados
+                    </button>
+                    <button onClick={() => { setModalGasto(true); setMenuMas(false); }} className="w-full text-left px-3.5 py-3 rounded-xl hover:bg-stone-800 flex items-center gap-3 text-rose-400 font-semibold text-sm">
+                      <i className="fa-solid fa-money-bill-transfer w-5"></i> Registrar Gasto
                     </button>
                   </>
                 )}
@@ -3127,6 +3295,167 @@
                       <><i className="fa-solid fa-check"></i> Guardar Inventario</>
                     )}
                   </button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Modal: Registrar Merma */}
+          {modalMerma && (
+            <div className="fixed inset-0 bg-black/85 flex items-center justify-center z-50 p-4">
+              <div className="bg-stone-900 border border-stone-800 rounded-2xl max-w-sm w-full p-5 shadow-2xl space-y-3">
+                <div className="flex justify-between items-center">
+                  <h3 className="text-base font-bold text-white flex items-center gap-2">
+                    <i className="fa-solid fa-triangle-exclamation text-amber-400"></i> Registrar Merma
+                  </h3>
+                  <button onClick={() => setModalMerma(false)} className="text-stone-400 hover:text-white">✕</button>
+                </div>
+                <p className="text-[11px] text-stone-400">Para productos vencidos, rotos, robados o perdidos. Se descuenta del stock automáticamente.</p>
+                <div>
+                  <label className="text-[11px] text-stone-400 block mb-1">Producto:</label>
+                  <select
+                    value={formMerma.productoId}
+                    onChange={(e) => setFormMerma({ ...formMerma, productoId: e.target.value })}
+                    className="w-full bg-stone-950 border border-stone-800 rounded-lg px-3 py-1.5 text-xs text-white"
+                  >
+                    <option value="">-- Seleccionar producto --</option>
+                    {productos.map((p) => (
+                      <option key={p.id} value={p.id}>{p.descripcion}</option>
+                    ))}
+                  </select>
+                </div>
+                <div className="grid grid-cols-2 gap-2">
+                  <div>
+                    <label className="text-[11px] text-stone-400 block mb-1">Cantidad:</label>
+                    <input
+                      type="number"
+                      step="0.10"
+                      value={formMerma.cantidad}
+                      onChange={(e) => setFormMerma({ ...formMerma, cantidad: e.target.value })}
+                      className="w-full bg-stone-950 border border-stone-800 rounded-lg px-3 py-1.5 text-xs text-white"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-[11px] text-stone-400 block mb-1">Motivo:</label>
+                    <select
+                      value={formMerma.motivo}
+                      onChange={(e) => setFormMerma({ ...formMerma, motivo: e.target.value })}
+                      className="w-full bg-stone-950 border border-stone-800 rounded-lg px-3 py-1.5 text-xs text-white"
+                    >
+                      <option value="Vencido">Vencido</option>
+                      <option value="Roto/Dañado">Roto/Dañado</option>
+                      <option value="Robo/Pérdida">Robo/Pérdida</option>
+                      <option value="Otro">Otro</option>
+                    </select>
+                  </div>
+                </div>
+                <button
+                  onClick={registrarMermaProducto}
+                  disabled={guardandoMerma}
+                  className="w-full py-2.5 bg-amber-600 hover:bg-amber-500 disabled:opacity-60 text-white font-bold text-xs rounded-xl shadow"
+                >
+                  {guardandoMerma ? 'Guardando...' : 'Registrar Merma'}
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* Modal: Registrar Gasto */}
+          {modalGasto && (
+            <div className="fixed inset-0 bg-black/85 flex items-center justify-center z-50 p-4">
+              <div className="bg-stone-900 border border-stone-800 rounded-2xl max-w-sm w-full p-5 shadow-2xl space-y-3">
+                <div className="flex justify-between items-center">
+                  <h3 className="text-base font-bold text-white flex items-center gap-2">
+                    <i className="fa-solid fa-money-bill-transfer text-rose-400"></i> Registrar Gasto
+                  </h3>
+                  <button onClick={() => setModalGasto(false)} className="text-stone-400 hover:text-white">✕</button>
+                </div>
+                <div className="grid grid-cols-2 gap-2">
+                  <div>
+                    <label className="text-[11px] text-stone-400 block mb-1">Categoría:</label>
+                    <select
+                      value={formGasto.categoria}
+                      onChange={(e) => setFormGasto({ ...formGasto, categoria: e.target.value })}
+                      className="w-full bg-stone-950 border border-stone-800 rounded-lg px-3 py-1.5 text-xs text-white"
+                    >
+                      <option value="Servicios">Servicios (luz, agua, internet)</option>
+                      <option value="Transporte">Transporte</option>
+                      <option value="Limpieza">Limpieza</option>
+                      <option value="Mantenimiento">Mantenimiento</option>
+                      <option value="Otros">Otros</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="text-[11px] text-stone-400 block mb-1">Monto (S/):</label>
+                    <input
+                      type="number"
+                      step="0.10"
+                      value={formGasto.monto}
+                      onChange={(e) => setFormGasto({ ...formGasto, monto: e.target.value })}
+                      className="w-full bg-stone-950 border border-stone-800 rounded-lg px-3 py-1.5 text-xs text-white"
+                    />
+                  </div>
+                </div>
+                <div>
+                  <label className="text-[11px] text-stone-400 block mb-1">Descripción:</label>
+                  <input
+                    type="text"
+                    value={formGasto.descripcion}
+                    onChange={(e) => setFormGasto({ ...formGasto, descripcion: e.target.value })}
+                    className="w-full bg-stone-950 border border-stone-800 rounded-lg px-3 py-1.5 text-xs text-white"
+                  />
+                </div>
+                <div>
+                  <label className="text-[11px] text-stone-400 block mb-1">Pagado con:</label>
+                  <select
+                    value={formGasto.tipoPago}
+                    onChange={(e) => setFormGasto({ ...formGasto, tipoPago: e.target.value })}
+                    className="w-full bg-stone-950 border border-stone-800 rounded-lg px-3 py-1.5 text-xs text-white"
+                  >
+                    <option value="Caja Chica">Caja Chica (efectivo de la caja)</option>
+                    <option value="Otro">Otro (no afecta el arqueo de caja)</option>
+                  </select>
+                </div>
+                <button
+                  onClick={registrarGastoCaja}
+                  disabled={guardandoGasto}
+                  className="w-full py-2.5 bg-rose-700 hover:bg-rose-600 disabled:opacity-60 text-white font-bold text-xs rounded-xl shadow"
+                >
+                  {guardandoGasto ? 'Guardando...' : 'Registrar Gasto'}
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* Modal: Productos con Stock Bajo */}
+          {modalStockBajo && (
+            <div className="fixed inset-0 bg-black/85 flex items-center justify-center z-50 p-4">
+              <div className="bg-stone-900 border border-stone-800 rounded-2xl max-w-md w-full p-5 shadow-2xl space-y-3 max-h-[85vh] flex flex-col">
+                <div className="flex justify-between items-center shrink-0">
+                  <h3 className="text-base font-bold text-white flex items-center gap-2">
+                    <i className="fa-solid fa-triangle-exclamation text-amber-400"></i> Stock Bajo / Por Agotarse
+                  </h3>
+                  <button onClick={() => setModalStockBajo(false)} className="text-stone-400 hover:text-white">✕</button>
+                </div>
+                <div className="flex-1 overflow-y-auto space-y-1.5">
+                  {productos.filter((p) => p.stock_actual != null && Number(p.stock_actual) <= Number(p.stock_min || 5)).length === 0 ? (
+                    <p className="text-xs text-emerald-400 text-center py-8">✓ Todo tu stock está en buen nivel.</p>
+                  ) : (
+                    productos
+                      .filter((p) => p.stock_actual != null && Number(p.stock_actual) <= Number(p.stock_min || 5))
+                      .sort((a, b) => Number(a.stock_actual) - Number(b.stock_actual))
+                      .map((p) => (
+                        <div key={p.id} className="flex items-center justify-between p-2.5 bg-stone-950 border border-stone-800 rounded-xl">
+                          <div>
+                            <p className="text-xs font-semibold text-stone-200">{p.descripcion}</p>
+                            <p className="text-[10px] text-stone-500">Mínimo: {p.stock_min || 5}</p>
+                          </div>
+                          <span className={`text-sm font-black ${Number(p.stock_actual) <= 0 ? 'text-rose-400' : 'text-amber-400'}`}>
+                            {Number(p.stock_actual) <= 0 ? 'Sin stock' : `${p.stock_actual}`}
+                          </span>
+                        </div>
+                      ))
+                  )}
                 </div>
               </div>
             </div>
@@ -3980,6 +4309,9 @@
                 <div className="bg-stone-950 p-3 rounded-xl border border-stone-900 text-xs space-y-1.5 text-left font-mono">
                   <div className="flex justify-between"><span>Fondo Inicial:</span><span>S/ {resumenCierre.inicio.toFixed(2)}</span></div>
                   <div className="flex justify-between"><span>+ Ventas Efectivo:</span><span>S/ {resumenCierre.ventas.toFixed(2)}</span></div>
+                  {resumenCierre.gastos > 0 && (
+                    <div className="flex justify-between text-rose-400"><span>- Gastos (Caja Chica):</span><span>S/ {resumenCierre.gastos.toFixed(2)}</span></div>
+                  )}
                   <div className="border-t border-stone-900 pt-1 flex justify-between font-bold"><span>= Debería haber:</span><span>S/ {resumenCierre.esperado.toFixed(2)}</span></div>
                   <div className="flex justify-between text-orange-400 font-bold"><span>Tú contaste:</span><span>S/ {resumenCierre.real.toFixed(2)}</span></div>
                   <div className={`border-t border-stone-900 pt-1 flex justify-between font-black text-sm ${resumenCierre.diferencia === 0 ? 'text-orange-400' : resumenCierre.diferencia > 0 ? 'text-blue-400' : 'text-rose-400'}`}>
@@ -4074,6 +4406,15 @@
                   <button onClick={() => setVentaCompletada(null)} className="flex-1 py-2 bg-orange-600 text-white font-bold text-xs rounded-xl shadow">Nueva Venta</button>
                 </div>
               </div>
+              <ReciboImprimible
+                bodega={bodegaNombre}
+                boleta={ventaCompletada.nro_boleta}
+                fecha={new Date().toLocaleString('es-PE')}
+                cliente={ventaCompletada.cliente}
+                medioPago={ventaCompletada.medio_pago}
+                items={ventaCompletada.items || []}
+                total={ventaCompletada.total_venta}
+              />
             </div>
           )}
 
@@ -4121,6 +4462,20 @@
                   <button onClick={() => setReciboReimpresion(null)} className="flex-1 py-2 bg-orange-600 text-white font-bold text-xs rounded-xl shadow">Cerrar</button>
                 </div>
               </div>
+              <ReciboImprimible
+                bodega={bodegaNombre}
+                boleta={reciboReimpresion.nro_boleta}
+                fecha={new Date(reciboReimpresion.fecha_hora).toLocaleString('es-PE')}
+                cliente={reciboReimpresion.clientes?.nombre_completo || 'Cliente'}
+                medioPago={reciboReimpresion.medio_pago}
+                items={(reciboReimpresion.ventas_detalle || []).map(d => ({
+                  descripcion: d.productos?.descripcion || d.descripcion || 'Producto',
+                  cantidad: d.cantidad,
+                  subtotal: d.subtotal
+                }))}
+                total={reciboReimpresion.total_venta}
+                anulada={reciboReimpresion.anulada}
+              />
             </div>
           )}
         </div>
