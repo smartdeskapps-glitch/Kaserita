@@ -559,7 +559,7 @@
 
       const notificar = (texto, tipo = 'info') => {
         setToast({ visible: true, texto, tipo });
-        setTimeout(() => setToast({ visible: false, texto: '', tipo: 'info' }), 4000);
+        setTimeout(() => setToast({ visible: false, texto: '', tipo: 'info' }), 2200);
       };
 
       const guardarSesion = (datos) => {
@@ -2780,7 +2780,7 @@
         <div className="flex h-screen bg-stone-50 text-stone-900 font-sans select-none overflow-hidden">
           {/* Toast */}
           {toast.visible && (
-            <div className={`fixed top-[4.75rem] inset-x-4 md:top-4 md:inset-x-auto md:right-4 md:max-w-xs z-[100] flex items-center gap-2.5 px-4 py-3 rounded-xl shadow-xl border-l-4 bg-white text-xs font-semibold ${toast.tipo === 'error' ? 'border-rose-500 text-rose-700' : 'border-emerald-500 text-emerald-700'}`}>
+            <div className={`fixed top-[4.75rem] inset-x-4 md:top-4 md:inset-x-auto md:right-4 md:max-w-xs z-[100] pointer-events-none flex items-center gap-2.5 px-4 py-3 rounded-xl shadow-xl border-l-4 bg-white text-xs font-semibold ${toast.tipo === 'error' ? 'border-rose-500 text-rose-700' : 'border-emerald-500 text-emerald-700'}`}>
               <i className={`fa-solid ${toast.tipo === 'error' ? 'fa-circle-exclamation' : 'fa-circle-check'} text-sm shrink-0`}></i>
               {toast.texto}
             </div>
@@ -3192,9 +3192,9 @@
             </div>
 
             {/* Panel Cobro */}
-            <div className="p-3.5 bg-stone-100 border-t border-stone-200 space-y-2.5">
+            <div className="p-4 bg-stone-100 border-t border-stone-200 space-y-3">
               <div>
-                <div className="grid grid-cols-3 gap-1.5">
+                <div className="grid grid-cols-3 gap-2">
                   {[
                     { id: 'EFECTIVO', icono: 'fa-money-bill-wave', texto: 'Efectivo' },
                     { id: 'YAPE', icono: 'fa-mobile-screen', texto: 'Yape' },
@@ -3206,7 +3206,7 @@
                     <button
                       key={m.id}
                       onClick={() => { setMedioPago(m.id); setCampoTeclado(null); }}
-                      className={`flex flex-col items-center gap-1 py-2 text-xs font-semibold rounded-xl border transition ${
+                      className={`flex flex-col items-center gap-1 py-2.5 text-xs font-semibold rounded-xl border transition ${
                         medioPago === m.id
                           ? 'bg-orange-500 border-orange-400 text-white shadow-lg shadow-orange-500/20'
                           : 'bg-stone-200/60 border-stone-300 text-stone-600 hover:bg-stone-200 hover:text-stone-800'
@@ -3220,10 +3220,10 @@
               </div>
 
               {medioPago === 'EFECTIVO' && (
-                <div className="bg-stone-200/60 p-2 rounded-lg border border-stone-200 space-y-1">
-                  <div className="grid grid-cols-2 gap-2">
-                    <div>
-                      <label className="text-xs text-stone-600 block">Paga con (S/):</label>
+                <div className="bg-stone-200/60 p-3 rounded-xl border border-stone-200 space-y-2.5">
+                  <div>
+                    <label className="text-xs text-stone-600 block mb-1">Paga con (S/):</label>
+                    <div className="flex items-center gap-2">
                       <input
                         type="text"
                         inputMode="decimal"
@@ -3231,23 +3231,24 @@
                         onFocus={() => setCampoTeclado('recibido')}
                         onChange={(e) => setMontoRecibido(e.target.value)}
                         placeholder="0.00"
-                        className="w-full bg-stone-100 border border-stone-300 rounded px-2 py-0.5 text-xs font-bold text-stone-900 focus:outline-none focus:border-orange-500"
+                        className="w-full bg-white border border-stone-300 rounded-lg px-3 py-2 text-2xl font-black text-stone-900 tabular-nums focus:outline-none focus:border-orange-500"
                       />
-                    </div>
-                    <div className="text-right">
-                      <span className="text-xs text-stone-600 block">Vuelto:</span>
-                      <span className={`text-sm font-black ${vuelto < 0 ? 'text-rose-600' : 'text-orange-600'}`}>
-                        S/ {vuelto > 0 ? vuelto.toFixed(2) : '0.00'}
-                      </span>
+                      <button
+                        type="button"
+                        onClick={() => setCampoTeclado(campoTeclado === 'recibido' ? null : 'recibido')}
+                        title="Teclado numérico"
+                        className={`shrink-0 w-11 h-11 flex items-center justify-center rounded-lg transition ${campoTeclado === 'recibido' ? 'bg-orange-500 text-white' : 'bg-stone-300 hover:bg-stone-400 text-stone-700'}`}
+                      >
+                        <i className="fa-solid fa-calculator"></i>
+                      </button>
                     </div>
                   </div>
-                  <button
-                    type="button"
-                    onClick={() => setCampoTeclado(campoTeclado === 'recibido' ? null : 'recibido')}
-                    className="text-xs text-stone-600 hover:text-stone-800 underline"
-                  >
-                    <i className="fa-solid fa-calculator"></i> {campoTeclado === 'recibido' ? 'Ocultar teclado' : 'Teclado numérico'}
-                  </button>
+                  <div className="flex items-center justify-between px-0.5">
+                    <span className="text-xs font-semibold text-stone-600 uppercase tracking-wider">Vuelto</span>
+                    <span className={`text-2xl font-black tabular-nums ${vuelto < 0 ? 'text-rose-600' : 'text-orange-600'}`}>
+                      S/ {vuelto > 0 ? vuelto.toFixed(2) : '0.00'}
+                    </span>
+                  </div>
                   {campoTeclado === 'recibido' && <NumericKeypad value={montoRecibido} onChange={asignarDesdeTeclado} />}
                 </div>
               )}
