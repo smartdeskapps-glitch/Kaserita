@@ -2508,15 +2508,20 @@
                     const { error: errSignIn } = await sbClient.auth.signInWithPassword({ email, password });
 
                     if (errSignIn) {
+                      console.warn('[login] signIn falló:', errSignIn.status, errSignIn.message);
                       // Puede ser una cuenta que todavía no se migró al nuevo
                       // sistema de acceso (bodega creada antes de este cambio):
                       // se crea su cuenta real y, si el DNI+PIN coincide con lo
                       // que ya tenía guardado, se vincula automáticamente.
                       const { error: errSignUp } = await sbClient.auth.signUp({ email, password });
-                      if (errSignUp) throw new Error('DNI o PIN incorrecto.');
+                      if (errSignUp) {
+                        console.warn('[login] signUp falló:', errSignUp.status, errSignUp.message);
+                        throw new Error('DNI o PIN incorrecto.');
+                      }
 
                       const { data: bodegaReclamada, error: errReclamo } = await sbClient.rpc('reclamar_cuenta_bodega', { p_dni: dni, p_pin: pin });
                       if (errReclamo || !bodegaReclamada) {
+                        console.warn('[login] reclamo falló:', errReclamo?.message, 'bodegaReclamada:', bodegaReclamada);
                         await sbClient.auth.signOut();
                         throw new Error('DNI o PIN incorrecto.');
                       }
