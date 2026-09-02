@@ -42,7 +42,7 @@
   <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
 
   <!-- Lector de código de barras por cámara (sin backend) -->
-  <script src="https://cdn.jsdelivr.net/npm/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@zxing/library@0.20.0/umd/index.min.js"></script>
 
   <style>
     body {
@@ -362,7 +362,7 @@
       // 'inventario': rellena el campo EAN de una fila del formulario de inventario.
       const [modoEscaner, setModoEscaner] = useState('venta');
       const [filaEscaneandoIndex, setFilaEscaneandoIndex] = useState(null);
-      const html5QrRef = useRef(null);
+      const zxingReaderRef = useRef(null);
       const ultimoEscaneoRef = useRef({ codigo: '', hora: 0 });
       const videoNativoRef = useRef(null);
       const streamNativoRef = useRef(null);
@@ -700,46 +700,48 @@
             streamNativoRef.current.getTracks().forEach((t) => t.stop());
             streamNativoRef.current = null;
           }
-          if (html5QrRef.current) {
-            html5QrRef.current.stop().then(() => html5QrRef.current.clear()).catch(() => {});
-            html5QrRef.current = null;
+          if (zxingReaderRef.current) {
+            try { zxingReaderRef.current.reset(); } catch (e) {}
+            zxingReaderRef.current = null;
           }
         };
 
-        const iniciarHtml5Qrcode = () => {
-          const formatos = window.Html5QrcodeSupportedFormats
-            ? [
-                window.Html5QrcodeSupportedFormats.EAN_13,
-                window.Html5QrcodeSupportedFormats.EAN_8,
-                window.Html5QrcodeSupportedFormats.UPC_A,
-                window.Html5QrcodeSupportedFormats.UPC_E,
-                window.Html5QrcodeSupportedFormats.CODE_128,
-                window.Html5QrcodeSupportedFormats.CODE_39,
-                window.Html5QrcodeSupportedFormats.QR_CODE
-              ]
-            : undefined;
+        // Método de reserva: ZXing con "TRY_HARDER" activado. El decodificador
+        // integrado de html5-qrcode resultó muy débil para códigos de barras
+        // 1D (EAN/UPC) incluso con buena luz e imagen nítida; ZXing configurado
+        // con estos hints es mucho más confiable para este caso específico.
+        const iniciarZXing = async () => {
+          try {
+            const hints = new Map();
+            const formatosZXing = [
+              ZXing.BarcodeFormat.EAN_13,
+              ZXing.BarcodeFormat.EAN_8,
+              ZXing.BarcodeFormat.UPC_A,
+              ZXing.BarcodeFormat.UPC_E,
+              ZXing.BarcodeFormat.CODE_128,
+              ZXing.BarcodeFormat.CODE_39,
+              ZXing.BarcodeFormat.QR_CODE
+            ];
+            hints.set(ZXing.DecodeHintType.POSSIBLE_FORMATS, formatosZXing);
+            hints.set(ZXing.DecodeHintType.TRY_HARDER, true);
 
-          const scanner = new Html5Qrcode('lector-camara-view', { formatsToSupport: formatos, verbose: false });
-          html5QrRef.current = scanner;
-          scanner
-            .start(
-              { facingMode: 'environment' },
-              {
-                fps: 15,
-                qrbox: (vw, vh) => {
-                  const ancho = Math.floor(Math.min(vw, vh) * 0.9);
-                  return { width: ancho, height: Math.floor(ancho * 0.5) };
-                },
-                aspectRatio: 1.4
-              },
-              (decodedText) => handleCodigoEscaneado(decodedText),
-              () => {}
-            )
-            .catch((err) => {
-              if (!activo) return;
-              setErrorEscaner('No se pudo acceder a la cámara. Revisa los permisos del navegador.');
-              console.warn('Error al iniciar la cámara (html5-qrcode):', err);
-            });
+            const reader = new ZXing.BrowserMultiFormatReader(hints);
+            zxingReaderRef.current = reader;
+            if (!videoNativoRef.current) return;
+
+            await reader.decodeFromConstraints(
+              { video: { facingMode: { ideal: 'environment' } } },
+              videoNativoRef.current,
+              (resultado) => {
+                if (!activo) return;
+                if (resultado) handleCodigoEscaneado(resultado.getText());
+              }
+            );
+          } catch (err) {
+            if (!activo) return;
+            setErrorEscaner('No se pudo acceder a la cámara. Revisa los permisos del navegador.');
+            console.warn('Error al iniciar la cámara (ZXing):', err);
+          }
         };
 
         const iniciarDetectorNativo = async () => {
@@ -793,14 +795,14 @@
             if (!activo) return;
             console.warn('Detector nativo no disponible, usando reserva:', err);
             setUsandoDetectorNativo(false);
-            iniciarHtml5Qrcode();
+            iniciarZXing();
           }
         };
 
         if (usarNativo) {
           iniciarDetectorNativo();
         } else {
-          iniciarHtml5Qrcode();
+          iniciarZXing();
         }
 
         return () => {
@@ -2624,14 +2626,10 @@
               </div>
 
               <div className="flex-1 relative flex items-center justify-center bg-black overflow-hidden">
-                {/* Detector nativo del navegador: video propio + recuadro guía */}
-                <div className={`relative w-full h-full flex items-center justify-center ${usandoDetectorNativo ? '' : 'hidden'}`}>
+                <div className="relative w-full h-full flex items-center justify-center">
                   <video ref={videoNativoRef} className="w-full h-full object-cover" playsInline muted autoPlay></video>
                   <div className="absolute w-[85%] max-w-sm aspect-[2/1] border-2 border-orange-400 rounded-2xl shadow-[0_0_0_9999px_rgba(0,0,0,0.55)]"></div>
                 </div>
-
-                {/* Reserva: decodificador de la librería html5-qrcode */}
-                <div id="lector-camara-view" className={`w-full max-w-md ${usandoDetectorNativo ? 'hidden' : ''}`}></div>
 
                 {errorEscaner && (
                   <div className="absolute inset-0 flex flex-col items-center justify-center text-center p-6 bg-stone-950">
