@@ -1482,6 +1482,7 @@
             }
           }
           setVentasDelDia(prev => prev.map(v => v.id === venta.id ? { ...v, anulada: true, motivo_anulacion: motivo } : v));
+          cargarProductos(busqueda); // refresca el stock repuesto en el catálogo
           notificar(`Boleta ${venta.nro_boleta} anulada correctamente.`, 'info');
         } catch (err) {
           notificar(`Error al anular: ${err.message}`, 'error');
@@ -1747,6 +1748,7 @@
           // seleccionado por accidente al mismo cliente de la venta a crédito).
           setDniCliente('99999999');
           obtenerOCrearCliente('99999999');
+          cargarProductos(busqueda); // refresca el stock mostrado en el catálogo
           notificar(`¡Venta completada! Boleta: ${correlativo}`, 'success');
         } catch (err) {
           notificar(`Error al registrar venta: ${err.message}`, 'error');
