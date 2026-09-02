@@ -352,6 +352,10 @@
       const [filaEscaneandoIndex, setFilaEscaneandoIndex] = useState(null);
       const html5QrRef = useRef(null);
       const ultimoEscaneoRef = useRef({ codigo: '', hora: 0 });
+      const videoNativoRef = useRef(null);
+      const streamNativoRef = useRef(null);
+      const detectorLoopRef = useRef(null);
+      const [usandoDetectorNativo, setUsandoDetectorNativo] = useState(false);
 
       // Cliente Supabase
       const sbClient = useMemo(() => {
@@ -620,61 +624,119 @@
       };
 
       // Inicia/detiene la cámara cuando se abre o cierra el modal del escáner.
+      // Usa el detector nativo del navegador (BarcodeDetector) directamente cuando
+      // existe -- es mucho más rápido y preciso que cualquier decodificador en
+      // JavaScript puro para códigos EAN/UPC -- y si el navegador no lo soporta
+      // (ej. iPhone/Safari), recae automáticamente en el decodificador de
+      // html5-qrcode para que el escáner igual funcione en todos los celulares.
       useEffect(() => {
         if (!modalEscaner) return;
         setErrorEscaner('');
+        setUsandoDetectorNativo('BarcodeDetector' in window);
+        let activo = true;
 
-        // Formatos más comunes en productos de tienda/bodega: EAN-13/8 y UPC,
-        // más QR/Code128 por si acaso. Limitar los formatos mejora bastante la
-        // velocidad y precisión de detección de códigos de barras 1D.
-        const formatos = window.Html5QrcodeSupportedFormats
-          ? [
-              window.Html5QrcodeSupportedFormats.EAN_13,
-              window.Html5QrcodeSupportedFormats.EAN_8,
-              window.Html5QrcodeSupportedFormats.UPC_A,
-              window.Html5QrcodeSupportedFormats.UPC_E,
-              window.Html5QrcodeSupportedFormats.CODE_128,
-              window.Html5QrcodeSupportedFormats.CODE_39,
-              window.Html5QrcodeSupportedFormats.QR_CODE
-            ]
-          : undefined;
+        const detenerTodo = () => {
+          if (detectorLoopRef.current) {
+            cancelAnimationFrame(detectorLoopRef.current);
+            detectorLoopRef.current = null;
+          }
+          if (streamNativoRef.current) {
+            streamNativoRef.current.getTracks().forEach((t) => t.stop());
+            streamNativoRef.current = null;
+          }
+          if (html5QrRef.current) {
+            html5QrRef.current.stop().then(() => html5QrRef.current.clear()).catch(() => {});
+            html5QrRef.current = null;
+          }
+        };
 
-        const scanner = new Html5Qrcode('lector-camara-view', {
-          formatsToSupport: formatos,
-          verbose: false,
-          // Usa el detector nativo de códigos de barras del celular cuando está
-          // disponible (Android Chrome): es mucho más confiable que el
-          // decodificador puro en JavaScript para códigos EAN/UPC.
-          experimentalFeatures: { useBarCodeDetectorIfSupported: true }
-        });
-        html5QrRef.current = scanner;
+        const iniciarHtml5Qrcode = () => {
+          const formatos = window.Html5QrcodeSupportedFormats
+            ? [
+                window.Html5QrcodeSupportedFormats.EAN_13,
+                window.Html5QrcodeSupportedFormats.EAN_8,
+                window.Html5QrcodeSupportedFormats.UPC_A,
+                window.Html5QrcodeSupportedFormats.UPC_E,
+                window.Html5QrcodeSupportedFormats.CODE_128,
+                window.Html5QrcodeSupportedFormats.CODE_39,
+                window.Html5QrcodeSupportedFormats.QR_CODE
+              ]
+            : undefined;
 
-        scanner
-          .start(
-            { facingMode: 'environment' },
-            {
-              fps: 15,
-              qrbox: (viewfinderWidth, viewfinderHeight) => {
-                const ancho = Math.floor(Math.min(viewfinderWidth, viewfinderHeight) * 0.9);
-                return { width: ancho, height: Math.floor(ancho * 0.5) };
+          const scanner = new Html5Qrcode('lector-camara-view', { formatsToSupport: formatos, verbose: false });
+          html5QrRef.current = scanner;
+          scanner
+            .start(
+              { facingMode: 'environment' },
+              {
+                fps: 15,
+                qrbox: (vw, vh) => {
+                  const ancho = Math.floor(Math.min(vw, vh) * 0.9);
+                  return { width: ancho, height: Math.floor(ancho * 0.5) };
+                },
+                aspectRatio: 1.4
               },
-              aspectRatio: 1.4
-            },
-            (decodedText) => handleCodigoEscaneado(decodedText),
-            () => {} // ignora fotogramas sin código detectado
-          )
-          .catch((err) => {
-            setErrorEscaner('No se pudo acceder a la cámara. Revisa los permisos del navegador.');
-            console.warn('Error al iniciar la cámara:', err);
-          });
+              (decodedText) => handleCodigoEscaneado(decodedText),
+              () => {}
+            )
+            .catch((err) => {
+              if (!activo) return;
+              setErrorEscaner('No se pudo acceder a la cámara. Revisa los permisos del navegador.');
+              console.warn('Error al iniciar la cámara (html5-qrcode):', err);
+            });
+        };
+
+        const iniciarDetectorNativo = async () => {
+          try {
+            const stream = await navigator.mediaDevices.getUserMedia({
+              video: { facingMode: { ideal: 'environment' } }
+            });
+            if (!activo) {
+              stream.getTracks().forEach((t) => t.stop());
+              return;
+            }
+            streamNativoRef.current = stream;
+            if (!videoNativoRef.current) return;
+            videoNativoRef.current.srcObject = stream;
+            await videoNativoRef.current.play();
+
+            let formatos = ['ean_13', 'ean_8', 'upc_a', 'upc_e', 'code_128', 'code_39', 'qr_code'];
+            try {
+              const soportados = await window.BarcodeDetector.getSupportedFormats();
+              const filtrados = formatos.filter((f) => soportados.includes(f));
+              if (filtrados.length > 0) formatos = filtrados;
+            } catch (e) { /* si falla, se intenta con la lista por defecto */ }
+
+            const detector = new window.BarcodeDetector({ formats: formatos });
+
+            const loop = async () => {
+              if (!activo || !videoNativoRef.current) return;
+              try {
+                const resultados = await detector.detect(videoNativoRef.current);
+                if (resultados && resultados.length > 0) {
+                  handleCodigoEscaneado(resultados[0].rawValue);
+                }
+              } catch (e) { /* fotograma no procesable, se sigue intentando */ }
+              detectorLoopRef.current = requestAnimationFrame(loop);
+            };
+            loop();
+          } catch (err) {
+            if (!activo) return;
+            console.warn('Detector nativo no disponible, usando reserva:', err);
+            setUsandoDetectorNativo(false);
+            iniciarHtml5Qrcode();
+          }
+        };
+
+        if ('BarcodeDetector' in window) {
+          iniciarDetectorNativo();
+        } else {
+          iniciarHtml5Qrcode();
+        }
 
         return () => {
-          if (html5QrRef.current) {
-            html5QrRef.current
-              .stop()
-              .then(() => html5QrRef.current.clear())
-              .catch(() => {});
-          }
+          activo = false;
+          detenerTodo();
         };
       }, [modalEscaner]);
 
@@ -2348,7 +2410,14 @@
               </div>
 
               <div className="flex-1 relative flex items-center justify-center bg-black overflow-hidden">
-                <div id="lector-camara-view" className="w-full max-w-md"></div>
+                {/* Detector nativo del navegador: video propio + recuadro guía */}
+                <div className={`relative w-full h-full flex items-center justify-center ${usandoDetectorNativo ? '' : 'hidden'}`}>
+                  <video ref={videoNativoRef} className="w-full h-full object-cover" playsInline muted autoPlay></video>
+                  <div className="absolute w-[85%] max-w-sm aspect-[2/1] border-2 border-orange-400 rounded-2xl shadow-[0_0_0_9999px_rgba(0,0,0,0.55)]"></div>
+                </div>
+
+                {/* Reserva: decodificador de la librería html5-qrcode */}
+                <div id="lector-camara-view" className={`w-full max-w-md ${usandoDetectorNativo ? 'hidden' : ''}`}></div>
 
                 {errorEscaner && (
                   <div className="absolute inset-0 flex flex-col items-center justify-center text-center p-6 bg-stone-950">
