@@ -719,16 +719,18 @@
             const hoy = new Date();
             hoy.setHours(0, 0, 0, 0);
 
-            const { data } = await sbClient
+            const { data, error } = await sbClient
               .from('ventas')
               .select('*, clientes(nombre_completo), ventas_detalle(*, productos(descripcion))')
               .eq('bodega_id', bodegaId)
-              .gte('created_at', hoy.toISOString())
-              .order('created_at', { ascending: false });
+              .gte('fecha_hora', hoy.toISOString())
+              .order('fecha_hora', { ascending: false });
 
+            if (error) throw error;
             setVentasDelDia(data || []);
           } catch (err) {
             console.warn(err);
+            notificar(`No se pudo cargar el historial: ${err.message}`, 'error');
           } finally {
             setCargandoHistorial(false);
           }
@@ -950,7 +952,11 @@
               subtotal: Number(item.subtotal)
             }));
 
-            await sbClient.from('ventas_detalle').insert(payloadDetalles);
+            const { error: detErr } = await sbClient.from('ventas_detalle').insert(payloadDetalles);
+            if (detErr) {
+              console.error('Error al guardar el detalle de la venta:', detErr);
+              notificar(`Venta registrada, pero el detalle de productos no se guardó: ${detErr.message}`, 'error');
+            }
 
             // Si es crédito, actualizar saldo
             if (medioPago === 'CREDITO' && idClienteReal) {
@@ -1986,7 +1992,7 @@
                             {v.nro_boleta} - <span className="text-slate-400 font-sans">{v.medio_pago}</span>
                             {v.anulada && <span className="text-rose-400 font-sans"> (ANULADA)</span>}
                           </p>
-                          <p className="text-[10px] text-slate-400">{new Date(v.created_at).toLocaleTimeString()} · {v.clientes?.nombre_completo || 'Cliente'}</p>
+                          <p className="text-[10px] text-slate-400">{new Date(v.fecha_hora).toLocaleTimeString()} · {v.clientes?.nombre_completo || 'Cliente'}</p>
                         </div>
                         <div className="flex items-center gap-2">
                           <span className="font-black text-emerald-400 text-sm">S/ {Number(v.total_venta).toFixed(2)}</span>
