@@ -541,6 +541,9 @@
       const detectorLoopRef = useRef(null);
       const [usandoDetectorNativo, setUsandoDetectorNativo] = useState(false);
       const [metodoForzado, setMetodoForzado] = useState(null); // null | 'html5qr' | 'nativo'
+      // Diagnóstico visible en pantalla (para poder revisar desde el celular
+      // sin necesitar la consola del navegador).
+      const [debugEscaner, setDebugEscaner] = useState({ frames: 0, tamano: '', error: '' });
 
       // Cliente Supabase
       const sbClient = useMemo(() => {
@@ -1115,6 +1118,7 @@
         setErrorEscaner('');
         const usarNativo = metodoForzado === 'html5qr' ? false : ('BarcodeDetector' in window);
         setUsandoDetectorNativo(usarNativo);
+        setDebugEscaner({ frames: 0, tamano: '', error: '' });
         console.log('[escaner] método elegido:', usarNativo ? 'nativo (BarcodeDetector)' : 'ZXing', '| metodoForzado:', metodoForzado);
         let activo = true;
 
@@ -1163,7 +1167,11 @@
               (resultado, err2) => {
                 if (!activo) return;
                 intentos++;
-                if (intentos % 40 === 0) console.log('[escaner] ZXing sigue intentando, frames analizados:', intentos);
+                const v = videoNativoRef.current;
+                if (intentos % 15 === 0) {
+                  setDebugEscaner({ frames: intentos, tamano: v ? `${v.videoWidth}x${v.videoHeight}` : '', error: '' });
+                  console.log('[escaner] ZXing sigue intentando, frames analizados:', intentos);
+                }
                 if (resultado) {
                   console.log('[escaner] ZXing detectó:', resultado.getText());
                   handleCodigoEscaneado(resultado.getText());
@@ -1224,6 +1232,9 @@
               if (detectando || video.readyState < 2) return;
               detectando = true;
               frames++;
+              if (frames % 15 === 0) {
+                setDebugEscaner({ frames, tamano: `${video.videoWidth}x${video.videoHeight}`, error: '' });
+              }
               if (frames % 60 === 0) console.log('[escaner] nativo sigue intentando, frames analizados:', frames, '| readyState:', video.readyState, '| tamaño:', video.videoWidth, 'x', video.videoHeight);
               detector.detect(video)
                 .then((resultados) => {
@@ -1233,7 +1244,11 @@
                     handleCodigoEscaneado(resultados[0].rawValue);
                   }
                 })
-                .catch((e) => { detectando = false; console.warn('[escaner] error en detect():', e); });
+                .catch((e) => {
+                  detectando = false;
+                  setDebugEscaner((prev) => ({ ...prev, error: String(e?.message || e).slice(0, 60) }));
+                  console.warn('[escaner] error en detect():', e);
+                });
             };
 
             if (video.readyState >= 2) {
@@ -3436,6 +3451,14 @@
                 <div className="relative w-full h-full flex items-center justify-center">
                   <video ref={videoNativoRef} className="w-full h-full object-cover" playsInline muted autoPlay></video>
                   <div className="absolute w-[85%] max-w-sm aspect-[2/1] border-2 border-orange-400 rounded-2xl shadow-[0_0_0_9999px_rgba(0,0,0,0.55)]"></div>
+                </div>
+
+                {/* Diagnóstico visible en pantalla (para revisar desde el
+                    celular sin necesitar la consola del navegador). */}
+                <div className="absolute top-2 left-2 bg-black/70 text-white text-[10px] font-mono px-2 py-1 rounded-lg leading-tight max-w-[70vw]">
+                  <div>método: {usandoDetectorNativo ? 'nativo' : 'ZXing'}</div>
+                  <div>frames: {debugEscaner.frames} {debugEscaner.tamano && `| video: ${debugEscaner.tamano}`}</div>
+                  {debugEscaner.error && <div className="text-rose-300">error: {debugEscaner.error}</div>}
                 </div>
 
                 {errorEscaner && (
