@@ -1114,6 +1114,10 @@
           setMontoMixtoOtro('');
           setMontoMixtoRecibido('');
           setCampoTeclado(null);
+          // Vuelve al cliente genérico para la siguiente venta (evita dejar
+          // seleccionado por accidente al mismo cliente de la venta a crédito).
+          setDniCliente('99999999');
+          obtenerOCrearCliente('99999999');
           notificar(`¡Venta completada! Boleta: ${correlativo}`, 'success');
         } catch (err) {
           notificar(`Error al registrar venta: ${err.message}`, 'error');
