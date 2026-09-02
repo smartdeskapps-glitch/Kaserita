@@ -334,24 +334,28 @@
     // Cada categoría tiene su ícono de línea y un color de acento propio, para que
     // el catálogo se lea de un vistazo sin depender de fotos de producto.
     const CATEGORIA_ESTILO = {
-      'Lácteos':          { icono: 'fa-mug-hot',        color: 'text-sky-600',     fondo: 'from-sky-500/20 to-sky-500/5' },
-      'Abarrotes':        { icono: 'fa-wheat-awn',      color: 'text-amber-600',   fondo: 'from-amber-500/20 to-amber-500/5' },
-      'Bebidas':          { icono: 'fa-bottle-water',   color: 'text-cyan-600',    fondo: 'from-cyan-500/20 to-cyan-500/5' },
-      'Golosinas':        { icono: 'fa-cookie-bite',    color: 'text-pink-600',    fondo: 'from-pink-500/20 to-pink-500/5' },
-      'Carnes':           { icono: 'fa-drumstick-bite', color: 'text-rose-600',    fondo: 'from-rose-500/20 to-rose-500/5' },
-      'Verduras':         { icono: 'fa-carrot',         color: 'text-lime-600',    fondo: 'from-lime-500/20 to-lime-500/5' },
-      'Frescos':          { icono: 'fa-egg',            color: 'text-orange-600',  fondo: 'from-orange-400/20 to-orange-400/5' },
-      'Limpieza':         { icono: 'fa-pump-soap',      color: 'text-violet-600',  fondo: 'from-violet-500/20 to-violet-500/5' },
-      'Panadería':        { icono: 'fa-bread-slice',    color: 'text-yellow-700',  fondo: 'from-yellow-500/20 to-yellow-500/5' },
-      'Cuidado Personal': { icono: 'fa-pump-medical',   color: 'text-teal-600',    fondo: 'from-teal-500/20 to-teal-500/5' },
-      'Licores':          { icono: 'fa-wine-bottle',    color: 'text-fuchsia-600', fondo: 'from-fuchsia-500/20 to-fuchsia-500/5' },
-      'Mascotas':         { icono: 'fa-paw',            color: 'text-indigo-600',  fondo: 'from-indigo-500/20 to-indigo-500/5' },
-      'Otros':            { icono: 'fa-box',            color: 'text-stone-600',   fondo: 'from-stone-400/20 to-stone-400/5' }
+      'Abarrotes':                { icono: 'fa-wheat-awn',      color: 'text-amber-600',   fondo: 'from-amber-500/20 to-amber-500/5' },
+      'Lácteos':                  { icono: 'fa-mug-hot',        color: 'text-sky-600',     fondo: 'from-sky-500/20 to-sky-500/5' },
+      'Panadería':                { icono: 'fa-bread-slice',    color: 'text-yellow-700',  fondo: 'from-yellow-500/20 to-yellow-500/5' },
+      'Carnes y Embutidos':       { icono: 'fa-drumstick-bite', color: 'text-rose-600',    fondo: 'from-rose-500/20 to-rose-500/5' },
+      'Verduras y Frutas':        { icono: 'fa-carrot',         color: 'text-lime-600',    fondo: 'from-lime-500/20 to-lime-500/5' },
+      'Huevos y Frescos':         { icono: 'fa-egg',            color: 'text-orange-600',  fondo: 'from-orange-400/20 to-orange-400/5' },
+      'Gaseosas':                 { icono: 'fa-bottle-water',   color: 'text-cyan-600',    fondo: 'from-cyan-500/20 to-cyan-500/5' },
+      'Jugos y Néctares':         { icono: 'fa-glass-water',    color: 'text-amber-500',   fondo: 'from-amber-400/20 to-amber-400/5' },
+      'Aguas':                    { icono: 'fa-droplet',        color: 'text-blue-600',    fondo: 'from-blue-500/20 to-blue-500/5' },
+      'Energizantes e Isotónicas':{ icono: 'fa-bolt',           color: 'text-emerald-600', fondo: 'from-emerald-500/20 to-emerald-500/5' },
+      'Cervezas':                 { icono: 'fa-beer-mug-empty', color: 'text-yellow-600',  fondo: 'from-yellow-400/20 to-yellow-400/5' },
+      'Licores':                  { icono: 'fa-wine-bottle',    color: 'text-fuchsia-600', fondo: 'from-fuchsia-500/20 to-fuchsia-500/5' },
+      'Golosinas y Snacks':       { icono: 'fa-cookie-bite',    color: 'text-pink-600',    fondo: 'from-pink-500/20 to-pink-500/5' },
+      'Limpieza del Hogar':       { icono: 'fa-pump-soap',      color: 'text-violet-600',  fondo: 'from-violet-500/20 to-violet-500/5' },
+      'Cuidado Personal':         { icono: 'fa-pump-medical',   color: 'text-teal-600',    fondo: 'from-teal-500/20 to-teal-500/5' },
+      'Mascotas':                 { icono: 'fa-paw',            color: 'text-indigo-600',  fondo: 'from-indigo-500/20 to-indigo-500/5' },
+      'Otros':                    { icono: 'fa-box',            color: 'text-stone-600',   fondo: 'from-stone-400/20 to-stone-400/5' }
     };
-    // Lista fija de categorías típicas de una bodega: siempre aparecen en el
-    // filtro y en los formularios de todas las bodegas, para que el cajero
-    // elija de la lista en vez de escribir una nueva cada vez.
-    const CATEGORIAS_BODEGA = Object.keys(CATEGORIA_ESTILO);
+    // Respaldo local por si la tabla "categorias" de Supabase aún no existe o
+    // falla la consulta: la lista real y editable vive en Supabase, esto solo
+    // evita que la app se quede sin categorías si algo sale mal.
+    const CATEGORIAS_FALLBACK = Object.keys(CATEGORIA_ESTILO);
     const estiloCategoria = (cat) => CATEGORIA_ESTILO[cat] || { icono: 'fa-box', color: 'text-stone-700', fondo: 'from-stone-400/20 to-stone-400/5' };
 
     function PosApp() {
@@ -391,6 +395,10 @@
       // --- Productos & Búsqueda ---
       const [productos, setProductos] = useState([]);
       const [categoriaFiltro, setCategoriaFiltro] = useState('TODOS');
+
+      // --- Categorías (vienen de Supabase: globales para todas las bodegas +
+      // las propias que cada bodega haya agregado, visibles solo para ella) ---
+      const [categoriasDB, setCategoriasDB] = useState(CATEGORIAS_FALLBACK);
       const [busqueda, setBusqueda] = useState('');
       const [cargandoProductos, setCargandoProductos] = useState(false);
 
@@ -783,10 +791,53 @@
         if (sesion && bodegaId) {
           cargarProductos(busqueda);
           cargarCajeros();
+          cargarCategorias();
           obtenerOCrearCliente('99999999');
           verificarTurno();
         }
       }, [sesion, bodegaId, sbClient]);
+
+      // Trae las categorías globales (bodega_id NULL, visibles para todas las
+      // bodegas) más las que esta bodega haya agregado por su cuenta (privadas).
+      const cargarCategorias = async () => {
+        if (!sbClient || !bodegaId) return;
+        try {
+          const { data, error } = await sbClient
+            .from('categorias')
+            .select('nombre, bodega_id')
+            .or(`bodega_id.is.null,bodega_id.eq.${bodegaId}`)
+            .order('creado_en', { ascending: true });
+          if (error) throw error;
+          if (data && data.length > 0) {
+            setCategoriasDB(data.map((c) => c.nombre));
+          }
+        } catch (err) {
+          // Si la tabla "categorias" todavía no existe en Supabase, se sigue
+          // usando la lista de respaldo para que la app no se rompa.
+          console.warn('No se pudo cargar categorías desde Supabase:', err.message);
+        }
+      };
+
+      // Agrega una categoría nueva, propia de esta bodega (solo ella la verá).
+      const agregarCategoriaPersonalizada = async (asignar) => {
+        const nombre = window.prompt('Nombre de la nueva categoría (solo la verás en esta bodega):');
+        const limpio = (nombre || '').trim();
+        if (!limpio) return;
+        if (categoriasDB.some((c) => c.toLowerCase() === limpio.toLowerCase())) {
+          asignar(limpio);
+          return;
+        }
+        try {
+          if (sbClient && bodegaId) {
+            const { error } = await sbClient.from('categorias').insert([{ nombre: limpio, bodega_id: bodegaId }]);
+            if (error) throw error;
+          }
+          setCategoriasDB((prev) => [...prev, limpio]);
+          asignar(limpio);
+        } catch (err) {
+          notificar(`No se pudo guardar la categoría: ${err.message}`, 'error');
+        }
+      };
 
       // Filtrado en vivo: mientras se escribe en el buscador, se vuelve a
       // consultar el catálogo con un pequeño retraso (debounce) para no
@@ -802,9 +853,9 @@
       // Categorías
       const categorias = useMemo(() => {
         const extra = new Set(productos.map(p => p.categoria).filter(Boolean));
-        CATEGORIAS_BODEGA.forEach(c => extra.delete(c));
-        return ['TODOS', ...CATEGORIAS_BODEGA, ...Array.from(extra)];
-      }, [productos]);
+        categoriasDB.forEach(c => extra.delete(c));
+        return ['TODOS', ...categoriasDB, ...Array.from(extra)];
+      }, [productos, categoriasDB]);
 
       const productosFiltrados = useMemo(() => {
         if (categoriaFiltro === 'TODOS') return productos;
@@ -3373,10 +3424,10 @@
                           onChange={(e) => actualizarFilaInventario(idx, 'categoria', e.target.value)}
                           className={esExistente ? claseCampoVinculado : claseCampoNormal}
                         >
-                          {!CATEGORIAS_BODEGA.includes(fila.categoria) && fila.categoria && (
+                          {!categoriasDB.includes(fila.categoria) && fila.categoria && (
                             <option value={fila.categoria}>{fila.categoria}</option>
                           )}
-                          {CATEGORIAS_BODEGA.map(c => <option key={c} value={c}>{c}</option>)}
+                          {categoriasDB.map(c => <option key={c} value={c}>{c}</option>)}
                         </select>
                         <input
                           type="number"
@@ -3594,16 +3645,26 @@
                     </div>
                     <div>
                       <label className="text-xs text-stone-600 block mb-1">Categoría:</label>
-                      <select
-                        value={formEditarProducto.categoria}
-                        onChange={(e) => setFormEditarProducto({ ...formEditarProducto, categoria: e.target.value })}
-                        className="w-full bg-stone-50 border border-stone-200 rounded-lg px-3 py-1.5 text-xs text-stone-900"
-                      >
-                        {!CATEGORIAS_BODEGA.includes(formEditarProducto.categoria) && formEditarProducto.categoria && (
-                          <option value={formEditarProducto.categoria}>{formEditarProducto.categoria}</option>
-                        )}
-                        {CATEGORIAS_BODEGA.map(c => <option key={c} value={c}>{c}</option>)}
-                      </select>
+                      <div className="flex gap-1.5">
+                        <select
+                          value={formEditarProducto.categoria}
+                          onChange={(e) => setFormEditarProducto({ ...formEditarProducto, categoria: e.target.value })}
+                          className="w-full bg-stone-50 border border-stone-200 rounded-lg px-3 py-1.5 text-xs text-stone-900"
+                        >
+                          {!categoriasDB.includes(formEditarProducto.categoria) && formEditarProducto.categoria && (
+                            <option value={formEditarProducto.categoria}>{formEditarProducto.categoria}</option>
+                          )}
+                          {categoriasDB.map(c => <option key={c} value={c}>{c}</option>)}
+                        </select>
+                        <button
+                          type="button"
+                          onClick={() => agregarCategoriaPersonalizada((v) => setFormEditarProducto((prev) => ({ ...prev, categoria: v })))}
+                          title="Agregar categoría nueva"
+                          className="shrink-0 w-8 h-8 flex items-center justify-center bg-stone-200 hover:bg-stone-300 text-stone-700 rounded-lg"
+                        >
+                          <i className="fa-solid fa-plus text-xs"></i>
+                        </button>
+                      </div>
                     </div>
                   </div>
                   <div className="grid grid-cols-2 gap-2">
@@ -3735,13 +3796,23 @@
                   </div>
                   <div>
                     <label className="text-xs text-stone-600 block mb-1">Categoría:</label>
-                    <select
-                      value={formProducto.categoria}
-                      onChange={(e) => setFormProducto({ ...formProducto, categoria: e.target.value })}
-                      className="w-full bg-stone-50 border border-stone-200 rounded-lg px-3 py-1.5 text-xs text-stone-900"
-                    >
-                      {CATEGORIAS_BODEGA.map(c => <option key={c} value={c}>{c}</option>)}
-                    </select>
+                    <div className="flex gap-1.5">
+                      <select
+                        value={formProducto.categoria}
+                        onChange={(e) => setFormProducto({ ...formProducto, categoria: e.target.value })}
+                        className="w-full bg-stone-50 border border-stone-200 rounded-lg px-3 py-1.5 text-xs text-stone-900"
+                      >
+                        {categoriasDB.map(c => <option key={c} value={c}>{c}</option>)}
+                      </select>
+                      <button
+                        type="button"
+                        onClick={() => agregarCategoriaPersonalizada((v) => setFormProducto((prev) => ({ ...prev, categoria: v })))}
+                        title="Agregar categoría nueva"
+                        className="shrink-0 w-8 h-8 flex items-center justify-center bg-stone-200 hover:bg-stone-300 text-stone-700 rounded-lg"
+                      >
+                        <i className="fa-solid fa-plus text-xs"></i>
+                      </button>
+                    </div>
                   </div>
                   <div>
                     <label className="text-xs text-stone-600 block mb-1">Cantidad que tienes ahora (stock):</label>
