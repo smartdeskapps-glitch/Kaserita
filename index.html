@@ -51,7 +51,7 @@
   <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
 
   <!-- Lector de código de barras por cámara (sin backend) -->
-  <script src="https://cdn.jsdelivr.net/npm/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/zxing-wasm@3.1.3/dist/iife/reader/index.min.js"></script>
 
   <!-- Generar archivos Excel (.xlsx) reales en el navegador, sin backend -->
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
@@ -534,7 +534,6 @@
       // 'inventario': rellena el campo EAN de una fila del formulario de inventario.
       const [modoEscaner, setModoEscaner] = useState('venta');
       const [filaEscaneandoIndex, setFilaEscaneandoIndex] = useState(null);
-      const fallbackReaderRef = useRef(null);
       const ultimoEscaneoRef = useRef({ codigo: '', hora: 0 });
       const videoNativoRef = useRef(null);
       const streamNativoRef = useRef(null);
@@ -1108,87 +1107,136 @@
       };
 
       // Inicia/detiene la cámara cuando se abre o cierra el modal del escáner.
-      // Usa el detector nativo del navegador (BarcodeDetector) directamente cuando
-      // existe -- es mucho más rápido y preciso que cualquier decodificador en
-      // JavaScript puro para códigos EAN/UPC -- y si el navegador no lo soporta
-      // (ej. iPhone/Safari), recae automáticamente en el decodificador de
-      // html5-qrcode para que el escáner igual funcione en todos los celulares.
+      // Se pide la cámara UNA sola vez y se comparte entre los dos métodos:
+      //  - Nativo (BarcodeDetector): analiza el <video> en vivo directamente,
+      //    sin canvas intermedio -- el más rápido cuando el navegador lo trae
+      //    (Chrome/Android).
+      //  - Respaldo (zxing-wasm): el motor real de ZXing (C++) compilado a
+      //    WebAssembly, mucho más preciso que cualquier decodificador 100% JS
+      //    -- funciona en cualquier navegador (Safari, Firefox, PC, Android
+      //    viejo) sin depender de que exista BarcodeDetector.
       useEffect(() => {
         if (!modalEscaner) return;
         setErrorEscaner('');
-        const usarNativo = metodoForzado === 'html5qr' ? false : ('BarcodeDetector' in window);
-        setUsandoDetectorNativo(usarNativo);
         setDebugEscaner({ frames: 0, tamano: '', error: '' });
-        console.log('[escaner] método elegido:', usarNativo ? 'nativo (BarcodeDetector)' : 'html5-qrcode', '| metodoForzado:', metodoForzado);
         let activo = true;
 
         const detenerTodo = () => {
           if (detectorLoopRef.current) {
             cancelAnimationFrame(detectorLoopRef.current);
+            clearTimeout(detectorLoopRef.current);
             detectorLoopRef.current = null;
           }
           if (streamNativoRef.current) {
             streamNativoRef.current.getTracks().forEach((t) => t.stop());
             streamNativoRef.current = null;
           }
-          if (fallbackReaderRef.current) {
-            const inst = fallbackReaderRef.current;
-            fallbackReaderRef.current = null;
-            (async () => {
-              try {
-                const estado = inst.getState ? inst.getState() : null;
-                if (estado === 2 || estado === 3) await inst.stop().catch(() => {});
-                inst.clear();
-              } catch (e) {}
-            })();
-          }
         };
 
-        // Método de reserva: html5-qrcode, configurado para que internamente
-        // también intente usar BarcodeDetector si el navegador lo soporta
-        // (útil en Android/Chrome cuando "usarNativo" se forzó a false), y si
-        // no, use su propio decodificador JS. "disableFlip" evita un volteo
-        // de imagen innecesario que solo agrega procesamiento.
-        const iniciarFallback = async () => {
+        // Respaldo: zxing-wasm. Como decodificar en WASM es más pesado que el
+        // detector nativo del navegador, no se corre en cada requestAnimationFrame
+        // (saturaría el celular) sino cada ~200ms, y solo se agenda el
+        // siguiente intento cuando el anterior ya terminó.
+        const correrFallback = async (video) => {
           try {
-            // Sin restringir "formatsToSupport": por defecto ya soporta
-            // EAN/UPC/CODE_128/QR, y ese enum no viene expuesto como global
-            // en el build minificado que se carga desde el CDN.
-            const lector = new Html5Qrcode('lector-fallback', { verbose: false });
-            fallbackReaderRef.current = lector;
-
-            let intentos = 0;
-            await lector.start(
-              { facingMode: 'environment' },
-              {
-                fps: 20,
-                qrbox: { width: 260, height: 160 },
-                disableFlip: true,
-                experimentalFeatures: { useBarCodeDetectorIfSupported: true }
-              },
-              (decodedText) => {
-                if (!activo) return;
-                console.log('[escaner] html5-qrcode detectó:', decodedText);
-                handleCodigoEscaneado(decodedText);
-              },
-              () => {
-                if (!activo) return;
-                intentos++;
-                if (intentos % 15 === 0) {
-                  setDebugEscaner({ frames: intentos, tamano: '', error: '' });
-                  console.log('[escaner] html5-qrcode sigue intentando, frames analizados:', intentos);
-                }
+            await ZXingWASM.prepareZXingModule({
+              overrides: {
+                locateFile: (path) => `https://cdn.jsdelivr.net/npm/zxing-wasm@3.1.3/dist/reader/${path}`
               }
-            );
-            console.log('[escaner] html5-qrcode: cámara conectada, esperando código...');
+            });
           } catch (err) {
             if (!activo) return;
-            setErrorEscaner('No se pudo acceder a la cámara. Revisa los permisos del navegador.');
-            console.warn('[escaner] Error al iniciar la cámara (html5-qrcode):', err);
+            setErrorEscaner('No se pudo cargar el lector de códigos. Revisa tu conexión a internet.');
+            console.warn('[escaner] Error al preparar zxing-wasm:', err);
+            return;
+          }
+
+          const canvas = document.createElement('canvas');
+          const ctx = canvas.getContext('2d', { willReadFrequently: true });
+          let frames = 0;
+          let procesando = false;
+
+          const intentar = async () => {
+            if (!activo) return;
+            if (procesando || video.readyState < 2 || video.videoWidth === 0) {
+              detectorLoopRef.current = setTimeout(intentar, 150);
+              return;
+            }
+            procesando = true;
+            frames++;
+            if (frames % 5 === 0) {
+              setDebugEscaner({ frames, tamano: `${video.videoWidth}x${video.videoHeight}`, error: '' });
+            }
+            try {
+              canvas.width = video.videoWidth;
+              canvas.height = video.videoHeight;
+              ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+              const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+              const resultados = await ZXingWASM.readBarcodesFromImageData(imgData, {
+                tryHarder: true,
+                formats: ['EAN13', 'EAN8', 'UPCA', 'UPCE', 'Code128', 'Code39', 'QRCode']
+              });
+              if (activo && resultados && resultados.length > 0 && resultados[0].text) {
+                console.log('[escaner] zxing-wasm detectó:', resultados[0].text);
+                handleCodigoEscaneado(resultados[0].text);
+              }
+            } catch (e) {
+              setDebugEscaner((prev) => ({ ...prev, error: String(e?.message || e).slice(0, 60) }));
+              console.warn('[escaner] error en zxing-wasm:', e);
+            }
+            procesando = false;
+            if (activo) detectorLoopRef.current = setTimeout(intentar, 200);
+          };
+
+          console.log('[escaner] zxing-wasm listo, esperando código...');
+          intentar();
+        };
+
+        // Principal: detector nativo del navegador, directo sobre el <video>.
+        const correrNativo = async (video) => {
+          let formatos = ['ean_13', 'ean_8', 'upc_a', 'upc_e', 'code_128', 'code_39', 'qr_code'];
+          try {
+            const soportados = await window.BarcodeDetector.getSupportedFormats();
+            const filtrados = formatos.filter((f) => soportados.includes(f));
+            if (filtrados.length > 0) formatos = filtrados;
+          } catch (e) { /* si falla, se intenta con la lista por defecto */ }
+
+          const detector = new window.BarcodeDetector({ formats: formatos });
+          let detectando = false;
+          let frames = 0;
+
+          const loop = () => {
+            if (!activo) return;
+            detectorLoopRef.current = requestAnimationFrame(loop);
+            if (detectando || video.readyState < 2) return;
+            detectando = true;
+            frames++;
+            if (frames % 15 === 0) {
+              setDebugEscaner({ frames, tamano: `${video.videoWidth}x${video.videoHeight}`, error: '' });
+            }
+            detector.detect(video)
+              .then((resultados) => {
+                detectando = false;
+                if (activo && resultados && resultados.length > 0) {
+                  console.log('[escaner] nativo detectó:', resultados[0].rawValue);
+                  handleCodigoEscaneado(resultados[0].rawValue);
+                }
+              })
+              .catch((e) => {
+                detectando = false;
+                setDebugEscaner((prev) => ({ ...prev, error: String(e?.message || e).slice(0, 60) }));
+              });
+          };
+
+          if (video.readyState >= 2) {
+            loop();
+          } else {
+            video.addEventListener('canplay', () => { if (activo) loop(); }, { once: true });
+            setTimeout(() => { if (activo && !detectorLoopRef.current) loop(); }, 1500);
           }
         };
 
-        const iniciarDetectorNativo = async () => {
+        const iniciar = async () => {
           try {
             const stream = await navigator.mediaDevices.getUserMedia({
               video: {
@@ -1208,71 +1256,23 @@
             video.srcObject = stream;
             await video.play();
 
-            let formatos = ['ean_13', 'ean_8', 'upc_a', 'upc_e', 'code_128', 'code_39', 'qr_code'];
-            try {
-              const soportados = await window.BarcodeDetector.getSupportedFormats();
-              const filtrados = formatos.filter((f) => soportados.includes(f));
-              if (filtrados.length > 0) formatos = filtrados;
-            } catch (e) { /* si falla, se intenta con la lista por defecto */ }
+            const usarNativo = metodoForzado === 'wasm' ? false : ('BarcodeDetector' in window);
+            setUsandoDetectorNativo(usarNativo);
+            console.log('[escaner] método elegido:', usarNativo ? 'nativo (BarcodeDetector)' : 'zxing-wasm', '| metodoForzado:', metodoForzado);
 
-            console.log('[escaner] formatos usados:', formatos);
-            const detector = new window.BarcodeDetector({ formats: formatos });
-
-            // Se analiza el <video> en vivo directamente, sin pasar por un
-            // canvas intermedio: dibujar cada fotograma en un canvas y
-            // volver a codificarlo agrega demora y pierde nitidez, que era
-            // justo lo que hacía fallar la detección antes. El loop usa
-            // requestAnimationFrame con una bandera "detectando" para no
-            // encolar una detección nueva mientras la anterior sigue en
-            // curso, aprovechando cada fotograma disponible sin saturar.
-            let detectando = false;
-            let frames = 0;
-
-            const loop = () => {
-              if (!activo) return;
-              detectorLoopRef.current = requestAnimationFrame(loop);
-              if (detectando || video.readyState < 2) return;
-              detectando = true;
-              frames++;
-              if (frames % 15 === 0) {
-                setDebugEscaner({ frames, tamano: `${video.videoWidth}x${video.videoHeight}`, error: '' });
-              }
-              if (frames % 60 === 0) console.log('[escaner] nativo sigue intentando, frames analizados:', frames, '| readyState:', video.readyState, '| tamaño:', video.videoWidth, 'x', video.videoHeight);
-              detector.detect(video)
-                .then((resultados) => {
-                  detectando = false;
-                  if (activo && resultados && resultados.length > 0) {
-                    console.log('[escaner] nativo detectó:', resultados[0].rawValue);
-                    handleCodigoEscaneado(resultados[0].rawValue);
-                  }
-                })
-                .catch((e) => {
-                  detectando = false;
-                  setDebugEscaner((prev) => ({ ...prev, error: String(e?.message || e).slice(0, 60) }));
-                  console.warn('[escaner] error en detect():', e);
-                });
-            };
-
-            if (video.readyState >= 2) {
-              loop();
+            if (usarNativo) {
+              correrNativo(video);
             } else {
-              video.addEventListener('canplay', () => { if (activo) loop(); }, { once: true });
-              // Respaldo por si "canplay" no dispara en algún navegador.
-              setTimeout(() => { if (activo && !detectorLoopRef.current) loop(); }, 1500);
+              correrFallback(video);
             }
           } catch (err) {
             if (!activo) return;
-            console.warn('[escaner] Detector nativo no disponible, usando reserva:', err);
-            setUsandoDetectorNativo(false);
-            iniciarFallback();
+            setErrorEscaner('No se pudo acceder a la cámara. Revisa los permisos del navegador.');
+            console.warn('[escaner] Error al iniciar la cámara:', err);
           }
         };
 
-        if (usarNativo) {
-          iniciarDetectorNativo();
-        } else {
-          iniciarFallback();
-        }
+        iniciar();
 
         return () => {
           activo = false;
@@ -3451,15 +3451,14 @@
 
               <div className="flex-1 relative flex items-center justify-center bg-black overflow-hidden">
                 <div className="relative w-full h-full flex items-center justify-center">
-                  <video ref={videoNativoRef} className={`w-full h-full object-cover ${usandoDetectorNativo ? '' : 'hidden'}`} playsInline muted autoPlay></video>
-                  <div id="lector-fallback" className={`w-full h-full ${usandoDetectorNativo ? 'hidden' : ''}`}></div>
+                  <video ref={videoNativoRef} className="w-full h-full object-cover" playsInline muted autoPlay></video>
                   <div className="absolute w-[85%] max-w-sm aspect-[2/1] border-2 border-orange-400 rounded-2xl shadow-[0_0_0_9999px_rgba(0,0,0,0.55)] pointer-events-none"></div>
                 </div>
 
                 {/* Diagnóstico visible en pantalla (para revisar desde el
                     celular sin necesitar la consola del navegador). */}
                 <div className="absolute top-2 left-2 bg-black/70 text-white text-[10px] font-mono px-2 py-1 rounded-lg leading-tight max-w-[70vw]">
-                  <div>método: {usandoDetectorNativo ? 'nativo' : 'html5-qrcode'}</div>
+                  <div>método: {usandoDetectorNativo ? 'nativo' : 'zxing-wasm'}</div>
                   <div>frames: {debugEscaner.frames} {debugEscaner.tamano && `| video: ${debugEscaner.tamano}`}</div>
                   {debugEscaner.error && <div className="text-rose-300">error: {debugEscaner.error}</div>}
                 </div>
@@ -3477,7 +3476,7 @@
                 <p className="text-xs text-stone-600">Apunta la cámara al código de barras del producto.</p>
                 <button
                   type="button"
-                  onClick={() => setMetodoForzado(usandoDetectorNativo ? 'html5qr' : 'nativo')}
+                  onClick={() => setMetodoForzado(usandoDetectorNativo ? 'wasm' : 'nativo')}
                   className="text-xs text-orange-600 underline"
                 >
                   ¿No detecta? Probar con el otro método ({usandoDetectorNativo ? 'clásico' : 'nativo'})
