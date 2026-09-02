@@ -3228,7 +3228,6 @@
                         type="text"
                         inputMode="decimal"
                         value={montoRecibido}
-                        onFocus={() => setCampoTeclado('recibido')}
                         onChange={(e) => setMontoRecibido(e.target.value)}
                         placeholder="0.00"
                         className="w-full bg-white border border-stone-300 rounded-lg px-3 py-2 text-2xl font-black text-stone-900 tabular-nums focus:outline-none focus:border-orange-500"
@@ -3282,16 +3281,25 @@
               {medioPago === 'MIXTO' && (
                 <div className="bg-stone-200/60 p-2 rounded-lg border border-stone-200 space-y-1.5">
                   <div>
-                    <label className="text-xs text-stone-600 block">Monto en Tarjeta/Otro (S/):</label>
-                    <input
-                      type="text"
-                      inputMode="decimal"
-                      value={montoMixtoOtro}
-                      onFocus={() => setCampoTeclado('mixtoOtro')}
-                      onChange={(e) => setMontoMixtoOtro(e.target.value)}
-                      placeholder="0.00"
-                      className="w-full bg-stone-100 border border-stone-300 rounded px-2 py-0.5 text-xs font-bold text-stone-900 focus:outline-none focus:border-orange-500"
-                    />
+                    <label className="text-xs text-stone-600 block mb-1">Monto en Tarjeta/Otro (S/):</label>
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="text"
+                        inputMode="decimal"
+                        value={montoMixtoOtro}
+                        onChange={(e) => setMontoMixtoOtro(e.target.value)}
+                        placeholder="0.00"
+                        className="w-full bg-stone-100 border border-stone-300 rounded px-2 py-1 text-sm font-bold text-stone-900 focus:outline-none focus:border-orange-500"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setCampoTeclado(campoTeclado === 'mixtoOtro' ? null : 'mixtoOtro')}
+                        title="Teclado numérico"
+                        className={`shrink-0 w-9 h-9 flex items-center justify-center rounded-lg transition ${campoTeclado === 'mixtoOtro' ? 'bg-orange-500 text-white' : 'bg-stone-300 hover:bg-stone-400 text-stone-700'}`}
+                      >
+                        <i className="fa-solid fa-calculator text-xs"></i>
+                      </button>
+                    </div>
                   </div>
 
                   <div className="grid grid-cols-2 gap-2 pt-1 border-t border-stone-200">
@@ -3309,16 +3317,25 @@
 
                   {efectivoRequeridoMixto > 0 && (
                     <div>
-                      <label className="text-xs text-stone-600 block">Recibe en efectivo (S/):</label>
-                      <input
-                        type="text"
-                        inputMode="decimal"
-                        value={montoMixtoRecibido}
-                        onFocus={() => setCampoTeclado('mixtoRecibido')}
-                        onChange={(e) => setMontoMixtoRecibido(e.target.value)}
-                        placeholder="0.00"
-                        className="w-full bg-stone-100 border border-stone-300 rounded px-2 py-0.5 text-xs font-bold text-stone-900 focus:outline-none focus:border-orange-500"
-                      />
+                      <label className="text-xs text-stone-600 block mb-1">Recibe en efectivo (S/):</label>
+                      <div className="flex items-center gap-2">
+                        <input
+                          type="text"
+                          inputMode="decimal"
+                          value={montoMixtoRecibido}
+                          onChange={(e) => setMontoMixtoRecibido(e.target.value)}
+                          placeholder="0.00"
+                          className="w-full bg-stone-100 border border-stone-300 rounded px-2 py-1 text-sm font-bold text-stone-900 focus:outline-none focus:border-orange-500"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setCampoTeclado(campoTeclado === 'mixtoRecibido' ? null : 'mixtoRecibido')}
+                          title="Teclado numérico"
+                          className={`shrink-0 w-9 h-9 flex items-center justify-center rounded-lg transition ${campoTeclado === 'mixtoRecibido' ? 'bg-orange-500 text-white' : 'bg-stone-300 hover:bg-stone-400 text-stone-700'}`}
+                        >
+                          <i className="fa-solid fa-calculator text-xs"></i>
+                        </button>
+                      </div>
                     </div>
                   )}
 
