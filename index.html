@@ -3,25 +3,10 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>POS Bodeguitas - Kaserita SmartPOS</title>
+  <title>Kaserita - Punto de Venta</title>
   
   <!-- Tailwind CSS CDN -->
   <script src="https://cdn.tailwindcss.com"></script>
-  <script>
-    tailwind.config = {
-      theme: {
-        extend: {
-          colors: {
-            slate: {
-              750: '#293548',
-              850: '#172033',
-              950: '#0b1120',
-            }
-          }
-        }
-      }
-    }
-  </script>
 
   <!-- React 18, ReactDOM y Babel Standalone -->
   <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
@@ -52,7 +37,7 @@
     }
   </style>
 </head>
-<body class="bg-slate-900 text-slate-100 h-screen overflow-hidden font-sans">
+<body class="bg-stone-950 text-stone-100 h-screen overflow-hidden font-sans">
   <div id="root"></div>
 
   <!-- Aplicación React + Supabase con Todos los Módulos -->
@@ -97,7 +82,7 @@
               key={t}
               type="button"
               onClick={() => presionar(t)}
-              className="py-2 bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-lg text-sm font-bold text-slate-200 active:scale-95 transition"
+              className="py-2 bg-stone-900 hover:bg-stone-800 border border-stone-800 rounded-lg text-sm font-bold text-stone-200 active:scale-95 transition"
             >
               {t}
             </button>
@@ -135,17 +120,17 @@
 
       return (
         <div className="fixed inset-0 bg-black/85 flex items-center justify-center z-50 p-4">
-          <div className="bg-slate-800 border border-slate-700 rounded-2xl max-w-xs w-full p-5 shadow-2xl text-center space-y-3">
+          <div className="bg-stone-900 border border-stone-800 rounded-2xl max-w-xs w-full p-5 shadow-2xl text-center space-y-3">
             <h3 className="text-base font-bold text-white">Pago con {medioPago}</h3>
-            <p className="text-sm text-slate-300">
-              Monto: <span className="font-black text-emerald-400 text-lg">S/ {Number(monto).toFixed(2)}</span>
+            <p className="text-sm text-stone-300">
+              Monto: <span className="font-black text-orange-400 text-lg">S/ {Number(monto).toFixed(2)}</span>
             </p>
             {qrImg ? (
               <div className="bg-white p-3 rounded-xl inline-block">
                 <img src={qrImg} alt={`QR ${medioPago}`} className="w-44 h-44 object-contain" />
               </div>
             ) : (
-              <div className="bg-slate-900 border border-dashed border-slate-600 rounded-xl p-5 text-xs text-slate-400">
+              <div className="bg-stone-950 border border-dashed border-stone-700 rounded-xl p-5 text-xs text-stone-400">
                 Aún no has guardado el QR de {medioPago} de tu bodega.
               </div>
             )}
@@ -153,11 +138,11 @@
             <button
               type="button"
               onClick={() => inputRef.current?.click()}
-              className="w-full py-2 bg-slate-700 hover:bg-slate-600 text-white text-xs font-semibold rounded-lg"
+              className="w-full py-2 bg-stone-800 hover:bg-stone-700 text-white text-xs font-semibold rounded-lg"
             >
               {qrImg ? 'Cambiar imagen del QR' : `Subir QR de ${medioPago}`}
             </button>
-            <button onClick={onClose} className="w-full py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs rounded-xl">
+            <button onClick={onClose} className="w-full py-2.5 bg-orange-600 hover:bg-orange-500 text-white font-bold text-xs rounded-xl">
               Cerrar
             </button>
           </div>
@@ -1164,34 +1149,34 @@
       // =========================================================================
       if (!sesion) {
         return (
-          <div className="flex flex-col items-center justify-center min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-indigo-950 text-slate-100 p-4 select-none">
+          <div className="flex flex-col items-center justify-center min-h-screen bg-gradient-to-br from-stone-950 via-stone-950 to-amber-950 text-stone-100 p-4 select-none">
             {toast.visible && (
-              <div className={`fixed top-6 right-6 z-50 px-4 py-2.5 rounded-lg shadow-2xl text-xs font-semibold border transition-all animate-bounce ${toast.tipo === 'error' ? 'bg-rose-900 text-rose-100 border-rose-500' : 'bg-emerald-900 text-emerald-100 border-emerald-500'}`}>
+              <div className={`fixed top-6 right-6 z-50 px-4 py-2.5 rounded-lg shadow-2xl text-xs font-semibold border transition-all animate-bounce ${toast.tipo === 'error' ? 'bg-rose-900 text-rose-100 border-rose-500' : 'bg-orange-900 text-orange-100 border-orange-500'}`}>
                 {toast.texto}
               </div>
             )}
 
-            <div className="max-w-md w-full bg-slate-850/90 border border-slate-700/80 rounded-3xl p-6 md:p-8 shadow-2xl backdrop-blur-md space-y-6">
+            <div className="max-w-md w-full bg-stone-900/90 border border-stone-800/80 rounded-3xl p-6 md:p-8 shadow-2xl backdrop-blur-md space-y-6">
               <div className="text-center space-y-2">
-                <div className="inline-flex items-center justify-center w-14 h-14 bg-emerald-600 rounded-2xl shadow-lg text-white text-2xl font-black mb-1">
-                  POS
+                <div className="inline-flex items-center justify-center w-14 h-14 bg-orange-500 rounded-2xl shadow-lg text-white text-2xl font-black mb-1">
+                  K
                 </div>
-                <h1 className="text-2xl font-black tracking-tight text-white">Bodeguita SmartPOS</h1>
-                <p className="text-xs text-slate-400">Punto de Venta Multi-Tienda & Inventario</p>
+                <h1 className="text-2xl font-black tracking-tight text-white">Kaserita</h1>
+                <p className="text-xs text-stone-400">Punto de Venta para tu Bodega o Negocio</p>
               </div>
 
-              <div className="flex bg-slate-900/90 p-1 rounded-xl border border-slate-750">
+              <div className="flex bg-stone-950/90 p-1 rounded-xl border border-stone-800">
                 <button
                   type="button"
                   onClick={() => setAuthTab('login')}
-                  className={`flex-1 py-2 text-xs font-bold rounded-lg transition ${authTab === 'login' ? 'bg-emerald-600 text-white shadow-md' : 'text-slate-400 hover:text-slate-200'}`}
+                  className={`flex-1 py-2 text-xs font-bold rounded-lg transition ${authTab === 'login' ? 'bg-orange-600 text-white shadow-md' : 'text-stone-400 hover:text-stone-200'}`}
                 >
                   🔑 Iniciar Sesión
                 </button>
                 <button
                   type="button"
                   onClick={() => setAuthTab('register')}
-                  className={`flex-1 py-2 text-xs font-bold rounded-lg transition ${authTab === 'register' ? 'bg-indigo-600 text-white shadow-md' : 'text-slate-400 hover:text-slate-200'}`}
+                  className={`flex-1 py-2 text-xs font-bold rounded-lg transition ${authTab === 'register' ? 'bg-amber-600 text-white shadow-md' : 'text-stone-400 hover:text-stone-200'}`}
                 >
                   🏪 Crear Bodega
                 </button>
@@ -1214,7 +1199,7 @@
                   }
                 }} className="space-y-4">
                   <div>
-                    <label className="text-xs font-semibold text-slate-300 block mb-1">DNI del Usuario:</label>
+                    <label className="text-xs font-semibold text-stone-300 block mb-1">DNI del Usuario:</label>
                     <input
                       type="text"
                       required
@@ -1222,11 +1207,11 @@
                       placeholder="8 dígitos"
                       value={formLogin.dni}
                       onChange={(e) => setFormLogin({ ...formLogin, dni: e.target.value })}
-                      className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3.5 py-2.5 text-sm text-white focus:outline-none focus:border-emerald-500"
+                      className="w-full bg-stone-950 border border-stone-800 rounded-xl px-3.5 py-2.5 text-sm text-white focus:outline-none focus:border-orange-500"
                     />
                   </div>
                   <div>
-                    <label className="text-xs font-semibold text-slate-300 block mb-1">PIN de Acceso:</label>
+                    <label className="text-xs font-semibold text-stone-300 block mb-1">PIN de Acceso:</label>
                     <input
                       type="password"
                       required
@@ -1234,13 +1219,13 @@
                       placeholder="••••"
                       value={formLogin.pin}
                       onChange={(e) => setFormLogin({ ...formLogin, pin: e.target.value })}
-                      className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3.5 py-2.5 text-sm text-white tracking-widest focus:outline-none focus:border-emerald-500"
+                      className="w-full bg-stone-950 border border-stone-800 rounded-xl px-3.5 py-2.5 text-sm text-white tracking-widest focus:outline-none focus:border-orange-500"
                     />
                   </div>
                   <button
                     type="submit"
                     disabled={cargandoAuth}
-                    className="w-full py-3.5 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black text-sm uppercase rounded-xl transition shadow-lg disabled:opacity-50"
+                    className="w-full py-3.5 bg-orange-500 hover:bg-orange-400 text-stone-950 font-black text-sm uppercase rounded-xl transition shadow-lg disabled:opacity-50"
                   >
                     {cargandoAuth ? 'Verificando...' : '⚡ Ingresar a Caja'}
                   </button>
@@ -1267,72 +1252,72 @@
                   }
                 }} className="space-y-3">
                   <div>
-                    <label className="text-xs font-semibold text-slate-300 block mb-1">Nombre de Bodega:</label>
+                    <label className="text-xs font-semibold text-stone-300 block mb-1">Nombre de Bodega:</label>
                     <input
                       type="text"
                       required
                       placeholder="Ej: Bodega Don Pepe"
                       value={formRegistro.nombreBodega}
                       onChange={(e) => setFormRegistro({ ...formRegistro, nombreBodega: e.target.value })}
-                      className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-1.5 text-xs text-white focus:outline-none focus:border-indigo-500"
+                      className="w-full bg-stone-950 border border-stone-800 rounded-xl px-3 py-1.5 text-xs text-white focus:outline-none focus:border-amber-500"
                     />
                   </div>
                   <div>
-                    <label className="text-xs font-semibold text-slate-300 block mb-1">Dueño:</label>
+                    <label className="text-xs font-semibold text-stone-300 block mb-1">Dueño:</label>
                     <input
                       type="text"
                       required
                       placeholder="Ej: Juan Pérez"
                       value={formRegistro.nombreDueno}
                       onChange={(e) => setFormRegistro({ ...formRegistro, nombreDueno: e.target.value })}
-                      className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-1.5 text-xs text-white focus:outline-none focus:border-indigo-500"
+                      className="w-full bg-stone-950 border border-stone-800 rounded-xl px-3 py-1.5 text-xs text-white focus:outline-none focus:border-amber-500"
                     />
                   </div>
                   <div className="grid grid-cols-2 gap-2">
                     <div>
-                      <label className="text-xs font-semibold text-slate-300 block mb-1">DNI:</label>
+                      <label className="text-xs font-semibold text-stone-300 block mb-1">DNI:</label>
                       <input
                         type="text"
                         required
                         maxLength={8}
                         value={formRegistro.dni}
                         onChange={(e) => setFormRegistro({ ...formRegistro, dni: e.target.value })}
-                        className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-1.5 text-xs text-white focus:outline-none focus:border-indigo-500"
+                        className="w-full bg-stone-950 border border-stone-800 rounded-xl px-3 py-1.5 text-xs text-white focus:outline-none focus:border-amber-500"
                       />
                     </div>
                     <div>
-                      <label className="text-xs font-semibold text-slate-300 block mb-1">PIN:</label>
+                      <label className="text-xs font-semibold text-stone-300 block mb-1">PIN:</label>
                       <input
                         type="password"
                         required
                         maxLength={6}
                         value={formRegistro.pin}
                         onChange={(e) => setFormRegistro({ ...formRegistro, pin: e.target.value })}
-                        className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-1.5 text-xs text-white tracking-widest focus:outline-none focus:border-indigo-500"
+                        className="w-full bg-stone-950 border border-stone-800 rounded-xl px-3 py-1.5 text-xs text-white tracking-widest focus:outline-none focus:border-amber-500"
                       />
                     </div>
                   </div>
                   <button
                     type="submit"
                     disabled={cargandoAuth}
-                    className="w-full py-3 bg-indigo-600 hover:bg-indigo-500 text-white font-black text-xs uppercase rounded-xl transition shadow-lg disabled:opacity-50"
+                    className="w-full py-3 bg-amber-600 hover:bg-amber-500 text-white font-black text-xs uppercase rounded-xl transition shadow-lg disabled:opacity-50"
                   >
                     🚀 Crear Bodega y Entrar
                   </button>
                 </form>
               )}
 
-              <div className="pt-2 border-t border-slate-750 flex items-center justify-between text-xs">
+              <div className="pt-2 border-t border-stone-800 flex items-center justify-between text-xs">
                 <button type="button" onClick={() => {
                   const demoB = 'a0000000-0000-0000-0000-000000000001';
                   const demoU = { id: 'c0000000-0000-0000-0000-000000000001', bodega_id: demoB, nombre: 'Dueño Demo', dni: '12345678', rol: 'dueno', activo: true };
                   setListaCajeros([demoU]);
                   setCajeroSeleccionado(demoU);
                   guardarSesion({ usuario: demoU, bodega: { id: demoB, nombre: 'Bodega Demo' } });
-                }} className="text-slate-400 hover:text-amber-400">
+                }} className="text-stone-400 hover:text-amber-400">
                   ⚡ Modo Demo Local
                 </button>
-                <button type="button" onClick={() => setModalConfig(true)} className="text-slate-400 hover:text-slate-200">
+                <button type="button" onClick={() => setModalConfig(true)} className="text-stone-400 hover:text-stone-200">
                   ⚙️ Config Supabase
                 </button>
               </div>
@@ -1341,27 +1326,27 @@
             {/* Modal: Configuración de Supabase */}
             {modalConfig && (
               <div className="fixed inset-0 bg-black/85 flex items-center justify-center z-50 p-4">
-                <div className="bg-slate-800 border border-slate-700 rounded-2xl max-w-sm w-full p-5 shadow-2xl space-y-3">
+                <div className="bg-stone-900 border border-stone-800 rounded-2xl max-w-sm w-full p-5 shadow-2xl space-y-3">
                   <div className="flex justify-between items-center">
                     <h3 className="text-sm font-bold text-white">⚙️ Configuración de Supabase</h3>
-                    <button onClick={() => setModalConfig(false)} className="text-slate-400 hover:text-white">✕</button>
+                    <button onClick={() => setModalConfig(false)} className="text-stone-400 hover:text-white">✕</button>
                   </div>
                   <div>
-                    <label className="text-xs text-slate-400 block mb-1">Supabase URL:</label>
+                    <label className="text-xs text-stone-400 block mb-1">Supabase URL:</label>
                     <input
                       type="text"
                       value={supabaseUrl}
                       onChange={(e) => setSupabaseUrl(e.target.value)}
-                      className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-1.5 text-xs text-white focus:outline-none focus:border-emerald-500"
+                      className="w-full bg-stone-950 border border-stone-800 rounded-lg px-3 py-1.5 text-xs text-white focus:outline-none focus:border-orange-500"
                     />
                   </div>
                   <div>
-                    <label className="text-xs text-slate-400 block mb-1">Supabase Anon/Publishable Key:</label>
+                    <label className="text-xs text-stone-400 block mb-1">Supabase Anon/Publishable Key:</label>
                     <input
                       type="text"
                       value={supabaseKey}
                       onChange={(e) => setSupabaseKey(e.target.value)}
-                      className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-1.5 text-xs text-white focus:outline-none focus:border-emerald-500"
+                      className="w-full bg-stone-950 border border-stone-800 rounded-lg px-3 py-1.5 text-xs text-white focus:outline-none focus:border-orange-500"
                     />
                   </div>
                   <button
@@ -1371,7 +1356,7 @@
                       setModalConfig(false);
                       notificar('Configuración de Supabase guardada.', 'success');
                     }}
-                    className="w-full py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs rounded-xl"
+                    className="w-full py-2.5 bg-orange-600 hover:bg-orange-500 text-white font-bold text-xs rounded-xl"
                   >
                     Guardar y Conectar
                   </button>
@@ -1897,9 +1882,9 @@
           {/* Modal: Cantidad / Balanza para Peso KG */}
           {modalCantidad && productoSeleccionadoCantidad && (
             <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4">
-              <div className="bg-slate-800 border border-slate-700 rounded-2xl max-w-xs w-full p-5 shadow-2xl space-y-4 text-center">
+              <div className="bg-stone-900 border border-stone-800 rounded-2xl max-w-xs w-full p-5 shadow-2xl space-y-4 text-center">
                 <h3 className="text-sm font-bold text-white leading-tight">{productoSeleccionadoCantidad.descripcion}</h3>
-                <p className="text-xs text-slate-400">Ingresa la cantidad o peso en KG:</p>
+                <p className="text-xs text-stone-400">Ingresa la cantidad o peso en KG:</p>
                 <div className="flex items-center justify-center gap-2">
                   <input
                     type="number"
@@ -1907,14 +1892,14 @@
                     min="0.001"
                     value={inputCantidad}
                     onChange={(e) => setInputCantidad(e.target.value)}
-                    className="w-32 bg-slate-900 border border-slate-700 text-center font-mono font-bold text-xl text-emerald-400 p-2 rounded-xl focus:outline-none focus:border-emerald-500"
+                    className="w-32 bg-stone-950 border border-stone-800 text-center font-mono font-bold text-xl text-orange-400 p-2 rounded-xl focus:outline-none focus:border-orange-500"
                     autoFocus
                   />
-                  <span className="text-sm font-bold text-slate-300">KG</span>
+                  <span className="text-sm font-bold text-stone-300">KG</span>
                 </div>
                 <div className="flex gap-2 pt-1">
-                  <button onClick={() => setModalCantidad(false)} className="flex-1 py-2 bg-slate-700 rounded-lg text-xs font-semibold">Cancelar</button>
-                  <button onClick={confirmarCantidadBalanza} className="flex-1 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-xs font-bold shadow">Aceptar</button>
+                  <button onClick={() => setModalCantidad(false)} className="flex-1 py-2 bg-stone-800 rounded-lg text-xs font-semibold">Cancelar</button>
+                  <button onClick={confirmarCantidadBalanza} className="flex-1 py-2 bg-orange-600 hover:bg-orange-500 text-white rounded-lg text-xs font-bold shadow">Aceptar</button>
                 </div>
               </div>
             </div>
@@ -1923,26 +1908,26 @@
           {/* Modal: Nuevo Producto */}
           {modalNuevoProducto && (
             <div className="fixed inset-0 bg-black/85 flex items-center justify-center z-50 p-4">
-              <div className="bg-slate-800 border border-slate-700 rounded-2xl max-w-md w-full p-5 shadow-2xl space-y-3">
+              <div className="bg-stone-900 border border-stone-800 rounded-2xl max-w-md w-full p-5 shadow-2xl space-y-3">
                 <div className="flex justify-between items-center">
                   <h3 className="text-base font-bold text-white">📦 Registrar Nuevo Producto</h3>
-                  <button onClick={() => setModalNuevoProducto(false)} className="text-slate-400 hover:text-white">✕</button>
+                  <button onClick={() => setModalNuevoProducto(false)} className="text-stone-400 hover:text-white">✕</button>
                 </div>
                 <form onSubmit={handleCrearNuevoProducto} className="space-y-2.5">
                   <div>
-                    <label className="text-[11px] text-slate-400 block mb-1">Descripción / Nombre:</label>
+                    <label className="text-[11px] text-stone-400 block mb-1">Descripción / Nombre:</label>
                     <input
                       type="text"
                       required
                       placeholder="Ej: Galletas Oreo x 6"
                       value={formProducto.descripcion}
                       onChange={(e) => setFormProducto({ ...formProducto, descripcion: e.target.value })}
-                      className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-1.5 text-xs text-white"
+                      className="w-full bg-stone-950 border border-stone-800 rounded-lg px-3 py-1.5 text-xs text-white"
                     />
                   </div>
                   <div className="grid grid-cols-2 gap-2">
                     <div>
-                      <label className="text-[11px] text-slate-400 block mb-1">Precio Venta (S/):</label>
+                      <label className="text-[11px] text-stone-400 block mb-1">Precio Venta (S/):</label>
                       <input
                         type="number"
                         step="0.10"
@@ -1950,45 +1935,45 @@
                         placeholder="0.00"
                         value={formProducto.precio_venta}
                         onChange={(e) => setFormProducto({ ...formProducto, precio_venta: e.target.value })}
-                        className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-1.5 text-xs text-white"
+                        className="w-full bg-stone-950 border border-stone-800 rounded-lg px-3 py-1.5 text-xs text-white"
                       />
                     </div>
                     <div>
-                      <label className="text-[11px] text-slate-400 block mb-1">Precio Costo (S/):</label>
+                      <label className="text-[11px] text-stone-400 block mb-1">Precio Costo (S/):</label>
                       <input
                         type="number"
                         step="0.10"
                         placeholder="0.00"
                         value={formProducto.precio_costo}
                         onChange={(e) => setFormProducto({ ...formProducto, precio_costo: e.target.value })}
-                        className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-1.5 text-xs text-white"
+                        className="w-full bg-stone-950 border border-stone-800 rounded-lg px-3 py-1.5 text-xs text-white"
                       />
                     </div>
                   </div>
                   <div className="grid grid-cols-2 gap-2">
                     <div>
-                      <label className="text-[11px] text-slate-400 block mb-1">Código EAN / Barras:</label>
+                      <label className="text-[11px] text-stone-400 block mb-1">Código EAN / Barras:</label>
                       <input
                         type="text"
                         placeholder="Opcional"
                         value={formProducto.cod_ean}
                         onChange={(e) => setFormProducto({ ...formProducto, cod_ean: e.target.value })}
-                        className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-1.5 text-xs text-white"
+                        className="w-full bg-stone-950 border border-stone-800 rounded-lg px-3 py-1.5 text-xs text-white"
                       />
                     </div>
                     <div>
-                      <label className="text-[11px] text-slate-400 block mb-1">Unidad:</label>
+                      <label className="text-[11px] text-stone-400 block mb-1">Unidad:</label>
                       <select
                         value={formProducto.unidad}
                         onChange={(e) => setFormProducto({ ...formProducto, unidad: e.target.value })}
-                        className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-1.5 text-xs text-white"
+                        className="w-full bg-stone-950 border border-stone-800 rounded-lg px-3 py-1.5 text-xs text-white"
                       >
                         <option value="UND">Unidad (UND)</option>
                         <option value="KG">Kilogramo (KG)</option>
                       </select>
                     </div>
                   </div>
-                  <button type="submit" className="w-full py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs rounded-xl shadow mt-2">
+                  <button type="submit" className="w-full py-2.5 bg-orange-600 hover:bg-orange-500 text-white font-bold text-xs rounded-xl shadow mt-2">
                     Guardar Producto
                   </button>
                 </form>
@@ -1999,10 +1984,10 @@
           {/* Modal: Entrada de Mercadería (Compras) */}
           {modalEntradaMercaderia && (
             <div className="fixed inset-0 bg-black/85 flex items-center justify-center z-50 p-4">
-              <div className="bg-slate-800 border border-slate-700 rounded-2xl max-w-lg w-full p-5 shadow-2xl space-y-3">
+              <div className="bg-stone-900 border border-stone-800 rounded-2xl max-w-lg w-full p-5 shadow-2xl space-y-3">
                 <div className="flex justify-between items-center">
                   <h3 className="text-base font-bold text-white">📥 Entrada de Mercadería (Compras)</h3>
-                  <button onClick={() => setModalEntradaMercaderia(false)} className="text-slate-400 hover:text-white">✕</button>
+                  <button onClick={() => setModalEntradaMercaderia(false)} className="text-stone-400 hover:text-white">✕</button>
                 </div>
 
                 <div className="grid grid-cols-2 gap-2">
@@ -2011,25 +1996,25 @@
                     placeholder="Proveedor / Distribuidor"
                     value={compraCabecera.proveedor}
                     onChange={(e) => setCompraCabecera({ ...compraCabecera, proveedor: e.target.value })}
-                    className="bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1.5 text-xs text-white"
+                    className="bg-stone-950 border border-stone-800 rounded-lg px-2.5 py-1.5 text-xs text-white"
                   />
                   <input
                     type="text"
                     placeholder="N° Factura / Guía"
                     value={compraCabecera.nroComprobante}
                     onChange={(e) => setCompraCabecera({ ...compraCabecera, nroComprobante: e.target.value })}
-                    className="bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1.5 text-xs text-white"
+                    className="bg-stone-950 border border-stone-800 rounded-lg px-2.5 py-1.5 text-xs text-white"
                   />
                 </div>
 
                 {/* Agregar Ítem */}
-                <div className="p-3 bg-slate-900 rounded-xl border border-slate-750 space-y-2">
-                  <span className="text-[11px] font-bold text-indigo-400 block">Agregar Producto a la Entrada:</span>
+                <div className="p-3 bg-stone-950 rounded-xl border border-stone-800 space-y-2">
+                  <span className="text-[11px] font-bold text-amber-400 block">Agregar Producto a la Entrada:</span>
                   <div className="grid grid-cols-3 gap-2">
                     <select
                       value={compraItemTemp.productoId}
                       onChange={(e) => setCompraItemTemp({ ...compraItemTemp, productoId: e.target.value })}
-                      className="col-span-3 bg-slate-800 border border-slate-700 rounded-lg px-2.5 py-1.5 text-xs text-white"
+                      className="col-span-3 bg-stone-900 border border-stone-800 rounded-lg px-2.5 py-1.5 text-xs text-white"
                     >
                       <option value="">-- Seleccionar Producto --</option>
                       {productos.map(p => (
@@ -2041,7 +2026,7 @@
                       placeholder="Cantidad"
                       value={compraItemTemp.cantidad}
                       onChange={(e) => setCompraItemTemp({ ...compraItemTemp, cantidad: e.target.value })}
-                      className="bg-slate-800 border border-slate-700 rounded-lg px-2 py-1 text-xs text-white"
+                      className="bg-stone-900 border border-stone-800 rounded-lg px-2 py-1 text-xs text-white"
                     />
                     <input
                       type="number"
@@ -2049,12 +2034,12 @@
                       placeholder="Costo Unit."
                       value={compraItemTemp.costoUnitario}
                       onChange={(e) => setCompraItemTemp({ ...compraItemTemp, costoUnitario: e.target.value })}
-                      className="bg-slate-800 border border-slate-700 rounded-lg px-2 py-1 text-xs text-white"
+                      className="bg-stone-900 border border-stone-800 rounded-lg px-2 py-1 text-xs text-white"
                     />
                     <button
                       type="button"
                       onClick={agregarItemEntradaMercaderia}
-                      className="bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs rounded-lg py-1"
+                      className="bg-amber-600 hover:bg-amber-500 text-white font-bold text-xs rounded-lg py-1"
                     >
                       + Añadir
                     </button>
@@ -2064,21 +2049,21 @@
                 {/* Lista de Ítems Comprados */}
                 <div className="max-h-40 overflow-y-auto space-y-1">
                   {compraItems.map((it, idx) => (
-                    <div key={idx} className="flex justify-between items-center text-xs bg-slate-900 p-2 rounded-lg border border-slate-800">
+                    <div key={idx} className="flex justify-between items-center text-xs bg-stone-950 p-2 rounded-lg border border-stone-900">
                       <span>{it.cantidad}x {it.descripcion} (S/ {it.costoUnitario.toFixed(2)})</span>
-                      <span className="font-bold text-emerald-400">S/ {it.subtotal.toFixed(2)}</span>
+                      <span className="font-bold text-orange-400">S/ {it.subtotal.toFixed(2)}</span>
                     </div>
                   ))}
                 </div>
 
-                <div className="flex justify-between items-center pt-2 border-t border-slate-700">
+                <div className="flex justify-between items-center pt-2 border-t border-stone-800">
                   <span className="font-bold text-sm">Total Compra:</span>
-                  <span className="font-black text-lg text-emerald-400">
+                  <span className="font-black text-lg text-orange-400">
                     S/ {compraItems.reduce((a, c) => a + c.subtotal, 0).toFixed(2)}
                   </span>
                 </div>
 
-                <button onClick={guardarEntradaMercaderia} className="w-full py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs rounded-xl shadow">
+                <button onClick={guardarEntradaMercaderia} className="w-full py-2.5 bg-orange-600 hover:bg-orange-500 text-white font-bold text-xs rounded-xl shadow">
                   Confirmar Entrada de Mercadería
                 </button>
               </div>
@@ -2088,51 +2073,51 @@
           {/* Modal: Cobrar Deudas / Créditos */}
           {modalCobrarDeudas && (
             <div className="fixed inset-0 bg-black/85 flex items-center justify-center z-50 p-4">
-              <div className="bg-slate-800 border border-slate-700 rounded-2xl max-w-md w-full p-5 shadow-2xl space-y-3">
+              <div className="bg-stone-900 border border-stone-800 rounded-2xl max-w-md w-full p-5 shadow-2xl space-y-3">
                 <div className="flex justify-between items-center">
                   <h3 className="text-base font-bold text-white">💳 Cuentas por Cobrar (Deudas)</h3>
-                  <button onClick={() => setModalCobrarDeudas(false)} className="text-slate-400 hover:text-white">✕</button>
+                  <button onClick={() => setModalCobrarDeudas(false)} className="text-stone-400 hover:text-white">✕</button>
                 </div>
 
                 {deudorSeleccionado ? (
-                  <div className="p-3 bg-slate-900 rounded-xl border border-amber-500/50 space-y-3">
+                  <div className="p-3 bg-stone-950 rounded-xl border border-amber-500/50 space-y-3">
                     <div className="flex justify-between">
                       <span className="font-bold text-xs text-white">👤 {deudorSeleccionado.nombre_completo}</span>
-                      <button onClick={() => setDeudorSeleccionado(null)} className="text-[11px] text-slate-400 underline">Cambiar</button>
+                      <button onClick={() => setDeudorSeleccionado(null)} className="text-[11px] text-stone-400 underline">Cambiar</button>
                     </div>
                     <div className="text-xs">
                       <p>DNI: {deudorSeleccionado.dni}</p>
                       <p className="text-rose-400 font-bold mt-1 text-sm">Deuda Actual: S/ {Number(deudorSeleccionado.saldo_actual).toFixed(2)}</p>
                     </div>
                     <div>
-                      <label className="text-[11px] text-slate-400 block mb-1">Monto a Abonar (S/):</label>
+                      <label className="text-[11px] text-stone-400 block mb-1">Monto a Abonar (S/):</label>
                       <input
                         type="number"
                         step="1.00"
                         placeholder="0.00"
                         value={montoAbonoDeuda}
                         onChange={(e) => setMontoAbonoDeuda(e.target.value)}
-                        className="w-full bg-slate-800 border border-slate-700 rounded-lg p-2 text-sm font-bold text-white focus:outline-none focus:border-emerald-500"
+                        className="w-full bg-stone-900 border border-stone-800 rounded-lg p-2 text-sm font-bold text-white focus:outline-none focus:border-orange-500"
                       />
                     </div>
-                    <button onClick={procesarPagoDeudaCliente} className="w-full py-2 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs rounded-xl shadow">
+                    <button onClick={procesarPagoDeudaCliente} className="w-full py-2 bg-orange-600 hover:bg-orange-500 text-white font-bold text-xs rounded-xl shadow">
                       ✓ Registrar Pago de Deuda
                     </button>
                   </div>
                 ) : (
                   <div className="max-h-60 overflow-y-auto space-y-1.5">
                     {clientesDeudores.length === 0 ? (
-                      <p className="text-xs text-slate-400 text-center py-6">¡No hay clientes con deuda pendiente!</p>
+                      <p className="text-xs text-stone-400 text-center py-6">¡No hay clientes con deuda pendiente!</p>
                     ) : (
                       clientesDeudores.map(cl => (
                         <div
                           key={cl.id}
                           onClick={() => { setDeudorSeleccionado(cl); setMontoAbonoDeuda(String(cl.saldo_actual)); }}
-                          className="flex justify-between items-center p-2.5 bg-slate-900 hover:bg-slate-750 border border-slate-750 rounded-xl cursor-pointer transition"
+                          className="flex justify-between items-center p-2.5 bg-stone-950 hover:bg-stone-800 border border-stone-800 rounded-xl cursor-pointer transition"
                         >
                           <div>
-                            <p className="text-xs font-bold text-slate-200">{cl.nombre_completo}</p>
-                            <p className="text-[10px] text-slate-400">DNI: {cl.dni}</p>
+                            <p className="text-xs font-bold text-stone-200">{cl.nombre_completo}</p>
+                            <p className="text-[10px] text-stone-400">DNI: {cl.dni}</p>
                           </div>
                           <span className="text-sm font-black text-rose-400">S/ {Number(cl.saldo_actual).toFixed(2)}</span>
                         </div>
@@ -2147,64 +2132,64 @@
           {/* Modal: Nuevo Cliente con Límite de Crédito */}
           {modalNuevoCliente && (
             <div className="fixed inset-0 bg-black/85 flex items-center justify-center z-50 p-4">
-              <div className="bg-slate-800 border border-slate-700 rounded-2xl max-w-sm w-full p-5 shadow-2xl space-y-3">
+              <div className="bg-stone-900 border border-stone-800 rounded-2xl max-w-sm w-full p-5 shadow-2xl space-y-3">
                 <div className="flex justify-between items-center">
                   <h3 className="text-base font-bold text-white">👤 Registrar Nuevo Cliente</h3>
-                  <button onClick={() => setModalNuevoCliente(false)} className="text-slate-400 hover:text-white">✕</button>
+                  <button onClick={() => setModalNuevoCliente(false)} className="text-stone-400 hover:text-white">✕</button>
                 </div>
                 <form onSubmit={handleGuardarNuevoCliente} className="space-y-2.5">
                   <div>
-                    <label className="text-[11px] text-slate-400 block mb-1">DNI *</label>
+                    <label className="text-[11px] text-stone-400 block mb-1">DNI *</label>
                     <input
                       type="text"
                       required
                       value={formCliente.dni}
                       onChange={(e) => setFormCliente({ ...formCliente, dni: e.target.value })}
-                      className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-1.5 text-xs text-white"
+                      className="w-full bg-stone-950 border border-stone-800 rounded-lg px-3 py-1.5 text-xs text-white"
                     />
                   </div>
                   <div>
-                    <label className="text-[11px] text-slate-400 block mb-1">Nombre Completo *</label>
+                    <label className="text-[11px] text-stone-400 block mb-1">Nombre Completo *</label>
                     <input
                       type="text"
                       required
                       value={formCliente.nombre}
                       onChange={(e) => setFormCliente({ ...formCliente, nombre: e.target.value })}
-                      className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-1.5 text-xs text-white"
+                      className="w-full bg-stone-950 border border-stone-800 rounded-lg px-3 py-1.5 text-xs text-white"
                     />
                   </div>
                   <div className="grid grid-cols-2 gap-2">
                     <div>
-                      <label className="text-[11px] text-slate-400 block mb-1">Teléfono</label>
+                      <label className="text-[11px] text-stone-400 block mb-1">Teléfono</label>
                       <input
                         type="text"
                         value={formCliente.telefono}
                         onChange={(e) => setFormCliente({ ...formCliente, telefono: e.target.value })}
-                        className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-1.5 text-xs text-white"
+                        className="w-full bg-stone-950 border border-stone-800 rounded-lg px-3 py-1.5 text-xs text-white"
                       />
                     </div>
                     <div>
-                      <label className="text-[11px] text-slate-400 block mb-1">Correo</label>
+                      <label className="text-[11px] text-stone-400 block mb-1">Correo</label>
                       <input
                         type="text"
                         value={formCliente.correo}
                         onChange={(e) => setFormCliente({ ...formCliente, correo: e.target.value })}
-                        className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-1.5 text-xs text-white"
+                        className="w-full bg-stone-950 border border-stone-800 rounded-lg px-3 py-1.5 text-xs text-white"
                       />
                     </div>
                   </div>
                   <div>
-                    <label className="text-[11px] text-slate-400 block mb-1">Límite de Crédito (S/) *</label>
+                    <label className="text-[11px] text-stone-400 block mb-1">Límite de Crédito (S/) *</label>
                     <input
                       type="number"
                       step="10"
                       required
                       value={formCliente.limiteCredito}
                       onChange={(e) => setFormCliente({ ...formCliente, limiteCredito: e.target.value })}
-                      className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-1.5 text-sm font-bold text-emerald-400"
+                      className="w-full bg-stone-950 border border-stone-800 rounded-lg px-3 py-1.5 text-sm font-bold text-orange-400"
                     />
                   </div>
-                  <button type="submit" className="w-full py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs rounded-xl shadow mt-2">
+                  <button type="submit" className="w-full py-2.5 bg-orange-600 hover:bg-orange-500 text-white font-bold text-xs rounded-xl shadow mt-2">
                     Guardar Cliente
                   </button>
                 </form>
@@ -2215,26 +2200,26 @@
           {/* Modal: Historial de Ventas del Día */}
           {modalHistorial && (
             <div className="fixed inset-0 bg-black/85 flex items-center justify-center z-50 p-4">
-              <div className="bg-slate-800 border border-slate-700 rounded-2xl max-w-xl w-full p-5 shadow-2xl space-y-3">
+              <div className="bg-stone-900 border border-stone-800 rounded-2xl max-w-xl w-full p-5 shadow-2xl space-y-3">
                 <div className="flex justify-between items-center">
                   <h3 className="text-base font-bold text-white">📜 Ventas Realizadas Hoy</h3>
-                  <button onClick={() => setModalHistorial(false)} className="text-slate-400 hover:text-white">✕</button>
+                  <button onClick={() => setModalHistorial(false)} className="text-stone-400 hover:text-white">✕</button>
                 </div>
 
                 <div className="grid grid-cols-3 gap-2 text-center text-xs">
-                  <div className="bg-slate-900 p-2 rounded-lg border border-slate-750">
-                    <span className="text-slate-400 block text-[10px]">Total Ventas</span>
+                  <div className="bg-stone-950 p-2 rounded-lg border border-stone-800">
+                    <span className="text-stone-400 block text-[10px]">Total Ventas</span>
                     <span className="font-bold text-sm text-white">{ventasDelDia.filter(v => !v.anulada).length}</span>
                   </div>
-                  <div className="bg-slate-900 p-2 rounded-lg border border-slate-750">
-                    <span className="text-slate-400 block text-[10px]">Efectivo</span>
-                    <span className="font-bold text-sm text-emerald-400">
+                  <div className="bg-stone-950 p-2 rounded-lg border border-stone-800">
+                    <span className="text-stone-400 block text-[10px]">Efectivo</span>
+                    <span className="font-bold text-sm text-orange-400">
                       S/ {ventasDelDia.filter(v => !v.anulada && v.medio_pago === 'EFECTIVO').reduce((a, c) => a + Number(c.total_venta), 0).toFixed(2)}
                     </span>
                   </div>
-                  <div className="bg-slate-900 p-2 rounded-lg border border-slate-750">
-                    <span className="text-slate-400 block text-[10px]">Total General</span>
-                    <span className="font-black text-sm text-emerald-400">
+                  <div className="bg-stone-950 p-2 rounded-lg border border-stone-800">
+                    <span className="text-stone-400 block text-[10px]">Total General</span>
+                    <span className="font-black text-sm text-orange-400">
                       S/ {ventasDelDia.filter(v => !v.anulada).reduce((a, c) => a + Number(c.total_venta), 0).toFixed(2)}
                     </span>
                   </div>
@@ -2242,24 +2227,24 @@
 
                 <div className="max-h-64 overflow-y-auto space-y-1.5">
                   {cargandoHistorial ? (
-                    <p className="text-xs text-center py-6 text-slate-400">Cargando ventas...</p>
+                    <p className="text-xs text-center py-6 text-stone-400">Cargando ventas...</p>
                   ) : ventasDelDia.length === 0 ? (
-                    <p className="text-xs text-center py-6 text-slate-500">No hay ventas registradas hoy.</p>
+                    <p className="text-xs text-center py-6 text-stone-500">No hay ventas registradas hoy.</p>
                   ) : (
                     ventasDelDia.map(v => (
-                      <div key={v.id} className={`flex justify-between items-center p-2.5 rounded-lg border text-xs ${v.anulada ? 'bg-rose-950/30 border-rose-900/60 opacity-60' : 'bg-slate-900 border-slate-800'}`}>
+                      <div key={v.id} className={`flex justify-between items-center p-2.5 rounded-lg border text-xs ${v.anulada ? 'bg-rose-950/30 border-rose-900/60 opacity-60' : 'bg-stone-950 border-stone-900'}`}>
                         <div>
                           <p className="font-bold text-white font-mono">
-                            {v.nro_boleta} - <span className="text-slate-400 font-sans">{v.medio_pago}</span>
+                            {v.nro_boleta} - <span className="text-stone-400 font-sans">{v.medio_pago}</span>
                             {v.anulada && <span className="text-rose-400 font-sans"> (ANULADA)</span>}
                           </p>
-                          <p className="text-[10px] text-slate-400">{new Date(v.fecha_hora).toLocaleTimeString()} · {v.clientes?.nombre_completo || 'Cliente'}</p>
+                          <p className="text-[10px] text-stone-400">{new Date(v.fecha_hora).toLocaleTimeString()} · {v.clientes?.nombre_completo || 'Cliente'}</p>
                         </div>
                         <div className="flex items-center gap-2">
-                          <span className="font-black text-emerald-400 text-sm">S/ {Number(v.total_venta).toFixed(2)}</span>
+                          <span className="font-black text-orange-400 text-sm">S/ {Number(v.total_venta).toFixed(2)}</span>
                           <button
                             onClick={() => setReciboReimpresion(v)}
-                            className="text-[10px] bg-slate-750 hover:bg-slate-700 text-slate-200 px-2 py-1 rounded border border-slate-700"
+                            className="text-[10px] bg-stone-800 hover:bg-stone-800 text-stone-200 px-2 py-1 rounded border border-stone-800"
                             title="Reimprimir boleta"
                           >
                             🖨️
@@ -2285,20 +2270,20 @@
           {/* Modal: Cierre de Caja con Arqueo */}
           {modalCierreCaja && (
             <div className="fixed inset-0 bg-black/85 flex items-center justify-center z-50 p-4">
-              <div className="bg-slate-800 border border-slate-700 rounded-2xl max-w-sm w-full p-5 shadow-2xl space-y-3 text-center">
+              <div className="bg-stone-900 border border-stone-800 rounded-2xl max-w-sm w-full p-5 shadow-2xl space-y-3 text-center">
                 <h3 className="text-base font-bold text-white">🔒 Cierre de Turno y Arqueo de Caja</h3>
-                <p className="text-xs text-slate-300">Cuenta todo el dinero en efectivo que tienes físicamente en la caja e ingrésalo:</p>
+                <p className="text-xs text-stone-300">Cuenta todo el dinero en efectivo que tienes físicamente en la caja e ingrésalo:</p>
                 <input
                   type="number"
                   step="0.50"
                   placeholder="0.00"
                   value={montoConteoEfectivo}
                   onChange={(e) => setMontoConteoEfectivo(e.target.value)}
-                  className="w-full bg-slate-900 border border-slate-700 rounded-xl p-2.5 text-center text-xl font-black text-emerald-400 focus:outline-none"
+                  className="w-full bg-stone-950 border border-stone-800 rounded-xl p-2.5 text-center text-xl font-black text-orange-400 focus:outline-none"
                   autoFocus
                 />
                 <div className="flex gap-2 pt-2">
-                  <button onClick={() => setModalCierreCaja(false)} className="flex-1 py-2 bg-slate-700 text-xs font-semibold rounded-lg">Cancelar</button>
+                  <button onClick={() => setModalCierreCaja(false)} className="flex-1 py-2 bg-stone-800 text-xs font-semibold rounded-lg">Cancelar</button>
                   <button onClick={handleCierreConArqueo} className="flex-1 py-2 bg-rose-600 hover:bg-rose-500 text-white text-xs font-bold rounded-lg shadow">Confirmar Cierre</button>
                 </div>
               </div>
@@ -2308,18 +2293,18 @@
           {/* Modal: Resumen de Arqueo */}
           {resumenCierre && (
             <div className="fixed inset-0 bg-black/85 flex items-center justify-center z-50 p-4">
-              <div className="bg-slate-800 border border-slate-700 rounded-2xl max-w-sm w-full p-5 shadow-2xl space-y-3 text-center">
+              <div className="bg-stone-900 border border-stone-800 rounded-2xl max-w-sm w-full p-5 shadow-2xl space-y-3 text-center">
                 <h3 className="text-base font-bold text-white">📊 Resumen del Turno</h3>
-                <div className="bg-slate-900 p-3 rounded-xl border border-slate-800 text-xs space-y-1.5 text-left font-mono">
+                <div className="bg-stone-950 p-3 rounded-xl border border-stone-900 text-xs space-y-1.5 text-left font-mono">
                   <div className="flex justify-between"><span>Fondo Inicial:</span><span>S/ {resumenCierre.inicio.toFixed(2)}</span></div>
                   <div className="flex justify-between"><span>+ Ventas Efectivo:</span><span>S/ {resumenCierre.ventas.toFixed(2)}</span></div>
-                  <div className="border-t border-slate-800 pt-1 flex justify-between font-bold"><span>= Debería haber:</span><span>S/ {resumenCierre.esperado.toFixed(2)}</span></div>
-                  <div className="flex justify-between text-emerald-400 font-bold"><span>Tú contaste:</span><span>S/ {resumenCierre.real.toFixed(2)}</span></div>
-                  <div className={`border-t border-slate-800 pt-1 flex justify-between font-black text-sm ${resumenCierre.diferencia === 0 ? 'text-emerald-400' : resumenCierre.diferencia > 0 ? 'text-blue-400' : 'text-rose-400'}`}>
+                  <div className="border-t border-stone-900 pt-1 flex justify-between font-bold"><span>= Debería haber:</span><span>S/ {resumenCierre.esperado.toFixed(2)}</span></div>
+                  <div className="flex justify-between text-orange-400 font-bold"><span>Tú contaste:</span><span>S/ {resumenCierre.real.toFixed(2)}</span></div>
+                  <div className={`border-t border-stone-900 pt-1 flex justify-between font-black text-sm ${resumenCierre.diferencia === 0 ? 'text-orange-400' : resumenCierre.diferencia > 0 ? 'text-blue-400' : 'text-rose-400'}`}>
                     <span>Diferencia:</span><span>{resumenCierre.diferencia === 0 ? '✓ Cuadre Perfecto' : `S/ ${resumenCierre.diferencia.toFixed(2)}`}</span>
                   </div>
                 </div>
-                <button onClick={() => setResumenCierre(null)} className="w-full py-2.5 bg-emerald-600 text-white font-bold text-xs rounded-xl">Entendido</button>
+                <button onClick={() => setResumenCierre(null)} className="w-full py-2.5 bg-orange-600 text-white font-bold text-xs rounded-xl">Entendido</button>
               </div>
             </div>
           )}
@@ -2327,20 +2312,20 @@
           {/* Modal: Ventas en Espera */}
           {modalVentasEspera && (
             <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4">
-              <div className="bg-slate-800 border border-slate-700 rounded-2xl max-w-sm w-full p-5 shadow-2xl space-y-3">
+              <div className="bg-stone-900 border border-stone-800 rounded-2xl max-w-sm w-full p-5 shadow-2xl space-y-3">
                 <div className="flex justify-between items-center">
                   <h3 className="text-sm font-bold text-white">⏸️ Ventas en Espera</h3>
-                  <button onClick={() => setModalVentasEspera(false)} className="text-slate-400">✕</button>
+                  <button onClick={() => setModalVentasEspera(false)} className="text-stone-400">✕</button>
                 </div>
                 <div className="space-y-2 max-h-56 overflow-y-auto">
                   {ventasEnEspera.map((v, i) => (
-                    <div key={v.id} className="flex justify-between items-center p-2 bg-slate-900 rounded-lg border border-slate-750 text-xs">
+                    <div key={v.id} className="flex justify-between items-center p-2 bg-stone-950 rounded-lg border border-stone-800 text-xs">
                       <div>
                         <p className="font-bold text-white">🕒 {v.hora} · S/ {v.total.toFixed(2)}</p>
-                        <p className="text-[10px] text-slate-400">{v.items.length} ítems</p>
+                        <p className="text-[10px] text-stone-400">{v.items.length} ítems</p>
                       </div>
                       <div className="flex gap-1.5">
-                        <button onClick={() => recuperarVentaEspera(i)} className="px-2 py-1 bg-emerald-600 text-white text-[10px] font-bold rounded">Recuperar</button>
+                        <button onClick={() => recuperarVentaEspera(i)} className="px-2 py-1 bg-orange-600 text-white text-[10px] font-bold rounded">Recuperar</button>
                         <button onClick={() => borrarVentaEspera(i)} className="px-1.5 py-1 bg-rose-900 text-rose-200 text-[10px] rounded">✕</button>
                       </div>
                     </div>
@@ -2353,17 +2338,17 @@
           {/* Modal: Apertura Turno */}
           {modalTurno && (
             <div className="fixed inset-0 bg-black/85 flex items-center justify-center z-50 p-4">
-              <div className="bg-slate-800 border border-emerald-500/80 rounded-2xl max-w-md w-full p-6 shadow-2xl space-y-4">
+              <div className="bg-stone-900 border border-orange-500/80 rounded-2xl max-w-md w-full p-6 shadow-2xl space-y-4">
                 <h2 className="text-base font-bold text-white">💼 Apertura de Turno de Caja</h2>
                 <div>
-                  <label className="text-xs font-semibold text-slate-300 block mb-1">Cajero:</label>
+                  <label className="text-xs font-semibold text-stone-300 block mb-1">Cajero:</label>
                   <select
                     value={cajeroSeleccionado?.id || ''}
                     onChange={(e) => {
                       const f = listaCajeros.find(c => c.id === e.target.value);
                       if (f) setCajeroSeleccionado(f);
                     }}
-                    className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white"
+                    className="w-full bg-stone-950 border border-stone-800 rounded-xl px-3 py-2 text-xs text-white"
                   >
                     {listaCajeros.map(c => (
                       <option key={c.id} value={c.id}>👤 {c.nombre} ({c.rol || 'Cajero'})</option>
@@ -2371,18 +2356,18 @@
                   </select>
                 </div>
                 <div>
-                  <label className="text-xs font-semibold text-slate-300 block mb-1">Monto Inicial (S/):</label>
+                  <label className="text-xs font-semibold text-stone-300 block mb-1">Monto Inicial (S/):</label>
                   <input
                     type="number"
                     step="1.00"
                     value={montoApertura}
                     onChange={(e) => setMontoApertura(e.target.value)}
-                    className="w-full bg-slate-900 border border-slate-700 rounded-xl p-2.5 text-lg font-bold text-white"
+                    className="w-full bg-stone-950 border border-stone-800 rounded-xl p-2.5 text-lg font-bold text-white"
                   />
                 </div>
                 <div className="flex gap-2">
-                  <button onClick={() => setModalTurno(false)} className="flex-1 py-2 bg-slate-700 text-xs font-semibold rounded-xl">Cancelar</button>
-                  <button onClick={handleAbrirTurno} className="flex-1 py-2 bg-emerald-600 text-white text-xs font-bold rounded-xl shadow">Confirmar y Abrir</button>
+                  <button onClick={() => setModalTurno(false)} className="flex-1 py-2 bg-stone-800 text-xs font-semibold rounded-xl">Cancelar</button>
+                  <button onClick={handleAbrirTurno} className="flex-1 py-2 bg-orange-600 text-white text-xs font-bold rounded-xl shadow">Confirmar y Abrir</button>
                 </div>
               </div>
             </div>
@@ -2391,20 +2376,20 @@
           {/* Modal: Boleta Emitida */}
           {ventaCompletada && (
             <div className="fixed inset-0 bg-black/85 flex items-center justify-center z-50 p-4">
-              <div className="bg-slate-850 border border-slate-700 rounded-2xl max-w-sm w-full p-5 shadow-2xl text-center space-y-3">
-                <div className="w-12 h-12 bg-emerald-500/20 text-emerald-400 rounded-full flex items-center justify-center mx-auto text-xl font-bold">✓</div>
+              <div className="bg-stone-900 border border-stone-800 rounded-2xl max-w-sm w-full p-5 shadow-2xl text-center space-y-3">
+                <div className="w-12 h-12 bg-orange-500/20 text-orange-400 rounded-full flex items-center justify-center mx-auto text-xl font-bold">✓</div>
                 <h3 className="text-lg font-black text-white">¡Venta Exitosa!</h3>
-                <p className="text-xs text-slate-300 font-mono">Boleta: <span className="text-emerald-400 font-bold">{ventaCompletada.nro_boleta}</span></p>
-                <div className="bg-slate-900 p-3 rounded-lg text-left text-xs font-mono space-y-1 text-slate-300 border border-slate-800">
+                <p className="text-xs text-stone-300 font-mono">Boleta: <span className="text-orange-400 font-bold">{ventaCompletada.nro_boleta}</span></p>
+                <div className="bg-stone-950 p-3 rounded-lg text-left text-xs font-mono space-y-1 text-stone-300 border border-stone-900">
                   <p><strong>Pago:</strong> {ventaCompletada.medio_pago}</p>
                   <p><strong>Cliente:</strong> {ventaCompletada.cliente}</p>
-                  <div className="border-t border-slate-700 pt-1 mt-1 flex justify-between font-bold text-sm text-emerald-400">
+                  <div className="border-t border-stone-800 pt-1 mt-1 flex justify-between font-bold text-sm text-orange-400">
                     <span>TOTAL:</span><span>S/ {ventaCompletada.total_venta.toFixed(2)}</span>
                   </div>
                 </div>
                 <div className="flex gap-2">
-                  <button onClick={() => window.print()} className="flex-1 py-2 bg-slate-700 text-white font-bold text-xs rounded-xl">🖨️ Imprimir</button>
-                  <button onClick={() => setVentaCompletada(null)} className="flex-1 py-2 bg-emerald-600 text-white font-bold text-xs rounded-xl shadow">Nueva Venta</button>
+                  <button onClick={() => window.print()} className="flex-1 py-2 bg-stone-800 text-white font-bold text-xs rounded-xl">🖨️ Imprimir</button>
+                  <button onClick={() => setVentaCompletada(null)} className="flex-1 py-2 bg-orange-600 text-white font-bold text-xs rounded-xl shadow">Nueva Venta</button>
                 </div>
               </div>
             </div>
@@ -2423,18 +2408,18 @@
           {/* Modal: Reimpresión de Boleta desde el Historial */}
           {reciboReimpresion && (
             <div className="fixed inset-0 bg-black/85 flex items-center justify-center z-50 p-4">
-              <div className="bg-slate-850 border border-slate-700 rounded-2xl max-w-sm w-full p-5 shadow-2xl text-center space-y-3">
-                <div className="w-12 h-12 bg-slate-700 text-slate-200 rounded-full flex items-center justify-center mx-auto text-xl">🖨️</div>
+              <div className="bg-stone-900 border border-stone-800 rounded-2xl max-w-sm w-full p-5 shadow-2xl text-center space-y-3">
+                <div className="w-12 h-12 bg-stone-800 text-stone-200 rounded-full flex items-center justify-center mx-auto text-xl">🖨️</div>
                 <h3 className="text-lg font-black text-white">Reimpresión de Boleta</h3>
-                <p className="text-xs text-slate-300 font-mono">Boleta: <span className="text-emerald-400 font-bold">{reciboReimpresion.nro_boleta}</span></p>
+                <p className="text-xs text-stone-300 font-mono">Boleta: <span className="text-orange-400 font-bold">{reciboReimpresion.nro_boleta}</span></p>
                 {reciboReimpresion.anulada && (
                   <p className="text-xs font-bold text-rose-400">⚠️ Esta venta está ANULADA</p>
                 )}
-                <div className="bg-slate-900 p-3 rounded-lg text-left text-xs font-mono space-y-1 text-slate-300 border border-slate-800 max-h-56 overflow-y-auto">
+                <div className="bg-stone-950 p-3 rounded-lg text-left text-xs font-mono space-y-1 text-stone-300 border border-stone-900 max-h-56 overflow-y-auto">
                   <p><strong>Pago:</strong> {reciboReimpresion.medio_pago}</p>
                   <p><strong>Cliente:</strong> {reciboReimpresion.clientes?.nombre_completo || 'Cliente'}</p>
                   {(reciboReimpresion.ventas_detalle || []).length > 0 ? (
-                    <div className="border-t border-slate-700 pt-1 mt-1 space-y-0.5">
+                    <div className="border-t border-stone-800 pt-1 mt-1 space-y-0.5">
                       {reciboReimpresion.ventas_detalle.map((d, i) => (
                         <div key={i} className="flex justify-between">
                           <span>{d.productos?.descripcion || 'Producto'} x{d.cantidad}</span>
@@ -2443,15 +2428,15 @@
                       ))}
                     </div>
                   ) : (
-                    <p className="text-slate-500 border-t border-slate-700 pt-1 mt-1">Sin detalle de productos disponible.</p>
+                    <p className="text-stone-500 border-t border-stone-800 pt-1 mt-1">Sin detalle de productos disponible.</p>
                   )}
-                  <div className="border-t border-slate-700 pt-1 mt-1 flex justify-between font-bold text-sm text-emerald-400">
+                  <div className="border-t border-stone-800 pt-1 mt-1 flex justify-between font-bold text-sm text-orange-400">
                     <span>TOTAL:</span><span>S/ {Number(reciboReimpresion.total_venta).toFixed(2)}</span>
                   </div>
                 </div>
                 <div className="flex gap-2">
-                  <button onClick={() => window.print()} className="flex-1 py-2 bg-slate-700 text-white font-bold text-xs rounded-xl">🖨️ Imprimir</button>
-                  <button onClick={() => setReciboReimpresion(null)} className="flex-1 py-2 bg-emerald-600 text-white font-bold text-xs rounded-xl shadow">Cerrar</button>
+                  <button onClick={() => window.print()} className="flex-1 py-2 bg-stone-800 text-white font-bold text-xs rounded-xl">🖨️ Imprimir</button>
+                  <button onClick={() => setReciboReimpresion(null)} className="flex-1 py-2 bg-orange-600 text-white font-bold text-xs rounded-xl shadow">Cerrar</button>
                 </div>
               </div>
             </div>
