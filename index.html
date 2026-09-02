@@ -533,6 +533,7 @@
                 cod_ean: producto.cod_ean,
                 descripcion: producto.descripcion,
                 precioUnitario: precioUnit,
+                precioCosto: Number(producto.precio_costo) || 0,
                 cantidad: cantNum,
                 subtotal: +(cantNum * precioUnit).toFixed(2),
                 unidad: producto.unidad || 'UND'
@@ -1498,6 +1499,10 @@
             const cajeroFinal = cajeroSeleccionado || listaCajeros[0];
 
             let idClienteReal = clienteActual?.id;
+            const utilidadTotal = carrito.reduce((acc, item) => {
+              const costoTotal = (Number(item.precioCosto) || 0) * Number(item.cantidad);
+              return acc + (Number(item.subtotal) - costoTotal);
+            }, 0);
             const payloadVenta = {
               bodega_id: bodegaId,
               turno_caja_id: idTurnoReal || null,
@@ -1506,6 +1511,7 @@
               nro_boleta: correlativo,
               medio_pago: medioPago,
               total_venta: totalVenta,
+              utilidad_total: +utilidadTotal.toFixed(2),
               monto_efectivo: medioPago === 'MIXTO' ? montoEfectivoMixto : 0,
               monto_otro: medioPago === 'MIXTO' ? montoOtroMixto : 0
             };
@@ -1518,13 +1524,21 @@
 
             if (vErr) throw vErr;
 
-            const payloadDetalles = carrito.map(item => ({
-              venta_id: vCreada.id,
-              producto_id: typeof item.productoId === 'string' && item.productoId.length > 10 ? item.productoId : null,
-              cantidad: Number(item.cantidad),
-              precio_unitario: Number(item.precioUnitario),
-              subtotal: Number(item.subtotal)
-            }));
+            const payloadDetalles = carrito.map(item => {
+              const costoTotal = (Number(item.precioCosto) || 0) * Number(item.cantidad);
+              return {
+                bodega_id: bodegaId,
+                venta_id: vCreada.id,
+                producto_id: typeof item.productoId === 'string' && item.productoId.length > 10 ? item.productoId : null,
+                cod_ean: item.cod_ean || '',
+                descripcion: item.descripcion || '',
+                cantidad: Number(item.cantidad),
+                precio_unitario: Number(item.precioUnitario),
+                precio_costo: Number(item.precioCosto) || 0,
+                subtotal: Number(item.subtotal),
+                utilidad: +(Number(item.subtotal) - costoTotal).toFixed(2)
+              };
+            });
 
             const { error: detErr } = await sbClient.from('ventas_detalle').insert(payloadDetalles);
             if (detErr) {
