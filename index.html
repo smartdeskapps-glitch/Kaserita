@@ -850,11 +850,14 @@
         return () => clearTimeout(t);
       }, [busqueda]);
 
-      // Categorías
+      // Categorías: en el filtro solo se muestran las que ya tienen al menos
+      // un producto cargado (la lista completa de categoriasDB se sigue
+      // usando en los formularios de Nuevo/Editar Producto).
       const categorias = useMemo(() => {
-        const extra = new Set(productos.map(p => p.categoria).filter(Boolean));
-        categoriasDB.forEach(c => extra.delete(c));
-        return ['TODOS', ...categoriasDB, ...Array.from(extra)];
+        const usadas = new Set(productos.map(p => p.categoria).filter(Boolean));
+        const enOrden = categoriasDB.filter(c => usadas.has(c));
+        const extra = Array.from(usadas).filter(c => !categoriasDB.includes(c));
+        return ['TODOS', ...enOrden, ...extra];
       }, [productos, categoriasDB]);
 
       const productosFiltrados = useMemo(() => {
