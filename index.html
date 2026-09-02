@@ -306,6 +306,7 @@
       const [boletasDeudor, setBoletasDeudor] = useState([]);
       const [cargandoDetalleDeudor, setCargandoDetalleDeudor] = useState(false);
       const [montoAbonoDeuda, setMontoAbonoDeuda] = useState('');
+      const [mostrarHistorialCompletoDeuda, setMostrarHistorialCompletoDeuda] = useState(false);
 
       // --- Módulo: Nuevo Producto (Catálogo) ---
       const [modalNuevoProducto, setModalNuevoProducto] = useState(false);
@@ -320,7 +321,7 @@
       });
 
       // --- Módulo: Inventario Inicial (carga de varios productos a la vez) ---
-      const filaInventarioVacia = () => ({ descripcion: '', cod_ean: '', categoria: 'Abarrotes', precio_costo: '', precio_venta: '', unidad: 'UND', stock_actual: '' });
+      const filaInventarioVacia = () => ({ descripcion: '', cod_ean: '', categoria: 'Abarrotes', precio_costo: '', precio_venta: '', unidad: 'UND', stock_actual: '', productoExistenteId: null });
       const [modalInventarioInicial, setModalInventarioInicial] = useState(false);
       const [filasInventario, setFilasInventario] = useState([filaInventarioVacia()]);
       const [guardandoInventario, setGuardandoInventario] = useState(false);
@@ -495,6 +496,29 @@
         return productos.filter(p => p.categoria === categoriaFiltro);
       }, [productos, categoriaFiltro]);
 
+      // Como los abonos se descuentan del saldo total del cliente (no boleta por
+      // boleta), acá se marcan como "pagadas" las boletas más antiguas hasta
+      // cubrir lo ya abonado, asumiendo que los pagos cubren primero la deuda
+      // más vieja (FIFO). Así el detalle refleja lo que realmente se debe, no
+      // el total histórico de todo lo comprado a crédito.
+      const boletasDeudorConEstado = useMemo(() => {
+        if (!deudorSeleccionado) return [];
+        const ordenadasAsc = [...boletasDeudor].sort((a, b) => new Date(a.fecha_hora) - new Date(b.fecha_hora));
+        const totalHistorico = ordenadasAsc.reduce((acc, b) => acc + Number(b.total_venta), 0);
+        const montoYaPagado = Math.max(0, +(totalHistorico - Number(deudorSeleccionado.saldo_actual)).toFixed(2));
+        let acumulado = 0;
+        const conEstado = ordenadasAsc.map((b) => {
+          acumulado += Number(b.total_venta);
+          return { ...b, pagada: acumulado <= montoYaPagado + 0.01 };
+        });
+        return conEstado.sort((a, b) => new Date(b.fecha_hora) - new Date(a.fecha_hora));
+      }, [boletasDeudor, deudorSeleccionado]);
+
+      const boletasPendientesDeuda = useMemo(
+        () => boletasDeudorConEstado.filter((b) => !b.pagada),
+        [boletasDeudorConEstado]
+      );
+
       // ==========================================
       // SELECCIÓN Y CANTIDAD / BALANZA DE PRODUCTO
       // ==========================================
@@ -612,9 +636,15 @@
 
         if (modoEscaner === 'inventario') {
           if (filaEscaneandoIndex !== null) {
-            actualizarFilaInventario(filaEscaneandoIndex, 'cod_ean', codigoLimpio);
+            actualizarCodigoEanFila(filaEscaneandoIndex, codigoLimpio);
+            const encontrado = buscarProductoExistente(codigoLimpio);
+            notificar(
+              encontrado
+                ? `Producto existente encontrado: ${encontrado.descripcion}`
+                : `Código capturado: ${codigoLimpio} (producto nuevo)`,
+              'success'
+            );
           }
-          notificar(`Código capturado: ${codigoLimpio}`, 'success');
           setModalEscaner(false);
           return;
         }
@@ -968,6 +998,7 @@
         setDeudorSeleccionado(cliente);
         setMontoAbonoDeuda(String(cliente.saldo_actual));
         setBoletasDeudor([]);
+        setMostrarHistorialCompletoDeuda(false);
         if (!sbClient) return;
         setCargandoDetalleDeudor(true);
         try {
@@ -1046,7 +1077,7 @@
 
       const descargarEstadoCuenta = () => {
         if (!deudorSeleccionado) return;
-        const doc = generarPDFEstadoCuenta(deudorSeleccionado, boletasDeudor);
+        const doc = generarPDFEstadoCuenta(deudorSeleccionado, boletasPendientesDeuda);
         doc.save(`Estado_Cuenta_${deudorSeleccionado.dni}.pdf`);
       };
 
@@ -1054,7 +1085,7 @@
       // en desktop, donde no se puede adjuntar archivos así, descarga el PDF y abre
       // WhatsApp Web con el chat listo para adjuntarlo manualmente.
       const enviarEstadoCuentaWhatsApp = async (cliente) => {
-        const doc = generarPDFEstadoCuenta(cliente, boletasDeudor);
+        const doc = generarPDFEstadoCuenta(cliente, boletasPendientesDeuda);
         const nombreArchivo = `Estado_Cuenta_${cliente.dni}.pdf`;
         const blob = doc.output('blob');
 
@@ -1133,6 +1164,57 @@
         setFilasInventario((prev) => prev.map((fila, i) => (i === index ? { ...fila, [campo]: valor } : fila)));
       };
 
+      // Busca en el catálogo ya cargado un producto por EAN exacto o por
+      // coincidencia parcial de descripción (para el buscador/autocompletar).
+      const buscarProductoExistente = (texto) => {
+        const t = (texto || '').trim().toLowerCase();
+        if (!t) return null;
+        return productos.find((p) => (p.cod_ean || '').toLowerCase() === t) || null;
+      };
+
+      const sugerenciasParaFila = (fila) => {
+        const t = fila.descripcion.trim().toLowerCase();
+        if (!t || t.length < 2 || fila.productoExistenteId) return [];
+        return productos.filter((p) => (p.descripcion || '').toLowerCase().includes(t)).slice(0, 5);
+      };
+
+      // Vincula la fila a un producto ya existente: autocompleta sus datos y
+      // cambia el campo de cantidad a "sumar al stock actual" en vez de "stock inicial".
+      const vincularProductoExistenteEnFila = (index, producto) => {
+        setFilasInventario((prev) =>
+          prev.map((fila, i) =>
+            i === index
+              ? {
+                  ...fila,
+                  productoExistenteId: producto.id,
+                  descripcion: producto.descripcion,
+                  cod_ean: producto.cod_ean || '',
+                  categoria: producto.categoria || 'General',
+                  precio_costo: producto.precio_costo != null ? String(producto.precio_costo) : '',
+                  precio_venta: producto.precio_venta != null ? String(producto.precio_venta) : '',
+                  unidad: producto.unidad || 'UND',
+                  stock_actual: ''
+                }
+              : fila
+          )
+        );
+      };
+
+      const desvincularFilaInventario = (index) => {
+        setFilasInventario((prev) => prev.map((fila, i) => (i === index ? filaInventarioVacia() : fila)));
+      };
+
+      // Al cambiar el EAN (tipeado o escaneado), si coincide exacto con un
+      // producto ya registrado, vincula la fila automáticamente a ese producto.
+      const actualizarCodigoEanFila = (index, codigo) => {
+        const encontrado = buscarProductoExistente(codigo);
+        if (encontrado) {
+          vincularProductoExistenteEnFila(index, encontrado);
+        } else {
+          setFilasInventario((prev) => prev.map((fila, i) => (i === index ? { ...fila, cod_ean: codigo, productoExistenteId: null } : fila)));
+        }
+      };
+
       const agregarFilaInventario = () => {
         setFilasInventario((prev) => [...prev, filaInventarioVacia()]);
       };
@@ -1142,34 +1224,61 @@
       };
 
       const guardarInventarioInicial = async () => {
-        const filasValidas = filasInventario.filter((f) => f.descripcion.trim() && f.precio_venta);
-        if (filasValidas.length === 0) {
-          notificar('Completa al menos un producto con descripción y precio de venta.', 'error');
+        const filasNuevas = filasInventario.filter((f) => !f.productoExistenteId && f.descripcion.trim() && f.precio_venta);
+        const filasExistentes = filasInventario.filter((f) => f.productoExistenteId);
+
+        if (filasNuevas.length === 0 && filasExistentes.length === 0) {
+          notificar('Completa al menos un producto con descripción y precio de venta, o selecciona uno existente.', 'error');
           return;
         }
 
         setGuardandoInventario(true);
         try {
-          const payload = filasValidas.map((f) => ({
-            bodega_id: bodegaId,
-            descripcion: f.descripcion.trim(),
-            cod_ean: f.cod_ean.trim() || generarCodigoInterno(),
-            categoria: f.categoria.trim() || 'General',
-            precio_costo: Number(f.precio_costo) || 0,
-            precio_venta: Number(f.precio_venta) || 0,
-            unidad: f.unidad === 'KG' ? 'KG' : 'UND',
-            stock_actual: f.stock_actual === '' ? 0 : Number(f.stock_actual) || 0
-          }));
-
           if (sbClient) {
-            const { error } = await sbClient.from('productos').insert(payload);
-            if (error) throw error;
+            if (filasNuevas.length > 0) {
+              const payloadNuevos = filasNuevas.map((f) => ({
+                bodega_id: bodegaId,
+                descripcion: f.descripcion.trim(),
+                cod_ean: f.cod_ean.trim() || generarCodigoInterno(),
+                categoria: f.categoria.trim() || 'General',
+                precio_costo: Number(f.precio_costo) || 0,
+                precio_venta: Number(f.precio_venta) || 0,
+                unidad: f.unidad === 'KG' ? 'KG' : 'UND',
+                stock_actual: f.stock_actual === '' ? 0 : Number(f.stock_actual) || 0
+              }));
+              const { error } = await sbClient.from('productos').insert(payloadNuevos);
+              if (error) throw error;
+            }
+
+            // Productos ya existentes: suma la cantidad ingresada al stock actual
+            // y de paso actualiza precios por si cambiaron.
+            for (const f of filasExistentes) {
+              const { data: prodActual } = await sbClient
+                .from('productos')
+                .select('stock_actual')
+                .eq('id', f.productoExistenteId)
+                .single();
+              const stockPrevio = prodActual && prodActual.stock_actual !== null ? Number(prodActual.stock_actual) : 0;
+              const cantidadASumar = Number(f.stock_actual) || 0;
+              const { error: errUpd } = await sbClient
+                .from('productos')
+                .update({
+                  precio_costo: Number(f.precio_costo) || 0,
+                  precio_venta: Number(f.precio_venta) || 0,
+                  stock_actual: +(stockPrevio + cantidadASumar).toFixed(3)
+                })
+                .eq('id', f.productoExistenteId);
+              if (errUpd) throw errUpd;
+            }
           }
 
           setModalInventarioInicial(false);
           setFilasInventario([filaInventarioVacia()]);
           cargarProductos();
-          notificar(`¡${payload.length} producto(s) agregados a tu inventario!`, 'success');
+          const partes = [];
+          if (filasNuevas.length > 0) partes.push(`${filasNuevas.length} nuevo(s)`);
+          if (filasExistentes.length > 0) partes.push(`${filasExistentes.length} actualizado(s)`);
+          notificar(`¡Listo! ${partes.join(' y ')}.`, 'success');
         } catch (err) {
           notificar(`Error al guardar el inventario: ${err.message}`, 'error');
         } finally {
@@ -2537,8 +2646,13 @@
                 </div>
 
                 <div className="flex-1 overflow-y-auto space-y-2 pr-1">
-                  {filasInventario.map((fila, idx) => (
-                    <div key={idx} className="p-3 bg-stone-950 border border-stone-800 rounded-xl space-y-2 relative">
+                  {filasInventario.map((fila, idx) => {
+                    const esExistente = !!fila.productoExistenteId;
+                    const sugerencias = sugerenciasParaFila(fila);
+                    const claseCampoVinculado = 'bg-stone-900/40 border border-stone-800 rounded-lg px-3 py-1.5 text-xs text-stone-400 cursor-not-allowed';
+                    const claseCampoNormal = 'bg-stone-900 border border-stone-800 rounded-lg px-3 py-1.5 text-xs text-white focus:outline-none focus:border-orange-500';
+                    return (
+                    <div key={idx} className={`p-3 rounded-xl space-y-2 relative border ${esExistente ? 'bg-orange-950/20 border-orange-700/40' : 'bg-stone-950 border-stone-800'}`}>
                       {filasInventario.length > 1 && (
                         <button
                           onClick={() => eliminarFilaInventario(idx)}
@@ -2548,21 +2662,50 @@
                           <i className="fa-solid fa-xmark text-xs"></i>
                         </button>
                       )}
+
+                      {esExistente && (
+                        <div className="flex items-center justify-between text-[10px] font-semibold text-orange-300 pr-6">
+                          <span><i className="fa-solid fa-check-circle mr-1"></i> Producto existente — se sumará al stock</span>
+                          <button type="button" onClick={() => desvincularFilaInventario(idx)} className="underline text-stone-400 hover:text-stone-200">
+                            Quitar vínculo
+                          </button>
+                        </div>
+                      )}
+
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pr-6">
-                        <input
-                          type="text"
-                          placeholder="Descripción del producto *"
-                          value={fila.descripcion}
-                          onChange={(e) => actualizarFilaInventario(idx, 'descripcion', e.target.value)}
-                          className="sm:col-span-2 bg-stone-900 border border-stone-800 rounded-lg px-3 py-1.5 text-xs text-white focus:outline-none focus:border-orange-500"
-                        />
+                        <div className="sm:col-span-2 relative">
+                          <input
+                            type="text"
+                            placeholder="Descripción del producto * (escribe para buscar uno existente)"
+                            value={fila.descripcion}
+                            disabled={esExistente}
+                            onChange={(e) => actualizarFilaInventario(idx, 'descripcion', e.target.value)}
+                            className={`w-full ${esExistente ? claseCampoVinculado : claseCampoNormal}`}
+                          />
+                          {sugerencias.length > 0 && (
+                            <div className="absolute z-10 top-full left-0 right-0 mt-1 bg-stone-800 border border-stone-700 rounded-lg shadow-xl overflow-hidden">
+                              {sugerencias.map((s) => (
+                                <button
+                                  type="button"
+                                  key={s.id}
+                                  onClick={() => vincularProductoExistenteEnFila(idx, s)}
+                                  className="w-full text-left px-3 py-2 text-xs text-stone-200 hover:bg-stone-700 flex items-center justify-between gap-2"
+                                >
+                                  <span className="truncate">{s.descripcion}</span>
+                                  <span className="text-stone-500 shrink-0">S/ {Number(s.precio_venta).toFixed(2)}</span>
+                                </button>
+                              ))}
+                            </div>
+                          )}
+                        </div>
                         <div className="relative">
                           <input
                             type="text"
                             placeholder="Código EAN (opcional)"
                             value={fila.cod_ean}
-                            onChange={(e) => actualizarFilaInventario(idx, 'cod_ean', e.target.value)}
-                            className="w-full bg-stone-900 border border-stone-800 rounded-lg pl-3 pr-9 py-1.5 text-xs text-white focus:outline-none focus:border-orange-500"
+                            disabled={esExistente}
+                            onChange={(e) => actualizarCodigoEanFila(idx, e.target.value)}
+                            className={`w-full pr-9 ${esExistente ? claseCampoVinculado : claseCampoNormal}`}
                           />
                           <button
                             type="button"
@@ -2577,8 +2720,9 @@
                           type="text"
                           placeholder="Categoría"
                           value={fila.categoria}
+                          disabled={esExistente}
                           onChange={(e) => actualizarFilaInventario(idx, 'categoria', e.target.value)}
-                          className="bg-stone-900 border border-stone-800 rounded-lg px-3 py-1.5 text-xs text-white focus:outline-none focus:border-orange-500"
+                          className={esExistente ? claseCampoVinculado : claseCampoNormal}
                         />
                         <input
                           type="number"
@@ -2586,7 +2730,7 @@
                           placeholder="Precio costo (S/)"
                           value={fila.precio_costo}
                           onChange={(e) => actualizarFilaInventario(idx, 'precio_costo', e.target.value)}
-                          className="bg-stone-900 border border-stone-800 rounded-lg px-3 py-1.5 text-xs text-white focus:outline-none focus:border-orange-500"
+                          className={claseCampoNormal}
                         />
                         <input
                           type="number"
@@ -2594,27 +2738,29 @@
                           placeholder="Precio venta (S/) *"
                           value={fila.precio_venta}
                           onChange={(e) => actualizarFilaInventario(idx, 'precio_venta', e.target.value)}
-                          className="bg-stone-900 border border-stone-800 rounded-lg px-3 py-1.5 text-xs text-white focus:outline-none focus:border-orange-500"
+                          className={claseCampoNormal}
                         />
                         <input
                           type="number"
                           step="0.10"
-                          placeholder="Cantidad que tienes ahora (stock)"
+                          placeholder={esExistente ? 'Cantidad a sumar al stock' : 'Cantidad que tienes ahora (stock)'}
                           value={fila.stock_actual}
                           onChange={(e) => actualizarFilaInventario(idx, 'stock_actual', e.target.value)}
-                          className="bg-stone-900 border border-stone-800 rounded-lg px-3 py-1.5 text-xs text-white focus:outline-none focus:border-orange-500"
+                          className={claseCampoNormal}
                         />
                         <select
                           value={fila.unidad}
+                          disabled={esExistente}
                           onChange={(e) => actualizarFilaInventario(idx, 'unidad', e.target.value)}
-                          className="bg-stone-900 border border-stone-800 rounded-lg px-3 py-1.5 text-xs text-white focus:outline-none focus:border-orange-500"
+                          className={esExistente ? claseCampoVinculado : claseCampoNormal}
                         >
                           <option value="UND">Se vende por Unidad (UND)</option>
                           <option value="KG">Se vende por Peso (KG) — balanza</option>
                         </select>
                       </div>
                     </div>
-                  ))}
+                    );
+                  })}
                 </div>
 
                 <div className="shrink-0 space-y-2 pt-1">
@@ -2850,19 +2996,36 @@
                       <p className="text-rose-400 font-bold mt-1 text-sm">Deuda Actual: S/ {Number(deudorSeleccionado.saldo_actual).toFixed(2)}</p>
                     </div>
 
-                    {/* Detalle de boletas a crédito pendientes */}
+                    {/* Detalle de boletas: por defecto solo lo que aún se debe */}
                     <div className="bg-stone-900 rounded-lg border border-stone-800 p-2 max-h-40 overflow-y-auto">
-                      <p className="text-[10px] font-bold text-stone-400 uppercase tracking-wide mb-1.5">Detalle de compras a crédito</p>
+                      <div className="flex items-center justify-between mb-1.5">
+                        <p className="text-[10px] font-bold text-stone-400 uppercase tracking-wide">
+                          {mostrarHistorialCompletoDeuda ? 'Historial completo de compras' : 'Boletas pendientes de pago'}
+                        </p>
+                        {boletasDeudorConEstado.some((b) => b.pagada) && (
+                          <button
+                            type="button"
+                            onClick={() => setMostrarHistorialCompletoDeuda((v) => !v)}
+                            className="text-[10px] text-orange-400 underline shrink-0"
+                          >
+                            {mostrarHistorialCompletoDeuda ? 'Ver solo pendientes' : `Ver historial completo (${boletasDeudorConEstado.length})`}
+                          </button>
+                        )}
+                      </div>
                       {cargandoDetalleDeudor ? (
                         <p className="text-[11px] text-stone-500 text-center py-3">Cargando...</p>
-                      ) : boletasDeudor.length === 0 ? (
+                      ) : boletasDeudorConEstado.length === 0 ? (
                         <p className="text-[11px] text-stone-500 text-center py-3">Sin boletas a crédito registradas.</p>
+                      ) : (mostrarHistorialCompletoDeuda ? boletasDeudorConEstado : boletasPendientesDeuda).length === 0 ? (
+                        <p className="text-[11px] text-emerald-400 text-center py-3">✓ No hay boletas pendientes.</p>
                       ) : (
                         <div className="space-y-2">
-                          {boletasDeudor.map((b) => (
-                            <div key={b.id} className="text-[11px] border-b border-stone-800 last:border-0 pb-1.5 last:pb-0">
+                          {(mostrarHistorialCompletoDeuda ? boletasDeudorConEstado : boletasPendientesDeuda).map((b) => (
+                            <div key={b.id} className={`text-[11px] border-b border-stone-800 last:border-0 pb-1.5 last:pb-0 ${b.pagada ? 'opacity-50' : ''}`}>
                               <div className="flex justify-between font-semibold text-stone-200">
-                                <span className="font-mono">{b.nro_boleta}</span>
+                                <span className="font-mono">
+                                  {b.nro_boleta} {b.pagada && <span className="text-emerald-400 font-sans">(Pagada)</span>}
+                                </span>
                                 <span className="text-orange-400">S/ {Number(b.total_venta).toFixed(2)}</span>
                               </div>
                               <p className="text-stone-500">
