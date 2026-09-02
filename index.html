@@ -53,6 +53,9 @@
   <!-- Lector de código de barras por cámara (sin backend) -->
   <script src="https://cdn.jsdelivr.net/npm/@zxing/library@0.20.0/umd/index.min.js"></script>
 
+  <!-- Generar archivos Excel (.xlsx) reales en el navegador, sin backend -->
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+
   <style>
     body {
       user-select: none;
@@ -125,28 +128,14 @@
       return `INT-${Date.now()}-${contadorCodigoInterno}`;
     };
 
-    // Exporta un arreglo de objetos a un archivo CSV descargable (sin backend).
-    const exportarCSV = (nombreArchivo, filas) => {
+    // Exporta un arreglo de objetos a un archivo Excel (.xlsx) real descargable,
+    // generado en el propio navegador con SheetJS (sin backend).
+    const exportarExcel = (nombreArchivo, filas, nombreHoja = 'Datos') => {
       if (!filas || filas.length === 0) return;
-      const columnas = Object.keys(filas[0]);
-      const escapar = (valor) => {
-        const texto = valor === null || valor === undefined ? '' : String(valor);
-        return `"${texto.replace(/"/g, '""')}"`;
-      };
-      const contenido = [
-        columnas.map(escapar).join(','),
-        ...filas.map((fila) => columnas.map((col) => escapar(fila[col])).join(','))
-      ].join('\r\n');
-
-      const blob = new Blob(['﻿' + contenido], { type: 'text/csv;charset=utf-8;' });
-      const url = URL.createObjectURL(blob);
-      const enlace = document.createElement('a');
-      enlace.href = url;
-      enlace.download = nombreArchivo;
-      document.body.appendChild(enlace);
-      enlace.click();
-      document.body.removeChild(enlace);
-      URL.revokeObjectURL(url);
+      const hoja = XLSX.utils.json_to_sheet(filas);
+      const libro = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(libro, hoja, nombreHoja);
+      XLSX.writeFile(libro, nombreArchivo);
     };
 
     // ID fijo usado únicamente por "Modo Demo Local" (no corresponde a ninguna
@@ -1349,16 +1338,16 @@
         );
       };
 
-      const exportarClientesCSV = () => {
+      const exportarClientesExcel = () => {
         const filas = clientesLista.map((c) => ({
           DNI: c.dni,
           Nombre: c.nombre_completo,
           Telefono: c.telefono || '',
           Correo: c.correo || '',
-          'Limite de Credito': Number(c.limite_credito || 0).toFixed(2),
-          'Saldo Actual (Deuda)': Number(c.saldo_actual || 0).toFixed(2)
+          'Limite de Credito': Number(c.limite_credito || 0),
+          'Saldo Actual (Deuda)': Number(c.saldo_actual || 0)
         }));
-        exportarCSV(`Clientes_${bodegaNombre}.csv`, filas);
+        exportarExcel(`Clientes_${bodegaNombre}.xlsx`, filas, 'Clientes');
       };
 
       const abrirEdicionCliente = (cliente) => {
@@ -1998,17 +1987,17 @@
         cargarHistorialPorRango(hoy, hoy);
       };
 
-      const exportarVentasCSV = () => {
+      const exportarVentasExcel = () => {
         const filas = ventasDelDia.map((v) => ({
           Boleta: v.nro_boleta,
           Fecha: new Date(v.fecha_hora).toLocaleString('es-PE'),
           Cliente: v.clientes?.nombre_completo || 'Desconocido',
           'Medio de Pago': v.medio_pago,
-          Total: Number(v.total_venta).toFixed(2),
-          Utilidad: Number(v.utilidad_total || 0).toFixed(2),
+          Total: Number(v.total_venta),
+          Utilidad: Number(v.utilidad_total || 0),
           Estado: v.anulada ? 'Anulada' : 'Válida'
         }));
-        exportarCSV(`Ventas_${fechaInicioHistorial}_a_${fechaFinHistorial}.csv`, filas);
+        exportarExcel(`Ventas_${fechaInicioHistorial}_a_${fechaFinHistorial}.xlsx`, filas, 'Ventas');
       };
 
       const anularVentaHoy = async (venta) => {
@@ -4200,11 +4189,11 @@
                       />
                       {clientesLista.length > 0 && (
                         <button
-                          onClick={exportarClientesCSV}
+                          onClick={exportarClientesExcel}
                           className="px-3 py-2 bg-stone-800 hover:bg-stone-700 text-stone-300 text-xs font-semibold rounded-xl flex items-center gap-1.5"
-                          title="Exportar a CSV/Excel"
+                          title="Exportar a Excel"
                         >
-                          <i className="fa-solid fa-file-csv"></i>
+                          <i className="fa-solid fa-file-excel"></i>
                         </button>
                       )}
                     </div>
@@ -4359,11 +4348,11 @@
                   />
                   {esAdmin && ventasDelDia.length > 0 && (
                     <button
-                      onClick={exportarVentasCSV}
+                      onClick={exportarVentasExcel}
                       className="px-3 py-1.5 bg-stone-800 hover:bg-stone-700 text-stone-300 text-xs font-semibold rounded-lg flex items-center gap-1.5"
-                      title="Exportar a CSV/Excel"
+                      title="Exportar a Excel"
                     >
-                      <i className="fa-solid fa-file-csv"></i> CSV
+                      <i className="fa-solid fa-file-excel"></i> Excel
                     </button>
                   )}
                 </div>
