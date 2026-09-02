@@ -346,6 +346,10 @@
       // --- Lector de Código de Barras por Cámara ---
       const [modalEscaner, setModalEscaner] = useState(false);
       const [errorEscaner, setErrorEscaner] = useState('');
+      // 'venta': agrega el producto encontrado al carrito (uso normal en caja).
+      // 'inventario': rellena el campo EAN de una fila del formulario de inventario.
+      const [modoEscaner, setModoEscaner] = useState('venta');
+      const [filaEscaneandoIndex, setFilaEscaneandoIndex] = useState(null);
       const html5QrRef = useRef(null);
       const ultimoEscaneoRef = useRef({ codigo: '', hora: 0 });
 
@@ -570,13 +574,29 @@
         const codigoLimpio = (codigo || '').trim();
         if (!codigoLimpio) return;
 
-        // Evita agregar el mismo producto varias veces mientras la cámara
+        // Evita procesar el mismo código varias veces mientras la cámara
         // sigue enfocando el mismo código de barras.
         const ahora = Date.now();
         if (ultimoEscaneoRef.current.codigo === codigoLimpio && ahora - ultimoEscaneoRef.current.hora < 2500) {
           return;
         }
         ultimoEscaneoRef.current = { codigo: codigoLimpio, hora: ahora };
+
+        if (modoEscaner === 'inventario') {
+          if (filaEscaneandoIndex !== null) {
+            actualizarFilaInventario(filaEscaneandoIndex, 'cod_ean', codigoLimpio);
+          }
+          notificar(`Código capturado: ${codigoLimpio}`, 'success');
+          setModalEscaner(false);
+          return;
+        }
+
+        if (modoEscaner === 'producto-simple') {
+          setFormProducto((prev) => ({ ...prev, cod_ean: codigoLimpio }));
+          notificar(`Código capturado: ${codigoLimpio}`, 'success');
+          setModalEscaner(false);
+          return;
+        }
 
         const encontrado = productos.find((p) => (p.cod_ean || '') === codigoLimpio);
         if (encontrado) {
@@ -587,18 +607,59 @@
         }
       };
 
+      const abrirEscanerParaVenta = () => {
+        setModoEscaner('venta');
+        setFilaEscaneandoIndex(null);
+        setModalEscaner(true);
+      };
+
+      const abrirEscanerParaFilaInventario = (idx) => {
+        setModoEscaner('inventario');
+        setFilaEscaneandoIndex(idx);
+        setModalEscaner(true);
+      };
+
       // Inicia/detiene la cámara cuando se abre o cierra el modal del escáner.
       useEffect(() => {
         if (!modalEscaner) return;
         setErrorEscaner('');
 
-        const scanner = new Html5Qrcode('lector-camara-view');
+        // Formatos más comunes en productos de tienda/bodega: EAN-13/8 y UPC,
+        // más QR/Code128 por si acaso. Limitar los formatos mejora bastante la
+        // velocidad y precisión de detección de códigos de barras 1D.
+        const formatos = window.Html5QrcodeSupportedFormats
+          ? [
+              window.Html5QrcodeSupportedFormats.EAN_13,
+              window.Html5QrcodeSupportedFormats.EAN_8,
+              window.Html5QrcodeSupportedFormats.UPC_A,
+              window.Html5QrcodeSupportedFormats.UPC_E,
+              window.Html5QrcodeSupportedFormats.CODE_128,
+              window.Html5QrcodeSupportedFormats.CODE_39,
+              window.Html5QrcodeSupportedFormats.QR_CODE
+            ]
+          : undefined;
+
+        const scanner = new Html5Qrcode('lector-camara-view', {
+          formatsToSupport: formatos,
+          verbose: false,
+          // Usa el detector nativo de códigos de barras del celular cuando está
+          // disponible (Android Chrome): es mucho más confiable que el
+          // decodificador puro en JavaScript para códigos EAN/UPC.
+          experimentalFeatures: { useBarCodeDetectorIfSupported: true }
+        });
         html5QrRef.current = scanner;
 
         scanner
           .start(
             { facingMode: 'environment' },
-            { fps: 10, qrbox: { width: 260, height: 160 } },
+            {
+              fps: 15,
+              qrbox: (viewfinderWidth, viewfinderHeight) => {
+                const ancho = Math.floor(Math.min(viewfinderWidth, viewfinderHeight) * 0.9);
+                return { width: ancho, height: Math.floor(ancho * 0.5) };
+              },
+              aspectRatio: 1.4
+            },
             (decodedText) => handleCodigoEscaneado(decodedText),
             () => {} // ignora fotogramas sin código detectado
           )
@@ -1789,7 +1850,7 @@
                   <i className="fa-solid fa-magnifying-glass"></i>
                 </button>
                 <button
-                  onClick={() => setModalEscaner(true)}
+                  onClick={abrirEscanerParaVenta}
                   className="px-4 py-2.5 bg-orange-500 hover:bg-orange-400 text-white text-xs font-semibold rounded-xl shadow-lg shadow-orange-500/20 transition"
                   title="Escanear código de barras con la cámara"
                 >
@@ -2338,13 +2399,23 @@
                           onChange={(e) => actualizarFilaInventario(idx, 'descripcion', e.target.value)}
                           className="sm:col-span-2 bg-stone-900 border border-stone-800 rounded-lg px-3 py-1.5 text-xs text-white focus:outline-none focus:border-orange-500"
                         />
-                        <input
-                          type="text"
-                          placeholder="Código EAN (opcional)"
-                          value={fila.cod_ean}
-                          onChange={(e) => actualizarFilaInventario(idx, 'cod_ean', e.target.value)}
-                          className="bg-stone-900 border border-stone-800 rounded-lg px-3 py-1.5 text-xs text-white focus:outline-none focus:border-orange-500"
-                        />
+                        <div className="relative">
+                          <input
+                            type="text"
+                            placeholder="Código EAN (opcional)"
+                            value={fila.cod_ean}
+                            onChange={(e) => actualizarFilaInventario(idx, 'cod_ean', e.target.value)}
+                            className="w-full bg-stone-900 border border-stone-800 rounded-lg pl-3 pr-9 py-1.5 text-xs text-white focus:outline-none focus:border-orange-500"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => abrirEscanerParaFilaInventario(idx)}
+                            className="absolute right-1.5 top-1/2 -translate-y-1/2 w-6 h-6 flex items-center justify-center text-stone-400 hover:text-orange-400 transition"
+                            title="Escanear código de barras"
+                          >
+                            <i className="fa-solid fa-camera text-xs"></i>
+                          </button>
+                        </div>
                         <input
                           type="text"
                           placeholder="Categoría"
@@ -2452,13 +2523,23 @@
                   <div className="grid grid-cols-2 gap-2">
                     <div>
                       <label className="text-[11px] text-stone-400 block mb-1">Código EAN / Barras:</label>
-                      <input
-                        type="text"
-                        placeholder="Opcional"
-                        value={formProducto.cod_ean}
-                        onChange={(e) => setFormProducto({ ...formProducto, cod_ean: e.target.value })}
-                        className="w-full bg-stone-950 border border-stone-800 rounded-lg px-3 py-1.5 text-xs text-white"
-                      />
+                      <div className="relative">
+                        <input
+                          type="text"
+                          placeholder="Opcional"
+                          value={formProducto.cod_ean}
+                          onChange={(e) => setFormProducto({ ...formProducto, cod_ean: e.target.value })}
+                          className="w-full bg-stone-950 border border-stone-800 rounded-lg pl-3 pr-9 py-1.5 text-xs text-white"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => { setModoEscaner('producto-simple'); setModalEscaner(true); }}
+                          className="absolute right-1.5 top-1/2 -translate-y-1/2 w-6 h-6 flex items-center justify-center text-stone-400 hover:text-orange-400 transition"
+                          title="Escanear código de barras"
+                        >
+                          <i className="fa-solid fa-camera text-xs"></i>
+                        </button>
+                      </div>
                     </div>
                     <div>
                       <label className="text-[11px] text-stone-400 block mb-1">Unidad:</label>
