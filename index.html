@@ -780,6 +780,17 @@
         }
       }, [sesion, bodegaId, sbClient]);
 
+      // Filtrado en vivo: mientras se escribe en el buscador, se vuelve a
+      // consultar el catálogo con un pequeño retraso (debounce) para no
+      // disparar una consulta por cada tecla presionada.
+      useEffect(() => {
+        if (!sesion || !bodegaId) return;
+        const t = setTimeout(() => {
+          cargarProductos(busqueda);
+        }, 350);
+        return () => clearTimeout(t);
+      }, [busqueda]);
+
       // Categorías
       const categorias = useMemo(() => {
         const cats = new Set(productos.map(p => p.categoria).filter(Boolean));
@@ -2340,7 +2351,8 @@
         return (
           <div className="flex flex-col items-center justify-center min-h-screen bg-gradient-to-br from-stone-50 via-stone-50 to-orange-100 text-stone-900 p-4 select-none">
             {toast.visible && (
-              <div className={`fixed inset-x-4 bottom-4 md:inset-x-auto md:bottom-auto md:top-6 md:right-6 md:max-w-xs z-50 px-4 py-2.5 rounded-lg shadow-2xl text-xs font-semibold border transition-all animate-bounce ${toast.tipo === 'error' ? 'bg-rose-900 text-rose-100 border-rose-500' : 'bg-orange-900 text-orange-100 border-orange-500'}`}>
+              <div className={`fixed top-6 inset-x-4 md:inset-x-auto md:right-6 md:max-w-xs z-50 flex items-center gap-2.5 px-4 py-3 rounded-xl shadow-xl border-l-4 bg-white text-xs font-semibold ${toast.tipo === 'error' ? 'border-rose-500 text-rose-700' : 'border-emerald-500 text-emerald-700'}`}>
+                <i className={`fa-solid ${toast.tipo === 'error' ? 'fa-circle-exclamation' : 'fa-circle-check'} text-sm shrink-0`}></i>
                 {toast.texto}
               </div>
             )}
@@ -2572,7 +2584,8 @@
         <div className="flex h-screen bg-stone-50 text-stone-900 font-sans select-none overflow-hidden">
           {/* Toast */}
           {toast.visible && (
-            <div className={`fixed inset-x-4 bottom-4 md:inset-x-auto md:bottom-auto md:top-4 md:right-4 md:max-w-xs z-[60] px-4 py-2.5 rounded-lg shadow-2xl text-xs font-semibold border transition-all animate-bounce ${toast.tipo === 'error' ? 'bg-rose-900 text-rose-100 border-rose-500' : 'bg-orange-900 text-orange-100 border-orange-500'}`}>
+            <div className={`fixed top-[4.75rem] inset-x-4 md:top-4 md:inset-x-auto md:right-4 md:max-w-xs z-[60] flex items-center gap-2.5 px-4 py-3 rounded-xl shadow-xl border-l-4 bg-white text-xs font-semibold ${toast.tipo === 'error' ? 'border-rose-500 text-rose-700' : 'border-emerald-500 text-emerald-700'}`}>
+              <i className={`fa-solid ${toast.tipo === 'error' ? 'fa-circle-exclamation' : 'fa-circle-check'} text-sm shrink-0`}></i>
               {toast.texto}
             </div>
           )}
@@ -2647,17 +2660,6 @@
                 >
                   <i className="fa-solid fa-ellipsis"></i>
                 </button>
-                <button
-                  onClick={() => setMostrarResumenMobile(true)}
-                  className="md:hidden relative w-10 h-10 flex items-center justify-center bg-orange-500 rounded-xl text-white shadow-lg shadow-orange-500/25"
-                >
-                  <i className="fa-solid fa-cart-shopping text-sm"></i>
-                  {carrito.length > 0 && (
-                    <span className="absolute -top-1 -right-1 bg-white text-orange-600 rounded-full min-w-[18px] h-[18px] px-1 text-xs flex items-center justify-center font-bold ring-2 ring-stone-100">
-                      {carrito.length}
-                    </span>
-                  )}
-                </button>
               </div>
             </header>
 
@@ -2665,6 +2667,13 @@
               {/* Buscador */}
               <div className="flex gap-2">
                 <div className="relative flex-1">
+                  <button
+                    onClick={abrirEscanerParaVenta}
+                    title="Escanear código de barras con la cámara"
+                    className="absolute left-2 top-1/2 -translate-y-1/2 w-7 h-7 flex items-center justify-center text-stone-500 hover:text-orange-600 hover:bg-orange-50 rounded-lg transition"
+                  >
+                    <i className="fa-solid fa-camera text-sm"></i>
+                  </button>
                   <input
                     ref={inputBusquedaRef}
                     type="text"
@@ -2672,35 +2681,27 @@
                     onChange={(e) => setBusqueda(e.target.value)}
                     onKeyDown={handleKeyDownBusqueda}
                     placeholder="Escanear código o buscar producto..."
-                    className="w-full bg-stone-100 border border-stone-200 text-stone-900 placeholder-stone-500 text-sm rounded-xl pl-10 pr-4 py-2.5 focus:outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500 transition"
+                    className="w-full bg-stone-100 border border-stone-200 text-stone-900 placeholder-stone-500 text-sm rounded-xl pl-11 pr-9 py-2.5 focus:outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500 transition"
                     autoFocus
                   />
-                  <i className="fa-solid fa-barcode absolute left-4 top-3.5 text-stone-500 text-sm"></i>
+                  {busqueda && (
+                    <button
+                      onClick={() => {
+                        setBusqueda('');
+                        cargarProductos('');
+                      }}
+                      className="absolute right-2 top-1/2 -translate-y-1/2 w-7 h-7 flex items-center justify-center text-stone-500 hover:text-stone-800 rounded-lg transition"
+                    >
+                      ✕
+                    </button>
+                  )}
                 </div>
                 <button
                   onClick={() => cargarProductos(busqueda)}
-                  className="px-4 py-2.5 bg-stone-200 hover:bg-stone-300 text-stone-800 text-xs font-semibold rounded-xl border border-stone-300 transition"
+                  className="hidden md:inline-flex px-4 py-2.5 bg-stone-200 hover:bg-stone-300 text-stone-800 text-xs font-semibold rounded-xl border border-stone-300 transition"
                 >
                   <i className="fa-solid fa-magnifying-glass"></i>
                 </button>
-                <button
-                  onClick={abrirEscanerParaVenta}
-                  className="px-4 py-2.5 bg-orange-500 hover:bg-orange-400 text-white text-xs font-semibold rounded-xl shadow-lg shadow-orange-500/20 transition"
-                  title="Escanear código de barras con la cámara"
-                >
-                  <i className="fa-solid fa-camera"></i>
-                </button>
-                {busqueda && (
-                  <button
-                    onClick={() => {
-                      setBusqueda('');
-                      cargarProductos('');
-                    }}
-                    className="px-3 py-2.5 bg-stone-100 hover:bg-stone-200 text-stone-600 text-xs rounded-xl border border-stone-200"
-                  >
-                    ✕
-                  </button>
-                )}
               </div>
 
               {/* Ventas en Espera como tarjetas de "pedido activo" */}
