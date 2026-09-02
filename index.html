@@ -356,10 +356,14 @@
       const [compraItems, setCompraItems] = useState([]);
       const [compraItemTemp, setCompraItemTemp] = useState({ productoId: '', cantidad: 1, costoUnitario: '' });
 
-      // --- Módulo: Historial de Ventas del Día ---
+      // --- Módulo: Historial de Ventas (por rango de fechas) ---
+      const fechaHoyISO = () => new Date().toISOString().slice(0, 10);
       const [modalHistorial, setModalHistorial] = useState(false);
       const [ventasDelDia, setVentasDelDia] = useState([]);
       const [cargandoHistorial, setCargandoHistorial] = useState(false);
+      const [fechaInicioHistorial, setFechaInicioHistorial] = useState(fechaHoyISO());
+      const [fechaFinHistorial, setFechaFinHistorial] = useState(fechaHoyISO());
+      const [busquedaBoletaHistorial, setBusquedaBoletaHistorial] = useState('');
 
       // --- Cobro / Pagos ---
       const [medioPago, setMedioPago] = useState('EFECTIVO');
@@ -1709,19 +1713,19 @@
       // ==========================================
       // HISTORIAL DE VENTAS DEL DÍA & ANULACIÓN
       // ==========================================
-      const abrirHistorialDelDia = async () => {
-        setModalHistorial(true);
+      const cargarHistorialPorRango = async (desde, hasta) => {
         setCargandoHistorial(true);
         if (sbClient && bodegaId) {
           try {
-            const hoy = new Date();
-            hoy.setHours(0, 0, 0, 0);
+            const inicio = new Date(`${desde}T00:00:00`);
+            const fin = new Date(`${hasta}T23:59:59.999`);
 
             const { data, error } = await sbClient
               .from('ventas')
               .select('*, clientes(nombre_completo), ventas_detalle(*, productos(descripcion))')
               .eq('bodega_id', bodegaId)
-              .gte('fecha_hora', hoy.toISOString())
+              .gte('fecha_hora', inicio.toISOString())
+              .lte('fecha_hora', fin.toISOString())
               .order('fecha_hora', { ascending: false });
 
             if (error) throw error;
@@ -1735,6 +1739,15 @@
         } else {
           setCargandoHistorial(false);
         }
+      };
+
+      const abrirHistorialDelDia = () => {
+        setModalHistorial(true);
+        const hoy = fechaHoyISO();
+        setFechaInicioHistorial(hoy);
+        setFechaFinHistorial(hoy);
+        setBusquedaBoletaHistorial('');
+        cargarHistorialPorRango(hoy, hoy);
       };
 
       const anularVentaHoy = async (venta) => {
@@ -3821,13 +3834,55 @@
             <div className="fixed inset-0 bg-black/85 flex items-center justify-center z-50 p-4">
               <div className="bg-stone-900 border border-stone-800 rounded-2xl max-w-xl w-full p-5 shadow-2xl space-y-3">
                 <div className="flex justify-between items-center">
-                  <h3 className="text-base font-bold text-white">📜 Ventas Realizadas Hoy</h3>
+                  <h3 className="text-base font-bold text-white flex items-center gap-2">
+                    <i className="fa-solid fa-receipt text-orange-400"></i> Historial de Ventas
+                  </h3>
                   <button onClick={() => setModalHistorial(false)} className="text-stone-400 hover:text-white">✕</button>
                 </div>
 
-                <div className="grid grid-cols-3 gap-2 text-center text-xs">
+                <div className="flex flex-wrap items-end gap-2">
+                  <div>
+                    <label className="text-[10px] text-stone-400 block mb-1">Desde:</label>
+                    <input
+                      type="date"
+                      value={fechaInicioHistorial}
+                      onChange={(e) => setFechaInicioHistorial(e.target.value)}
+                      className="bg-stone-950 border border-stone-800 rounded-lg px-2 py-1.5 text-xs text-white"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-[10px] text-stone-400 block mb-1">Hasta:</label>
+                    <input
+                      type="date"
+                      value={fechaFinHistorial}
+                      onChange={(e) => setFechaFinHistorial(e.target.value)}
+                      className="bg-stone-950 border border-stone-800 rounded-lg px-2 py-1.5 text-xs text-white"
+                    />
+                  </div>
+                  <button
+                    onClick={() => cargarHistorialPorRango(fechaInicioHistorial, fechaFinHistorial)}
+                    className="px-3 py-1.5 bg-orange-600 hover:bg-orange-500 text-white text-xs font-semibold rounded-lg"
+                  >
+                    Buscar
+                  </button>
+                  <button
+                    onClick={abrirHistorialDelDia}
+                    className="px-3 py-1.5 bg-stone-800 hover:bg-stone-700 text-stone-300 text-xs font-semibold rounded-lg"
+                  >
+                    Hoy
+                  </button>
+                  <input
+                    type="text"
+                    placeholder="Buscar N° de boleta..."
+                    value={busquedaBoletaHistorial}
+                    onChange={(e) => setBusquedaBoletaHistorial(e.target.value)}
+                    className="flex-1 min-w-[140px] bg-stone-950 border border-stone-800 rounded-lg px-3 py-1.5 text-xs text-white"
+                  />
+                </div>
+
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-center text-xs">
                   <div className="bg-stone-950 p-2 rounded-lg border border-stone-800">
-                    <span className="text-stone-400 block text-[10px]">Total Ventas</span>
+                    <span className="text-stone-400 block text-[10px]">Ventas</span>
                     <span className="font-bold text-sm text-white">{ventasDelDia.filter(v => !v.anulada).length}</span>
                   </div>
                   <div className="bg-stone-950 p-2 rounded-lg border border-stone-800">
@@ -3836,6 +3891,14 @@
                       S/ {ventasDelDia.filter(v => !v.anulada && v.medio_pago === 'EFECTIVO').reduce((a, c) => a + Number(c.total_venta), 0).toFixed(2)}
                     </span>
                   </div>
+                  {esAdmin && (
+                    <div className="bg-stone-950 p-2 rounded-lg border border-emerald-800/40">
+                      <span className="text-stone-400 block text-[10px]">Ganancia</span>
+                      <span className="font-bold text-sm text-emerald-400">
+                        S/ {ventasDelDia.filter(v => !v.anulada).reduce((a, c) => a + Number(c.utilidad_total || 0), 0).toFixed(2)}
+                      </span>
+                    </div>
+                  )}
                   <div className="bg-stone-950 p-2 rounded-lg border border-stone-800">
                     <span className="text-stone-400 block text-[10px]">Total General</span>
                     <span className="font-black text-sm text-orange-400">
@@ -3847,17 +3910,17 @@
                 <div className="max-h-64 overflow-y-auto space-y-1.5">
                   {cargandoHistorial ? (
                     <p className="text-xs text-center py-6 text-stone-400">Cargando ventas...</p>
-                  ) : ventasDelDia.length === 0 ? (
-                    <p className="text-xs text-center py-6 text-stone-500">No hay ventas registradas hoy.</p>
+                  ) : ventasDelDia.filter(v => v.nro_boleta.toLowerCase().includes(busquedaBoletaHistorial.trim().toLowerCase())).length === 0 ? (
+                    <p className="text-xs text-center py-6 text-stone-500">No hay ventas en ese rango.</p>
                   ) : (
-                    ventasDelDia.map(v => (
+                    ventasDelDia.filter(v => v.nro_boleta.toLowerCase().includes(busquedaBoletaHistorial.trim().toLowerCase())).map(v => (
                       <div key={v.id} className={`flex justify-between items-center p-2.5 rounded-lg border text-xs ${v.anulada ? 'bg-rose-950/30 border-rose-900/60 opacity-60' : 'bg-stone-950 border-stone-900'}`}>
                         <div>
                           <p className="font-bold text-white font-mono">
                             {v.nro_boleta} - <span className="text-stone-400 font-sans">{v.medio_pago}</span>
                             {v.anulada && <span className="text-rose-400 font-sans"> (ANULADA)</span>}
                           </p>
-                          <p className="text-[10px] text-stone-400">{new Date(v.fecha_hora).toLocaleTimeString()} · {v.clientes?.nombre_completo || 'Cliente'}</p>
+                          <p className="text-[10px] text-stone-400">{new Date(v.fecha_hora).toLocaleString('es-PE', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })} · {v.clientes?.nombre_completo || 'Cliente'}</p>
                         </div>
                         <div className="flex items-center gap-2">
                           <span className="font-black text-orange-400 text-sm">S/ {Number(v.total_venta).toFixed(2)}</span>
