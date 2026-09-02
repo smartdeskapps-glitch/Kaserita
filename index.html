@@ -7,6 +7,25 @@
   
   <!-- Tailwind CSS CDN -->
   <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['"Plus Jakarta Sans"', 'system-ui', 'sans-serif']
+          }
+        }
+      }
+    }
+  </script>
+
+  <!-- Tipografía -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
+  <!-- Íconos de línea (Font Awesome) -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
 
   <!-- React 18, ReactDOM y Babel Standalone -->
   <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
@@ -23,16 +42,18 @@
     body {
       user-select: none;
       -webkit-user-select: none;
+      font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
+      -webkit-font-smoothing: antialiased;
     }
     ::-webkit-scrollbar {
       width: 6px;
       height: 6px;
     }
     ::-webkit-scrollbar-track {
-      background: #0f172a;
+      background: #0c0a09;
     }
     ::-webkit-scrollbar-thumb {
-      background: #334155;
+      background: #44403c;
       border-radius: 4px;
     }
   </style>
@@ -153,34 +174,45 @@
     // Ícono de la barra lateral de navegación (desktop) / barra inferior (mobile).
     function SidebarIcon({ icon, label, badge, tone = 'default', active = false, onClick }) {
       const toneClasses = tone === 'rose'
-        ? 'text-rose-400 hover:bg-rose-500/10'
+        ? 'text-rose-400 hover:bg-rose-500/10 hover:text-rose-300'
         : tone === 'orange'
-        ? 'text-orange-400 hover:bg-orange-500/10'
+        ? 'text-orange-400 hover:bg-orange-500/10 hover:text-orange-300'
         : active
-        ? 'bg-orange-500 text-white shadow-lg'
-        : 'text-stone-400 hover:bg-stone-800 hover:text-stone-200';
+        ? 'bg-orange-500 text-white shadow-lg shadow-orange-500/25'
+        : 'text-stone-500 hover:bg-stone-800 hover:text-stone-200';
       return (
         <button
           type="button"
           onClick={onClick}
-          title={label}
-          className={`relative w-11 h-11 flex flex-col items-center justify-center rounded-xl text-lg transition ${toneClasses}`}
+          className={`group relative w-11 h-11 flex items-center justify-center rounded-xl transition-all duration-200 ${toneClasses}`}
         >
-          {icon}
+          <i className={`fa-solid ${icon} text-[15px]`}></i>
           {badge > 0 && (
-            <span className="absolute -top-1 -right-1 bg-orange-500 text-white text-[9px] font-black rounded-full w-4 h-4 flex items-center justify-center">
+            <span className="absolute -top-0.5 -right-0.5 bg-orange-500 text-white text-[9px] font-bold rounded-full min-w-[16px] h-4 px-1 flex items-center justify-center ring-2 ring-stone-900">
               {badge}
             </span>
           )}
+          {/* Tooltip al pasar el mouse */}
+          <span className="pointer-events-none absolute left-full ml-3 px-2.5 py-1.5 bg-stone-800 text-stone-100 text-[11px] font-medium rounded-lg whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity shadow-xl border border-stone-700 z-50">
+            {label}
+          </span>
         </button>
       );
     }
 
-    const CATEGORIA_EMOJI = {
-      'Lácteos': '🥛', 'Abarrotes': '🛒', 'Bebidas': '🥤', 'Golosinas': '🍬',
-      'Carnes': '🥩', 'Verduras': '🥦', 'Frescos': '🥚', 'Limpieza': '🧼'
+    // Cada categoría tiene su ícono de línea y un color de acento propio, para que
+    // el catálogo se lea de un vistazo sin depender de fotos de producto.
+    const CATEGORIA_ESTILO = {
+      'Lácteos':   { icono: 'fa-mug-hot',       color: 'text-sky-300',    fondo: 'from-sky-500/20 to-sky-500/5' },
+      'Abarrotes': { icono: 'fa-wheat-awn',     color: 'text-amber-300',  fondo: 'from-amber-500/20 to-amber-500/5' },
+      'Bebidas':   { icono: 'fa-bottle-water',  color: 'text-cyan-300',   fondo: 'from-cyan-500/20 to-cyan-500/5' },
+      'Golosinas': { icono: 'fa-cookie-bite',   color: 'text-pink-300',   fondo: 'from-pink-500/20 to-pink-500/5' },
+      'Carnes':    { icono: 'fa-drumstick-bite',color: 'text-rose-300',   fondo: 'from-rose-500/20 to-rose-500/5' },
+      'Verduras':  { icono: 'fa-carrot',        color: 'text-lime-300',   fondo: 'from-lime-500/20 to-lime-500/5' },
+      'Frescos':   { icono: 'fa-egg',           color: 'text-orange-200', fondo: 'from-orange-400/20 to-orange-400/5' },
+      'Limpieza':  { icono: 'fa-pump-soap',     color: 'text-violet-300', fondo: 'from-violet-500/20 to-violet-500/5' }
     };
-    const emojiCategoria = (cat) => CATEGORIA_EMOJI[cat] || '📦';
+    const estiloCategoria = (cat) => CATEGORIA_ESTILO[cat] || { icono: 'fa-box', color: 'text-stone-300', fondo: 'from-stone-600/20 to-stone-600/5' };
 
     function PosApp() {
       // --- Supabase Config ---
@@ -1380,65 +1412,72 @@
           )}
 
           {/* Sidebar de navegación (solo desktop) */}
-          <aside className="hidden md:flex flex-col items-center w-20 bg-stone-900 border-r border-stone-800 py-4 gap-1 shrink-0">
-            <div className="w-11 h-11 bg-orange-500 rounded-2xl flex items-center justify-center text-white font-black text-lg shadow-lg mb-3">
+          <aside className="hidden md:flex flex-col items-center w-[72px] bg-stone-900 border-r border-stone-800/80 py-4 gap-1 shrink-0">
+            <div className="w-11 h-11 bg-gradient-to-br from-orange-400 to-orange-600 rounded-2xl flex items-center justify-center text-white font-extrabold text-lg shadow-lg shadow-orange-500/25 mb-4">
               K
             </div>
-            <SidebarIcon icon="🧾" label="Catálogo" active onClick={() => setMostrarResumenMobile(false)} />
-            <SidebarIcon icon="⏸️" label="En Espera" badge={ventasEnEspera.length} onClick={() => setModalVentasEspera(true)} />
-            <SidebarIcon icon="📜" label="Historial de Ventas" onClick={abrirHistorialDelDia} />
-            <SidebarIcon icon="💳" label="Cuentas por Cobrar" onClick={abrirModuloCobroDeudas} />
-            <SidebarIcon icon="📥" label="Entrada Mercadería" onClick={() => setModalEntradaMercaderia(true)} />
-            <SidebarIcon icon="📦" label="Nuevo Producto" onClick={() => setModalNuevoProducto(true)} />
-            <SidebarIcon icon="👤" label="Nuevo Cliente" onClick={() => setModalNuevoCliente(true)} />
+            <SidebarIcon icon="fa-grip" label="Catálogo" active onClick={() => setMostrarResumenMobile(false)} />
+            <SidebarIcon icon="fa-clock-rotate-left" label="Ventas en Espera" badge={ventasEnEspera.length} onClick={() => setModalVentasEspera(true)} />
+            <SidebarIcon icon="fa-receipt" label="Historial de Ventas" onClick={abrirHistorialDelDia} />
+            <SidebarIcon icon="fa-hand-holding-dollar" label="Cuentas por Cobrar" onClick={abrirModuloCobroDeudas} />
+            <div className="w-8 h-px bg-stone-800 my-2"></div>
+            <SidebarIcon icon="fa-truck-ramp-box" label="Entrada de Mercadería" onClick={() => setModalEntradaMercaderia(true)} />
+            <SidebarIcon icon="fa-box-open" label="Nuevo Producto" onClick={() => setModalNuevoProducto(true)} />
+            <SidebarIcon icon="fa-user-plus" label="Nuevo Cliente" onClick={() => setModalNuevoCliente(true)} />
             <div className="flex-1"></div>
             {turnoActivo ? (
-              <SidebarIcon icon="🔒" label="Cerrar Caja" tone="rose" onClick={() => setModalCierreCaja(true)} />
+              <SidebarIcon icon="fa-lock" label="Cerrar Caja" tone="rose" onClick={() => setModalCierreCaja(true)} />
             ) : (
-              <SidebarIcon icon="🔓" label="Abrir Turno" tone="orange" onClick={() => setModalTurno(true)} />
+              <SidebarIcon icon="fa-lock-open" label="Abrir Turno" tone="orange" onClick={() => setModalTurno(true)} />
             )}
-            <SidebarIcon icon="🚪" label="Salir" onClick={cerrarSesion} />
+            <SidebarIcon icon="fa-right-from-bracket" label="Cerrar Sesión" onClick={cerrarSesion} />
           </aside>
 
           {/* Columna Central: Catálogo (Order Line) */}
           <div className="flex-1 flex flex-col overflow-hidden">
-            <header className="flex items-center justify-between px-4 md:px-5 py-3 bg-stone-900 border-b border-stone-800 gap-3">
-              <div className="min-w-0">
-                <h1 className="text-sm md:text-base font-black text-white leading-tight truncate">{bodegaNombre}</h1>
-                <p className="text-[11px] text-stone-400 truncate">
-                  👤 {cajeroSeleccionado?.nombre || usuarioActivo?.nombre}
-                </p>
+            <header className="flex items-center justify-between px-4 md:px-6 py-3.5 bg-stone-900 border-b border-stone-800/80 gap-3">
+              <div className="flex items-center gap-3 min-w-0">
+                <div className="md:hidden w-9 h-9 bg-gradient-to-br from-orange-400 to-orange-600 rounded-xl flex items-center justify-center text-white font-extrabold text-sm shadow-lg shadow-orange-500/25 shrink-0">
+                  K
+                </div>
+                <div className="min-w-0">
+                  <h1 className="text-sm md:text-base font-bold text-white leading-tight truncate">{bodegaNombre}</h1>
+                  <p className="text-[11px] text-stone-500 truncate flex items-center gap-1.5">
+                    <i className="fa-solid fa-user text-[9px]"></i>
+                    {cajeroSeleccionado?.nombre || usuarioActivo?.nombre}
+                  </p>
+                </div>
               </div>
               <div className="flex items-center gap-2 shrink-0">
                 {turnoActivo ? (
                   <button
                     onClick={() => setModalCierreCaja(true)}
-                    className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[11px] font-semibold bg-orange-500/15 text-orange-300 border border-orange-500/30 hover:bg-orange-500/25 transition"
+                    className="hidden sm:inline-flex items-center gap-2 px-3.5 py-2 rounded-xl text-[11px] font-semibold bg-orange-500/10 text-orange-300 border border-orange-500/25 hover:bg-orange-500/20 transition"
                   >
                     <span className="w-1.5 h-1.5 rounded-full bg-orange-400 animate-pulse"></span> Turno Abierto
                   </button>
                 ) : (
                   <button
                     onClick={() => setModalTurno(true)}
-                    className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[11px] font-bold bg-stone-100 text-stone-900 hover:bg-white transition"
+                    className="hidden sm:inline-flex items-center gap-2 px-3.5 py-2 rounded-xl text-[11px] font-bold bg-orange-500 text-white hover:bg-orange-400 transition shadow-lg shadow-orange-500/20"
                   >
-                    ⚡ Abrir Turno
+                    <i className="fa-solid fa-bolt"></i> Abrir Turno
                   </button>
                 )}
                 <button
                   onClick={() => setMenuMas(true)}
-                  className="md:hidden w-9 h-9 flex items-center justify-center bg-stone-800 border border-stone-700 rounded-xl text-sm"
+                  className="md:hidden w-10 h-10 flex items-center justify-center bg-stone-800 border border-stone-700 rounded-xl text-stone-300 hover:text-white transition"
                   title="Más opciones"
                 >
-                  ⋯
+                  <i className="fa-solid fa-ellipsis"></i>
                 </button>
                 <button
                   onClick={() => setMostrarResumenMobile(true)}
-                  className="md:hidden relative w-9 h-9 flex items-center justify-center bg-orange-500 rounded-xl text-white text-sm"
+                  className="md:hidden relative w-10 h-10 flex items-center justify-center bg-orange-500 rounded-xl text-white shadow-lg shadow-orange-500/25"
                 >
-                  🛒
+                  <i className="fa-solid fa-cart-shopping text-sm"></i>
                   {carrito.length > 0 && (
-                    <span className="absolute -top-1 -right-1 bg-white text-orange-600 rounded-full w-4 h-4 text-[9px] flex items-center justify-center font-black">
+                    <span className="absolute -top-1 -right-1 bg-white text-orange-600 rounded-full min-w-[18px] h-[18px] px-1 text-[10px] flex items-center justify-center font-bold ring-2 ring-stone-900">
                       {carrito.length}
                     </span>
                   )}
@@ -1460,13 +1499,13 @@
                     className="w-full bg-stone-900 border border-stone-800 text-white placeholder-stone-500 text-sm rounded-xl pl-10 pr-4 py-2.5 focus:outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500 transition"
                     autoFocus
                   />
-                  <span className="absolute left-3.5 top-2.5 text-stone-500 text-sm">🔍</span>
+                  <i className="fa-solid fa-barcode absolute left-4 top-3.5 text-stone-500 text-sm"></i>
                 </div>
                 <button
                   onClick={() => cargarProductos(busqueda)}
-                  className="px-4 py-2.5 bg-stone-900 hover:bg-stone-800 text-stone-200 text-xs font-bold rounded-xl border border-stone-800 transition"
+                  className="px-4 py-2.5 bg-stone-800 hover:bg-stone-700 text-stone-200 text-xs font-semibold rounded-xl border border-stone-700 transition"
                 >
-                  Buscar
+                  <i className="fa-solid fa-magnifying-glass"></i>
                 </button>
                 {busqueda && (
                   <button
@@ -1491,7 +1530,7 @@
                       className="shrink-0 w-44 text-left p-2.5 bg-stone-900 border border-stone-800 rounded-xl hover:border-orange-500/60 transition"
                     >
                       <div className="flex justify-between items-center text-[10px] font-bold text-orange-400 mb-1">
-                        <span>⏸️ En espera</span>
+                        <span><i className="fa-solid fa-pause text-[8px]"></i> En espera</span>
                         <span>{v.hora}</span>
                       </div>
                       <p className="text-xs font-semibold text-white truncate">{v.cliente?.nombre_completo || 'Cliente'}</p>
@@ -1527,36 +1566,42 @@
                 ) : productosFiltrados.length === 0 ? (
                   <div className="flex flex-col items-center justify-center h-48 text-stone-500 text-center">
                     <p className="text-base font-semibold">No se encontraron productos</p>
-                    <p className="text-xs text-stone-600 mt-1">Usa el ícono 📦 para registrar nuevos productos.</p>
+                    <p className="text-xs text-stone-600 mt-1">Usa el botón de nuevo producto para registrar el primero.</p>
                   </div>
                 ) : (
                   <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
-                    {productosFiltrados.map((prod) => (
+                    {productosFiltrados.map((prod) => {
+                      const est = estiloCategoria(prod.categoria);
+                      return (
                       <button
                         key={prod.id}
                         onClick={() => handleClicProducto(prod)}
-                        className="text-left bg-stone-900 border border-stone-800 rounded-2xl overflow-hidden hover:border-orange-500/60 transition duration-150 active:scale-95 group"
+                        className="text-left bg-gradient-to-b from-stone-900 to-stone-900/60 border border-stone-800 rounded-2xl overflow-hidden hover:border-orange-500/50 hover:-translate-y-0.5 hover:shadow-xl hover:shadow-black/40 transition-all duration-200 active:scale-[0.98] group"
                       >
-                        <div className="h-16 md:h-20 flex items-center justify-center text-3xl bg-stone-800/70">
-                          {emojiCategoria(prod.categoria)}
-                        </div>
-                        <div className="p-2.5">
-                          <div className="flex justify-between items-center mb-1">
-                            <span className="text-[9px] font-mono text-orange-400 bg-orange-950/40 px-1.5 py-0.5 rounded">
-                              {prod.cod_ean ? prod.cod_ean.slice(-6) : 'EAN'}
+                        <div className={`h-20 md:h-24 flex items-center justify-center bg-gradient-to-br ${est.fondo} relative`}>
+                          <i className={`fa-solid ${est.icono} ${est.color} text-2xl md:text-3xl opacity-90 group-hover:scale-110 transition-transform duration-200`}></i>
+                          {prod.unidad === 'KG' && (
+                            <span className="absolute top-2 right-2 text-[9px] font-bold text-stone-900 bg-white/90 px-1.5 py-0.5 rounded-md">
+                              KG
                             </span>
-                            <span className="text-[9px] font-bold text-stone-500 uppercase">{prod.unidad || 'UND'}</span>
-                          </div>
-                          <h3 className="text-xs font-semibold text-stone-100 line-clamp-2 leading-snug group-hover:text-white">
+                          )}
+                        </div>
+                        <div className="p-3">
+                          <h3 className="text-xs font-semibold text-stone-100 line-clamp-2 leading-snug group-hover:text-white min-h-[2rem]">
                             {prod.descripcion}
                           </h3>
-                          <div className="mt-2 pt-1.5 border-t border-stone-800 flex items-center justify-between">
-                            <span className="text-[9px] text-stone-500">Precio</span>
-                            <span className="text-sm font-black text-orange-400">S/ {Number(prod.precio_venta).toFixed(2)}</span>
+                          <div className="mt-2 pt-2 border-t border-stone-800/80 flex items-end justify-between">
+                            <span className="text-[9px] font-medium text-stone-500 tracking-wide uppercase">
+                              {prod.categoria || 'General'}
+                            </span>
+                            <span className="text-sm font-extrabold text-orange-400 tabular-nums">
+                              S/ {Number(prod.precio_venta).toFixed(2)}
+                            </span>
                           </div>
                         </div>
                       </button>
-                    ))}
+                      );
+                    })}
                   </div>
                 )}
               </div>
@@ -1599,7 +1644,7 @@
               {clienteActual && (
                 <div className="mt-1.5 flex items-center justify-between text-xs text-stone-300">
                   <span className="font-semibold truncate max-w-[240px]">
-                    👤 {clienteActual.nombre_completo}
+                    <i className="fa-solid fa-user text-[10px] text-stone-500"></i> {clienteActual.nombre_completo}
                   </span>
                   {clienteActual.saldo_actual > 0 && (
                     <span className="text-[11px] text-rose-400 font-bold">
@@ -1621,7 +1666,7 @@
                     onClick={aparcarVentaActual}
                     className="text-[11px] text-orange-400 hover:text-orange-300 font-bold transition"
                   >
-                    ⏸️ Pausar
+                    <i className="fa-solid fa-pause text-[9px]"></i> Pausar
                   </button>
                 )}
                 {carrito.length > 0 && (
@@ -1639,7 +1684,7 @@
             <div className="flex-1 overflow-y-auto p-2.5 space-y-1.5">
               {carrito.length === 0 ? (
                 <div className="flex flex-col items-center justify-center h-full text-stone-500 text-center p-4">
-                  <span className="text-3xl mb-1">🛒</span>
+                  <i className="fa-solid fa-basket-shopping text-3xl mb-2 text-stone-700"></i>
                   <p className="text-xs font-semibold">Carrito vacío</p>
                   <p className="text-[11px] text-stone-500 mt-0.5">
                     Toca un producto o escanea su código de barras.
@@ -1649,44 +1694,44 @@
                 carrito.map((item) => (
                   <div
                     key={item.productoId}
-                    className="flex items-center justify-between p-2 bg-stone-800/60 border border-stone-800 rounded-xl"
+                    className="flex items-center gap-2.5 p-2.5 bg-stone-800/40 border border-stone-800 rounded-xl hover:border-stone-700 transition"
                   >
-                    <div className="flex-1 pr-2 min-w-0">
-                      <p className="text-xs font-medium text-stone-200 truncate">
+                    <div className="flex-1 min-w-0">
+                      <p className="text-xs font-semibold text-stone-100 truncate">
                         {item.descripcion}
                       </p>
-                      <p className="text-[10px] text-stone-400">
+                      <p className="text-[10px] text-stone-500 tabular-nums">
                         S/ {item.precioUnitario.toFixed(2)} / {item.unidad || 'UND'}
                       </p>
                     </div>
 
-                    <div className="flex items-center gap-1 bg-stone-900 px-1 py-0.5 rounded border border-stone-700">
+                    <div className="flex items-center gap-1 bg-stone-900 p-1 rounded-lg border border-stone-700 shrink-0">
                       <button
                         onClick={() => cambiarCantidadCarrito(item.productoId, -1)}
-                        className="w-5 h-5 flex items-center justify-center text-xs font-bold text-stone-300 hover:bg-stone-700 rounded"
+                        className="w-6 h-6 flex items-center justify-center text-xs text-stone-400 hover:bg-stone-700 hover:text-white rounded-md transition"
                       >
-                        -
+                        <i className="fa-solid fa-minus text-[9px]"></i>
                       </button>
-                      <span className="w-8 text-center text-xs font-bold text-orange-400">
+                      <span className="w-9 text-center text-xs font-bold text-orange-400 tabular-nums">
                         {item.cantidad}
                       </span>
                       <button
                         onClick={() => cambiarCantidadCarrito(item.productoId, 1)}
-                        className="w-5 h-5 flex items-center justify-center text-xs font-bold text-stone-300 hover:bg-stone-700 rounded"
+                        className="w-6 h-6 flex items-center justify-center text-xs text-stone-400 hover:bg-stone-700 hover:text-white rounded-md transition"
                       >
-                        +
+                        <i className="fa-solid fa-plus text-[9px]"></i>
                       </button>
                     </div>
 
-                    <div className="w-16 text-right pl-2">
-                      <span className="text-xs font-bold text-white block">
+                    <div className="w-[68px] text-right shrink-0">
+                      <span className="text-xs font-bold text-white block tabular-nums">
                         S/ {item.subtotal.toFixed(2)}
                       </span>
                       <button
                         onClick={() => eliminarItemCarrito(item.productoId)}
-                        className="text-[9px] text-rose-400 hover:text-rose-300"
+                        className="text-[10px] text-stone-500 hover:text-rose-400 transition"
                       >
-                        Eliminar
+                        <i className="fa-solid fa-trash-can text-[9px]"></i> Quitar
                       </button>
                     </div>
                   </div>
@@ -1698,17 +1743,25 @@
             <div className="p-3.5 bg-stone-900 border-t border-stone-800 space-y-2.5">
               <div>
                 <div className="grid grid-cols-3 gap-1.5">
-                  {['EFECTIVO', 'YAPE', 'PLIN', 'TARJETA', 'CREDITO', 'MIXTO'].map((metodo) => (
+                  {[
+                    { id: 'EFECTIVO', icono: 'fa-money-bill-wave', texto: 'Efectivo' },
+                    { id: 'YAPE', icono: 'fa-mobile-screen', texto: 'Yape' },
+                    { id: 'PLIN', icono: 'fa-mobile-screen', texto: 'Plin' },
+                    { id: 'TARJETA', icono: 'fa-credit-card', texto: 'Tarjeta' },
+                    { id: 'CREDITO', icono: 'fa-file-invoice-dollar', texto: 'Crédito' },
+                    { id: 'MIXTO', icono: 'fa-layer-group', texto: 'Mixto' }
+                  ].map((m) => (
                     <button
-                      key={metodo}
-                      onClick={() => { setMedioPago(metodo); setCampoTeclado(null); }}
-                      className={`py-1.5 text-xs font-bold rounded-lg border transition ${
-                        medioPago === metodo
-                          ? 'bg-orange-500 border-orange-400 text-white shadow'
-                          : 'bg-stone-800 border-stone-700 text-stone-400 hover:bg-stone-750'
+                      key={m.id}
+                      onClick={() => { setMedioPago(m.id); setCampoTeclado(null); }}
+                      className={`flex flex-col items-center gap-1 py-2 text-[11px] font-semibold rounded-xl border transition ${
+                        medioPago === m.id
+                          ? 'bg-orange-500 border-orange-400 text-white shadow-lg shadow-orange-500/20'
+                          : 'bg-stone-800/60 border-stone-700 text-stone-400 hover:bg-stone-800 hover:text-stone-200'
                       }`}
                     >
-                      {metodo === 'CREDITO' ? '📝 CRÉDITO' : metodo}
+                      <i className={`fa-solid ${m.icono} text-sm`}></i>
+                      {m.texto}
                     </button>
                   ))}
                 </div>
@@ -1741,7 +1794,7 @@
                     onClick={() => setCampoTeclado(campoTeclado === 'recibido' ? null : 'recibido')}
                     className="text-[10px] text-stone-400 hover:text-stone-200 underline"
                   >
-                    🔢 {campoTeclado === 'recibido' ? 'Ocultar teclado' : 'Teclado numérico'}
+                    <i className="fa-solid fa-calculator"></i> {campoTeclado === 'recibido' ? 'Ocultar teclado' : 'Teclado numérico'}
                   </button>
                   {campoTeclado === 'recibido' && <NumericKeypad value={montoRecibido} onChange={asignarDesdeTeclado} />}
                 </div>
@@ -1754,7 +1807,7 @@
                     onClick={() => setMedioQR(medioPago)}
                     className="w-full py-2 bg-stone-700 hover:bg-stone-600 text-white text-xs font-bold rounded-lg"
                   >
-                    📱 Mostrar QR de {medioPago}
+                    <i className="fa-solid fa-qrcode"></i> Mostrar QR de {medioPago}
                   </button>
                 </div>
               )}
@@ -1822,11 +1875,11 @@
                 </div>
               )}
 
-              <div className="flex items-center justify-between pt-0.5">
-                <span className="text-xs font-bold text-stone-300 uppercase tracking-wider">
-                  Total a Cobrar:
+              <div className="flex items-center justify-between pt-1 pb-0.5 border-t border-stone-800">
+                <span className="text-[11px] font-semibold text-stone-400 uppercase tracking-wider pt-2">
+                  Total a Cobrar
                 </span>
-                <span className="text-2xl font-black text-orange-400">
+                <span className="text-2xl font-extrabold text-white tabular-nums pt-2">
                   S/ {totalVenta.toFixed(2)}
                 </span>
               </div>
@@ -1834,15 +1887,21 @@
               <button
                 onClick={handleCobrar}
                 disabled={procesandoVenta || carrito.length === 0 || !turnoActivo}
-                className={`w-full py-3.5 rounded-xl font-black text-sm tracking-wider transition uppercase shadow-lg ${
-                  !turnoActivo
-                    ? 'bg-stone-800 text-stone-500 cursor-not-allowed'
-                    : procesandoVenta || carrito.length === 0
-                    ? 'bg-stone-800 text-stone-500 cursor-not-allowed border border-stone-700'
-                    : 'bg-orange-500 hover:bg-orange-400 text-white active:scale-[0.98]'
+                className={`w-full py-3.5 rounded-xl font-bold text-sm transition-all flex items-center justify-center gap-2 ${
+                  !turnoActivo || procesandoVenta || carrito.length === 0
+                    ? 'bg-stone-800 text-stone-600 cursor-not-allowed'
+                    : 'bg-orange-500 hover:bg-orange-400 text-white shadow-lg shadow-orange-500/25 active:scale-[0.98]'
                 }`}
               >
-                {!turnoActivo ? '⚠️ Abre un Turno para Cobrar' : procesandoVenta ? 'Registrando Venta...' : medioPago === 'CREDITO' ? '📝 Registrar Venta a Crédito' : '⚡ Cobrar e Imprimir Boleta'}
+                {!turnoActivo ? (
+                  <><i className="fa-solid fa-triangle-exclamation"></i> Abre un Turno para Cobrar</>
+                ) : procesandoVenta ? (
+                  <><i className="fa-solid fa-spinner fa-spin"></i> Registrando Venta...</>
+                ) : medioPago === 'CREDITO' ? (
+                  <><i className="fa-solid fa-file-invoice-dollar"></i> Registrar Venta a Crédito</>
+                ) : (
+                  <><i className="fa-solid fa-receipt"></i> Cobrar e Imprimir Boleta</>
+                )}
               </button>
             </div>
           </section>
@@ -1853,23 +1912,23 @@
               <div className="w-full bg-stone-900 border-t border-stone-800 rounded-t-3xl p-4 pb-6 space-y-1" onClick={(e) => e.stopPropagation()}>
                 <div className="w-10 h-1 bg-stone-700 rounded-full mx-auto mb-2"></div>
                 <button onClick={() => { setModalNuevoProducto(true); setMenuMas(false); }} className="w-full text-left px-3.5 py-3 rounded-xl hover:bg-stone-800 flex items-center gap-3 text-stone-200 font-medium text-sm">
-                  📦 Nuevo Producto
+                  <i className="fa-solid fa-box-open w-5 text-orange-400"></i> Nuevo Producto
                 </button>
                 <button onClick={() => { setModalEntradaMercaderia(true); setMenuMas(false); }} className="w-full text-left px-3.5 py-3 rounded-xl hover:bg-stone-800 flex items-center gap-3 text-stone-200 font-medium text-sm">
-                  📥 Entrada de Mercadería
+                  <i className="fa-solid fa-truck-ramp-box w-5 text-orange-400"></i> Entrada de Mercadería
                 </button>
                 <button onClick={() => { abrirModuloCobroDeudas(); setMenuMas(false); }} className="w-full text-left px-3.5 py-3 rounded-xl hover:bg-stone-800 flex items-center gap-3 text-orange-400 font-semibold text-sm">
-                  💳 Cuentas por Cobrar (Fiados)
+                  <i className="fa-solid fa-hand-holding-dollar w-5"></i> Cuentas por Cobrar
                 </button>
                 <button onClick={() => { abrirHistorialDelDia(); setMenuMas(false); }} className="w-full text-left px-3.5 py-3 rounded-xl hover:bg-stone-800 flex items-center gap-3 text-stone-200 font-medium text-sm">
-                  📜 Historial de Ventas Hoy
+                  <i className="fa-solid fa-receipt w-5 text-orange-400"></i> Historial de Ventas Hoy
                 </button>
                 <button onClick={() => { setModalNuevoCliente(true); setMenuMas(false); }} className="w-full text-left px-3.5 py-3 rounded-xl hover:bg-stone-800 flex items-center gap-3 text-stone-200 font-medium text-sm">
-                  👤 Registrar Cliente
+                  <i className="fa-solid fa-user-plus w-5 text-orange-400"></i> Registrar Cliente
                 </button>
                 <div className="border-t border-stone-800 my-1"></div>
                 <button onClick={() => { cerrarSesion(); setMenuMas(false); }} className="w-full text-left px-3.5 py-3 rounded-xl hover:bg-stone-800 flex items-center gap-3 text-rose-400 font-semibold text-sm">
-                  🚪 Cerrar Sesión
+                  <i className="fa-solid fa-right-from-bracket w-5"></i> Cerrar Sesión
                 </button>
               </div>
             </div>
