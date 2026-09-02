@@ -51,7 +51,7 @@
   <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
 
   <!-- Lector de código de barras por cámara (sin backend) -->
-  <script src="https://cdn.jsdelivr.net/npm/@zxing/library@0.20.0/umd/index.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/html5-qrcode@2.3.8/minified/html5-qrcode.min.js"></script>
 
   <!-- Generar archivos Excel (.xlsx) reales en el navegador, sin backend -->
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
@@ -534,7 +534,7 @@
       // 'inventario': rellena el campo EAN de una fila del formulario de inventario.
       const [modoEscaner, setModoEscaner] = useState('venta');
       const [filaEscaneandoIndex, setFilaEscaneandoIndex] = useState(null);
-      const zxingReaderRef = useRef(null);
+      const fallbackReaderRef = useRef(null);
       const ultimoEscaneoRef = useRef({ codigo: '', hora: 0 });
       const videoNativoRef = useRef(null);
       const streamNativoRef = useRef(null);
@@ -1119,7 +1119,7 @@
         const usarNativo = metodoForzado === 'html5qr' ? false : ('BarcodeDetector' in window);
         setUsandoDetectorNativo(usarNativo);
         setDebugEscaner({ frames: 0, tamano: '', error: '' });
-        console.log('[escaner] método elegido:', usarNativo ? 'nativo (BarcodeDetector)' : 'ZXing', '| metodoForzado:', metodoForzado);
+        console.log('[escaner] método elegido:', usarNativo ? 'nativo (BarcodeDetector)' : 'html5-qrcode', '| metodoForzado:', metodoForzado);
         let activo = true;
 
         const detenerTodo = () => {
@@ -1131,58 +1131,66 @@
             streamNativoRef.current.getTracks().forEach((t) => t.stop());
             streamNativoRef.current = null;
           }
-          if (zxingReaderRef.current) {
-            try { zxingReaderRef.current.reset(); } catch (e) {}
-            zxingReaderRef.current = null;
+          if (fallbackReaderRef.current) {
+            const inst = fallbackReaderRef.current;
+            fallbackReaderRef.current = null;
+            (async () => {
+              try {
+                const estado = inst.getState ? inst.getState() : null;
+                if (estado === 2 || estado === 3) await inst.stop().catch(() => {});
+                inst.clear();
+              } catch (e) {}
+            })();
           }
         };
 
-        // Método de reserva: ZXing con "TRY_HARDER" activado. El decodificador
-        // integrado de html5-qrcode resultó muy débil para códigos de barras
-        // 1D (EAN/UPC) incluso con buena luz e imagen nítida; ZXing configurado
-        // con estos hints es mucho más confiable para este caso específico.
-        const iniciarZXing = async () => {
+        // Método de reserva: html5-qrcode, configurado para que internamente
+        // también intente usar BarcodeDetector si el navegador lo soporta
+        // (útil en Android/Chrome cuando "usarNativo" se forzó a false), y si
+        // no, use su propio decodificador JS. "disableFlip" evita un volteo
+        // de imagen innecesario que solo agrega procesamiento.
+        const iniciarFallback = async () => {
           try {
-            const hints = new Map();
-            const formatosZXing = [
-              ZXing.BarcodeFormat.EAN_13,
-              ZXing.BarcodeFormat.EAN_8,
-              ZXing.BarcodeFormat.UPC_A,
-              ZXing.BarcodeFormat.UPC_E,
-              ZXing.BarcodeFormat.CODE_128,
-              ZXing.BarcodeFormat.CODE_39,
-              ZXing.BarcodeFormat.QR_CODE
+            const formatos = [
+              Html5QrcodeSupportedFormats.EAN_13,
+              Html5QrcodeSupportedFormats.EAN_8,
+              Html5QrcodeSupportedFormats.UPC_A,
+              Html5QrcodeSupportedFormats.UPC_E,
+              Html5QrcodeSupportedFormats.CODE_128,
+              Html5QrcodeSupportedFormats.CODE_39,
+              Html5QrcodeSupportedFormats.QR_CODE
             ];
-            hints.set(ZXing.DecodeHintType.POSSIBLE_FORMATS, formatosZXing);
-            hints.set(ZXing.DecodeHintType.TRY_HARDER, true);
-
-            const reader = new ZXing.BrowserMultiFormatReader(hints);
-            zxingReaderRef.current = reader;
-            if (!videoNativoRef.current) return;
+            const lector = new Html5Qrcode('lector-fallback', { formatsToSupport: formatos, verbose: false });
+            fallbackReaderRef.current = lector;
 
             let intentos = 0;
-            await reader.decodeFromConstraints(
-              { video: { facingMode: { ideal: 'environment' } } },
-              videoNativoRef.current,
-              (resultado, err2) => {
+            await lector.start(
+              { facingMode: 'environment' },
+              {
+                fps: 20,
+                qrbox: { width: 260, height: 160 },
+                disableFlip: true,
+                experimentalFeatures: { useBarCodeDetectorIfSupported: true }
+              },
+              (decodedText) => {
+                if (!activo) return;
+                console.log('[escaner] html5-qrcode detectó:', decodedText);
+                handleCodigoEscaneado(decodedText);
+              },
+              () => {
                 if (!activo) return;
                 intentos++;
-                const v = videoNativoRef.current;
                 if (intentos % 15 === 0) {
-                  setDebugEscaner({ frames: intentos, tamano: v ? `${v.videoWidth}x${v.videoHeight}` : '', error: '' });
-                  console.log('[escaner] ZXing sigue intentando, frames analizados:', intentos);
-                }
-                if (resultado) {
-                  console.log('[escaner] ZXing detectó:', resultado.getText());
-                  handleCodigoEscaneado(resultado.getText());
+                  setDebugEscaner({ frames: intentos, tamano: '', error: '' });
+                  console.log('[escaner] html5-qrcode sigue intentando, frames analizados:', intentos);
                 }
               }
             );
-            console.log('[escaner] ZXing: cámara conectada, esperando código...');
+            console.log('[escaner] html5-qrcode: cámara conectada, esperando código...');
           } catch (err) {
             if (!activo) return;
             setErrorEscaner('No se pudo acceder a la cámara. Revisa los permisos del navegador.');
-            console.warn('[escaner] Error al iniciar la cámara (ZXing):', err);
+            console.warn('[escaner] Error al iniciar la cámara (html5-qrcode):', err);
           }
         };
 
@@ -1262,14 +1270,14 @@
             if (!activo) return;
             console.warn('[escaner] Detector nativo no disponible, usando reserva:', err);
             setUsandoDetectorNativo(false);
-            iniciarZXing();
+            iniciarFallback();
           }
         };
 
         if (usarNativo) {
           iniciarDetectorNativo();
         } else {
-          iniciarZXing();
+          iniciarFallback();
         }
 
         return () => {
@@ -3449,14 +3457,15 @@
 
               <div className="flex-1 relative flex items-center justify-center bg-black overflow-hidden">
                 <div className="relative w-full h-full flex items-center justify-center">
-                  <video ref={videoNativoRef} className="w-full h-full object-cover" playsInline muted autoPlay></video>
-                  <div className="absolute w-[85%] max-w-sm aspect-[2/1] border-2 border-orange-400 rounded-2xl shadow-[0_0_0_9999px_rgba(0,0,0,0.55)]"></div>
+                  <video ref={videoNativoRef} className={`w-full h-full object-cover ${usandoDetectorNativo ? '' : 'hidden'}`} playsInline muted autoPlay></video>
+                  <div id="lector-fallback" className={`w-full h-full ${usandoDetectorNativo ? 'hidden' : ''}`}></div>
+                  <div className="absolute w-[85%] max-w-sm aspect-[2/1] border-2 border-orange-400 rounded-2xl shadow-[0_0_0_9999px_rgba(0,0,0,0.55)] pointer-events-none"></div>
                 </div>
 
                 {/* Diagnóstico visible en pantalla (para revisar desde el
                     celular sin necesitar la consola del navegador). */}
                 <div className="absolute top-2 left-2 bg-black/70 text-white text-[10px] font-mono px-2 py-1 rounded-lg leading-tight max-w-[70vw]">
-                  <div>método: {usandoDetectorNativo ? 'nativo' : 'ZXing'}</div>
+                  <div>método: {usandoDetectorNativo ? 'nativo' : 'html5-qrcode'}</div>
                   <div>frames: {debugEscaner.frames} {debugEscaner.tamano && `| video: ${debugEscaner.tamano}`}</div>
                   {debugEscaner.error && <div className="text-rose-300">error: {debugEscaner.error}</div>}
                 </div>
