@@ -82,6 +82,89 @@
       { cod_ean: '775012300010', descripcion: 'Detergente Opal Ultra 800g', precio_costo: 6.20, precio_venta: 7.80, categoria: 'Limpieza', unidad: 'UND' }
     ];
 
+    // Teclado numérico en pantalla, reutilizable para efectivo y pagos mixtos.
+    function NumericKeypad({ value, onChange }) {
+      const teclas = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '.', '0', '⌫'];
+      const presionar = (t) => {
+        if (t === '⌫') { onChange(value.slice(0, -1)); return; }
+        if (t === '.' && value.includes('.')) return;
+        onChange(value + t);
+      };
+      return (
+        <div className="grid grid-cols-3 gap-1.5 mt-1.5">
+          {teclas.map((t) => (
+            <button
+              key={t}
+              type="button"
+              onClick={() => presionar(t)}
+              className="py-2 bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-lg text-sm font-bold text-slate-200 active:scale-95 transition"
+            >
+              {t}
+            </button>
+          ))}
+          <button
+            type="button"
+            onClick={() => onChange('')}
+            className="col-span-3 py-1.5 bg-rose-950/60 hover:bg-rose-900 border border-rose-800 rounded-lg text-[11px] font-bold text-rose-200"
+          >
+            Limpiar
+          </button>
+        </div>
+      );
+    }
+
+    // Muestra el QR real de Yape/Plin de la bodega (imagen subida una sola vez y
+    // guardada en este navegador). No se genera un QR "falso" porque Yape/Plin
+    // usan un formato propietario del banco — aquí se reutiliza la imagen
+    // física/oficial del negocio.
+    function QRPagoModal({ bodegaId, medioPago, monto, onClose }) {
+      const storageKey = `qr_pago_${medioPago}_${bodegaId}`;
+      const [qrImg, setQrImg] = useState(() => localStorage.getItem(storageKey));
+      const inputRef = useRef(null);
+
+      const handleSubirQR = (e) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = () => {
+          localStorage.setItem(storageKey, reader.result);
+          setQrImg(reader.result);
+        };
+        reader.readAsDataURL(file);
+      };
+
+      return (
+        <div className="fixed inset-0 bg-black/85 flex items-center justify-center z-50 p-4">
+          <div className="bg-slate-800 border border-slate-700 rounded-2xl max-w-xs w-full p-5 shadow-2xl text-center space-y-3">
+            <h3 className="text-base font-bold text-white">Pago con {medioPago}</h3>
+            <p className="text-sm text-slate-300">
+              Monto: <span className="font-black text-emerald-400 text-lg">S/ {Number(monto).toFixed(2)}</span>
+            </p>
+            {qrImg ? (
+              <div className="bg-white p-3 rounded-xl inline-block">
+                <img src={qrImg} alt={`QR ${medioPago}`} className="w-44 h-44 object-contain" />
+              </div>
+            ) : (
+              <div className="bg-slate-900 border border-dashed border-slate-600 rounded-xl p-5 text-xs text-slate-400">
+                Aún no has guardado el QR de {medioPago} de tu bodega.
+              </div>
+            )}
+            <input ref={inputRef} type="file" accept="image/*" onChange={handleSubirQR} className="hidden" />
+            <button
+              type="button"
+              onClick={() => inputRef.current?.click()}
+              className="w-full py-2 bg-slate-700 hover:bg-slate-600 text-white text-xs font-semibold rounded-lg"
+            >
+              {qrImg ? 'Cambiar imagen del QR' : `Subir QR de ${medioPago}`}
+            </button>
+            <button onClick={onClose} className="w-full py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs rounded-xl">
+              Cerrar
+            </button>
+          </div>
+        </div>
+      );
+    }
+
     function PosApp() {
       // --- Supabase Config ---
       const [supabaseUrl, setSupabaseUrl] = useState(
@@ -177,8 +260,13 @@
       // --- Cobro / Pagos ---
       const [medioPago, setMedioPago] = useState('EFECTIVO');
       const [montoRecibido, setMontoRecibido] = useState('');
+      const [montoMixtoEfectivo, setMontoMixtoEfectivo] = useState('');
+      const [montoMixtoOtro, setMontoMixtoOtro] = useState('');
+      const [campoTeclado, setCampoTeclado] = useState(null); // 'recibido' | 'mixtoEfectivo' | 'mixtoOtro' | null
       const [procesandoVenta, setProcesandoVenta] = useState(false);
       const [ventaCompletada, setVentaCompletada] = useState(null);
+      const [medioQR, setMedioQR] = useState(null); // 'YAPE' | 'PLIN' | null
+      const [reciboReimpresion, setReciboReimpresion] = useState(null);
 
       // --- Diagnóstico y Notificaciones ---
       const [errorDetalle, setErrorDetalle] = useState(null);
@@ -424,6 +512,21 @@
         const recibido = parseFloat(montoRecibido) || 0;
         return +(recibido - totalVenta).toFixed(2);
       }, [montoRecibido, totalVenta, medioPago]);
+
+      const sumaMixto = useMemo(() => {
+        return +((parseFloat(montoMixtoEfectivo) || 0) + (parseFloat(montoMixtoOtro) || 0)).toFixed(2);
+      }, [montoMixtoEfectivo, montoMixtoOtro]);
+
+      const asignarDesdeTeclado = (texto) => {
+        if (campoTeclado === 'recibido') setMontoRecibido(texto);
+        if (campoTeclado === 'mixtoEfectivo') setMontoMixtoEfectivo(texto);
+        if (campoTeclado === 'mixtoOtro') setMontoMixtoOtro(texto);
+      };
+
+      const valorTeclado = campoTeclado === 'recibido' ? montoRecibido
+        : campoTeclado === 'mixtoEfectivo' ? montoMixtoEfectivo
+        : campoTeclado === 'mixtoOtro' ? montoMixtoOtro
+        : '';
 
       // ==========================================
       // ⏸️ VENTAS EN ESPERA (PARK SALES)
@@ -917,6 +1020,18 @@
           }
         }
 
+        // Validación de pago mixto: la suma de ambos montos debe cubrir el total exacto
+        let montoEfectivoMixto = 0;
+        let montoOtroMixto = 0;
+        if (medioPago === 'MIXTO') {
+          montoEfectivoMixto = parseFloat(montoMixtoEfectivo) || 0;
+          montoOtroMixto = parseFloat(montoMixtoOtro) || 0;
+          if (Math.abs(sumaMixto - totalVenta) > 0.01) {
+            notificar(`Los montos mixtos (S/ ${sumaMixto.toFixed(2)}) deben sumar el total S/ ${totalVenta.toFixed(2)}.`, 'error');
+            return;
+          }
+        }
+
         setProcesandoVenta(true);
         const correlativo = `B001-${String(Date.now()).slice(-8)}`;
 
@@ -933,7 +1048,9 @@
               cliente_id: idClienteReal || null,
               nro_boleta: correlativo,
               medio_pago: medioPago,
-              total_venta: totalVenta
+              total_venta: totalVenta,
+              monto_efectivo: medioPago === 'MIXTO' ? montoEfectivoMixto : 0,
+              monto_otro: medioPago === 'MIXTO' ? montoOtroMixto : 0
             };
 
             const { data: vCreada, error: vErr } = await sbClient
@@ -981,6 +1098,9 @@
           setVentaCompletada(resultado);
           setCarrito([]);
           setMontoRecibido('');
+          setMontoMixtoEfectivo('');
+          setMontoMixtoOtro('');
+          setCampoTeclado(null);
           notificar(`¡Venta completada! Boleta: ${correlativo}`, 'success');
         } catch (err) {
           notificar(`Error al registrar venta: ${err.message}`, 'error');
@@ -1562,11 +1682,11 @@
               {/* Panel Cobro */}
               <div className="p-3.5 bg-slate-800 border-t border-slate-700 space-y-2.5">
                 <div>
-                  <div className="grid grid-cols-4 gap-1.5">
-                    {['EFECTIVO', 'YAPE', 'TARJETA', 'CREDITO'].map((metodo) => (
+                  <div className="grid grid-cols-3 gap-1.5">
+                    {['EFECTIVO', 'YAPE', 'PLIN', 'TARJETA', 'CREDITO', 'MIXTO'].map((metodo) => (
                       <button
                         key={metodo}
-                        onClick={() => setMedioPago(metodo)}
+                        onClick={() => { setMedioPago(metodo); setCampoTeclado(null); }}
                         className={`py-1.5 text-xs font-bold rounded-lg border transition ${
                           medioPago === metodo
                             ? metodo === 'CREDITO' ? 'bg-amber-600 border-amber-400 text-white shadow' : 'bg-emerald-600 border-emerald-400 text-white shadow'
@@ -1580,24 +1700,84 @@
                 </div>
 
                 {medioPago === 'EFECTIVO' && (
-                  <div className="grid grid-cols-2 gap-2 bg-slate-900 p-2 rounded-lg border border-slate-750">
-                    <div>
-                      <label className="text-[10px] text-slate-400 block">Paga con (S/):</label>
-                      <input
-                        type="number"
-                        step="0.50"
-                        value={montoRecibido}
-                        onChange={(e) => setMontoRecibido(e.target.value)}
-                        placeholder="0.00"
-                        className="w-full bg-slate-800 border border-slate-700 rounded px-2 py-0.5 text-xs font-bold text-white focus:outline-none focus:border-emerald-500"
-                      />
+                  <div className="bg-slate-900 p-2 rounded-lg border border-slate-750 space-y-1">
+                    <div className="grid grid-cols-2 gap-2">
+                      <div>
+                        <label className="text-[10px] text-slate-400 block">Paga con (S/):</label>
+                        <input
+                          type="text"
+                          inputMode="decimal"
+                          value={montoRecibido}
+                          onFocus={() => setCampoTeclado('recibido')}
+                          onChange={(e) => setMontoRecibido(e.target.value)}
+                          placeholder="0.00"
+                          className="w-full bg-slate-800 border border-slate-700 rounded px-2 py-0.5 text-xs font-bold text-white focus:outline-none focus:border-emerald-500"
+                        />
+                      </div>
+                      <div className="text-right">
+                        <span className="text-[10px] text-slate-400 block">Vuelto:</span>
+                        <span className={`text-sm font-black ${vuelto < 0 ? 'text-rose-400' : 'text-emerald-400'}`}>
+                          S/ {vuelto > 0 ? vuelto.toFixed(2) : '0.00'}
+                        </span>
+                      </div>
                     </div>
-                    <div className="text-right">
-                      <span className="text-[10px] text-slate-400 block">Vuelto:</span>
-                      <span className={`text-sm font-black ${vuelto < 0 ? 'text-rose-400' : 'text-emerald-400'}`}>
-                        S/ {vuelto > 0 ? vuelto.toFixed(2) : '0.00'}
-                      </span>
+                    <button
+                      type="button"
+                      onClick={() => setCampoTeclado(campoTeclado === 'recibido' ? null : 'recibido')}
+                      className="text-[10px] text-slate-400 hover:text-slate-200 underline"
+                    >
+                      🔢 {campoTeclado === 'recibido' ? 'Ocultar teclado' : 'Teclado numérico'}
+                    </button>
+                    {campoTeclado === 'recibido' && <NumericKeypad value={montoRecibido} onChange={asignarDesdeTeclado} />}
+                  </div>
+                )}
+
+                {(medioPago === 'YAPE' || medioPago === 'PLIN') && (
+                  <div className="bg-slate-900 p-2 rounded-lg border border-slate-750 text-center">
+                    <button
+                      type="button"
+                      onClick={() => setMedioQR(medioPago)}
+                      className="w-full py-2 bg-slate-700 hover:bg-slate-600 text-white text-xs font-bold rounded-lg"
+                    >
+                      📱 Mostrar QR de {medioPago}
+                    </button>
+                  </div>
+                )}
+
+                {medioPago === 'MIXTO' && (
+                  <div className="bg-slate-900 p-2 rounded-lg border border-slate-750 space-y-1.5">
+                    <div className="grid grid-cols-2 gap-2">
+                      <div>
+                        <label className="text-[10px] text-slate-400 block">Efectivo (S/):</label>
+                        <input
+                          type="text"
+                          inputMode="decimal"
+                          value={montoMixtoEfectivo}
+                          onFocus={() => setCampoTeclado('mixtoEfectivo')}
+                          onChange={(e) => setMontoMixtoEfectivo(e.target.value)}
+                          placeholder="0.00"
+                          className="w-full bg-slate-800 border border-slate-700 rounded px-2 py-0.5 text-xs font-bold text-white focus:outline-none focus:border-emerald-500"
+                        />
+                      </div>
+                      <div>
+                        <label className="text-[10px] text-slate-400 block">Tarjeta/Otro (S/):</label>
+                        <input
+                          type="text"
+                          inputMode="decimal"
+                          value={montoMixtoOtro}
+                          onFocus={() => setCampoTeclado('mixtoOtro')}
+                          onChange={(e) => setMontoMixtoOtro(e.target.value)}
+                          placeholder="0.00"
+                          className="w-full bg-slate-800 border border-slate-700 rounded px-2 py-0.5 text-xs font-bold text-white focus:outline-none focus:border-emerald-500"
+                        />
+                      </div>
                     </div>
+                    <p className={`text-[10px] font-semibold ${Math.abs(sumaMixto - totalVenta) > 0.01 ? 'text-rose-400' : 'text-emerald-400'}`}>
+                      Suma: S/ {sumaMixto.toFixed(2)} / Total: S/ {totalVenta.toFixed(2)}
+                    </p>
+                    {(campoTeclado === 'mixtoEfectivo' || campoTeclado === 'mixtoOtro') && (
+                      <NumericKeypad value={valorTeclado} onChange={asignarDesdeTeclado} />
+                    )}
                   </div>
                 )}
 
@@ -1996,6 +2176,13 @@
                         </div>
                         <div className="flex items-center gap-2">
                           <span className="font-black text-emerald-400 text-sm">S/ {Number(v.total_venta).toFixed(2)}</span>
+                          <button
+                            onClick={() => setReciboReimpresion(v)}
+                            className="text-[10px] bg-slate-750 hover:bg-slate-700 text-slate-200 px-2 py-1 rounded border border-slate-700"
+                            title="Reimprimir boleta"
+                          >
+                            🖨️
+                          </button>
                           {!v.anulada && (
                             <button
                               onClick={() => anularVentaHoy(v)}
@@ -2137,6 +2324,53 @@
                 <div className="flex gap-2">
                   <button onClick={() => window.print()} className="flex-1 py-2 bg-slate-700 text-white font-bold text-xs rounded-xl">🖨️ Imprimir</button>
                   <button onClick={() => setVentaCompletada(null)} className="flex-1 py-2 bg-emerald-600 text-white font-bold text-xs rounded-xl shadow">Nueva Venta</button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Modal: QR de Pago (Yape/Plin) */}
+          {medioQR && (
+            <QRPagoModal
+              bodegaId={bodegaId}
+              medioPago={medioQR}
+              monto={totalVenta}
+              onClose={() => setMedioQR(null)}
+            />
+          )}
+
+          {/* Modal: Reimpresión de Boleta desde el Historial */}
+          {reciboReimpresion && (
+            <div className="fixed inset-0 bg-black/85 flex items-center justify-center z-50 p-4">
+              <div className="bg-slate-850 border border-slate-700 rounded-2xl max-w-sm w-full p-5 shadow-2xl text-center space-y-3">
+                <div className="w-12 h-12 bg-slate-700 text-slate-200 rounded-full flex items-center justify-center mx-auto text-xl">🖨️</div>
+                <h3 className="text-lg font-black text-white">Reimpresión de Boleta</h3>
+                <p className="text-xs text-slate-300 font-mono">Boleta: <span className="text-emerald-400 font-bold">{reciboReimpresion.nro_boleta}</span></p>
+                {reciboReimpresion.anulada && (
+                  <p className="text-xs font-bold text-rose-400">⚠️ Esta venta está ANULADA</p>
+                )}
+                <div className="bg-slate-900 p-3 rounded-lg text-left text-xs font-mono space-y-1 text-slate-300 border border-slate-800 max-h-56 overflow-y-auto">
+                  <p><strong>Pago:</strong> {reciboReimpresion.medio_pago}</p>
+                  <p><strong>Cliente:</strong> {reciboReimpresion.clientes?.nombre_completo || 'Cliente'}</p>
+                  {(reciboReimpresion.ventas_detalle || []).length > 0 ? (
+                    <div className="border-t border-slate-700 pt-1 mt-1 space-y-0.5">
+                      {reciboReimpresion.ventas_detalle.map((d, i) => (
+                        <div key={i} className="flex justify-between">
+                          <span>{d.productos?.descripcion || 'Producto'} x{d.cantidad}</span>
+                          <span>S/ {Number(d.subtotal).toFixed(2)}</span>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="text-slate-500 border-t border-slate-700 pt-1 mt-1">Sin detalle de productos disponible.</p>
+                  )}
+                  <div className="border-t border-slate-700 pt-1 mt-1 flex justify-between font-bold text-sm text-emerald-400">
+                    <span>TOTAL:</span><span>S/ {Number(reciboReimpresion.total_venta).toFixed(2)}</span>
+                  </div>
+                </div>
+                <div className="flex gap-2">
+                  <button onClick={() => window.print()} className="flex-1 py-2 bg-slate-700 text-white font-bold text-xs rounded-xl">🖨️ Imprimir</button>
+                  <button onClick={() => setReciboReimpresion(null)} className="flex-1 py-2 bg-emerald-600 text-white font-bold text-xs rounded-xl shadow">Cerrar</button>
                 </div>
               </div>
             </div>
