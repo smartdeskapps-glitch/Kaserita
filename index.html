@@ -81,6 +81,16 @@
       });
     };
 
+    // La tabla productos exige cod_ean (no admite vacío), aunque hay artículos
+    // reales sin código de barras (a granel, hechos en casa, etc.). Cuando el
+    // cajero lo deja en blanco se genera un código interno único para que el
+    // producto igual se pueda registrar.
+    let contadorCodigoInterno = 0;
+    const generarCodigoInterno = () => {
+      contadorCodigoInterno += 1;
+      return `INT-${Date.now()}-${contadorCodigoInterno}`;
+    };
+
     // ID fijo usado únicamente por "Modo Demo Local" (no corresponde a ninguna
     // bodega real). Solo en ese caso se muestra el catálogo de ejemplo; una
     // bodega real sin productos debe ver un catálogo vacío de verdad.
@@ -1084,9 +1094,7 @@
               cliente_id: deudorSeleccionado.id,
               cajero_id: cajeroSeleccionado?.id || null,
               monto_pagado: abono,
-              saldo_anterior: saldoAnterior,
-              saldo_restante: nuevoSaldo,
-              medio_pago: 'EFECTIVO',
+              boletas_canceladas: `Saldo anterior: S/ ${saldoAnterior.toFixed(2)} → Saldo restante: S/ ${nuevoSaldo.toFixed(2)}`,
               fecha: new Date().toISOString()
             }]);
             if (errPago) console.warn('No se pudo registrar el historial de pago:', errPago.message);
@@ -1132,7 +1140,7 @@
           const payload = filasValidas.map((f) => ({
             bodega_id: bodegaId,
             descripcion: f.descripcion.trim(),
-            cod_ean: f.cod_ean.trim() || null,
+            cod_ean: f.cod_ean.trim() || generarCodigoInterno(),
             categoria: f.categoria.trim() || 'General',
             precio_costo: Number(f.precio_costo) || 0,
             precio_venta: Number(f.precio_venta) || 0,
@@ -1170,7 +1178,7 @@
           const payload = {
             bodega_id: bodegaId,
             descripcion: descripcion.trim(),
-            cod_ean: cod_ean.trim() || null,
+            cod_ean: cod_ean.trim() || generarCodigoInterno(),
             precio_costo: Number(precio_costo) || 0,
             precio_venta: Number(precio_venta) || 0,
             categoria: categoria.trim() || 'General',
@@ -1232,7 +1240,7 @@
                 bodega_id: bodegaId,
                 cajero_id: cajeroSeleccionado?.id,
                 proveedor_nombre: compraCabecera.proveedor || null,
-                nro_comprobante: compraCabecera.nroComprobante || `COMP-${Date.now().toString().slice(-6)}`,
+                nro_factura: compraCabecera.nroComprobante || `COMP-${Date.now().toString().slice(-6)}`,
                 total: totalCompra,
                 fecha_registro: new Date().toISOString()
               }])
@@ -1243,6 +1251,7 @@
 
             const detalles = compraItems.map(item => ({
               compra_id: cData.id,
+              bodega_id: bodegaId,
               producto_id: item.productoId,
               cantidad: item.cantidad,
               costo_unitario: item.costoUnitario,
