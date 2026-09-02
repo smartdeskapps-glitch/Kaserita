@@ -2041,14 +2041,8 @@
             }]);
             if (error) throw error;
 
-            // Descuenta la merma del stock, igual que una venta
-            const stockPrevio = prod.stock_actual != null ? Number(prod.stock_actual) : null;
-            if (stockPrevio !== null) {
-              await sbClient
-                .from('productos')
-                .update({ stock_actual: Math.max(0, +(stockPrevio - cant).toFixed(3)) })
-                .eq('id', prod.id);
-            }
+            // Descuenta la merma del stock, igual que una venta (ajuste atómico)
+            await sbClient.rpc('ajustar_stock', { p_producto_id: prod.id, p_delta: -cant });
           }
           setModalMerma(false);
           setFormMerma({ productoId: '', cantidad: '', motivo: 'Vencido' });
@@ -2122,18 +2116,16 @@
             const { error: detErr } = await sbClient.from('compras_detalle').insert(detalles);
             if (detErr) throw detErr;
 
-            // Actualizar precio de costo y sumar el stock recibido en cada producto
+            // Actualizar precio de costo y sumar el stock recibido en cada
+            // producto (el stock se ajusta de forma atómica por separado).
+            // Si el producto no tenía seguimiento de stock (null), la propia
+            // entrada de mercadería lo inicializa con lo recibido.
             for (const it of compraItems) {
-              const { data: prodActual } = await sbClient
-                .from('productos')
-                .select('stock_actual')
-                .eq('id', it.productoId)
-                .single();
-              const stockPrevio = prodActual && prodActual.stock_actual !== null ? Number(prodActual.stock_actual) : 0;
-              await sbClient
-                .from('productos')
-                .update({ precio_costo: it.costoUnitario, stock_actual: +(stockPrevio + Number(it.cantidad)).toFixed(3) })
-                .eq('id', it.productoId);
+              const { data: nuevoStock } = await sbClient.rpc('ajustar_stock', { p_producto_id: it.productoId, p_delta: Number(it.cantidad) });
+              if (nuevoStock === null) {
+                await sbClient.from('productos').update({ stock_actual: Number(it.cantidad) }).eq('id', it.productoId);
+              }
+              await sbClient.from('productos').update({ precio_costo: it.costoUnitario }).eq('id', it.productoId);
             }
           }
 
@@ -2226,18 +2218,10 @@
               .update({ anulada: true, motivo_anulacion: motivo })
               .eq('id', venta.id);
 
-            // Reponer el stock de los productos de esta venta
+            // Reponer el stock de los productos de esta venta (ajuste atómico)
             for (const d of (venta.ventas_detalle || [])) {
               if (d.producto_id) {
-                const { data: prodActual } = await sbClient
-                  .from('productos')
-                  .select('stock_actual')
-                  .eq('id', d.producto_id)
-                  .single();
-                if (prodActual && prodActual.stock_actual !== null) {
-                  const nuevoStock = +(Number(prodActual.stock_actual) + Number(d.cantidad)).toFixed(3);
-                  await sbClient.from('productos').update({ stock_actual: nuevoStock }).eq('id', d.producto_id);
-                }
+                await sbClient.rpc('ajustar_stock', { p_producto_id: d.producto_id, p_delta: Number(d.cantidad) });
               }
             }
           }
@@ -2472,18 +2456,13 @@
                 .eq('id', idClienteReal);
             }
 
-            // Descontar el stock vendido de cada producto real (no de catálogo de demo)
+            // Descontar el stock vendido de cada producto real (no de catálogo de demo).
+            // Se usa la función ajustar_stock (ajuste atómico en la base de
+            // datos) en vez de leer y luego escribir desde aquí, para que
+            // dos cajeros vendiendo el mismo producto a la vez no se pisen.
             for (const item of carrito) {
               if (typeof item.productoId === 'string' && item.productoId.length > 10) {
-                const { data: prodActual } = await sbClient
-                  .from('productos')
-                  .select('stock_actual')
-                  .eq('id', item.productoId)
-                  .single();
-                if (prodActual && prodActual.stock_actual !== null) {
-                  const nuevoStock = Math.max(0, +(Number(prodActual.stock_actual) - Number(item.cantidad)).toFixed(3));
-                  await sbClient.from('productos').update({ stock_actual: nuevoStock }).eq('id', item.productoId);
-                }
+                await sbClient.rpc('ajustar_stock', { p_producto_id: item.productoId, p_delta: -Number(item.cantidad) });
               }
             }
           }
