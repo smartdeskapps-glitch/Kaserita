@@ -41,6 +41,9 @@
   <!-- Generación de PDF en el navegador (sin backend) -->
   <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
 
+  <!-- Lector de código de barras por cámara (sin backend) -->
+  <script src="https://cdn.jsdelivr.net/npm/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+
   <style>
     body {
       user-select: none;
@@ -340,6 +343,12 @@
       const [mostrarResumenMobile, setMostrarResumenMobile] = useState(false);
       const inputBusquedaRef = useRef(null);
 
+      // --- Lector de Código de Barras por Cámara ---
+      const [modalEscaner, setModalEscaner] = useState(false);
+      const [errorEscaner, setErrorEscaner] = useState('');
+      const html5QrRef = useRef(null);
+      const ultimoEscaneoRef = useRef({ codigo: '', hora: 0 });
+
       // Cliente Supabase
       const sbClient = useMemo(() => {
         if (supabaseUrl && supabaseKey && window.supabase) {
@@ -553,6 +562,60 @@
           }
         }
       };
+
+      // ==========================================
+      // LECTOR DE CÓDIGO DE BARRAS POR CÁMARA
+      // ==========================================
+      const handleCodigoEscaneado = (codigo) => {
+        const codigoLimpio = (codigo || '').trim();
+        if (!codigoLimpio) return;
+
+        // Evita agregar el mismo producto varias veces mientras la cámara
+        // sigue enfocando el mismo código de barras.
+        const ahora = Date.now();
+        if (ultimoEscaneoRef.current.codigo === codigoLimpio && ahora - ultimoEscaneoRef.current.hora < 2500) {
+          return;
+        }
+        ultimoEscaneoRef.current = { codigo: codigoLimpio, hora: ahora };
+
+        const encontrado = productos.find((p) => (p.cod_ean || '') === codigoLimpio);
+        if (encontrado) {
+          handleClicProducto(encontrado);
+          notificar(`Agregado: ${encontrado.descripcion}`, 'success');
+        } else {
+          notificar(`Código ${codigoLimpio} no encontrado en el catálogo.`, 'error');
+        }
+      };
+
+      // Inicia/detiene la cámara cuando se abre o cierra el modal del escáner.
+      useEffect(() => {
+        if (!modalEscaner) return;
+        setErrorEscaner('');
+
+        const scanner = new Html5Qrcode('lector-camara-view');
+        html5QrRef.current = scanner;
+
+        scanner
+          .start(
+            { facingMode: 'environment' },
+            { fps: 10, qrbox: { width: 260, height: 160 } },
+            (decodedText) => handleCodigoEscaneado(decodedText),
+            () => {} // ignora fotogramas sin código detectado
+          )
+          .catch((err) => {
+            setErrorEscaner('No se pudo acceder a la cámara. Revisa los permisos del navegador.');
+            console.warn('Error al iniciar la cámara:', err);
+          });
+
+        return () => {
+          if (html5QrRef.current) {
+            html5QrRef.current
+              .stop()
+              .then(() => html5QrRef.current.clear())
+              .catch(() => {});
+          }
+        };
+      }, [modalEscaner]);
 
       const cambiarCantidadCarrito = (productoId, delta) => {
         setCarrito(prev =>
@@ -1725,6 +1788,13 @@
                 >
                   <i className="fa-solid fa-magnifying-glass"></i>
                 </button>
+                <button
+                  onClick={() => setModalEscaner(true)}
+                  className="px-4 py-2.5 bg-orange-500 hover:bg-orange-400 text-white text-xs font-semibold rounded-xl shadow-lg shadow-orange-500/20 transition"
+                  title="Escanear código de barras con la cámara"
+                >
+                  <i className="fa-solid fa-camera"></i>
+                </button>
                 {busqueda && (
                   <button
                     onClick={() => {
@@ -2197,6 +2267,39 @@
                   <button onClick={() => setModalCantidad(false)} className="flex-1 py-2 bg-stone-800 rounded-lg text-xs font-semibold">Cancelar</button>
                   <button onClick={confirmarCantidadBalanza} className="flex-1 py-2 bg-orange-600 hover:bg-orange-500 text-white rounded-lg text-xs font-bold shadow">Aceptar</button>
                 </div>
+              </div>
+            </div>
+          )}
+
+          {/* Modal: Lector de Código de Barras por Cámara */}
+          {modalEscaner && (
+            <div className="fixed inset-0 bg-black z-[70] flex flex-col">
+              <div className="flex items-center justify-between px-4 py-3 bg-stone-950/90">
+                <h3 className="text-sm font-bold text-white flex items-center gap-2">
+                  <i className="fa-solid fa-camera text-orange-400"></i> Escanear Código de Barras
+                </h3>
+                <button
+                  onClick={() => setModalEscaner(false)}
+                  className="w-9 h-9 flex items-center justify-center bg-stone-800 rounded-xl text-stone-300 hover:text-white"
+                >
+                  <i className="fa-solid fa-xmark"></i>
+                </button>
+              </div>
+
+              <div className="flex-1 relative flex items-center justify-center bg-black overflow-hidden">
+                <div id="lector-camara-view" className="w-full max-w-md"></div>
+
+                {errorEscaner && (
+                  <div className="absolute inset-0 flex flex-col items-center justify-center text-center p-6 bg-stone-950">
+                    <i className="fa-solid fa-video-slash text-3xl text-rose-400 mb-3"></i>
+                    <p className="text-sm font-semibold text-white">{errorEscaner}</p>
+                    <p className="text-xs text-stone-500 mt-1">Verifica que le diste permiso de cámara a esta página en tu navegador.</p>
+                  </div>
+                )}
+              </div>
+
+              <div className="p-4 bg-stone-950/90 text-center">
+                <p className="text-xs text-stone-400">Apunta la cámara al código de barras del producto.</p>
               </div>
             </div>
           )}
