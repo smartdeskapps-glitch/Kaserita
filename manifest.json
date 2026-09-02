@@ -1,0 +1,19 @@
+{
+  "name": "Kaserita - Punto de Venta",
+  "short_name": "Kaserita",
+  "description": "Punto de venta para tu bodega o negocio",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#0c0a09",
+  "theme_color": "#f97316",
+  "icons": [
+    {
+      "src": "/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

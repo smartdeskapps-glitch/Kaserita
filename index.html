@@ -4,7 +4,16 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Kaserita - Punto de Venta</title>
-  
+
+  <!-- PWA: instalable como app en el celular ("Agregar a pantalla de inicio") -->
+  <link rel="manifest" href="/manifest.json">
+  <link rel="icon" href="/icon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="/icon.svg">
+  <meta name="theme-color" content="#f97316">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Kaserita">
+
   <!-- Tailwind CSS CDN -->
   <script src="https://cdn.tailwindcss.com"></script>
   <script>
@@ -84,6 +93,14 @@
 <body class="bg-stone-950 text-stone-100 h-screen overflow-hidden font-sans">
   <div id="root"></div>
 
+  <script>
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('/sw.js').catch(() => {});
+      });
+    }
+  </script>
+
   <!-- Aplicación React + Supabase con Todos los Módulos -->
   <script type="text/babel">
     const { useState, useEffect, useRef, useMemo } = React;
@@ -106,6 +123,30 @@
     const generarCodigoInterno = () => {
       contadorCodigoInterno += 1;
       return `INT-${Date.now()}-${contadorCodigoInterno}`;
+    };
+
+    // Exporta un arreglo de objetos a un archivo CSV descargable (sin backend).
+    const exportarCSV = (nombreArchivo, filas) => {
+      if (!filas || filas.length === 0) return;
+      const columnas = Object.keys(filas[0]);
+      const escapar = (valor) => {
+        const texto = valor === null || valor === undefined ? '' : String(valor);
+        return `"${texto.replace(/"/g, '""')}"`;
+      };
+      const contenido = [
+        columnas.map(escapar).join(','),
+        ...filas.map((fila) => columnas.map((col) => escapar(fila[col])).join(','))
+      ].join('\r\n');
+
+      const blob = new Blob(['﻿' + contenido], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const enlace = document.createElement('a');
+      enlace.href = url;
+      enlace.download = nombreArchivo;
+      document.body.appendChild(enlace);
+      enlace.click();
+      document.body.removeChild(enlace);
+      URL.revokeObjectURL(url);
     };
 
     // ID fijo usado únicamente por "Modo Demo Local" (no corresponde a ninguna
@@ -160,6 +201,37 @@
     // Ticket con formato de impresora térmica (80mm): invisible en pantalla
     // (clase sr-only) pero se muestra en su lugar al imprimir gracias al CSS
     // @media print de la cabecera, que oculta todo lo demás.
+    // Calculadora rápida: dado el costo, sugiere el precio de venta según un
+    // % de margen (precio = costo × (1 + margen/100)).
+    function CalculadoraMargen({ costo, onAplicar }) {
+      const [margen, setMargen] = useState('30');
+      const costoNum = Number(costo) || 0;
+      const sugerido = +(costoNum * (1 + (Number(margen) || 0) / 100)).toFixed(2);
+      return (
+        <div className="flex items-end gap-1.5 bg-stone-950/60 border border-stone-800 rounded-lg p-1.5 mt-1">
+          <div className="flex-1">
+            <label className="text-[9px] text-stone-500 block">Margen %:</label>
+            <input
+              type="number"
+              step="1"
+              value={margen}
+              onChange={(e) => setMargen(e.target.value)}
+              className="w-full bg-stone-900 border border-stone-700 rounded px-2 py-1 text-[11px] text-white"
+            />
+          </div>
+          <span className="text-[10px] text-stone-500 pb-1.5">→ S/ {sugerido.toFixed(2)}</span>
+          <button
+            type="button"
+            onClick={() => onAplicar(sugerido)}
+            disabled={costoNum <= 0}
+            className="px-2 py-1 bg-orange-600 hover:bg-orange-500 disabled:opacity-40 text-white text-[10px] font-bold rounded"
+          >
+            Usar
+          </button>
+        </div>
+      );
+    }
+
     function ReciboImprimible({ bodega, boleta, fecha, cliente, medioPago, items, total, anulada }) {
       return (
         <div id="recibo-imprimible" className="sr-only">
@@ -630,6 +702,27 @@
           notificar(nuevoEstado ? `${cajero.nombre} reactivado.` : `${cajero.nombre} desactivado.`, 'info');
         } catch (err) {
           notificar(`Error: ${err.message}`, 'error');
+        }
+      };
+
+      // Si un empleado olvida su PIN, el dueño/admin se lo puede restablecer
+      // aquí mismo sin necesidad de recuperación por correo (no hay backend
+      // propio para eso).
+      const restablecerPinCajero = async (cajero) => {
+        const nuevoPin = prompt(`Nuevo PIN para ${cajero.nombre} (4 a 6 dígitos):`, '');
+        if (!nuevoPin) return;
+        try {
+          if (sbClient) {
+            const { error } = await sbClient
+              .from('usuarios')
+              .update({ pin_acceso: nuevoPin.trim() })
+              .eq('bodega_id', bodegaId)
+              .eq('dni', cajero.dni);
+            if (error) throw error;
+          }
+          notificar(`PIN de ${cajero.nombre} actualizado.`, 'success');
+        } catch (err) {
+          notificar(`Error al cambiar el PIN: ${err.message}`, 'error');
         }
       };
 
@@ -1254,6 +1347,18 @@
         return clientesLista.filter(
           (c) => (c.nombre_completo || '').toLowerCase().includes(t) || (c.dni || '').includes(t)
         );
+      };
+
+      const exportarClientesCSV = () => {
+        const filas = clientesLista.map((c) => ({
+          DNI: c.dni,
+          Nombre: c.nombre_completo,
+          Telefono: c.telefono || '',
+          Correo: c.correo || '',
+          'Limite de Credito': Number(c.limite_credito || 0).toFixed(2),
+          'Saldo Actual (Deuda)': Number(c.saldo_actual || 0).toFixed(2)
+        }));
+        exportarCSV(`Clientes_${bodegaNombre}.csv`, filas);
       };
 
       const abrirEdicionCliente = (cliente) => {
@@ -1891,6 +1996,19 @@
         setFechaFinHistorial(hoy);
         setBusquedaBoletaHistorial('');
         cargarHistorialPorRango(hoy, hoy);
+      };
+
+      const exportarVentasCSV = () => {
+        const filas = ventasDelDia.map((v) => ({
+          Boleta: v.nro_boleta,
+          Fecha: new Date(v.fecha_hora).toLocaleString('es-PE'),
+          Cliente: v.clientes?.nombre_completo || 'Desconocido',
+          'Medio de Pago': v.medio_pago,
+          Total: Number(v.total_venta).toFixed(2),
+          Utilidad: Number(v.utilidad_total || 0).toFixed(2),
+          Estado: v.anulada ? 'Anulada' : 'Válida'
+        }));
+        exportarCSV(`Ventas_${fechaInicioHistorial}_a_${fechaFinHistorial}.csv`, filas);
       };
 
       const anularVentaHoy = async (venta) => {
@@ -3501,6 +3619,12 @@
                         onChange={(e) => setFormEditarProducto({ ...formEditarProducto, precio_costo: e.target.value })}
                         className="w-full bg-stone-950 border border-stone-800 rounded-lg px-3 py-1.5 text-xs text-white"
                       />
+                      {Number(formEditarProducto.precio_costo) > 0 && (
+                        <CalculadoraMargen
+                          costo={formEditarProducto.precio_costo}
+                          onAplicar={(precio) => setFormEditarProducto({ ...formEditarProducto, precio_venta: String(precio) })}
+                        />
+                      )}
                     </div>
                   </div>
                   <div className="grid grid-cols-2 gap-2">
@@ -3609,6 +3733,12 @@
                         onChange={(e) => setFormProducto({ ...formProducto, precio_costo: e.target.value })}
                         className="w-full bg-stone-950 border border-stone-800 rounded-lg px-3 py-1.5 text-xs text-white"
                       />
+                      {Number(formProducto.precio_costo) > 0 && (
+                        <CalculadoraMargen
+                          costo={formProducto.precio_costo}
+                          onAplicar={(precio) => setFormProducto({ ...formProducto, precio_venta: String(precio) })}
+                        />
+                      )}
                     </div>
                   </div>
                   <div className="grid grid-cols-2 gap-2">
@@ -3964,16 +4094,25 @@
                               </p>
                               <p className="text-[10px] text-stone-500 capitalize">DNI: {c.dni} · {c.rol}</p>
                             </div>
-                            {c.rol !== 'dueno' && (
+                            <div className="flex items-center gap-1.5 shrink-0">
                               <button
-                                onClick={() => alternarActivoCajero(c)}
-                                className={`text-[11px] font-semibold px-2.5 py-1 rounded-lg ${
-                                  c.activo ? 'bg-rose-950/60 text-rose-300 hover:bg-rose-900' : 'bg-emerald-950/60 text-emerald-300 hover:bg-emerald-900'
-                                }`}
+                                onClick={() => restablecerPinCajero(c)}
+                                className="text-[11px] font-semibold px-2 py-1 rounded-lg bg-stone-800 text-stone-300 hover:bg-stone-700"
+                                title="Restablecer PIN"
                               >
-                                {c.activo ? 'Desactivar' : 'Reactivar'}
+                                <i className="fa-solid fa-key"></i>
                               </button>
-                            )}
+                              {c.rol !== 'dueno' && (
+                                <button
+                                  onClick={() => alternarActivoCajero(c)}
+                                  className={`text-[11px] font-semibold px-2.5 py-1 rounded-lg ${
+                                    c.activo ? 'bg-rose-950/60 text-rose-300 hover:bg-rose-900' : 'bg-emerald-950/60 text-emerald-300 hover:bg-emerald-900'
+                                  }`}
+                                >
+                                  {c.activo ? 'Desactivar' : 'Reactivar'}
+                                </button>
+                              )}
+                            </div>
                           </div>
                         ))
                       )}
@@ -4051,13 +4190,24 @@
                   </div>
                 ) : (
                   <>
-                    <input
-                      type="text"
-                      placeholder="Buscar por nombre o DNI..."
-                      value={busquedaClientes}
-                      onChange={(e) => setBusquedaClientes(e.target.value)}
-                      className="w-full bg-stone-950 border border-stone-800 rounded-xl px-3 py-2 text-xs text-white shrink-0"
-                    />
+                    <div className="flex gap-2 shrink-0">
+                      <input
+                        type="text"
+                        placeholder="Buscar por nombre o DNI..."
+                        value={busquedaClientes}
+                        onChange={(e) => setBusquedaClientes(e.target.value)}
+                        className="flex-1 bg-stone-950 border border-stone-800 rounded-xl px-3 py-2 text-xs text-white"
+                      />
+                      {clientesLista.length > 0 && (
+                        <button
+                          onClick={exportarClientesCSV}
+                          className="px-3 py-2 bg-stone-800 hover:bg-stone-700 text-stone-300 text-xs font-semibold rounded-xl flex items-center gap-1.5"
+                          title="Exportar a CSV/Excel"
+                        >
+                          <i className="fa-solid fa-file-csv"></i>
+                        </button>
+                      )}
+                    </div>
                     <div className="flex-1 overflow-y-auto space-y-1.5">
                       {cargandoClientes ? (
                         <p className="text-xs text-stone-500 text-center py-6">Cargando...</p>
@@ -4207,6 +4357,15 @@
                     onChange={(e) => setBusquedaBoletaHistorial(e.target.value)}
                     className="flex-1 min-w-[140px] bg-stone-950 border border-stone-800 rounded-lg px-3 py-1.5 text-xs text-white"
                   />
+                  {esAdmin && ventasDelDia.length > 0 && (
+                    <button
+                      onClick={exportarVentasCSV}
+                      className="px-3 py-1.5 bg-stone-800 hover:bg-stone-700 text-stone-300 text-xs font-semibold rounded-lg flex items-center gap-1.5"
+                      title="Exportar a CSV/Excel"
+                    >
+                      <i className="fa-solid fa-file-csv"></i> CSV
+                    </button>
+                  )}
                 </div>
 
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-center text-xs">
