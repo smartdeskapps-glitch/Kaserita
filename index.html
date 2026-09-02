@@ -143,6 +143,13 @@
     // bodega real sin productos debe ver un catálogo vacío de verdad.
     const BODEGA_DEMO_ID = 'a0000000-0000-0000-0000-000000000001';
 
+    // El login sigue pidiendo DNI + PIN como siempre, pero por debajo se usa
+    // Supabase Auth real (necesario para que RLS pueda proteger los datos de
+    // cada bodega). Se deriva un correo y contraseña sintéticos a partir del
+    // DNI/PIN para no tener que pedirle un email al usuario.
+    const emailAuthDesdeDni = (dni) => `bodega_${(dni || '').trim()}@kaserita.app`;
+    const passwordAuthDesdePin = (pin) => `kst-${(pin || '').trim()}`;
+
     const PRODUCTOS_SEMILLA = [
       { cod_ean: '775012300001', descripcion: 'Leche Gloria Entera 400g (Azul)', precio_costo: 3.50, precio_venta: 4.20, categoria: 'Lácteos', unidad: 'UND' },
       { cod_ean: '775012300002', descripcion: 'Arroz Extra Costeño 1kg', precio_costo: 4.10, precio_venta: 5.00, categoria: 'Abarrotes', unidad: 'UND' },
@@ -368,11 +375,9 @@
       );
       const [modalConfig, setModalConfig] = useState(false);
 
-      // --- Sesión (Tabla `usuarios`) ---
-      const [sesion, setSesion] = useState(() => {
-        const g = localStorage.getItem('pos_user_session');
-        return g ? JSON.parse(g) : null;
-      });
+      // --- Sesión (Tabla `usuarios`, respaldada por Supabase Auth) ---
+      const [sesion, setSesion] = useState(null);
+      const [verificandoSesion, setVerificandoSesion] = useState(true);
 
       // --- Auth Form ---
       const [authTab, setAuthTab] = useState('login');
@@ -557,17 +562,41 @@
 
       const guardarSesion = (datos) => {
         setSesion(datos);
-        localStorage.setItem('pos_user_session', JSON.stringify(datos));
       };
 
-      const cerrarSesion = () => {
+      const cerrarSesion = async () => {
+        if (sbClient) {
+          try { await sbClient.auth.signOut(); } catch (err) { console.warn(err); }
+        }
         setSesion(null);
         setCajeroSeleccionado(null);
-        localStorage.removeItem('pos_user_session');
         setCarrito([]);
         setTurnoActivo(null);
         notificar('Has cerrado sesión.', 'info');
       };
+
+      // Al cargar la app, si el dispositivo ya tiene una sesión válida de
+      // Supabase Auth (login anterior), se restaura sin pedir DNI/PIN de
+      // nuevo. El modo Demo no pasa por aquí (no usa Auth real).
+      useEffect(() => {
+        if (!sbClient) { setVerificandoSesion(false); return; }
+        (async () => {
+          try {
+            const { data: { session } } = await sbClient.auth.getSession();
+            if (session?.user) {
+              const { data: usuario } = await sbClient.from('usuarios').select('*').eq('auth_id', session.user.id).single();
+              if (usuario) {
+                const { data: bodega } = await sbClient.from('bodegas').select('*').eq('id', usuario.bodega_id).single();
+                setSesion({ usuario, bodega: bodega || { id: usuario.bodega_id, nombre: 'Mi Bodega' } });
+              }
+            }
+          } catch (err) {
+            console.warn('No se pudo restaurar la sesión:', err.message);
+          } finally {
+            setVerificandoSesion(false);
+          }
+        })();
+      }, [sbClient]);
 
       // Guardar ventas en espera
       const guardarVentasEnEsperaLS = (lista) => {
@@ -715,19 +744,41 @@
       // Si un empleado olvida su PIN, el dueño/admin se lo puede restablecer
       // aquí mismo sin necesidad de recuperación por correo (no hay backend
       // propio para eso).
+      //
+      // Nota: si ese empleado ya había iniciado sesión antes (su cuenta real
+      // de acceso ya quedó vinculada), este cambio no alcanza para que pueda
+      // entrar de nuevo -- eso requiere restablecer también su contraseña en
+      // Supabase (Authentication > Users, buscando bodega_<DNI>@kaserita.app)
+      // porque no hay backend propio con permisos para hacerlo desde la app.
       const restablecerPinCajero = async (cajero) => {
         const nuevoPin = prompt(`Nuevo PIN para ${cajero.nombre} (4 a 6 dígitos):`, '');
         if (!nuevoPin) return;
         try {
           if (sbClient) {
+            const { data: filaActual } = await sbClient
+              .from('usuarios')
+              .select('auth_id')
+              .eq('bodega_id', bodegaId)
+              .eq('dni', cajero.dni)
+              .maybeSingle();
+            const yaHabiaIniciadoSesion = !!filaActual?.auth_id;
+
             const { error } = await sbClient
               .from('usuarios')
-              .update({ pin_acceso: nuevoPin.trim() })
+              .update({ pin_acceso: nuevoPin.trim(), auth_id: null })
               .eq('bodega_id', bodegaId)
               .eq('dni', cajero.dni);
             if (error) throw error;
+
+            if (yaHabiaIniciadoSesion) {
+              notificar(
+                `PIN de ${cajero.nombre} actualizado, pero como ya había iniciado sesión antes, avísame para terminar de habilitar su acceso.`,
+                'info'
+              );
+            } else {
+              notificar(`PIN de ${cajero.nombre} actualizado. Ya puede iniciar sesión con el nuevo PIN.`, 'success');
+            }
           }
-          notificar(`PIN de ${cajero.nombre} actualizado.`, 'success');
         } catch (err) {
           notificar(`Error al cambiar el PIN: ${err.message}`, 'error');
         }
@@ -2400,6 +2451,14 @@
       // =========================================================================
       // VISTA 1: AUTH (LOGIN / REGISTRO)
       // =========================================================================
+      if (verificandoSesion) {
+        return (
+          <div className="flex items-center justify-center min-h-screen bg-stone-50">
+            <div className="w-8 h-8 border-4 border-orange-500 border-t-transparent rounded-full animate-spin"></div>
+          </div>
+        );
+      }
+
       if (!sesion) {
         return (
           <div className="flex flex-col items-center justify-center min-h-screen bg-gradient-to-br from-stone-50 via-stone-50 to-orange-100 text-stone-900 p-4 select-none">
@@ -2441,8 +2500,31 @@
                   e.preventDefault();
                   setCargandoAuth(true);
                   try {
-                    const { data: usuario } = await sbClient.from('usuarios').select('*').eq('dni', formLogin.dni.trim()).eq('pin_acceso', formLogin.pin.trim()).single();
-                    if (!usuario) throw new Error('DNI o PIN incorrecto.');
+                    const dni = formLogin.dni.trim();
+                    const pin = formLogin.pin.trim();
+                    const email = emailAuthDesdeDni(dni);
+                    const password = passwordAuthDesdePin(pin);
+
+                    const { error: errSignIn } = await sbClient.auth.signInWithPassword({ email, password });
+
+                    if (errSignIn) {
+                      // Puede ser una cuenta que todavía no se migró al nuevo
+                      // sistema de acceso (bodega creada antes de este cambio):
+                      // se crea su cuenta real y, si el DNI+PIN coincide con lo
+                      // que ya tenía guardado, se vincula automáticamente.
+                      const { error: errSignUp } = await sbClient.auth.signUp({ email, password });
+                      if (errSignUp) throw new Error('DNI o PIN incorrecto.');
+
+                      const { data: bodegaReclamada, error: errReclamo } = await sbClient.rpc('reclamar_cuenta_bodega', { p_dni: dni, p_pin: pin });
+                      if (errReclamo || !bodegaReclamada) {
+                        await sbClient.auth.signOut();
+                        throw new Error('DNI o PIN incorrecto.');
+                      }
+                    }
+
+                    const { data: { user } } = await sbClient.auth.getUser();
+                    const { data: usuario, error: errUsuario } = await sbClient.from('usuarios').select('*').eq('auth_id', user.id).single();
+                    if (errUsuario || !usuario) throw new Error('No se pudo cargar tu cuenta. Intenta de nuevo.');
                     const { data: bodega } = await sbClient.from('bodegas').select('*').eq('id', usuario.bodega_id).single();
                     guardarSesion({ usuario, bodega: bodega || { id: usuario.bodega_id, nombre: 'Mi Bodega' } });
                     notificar(`¡Bienvenido ${usuario.nombre}!`, 'success');
@@ -2491,13 +2573,22 @@
                   e.preventDefault();
                   setCargandoAuth(true);
                   try {
+                    const dni = formRegistro.dni.trim();
+                    const pin = formRegistro.pin.trim();
+                    const email = emailAuthDesdeDni(dni);
+                    const password = passwordAuthDesdePin(pin);
+
+                    const { data: authData, error: errAuth } = await sbClient.auth.signUp({ email, password });
+                    if (errAuth) throw new Error(errAuth.message.includes('registered') ? 'Ese DNI ya tiene una cuenta registrada. Inicia sesión en vez de crear una bodega nueva.' : errAuth.message);
+                    if (!authData?.user) throw new Error('No se pudo crear la cuenta. Intenta de nuevo.');
+
                     const { data: bCreada, error: errBodega } = await sbClient.from('bodegas').insert([{ nombre: formRegistro.nombreBodega.trim() }]).select().single();
                     if (errBodega) throw errBodega;
 
-                    const { data: uCreado, error: errUsuario } = await sbClient.from('usuarios').insert([{ bodega_id: bCreada.id, nombre: formRegistro.nombreDueno.trim(), dni: formRegistro.dni.trim(), pin_acceso: formRegistro.pin.trim(), rol: 'dueno', activo: true }]).select().single();
+                    const { data: uCreado, error: errUsuario } = await sbClient.from('usuarios').insert([{ bodega_id: bCreada.id, nombre: formRegistro.nombreDueno.trim(), dni, pin_acceso: pin, rol: 'dueno', activo: true, auth_id: authData.user.id }]).select().single();
                     if (errUsuario) throw errUsuario;
 
-                    const { error: errCajero } = await sbClient.from('cajeros').insert([{ bodega_id: bCreada.id, nombre: formRegistro.nombreDueno.trim(), dni: formRegistro.dni.trim(), rol: 'dueno', activo: true }]);
+                    const { error: errCajero } = await sbClient.from('cajeros').insert([{ bodega_id: bCreada.id, nombre: formRegistro.nombreDueno.trim(), dni, rol: 'dueno', activo: true }]);
                     if (errCajero) throw errCajero;
 
                     const { error: errCliente } = await sbClient.from('clientes').insert([{ bodega_id: bCreada.id, dni: '99999999', nombre_completo: 'Desconocido', saldo_actual: 0 }]);
