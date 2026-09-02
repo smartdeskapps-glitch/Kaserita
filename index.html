@@ -507,11 +507,12 @@
 
       const handleGuardarNuevoCliente = async (e) => {
         e.preventDefault();
-        const { dni, nombre, limiteCredito } = formCliente;
+        const { dni, nombre, telefono, correo, limiteCredito } = formCliente;
         if (!dni.trim() || !nombre.trim()) {
           notificar('DNI y Nombre son obligatorios.', 'error');
           return;
         }
+        const limite = Number(limiteCredito) || 0;
 
         try {
           if (sbClient) {
@@ -521,6 +522,9 @@
                 bodega_id: bodegaId,
                 dni: dni.trim(),
                 nombre_completo: nombre.trim(),
+                telefono: telefono.trim() || null,
+                correo: correo.trim() || null,
+                limite_credito: limite,
                 saldo_actual: 0.00
               }])
               .select()
@@ -530,7 +534,7 @@
             setClienteActual(data);
             setDniCliente(data.dni);
           } else {
-            const cLocal = { id: generarUUID(), bodega_id: bodegaId, dni: dni.trim(), nombre_completo: nombre.trim(), saldo_actual: 0 };
+            const cLocal = { id: generarUUID(), bodega_id: bodegaId, dni: dni.trim(), nombre_completo: nombre.trim(), telefono, correo, limite_credito: limite, saldo_actual: 0 };
             setClienteActual(cLocal);
             setDniCliente(cLocal.dni);
           }
@@ -733,15 +737,35 @@
         }
       };
 
-      const anularVentaHoy = async (ventaId, nroBoleta) => {
-        if (!confirm(`¿Estás seguro de ANULAR la boleta ${nroBoleta}? Esta acción es permanente.`)) return;
+      const anularVentaHoy = async (venta) => {
+        if (venta.anulada) return;
+        if (!confirm(`¿Estás seguro de ANULAR la boleta ${venta.nro_boleta}? Esta acción no se puede deshacer.`)) return;
+
+        const motivo = prompt('Motivo de la anulación (opcional):', '') || 'Sin motivo especificado';
 
         try {
           if (sbClient) {
-            await sbClient.from('ventas').delete().eq('id', ventaId);
+            // Si la venta era a crédito, revertir la deuda del cliente antes de anular
+            if (venta.medio_pago === 'CREDITO' && venta.cliente_id) {
+              const { data: cli } = await sbClient
+                .from('clientes')
+                .select('saldo_actual')
+                .eq('id', venta.cliente_id)
+                .single();
+              if (cli) {
+                const nuevoSaldo = Math.max(0, +(Number(cli.saldo_actual) - Number(venta.total_venta)).toFixed(2));
+                await sbClient.from('clientes').update({ saldo_actual: nuevoSaldo }).eq('id', venta.cliente_id);
+              }
+            }
+
+            // Soft-delete: se marca como anulada en vez de borrarla, para conservar el historial
+            await sbClient
+              .from('ventas')
+              .update({ anulada: true, motivo_anulacion: motivo })
+              .eq('id', venta.id);
           }
-          setVentasDelDia(prev => prev.filter(v => v.id !== ventaId));
-          notificar(`Boleta ${nroBoleta} anulada correctamente.`, 'info');
+          setVentasDelDia(prev => prev.map(v => v.id === venta.id ? { ...v, anulada: true, motivo_anulacion: motivo } : v));
+          notificar(`Boleta ${venta.nro_boleta} anulada correctamente.`, 'info');
         } catch (err) {
           notificar(`Error al anular: ${err.message}`, 'error');
         }
@@ -874,11 +898,19 @@
           return;
         }
 
-        // Validación de crédito
+        // Validación de crédito: Saldo actual + Venta <= Límite
         if (medioPago === 'CREDITO') {
           if (!clienteActual || clienteActual.dni === '99999999') {
             notificar('Para vender a crédito debes seleccionar un cliente registrado.', 'error');
             setModalNuevoCliente(true);
+            return;
+          }
+          const limiteCred = Number(clienteActual.limite_credito) || 0;
+          const saldoAct = Number(clienteActual.saldo_actual) || 0;
+          const nuevoSaldoProyectado = +(saldoAct + totalVenta).toFixed(2);
+          if (nuevoSaldoProyectado > limiteCred) {
+            const disponible = Math.max(0, +(limiteCred - saldoAct).toFixed(2));
+            notificar(`Límite de crédito excedido. Disponible: S/ ${disponible.toFixed(2)} de S/ ${limiteCred.toFixed(2)}.`, 'error');
             return;
           }
         }
@@ -1129,6 +1161,47 @@
                 </button>
               </div>
             </div>
+
+            {/* Modal: Configuración de Supabase */}
+            {modalConfig && (
+              <div className="fixed inset-0 bg-black/85 flex items-center justify-center z-50 p-4">
+                <div className="bg-slate-800 border border-slate-700 rounded-2xl max-w-sm w-full p-5 shadow-2xl space-y-3">
+                  <div className="flex justify-between items-center">
+                    <h3 className="text-sm font-bold text-white">⚙️ Configuración de Supabase</h3>
+                    <button onClick={() => setModalConfig(false)} className="text-slate-400 hover:text-white">✕</button>
+                  </div>
+                  <div>
+                    <label className="text-xs text-slate-400 block mb-1">Supabase URL:</label>
+                    <input
+                      type="text"
+                      value={supabaseUrl}
+                      onChange={(e) => setSupabaseUrl(e.target.value)}
+                      className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-1.5 text-xs text-white focus:outline-none focus:border-emerald-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-xs text-slate-400 block mb-1">Supabase Anon/Publishable Key:</label>
+                    <input
+                      type="text"
+                      value={supabaseKey}
+                      onChange={(e) => setSupabaseKey(e.target.value)}
+                      className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-1.5 text-xs text-white focus:outline-none focus:border-emerald-500"
+                    />
+                  </div>
+                  <button
+                    onClick={() => {
+                      localStorage.setItem('pos_sb_url', supabaseUrl.trim());
+                      localStorage.setItem('pos_sb_key', supabaseKey.trim());
+                      setModalConfig(false);
+                      notificar('Configuración de Supabase guardada.', 'success');
+                    }}
+                    className="w-full py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs rounded-xl"
+                  >
+                    Guardar y Conectar
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
         );
       }
@@ -1804,6 +1877,74 @@
             </div>
           )}
 
+          {/* Modal: Nuevo Cliente con Límite de Crédito */}
+          {modalNuevoCliente && (
+            <div className="fixed inset-0 bg-black/85 flex items-center justify-center z-50 p-4">
+              <div className="bg-slate-800 border border-slate-700 rounded-2xl max-w-sm w-full p-5 shadow-2xl space-y-3">
+                <div className="flex justify-between items-center">
+                  <h3 className="text-base font-bold text-white">👤 Registrar Nuevo Cliente</h3>
+                  <button onClick={() => setModalNuevoCliente(false)} className="text-slate-400 hover:text-white">✕</button>
+                </div>
+                <form onSubmit={handleGuardarNuevoCliente} className="space-y-2.5">
+                  <div>
+                    <label className="text-[11px] text-slate-400 block mb-1">DNI *</label>
+                    <input
+                      type="text"
+                      required
+                      value={formCliente.dni}
+                      onChange={(e) => setFormCliente({ ...formCliente, dni: e.target.value })}
+                      className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-1.5 text-xs text-white"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-[11px] text-slate-400 block mb-1">Nombre Completo *</label>
+                    <input
+                      type="text"
+                      required
+                      value={formCliente.nombre}
+                      onChange={(e) => setFormCliente({ ...formCliente, nombre: e.target.value })}
+                      className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-1.5 text-xs text-white"
+                    />
+                  </div>
+                  <div className="grid grid-cols-2 gap-2">
+                    <div>
+                      <label className="text-[11px] text-slate-400 block mb-1">Teléfono</label>
+                      <input
+                        type="text"
+                        value={formCliente.telefono}
+                        onChange={(e) => setFormCliente({ ...formCliente, telefono: e.target.value })}
+                        className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-1.5 text-xs text-white"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-[11px] text-slate-400 block mb-1">Correo</label>
+                      <input
+                        type="text"
+                        value={formCliente.correo}
+                        onChange={(e) => setFormCliente({ ...formCliente, correo: e.target.value })}
+                        className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-1.5 text-xs text-white"
+                      />
+                    </div>
+                  </div>
+                  <div>
+                    <label className="text-[11px] text-slate-400 block mb-1">Límite de Crédito (S/) *</label>
+                    <input
+                      type="number"
+                      step="10"
+                      required
+                      value={formCliente.limiteCredito}
+                      onChange={(e) => setFormCliente({ ...formCliente, limiteCredito: e.target.value })}
+                      className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-1.5 text-sm font-bold text-emerald-400"
+                    />
+                  </div>
+                  <button type="submit" className="w-full py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs rounded-xl shadow mt-2">
+                    Guardar Cliente
+                  </button>
+                </form>
+              </div>
+            </div>
+          )}
+
           {/* Modal: Historial de Ventas del Día */}
           {modalHistorial && (
             <div className="fixed inset-0 bg-black/85 flex items-center justify-center z-50 p-4">
@@ -1816,18 +1957,18 @@
                 <div className="grid grid-cols-3 gap-2 text-center text-xs">
                   <div className="bg-slate-900 p-2 rounded-lg border border-slate-750">
                     <span className="text-slate-400 block text-[10px]">Total Ventas</span>
-                    <span className="font-bold text-sm text-white">{ventasDelDia.length}</span>
+                    <span className="font-bold text-sm text-white">{ventasDelDia.filter(v => !v.anulada).length}</span>
                   </div>
                   <div className="bg-slate-900 p-2 rounded-lg border border-slate-750">
                     <span className="text-slate-400 block text-[10px]">Efectivo</span>
                     <span className="font-bold text-sm text-emerald-400">
-                      S/ {ventasDelDia.filter(v => v.medio_pago === 'EFECTIVO').reduce((a, c) => a + Number(c.total_venta), 0).toFixed(2)}
+                      S/ {ventasDelDia.filter(v => !v.anulada && v.medio_pago === 'EFECTIVO').reduce((a, c) => a + Number(c.total_venta), 0).toFixed(2)}
                     </span>
                   </div>
                   <div className="bg-slate-900 p-2 rounded-lg border border-slate-750">
                     <span className="text-slate-400 block text-[10px]">Total General</span>
                     <span className="font-black text-sm text-emerald-400">
-                      S/ {ventasDelDia.reduce((a, c) => a + Number(c.total_venta), 0).toFixed(2)}
+                      S/ {ventasDelDia.filter(v => !v.anulada).reduce((a, c) => a + Number(c.total_venta), 0).toFixed(2)}
                     </span>
                   </div>
                 </div>
@@ -1839,20 +1980,25 @@
                     <p className="text-xs text-center py-6 text-slate-500">No hay ventas registradas hoy.</p>
                   ) : (
                     ventasDelDia.map(v => (
-                      <div key={v.id} className="flex justify-between items-center p-2.5 bg-slate-900 rounded-lg border border-slate-800 text-xs">
+                      <div key={v.id} className={`flex justify-between items-center p-2.5 rounded-lg border text-xs ${v.anulada ? 'bg-rose-950/30 border-rose-900/60 opacity-60' : 'bg-slate-900 border-slate-800'}`}>
                         <div>
-                          <p className="font-bold text-white font-mono">{v.nro_boleta} - <span className="text-slate-400 font-sans">{v.medio_pago}</span></p>
+                          <p className="font-bold text-white font-mono">
+                            {v.nro_boleta} - <span className="text-slate-400 font-sans">{v.medio_pago}</span>
+                            {v.anulada && <span className="text-rose-400 font-sans"> (ANULADA)</span>}
+                          </p>
                           <p className="text-[10px] text-slate-400">{new Date(v.created_at).toLocaleTimeString()} · {v.clientes?.nombre_completo || 'Cliente'}</p>
                         </div>
                         <div className="flex items-center gap-2">
                           <span className="font-black text-emerald-400 text-sm">S/ {Number(v.total_venta).toFixed(2)}</span>
-                          <button
-                            onClick={() => anularVentaHoy(v.id, v.nro_boleta)}
-                            className="text-[10px] bg-rose-950/80 hover:bg-rose-900 text-rose-300 px-2 py-1 rounded border border-rose-800"
-                            title="Anular venta"
-                          >
-                            Anular
-                          </button>
+                          {!v.anulada && (
+                            <button
+                              onClick={() => anularVentaHoy(v)}
+                              className="text-[10px] bg-rose-950/80 hover:bg-rose-900 text-rose-300 px-2 py-1 rounded border border-rose-800"
+                              title="Anular venta"
+                            >
+                              Anular
+                            </button>
+                          )}
                         </div>
                       </div>
                     ))
