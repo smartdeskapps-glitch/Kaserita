@@ -260,9 +260,9 @@
       // --- Cobro / Pagos ---
       const [medioPago, setMedioPago] = useState('EFECTIVO');
       const [montoRecibido, setMontoRecibido] = useState('');
-      const [montoMixtoEfectivo, setMontoMixtoEfectivo] = useState('');
-      const [montoMixtoOtro, setMontoMixtoOtro] = useState('');
-      const [campoTeclado, setCampoTeclado] = useState(null); // 'recibido' | 'mixtoEfectivo' | 'mixtoOtro' | null
+      const [montoMixtoOtro, setMontoMixtoOtro] = useState(''); // monto fijo pagado con tarjeta/otro
+      const [montoMixtoRecibido, setMontoMixtoRecibido] = useState(''); // efectivo físico entregado por el cliente
+      const [campoTeclado, setCampoTeclado] = useState(null); // 'recibido' | 'mixtoOtro' | 'mixtoRecibido' | null
       const [procesandoVenta, setProcesandoVenta] = useState(false);
       const [ventaCompletada, setVentaCompletada] = useState(null);
       const [medioQR, setMedioQR] = useState(null); // 'YAPE' | 'PLIN' | null
@@ -513,19 +513,30 @@
         return +(recibido - totalVenta).toFixed(2);
       }, [montoRecibido, totalVenta, medioPago]);
 
-      const sumaMixto = useMemo(() => {
-        return +((parseFloat(montoMixtoEfectivo) || 0) + (parseFloat(montoMixtoOtro) || 0)).toFixed(2);
-      }, [montoMixtoEfectivo, montoMixtoOtro]);
+      // Monto que debe cubrirse en efectivo dentro de un pago mixto: el total
+      // menos lo que ya se cubrió con tarjeta/otro (nunca negativo, ni mayor al total).
+      const efectivoRequeridoMixto = useMemo(() => {
+        const otro = Math.min(parseFloat(montoMixtoOtro) || 0, totalVenta);
+        return +Math.max(0, totalVenta - otro).toFixed(2);
+      }, [montoMixtoOtro, totalVenta]);
+
+      // Vuelto del pago mixto: lo que el cliente entregó en efectivo físico
+      // menos lo que realmente debía cubrir en efectivo.
+      const vueltoMixto = useMemo(() => {
+        if (!montoMixtoRecibido) return 0;
+        const recibido = parseFloat(montoMixtoRecibido) || 0;
+        return +(recibido - efectivoRequeridoMixto).toFixed(2);
+      }, [montoMixtoRecibido, efectivoRequeridoMixto]);
 
       const asignarDesdeTeclado = (texto) => {
         if (campoTeclado === 'recibido') setMontoRecibido(texto);
-        if (campoTeclado === 'mixtoEfectivo') setMontoMixtoEfectivo(texto);
         if (campoTeclado === 'mixtoOtro') setMontoMixtoOtro(texto);
+        if (campoTeclado === 'mixtoRecibido') setMontoMixtoRecibido(texto);
       };
 
       const valorTeclado = campoTeclado === 'recibido' ? montoRecibido
-        : campoTeclado === 'mixtoEfectivo' ? montoMixtoEfectivo
         : campoTeclado === 'mixtoOtro' ? montoMixtoOtro
+        : campoTeclado === 'mixtoRecibido' ? montoMixtoRecibido
         : '';
 
       // ==========================================
@@ -1020,14 +1031,16 @@
           }
         }
 
-        // Validación de pago mixto: la suma de ambos montos debe cubrir el total exacto
+        // Validación de pago mixto: el efectivo entregado debe alcanzar para cubrir
+        // lo que no se pagó con tarjeta/otro (el vuelto se calcula, no se exige exacto).
         let montoEfectivoMixto = 0;
         let montoOtroMixto = 0;
         if (medioPago === 'MIXTO') {
-          montoEfectivoMixto = parseFloat(montoMixtoEfectivo) || 0;
-          montoOtroMixto = parseFloat(montoMixtoOtro) || 0;
-          if (Math.abs(sumaMixto - totalVenta) > 0.01) {
-            notificar(`Los montos mixtos (S/ ${sumaMixto.toFixed(2)}) deben sumar el total S/ ${totalVenta.toFixed(2)}.`, 'error');
+          montoOtroMixto = Math.min(parseFloat(montoMixtoOtro) || 0, totalVenta);
+          montoEfectivoMixto = efectivoRequeridoMixto;
+          const recibidoMixto = parseFloat(montoMixtoRecibido) || 0;
+          if (montoEfectivoMixto > 0 && recibidoMixto < montoEfectivoMixto) {
+            notificar(`Falta efectivo: debes recibir al menos S/ ${montoEfectivoMixto.toFixed(2)} en efectivo.`, 'error');
             return;
           }
         }
@@ -1098,8 +1111,8 @@
           setVentaCompletada(resultado);
           setCarrito([]);
           setMontoRecibido('');
-          setMontoMixtoEfectivo('');
           setMontoMixtoOtro('');
+          setMontoMixtoRecibido('');
           setCampoTeclado(null);
           notificar(`¡Venta completada! Boleta: ${correlativo}`, 'success');
         } catch (err) {
@@ -1746,36 +1759,48 @@
 
                 {medioPago === 'MIXTO' && (
                   <div className="bg-slate-900 p-2 rounded-lg border border-slate-750 space-y-1.5">
-                    <div className="grid grid-cols-2 gap-2">
+                    <div>
+                      <label className="text-[10px] text-slate-400 block">Monto en Tarjeta/Otro (S/):</label>
+                      <input
+                        type="text"
+                        inputMode="decimal"
+                        value={montoMixtoOtro}
+                        onFocus={() => setCampoTeclado('mixtoOtro')}
+                        onChange={(e) => setMontoMixtoOtro(e.target.value)}
+                        placeholder="0.00"
+                        className="w-full bg-slate-800 border border-slate-700 rounded px-2 py-0.5 text-xs font-bold text-white focus:outline-none focus:border-emerald-500"
+                      />
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-2 pt-1 border-t border-slate-800">
                       <div>
-                        <label className="text-[10px] text-slate-400 block">Efectivo (S/):</label>
-                        <input
-                          type="text"
-                          inputMode="decimal"
-                          value={montoMixtoEfectivo}
-                          onFocus={() => setCampoTeclado('mixtoEfectivo')}
-                          onChange={(e) => setMontoMixtoEfectivo(e.target.value)}
-                          placeholder="0.00"
-                          className="w-full bg-slate-800 border border-slate-700 rounded px-2 py-0.5 text-xs font-bold text-white focus:outline-none focus:border-emerald-500"
-                        />
+                        <label className="text-[10px] text-slate-400 block">Falta en efectivo:</label>
+                        <span className="text-sm font-black text-amber-400">S/ {efectivoRequeridoMixto.toFixed(2)}</span>
                       </div>
-                      <div>
-                        <label className="text-[10px] text-slate-400 block">Tarjeta/Otro (S/):</label>
-                        <input
-                          type="text"
-                          inputMode="decimal"
-                          value={montoMixtoOtro}
-                          onFocus={() => setCampoTeclado('mixtoOtro')}
-                          onChange={(e) => setMontoMixtoOtro(e.target.value)}
-                          placeholder="0.00"
-                          className="w-full bg-slate-800 border border-slate-700 rounded px-2 py-0.5 text-xs font-bold text-white focus:outline-none focus:border-emerald-500"
-                        />
+                      <div className="text-right">
+                        <label className="text-[10px] text-slate-400 block">Vuelto:</label>
+                        <span className={`text-sm font-black ${vueltoMixto < 0 ? 'text-rose-400' : 'text-emerald-400'}`}>
+                          S/ {vueltoMixto > 0 ? vueltoMixto.toFixed(2) : '0.00'}
+                        </span>
                       </div>
                     </div>
-                    <p className={`text-[10px] font-semibold ${Math.abs(sumaMixto - totalVenta) > 0.01 ? 'text-rose-400' : 'text-emerald-400'}`}>
-                      Suma: S/ {sumaMixto.toFixed(2)} / Total: S/ {totalVenta.toFixed(2)}
-                    </p>
-                    {(campoTeclado === 'mixtoEfectivo' || campoTeclado === 'mixtoOtro') && (
+
+                    {efectivoRequeridoMixto > 0 && (
+                      <div>
+                        <label className="text-[10px] text-slate-400 block">Recibe en efectivo (S/):</label>
+                        <input
+                          type="text"
+                          inputMode="decimal"
+                          value={montoMixtoRecibido}
+                          onFocus={() => setCampoTeclado('mixtoRecibido')}
+                          onChange={(e) => setMontoMixtoRecibido(e.target.value)}
+                          placeholder="0.00"
+                          className="w-full bg-slate-800 border border-slate-700 rounded px-2 py-0.5 text-xs font-bold text-white focus:outline-none focus:border-emerald-500"
+                        />
+                      </div>
+                    )}
+
+                    {(campoTeclado === 'mixtoOtro' || campoTeclado === 'mixtoRecibido') && (
                       <NumericKeypad value={valorTeclado} onChange={asignarDesdeTeclado} />
                     )}
                   </div>
