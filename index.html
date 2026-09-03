@@ -972,7 +972,7 @@
       // SELECCIÓN Y CANTIDAD / BALANZA DE PRODUCTO
       // ==========================================
       const handleClicProducto = (prod) => {
-        const esKG = prod.unidad === 'KG' || (prod.descripcion || '').toLowerCase().includes('kg');
+        const esKG = prod.unidad === 'KG';
         if (esKG) {
           setProductoSeleccionadoCantidad(prod);
           setInputCantidad('1.000');
