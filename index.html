@@ -1764,10 +1764,16 @@
 
         if (sbClient) {
           try {
-            await sbClient
+            const { error: errSaldo } = await sbClient
               .from('clientes')
               .update({ saldo_actual: nuevoSaldo })
               .eq('id', deudorSeleccionado.id);
+
+            if (errSaldo) {
+              console.warn('Error al actualizar el saldo del cliente:', errSaldo);
+              notificar(`No se pudo registrar el pago en el servidor (${errSaldo.message}). Avisa al soporte.`, 'error');
+              return;
+            }
 
             const { error: errPago } = await sbClient.from('pagos_credito').insert([{
               bodega_id: bodegaId,
@@ -1780,6 +1786,8 @@
             if (errPago) console.warn('No se pudo registrar el historial de pago:', errPago.message);
           } catch (err) {
             console.error(err);
+            notificar(`No se pudo registrar el pago: ${err.message}`, 'error');
+            return;
           }
         }
 
@@ -2217,15 +2225,17 @@
                 .single();
               if (cli) {
                 const nuevoSaldo = Math.max(0, +(Number(cli.saldo_actual) - Number(venta.total_venta)).toFixed(2));
-                await sbClient.from('clientes').update({ saldo_actual: nuevoSaldo }).eq('id', venta.cliente_id);
+                const { error: errSaldo } = await sbClient.from('clientes').update({ saldo_actual: nuevoSaldo }).eq('id', venta.cliente_id);
+                if (errSaldo) throw new Error(`No se pudo revertir la deuda del cliente: ${errSaldo.message}`);
               }
             }
 
             // Soft-delete: se marca como anulada en vez de borrarla, para conservar el historial
-            await sbClient
+            const { error: errAnular } = await sbClient
               .from('ventas')
               .update({ anulada: true, motivo_anulacion: motivo })
               .eq('id', venta.id);
+            if (errAnular) throw errAnular;
 
             // Reponer el stock de los productos de esta venta (ajuste atómico)
             for (const d of (venta.ventas_detalle || [])) {
@@ -2473,10 +2483,14 @@
             // Si es crédito, actualizar saldo
             if (medioPago === 'CREDITO' && idClienteReal) {
               const saldoAct = Number(clienteActual.saldo_actual) || 0;
-              await sbClient
+              const { error: errSaldoCredito } = await sbClient
                 .from('clientes')
                 .update({ saldo_actual: +(saldoAct + totalVenta).toFixed(2) })
                 .eq('id', idClienteReal);
+              if (errSaldoCredito) {
+                console.warn('Error al actualizar la deuda del cliente:', errSaldoCredito);
+                notificar(`Venta registrada, pero no se pudo actualizar la deuda del cliente (${errSaldoCredito.message}). Avisa al soporte.`, 'error');
+              }
             }
 
             // Descontar el stock vendido de cada producto real (no de catálogo de demo).
