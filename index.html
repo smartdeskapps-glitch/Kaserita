@@ -235,7 +235,7 @@
       );
     }
 
-    function ReciboImprimible({ bodega, boleta, fecha, cliente, medioPago, items, total, anulada }) {
+    function ReciboImprimible({ bodega, boleta, fecha, cliente, medioPago, items, total, anulada, subtotal, descuento }) {
       const lineaSolida = { borderTop: '2px solid #000', margin: '6px 0' };
       return (
         <div id="recibo-imprimible" className="sr-only" style={{ fontWeight: 700, textAlign: 'center' }}>
@@ -260,6 +260,16 @@
             ))}
           </div>
           <div style={lineaSolida}></div>
+          {descuento > 0 && (
+            <>
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12 }}>
+                <span>Subtotal:</span><span>S/ {Number(subtotal).toFixed(2)}</span>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12 }}>
+                <span>Descuento:</span><span>- S/ {Number(descuento).toFixed(2)}</span>
+              </div>
+            </>
+          )}
           <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12 }}>
             <span>Medio de pago:</span><span>{medioPago}</span>
           </div>
@@ -533,6 +543,9 @@
 
       // --- Cobro / Pagos ---
       const [medioPago, setMedioPago] = useState('EFECTIVO');
+      // 'PORCENTAJE' | 'MONTO' | null (null = sin descuento en esta venta)
+      const [descuentoTipo, setDescuentoTipo] = useState(null);
+      const [descuentoValor, setDescuentoValor] = useState('');
       const [montoRecibido, setMontoRecibido] = useState('');
       const [montoMixtoOtro, setMontoMixtoOtro] = useState(''); // monto fijo pagado con tarjeta/otro
       const [montoMixtoRecibido, setMontoMixtoRecibido] = useState(''); // efectivo físico entregado por el cliente
@@ -766,42 +779,53 @@
       };
 
       // Si un empleado olvida su PIN, el dueño/admin se lo puede restablecer
-      // aquí mismo sin necesidad de recuperación por correo (no hay backend
-      // propio para eso).
-      //
-      // Nota: si ese empleado ya había iniciado sesión antes (su cuenta real
-      // de acceso ya quedó vinculada), este cambio no alcanza para que pueda
-      // entrar de nuevo -- eso requiere restablecer también su contraseña en
-      // Supabase (Authentication > Users, buscando bodega_<DNI>@kaserita.app)
-      // porque no hay backend propio con permisos para hacerlo desde la app.
+      // aquí mismo. Se intenta primero por la Edge Function
+      // "reset-cajero-pin" (cambia también la contraseña real de Auth, así
+      // que funciona incluso si ya había iniciado sesión antes). Si esa
+      // función todavía no está desplegada, se recae en el método anterior
+      // (solo funciona de verdad si el empleado nunca había iniciado sesión).
       const restablecerPinCajero = async (cajero) => {
         const nuevoPin = prompt(`Nuevo PIN para ${cajero.nombre} (4 a 6 dígitos):`, '');
         if (!nuevoPin) return;
+        if (!sbClient) return;
+
         try {
-          if (sbClient) {
-            const { data: filaActual } = await sbClient
-              .from('usuarios')
-              .select('auth_id')
-              .eq('bodega_id', bodegaId)
-              .eq('dni', cajero.dni)
-              .maybeSingle();
-            const yaHabiaIniciadoSesion = !!filaActual?.auth_id;
+          const { data, error } = await sbClient.functions.invoke('reset-cajero-pin', {
+            body: { dni: cajero.dni, nuevo_pin: nuevoPin.trim() }
+          });
+          if (!error && data?.ok) {
+            notificar(`PIN de ${cajero.nombre} actualizado. Ya puede iniciar sesión con el nuevo PIN.`, 'success');
+            return;
+          }
+          console.warn('reset-cajero-pin no disponible, usando respaldo:', error || data);
+        } catch (err) {
+          console.warn('reset-cajero-pin no disponible, usando respaldo:', err);
+        }
 
-            const { error } = await sbClient
-              .from('usuarios')
-              .update({ pin_acceso: nuevoPin.trim(), auth_id: null })
-              .eq('bodega_id', bodegaId)
-              .eq('dni', cajero.dni);
-            if (error) throw error;
+        // Respaldo si la Edge Function no está desplegada todavía.
+        try {
+          const { data: filaActual } = await sbClient
+            .from('usuarios')
+            .select('auth_id')
+            .eq('bodega_id', bodegaId)
+            .eq('dni', cajero.dni)
+            .maybeSingle();
+          const yaHabiaIniciadoSesion = !!filaActual?.auth_id;
 
-            if (yaHabiaIniciadoSesion) {
-              notificar(
-                `PIN de ${cajero.nombre} actualizado, pero como ya había iniciado sesión antes, avísame para terminar de habilitar su acceso.`,
-                'info'
-              );
-            } else {
-              notificar(`PIN de ${cajero.nombre} actualizado. Ya puede iniciar sesión con el nuevo PIN.`, 'success');
-            }
+          const { error } = await sbClient
+            .from('usuarios')
+            .update({ pin_acceso: nuevoPin.trim(), auth_id: null })
+            .eq('bodega_id', bodegaId)
+            .eq('dni', cajero.dni);
+          if (error) throw error;
+
+          if (yaHabiaIniciadoSesion) {
+            notificar(
+              `PIN de ${cajero.nombre} actualizado, pero como ya había iniciado sesión antes, hace falta desplegar la función reset-cajero-pin (o avísame) para que pueda entrar con el nuevo PIN.`,
+              'info'
+            );
+          } else {
+            notificar(`PIN de ${cajero.nombre} actualizado. Ya puede iniciar sesión con el nuevo PIN.`, 'success');
           }
         } catch (err) {
           notificar(`Error al cambiar el PIN: ${err.message}`, 'error');
@@ -1330,18 +1354,35 @@
         return +carrito.reduce((acc, item) => acc + item.subtotal, 0).toFixed(2);
       }, [carrito]);
 
+      // Descuento sobre el total de la venta (% o monto fijo), nunca negativo
+      // ni mayor al propio total.
+      const montoDescuento = useMemo(() => {
+        if (!descuentoTipo) return 0;
+        const valor = parseFloat(descuentoValor) || 0;
+        if (valor <= 0) return 0;
+        const monto = descuentoTipo === 'PORCENTAJE'
+          ? totalVenta * (Math.min(valor, 100) / 100)
+          : valor;
+        return +Math.min(Math.max(monto, 0), totalVenta).toFixed(2);
+      }, [descuentoTipo, descuentoValor, totalVenta]);
+
+      // Total que realmente se le cobra al cliente, después del descuento.
+      const totalConDescuento = useMemo(() => {
+        return +(totalVenta - montoDescuento).toFixed(2);
+      }, [totalVenta, montoDescuento]);
+
       const vuelto = useMemo(() => {
         if (medioPago !== 'EFECTIVO' || !montoRecibido) return 0;
         const recibido = parseFloat(montoRecibido) || 0;
-        return +(recibido - totalVenta).toFixed(2);
-      }, [montoRecibido, totalVenta, medioPago]);
+        return +(recibido - totalConDescuento).toFixed(2);
+      }, [montoRecibido, totalConDescuento, medioPago]);
 
       // Monto que debe cubrirse en efectivo dentro de un pago mixto: el total
       // menos lo que ya se cubrió con tarjeta/otro (nunca negativo, ni mayor al total).
       const efectivoRequeridoMixto = useMemo(() => {
-        const otro = Math.min(parseFloat(montoMixtoOtro) || 0, totalVenta);
-        return +Math.max(0, totalVenta - otro).toFixed(2);
-      }, [montoMixtoOtro, totalVenta]);
+        const otro = Math.min(parseFloat(montoMixtoOtro) || 0, totalConDescuento);
+        return +Math.max(0, totalConDescuento - otro).toFixed(2);
+      }, [montoMixtoOtro, totalConDescuento]);
 
       // Vuelto del pago mixto: lo que el cliente entregó en efectivo físico
       // menos lo que realmente debía cubrir en efectivo.
@@ -2260,16 +2301,21 @@
         const montoReal = parseFloat(montoConteoEfectivo) || 0;
         const montoIni = Number(turnoActivo.monto_inicial) || 0;
 
-        // Calcular ventas en efectivo del turno
+        // Calcular efectivo real del turno: ventas 100% en efectivo +
+        // la parte en efectivo de las ventas Mixtas (ese dinero también
+        // entra físicamente a la caja).
         let ventasEfectivo = 0;
         if (sbClient) {
           const { data: vts } = await sbClient
             .from('ventas')
-            .select('total_venta')
+            .select('total_venta, medio_pago, monto_efectivo')
             .eq('turno_caja_id', turnoActivo.id)
-            .eq('medio_pago', 'EFECTIVO');
+            .in('medio_pago', ['EFECTIVO', 'MIXTO']);
 
-          ventasEfectivo = (vts || []).reduce((acc, v) => acc + Number(v.total_venta), 0);
+          ventasEfectivo = (vts || []).reduce((acc, v) => {
+            const efectivo = v.medio_pago === 'EFECTIVO' ? Number(v.total_venta) : Number(v.monto_efectivo) || 0;
+            return acc + efectivo;
+          }, 0);
         }
 
         const esperado = +(montoIni + ventasEfectivo).toFixed(2);
@@ -2388,7 +2434,7 @@
           notificar('El carrito está vacío.', 'error');
           return;
         }
-        if (medioPago === 'EFECTIVO' && montoRecibido && parseFloat(montoRecibido) < totalVenta) {
+        if (medioPago === 'EFECTIVO' && montoRecibido && parseFloat(montoRecibido) < totalConDescuento) {
           notificar('Monto recibido insuficiente.', 'error');
           return;
         }
@@ -2402,7 +2448,7 @@
           }
           const limiteCred = Number(clienteActual.limite_credito) || 0;
           const saldoAct = Number(clienteActual.saldo_actual) || 0;
-          const nuevoSaldoProyectado = +(saldoAct + totalVenta).toFixed(2);
+          const nuevoSaldoProyectado = +(saldoAct + totalConDescuento).toFixed(2);
           if (nuevoSaldoProyectado > limiteCred) {
             const disponible = Math.max(0, +(limiteCred - saldoAct).toFixed(2));
             notificar(`Límite de crédito excedido. Disponible: S/ ${disponible.toFixed(2)} de S/ ${limiteCred.toFixed(2)}.`, 'error');
@@ -2415,7 +2461,7 @@
         let montoEfectivoMixto = 0;
         let montoOtroMixto = 0;
         if (medioPago === 'MIXTO') {
-          montoOtroMixto = Math.min(parseFloat(montoMixtoOtro) || 0, totalVenta);
+          montoOtroMixto = Math.min(parseFloat(montoMixtoOtro) || 0, totalConDescuento);
           montoEfectivoMixto = efectivoRequeridoMixto;
           const recibidoMixto = parseFloat(montoMixtoRecibido) || 0;
           if (montoEfectivoMixto > 0 && recibidoMixto < montoEfectivoMixto) {
@@ -2433,10 +2479,13 @@
             const cajeroFinal = cajeroSeleccionado || listaCajeros[0];
 
             let idClienteReal = clienteActual?.id;
-            const utilidadTotal = carrito.reduce((acc, item) => {
+            const utilidadBruta = carrito.reduce((acc, item) => {
               const costoTotal = (Number(item.precioCosto) || 0) * Number(item.cantidad);
               return acc + (Number(item.subtotal) - costoTotal);
             }, 0);
+            // El descuento sale directo de la ganancia: la utilidad real de la
+            // venta es la bruta menos lo que se rebajó.
+            const utilidadTotal = utilidadBruta - montoDescuento;
             const payloadVenta = {
               bodega_id: bodegaId,
               turno_caja_id: idTurnoReal || null,
@@ -2444,7 +2493,8 @@
               cliente_id: idClienteReal || null,
               nro_boleta: correlativo,
               medio_pago: medioPago,
-              total_venta: totalVenta,
+              total_venta: totalConDescuento,
+              descuento_monto: montoDescuento,
               utilidad_total: +utilidadTotal.toFixed(2),
               monto_efectivo: medioPago === 'MIXTO' ? montoEfectivoMixto : 0,
               monto_otro: medioPago === 'MIXTO' ? montoOtroMixto : 0
@@ -2485,7 +2535,7 @@
               const saldoAct = Number(clienteActual.saldo_actual) || 0;
               const { error: errSaldoCredito } = await sbClient
                 .from('clientes')
-                .update({ saldo_actual: +(saldoAct + totalVenta).toFixed(2) })
+                .update({ saldo_actual: +(saldoAct + totalConDescuento).toFixed(2) })
                 .eq('id', idClienteReal);
               if (errSaldoCredito) {
                 console.warn('Error al actualizar la deuda del cliente:', errSaldoCredito);
@@ -2507,7 +2557,9 @@
           const resultado = {
             nro_boleta: correlativo,
             medio_pago: medioPago,
-            total_venta: totalVenta,
+            total_venta: totalConDescuento,
+            subtotal: totalVenta,
+            descuento: montoDescuento,
             items: [...carrito],
             cliente: clienteActual?.nombre_completo || 'Desconocido',
             cajero: cajeroSeleccionado?.nombre || usuarioActivo?.nombre || 'Cajero',
@@ -2516,6 +2568,8 @@
 
           setVentaCompletada(resultado);
           setCarrito([]);
+          setDescuentoTipo(null);
+          setDescuentoValor('');
           setMontoRecibido('');
           setMontoMixtoOtro('');
           setMontoMixtoRecibido('');
@@ -3079,7 +3133,7 @@
                 Ver carrito
               </span>
               <span className="flex items-center gap-2 font-black text-sm">
-                S/ {totalVenta.toFixed(2)}
+                S/ {totalConDescuento.toFixed(2)}
                 <i className="fa-solid fa-chevron-right text-xs opacity-80"></i>
               </span>
             </button>
@@ -3161,7 +3215,7 @@
                 )}
                 {carrito.length > 0 && (
                   <button
-                    onClick={() => setCarrito([])}
+                    onClick={() => { setCarrito([]); setDescuentoTipo(null); setDescuentoValor(''); }}
                     className="text-xs text-rose-600 hover:text-rose-600 transition"
                   >
                     Vaciar
@@ -3383,12 +3437,79 @@
                 </div>
               )}
 
+              <div className="border-t border-stone-200 pt-2">
+                {!descuentoTipo ? (
+                  carrito.length > 0 && (
+                    <button
+                      type="button"
+                      onClick={() => { setDescuentoTipo('PORCENTAJE'); setDescuentoValor(''); }}
+                      className="text-xs text-orange-600 hover:underline font-semibold"
+                    >
+                      <i className="fa-solid fa-tag text-xs"></i> Aplicar descuento
+                    </button>
+                  )
+                ) : (
+                  <div className="bg-stone-200/60 p-2.5 rounded-lg border border-stone-200 space-y-1.5">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-semibold text-stone-600 uppercase tracking-wider">Descuento</span>
+                      <button
+                        type="button"
+                        onClick={() => { setDescuentoTipo(null); setDescuentoValor(''); }}
+                        className="text-xs text-rose-600 hover:underline"
+                      >
+                        Quitar
+                      </button>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <div className="flex bg-stone-100 border border-stone-300 rounded-lg overflow-hidden shrink-0">
+                        <button
+                          type="button"
+                          onClick={() => setDescuentoTipo('PORCENTAJE')}
+                          className={`px-2.5 py-1.5 text-xs font-bold ${descuentoTipo === 'PORCENTAJE' ? 'bg-orange-500 text-white' : 'text-stone-600'}`}
+                        >
+                          %
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setDescuentoTipo('MONTO')}
+                          className={`px-2.5 py-1.5 text-xs font-bold ${descuentoTipo === 'MONTO' ? 'bg-orange-500 text-white' : 'text-stone-600'}`}
+                        >
+                          S/
+                        </button>
+                      </div>
+                      <input
+                        type="text"
+                        inputMode="decimal"
+                        autoFocus
+                        value={descuentoValor}
+                        onChange={(e) => setDescuentoValor(e.target.value)}
+                        placeholder={descuentoTipo === 'PORCENTAJE' ? '0-100' : '0.00'}
+                        className="w-full bg-white border border-stone-300 rounded-lg px-3 py-1.5 text-sm font-bold text-stone-900 focus:outline-none focus:border-orange-500"
+                      />
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {montoDescuento > 0 && (
+                <div className="space-y-0.5">
+                  <div className="flex items-center justify-between text-xs text-stone-600">
+                    <span>Subtotal</span>
+                    <span className="tabular-nums">S/ {totalVenta.toFixed(2)}</span>
+                  </div>
+                  <div className="flex items-center justify-between text-xs text-rose-600 font-semibold">
+                    <span>Descuento</span>
+                    <span className="tabular-nums">- S/ {montoDescuento.toFixed(2)}</span>
+                  </div>
+                </div>
+              )}
+
               <div className="flex items-center justify-between pt-1 pb-0.5 border-t border-stone-200">
                 <span className="text-xs font-semibold text-stone-600 uppercase tracking-wider pt-2">
                   Total a Cobrar
                 </span>
                 <span className="text-2xl font-extrabold text-stone-900 tabular-nums pt-2">
-                  S/ {totalVenta.toFixed(2)}
+                  S/ {totalConDescuento.toFixed(2)}
                 </span>
               </div>
 
@@ -4773,7 +4894,7 @@
                 <h3 className="text-base font-bold text-stone-900">📊 Resumen del Turno</h3>
                 <div className="bg-stone-50 p-3 rounded-xl border border-stone-100 text-xs space-y-1.5 text-left font-mono">
                   <div className="flex justify-between"><span>Fondo Inicial:</span><span>S/ {resumenCierre.inicio.toFixed(2)}</span></div>
-                  <div className="flex justify-between"><span>+ Ventas Efectivo:</span><span>S/ {resumenCierre.ventas.toFixed(2)}</span></div>
+                  <div className="flex justify-between"><span>+ Efectivo recibido:</span><span>S/ {resumenCierre.ventas.toFixed(2)}</span></div>
                   <div className="border-t border-stone-100 pt-1 flex justify-between font-bold"><span>= Debería haber:</span><span>S/ {resumenCierre.esperado.toFixed(2)}</span></div>
                   <div className="flex justify-between text-orange-600 font-bold"><span>Tú contaste:</span><span>S/ {resumenCierre.real.toFixed(2)}</span></div>
                   <div className={`border-t border-stone-100 pt-1 flex justify-between font-black text-sm ${resumenCierre.diferencia === 0 ? 'text-orange-600' : resumenCierre.diferencia > 0 ? 'text-blue-600' : 'text-rose-600'}`}>
@@ -4859,6 +4980,12 @@
                 <div className="bg-stone-50 p-3 rounded-lg text-left text-xs font-mono space-y-1 text-stone-700 border border-stone-100">
                   <p><strong>Pago:</strong> {ventaCompletada.medio_pago}</p>
                   <p><strong>Cliente:</strong> {ventaCompletada.cliente}</p>
+                  {ventaCompletada.descuento > 0 && (
+                    <>
+                      <p className="flex justify-between"><span>Subtotal:</span><span>S/ {ventaCompletada.subtotal.toFixed(2)}</span></p>
+                      <p className="flex justify-between text-rose-600"><span>Descuento:</span><span>- S/ {ventaCompletada.descuento.toFixed(2)}</span></p>
+                    </>
+                  )}
                   <div className="border-t border-stone-200 pt-1 mt-1 flex justify-between font-bold text-sm text-orange-600">
                     <span>TOTAL:</span><span>S/ {ventaCompletada.total_venta.toFixed(2)}</span>
                   </div>
@@ -4876,6 +5003,8 @@
                 medioPago={ventaCompletada.medio_pago}
                 items={ventaCompletada.items || []}
                 total={ventaCompletada.total_venta}
+                subtotal={ventaCompletada.subtotal}
+                descuento={ventaCompletada.descuento}
               />
             </div>
           )}
@@ -4885,7 +5014,7 @@
             <QRPagoModal
               bodegaId={bodegaId}
               medioPago={medioQR}
-              monto={totalVenta}
+              monto={totalConDescuento}
               onClose={() => setMedioQR(null)}
             />
           )}
@@ -4938,6 +5067,8 @@
                   subtotal: d.subtotal
                 }))}
                 total={reciboReimpresion.total_venta}
+                subtotal={Number(reciboReimpresion.total_venta) + Number(reciboReimpresion.descuento_monto || 0)}
+                descuento={reciboReimpresion.descuento_monto || 0}
                 anulada={reciboReimpresion.anulada}
               />
             </div>
