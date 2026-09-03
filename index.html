@@ -1564,10 +1564,19 @@
         );
       };
 
-      const seleccionarClientePOS = (c) => {
-        setClienteActual(c);
+      const seleccionarClientePOS = async (c) => {
         setDniCliente(c.dni);
         setModalBuscarCliente(false);
+        if (c.id) {
+          // Cliente real, ya viene de la base de datos.
+          setClienteActual(c);
+        } else {
+          // "Cliente Varios / Desconocido": es un objeto local sin id todavía
+          // (nunca se guardó en la BD). Se busca/crea su fila real, igual
+          // que al escribir el DNI a mano, para que la venta pueda
+          // registrarse (ventas.cliente_id no admite NULL).
+          await obtenerOCrearCliente(c.dni);
+        }
       };
 
       const exportarClientesExcel = () => {
