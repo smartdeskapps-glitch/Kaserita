@@ -478,7 +478,7 @@
       const [cajerosGestion, setCajerosGestion] = useState([]);
       const [cargandoCajerosGestion, setCargandoCajerosGestion] = useState(false);
       const [mostrarFormNuevoCajero, setMostrarFormNuevoCajero] = useState(false);
-      const [formNuevoCajero, setFormNuevoCajero] = useState({ nombre: '', dni: '', pin: '', rol: 'cajero' });
+      const [formNuevoCajero, setFormNuevoCajero] = useState({ nombre: '', dni: '', rol: 'cajero' });
       const [guardandoNuevoCajero, setGuardandoNuevoCajero] = useState(false);
 
       // --- Arqueo y Cierre de Caja ---
@@ -742,25 +742,18 @@
       // Crea el acceso de un nuevo empleado: un registro en 'usuarios' (para
       // poder iniciar sesión con DNI+PIN) y otro en 'cajeros' (para
       // seleccionarlo al abrir turno y quedar asociado a sus ventas).
+      // Los empleados (Cajero o Administrador) no tienen contraseña propia:
+      // solo se agregan a la lista de turno con nombre, DNI y rol. Nadie
+      // aparte del dueño puede iniciar sesión de forma independiente.
       const registrarNuevoCajeroCompleto = async () => {
-        const { nombre, dni, pin, rol } = formNuevoCajero;
-        if (!nombre.trim() || !dni.trim() || !pin.trim()) {
-          notificar('Nombre, DNI y PIN son obligatorios.', 'error');
+        const { nombre, dni, rol } = formNuevoCajero;
+        if (!nombre.trim() || !dni.trim()) {
+          notificar('Nombre y DNI son obligatorios.', 'error');
           return;
         }
         setGuardandoNuevoCajero(true);
         try {
           if (sbClient) {
-            const { error: errUsuario } = await sbClient.from('usuarios').insert([{
-              bodega_id: bodegaId,
-              nombre: nombre.trim(),
-              dni: dni.trim(),
-              pin_acceso: pin.trim(),
-              rol: rol,
-              activo: true
-            }]);
-            if (errUsuario) throw errUsuario;
-
             const { error: errCajero } = await sbClient.from('cajeros').insert([{
               bodega_id: bodegaId,
               nombre: nombre.trim(),
@@ -770,13 +763,13 @@
             }]);
             if (errCajero) throw errCajero;
           }
-          setFormNuevoCajero({ nombre: '', dni: '', pin: '', rol: 'cajero' });
+          setFormNuevoCajero({ nombre: '', dni: '', rol: 'cajero' });
           setMostrarFormNuevoCajero(false);
           abrirGestionCajeros();
           cargarCajeros();
-          notificar(`¡Cajero "${nombre}" registrado! Ya puede iniciar sesión con su DNI y PIN.`, 'success');
+          notificar(`¡"${nombre}" agregado! Ya aparece en la lista para elegir al abrir turno.`, 'success');
         } catch (err) {
-          notificar(`Error al registrar cajero: ${err.message}`, 'error');
+          notificar(`Error al registrar: ${err.message}`, 'error');
         } finally {
           setGuardandoNuevoCajero(false);
         }
@@ -806,65 +799,6 @@
           notificar(nuevoEstado ? `${cajero.nombre} reactivado.` : `${cajero.nombre} desactivado.`, 'info');
         } catch (err) {
           notificar(`Error: ${err.message}`, 'error');
-        }
-      };
-
-      // Si un empleado olvida su PIN, el dueño/admin se lo puede restablecer
-      // aquí mismo. Se intenta primero por la Edge Function
-      // "reset-cajero-pin" (cambia también la contraseña real de Auth, así
-      // que funciona incluso si ya había iniciado sesión antes). Si esa
-      // función todavía no está desplegada, se recae en el método anterior
-      // (solo funciona de verdad si el empleado nunca había iniciado sesión).
-      const restablecerPinCajero = async (cajero) => {
-        const nuevoPin = await pedirTexto({
-          titulo: `Nuevo PIN para ${cajero.nombre}`,
-          mensaje: '4 a 6 dígitos.',
-          placeholder: 'Ej: 1234',
-          textoBoton: 'Actualizar PIN'
-        });
-        if (!nuevoPin) return;
-        if (!sbClient) return;
-
-        try {
-          const { data, error } = await sbClient.functions.invoke('reset-cajero-pin', {
-            body: { dni: cajero.dni, nuevo_pin: nuevoPin.trim() }
-          });
-          if (!error && data?.ok) {
-            notificar(`PIN de ${cajero.nombre} actualizado. Ya puede iniciar sesión con el nuevo PIN.`, 'success');
-            return;
-          }
-          console.warn('reset-cajero-pin no disponible, usando respaldo:', error || data);
-        } catch (err) {
-          console.warn('reset-cajero-pin no disponible, usando respaldo:', err);
-        }
-
-        // Respaldo si la Edge Function no está desplegada todavía.
-        try {
-          const { data: filaActual } = await sbClient
-            .from('usuarios')
-            .select('auth_id')
-            .eq('bodega_id', bodegaId)
-            .eq('dni', cajero.dni)
-            .maybeSingle();
-          const yaHabiaIniciadoSesion = !!filaActual?.auth_id;
-
-          const { error } = await sbClient
-            .from('usuarios')
-            .update({ pin_acceso: nuevoPin.trim(), auth_id: null })
-            .eq('bodega_id', bodegaId)
-            .eq('dni', cajero.dni);
-          if (error) throw error;
-
-          if (yaHabiaIniciadoSesion) {
-            notificar(
-              `PIN de ${cajero.nombre} actualizado, pero como ya había iniciado sesión antes, hace falta desplegar la función reset-cajero-pin (o avísame) para que pueda entrar con el nuevo PIN.`,
-              'info'
-            );
-          } else {
-            notificar(`PIN de ${cajero.nombre} actualizado. Ya puede iniciar sesión con el nuevo PIN.`, 'success');
-          }
-        } catch (err) {
-          notificar(`Error al cambiar el PIN: ${err.message}`, 'error');
         }
       };
 
@@ -4456,27 +4390,15 @@
                         className="w-full bg-stone-100 border border-stone-200 rounded-lg px-3 py-1.5 text-xs text-stone-900"
                       />
                     </div>
-                    <div className="grid grid-cols-2 gap-2">
-                      <div>
-                        <label className="text-xs text-stone-600 block mb-1">DNI:</label>
-                        <input
-                          type="text"
-                          maxLength={8}
-                          value={formNuevoCajero.dni}
-                          onChange={(e) => setFormNuevoCajero({ ...formNuevoCajero, dni: e.target.value })}
-                          className="w-full bg-stone-100 border border-stone-200 rounded-lg px-3 py-1.5 text-xs text-stone-900"
-                        />
-                      </div>
-                      <div>
-                        <label className="text-xs text-stone-600 block mb-1">PIN de acceso:</label>
-                        <input
-                          type="password"
-                          maxLength={6}
-                          value={formNuevoCajero.pin}
-                          onChange={(e) => setFormNuevoCajero({ ...formNuevoCajero, pin: e.target.value })}
-                          className="w-full bg-stone-100 border border-stone-200 rounded-lg px-3 py-1.5 text-xs text-stone-900 tracking-widest"
-                        />
-                      </div>
+                    <div>
+                      <label className="text-xs text-stone-600 block mb-1">DNI:</label>
+                      <input
+                        type="text"
+                        maxLength={8}
+                        value={formNuevoCajero.dni}
+                        onChange={(e) => setFormNuevoCajero({ ...formNuevoCajero, dni: e.target.value })}
+                        className="w-full bg-stone-100 border border-stone-200 rounded-lg px-3 py-1.5 text-xs text-stone-900"
+                      />
                     </div>
                     <div>
                       <label className="text-xs text-stone-600 block mb-1">Rol:</label>
@@ -4498,7 +4420,7 @@
                         disabled={guardandoNuevoCajero}
                         className="flex-1 py-2 bg-orange-600 hover:bg-orange-500 disabled:opacity-60 text-white font-bold text-xs rounded-xl shadow"
                       >
-                        {guardandoNuevoCajero ? 'Guardando...' : 'Crear Acceso'}
+                        {guardandoNuevoCajero ? 'Guardando...' : 'Agregar'}
                       </button>
                     </div>
                   </div>
@@ -4525,13 +4447,6 @@
                               <p className="text-xs text-stone-500 capitalize">DNI: {c.dni} · {c.rol}</p>
                             </div>
                             <div className="flex items-center gap-1.5 shrink-0">
-                              <button
-                                onClick={() => restablecerPinCajero(c)}
-                                className="flex items-center gap-1 text-xs font-semibold px-2.5 py-1 rounded-lg bg-stone-200 text-stone-700 hover:bg-stone-300"
-                                title="Restablecer PIN"
-                              >
-                                <i className="fa-solid fa-key"></i> PIN
-                              </button>
                               {c.rol !== 'dueno' && (
                                 <button
                                   onClick={() => alternarActivoCajero(c)}
