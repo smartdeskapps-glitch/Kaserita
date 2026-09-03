@@ -73,7 +73,13 @@ drop policy if exists "bodegas_update" on bodegas;
 create policy "bodegas_insert" on bodegas
   for insert with check (auth.uid() is not null);
 create policy "bodegas_select" on bodegas
-  for select using (id = mi_bodega_id());
+  for select using (
+    id = mi_bodega_id()
+    -- Al crear una bodega nueva, el INSERT usa RETURNING antes de que el
+    -- dueño tenga fila en "usuarios" (mi_bodega_id() da NULL en ese
+    -- instante) -- se permite ver una bodega sin usuarios todavía.
+    or not exists (select 1 from usuarios where usuarios.bodega_id = bodegas.id)
+  );
 create policy "bodegas_update" on bodegas
   for update using (id = mi_bodega_id()) with check (id = mi_bodega_id());
 
