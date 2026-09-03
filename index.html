@@ -2258,16 +2258,20 @@
 
         if (sbClient) {
           try {
-            await sbClient
+            const { error } = await sbClient
               .from('turnos_caja')
               .update({
                 fecha_cierre: new Date().toISOString(),
                 monto_final_real: montoReal,
                 ventas_sistema: ventasEfectivo,
                 diferencia: dif,
-                estado: 'cerrado'
+                estado: 'CERRADA'
               })
               .eq('id', turnoActivo.id);
+            if (error) {
+              console.warn('Error al cerrar el turno en la base de datos:', error);
+              notificar(`El cierre se calculó bien, pero no se guardó en el servidor (${error.message}). Avisa al soporte.`, 'error');
+            }
           } catch (err) {
             console.error(err);
           }
@@ -2328,7 +2332,7 @@
                 monto_inicial: monto,
                 fecha_apertura: new Date().toISOString(),
                 ventas_sistema: 0.00,
-                estado: 'ABIERTO'
+                estado: 'ABIERTA'
               }])
               .select()
               .single();
@@ -2339,14 +2343,24 @@
               notificar(`Turno abierto con: ${cajeroFinal.nombre}`, 'success');
               return;
             }
+
+            // Si falló por una razón real (no por estar en modo demo sin
+            // bodega válida en la BD), se avisa en vez de fallar en
+            // silencio y seguir como si nada -- así este tipo de error no
+            // vuelve a pasar desapercibido.
+            if (error && bodegaId !== BODEGA_DEMO_ID) {
+              console.warn('Error al abrir turno en la base de datos:', error);
+              notificar(`No se pudo abrir el turno en el servidor (${error.message}). Se abrió localmente; avisa al soporte.`, 'error');
+            } else {
+              notificar('Turno abierto.', 'info');
+            }
           } catch (err) {
             console.warn(err);
           }
         }
 
-        setTurnoActivo({ id: generarUUID(), bodega_id: bodegaId, cajero_id: cajeroFinal.id, monto_inicial: monto, estado: 'abierto', fecha_apertura: new Date().toISOString() });
+        setTurnoActivo({ id: generarUUID(), bodega_id: bodegaId, cajero_id: cajeroFinal.id, monto_inicial: monto, estado: 'ABIERTA', fecha_apertura: new Date().toISOString() });
         setModalTurno(false);
-        notificar('Turno abierto.', 'info');
       };
 
       // Cobrar venta
