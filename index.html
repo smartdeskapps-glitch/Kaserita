@@ -2593,7 +2593,7 @@
 
       if (!sesion) {
         return (
-          <div className="flex flex-col items-center justify-center min-h-screen bg-gradient-to-br from-stone-50 via-stone-50 to-orange-100 text-stone-900 p-4 select-none">
+          <div className="min-h-screen bg-orange-600 md:bg-stone-50 flex flex-col md:flex-row select-none">
             {toast.visible && (
               <div className={`fixed top-6 inset-x-4 md:inset-x-auto md:right-6 md:max-w-xs z-50 flex items-center gap-2.5 px-4 py-3 rounded-xl shadow-xl border-l-4 bg-white text-xs font-semibold ${toast.tipo === 'error' ? 'border-rose-500 text-rose-700' : 'border-emerald-500 text-emerald-700'}`}>
                 <i className={`fa-solid ${toast.tipo === 'error' ? 'fa-circle-exclamation' : 'fa-circle-check'} text-sm shrink-0`}></i>
@@ -2601,33 +2601,44 @@
               </div>
             )}
 
-            <div className="max-w-md w-full bg-stone-100/90 border border-stone-200/80 rounded-3xl p-6 md:p-8 shadow-2xl backdrop-blur-md space-y-6">
-              <div className="text-center space-y-2">
-                <div className="inline-flex items-center justify-center w-14 h-14 bg-orange-500 rounded-2xl shadow-lg text-white text-2xl font-black mb-1">
-                  K
+            {/* Panel de marca */}
+            <div className="relative overflow-hidden bg-gradient-to-br from-orange-600 via-orange-500 to-amber-500 md:w-1/2 md:min-h-screen flex flex-col items-center justify-center px-6 pt-16 pb-28 md:py-16 text-white shrink-0">
+              <div className="absolute -top-10 -left-10 w-40 h-40 bg-white/10 rounded-full"></div>
+              <div className="absolute bottom-6 -right-14 w-56 h-56 bg-white/10 rounded-full"></div>
+              <div className="absolute top-1/3 right-8 w-16 h-16 bg-white/10 rounded-full hidden md:block"></div>
+              <div className="relative inline-flex items-center justify-center w-20 h-20 bg-amber-300 rounded-full shadow-lg text-orange-700 text-4xl mb-5">
+                <i className="fa-solid fa-store"></i>
+              </div>
+              <h1 className="relative text-3xl font-black tracking-tight">Kaserita</h1>
+              <p className="relative text-sm text-orange-50/90 mt-1 text-center max-w-[220px]">Punto de Venta para tu Bodega o Negocio</p>
+            </div>
+
+            {/* Tarjeta de formulario */}
+            <div className="relative flex-1 md:w-1/2 flex items-start md:items-center justify-center px-5 -mt-16 md:mt-0 pb-8 md:pb-0">
+              <div className="max-w-md w-full bg-white rounded-t-[2rem] md:rounded-3xl shadow-2xl px-6 pt-8 pb-6 md:p-10 space-y-6">
+                <div className="text-center space-y-1">
+                  <h2 className="text-xl font-black text-stone-900">{authTab === 'login' ? '¡Bienvenido de nuevo!' : 'Crea tu Bodega'}</h2>
+                  <p className="text-xs text-stone-500">{authTab === 'login' ? 'Ingresa tus datos para continuar' : 'Regístrate para empezar a vender'}</p>
                 </div>
-                <h1 className="text-2xl font-black tracking-tight text-stone-900">Kaserita</h1>
-                <p className="text-xs text-stone-600">Punto de Venta para tu Bodega o Negocio</p>
-              </div>
 
-              <div className="flex bg-stone-50/90 p-1 rounded-xl border border-stone-200">
-                <button
-                  type="button"
-                  onClick={() => setAuthTab('login')}
-                  className={`flex-1 py-2 text-xs font-bold rounded-lg transition ${authTab === 'login' ? 'bg-orange-600 text-white shadow-md' : 'text-stone-600 hover:text-stone-800'}`}
-                >
-                  🔑 Iniciar Sesión
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setAuthTab('register')}
-                  className={`flex-1 py-2 text-xs font-bold rounded-lg transition ${authTab === 'register' ? 'bg-amber-600 text-white shadow-md' : 'text-stone-600 hover:text-stone-800'}`}
-                >
-                  🏪 Crear Bodega
-                </button>
-              </div>
+                <div className="flex bg-stone-100 p-1 rounded-xl border border-stone-200">
+                  <button
+                    type="button"
+                    onClick={() => setAuthTab('login')}
+                    className={`flex-1 py-2 text-xs font-bold rounded-lg transition ${authTab === 'login' ? 'bg-orange-600 text-white shadow-md' : 'text-stone-600 hover:text-stone-800'}`}
+                  >
+                    Iniciar Sesión
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setAuthTab('register')}
+                    className={`flex-1 py-2 text-xs font-bold rounded-lg transition ${authTab === 'register' ? 'bg-orange-600 text-white shadow-md' : 'text-stone-600 hover:text-stone-800'}`}
+                  >
+                    Crear Bodega
+                  </button>
+                </div>
 
-              {authTab === 'login' && (
+                {authTab === 'login' && (
                 <form onSubmit={async (e) => {
                   e.preventDefault();
                   setCargandoAuth(true);
@@ -2670,9 +2681,9 @@
                   } finally {
                     setCargandoAuth(false);
                   }
-                }} className="space-y-4">
+                }} className="space-y-5">
                   <div>
-                    <label className="text-xs font-semibold text-stone-700 block mb-1">DNI del Usuario:</label>
+                    <label className="text-[11px] font-bold text-stone-400 uppercase tracking-wide">DNI del Usuario</label>
                     <input
                       type="text"
                       required
@@ -2680,11 +2691,11 @@
                       placeholder="8 dígitos"
                       value={formLogin.dni}
                       onChange={(e) => setFormLogin({ ...formLogin, dni: e.target.value })}
-                      className="w-full bg-stone-50 border border-stone-200 rounded-xl px-3.5 py-2.5 text-sm text-stone-900 focus:outline-none focus:border-orange-500"
+                      className="w-full bg-transparent border-b-2 border-stone-200 focus:border-orange-500 outline-none py-2 text-sm text-stone-900 transition"
                     />
                   </div>
                   <div>
-                    <label className="text-xs font-semibold text-stone-700 block mb-1">PIN de Acceso:</label>
+                    <label className="text-[11px] font-bold text-stone-400 uppercase tracking-wide">PIN de Acceso</label>
                     <input
                       type="password"
                       required
@@ -2692,15 +2703,15 @@
                       placeholder="••••"
                       value={formLogin.pin}
                       onChange={(e) => setFormLogin({ ...formLogin, pin: e.target.value })}
-                      className="w-full bg-stone-50 border border-stone-200 rounded-xl px-3.5 py-2.5 text-sm text-stone-900 tracking-widest focus:outline-none focus:border-orange-500"
+                      className="w-full bg-transparent border-b-2 border-stone-200 focus:border-orange-500 outline-none py-2 text-sm text-stone-900 tracking-widest transition"
                     />
                   </div>
                   <button
                     type="submit"
                     disabled={cargandoAuth}
-                    className="w-full py-3.5 bg-orange-500 hover:bg-orange-400 text-stone-50 font-black text-sm uppercase rounded-xl transition shadow-lg disabled:opacity-50"
+                    className="w-full py-3.5 bg-orange-600 hover:bg-orange-500 text-white font-black text-sm uppercase rounded-full transition shadow-lg shadow-orange-500/30 disabled:opacity-50"
                   >
-                    {cargandoAuth ? 'Verificando...' : '⚡ Ingresar a Caja'}
+                    {cargandoAuth ? 'Verificando...' : 'Ingresar'}
                   </button>
                 </form>
               )}
@@ -2742,75 +2753,76 @@
                   } finally {
                     setCargandoAuth(false);
                   }
-                }} className="space-y-3">
+                }} className="space-y-4">
                   <div>
-                    <label className="text-xs font-semibold text-stone-700 block mb-1">Nombre de Bodega:</label>
+                    <label className="text-[11px] font-bold text-stone-400 uppercase tracking-wide">Nombre de Bodega</label>
                     <input
                       type="text"
                       required
                       placeholder="Ej: Bodega Don Pepe"
                       value={formRegistro.nombreBodega}
                       onChange={(e) => setFormRegistro({ ...formRegistro, nombreBodega: e.target.value })}
-                      className="w-full bg-stone-50 border border-stone-200 rounded-xl px-3 py-1.5 text-xs text-stone-900 focus:outline-none focus:border-amber-500"
+                      className="w-full bg-transparent border-b-2 border-stone-200 focus:border-orange-500 outline-none py-2 text-sm text-stone-900 transition"
                     />
                   </div>
                   <div>
-                    <label className="text-xs font-semibold text-stone-700 block mb-1">Dueño:</label>
+                    <label className="text-[11px] font-bold text-stone-400 uppercase tracking-wide">Dueño</label>
                     <input
                       type="text"
                       required
                       placeholder="Ej: Juan Pérez"
                       value={formRegistro.nombreDueno}
                       onChange={(e) => setFormRegistro({ ...formRegistro, nombreDueno: e.target.value })}
-                      className="w-full bg-stone-50 border border-stone-200 rounded-xl px-3 py-1.5 text-xs text-stone-900 focus:outline-none focus:border-amber-500"
+                      className="w-full bg-transparent border-b-2 border-stone-200 focus:border-orange-500 outline-none py-2 text-sm text-stone-900 transition"
                     />
                   </div>
-                  <div className="grid grid-cols-2 gap-2">
+                  <div className="grid grid-cols-2 gap-4">
                     <div>
-                      <label className="text-xs font-semibold text-stone-700 block mb-1">DNI:</label>
+                      <label className="text-[11px] font-bold text-stone-400 uppercase tracking-wide">DNI</label>
                       <input
                         type="text"
                         required
                         maxLength={8}
                         value={formRegistro.dni}
                         onChange={(e) => setFormRegistro({ ...formRegistro, dni: e.target.value })}
-                        className="w-full bg-stone-50 border border-stone-200 rounded-xl px-3 py-1.5 text-xs text-stone-900 focus:outline-none focus:border-amber-500"
+                        className="w-full bg-transparent border-b-2 border-stone-200 focus:border-orange-500 outline-none py-2 text-sm text-stone-900 transition"
                       />
                     </div>
                     <div>
-                      <label className="text-xs font-semibold text-stone-700 block mb-1">PIN:</label>
+                      <label className="text-[11px] font-bold text-stone-400 uppercase tracking-wide">PIN</label>
                       <input
                         type="password"
                         required
                         maxLength={6}
                         value={formRegistro.pin}
                         onChange={(e) => setFormRegistro({ ...formRegistro, pin: e.target.value })}
-                        className="w-full bg-stone-50 border border-stone-200 rounded-xl px-3 py-1.5 text-xs text-stone-900 tracking-widest focus:outline-none focus:border-amber-500"
+                        className="w-full bg-transparent border-b-2 border-stone-200 focus:border-orange-500 outline-none py-2 text-sm text-stone-900 tracking-widest transition"
                       />
                     </div>
                   </div>
                   <button
                     type="submit"
                     disabled={cargandoAuth}
-                    className="w-full py-3 bg-amber-600 hover:bg-amber-500 text-white font-black text-xs uppercase rounded-xl transition shadow-lg disabled:opacity-50"
+                    className="w-full py-3.5 bg-orange-600 hover:bg-orange-500 text-white font-black text-sm uppercase rounded-full transition shadow-lg shadow-orange-500/30 disabled:opacity-50"
                   >
                     🚀 Crear Bodega y Entrar
                   </button>
                 </form>
               )}
 
-              <div className="pt-2 border-t border-stone-200 flex items-center justify-between text-xs">
+              <div className="pt-2 border-t border-stone-100 flex items-center justify-between text-xs">
                 <button type="button" onClick={() => {
                   const demoU = { id: 'c0000000-0000-0000-0000-000000000001', bodega_id: BODEGA_DEMO_ID, nombre: 'Dueño Demo', dni: '12345678', rol: 'dueno', activo: true };
                   setListaCajeros([demoU]);
                   setCajeroSeleccionado(demoU);
                   guardarSesion({ usuario: demoU, bodega: { id: BODEGA_DEMO_ID, nombre: 'Bodega Demo' } });
-                }} className="text-stone-600 hover:text-amber-600">
+                }} className="text-stone-500 hover:text-orange-600 font-semibold">
                   ⚡ Modo Demo Local
                 </button>
-                <button type="button" onClick={() => setModalConfig(true)} className="text-stone-600 hover:text-stone-800">
+                <button type="button" onClick={() => setModalConfig(true)} className="text-stone-500 hover:text-stone-800 font-semibold">
                   ⚙️ Config Supabase
                 </button>
+              </div>
               </div>
             </div>
 
