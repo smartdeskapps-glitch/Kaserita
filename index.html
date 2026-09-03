@@ -407,6 +407,37 @@
       );
       const [modalConfig, setModalConfig] = useState(false);
 
+      // Reemplazo de prompt()/confirm() nativos: en muchos navegadores
+      // móviles (sobre todo con la app instalada como PWA) esos diálogos
+      // quedan bloqueados en silencio, sin mostrar nada. Estos dos modales
+      // propios funcionan siempre.
+      // modalPrompt: { titulo, mensaje, placeholder, valorInicial, textoBoton, onConfirmar }
+      const [modalPrompt, setModalPrompt] = useState(null);
+      const [modalPromptValor, setModalPromptValor] = useState('');
+      // modalConfirmar: { titulo, mensaje, textoBoton, peligroso, onConfirmar }
+      const [modalConfirmar, setModalConfirmar] = useState(null);
+
+      const pedirTexto = ({ titulo, mensaje, placeholder = '', valorInicial = '', textoBoton = 'Confirmar' }) => {
+        return new Promise((resolve) => {
+          setModalPromptValor(valorInicial);
+          setModalPrompt({
+            titulo, mensaje, placeholder, textoBoton,
+            onConfirmar: (valor) => resolve(valor),
+            onCancelar: () => resolve(null)
+          });
+        });
+      };
+
+      const pedirConfirmacion = ({ titulo, mensaje, textoBoton = 'Confirmar', peligroso = false }) => {
+        return new Promise((resolve) => {
+          setModalConfirmar({
+            titulo, mensaje, textoBoton, peligroso,
+            onConfirmar: () => resolve(true),
+            onCancelar: () => resolve(false)
+          });
+        });
+      };
+
       // --- Sesión (Tabla `usuarios`, respaldada por Supabase Auth) ---
       const [sesion, setSesion] = useState(null);
       const [verificandoSesion, setVerificandoSesion] = useState(true);
@@ -785,7 +816,12 @@
       // función todavía no está desplegada, se recae en el método anterior
       // (solo funciona de verdad si el empleado nunca había iniciado sesión).
       const restablecerPinCajero = async (cajero) => {
-        const nuevoPin = prompt(`Nuevo PIN para ${cajero.nombre} (4 a 6 dígitos):`, '');
+        const nuevoPin = await pedirTexto({
+          titulo: `Nuevo PIN para ${cajero.nombre}`,
+          mensaje: '4 a 6 dígitos.',
+          placeholder: 'Ej: 1234',
+          textoBoton: 'Actualizar PIN'
+        });
         if (!nuevoPin) return;
         if (!sbClient) return;
 
@@ -919,7 +955,12 @@
 
       // Agrega una categoría nueva, propia de esta bodega (solo ella la verá).
       const agregarCategoriaPersonalizada = async (asignar) => {
-        const nombre = window.prompt('Nombre de la nueva categoría (solo la verás en esta bodega):');
+        const nombre = await pedirTexto({
+          titulo: 'Nueva categoría',
+          mensaje: 'Solo la verás en esta bodega.',
+          placeholder: 'Ej: Repostería',
+          textoBoton: 'Crear categoría'
+        });
         const limpio = (nombre || '').trim();
         if (!limpio) return;
         if (categoriasDB.some((c) => c.toLowerCase() === limpio.toLowerCase())) {
@@ -2059,7 +2100,13 @@
 
       const desactivarProducto = async () => {
         if (!productoEditando) return;
-        if (!confirm(`¿Quitar "${productoEditando.descripcion}" del catálogo? No se borra tu historial de ventas, solo deja de aparecer para vender.`)) return;
+        const ok = await pedirConfirmacion({
+          titulo: 'Quitar producto del catálogo',
+          mensaje: `¿Quitar "${productoEditando.descripcion}" del catálogo? No se borra tu historial de ventas, solo deja de aparecer para vender.`,
+          textoBoton: 'Quitar producto',
+          peligroso: true
+        });
+        if (!ok) return;
         try {
           if (sbClient) {
             const { error } = await sbClient.from('productos').update({ activo: false }).eq('id', productoEditando.id);
@@ -2251,9 +2298,21 @@
 
       const anularVentaHoy = async (venta) => {
         if (venta.anulada) return;
-        if (!confirm(`¿Estás seguro de ANULAR la boleta ${venta.nro_boleta}? Esta acción no se puede deshacer.`)) return;
+        const ok = await pedirConfirmacion({
+          titulo: 'Anular boleta',
+          mensaje: `¿Estás seguro de ANULAR la boleta ${venta.nro_boleta}? Esta acción no se puede deshacer.`,
+          textoBoton: 'Sí, anular',
+          peligroso: true
+        });
+        if (!ok) return;
 
-        const motivo = prompt('Motivo de la anulación (opcional):', '') || 'Sin motivo especificado';
+        const motivoIngresado = await pedirTexto({
+          titulo: 'Motivo de la anulación',
+          mensaje: 'Opcional.',
+          placeholder: 'Ej: Cliente se arrepintió',
+          textoBoton: 'Anular boleta'
+        });
+        const motivo = (motivoIngresado || '').trim() || 'Sin motivo especificado';
 
         try {
           if (sbClient) {
@@ -5071,6 +5130,65 @@
                 descuento={reciboReimpresion.descuento_monto || 0}
                 anulada={reciboReimpresion.anulada}
               />
+            </div>
+          )}
+
+          {/* Modal genérico: reemplazo de prompt() nativo */}
+          {modalPrompt && (
+            <div className="fixed inset-0 bg-black/85 flex items-center justify-center z-[100] p-4">
+              <div className="bg-stone-100 border border-stone-200 rounded-2xl max-w-sm w-full p-5 shadow-2xl space-y-3">
+                <h3 className="text-base font-bold text-stone-900">{modalPrompt.titulo}</h3>
+                {modalPrompt.mensaje && <p className="text-xs text-stone-600">{modalPrompt.mensaje}</p>}
+                <input
+                  type="text"
+                  autoFocus
+                  value={modalPromptValor}
+                  onChange={(e) => setModalPromptValor(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') { modalPrompt.onConfirmar(modalPromptValor); setModalPrompt(null); }
+                  }}
+                  placeholder={modalPrompt.placeholder}
+                  className="w-full bg-stone-50 border border-stone-200 rounded-lg px-3 py-2 text-sm text-stone-900 focus:outline-none focus:border-orange-500"
+                />
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => { modalPrompt.onCancelar(); setModalPrompt(null); }}
+                    className="flex-1 py-2.5 bg-stone-200 hover:bg-stone-300 text-stone-800 font-semibold text-xs rounded-xl"
+                  >
+                    Cancelar
+                  </button>
+                  <button
+                    onClick={() => { modalPrompt.onConfirmar(modalPromptValor); setModalPrompt(null); }}
+                    className="flex-1 py-2.5 bg-orange-600 hover:bg-orange-500 text-white font-bold text-xs rounded-xl shadow"
+                  >
+                    {modalPrompt.textoBoton}
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Modal genérico: reemplazo de confirm() nativo */}
+          {modalConfirmar && (
+            <div className="fixed inset-0 bg-black/85 flex items-center justify-center z-[100] p-4">
+              <div className="bg-stone-100 border border-stone-200 rounded-2xl max-w-sm w-full p-5 shadow-2xl space-y-3">
+                <h3 className="text-base font-bold text-stone-900">{modalConfirmar.titulo}</h3>
+                <p className="text-xs text-stone-600">{modalConfirmar.mensaje}</p>
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => { modalConfirmar.onCancelar(); setModalConfirmar(null); }}
+                    className="flex-1 py-2.5 bg-stone-200 hover:bg-stone-300 text-stone-800 font-semibold text-xs rounded-xl"
+                  >
+                    Cancelar
+                  </button>
+                  <button
+                    onClick={() => { modalConfirmar.onConfirmar(); setModalConfirmar(null); }}
+                    className={`flex-1 py-2.5 text-white font-bold text-xs rounded-xl shadow ${modalConfirmar.peligroso ? 'bg-rose-600 hover:bg-rose-500' : 'bg-orange-600 hover:bg-orange-500'}`}
+                  >
+                    {modalConfirmar.textoBoton}
+                  </button>
+                </div>
+              </div>
             </div>
           )}
         </div>
