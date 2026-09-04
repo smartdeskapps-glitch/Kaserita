@@ -2751,6 +2751,62 @@
         };
       }, [ventasDashboard, clientesDeuda, ventasDashboardAnterior, proveedoresDeudaDash]);
 
+      // Exporta todo el Dashboard a un Excel real (.xlsx, varias hojas),
+      // no un CSV -- cada sección del dashboard es su propia hoja.
+      const exportarDashboardExcel = () => {
+        const libro = XLSX.utils.book_new();
+
+        const hojaResumen = XLSX.utils.json_to_sheet([{
+          'Desde': fechaInicioDash,
+          'Hasta': fechaFinDash,
+          'Venta Total': dashStats.totalVenta,
+          'Utilidad': dashStats.totalUtilidad,
+          'Costo': dashStats.totalCosto,
+          'Margen %': +dashStats.margenPct.toFixed(1),
+          'Ticket Promedio': +dashStats.ticketPromedio.toFixed(2),
+          'N° de Ventas': dashStats.numVentas,
+          'Cambio Venta vs Período Anterior %': +dashStats.cambioVentaPct.toFixed(1),
+          'Cambio Utilidad vs Período Anterior %': +dashStats.cambioUtilidadPct.toFixed(1)
+        }]);
+        XLSX.utils.book_append_sheet(libro, hojaResumen, 'Resumen');
+
+        const hojaHoras = XLSX.utils.json_to_sheet(
+          dashStats.porHora.map((h) => ({ Hora: `${String(h.hora).padStart(2, '0')}:00`, 'N° Ventas': h.cantidad, Total: h.total }))
+        );
+        XLSX.utils.book_append_sheet(libro, hojaHoras, 'Ventas por Hora');
+
+        const hojaDias = XLSX.utils.json_to_sheet(
+          dashStats.porDia.map((d) => ({ Fecha: d.fecha, Total: d.total }))
+        );
+        XLSX.utils.book_append_sheet(libro, hojaDias, 'Ventas por Dia');
+
+        const hojaMedios = XLSX.utils.json_to_sheet(
+          dashStats.porMedio.map((m) => ({ 'Medio de Pago': m.medio, 'Porcentaje': +m.pct.toFixed(1), Total: m.total }))
+        );
+        XLSX.utils.book_append_sheet(libro, hojaMedios, 'Metodos de Pago');
+
+        const hojaProductos = XLSX.utils.json_to_sheet(
+          dashStats.topProductos.map((p) => ({ Producto: p.descripcion, Cantidad: p.cantidad, Monto: p.monto, Utilidad: p.utilidad }))
+        );
+        XLSX.utils.book_append_sheet(libro, hojaProductos, 'Top Productos');
+
+        const hojaCobrar = XLSX.utils.json_to_sheet(
+          clientesDeuda.length > 0
+            ? clientesDeuda.map((c) => ({ Cliente: c.nombre_completo || c.dni, DNI: c.dni, 'Deuda': Number(c.saldo_actual) }))
+            : [{ Cliente: 'Sin clientes con deuda pendiente', DNI: '', Deuda: 0 }]
+        );
+        XLSX.utils.book_append_sheet(libro, hojaCobrar, 'Cuentas por Cobrar');
+
+        const hojaPagar = XLSX.utils.json_to_sheet(
+          proveedoresDeudaDash.length > 0
+            ? proveedoresDeudaDash.map((p) => ({ Proveedor: p.nombre, 'Por Pagar': Number(p.saldo_actual) }))
+            : [{ Proveedor: 'Sin deuda con proveedores', 'Por Pagar': 0 }]
+        );
+        XLSX.utils.book_append_sheet(libro, hojaPagar, 'Cuentas por Pagar');
+
+        XLSX.writeFile(libro, `Dashboard_${fechaInicioDash}_a_${fechaFinDash}.xlsx`);
+      };
+
       const exportarVentasExcel = () => {
         const filas = ventasDelDia.map((v) => ({
           Boleta: v.nro_boleta,
@@ -5620,6 +5676,15 @@
                   >
                     Este mes
                   </button>
+                  {dashStats.numVentas > 0 && (
+                    <button
+                      onClick={exportarDashboardExcel}
+                      className="px-3 py-1.5 bg-stone-200 hover:bg-stone-300 text-stone-700 text-xs font-semibold rounded-lg flex items-center gap-1.5 ml-auto"
+                      title="Exportar a Excel"
+                    >
+                      <i className="fa-solid fa-file-excel"></i> Excel
+                    </button>
+                  )}
                 </div>
 
                 {cargandoDashboard ? (
