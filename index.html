@@ -150,25 +150,42 @@
     }
     #splash-kaserita .splash-ring {
       position: absolute;
-      background: linear-gradient(0deg, rgba(120,53,15,0.32) 0%, rgba(251,146,60,0.16) 100%);
+      background: rgba(251,146,60,0.1);
       border-radius: 50%;
-      border-top: 1px solid rgba(251,191,36,0.55);
-      box-shadow: rgba(0,0,0,0.45) 0 10px 10px 0;
-      backdrop-filter: blur(6px);
-      animation: splash-ripple 2s infinite ease-in-out;
+      border: 1px solid rgba(251,191,36,0.4);
+      animation: splash-ripple 2s infinite ease-out;
+      will-change: transform, opacity;
+      /* transform-origin en el centro evita que, al escalar, el anillo se
+         vea "correr" hacia una esquina en navegadores más lentos. */
+      transform-origin: center;
     }
     #splash-kaserita .splash-ring:nth-child(1) { width: 26%; aspect-ratio: 1; z-index: 14; }
-    #splash-kaserita .splash-ring:nth-child(2) { inset: 30%; z-index: 13; border-color: rgba(251,191,36,0.42); animation-delay: 0.2s; }
-    #splash-kaserita .splash-ring:nth-child(3) { inset: 20%; z-index: 12; border-color: rgba(251,191,36,0.32); animation-delay: 0.4s; }
-    #splash-kaserita .splash-ring:nth-child(4) { inset: 10%; z-index: 11; border-color: rgba(251,191,36,0.2); animation-delay: 0.6s; }
-    #splash-kaserita .splash-ring:nth-child(5) { inset: 0; z-index: 10; border-color: rgba(251,191,36,0.1); animation-delay: 0.8s; }
+    #splash-kaserita .splash-ring:nth-child(2) { inset: 30%; z-index: 13; border-color: rgba(251,191,36,0.32); animation-delay: 0.2s; }
+    #splash-kaserita .splash-ring:nth-child(3) { inset: 20%; z-index: 12; border-color: rgba(251,191,36,0.24); animation-delay: 0.4s; }
+    #splash-kaserita .splash-ring:nth-child(4) { inset: 10%; z-index: 11; border-color: rgba(251,191,36,0.16); animation-delay: 0.6s; }
+    #splash-kaserita .splash-ring:nth-child(5) { inset: 0; z-index: 10; border-color: rgba(251,191,36,0.08); animation-delay: 0.8s; }
+    /* Solo transform + opacity: son las dos únicas propiedades que el
+       navegador puede animar en el hilo de composición (GPU) sin volver a
+       calcular el layout/pintado en cada frame -- por eso se ve fluida
+       incluso en celulares de gama baja. La versión anterior animaba
+       box-shadow (fuerza repintado) y usaba backdrop-filter (muy caro), y
+       ahí es donde se sentía lenta o se trababa en varios equipos. */
     @keyframes splash-ripple {
-      0% { transform: scale(1); box-shadow: rgba(0,0,0,0.45) 0 10px 10px 0; }
-      50% { transform: scale(1.32); box-shadow: rgba(0,0,0,0.45) 0 30px 20px 0; }
-      100% { transform: scale(1); box-shadow: rgba(0,0,0,0.45) 0 10px 10px 0; }
+      0% { transform: scale(1); opacity: 0.65; }
+      70% { transform: scale(1.3); opacity: 0; }
+      100% { transform: scale(1.3); opacity: 0; }
     }
     @keyframes splash-color-change {
       0% { opacity: 0.65; } 50% { opacity: 1; } 100% { opacity: 0.65; }
+    }
+    /* Si el sistema pide menos movimiento (o un navegador viejo no anima
+       bien), se queda quieto en vez de verse trabado a medio camino. */
+    @media (prefers-reduced-motion: reduce) {
+      #splash-kaserita .splash-ring,
+      #splash-kaserita .splash-loader-logo {
+        animation: none;
+        opacity: 0.5;
+      }
     }
     #splash-kaserita .splash-wordmark {
       position: relative;
