@@ -741,7 +741,8 @@
         stock_actual: '',
         vendeEnPack: false,
         unidades_por_pack: '',
-        precio_venta_pack: ''
+        precio_venta_pack: '',
+        cod_ean_pack: ''
       });
 
       // --- Módulo: Editar / Desactivar Producto ---
@@ -759,7 +760,7 @@
       const [modalStockBajo, setModalStockBajo] = useState(false);
 
       // --- Módulo: Inventario Inicial (carga de varios productos a la vez) ---
-      const filaInventarioVacia = () => ({ descripcion: '', cod_ean: '', sku: '', categoria: 'Abarrotes', precio_costo: '', precio_venta: '', unidad: 'UND', stock_actual: '', vendeEnPack: false, unidades_por_pack: '', precio_venta_pack: '', productoExistenteId: null });
+      const filaInventarioVacia = () => ({ descripcion: '', cod_ean: '', sku: '', categoria: 'Abarrotes', precio_costo: '', precio_venta: '', unidad: 'UND', stock_actual: '', vendeEnPack: false, unidades_por_pack: '', precio_venta_pack: '', cod_ean_pack: '', productoExistenteId: null });
       const [modalInventarioInicial, setModalInventarioInicial] = useState(false);
       const [filasInventario, setFilasInventario] = useState([filaInventarioVacia()]);
       const [guardandoInventario, setGuardandoInventario] = useState(false);
@@ -820,6 +821,8 @@
       // 'inventario': rellena el campo EAN de una fila del formulario de inventario.
       const [modoEscaner, setModoEscaner] = useState('venta');
       const [filaEscaneandoIndex, setFilaEscaneandoIndex] = useState(null);
+      // 'cod_ean' o 'cod_ean_pack' -- qué campo de la fila se está escaneando.
+      const [campoEscaneandoFila, setCampoEscaneandoFila] = useState('cod_ean');
       const ultimoEscaneoRef = useRef({ codigo: '', hora: 0 });
       const videoNativoRef = useRef(null);
       const streamNativoRef = useRef(null);
@@ -1297,17 +1300,43 @@
       // ==========================================
       // SELECCIÓN Y CANTIDAD / BALANZA DE PRODUCTO
       // ==========================================
-      const handleClicProducto = (prod) => {
+      // Si el código escaneado/tipeado ya identificó exactamente si es el
+      // EAN de la unidad o el del pack (son distintos en el empaque real),
+      // tipoVentaForzado salta la pregunta "¿suelto o pack?" y lo agrega
+      // directo -- la ambigüedad solo aplica cuando se toca la tarjeta del
+      // producto a mano.
+      const handleClicProducto = (prod, tipoVentaForzado = null) => {
         const esKG = prod.unidad === 'KG';
         const tienePack = Number(prod.unidades_por_pack) > 1;
-        if (esKG || tienePack) {
+        if (esKG) {
           setProductoSeleccionadoCantidad(prod);
-          setInputCantidad(esKG ? '1.000' : '1');
+          setInputCantidad('1.000');
+          setTipoVentaSeleccionado(tipoVentaForzado || 'UNIDAD');
+          setModalCantidad(true);
+        } else if (tipoVentaForzado) {
+          agregarAlCarrito(prod, 1, tipoVentaForzado);
+        } else if (tienePack) {
+          setProductoSeleccionadoCantidad(prod);
+          setInputCantidad('1');
           setTipoVentaSeleccionado('UNIDAD');
           setModalCantidad(true);
         } else {
           agregarAlCarrito(prod, 1);
         }
+      };
+
+      // Busca un producto por cualquiera de sus dos códigos de barras: el de
+      // la unidad suelta o el del pack/caja (suelen ser distintos en el
+      // empaque real). Devuelve cuál de los dos coincidió, para saber si
+      // hay que vender como unidad o como pack sin tener que preguntar.
+      const buscarProductoPorCodigo = (codigo) => {
+        const c = (codigo || '').trim().toLowerCase();
+        if (!c) return null;
+        const porUnidad = productos.find((p) => (p.cod_ean || '').toLowerCase() === c);
+        if (porUnidad) return { producto: porUnidad, esPack: false };
+        const porPack = productos.find((p) => (p.cod_ean_pack || '').toLowerCase() === c);
+        if (porPack) return { producto: porPack, esPack: true };
+        return null;
       };
 
       const confirmarCantidadBalanza = () => {
@@ -1397,9 +1426,9 @@
           const term = busqueda.trim().toLowerCase();
           if (!term) return;
 
-          const exactoEan = productos.find(p => (p.cod_ean || '').toLowerCase() === term);
-          if (exactoEan) {
-            handleClicProducto(exactoEan);
+          const encontradoPorCodigo = buscarProductoPorCodigo(term);
+          if (encontradoPorCodigo) {
+            handleClicProducto(encontradoPorCodigo.producto, encontradoPorCodigo.esPack ? 'PACK' : 'UNIDAD');
             setBusqueda('');
             return;
           }
@@ -1434,14 +1463,19 @@
 
         if (modoEscaner === 'inventario') {
           if (filaEscaneandoIndex !== null) {
-            actualizarCodigoEanFila(filaEscaneandoIndex, codigoLimpio);
-            const encontrado = buscarProductoExistente(codigoLimpio);
-            notificar(
-              encontrado
-                ? `Producto existente encontrado: ${encontrado.descripcion}`
-                : `Código capturado: ${codigoLimpio} (producto nuevo)`,
-              'success'
-            );
+            if (campoEscaneandoFila === 'cod_ean_pack') {
+              actualizarFilaInventario(filaEscaneandoIndex, 'cod_ean_pack', codigoLimpio);
+              notificar(`Código de pack capturado: ${codigoLimpio}`, 'success');
+            } else {
+              actualizarCodigoEanFila(filaEscaneandoIndex, codigoLimpio);
+              const encontrado = buscarProductoExistente(codigoLimpio);
+              notificar(
+                encontrado
+                  ? `Producto existente encontrado: ${encontrado.descripcion}`
+                  : `Código capturado: ${codigoLimpio} (producto nuevo)`,
+                'success'
+              );
+            }
           }
           setModalEscaner(false);
           return;
@@ -1454,10 +1488,24 @@
           return;
         }
 
-        const encontrado = productos.find((p) => (p.cod_ean || '') === codigoLimpio);
-        if (encontrado) {
-          handleClicProducto(encontrado);
-          notificar(`Agregado: ${encontrado.descripcion}`, 'success');
+        if (modoEscaner === 'producto-pack-ean') {
+          setFormProducto((prev) => ({ ...prev, cod_ean_pack: codigoLimpio }));
+          notificar(`Código de pack capturado: ${codigoLimpio}`, 'success');
+          setModalEscaner(false);
+          return;
+        }
+
+        if (modoEscaner === 'editar-pack-ean') {
+          setFormEditarProducto((prev) => ({ ...prev, cod_ean_pack: codigoLimpio }));
+          notificar(`Código de pack capturado: ${codigoLimpio}`, 'success');
+          setModalEscaner(false);
+          return;
+        }
+
+        const encontradoPorCodigo = buscarProductoPorCodigo(codigoLimpio);
+        if (encontradoPorCodigo) {
+          handleClicProducto(encontradoPorCodigo.producto, encontradoPorCodigo.esPack ? 'PACK' : 'UNIDAD');
+          notificar(`Agregado: ${encontradoPorCodigo.producto.descripcion}${encontradoPorCodigo.esPack ? ' (Pack)' : ''}`, 'success');
         } else {
           setModalEscaner(false);
           notificar(`Código ${codigoLimpio} no encontrado en el catálogo.`, 'error');
@@ -1471,9 +1519,10 @@
         setModalEscaner(true);
       };
 
-      const abrirEscanerParaFilaInventario = (idx) => {
+      const abrirEscanerParaFilaInventario = (idx, campo = 'cod_ean') => {
         setModoEscaner('inventario');
         setFilaEscaneandoIndex(idx);
+        setCampoEscaneandoFila(campo);
         setMetodoForzado(null);
         setModalEscaner(true);
       };
@@ -2327,7 +2376,8 @@
                   stock_actual: '',
                   vendeEnPack: Number(producto.unidades_por_pack) > 1,
                   unidades_por_pack: producto.unidades_por_pack != null && Number(producto.unidades_por_pack) > 1 ? String(producto.unidades_por_pack) : '',
-                  precio_venta_pack: producto.precio_venta_pack != null ? String(producto.precio_venta_pack) : ''
+                  precio_venta_pack: producto.precio_venta_pack != null ? String(producto.precio_venta_pack) : '',
+                  cod_ean_pack: producto.cod_ean_pack || ''
                 }
               : fila
           )
@@ -2381,7 +2431,8 @@
                 unidad: f.unidad === 'KG' ? 'KG' : 'UND',
                 stock_actual: f.stock_actual === '' ? 0 : Number(f.stock_actual) || 0,
                 unidades_por_pack: f.vendeEnPack && Number(f.unidades_por_pack) > 1 ? Number(f.unidades_por_pack) : 1,
-                precio_venta_pack: f.vendeEnPack && f.precio_venta_pack ? Number(f.precio_venta_pack) : null
+                precio_venta_pack: f.vendeEnPack && f.precio_venta_pack ? Number(f.precio_venta_pack) : null,
+                cod_ean_pack: f.vendeEnPack && f.cod_ean_pack.trim() ? f.cod_ean_pack.trim() : null
               }));
               const { error } = await sbClient.from('productos').insert(payloadNuevos);
               if (error) throw error;
@@ -2403,7 +2454,8 @@
                   precio_venta: Number(f.precio_venta) || 0,
                   sku: f.sku.trim() || undefined,
                   unidades_por_pack: f.vendeEnPack && Number(f.unidades_por_pack) > 1 ? Number(f.unidades_por_pack) : 1,
-                  precio_venta_pack: f.vendeEnPack && f.precio_venta_pack ? Number(f.precio_venta_pack) : null
+                  precio_venta_pack: f.vendeEnPack && f.precio_venta_pack ? Number(f.precio_venta_pack) : null,
+                  cod_ean_pack: f.vendeEnPack && f.cod_ean_pack.trim() ? f.cod_ean_pack.trim() : null
                 })
                 .eq('id', f.productoExistenteId);
               if (errUpd) throw errUpd;
@@ -2429,7 +2481,7 @@
       // ==========================================
       const handleCrearNuevoProducto = async (e) => {
         e.preventDefault();
-        const { descripcion, precio_venta, precio_costo, cod_ean, sku, categoria, unidad, stock_actual, vendeEnPack, unidades_por_pack, precio_venta_pack } = formProducto;
+        const { descripcion, precio_venta, precio_costo, cod_ean, sku, categoria, unidad, stock_actual, vendeEnPack, unidades_por_pack, precio_venta_pack, cod_ean_pack } = formProducto;
         if (!descripcion.trim() || !precio_venta) {
           notificar('Descripción y Precio de Venta son obligatorios.', 'error');
           return;
@@ -2447,7 +2499,8 @@
             unidad: unidad === 'KG' ? 'KG' : 'UND',
             stock_actual: stock_actual === '' ? 0 : Number(stock_actual) || 0,
             unidades_por_pack: vendeEnPack && Number(unidades_por_pack) > 1 ? Number(unidades_por_pack) : 1,
-            precio_venta_pack: vendeEnPack && precio_venta_pack ? Number(precio_venta_pack) : null
+            precio_venta_pack: vendeEnPack && precio_venta_pack ? Number(precio_venta_pack) : null,
+            cod_ean_pack: vendeEnPack && cod_ean_pack.trim() ? cod_ean_pack.trim() : null
           };
 
           if (sbClient) {
@@ -2456,7 +2509,7 @@
           }
 
           setModalNuevoProducto(false);
-          setFormProducto({ cod_ean: '', sku: '', descripcion: '', precio_costo: '', precio_venta: '', categoria: 'Abarrotes', unidad: 'UND', stock_actual: '', vendeEnPack: false, unidades_por_pack: '', precio_venta_pack: '' });
+          setFormProducto({ cod_ean: '', sku: '', descripcion: '', precio_costo: '', precio_venta: '', categoria: 'Abarrotes', unidad: 'UND', stock_actual: '', vendeEnPack: false, unidades_por_pack: '', precio_venta_pack: '', cod_ean_pack: '' });
           cargarProductos();
           notificar(`¡Producto "${descripcion}" guardado en el catálogo!`, 'success');
         } catch (err) {
@@ -2480,7 +2533,8 @@
           stock_actual: prod.stock_actual != null ? String(prod.stock_actual) : '',
           vendeEnPack: Number(prod.unidades_por_pack) > 1,
           unidades_por_pack: Number(prod.unidades_por_pack) > 1 ? String(prod.unidades_por_pack) : '',
-          precio_venta_pack: prod.precio_venta_pack != null ? String(prod.precio_venta_pack) : ''
+          precio_venta_pack: prod.precio_venta_pack != null ? String(prod.precio_venta_pack) : '',
+          cod_ean_pack: prod.cod_ean_pack || ''
         });
         setModalEditarProducto(true);
       };
@@ -2503,7 +2557,8 @@
             unidad: formEditarProducto.unidad === 'KG' ? 'KG' : 'UND',
             stock_actual: formEditarProducto.stock_actual === '' ? null : Number(formEditarProducto.stock_actual),
             unidades_por_pack: formEditarProducto.vendeEnPack && Number(formEditarProducto.unidades_por_pack) > 1 ? Number(formEditarProducto.unidades_por_pack) : 1,
-            precio_venta_pack: formEditarProducto.vendeEnPack && formEditarProducto.precio_venta_pack ? Number(formEditarProducto.precio_venta_pack) : null
+            precio_venta_pack: formEditarProducto.vendeEnPack && formEditarProducto.precio_venta_pack ? Number(formEditarProducto.precio_venta_pack) : null,
+            cod_ean_pack: formEditarProducto.vendeEnPack && formEditarProducto.cod_ean_pack.trim() ? formEditarProducto.cod_ean_pack.trim() : null
           };
           if (sbClient) {
             const { error } = await sbClient.from('productos').update(payload).eq('id', productoEditando.id);
@@ -4990,6 +5045,23 @@
                                 onChange={(e) => actualizarFilaInventario(idx, 'precio_venta_pack', e.target.value)}
                                 className={claseCampoNormal}
                               />
+                              <div className="col-span-2 relative">
+                                <input
+                                  type="text"
+                                  placeholder="Código EAN del pack (si es distinto al de la unidad)"
+                                  value={fila.cod_ean_pack}
+                                  onChange={(e) => actualizarFilaInventario(idx, 'cod_ean_pack', e.target.value)}
+                                  className={`w-full pr-9 ${claseCampoNormal}`}
+                                />
+                                <button
+                                  type="button"
+                                  onClick={() => abrirEscanerParaFilaInventario(idx, 'cod_ean_pack')}
+                                  className="absolute right-1.5 top-1/2 -translate-y-1/2 w-6 h-6 flex items-center justify-center text-stone-600 hover:text-orange-600 transition"
+                                  title="Escanear código de barras del pack"
+                                >
+                                  <i className="fa-solid fa-camera text-xs"></i>
+                                </button>
+                              </div>
                             </div>
                           )}
                         </div>
@@ -5262,6 +5334,23 @@
                             onChange={(e) => setFormEditarProducto({ ...formEditarProducto, precio_venta_pack: e.target.value })}
                             className="w-full bg-stone-50 border border-stone-200 rounded-lg px-3 py-1.5 text-xs text-stone-900"
                           />
+                          <div className="col-span-2 relative">
+                            <input
+                              type="text"
+                              placeholder="Código EAN del pack (si es distinto al de la unidad)"
+                              value={formEditarProducto.cod_ean_pack}
+                              onChange={(e) => setFormEditarProducto({ ...formEditarProducto, cod_ean_pack: e.target.value })}
+                              className="w-full pr-9 bg-stone-50 border border-stone-200 rounded-lg px-3 py-1.5 text-xs text-stone-900"
+                            />
+                            <button
+                              type="button"
+                              onClick={() => { setModoEscaner('editar-pack-ean'); setMetodoForzado(null); setModalEscaner(true); }}
+                              className="absolute right-1.5 top-1/2 -translate-y-1/2 w-6 h-6 flex items-center justify-center text-stone-600 hover:text-orange-600 transition"
+                              title="Escanear código de barras del pack"
+                            >
+                              <i className="fa-solid fa-camera text-xs"></i>
+                            </button>
+                          </div>
                         </div>
                       )}
                     </div>
@@ -5440,6 +5529,23 @@
                             onChange={(e) => setFormProducto({ ...formProducto, precio_venta_pack: e.target.value })}
                             className="w-full bg-stone-50 border border-stone-200 rounded-lg px-3 py-1.5 text-xs text-stone-900"
                           />
+                          <div className="col-span-2 relative">
+                            <input
+                              type="text"
+                              placeholder="Código EAN del pack (si es distinto al de la unidad)"
+                              value={formProducto.cod_ean_pack}
+                              onChange={(e) => setFormProducto({ ...formProducto, cod_ean_pack: e.target.value })}
+                              className="w-full pr-9 bg-stone-50 border border-stone-200 rounded-lg px-3 py-1.5 text-xs text-stone-900"
+                            />
+                            <button
+                              type="button"
+                              onClick={() => { setModoEscaner('producto-pack-ean'); setMetodoForzado(null); setModalEscaner(true); }}
+                              className="absolute right-1.5 top-1/2 -translate-y-1/2 w-6 h-6 flex items-center justify-center text-stone-600 hover:text-orange-600 transition"
+                              title="Escanear código de barras del pack"
+                            >
+                              <i className="fa-solid fa-camera text-xs"></i>
+                            </button>
+                          </div>
                         </div>
                       )}
                     </div>
