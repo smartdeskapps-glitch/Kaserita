@@ -586,6 +586,9 @@
       const [modalCierreCaja, setModalCierreCaja] = useState(false);
       const [montoConteoEfectivo, setMontoConteoEfectivo] = useState('');
       const [resumenCierre, setResumenCierre] = useState(null);
+      const [modalHistorialCierres, setModalHistorialCierres] = useState(false);
+      const [cierresCaja, setCierresCaja] = useState([]);
+      const [cargandoCierres, setCargandoCierres] = useState(false);
 
       // --- Carrito & Ventas en Espera (Park Sales) ---
       // El carrito se guarda en localStorage en cada cambio y se recupera al
@@ -1195,13 +1198,18 @@
       // el total histórico de todo lo comprado a crédito.
       const boletasDeudorConEstado = useMemo(() => {
         if (!deudorSeleccionado) return [];
+        const diasCredito = Number(deudorSeleccionado.dias_credito) || 30;
         const ordenadasAsc = [...boletasDeudor].sort((a, b) => new Date(a.fecha_hora) - new Date(b.fecha_hora));
         const totalHistorico = ordenadasAsc.reduce((acc, b) => acc + Number(b.total_venta), 0);
         const montoYaPagado = Math.max(0, +(totalHistorico - Number(deudorSeleccionado.saldo_actual)).toFixed(2));
         let acumulado = 0;
+        const ahora = Date.now();
         const conEstado = ordenadasAsc.map((b) => {
           acumulado += Number(b.total_venta);
-          return { ...b, pagada: acumulado <= montoYaPagado + 0.01 };
+          const pagada = acumulado <= montoYaPagado + 0.01;
+          const diasTranscurridos = Math.floor((ahora - new Date(b.fecha_hora).getTime()) / 86400000);
+          const diasVencido = diasTranscurridos - diasCredito;
+          return { ...b, pagada, vencida: !pagada && diasVencido > 0, diasVencido };
         });
         return conEstado.sort((a, b) => new Date(b.fecha_hora) - new Date(a.fecha_hora));
       }, [boletasDeudor, deudorSeleccionado]);
@@ -1738,6 +1746,7 @@
                 telefono: telefono.trim() || null,
                 correo: correo.trim() || null,
                 limite_credito: limite,
+                dias_credito: 30,
                 saldo_actual: 0.00
               }])
               .select()
@@ -1747,7 +1756,7 @@
             setClienteActual(data);
             setDniCliente(data.dni);
           } else {
-            const cLocal = { id: generarUUID(), bodega_id: bodegaId, dni: dni.trim(), nombre_completo: nombre.trim(), telefono, correo, limite_credito: limite, saldo_actual: 0 };
+            const cLocal = { id: generarUUID(), bodega_id: bodegaId, dni: dni.trim(), nombre_completo: nombre.trim(), telefono, correo, limite_credito: limite, dias_credito: 30, saldo_actual: 0 };
             setClienteActual(cLocal);
             setDniCliente(cLocal.dni);
           }
@@ -1969,7 +1978,8 @@
           nombre_completo: cliente.nombre_completo || '',
           telefono: cliente.telefono || '',
           correo: cliente.correo || '',
-          limite_credito: cliente.limite_credito != null ? String(cliente.limite_credito) : '0'
+          limite_credito: cliente.limite_credito != null ? String(cliente.limite_credito) : '0',
+          dias_credito: cliente.dias_credito != null ? String(cliente.dias_credito) : '30'
         });
       };
 
@@ -1985,7 +1995,8 @@
             nombre_completo: formEditarCliente.nombre_completo.trim(),
             telefono: formEditarCliente.telefono.trim() || null,
             correo: formEditarCliente.correo.trim() || null,
-            limite_credito: Number(formEditarCliente.limite_credito) || 0
+            limite_credito: Number(formEditarCliente.limite_credito) || 0,
+            dias_credito: Number(formEditarCliente.dias_credito) || 30
           };
           if (sbClient) {
             const { error } = await sbClient.from('clientes').update(payload).eq('id', clienteEditando.id);
@@ -2968,6 +2979,28 @@
         setMontoConteoEfectivo('');
       };
 
+      // Historial de turnos ya cerrados (arqueos pasados).
+      const abrirHistorialCierres = async () => {
+        setModalHistorialCierres(true);
+        if (!sbClient || !bodegaId) return;
+        setCargandoCierres(true);
+        try {
+          const { data, error } = await sbClient
+            .from('turnos_caja')
+            .select('*, cajeros(nombre)')
+            .eq('bodega_id', bodegaId)
+            .not('fecha_cierre', 'is', null)
+            .order('fecha_cierre', { ascending: false })
+            .limit(60);
+          if (error) throw error;
+          setCierresCaja(data || []);
+        } catch (err) {
+          notificar(`No se pudo cargar el historial de cierres: ${err.message}`, 'error');
+        } finally {
+          setCargandoCierres(false);
+        }
+      };
+
       // Turno activo check
       const verificarTurno = async () => {
         if (!sbClient || !bodegaId) return;
@@ -3636,6 +3669,7 @@
                 <div className="w-10 h-px bg-stone-200 my-2 shrink-0"></div>
                 <SidebarIcon icon="fa-chart-pie" label="Dashboard de Ventas" texto="Dashboard" onClick={abrirDashboard} />
                 <SidebarIcon icon="fa-file-invoice" label="Cuentas por Pagar" texto="Por Pagar" onClick={abrirCuentasPorPagar} />
+                <SidebarIcon icon="fa-cash-register" label="Historial de Cierres de Caja" texto="Cierres" onClick={abrirHistorialCierres} />
                 <SidebarIcon icon="fa-boxes-stacked" label="Registrar Inventario" texto="Inventario" onClick={() => setModalInventarioInicial(true)} />
                 <SidebarIcon icon="fa-truck-ramp-box" label="Entrada de Mercadería" texto="Mercadería" onClick={() => setModalEntradaMercaderia(true)} />
                 <SidebarIcon icon="fa-box-open" label="Nuevo Producto" texto="Producto" onClick={() => setModalNuevoProducto(true)} />
@@ -4336,6 +4370,9 @@
                     </button>
                     <button onClick={() => { abrirCuentasPorPagar(); setMenuMas(false); }} className="w-full text-left px-3.5 py-3 rounded-xl hover:bg-stone-200 flex items-center gap-3 text-stone-800 font-medium text-sm">
                       <i className="fa-solid fa-file-invoice w-5 text-orange-600"></i> Cuentas por Pagar
+                    </button>
+                    <button onClick={() => { abrirHistorialCierres(); setMenuMas(false); }} className="w-full text-left px-3.5 py-3 rounded-xl hover:bg-stone-200 flex items-center gap-3 text-stone-800 font-medium text-sm">
+                      <i className="fa-solid fa-cash-register w-5 text-orange-600"></i> Historial de Cierres de Caja
                     </button>
                     <button onClick={() => { setModalInventarioInicial(true); setMenuMas(false); }} className="w-full text-left px-3.5 py-3 rounded-xl hover:bg-stone-200 flex items-center gap-3 text-orange-600 font-semibold text-sm">
                       <i className="fa-solid fa-boxes-stacked w-5"></i> Registrar Inventario
@@ -5085,6 +5122,7 @@
                               <div className="flex justify-between font-semibold text-stone-800">
                                 <span className="font-mono">
                                   {b.nro_boleta} {b.pagada && <span className="text-emerald-600 font-sans">(Pagada)</span>}
+                                  {b.vencida && <span className="text-rose-600 font-sans font-bold"> · Vencida hace {b.diasVencido}d</span>}
                                 </span>
                                 <span className="text-orange-600">S/ {Number(b.total_venta).toFixed(2)}</span>
                               </div>
@@ -5302,6 +5340,48 @@
             </div>
           )}
 
+          {/* Modal: Historial de Cierres de Caja */}
+          {modalHistorialCierres && (
+            <div className="fixed inset-0 bg-black/85 flex items-center justify-center z-50 p-4">
+              <div className="bg-stone-100 border border-stone-200 rounded-2xl max-w-lg w-full p-5 shadow-2xl space-y-3 max-h-[90vh] flex flex-col">
+                <div className="flex justify-between items-center shrink-0">
+                  <h3 className="text-base font-bold text-stone-900 flex items-center gap-2">
+                    <i className="fa-solid fa-cash-register text-orange-600"></i> Historial de Cierres de Caja
+                  </h3>
+                  <button onClick={() => setModalHistorialCierres(false)} className="text-stone-600 hover:text-stone-900">✕</button>
+                </div>
+
+                <div className="flex-1 overflow-y-auto space-y-2">
+                  {cargandoCierres ? (
+                    <p className="text-xs text-center py-8 text-stone-600">Cargando...</p>
+                  ) : cierresCaja.length === 0 ? (
+                    <p className="text-xs text-center py-8 text-stone-500">Aún no hay cierres de caja registrados.</p>
+                  ) : (
+                    cierresCaja.map((t) => (
+                      <div key={t.id} className="p-3 bg-white rounded-xl border border-stone-200 text-xs">
+                        <div className="flex justify-between items-center mb-1.5">
+                          <span className="font-bold text-stone-900 flex items-center gap-1.5">
+                            <i className="fa-solid fa-user text-stone-400"></i> {t.cajeros?.nombre || 'Cajero'}
+                          </span>
+                          <span className={`font-black ${t.diferencia === 0 ? 'text-emerald-600' : Math.abs(Number(t.diferencia)) < 1 ? 'text-amber-600' : 'text-rose-600'}`}>
+                            {Number(t.diferencia) === 0 ? '✓ Cuadre perfecto' : `${Number(t.diferencia) > 0 ? '+' : ''}S/ ${Number(t.diferencia).toFixed(2)}`}
+                          </span>
+                        </div>
+                        <div className="grid grid-cols-2 gap-x-3 gap-y-0.5 text-stone-600">
+                          <span>Apertura: {new Date(t.fecha_apertura).toLocaleString('es-PE', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}</span>
+                          <span>Cierre: {new Date(t.fecha_cierre).toLocaleString('es-PE', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}</span>
+                          <span>Fondo inicial: S/ {Number(t.monto_inicial).toFixed(2)}</span>
+                          <span>Ventas efectivo: S/ {Number(t.ventas_sistema || 0).toFixed(2)}</span>
+                          <span className="col-span-2 font-semibold text-stone-800">Contado: S/ {Number(t.monto_final_real || 0).toFixed(2)}</span>
+                        </div>
+                      </div>
+                    ))
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* Modal: Gestión de Cajeros */}
           {modalGestionCajeros && (
             <div className="fixed inset-0 bg-black/85 flex items-center justify-center z-50 p-4">
@@ -5458,6 +5538,16 @@
                         className="w-full bg-stone-100 border border-stone-200 rounded-lg px-3 py-1.5 text-sm font-bold text-orange-600"
                       />
                       <p className="text-xs text-stone-500 mt-1">Deuda actual: S/ {Number(clienteEditando.saldo_actual || 0).toFixed(2)} (no editable aquí)</p>
+                    </div>
+                    <div>
+                      <label className="text-xs text-stone-600 block mb-1">Días de Crédito (plazo para pagar):</label>
+                      <input
+                        type="number"
+                        step="1"
+                        value={formEditarCliente.dias_credito}
+                        onChange={(e) => setFormEditarCliente({ ...formEditarCliente, dias_credito: e.target.value })}
+                        className="w-full bg-stone-100 border border-stone-200 rounded-lg px-3 py-1.5 text-sm font-bold text-stone-900"
+                      />
                     </div>
                     <button
                       onClick={guardarEdicionCliente}
