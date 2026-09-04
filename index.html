@@ -2798,6 +2798,9 @@
           setCampoTeclado(null);
           setMostrarPago(false);
           setMedioPago('EFECTIVO');
+          // Cierra la hoja del carrito (mobile): que la venta exitosa vuelva
+          // al catálogo en vez de dejar ver el carrito ya vacío detrás.
+          setMostrarResumenMobile(false);
           // Vuelve al cliente genérico para la siguiente venta (evita dejar
           // seleccionado por accidente al mismo cliente de la venta a crédito).
           setDniCliente('99999999');
