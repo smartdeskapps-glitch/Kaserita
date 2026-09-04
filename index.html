@@ -98,10 +98,85 @@
       }
       @page { size: 80mm auto; margin: 2mm; }
     }
+
+    /* Splash screen: puro HTML/CSS, visible desde el primer instante (antes
+       de que React, Babel y Supabase terminen de descargarse), para que
+       nunca se vea una pantalla en blanco mientras carga. */
+    #splash-kaserita {
+      position: fixed;
+      inset: 0;
+      z-index: 9999;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 1.25rem;
+      background: linear-gradient(135deg, #ea580c, #f97316 55%, #f59e0b);
+      color: #fff;
+      font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
+      transition: opacity 0.4s ease, visibility 0.4s ease;
+    }
+    #splash-kaserita.splash-oculto {
+      opacity: 0;
+      visibility: hidden;
+      pointer-events: none;
+    }
+    #splash-kaserita .splash-icono {
+      width: 84px;
+      height: 84px;
+      border-radius: 9999px;
+      background: #fcd34d;
+      color: #c2410c;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 2.5rem;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+    }
+    #splash-kaserita h1 {
+      font-size: 1.75rem;
+      font-weight: 800;
+      letter-spacing: -0.02em;
+      margin: 0;
+    }
+    #splash-kaserita p {
+      font-size: 0.8rem;
+      color: rgba(255,255,255,0.85);
+      margin: -1rem 0 0;
+    }
+    #splash-kaserita .splash-spinner {
+      width: 26px;
+      height: 26px;
+      border-radius: 9999px;
+      border: 3px solid rgba(255,255,255,0.35);
+      border-top-color: #fff;
+      animation: splash-girar 0.8s linear infinite;
+    }
+    @keyframes splash-girar {
+      to { transform: rotate(360deg); }
+    }
   </style>
 </head>
 <body class="bg-stone-50 text-stone-900 h-screen overflow-hidden font-sans">
+  <div id="splash-kaserita">
+    <div class="splash-icono"><i class="fa-solid fa-store"></i></div>
+    <h1>Kaserita</h1>
+    <p>Punto de Venta para tu Bodega o Negocio</p>
+    <div class="splash-spinner"></div>
+  </div>
   <div id="root"></div>
+
+  <script>
+    window.ocultarSplashKaserita = function () {
+      const el = document.getElementById('splash-kaserita');
+      if (!el) return;
+      el.classList.add('splash-oculto');
+      setTimeout(() => el.remove(), 450);
+    };
+    // Salvavidas: si algo tarda demasiado en cargar, el splash no se queda
+    // pegado para siempre.
+    setTimeout(() => window.ocultarSplashKaserita(), 8000);
+  </script>
 
   <script>
     if ('serviceWorker' in navigator) {
@@ -440,6 +515,16 @@
       // --- Sesión (Tabla `usuarios`, respaldada por Supabase Auth) ---
       const [sesion, setSesion] = useState(null);
       const [verificandoSesion, setVerificandoSesion] = useState(true);
+
+      // Oculta el splash screen estático (definido en el <body>, visible desde
+      // antes de que React/Babel terminen de cargar) recién cuando ya sabemos
+      // qué pantalla mostrar -- así no hay parpadeo entre el splash y un
+      // segundo spinner de React.
+      useEffect(() => {
+        if (!verificandoSesion && typeof window.ocultarSplashKaserita === 'function') {
+          window.ocultarSplashKaserita();
+        }
+      }, [verificandoSesion]);
 
       // --- Auth Form ---
       const [authTab, setAuthTab] = useState('login');
