@@ -592,6 +592,8 @@
       const [modalHistorialCierres, setModalHistorialCierres] = useState(false);
       const [cierresCaja, setCierresCaja] = useState([]);
       const [cargandoCierres, setCargandoCierres] = useState(false);
+      const [fechaInicioCierres, setFechaInicioCierres] = useState('');
+      const [fechaFinCierres, setFechaFinCierres] = useState('');
 
       // --- Carrito & Ventas en Espera (Park Sales) ---
       // El carrito se guarda en localStorage en cada cambio y se recupera al
@@ -2997,18 +2999,21 @@
       };
 
       // Historial de turnos ya cerrados (arqueos pasados).
-      const abrirHistorialCierres = async () => {
-        setModalHistorialCierres(true);
+      const cargarHistorialCierresPorRango = async (desde, hasta) => {
         if (!sbClient || !bodegaId) return;
         setCargandoCierres(true);
         try {
+          const inicio = new Date(`${desde}T00:00:00`);
+          const fin = new Date(`${hasta}T23:59:59.999`);
           const { data, error } = await sbClient
             .from('turnos_caja')
             .select('*, cajeros(nombre)')
             .eq('bodega_id', bodegaId)
             .not('fecha_cierre', 'is', null)
+            .gte('fecha_cierre', inicio.toISOString())
+            .lte('fecha_cierre', fin.toISOString())
             .order('fecha_cierre', { ascending: false })
-            .limit(60);
+            .limit(200);
           if (error) throw error;
           setCierresCaja(data || []);
         } catch (err) {
@@ -3016,6 +3021,17 @@
         } finally {
           setCargandoCierres(false);
         }
+      };
+
+      const abrirHistorialCierres = () => {
+        const hoy = fechaHoyISO();
+        const hace30dias = new Date();
+        hace30dias.setDate(hace30dias.getDate() - 29);
+        const desde = hace30dias.toISOString().slice(0, 10);
+        setFechaInicioCierres(desde);
+        setFechaFinCierres(hoy);
+        setModalHistorialCierres(true);
+        cargarHistorialCierresPorRango(desde, hoy);
       };
 
       // Turno activo check
@@ -5476,11 +5492,65 @@
                   <button onClick={() => setModalHistorialCierres(false)} className="text-stone-600 hover:text-stone-900">✕</button>
                 </div>
 
+                <div className="flex flex-wrap items-end gap-2 shrink-0">
+                  <div>
+                    <label className="text-xs text-stone-600 block mb-1">Desde:</label>
+                    <input
+                      type="date"
+                      value={fechaInicioCierres}
+                      onChange={(e) => setFechaInicioCierres(e.target.value)}
+                      className="bg-stone-50 border border-stone-200 rounded-lg px-2 py-1.5 text-xs text-stone-900"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-xs text-stone-600 block mb-1">Hasta:</label>
+                    <input
+                      type="date"
+                      value={fechaFinCierres}
+                      onChange={(e) => setFechaFinCierres(e.target.value)}
+                      className="bg-stone-50 border border-stone-200 rounded-lg px-2 py-1.5 text-xs text-stone-900"
+                    />
+                  </div>
+                  <button
+                    onClick={() => cargarHistorialCierresPorRango(fechaInicioCierres, fechaFinCierres)}
+                    className="px-3 py-1.5 bg-orange-600 hover:bg-orange-500 text-white text-xs font-semibold rounded-lg"
+                  >
+                    Buscar
+                  </button>
+                  <button
+                    onClick={() => { const hoy = fechaHoyISO(); setFechaInicioCierres(hoy); setFechaFinCierres(hoy); cargarHistorialCierresPorRango(hoy, hoy); }}
+                    className="px-3 py-1.5 bg-stone-200 hover:bg-stone-300 text-stone-700 text-xs font-semibold rounded-lg"
+                  >
+                    Hoy
+                  </button>
+                  <button
+                    onClick={() => {
+                      const hoy = fechaHoyISO();
+                      const hace30 = new Date(); hace30.setDate(hace30.getDate() - 29);
+                      const desde = hace30.toISOString().slice(0, 10);
+                      setFechaInicioCierres(desde); setFechaFinCierres(hoy); cargarHistorialCierresPorRango(desde, hoy);
+                    }}
+                    className="px-3 py-1.5 bg-stone-200 hover:bg-stone-300 text-stone-700 text-xs font-semibold rounded-lg"
+                  >
+                    Últimos 30 días
+                  </button>
+                  <button
+                    onClick={() => {
+                      const hoy = fechaHoyISO();
+                      const inicioMes = hoy.slice(0, 8) + '01';
+                      setFechaInicioCierres(inicioMes); setFechaFinCierres(hoy); cargarHistorialCierresPorRango(inicioMes, hoy);
+                    }}
+                    className="px-3 py-1.5 bg-stone-200 hover:bg-stone-300 text-stone-700 text-xs font-semibold rounded-lg"
+                  >
+                    Este mes
+                  </button>
+                </div>
+
                 <div className="flex-1 overflow-y-auto space-y-2">
                   {cargandoCierres ? (
                     <p className="text-xs text-center py-8 text-stone-600">Cargando...</p>
                   ) : cierresCaja.length === 0 ? (
-                    <p className="text-xs text-center py-8 text-stone-500">Aún no hay cierres de caja registrados.</p>
+                    <p className="text-xs text-center py-8 text-stone-500">No hay cierres de caja en ese rango.</p>
                   ) : (
                     cierresCaja.map((t) => (
                       <div key={t.id} className="p-3 bg-white rounded-xl border border-stone-200 text-xs">
