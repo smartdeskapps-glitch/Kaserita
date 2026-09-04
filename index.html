@@ -577,6 +577,7 @@
       const [cargandoDashboard, setCargandoDashboard] = useState(false);
       const [fechaInicioDash, setFechaInicioDash] = useState(fechaHoyISO());
       const [fechaFinDash, setFechaFinDash] = useState(fechaHoyISO());
+      const [clientesDeuda, setClientesDeuda] = useState([]);
 
       // --- Cobro / Pagos ---
       const [medioPago, setMedioPago] = useState('EFECTIVO');
@@ -2241,6 +2242,17 @@
               .order('fecha_hora', { ascending: true });
             if (error) throw error;
             setVentasDashboard(data || []);
+
+            // Deuda de clientes (crédito): es un saldo vigente, no depende del
+            // rango de fechas elegido -- se muestra el estado actual siempre.
+            const { data: deudores, error: errDeudores } = await sbClient
+              .from('clientes')
+              .select('nombre_completo, dni, saldo_actual')
+              .eq('bodega_id', bodegaId)
+              .gt('saldo_actual', 0)
+              .order('saldo_actual', { ascending: false });
+            if (errDeudores) throw errDeudores;
+            setClientesDeuda(deudores || []);
           } catch (err) {
             console.warn(err);
             notificar(`No se pudo cargar el dashboard: ${err.message}`, 'error');
@@ -2266,6 +2278,8 @@
       // Colores consistentes por medio de pago, usados en la dona y la leyenda.
       const COLOR_MEDIO_PAGO = {
         EFECTIVO: '#f97316',
+        YAPE: '#8b5cf6',
+        PLIN: '#06b6d4',
         TARJETA: '#0ea5e9',
         CREDITO: '#a855f7',
         MIXTO: '#eab308',
@@ -2334,8 +2348,12 @@
         const topProductos = Object.values(prodMap).sort((a, b) => b.monto - a.monto).slice(0, 8);
         const maxProducto = Math.max(1, ...topProductos.map(p => p.monto));
 
-        return { totalVenta, totalUtilidad, totalCosto, numVentas, ticketPromedio, margenPct, porHora, maxHora, horaPico, porDia, maxDia, porMedio, topProductos, maxProducto };
-      }, [ventasDashboard]);
+        const numDeudores = clientesDeuda.length;
+        const totalDeuda = clientesDeuda.reduce((a, c) => a + Number(c.saldo_actual || 0), 0);
+        const maxDeuda = Math.max(1, ...clientesDeuda.map(c => Number(c.saldo_actual || 0)));
+
+        return { totalVenta, totalUtilidad, totalCosto, numVentas, ticketPromedio, margenPct, porHora, maxHora, horaPico, porDia, maxDia, porMedio, topProductos, maxProducto, numDeudores, totalDeuda, maxDeuda };
+      }, [ventasDashboard, clientesDeuda]);
 
       const exportarVentasExcel = () => {
         const filas = ventasDelDia.map((v) => ({
@@ -4898,6 +4916,42 @@
                         <span className="text-[11px] text-stone-500 block">N° de Ventas</span>
                         <span className="font-black text-lg text-stone-900">{dashStats.numVentas}</span>
                       </div>
+                    </div>
+
+                    {/* Cuentas por Cobrar: dinero retenido en crédito, no depende del rango de fechas */}
+                    <div className="bg-rose-50 p-4 rounded-xl border border-rose-200">
+                      <div className="flex flex-wrap justify-between items-center gap-2 mb-3">
+                        <h4 className="text-sm font-bold text-rose-900 flex items-center gap-2">
+                          <i className="fa-solid fa-hand-holding-dollar"></i> Cuentas por Cobrar (dinero retenido)
+                        </h4>
+                        <div className="flex gap-4 text-right">
+                          <div>
+                            <span className="text-[11px] text-rose-700 block">Clientes que deben</span>
+                            <span className="font-black text-lg text-rose-700">{dashStats.numDeudores}</span>
+                          </div>
+                          <div>
+                            <span className="text-[11px] text-rose-700 block">Total retenido</span>
+                            <span className="font-black text-lg text-rose-700">S/ {dashStats.totalDeuda.toFixed(2)}</span>
+                          </div>
+                        </div>
+                      </div>
+                      {dashStats.numDeudores === 0 ? (
+                        <p className="text-xs text-rose-700/70">Ningún cliente tiene deuda pendiente. 🎉</p>
+                      ) : (
+                        <div className="space-y-2 max-h-40 overflow-y-auto pr-1">
+                          {clientesDeuda.map((c, i) => (
+                            <div key={c.dni + i}>
+                              <div className="flex justify-between items-center text-xs mb-1">
+                                <span className="text-rose-900 font-medium truncate pr-2">{c.nombre_completo || c.dni}</span>
+                                <span className="text-rose-700 font-bold shrink-0">S/ {Number(c.saldo_actual).toFixed(2)}</span>
+                              </div>
+                              <div className="w-full h-1.5 bg-rose-100 rounded-full overflow-hidden">
+                                <div className="h-full bg-rose-500 rounded-full" style={{ width: `${(Number(c.saldo_actual) / dashStats.maxDeuda) * 100}%` }}></div>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
                     </div>
 
                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
