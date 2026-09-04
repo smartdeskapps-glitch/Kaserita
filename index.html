@@ -2846,26 +2846,92 @@
         }
       };
 
-      // Comparte el resumen de la boleta recién cobrada por WhatsApp (texto,
-      // sin PDF): si el cliente tiene teléfono guardado abre el chat directo
-      // con él, si no deja que el cajero elija el contacto.
-      const enviarBoletaWhatsApp = (venta) => {
-        const lineasItems = (venta.items || [])
-          .map((it) => `• ${it.descripcion} x${it.cantidad} — S/ ${Number(it.subtotal).toFixed(2)}`)
-          .join('\n');
-        const mensaje = encodeURIComponent(
-          `🧾 Boleta ${venta.nro_boleta} - ${bodegaNombre}\n` +
-          `Cliente: ${venta.cliente}\n\n` +
-          `${lineasItems}\n\n` +
-          (venta.descuento > 0
-            ? `Subtotal: S/ ${venta.subtotal.toFixed(2)}\nDescuento: -S/ ${venta.descuento.toFixed(2)}\n`
-            : '') +
-          `TOTAL: S/ ${venta.total_venta.toFixed(2)}\nPago: ${venta.medio_pago}\n\n¡Gracias por tu compra!`
-        );
+      // Genera la boleta como PDF con formato de ticket angosto (80mm),
+      // igual al que se usaría en una impresora térmica.
+      const generarPDFBoleta = (venta) => {
+        const { jsPDF } = window.jspdf;
+        const items = venta.items || [];
+        const alturaEstimada = 42 + items.length * 9 + (venta.descuento > 0 ? 10 : 0);
+        const doc = new jsPDF({ unit: 'mm', format: [80, Math.max(90, alturaEstimada)] });
+        let y = 8;
+
+        doc.setFont(undefined, 'bold');
+        doc.setFontSize(11);
+        doc.text(bodegaNombre, 40, y, { align: 'center' });
+        y += 6;
+        doc.setFont(undefined, 'normal');
+        doc.setFontSize(8);
+        doc.text(`Boleta: ${venta.nro_boleta}`, 40, y, { align: 'center' }); y += 4;
+        doc.text(venta.fecha || new Date().toLocaleString('es-PE'), 40, y, { align: 'center' }); y += 4;
+        doc.text(`Cliente: ${venta.cliente}`, 40, y, { align: 'center' }); y += 5;
+        doc.line(4, y, 76, y); y += 5;
+
+        items.forEach((it) => {
+          doc.setFontSize(8);
+          const lineas = doc.splitTextToSize(it.descripcion, 72);
+          doc.text(lineas, 4, y);
+          y += lineas.length * 3.6 + 1;
+          doc.text(`${it.cantidad} ${it.unidad || 'UND'} x S/ ${Number(it.precioUnitario || 0).toFixed(2)}`, 4, y);
+          doc.text(`S/ ${Number(it.subtotal).toFixed(2)}`, 76, y, { align: 'right' });
+          y += 5;
+        });
+
+        doc.line(4, y, 76, y); y += 5;
+
+        if (venta.descuento > 0) {
+          doc.text('Subtotal:', 4, y); doc.text(`S/ ${venta.subtotal.toFixed(2)}`, 76, y, { align: 'right' }); y += 4;
+          doc.text('Descuento:', 4, y); doc.text(`-S/ ${venta.descuento.toFixed(2)}`, 76, y, { align: 'right' }); y += 5;
+        }
+
+        doc.setFont(undefined, 'bold');
+        doc.setFontSize(10);
+        doc.text('TOTAL:', 4, y);
+        doc.text(`S/ ${venta.total_venta.toFixed(2)}`, 76, y, { align: 'right' });
+        y += 6;
+
+        doc.setFont(undefined, 'normal');
+        doc.setFontSize(8);
+        doc.text(`Pago: ${venta.medio_pago}`, 4, y);
+        y += 7;
+        doc.setFontSize(7);
+        doc.text('¡Gracias por tu compra!', 40, y, { align: 'center' });
+
+        return doc;
+      };
+
+      // Comparte la boleta en PDF por WhatsApp vía el share nativo del
+      // celular (adjunta el archivo directo); en desktop, donde no se puede
+      // adjuntar así, descarga el PDF y abre WhatsApp Web con el chat listo
+      // para adjuntarlo manualmente.
+      const enviarBoletaWhatsApp = async (venta) => {
+        const doc = generarPDFBoleta(venta);
+        const nombreArchivo = `Boleta_${venta.nro_boleta}.pdf`;
+        const blob = doc.output('blob');
+
+        try {
+          const archivo = new File([blob], nombreArchivo, { type: 'application/pdf' });
+          if (navigator.canShare && navigator.canShare({ files: [archivo] })) {
+            await navigator.share({
+              files: [archivo],
+              title: 'Boleta de venta',
+              text: `Boleta ${venta.nro_boleta} - ${bodegaNombre}`
+            });
+            return;
+          }
+        } catch (err) {
+          if (err?.name === 'AbortError') return; // el cajero canceló el share
+          console.warn('No se pudo compartir directamente, usando alternativa:', err.message);
+        }
+
+        doc.save(nombreArchivo);
         const soloNumeros = (venta.telefono || '').replace(/\D/g, '');
         const telConCodigo = soloNumeros.length === 9 ? `51${soloNumeros}` : soloNumeros;
+        const mensaje = encodeURIComponent(
+          `🧾 Boleta ${venta.nro_boleta} - ${bodegaNombre}. Total: S/ ${venta.total_venta.toFixed(2)}. Adjunta el PDF que se acaba de descargar. ¡Gracias por tu compra!`
+        );
         const url = telConCodigo ? `https://wa.me/${telConCodigo}?text=${mensaje}` : `https://wa.me/?text=${mensaje}`;
         window.open(url, '_blank');
+        notificar('Se descargó el PDF de la boleta. Adjúntalo manualmente en el chat de WhatsApp que se abrió.', 'info');
       };
 
       // =========================================================================
