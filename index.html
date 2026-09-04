@@ -606,6 +606,14 @@
       const [montoAbonoDeuda, setMontoAbonoDeuda] = useState('');
       const [mostrarHistorialCompletoDeuda, setMostrarHistorialCompletoDeuda] = useState(false);
 
+      // --- Cuentas por Pagar (deuda de la bodega con proveedores) ---
+      const [modalCuentasPagar, setModalCuentasPagar] = useState(false);
+      const [proveedoresLista, setProveedoresLista] = useState([]);
+      const [proveedorSeleccionado, setProveedorSeleccionado] = useState(null);
+      const [montoMovimientoProveedor, setMontoMovimientoProveedor] = useState('');
+      const [modalNuevoProveedor, setModalNuevoProveedor] = useState(false);
+      const [formProveedor, setFormProveedor] = useState({ nombre: '', ruc: '', telefono: '', saldoInicial: '' });
+
       // --- Módulo: Gestión de Clientes (listar / editar) ---
       const [modalGestionClientes, setModalGestionClientes] = useState(false);
       const [clientesLista, setClientesLista] = useState([]);
@@ -673,6 +681,8 @@
       const [fechaInicioDash, setFechaInicioDash] = useState(fechaHoyISO());
       const [fechaFinDash, setFechaFinDash] = useState(fechaHoyISO());
       const [clientesDeuda, setClientesDeuda] = useState([]);
+      const [ventasDashboardAnterior, setVentasDashboardAnterior] = useState([]);
+      const [proveedoresDeudaDash, setProveedoresDeudaDash] = useState([]);
 
       // --- Cobro / Pagos ---
       // Los métodos de pago y el descuento se mantienen ocultos hasta tocar
@@ -1648,6 +1658,102 @@
       };
 
       // ==========================================
+      // CUENTAS POR PAGAR (deuda de la bodega con proveedores)
+      // ==========================================
+      const abrirCuentasPorPagar = async () => {
+        setModalCuentasPagar(true);
+        setProveedorSeleccionado(null);
+        setMontoMovimientoProveedor('');
+        if (sbClient && bodegaId) {
+          try {
+            const { data, error } = await sbClient
+              .from('proveedores')
+              .select('*')
+              .eq('bodega_id', bodegaId)
+              .order('saldo_actual', { ascending: false });
+            if (error) throw error;
+            setProveedoresLista(data || []);
+          } catch (err) {
+            console.warn(err);
+            notificar(`No se pudo cargar los proveedores: ${err.message}`, 'error');
+          }
+        }
+      };
+
+      const handleGuardarNuevoProveedor = async (e) => {
+        e.preventDefault();
+        const { nombre, ruc, telefono, saldoInicial } = formProveedor;
+        if (!nombre.trim()) {
+          notificar('El nombre del proveedor es obligatorio.', 'error');
+          return;
+        }
+        const saldo = Math.max(0, Number(saldoInicial) || 0);
+        try {
+          if (sbClient) {
+            const { data, error } = await sbClient
+              .from('proveedores')
+              .insert([{
+                bodega_id: bodegaId,
+                nombre: nombre.trim(),
+                ruc: ruc.trim() || null,
+                telefono: telefono.trim() || null,
+                saldo_actual: saldo
+              }])
+              .select()
+              .single();
+            if (error) throw error;
+            setProveedoresLista((prev) => [data, ...prev].sort((a, b) => Number(b.saldo_actual) - Number(a.saldo_actual)));
+          }
+          setModalNuevoProveedor(false);
+          setFormProveedor({ nombre: '', ruc: '', telefono: '', saldoInicial: '' });
+          notificar(`Proveedor "${nombre}" registrado.`, 'success');
+        } catch (err) {
+          notificar(`Error al registrar el proveedor: ${err.message}`, 'error');
+        }
+      };
+
+      // tipo: 'deuda' (recibiste mercadería a crédito, sube lo que debes) o
+      // 'pago' (le pagaste al proveedor, baja lo que debes).
+      const registrarMovimientoProveedor = async (tipo) => {
+        if (!proveedorSeleccionado) return;
+        const monto = parseFloat(montoMovimientoProveedor) || 0;
+        if (monto <= 0) {
+          notificar('Ingresa un monto válido.', 'error');
+          return;
+        }
+        const saldoAnterior = Number(proveedorSeleccionado.saldo_actual) || 0;
+        const nuevoSaldo = tipo === 'pago'
+          ? Math.max(0, +(saldoAnterior - monto).toFixed(2))
+          : +(saldoAnterior + monto).toFixed(2);
+
+        try {
+          if (sbClient) {
+            const { error: errUpdate } = await sbClient
+              .from('proveedores')
+              .update({ saldo_actual: nuevoSaldo })
+              .eq('id', proveedorSeleccionado.id);
+            if (errUpdate) throw errUpdate;
+
+            if (tipo === 'pago') {
+              const { error: errPago } = await sbClient
+                .from('pagos_proveedor')
+                .insert([{ bodega_id: bodegaId, proveedor_id: proveedorSeleccionado.id, monto }]);
+              if (errPago) console.warn('No se pudo registrar el historial de pago:', errPago);
+            }
+          }
+          setProveedoresLista((prev) => prev.map((p) => (p.id === proveedorSeleccionado.id ? { ...p, saldo_actual: nuevoSaldo } : p)));
+          setProveedorSeleccionado((prev) => ({ ...prev, saldo_actual: nuevoSaldo }));
+          setMontoMovimientoProveedor('');
+          notificar(
+            tipo === 'pago' ? `Pago de S/ ${monto.toFixed(2)} registrado.` : `Se agregó S/ ${monto.toFixed(2)} a la deuda.`,
+            'success'
+          );
+        } catch (err) {
+          notificar(`Error al registrar el movimiento: ${err.message}`, 'error');
+        }
+      };
+
+      // ==========================================
       // GESTIÓN DE CLIENTES (listar / editar)
       // ==========================================
       const abrirGestionClientes = async () => {
@@ -2364,6 +2470,20 @@
             if (error) throw error;
             setVentasDashboard(data || []);
 
+            // Período anterior de igual duración, para comparar tendencia
+            // (ej: "últimos 7 días" vs los 7 días previos a esos).
+            const duracionMs = fin.getTime() - inicio.getTime();
+            const finAnterior = new Date(inicio.getTime() - 1);
+            const inicioAnterior = new Date(finAnterior.getTime() - duracionMs);
+            const { data: dataAnterior, error: errAnterior } = await sbClient
+              .from('ventas')
+              .select('total_venta, utilidad_total, anulada')
+              .eq('bodega_id', bodegaId)
+              .gte('fecha_hora', inicioAnterior.toISOString())
+              .lte('fecha_hora', finAnterior.toISOString());
+            if (errAnterior) throw errAnterior;
+            setVentasDashboardAnterior(dataAnterior || []);
+
             // Deuda de clientes (crédito): es un saldo vigente, no depende del
             // rango de fechas elegido -- se muestra el estado actual siempre.
             const { data: deudores, error: errDeudores } = await sbClient
@@ -2374,6 +2494,17 @@
               .order('saldo_actual', { ascending: false });
             if (errDeudores) throw errDeudores;
             setClientesDeuda(deudores || []);
+
+            // Deuda de la bodega con proveedores: también es un saldo
+            // vigente, independiente del rango de fechas.
+            const { data: proveedoresConDeuda, error: errProveedores } = await sbClient
+              .from('proveedores')
+              .select('nombre, saldo_actual')
+              .eq('bodega_id', bodegaId)
+              .gt('saldo_actual', 0)
+              .order('saldo_actual', { ascending: false });
+            if (errProveedores) console.warn(errProveedores);
+            setProveedoresDeudaDash(proveedoresConDeuda || []);
           } catch (err) {
             console.warn(err);
             notificar(`No se pudo cargar el dashboard: ${err.message}`, 'error');
@@ -2473,8 +2604,30 @@
         const totalDeuda = clientesDeuda.reduce((a, c) => a + Number(c.saldo_actual || 0), 0);
         const maxDeuda = Math.max(1, ...clientesDeuda.map(c => Number(c.saldo_actual || 0)));
 
-        return { totalVenta, totalUtilidad, totalCosto, numVentas, ticketPromedio, margenPct, porHora, maxHora, horaPico, porDia, maxDia, porMedio, topProductos, maxProducto, numDeudores, totalDeuda, maxDeuda };
-      }, [ventasDashboard, clientesDeuda]);
+        const numProveedoresDeuda = proveedoresDeudaDash.length;
+        const totalPorPagar = proveedoresDeudaDash.reduce((a, c) => a + Number(c.saldo_actual || 0), 0);
+        const maxPorPagar = Math.max(1, ...proveedoresDeudaDash.map(c => Number(c.saldo_actual || 0)));
+
+        // Comparación contra el período inmediatamente anterior de igual
+        // duración (ej. "últimos 7 días" vs los 7 días previos a esos).
+        const validasAnterior = ventasDashboardAnterior.filter(v => !v.anulada);
+        const totalVentaAnterior = validasAnterior.reduce((a, c) => a + Number(c.total_venta), 0);
+        const totalUtilidadAnterior = validasAnterior.reduce((a, c) => a + Number(c.utilidad_total || 0), 0);
+        const calcularCambioPct = (actual, anterior) => {
+          if (anterior === 0) return actual > 0 ? 100 : 0;
+          return ((actual - anterior) / anterior) * 100;
+        };
+        const cambioVentaPct = calcularCambioPct(totalVenta, totalVentaAnterior);
+        const cambioUtilidadPct = calcularCambioPct(totalUtilidad, totalUtilidadAnterior);
+
+        return {
+          totalVenta, totalUtilidad, totalCosto, numVentas, ticketPromedio, margenPct,
+          porHora, maxHora, horaPico, porDia, maxDia, porMedio, topProductos, maxProducto,
+          numDeudores, totalDeuda, maxDeuda,
+          numProveedoresDeuda, totalPorPagar, maxPorPagar,
+          cambioVentaPct, cambioUtilidadPct
+        };
+      }, [ventasDashboard, clientesDeuda, ventasDashboardAnterior, proveedoresDeudaDash]);
 
       const exportarVentasExcel = () => {
         const filas = ventasDelDia.map((v) => ({
@@ -3220,6 +3373,7 @@
               <>
                 <div className="w-10 h-px bg-stone-200 my-2 shrink-0"></div>
                 <SidebarIcon icon="fa-chart-pie" label="Dashboard de Ventas" texto="Dashboard" onClick={abrirDashboard} />
+                <SidebarIcon icon="fa-file-invoice" label="Cuentas por Pagar" texto="Por Pagar" onClick={abrirCuentasPorPagar} />
                 <SidebarIcon icon="fa-boxes-stacked" label="Registrar Inventario" texto="Inventario" onClick={() => setModalInventarioInicial(true)} />
                 <SidebarIcon icon="fa-truck-ramp-box" label="Entrada de Mercadería" texto="Mercadería" onClick={() => setModalEntradaMercaderia(true)} />
                 <SidebarIcon icon="fa-box-open" label="Nuevo Producto" texto="Producto" onClick={() => setModalNuevoProducto(true)} />
@@ -3917,6 +4071,9 @@
                     <div className="border-t border-stone-200 my-1"></div>
                     <button onClick={() => { abrirDashboard(); setMenuMas(false); }} className="w-full text-left px-3.5 py-3 rounded-xl hover:bg-stone-200 flex items-center gap-3 text-orange-600 font-semibold text-sm">
                       <i className="fa-solid fa-chart-pie w-5"></i> Dashboard de Ventas
+                    </button>
+                    <button onClick={() => { abrirCuentasPorPagar(); setMenuMas(false); }} className="w-full text-left px-3.5 py-3 rounded-xl hover:bg-stone-200 flex items-center gap-3 text-stone-800 font-medium text-sm">
+                      <i className="fa-solid fa-file-invoice w-5 text-orange-600"></i> Cuentas por Pagar
                     </button>
                     <button onClick={() => { setModalInventarioInicial(true); setMenuMas(false); }} className="w-full text-left px-3.5 py-3 rounded-xl hover:bg-stone-200 flex items-center gap-3 text-orange-600 font-semibold text-sm">
                       <i className="fa-solid fa-boxes-stacked w-5"></i> Registrar Inventario
@@ -4735,6 +4892,154 @@
             </div>
           )}
 
+          {/* Modal: Cuentas por Pagar (proveedores) */}
+          {modalCuentasPagar && (
+            <div className="fixed inset-0 bg-black/85 flex items-center justify-center z-50 p-4">
+              <div className="bg-stone-100 border border-stone-200 rounded-2xl max-w-md w-full p-5 shadow-2xl space-y-3 max-h-[90vh] overflow-y-auto">
+                <div className="flex justify-between items-center">
+                  <h3 className="text-base font-bold text-stone-900 flex items-center gap-2">
+                    <i className="fa-solid fa-file-invoice text-orange-600"></i> Cuentas por Pagar
+                  </h3>
+                  <button onClick={() => setModalCuentasPagar(false)} className="text-stone-600 hover:text-stone-900">✕</button>
+                </div>
+
+                {proveedorSeleccionado ? (
+                  <div className="p-3 bg-stone-50 rounded-xl border border-amber-500/40 space-y-3">
+                    <div className="flex justify-between items-center">
+                      <span className="font-bold text-xs text-stone-900 flex items-center gap-1.5">
+                        <i className="fa-solid fa-truck-field text-orange-600"></i> {proveedorSeleccionado.nombre}
+                      </span>
+                      <button onClick={() => setProveedorSeleccionado(null)} className="text-xs text-stone-600 underline">Cambiar</button>
+                    </div>
+                    <div className="text-xs">
+                      {proveedorSeleccionado.ruc && <p className="text-stone-600">RUC: {proveedorSeleccionado.ruc}</p>}
+                      {proveedorSeleccionado.telefono && <p className="text-stone-600">Tel: {proveedorSeleccionado.telefono}</p>}
+                      <p className="text-rose-600 font-bold mt-1 text-sm">Le debemos: S/ {Number(proveedorSeleccionado.saldo_actual).toFixed(2)}</p>
+                    </div>
+
+                    <div>
+                      <label className="text-xs text-stone-600 block mb-1">Monto (S/):</label>
+                      <input
+                        type="number"
+                        step="1.00"
+                        placeholder="0.00"
+                        value={montoMovimientoProveedor}
+                        onChange={(e) => setMontoMovimientoProveedor(e.target.value)}
+                        className="w-full bg-stone-100 border border-stone-200 rounded-lg p-2 text-sm font-bold text-stone-900 focus:outline-none focus:border-orange-500"
+                      />
+                    </div>
+                    <div className="grid grid-cols-2 gap-2">
+                      <button
+                        onClick={() => registrarMovimientoProveedor('deuda')}
+                        className="py-2 bg-stone-200 hover:bg-stone-300 text-stone-800 font-bold text-xs rounded-xl border border-stone-300 flex items-center justify-center gap-1.5"
+                      >
+                        <i className="fa-solid fa-plus"></i> Agregar Deuda
+                      </button>
+                      <button
+                        onClick={() => registrarMovimientoProveedor('pago')}
+                        className="py-2 bg-orange-600 hover:bg-orange-500 text-white font-bold text-xs rounded-xl shadow flex items-center justify-center gap-1.5"
+                      >
+                        <i className="fa-solid fa-check"></i> Registrar Pago
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="max-h-72 overflow-y-auto space-y-1.5">
+                    {proveedoresLista.length === 0 ? (
+                      <p className="text-xs text-stone-600 text-center py-6">Aún no registras proveedores.</p>
+                    ) : (
+                      proveedoresLista.map((p) => (
+                        <div
+                          key={p.id}
+                          onClick={() => { setProveedorSeleccionado(p); setMontoMovimientoProveedor(''); }}
+                          className="flex justify-between items-center p-2.5 bg-stone-50 hover:bg-stone-200 border border-stone-200 rounded-xl cursor-pointer transition"
+                        >
+                          <div>
+                            <p className="text-xs font-bold text-stone-800">{p.nombre}</p>
+                            {p.ruc && <p className="text-xs text-stone-600">RUC: {p.ruc}</p>}
+                          </div>
+                          <span className={`text-sm font-black ${Number(p.saldo_actual) > 0 ? 'text-rose-600' : 'text-emerald-600'}`}>
+                            S/ {Number(p.saldo_actual).toFixed(2)}
+                          </span>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                )}
+
+                {!proveedorSeleccionado && (
+                  <button
+                    onClick={() => setModalNuevoProveedor(true)}
+                    className="w-full py-2 bg-stone-200 hover:bg-stone-300 text-stone-800 font-bold text-xs rounded-xl border border-stone-300 flex items-center justify-center gap-1.5"
+                  >
+                    <i className="fa-solid fa-plus"></i> Nuevo Proveedor
+                  </button>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* Modal: Nuevo Proveedor */}
+          {modalNuevoProveedor && (
+            <div className="fixed inset-0 bg-black/85 flex items-center justify-center z-50 p-4">
+              <div className="bg-stone-100 border border-stone-200 rounded-2xl max-w-sm w-full p-5 shadow-2xl space-y-3">
+                <div className="flex justify-between items-center">
+                  <h3 className="text-base font-bold text-stone-900">🚚 Nuevo Proveedor</h3>
+                  <button onClick={() => setModalNuevoProveedor(false)} className="text-stone-600 hover:text-stone-900">✕</button>
+                </div>
+                <form onSubmit={handleGuardarNuevoProveedor} className="space-y-2.5">
+                  <div>
+                    <label className="text-xs text-stone-600 block mb-1">Nombre *</label>
+                    <input
+                      type="text"
+                      required
+                      value={formProveedor.nombre}
+                      onChange={(e) => setFormProveedor({ ...formProveedor, nombre: e.target.value })}
+                      className="w-full bg-stone-50 border border-stone-200 rounded-lg px-3 py-1.5 text-sm text-stone-900 focus:outline-none focus:border-orange-500"
+                    />
+                  </div>
+                  <div className="grid grid-cols-2 gap-2">
+                    <div>
+                      <label className="text-xs text-stone-600 block mb-1">RUC</label>
+                      <input
+                        type="text"
+                        value={formProveedor.ruc}
+                        onChange={(e) => setFormProveedor({ ...formProveedor, ruc: e.target.value })}
+                        className="w-full bg-stone-50 border border-stone-200 rounded-lg px-3 py-1.5 text-sm text-stone-900 focus:outline-none focus:border-orange-500"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-xs text-stone-600 block mb-1">Teléfono</label>
+                      <input
+                        type="text"
+                        value={formProveedor.telefono}
+                        onChange={(e) => setFormProveedor({ ...formProveedor, telefono: e.target.value })}
+                        className="w-full bg-stone-50 border border-stone-200 rounded-lg px-3 py-1.5 text-sm text-stone-900 focus:outline-none focus:border-orange-500"
+                      />
+                    </div>
+                  </div>
+                  <div>
+                    <label className="text-xs text-stone-600 block mb-1">Deuda inicial (S/, opcional)</label>
+                    <input
+                      type="number"
+                      step="1.00"
+                      placeholder="0.00"
+                      value={formProveedor.saldoInicial}
+                      onChange={(e) => setFormProveedor({ ...formProveedor, saldoInicial: e.target.value })}
+                      className="w-full bg-stone-50 border border-stone-200 rounded-lg px-3 py-1.5 text-sm text-stone-900 focus:outline-none focus:border-orange-500"
+                    />
+                  </div>
+                  <button
+                    type="submit"
+                    className="w-full py-2.5 bg-orange-600 hover:bg-orange-500 text-white font-bold text-xs rounded-xl shadow"
+                  >
+                    Guardar Proveedor
+                  </button>
+                </form>
+              </div>
+            </div>
+          )}
+
           {/* Modal: Gestión de Cajeros */}
           {modalGestionCajeros && (
             <div className="fixed inset-0 bg-black/85 flex items-center justify-center z-50 p-4">
@@ -5152,10 +5457,18 @@
                       <div className="bg-white p-3 rounded-xl border border-stone-200">
                         <span className="text-[11px] text-stone-500 block">Venta Total</span>
                         <span className="font-black text-lg text-orange-600">S/ {dashStats.totalVenta.toFixed(2)}</span>
+                        <div className={`text-[10px] font-semibold mt-0.5 flex items-center gap-1 ${dashStats.cambioVentaPct >= 0 ? 'text-emerald-600' : 'text-rose-600'}`}>
+                          <i className={`fa-solid ${dashStats.cambioVentaPct >= 0 ? 'fa-arrow-up' : 'fa-arrow-down'}`}></i>
+                          {Math.abs(dashStats.cambioVentaPct).toFixed(0)}% vs período anterior
+                        </div>
                       </div>
                       <div className="bg-white p-3 rounded-xl border border-stone-200">
                         <span className="text-[11px] text-stone-500 block">Utilidad</span>
                         <span className="font-black text-lg text-emerald-600">S/ {dashStats.totalUtilidad.toFixed(2)}</span>
+                        <div className={`text-[10px] font-semibold mt-0.5 flex items-center gap-1 ${dashStats.cambioUtilidadPct >= 0 ? 'text-emerald-600' : 'text-rose-600'}`}>
+                          <i className={`fa-solid ${dashStats.cambioUtilidadPct >= 0 ? 'fa-arrow-up' : 'fa-arrow-down'}`}></i>
+                          {Math.abs(dashStats.cambioUtilidadPct).toFixed(0)}% vs período anterior
+                        </div>
                       </div>
                       <div className="bg-white p-3 rounded-xl border border-stone-200">
                         <span className="text-[11px] text-stone-500 block">Costo</span>
@@ -5204,6 +5517,42 @@
                               </div>
                               <div className="w-full h-1.5 bg-rose-100 rounded-full overflow-hidden">
                                 <div className="h-full bg-rose-500 rounded-full" style={{ width: `${(Number(c.saldo_actual) / dashStats.maxDeuda) * 100}%` }}></div>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Cuentas por Pagar: dinero que la bodega debe a proveedores */}
+                    <div className="bg-amber-50 p-4 rounded-xl border border-amber-200">
+                      <div className="flex flex-wrap justify-between items-center gap-2 mb-3">
+                        <h4 className="text-sm font-bold text-amber-900 flex items-center gap-2">
+                          <i className="fa-solid fa-file-invoice"></i> Cuentas por Pagar (a proveedores)
+                        </h4>
+                        <div className="flex gap-4 text-right">
+                          <div>
+                            <span className="text-[11px] text-amber-700 block">Proveedores</span>
+                            <span className="font-black text-lg text-amber-700">{dashStats.numProveedoresDeuda}</span>
+                          </div>
+                          <div>
+                            <span className="text-[11px] text-amber-700 block">Total por pagar</span>
+                            <span className="font-black text-lg text-amber-700">S/ {dashStats.totalPorPagar.toFixed(2)}</span>
+                          </div>
+                        </div>
+                      </div>
+                      {dashStats.numProveedoresDeuda === 0 ? (
+                        <p className="text-xs text-amber-700/70">No le debes a ningún proveedor. 🎉</p>
+                      ) : (
+                        <div className="space-y-2 max-h-40 overflow-y-auto pr-1">
+                          {proveedoresDeudaDash.map((p, i) => (
+                            <div key={p.nombre + i}>
+                              <div className="flex justify-between items-center text-xs mb-1">
+                                <span className="text-amber-900 font-medium truncate pr-2">{p.nombre}</span>
+                                <span className="text-amber-700 font-bold shrink-0">S/ {Number(p.saldo_actual).toFixed(2)}</span>
+                              </div>
+                              <div className="w-full h-1.5 bg-amber-100 rounded-full overflow-hidden">
+                                <div className="h-full bg-amber-500 rounded-full" style={{ width: `${(Number(p.saldo_actual) / dashStats.maxPorPagar) * 100}%` }}></div>
                               </div>
                             </div>
                           ))}
