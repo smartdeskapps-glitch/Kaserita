@@ -270,6 +270,20 @@
       return `INT-${Date.now()}-${contadorCodigoInterno}`;
     };
 
+    // SKU: código interno corto y legible para identificar el producto en
+    // reportes/estantes, sin depender del código de barras (que a veces no
+    // existe o es larguísimo). Prefijo por categoría + sufijo corto -- no
+    // hace falta que sea secuencial, solo distinto entre productos.
+    const generarSKU = (categoria) => {
+      const prefijo = (categoria || 'GEN')
+        .normalize('NFD').replace(/[^\x00-\x7F]/g, '')
+        .replace(/[^A-Za-z]/g, '')
+        .slice(0, 3)
+        .toUpperCase() || 'GEN';
+      const sufijo = Math.random().toString(36).slice(2, 6).toUpperCase();
+      return `${prefijo}-${sufijo}`;
+    };
+
     // Exporta un arreglo de objetos a un archivo Excel (.xlsx) real descargable,
     // generado en el propio navegador con SheetJS (sin backend).
     const exportarExcel = (nombreArchivo, filas, nombreHoja = 'Datos') => {
@@ -677,6 +691,8 @@
       const [modalCantidad, setModalCantidad] = useState(false);
       const [productoSeleccionadoCantidad, setProductoSeleccionadoCantidad] = useState(null);
       const [inputCantidad, setInputCantidad] = useState('1');
+      // 'UNIDAD' o 'PACK' -- solo aplica cuando el producto tiene unidades_por_pack > 1.
+      const [tipoVentaSeleccionado, setTipoVentaSeleccionado] = useState('UNIDAD');
 
       // --- Cliente & Créditos ---
       const [dniCliente, setDniCliente] = useState('99999999');
@@ -716,12 +732,16 @@
       const [modalNuevoProducto, setModalNuevoProducto] = useState(false);
       const [formProducto, setFormProducto] = useState({
         cod_ean: '',
+        sku: '',
         descripcion: '',
         precio_costo: '',
         precio_venta: '',
         categoria: 'Abarrotes',
         unidad: 'UND',
-        stock_actual: ''
+        stock_actual: '',
+        vendeEnPack: false,
+        unidades_por_pack: '',
+        precio_venta_pack: ''
       });
 
       // --- Módulo: Editar / Desactivar Producto ---
@@ -739,7 +759,7 @@
       const [modalStockBajo, setModalStockBajo] = useState(false);
 
       // --- Módulo: Inventario Inicial (carga de varios productos a la vez) ---
-      const filaInventarioVacia = () => ({ descripcion: '', cod_ean: '', categoria: 'Abarrotes', precio_costo: '', precio_venta: '', unidad: 'UND', stock_actual: '', productoExistenteId: null });
+      const filaInventarioVacia = () => ({ descripcion: '', cod_ean: '', sku: '', categoria: 'Abarrotes', precio_costo: '', precio_venta: '', unidad: 'UND', stock_actual: '', vendeEnPack: false, unidades_por_pack: '', precio_venta_pack: '', productoExistenteId: null });
       const [modalInventarioInicial, setModalInventarioInicial] = useState(false);
       const [filasInventario, setFilasInventario] = useState([filaInventarioVacia()]);
       const [guardandoInventario, setGuardandoInventario] = useState(false);
@@ -1279,9 +1299,11 @@
       // ==========================================
       const handleClicProducto = (prod) => {
         const esKG = prod.unidad === 'KG';
-        if (esKG) {
+        const tienePack = Number(prod.unidades_por_pack) > 1;
+        if (esKG || tienePack) {
           setProductoSeleccionadoCantidad(prod);
-          setInputCantidad('1.000');
+          setInputCantidad(esKG ? '1.000' : '1');
+          setTipoVentaSeleccionado('UNIDAD');
           setModalCantidad(true);
         } else {
           agregarAlCarrito(prod, 1);
@@ -1295,16 +1317,31 @@
           notificar('Ingresa una cantidad válida.', 'error');
           return;
         }
-        agregarAlCarrito(productoSeleccionadoCantidad, cant);
+        agregarAlCarrito(productoSeleccionadoCantidad, cant, tipoVentaSeleccionado);
         setModalCantidad(false);
         setProductoSeleccionadoCantidad(null);
       };
 
-      const agregarAlCarrito = (producto, cantidad = 1) => {
+      // tipoVenta: 'UNIDAD' (por defecto) o 'PACK' -- si el producto vende
+      // también por pack (unidades_por_pack > 1), un pack se descuenta del
+      // stock como varias unidades base, no como 1. Así una misma bolsa de
+      // stock sirve tanto para vender el pack cerrado como para venderlo
+      // suelto si se abre, sin llevar dos números de stock por separado.
+      const agregarAlCarrito = (producto, cantidad = 1, tipoVenta = 'UNIDAD') => {
         const cantNum = parseFloat(cantidad) || 1;
+        const unidadesPorPack = Number(producto.unidades_por_pack) || 1;
+        const esPack = tipoVenta === 'PACK' && unidadesPorPack > 1;
+        const precioUnit = esPack
+          ? (Number(producto.precio_venta_pack) || Number(producto.precio_venta) * unidadesPorPack)
+          : Number(producto.precio_venta) || 0;
+        const precioCostoUnit = esPack
+          ? (Number(producto.precio_costo) || 0) * unidadesPorPack
+          : Number(producto.precio_costo) || 0;
+        const descripcionMostrada = esPack ? `${producto.descripcion} (Pack x${unidadesPorPack})` : producto.descripcion;
+        const claveCarrito = esPack ? `${producto.id}::pack` : producto.id;
+
         setCarrito(prev => {
-          const idx = prev.findIndex(item => item.productoId === producto.id);
-          const precioUnit = Number(producto.precio_venta) || 0;
+          const idx = prev.findIndex(item => (item.claveCarrito || item.productoId) === claveCarrito);
           if (idx >= 0) {
             const actual = prev[idx];
             const nuevaCant = +(actual.cantidad + cantNum).toFixed(3);
@@ -1312,7 +1349,8 @@
             nuevo[idx] = {
               ...actual,
               cantidad: nuevaCant,
-              subtotal: +(nuevaCant * actual.precioUnitario).toFixed(2)
+              subtotal: +(nuevaCant * actual.precioUnitario).toFixed(2),
+              unidadesStock: +(nuevaCant * unidadesPorPack).toFixed(3)
             };
             return nuevo;
           } else {
@@ -1320,13 +1358,17 @@
               ...prev,
               {
                 productoId: producto.id,
+                claveCarrito,
                 cod_ean: producto.cod_ean,
-                descripcion: producto.descripcion,
+                descripcion: descripcionMostrada,
                 precioUnitario: precioUnit,
-                precioCosto: Number(producto.precio_costo) || 0,
+                precioCosto: precioCostoUnit,
                 cantidad: cantNum,
                 subtotal: +(cantNum * precioUnit).toFixed(2),
-                unidad: producto.unidad || 'UND'
+                unidad: esPack ? `PACK x${unidadesPorPack}` : (producto.unidad || 'UND'),
+                esPack,
+                unidadesPorPack,
+                unidadesStock: +(cantNum * unidadesPorPack).toFixed(3)
               }
             ];
           }
@@ -1343,7 +1385,7 @@
             return;
           }
         }
-        notificar(`Añadido: ${producto.descripcion}`, 'success');
+        notificar(`Añadido: ${descripcionMostrada}`, 'success');
       };
 
       // ==========================================
@@ -2277,11 +2319,15 @@
                   productoExistenteId: producto.id,
                   descripcion: producto.descripcion,
                   cod_ean: producto.cod_ean || '',
+                  sku: producto.sku || '',
                   categoria: producto.categoria || 'General',
                   precio_costo: producto.precio_costo != null ? String(producto.precio_costo) : '',
                   precio_venta: producto.precio_venta != null ? String(producto.precio_venta) : '',
                   unidad: producto.unidad || 'UND',
-                  stock_actual: ''
+                  stock_actual: '',
+                  vendeEnPack: Number(producto.unidades_por_pack) > 1,
+                  unidades_por_pack: producto.unidades_por_pack != null && Number(producto.unidades_por_pack) > 1 ? String(producto.unidades_por_pack) : '',
+                  precio_venta_pack: producto.precio_venta_pack != null ? String(producto.precio_venta_pack) : ''
                 }
               : fila
           )
@@ -2328,32 +2374,36 @@
                 bodega_id: bodegaId,
                 descripcion: f.descripcion.trim(),
                 cod_ean: f.cod_ean.trim() || generarCodigoInterno(),
+                sku: f.sku.trim() || generarSKU(f.categoria),
                 categoria: f.categoria.trim() || 'General',
                 precio_costo: Number(f.precio_costo) || 0,
                 precio_venta: Number(f.precio_venta) || 0,
                 unidad: f.unidad === 'KG' ? 'KG' : 'UND',
-                stock_actual: f.stock_actual === '' ? 0 : Number(f.stock_actual) || 0
+                stock_actual: f.stock_actual === '' ? 0 : Number(f.stock_actual) || 0,
+                unidades_por_pack: f.vendeEnPack && Number(f.unidades_por_pack) > 1 ? Number(f.unidades_por_pack) : 1,
+                precio_venta_pack: f.vendeEnPack && f.precio_venta_pack ? Number(f.precio_venta_pack) : null
               }));
               const { error } = await sbClient.from('productos').insert(payloadNuevos);
               if (error) throw error;
             }
 
-            // Productos ya existentes: suma la cantidad ingresada al stock actual
-            // y de paso actualiza precios por si cambiaron.
+            // Productos ya existentes: suma la cantidad ingresada al stock
+            // actual (ajuste atómico, no lee-y-escribe: si otro dispositivo
+            // también le está sumando stock a este producto a la vez, no se
+            // pisan) y de paso actualiza precios por si cambiaron.
             for (const f of filasExistentes) {
-              const { data: prodActual } = await sbClient
-                .from('productos')
-                .select('stock_actual')
-                .eq('id', f.productoExistenteId)
-                .single();
-              const stockPrevio = prodActual && prodActual.stock_actual !== null ? Number(prodActual.stock_actual) : 0;
               const cantidadASumar = Number(f.stock_actual) || 0;
+              if (cantidadASumar !== 0) {
+                await sbClient.rpc('ajustar_stock', { p_producto_id: f.productoExistenteId, p_delta: cantidadASumar });
+              }
               const { error: errUpd } = await sbClient
                 .from('productos')
                 .update({
                   precio_costo: Number(f.precio_costo) || 0,
                   precio_venta: Number(f.precio_venta) || 0,
-                  stock_actual: +(stockPrevio + cantidadASumar).toFixed(3)
+                  sku: f.sku.trim() || undefined,
+                  unidades_por_pack: f.vendeEnPack && Number(f.unidades_por_pack) > 1 ? Number(f.unidades_por_pack) : 1,
+                  precio_venta_pack: f.vendeEnPack && f.precio_venta_pack ? Number(f.precio_venta_pack) : null
                 })
                 .eq('id', f.productoExistenteId);
               if (errUpd) throw errUpd;
@@ -2379,7 +2429,7 @@
       // ==========================================
       const handleCrearNuevoProducto = async (e) => {
         e.preventDefault();
-        const { descripcion, precio_venta, precio_costo, cod_ean, categoria, unidad, stock_actual } = formProducto;
+        const { descripcion, precio_venta, precio_costo, cod_ean, sku, categoria, unidad, stock_actual, vendeEnPack, unidades_por_pack, precio_venta_pack } = formProducto;
         if (!descripcion.trim() || !precio_venta) {
           notificar('Descripción y Precio de Venta son obligatorios.', 'error');
           return;
@@ -2390,11 +2440,14 @@
             bodega_id: bodegaId,
             descripcion: descripcion.trim(),
             cod_ean: cod_ean.trim() || generarCodigoInterno(),
+            sku: sku.trim() || generarSKU(categoria),
             precio_costo: Number(precio_costo) || 0,
             precio_venta: Number(precio_venta) || 0,
             categoria: categoria.trim() || 'General',
             unidad: unidad === 'KG' ? 'KG' : 'UND',
-            stock_actual: stock_actual === '' ? 0 : Number(stock_actual) || 0
+            stock_actual: stock_actual === '' ? 0 : Number(stock_actual) || 0,
+            unidades_por_pack: vendeEnPack && Number(unidades_por_pack) > 1 ? Number(unidades_por_pack) : 1,
+            precio_venta_pack: vendeEnPack && precio_venta_pack ? Number(precio_venta_pack) : null
           };
 
           if (sbClient) {
@@ -2403,7 +2456,7 @@
           }
 
           setModalNuevoProducto(false);
-          setFormProducto({ cod_ean: '', descripcion: '', precio_costo: '', precio_venta: '', categoria: 'Abarrotes', unidad: 'UND', stock_actual: '' });
+          setFormProducto({ cod_ean: '', sku: '', descripcion: '', precio_costo: '', precio_venta: '', categoria: 'Abarrotes', unidad: 'UND', stock_actual: '', vendeEnPack: false, unidades_por_pack: '', precio_venta_pack: '' });
           cargarProductos();
           notificar(`¡Producto "${descripcion}" guardado en el catálogo!`, 'success');
         } catch (err) {
@@ -2419,11 +2472,15 @@
         setFormEditarProducto({
           descripcion: prod.descripcion || '',
           cod_ean: prod.cod_ean || '',
+          sku: prod.sku || '',
           categoria: prod.categoria || 'General',
           precio_costo: prod.precio_costo != null ? String(prod.precio_costo) : '',
           precio_venta: prod.precio_venta != null ? String(prod.precio_venta) : '',
           unidad: prod.unidad || 'UND',
-          stock_actual: prod.stock_actual != null ? String(prod.stock_actual) : ''
+          stock_actual: prod.stock_actual != null ? String(prod.stock_actual) : '',
+          vendeEnPack: Number(prod.unidades_por_pack) > 1,
+          unidades_por_pack: Number(prod.unidades_por_pack) > 1 ? String(prod.unidades_por_pack) : '',
+          precio_venta_pack: prod.precio_venta_pack != null ? String(prod.precio_venta_pack) : ''
         });
         setModalEditarProducto(true);
       };
@@ -2439,11 +2496,14 @@
           const payload = {
             descripcion: formEditarProducto.descripcion.trim(),
             cod_ean: formEditarProducto.cod_ean.trim() || generarCodigoInterno(),
+            sku: formEditarProducto.sku.trim() || generarSKU(formEditarProducto.categoria),
             categoria: formEditarProducto.categoria.trim() || 'General',
             precio_costo: Number(formEditarProducto.precio_costo) || 0,
             precio_venta: Number(formEditarProducto.precio_venta) || 0,
             unidad: formEditarProducto.unidad === 'KG' ? 'KG' : 'UND',
-            stock_actual: formEditarProducto.stock_actual === '' ? null : Number(formEditarProducto.stock_actual)
+            stock_actual: formEditarProducto.stock_actual === '' ? null : Number(formEditarProducto.stock_actual),
+            unidades_por_pack: formEditarProducto.vendeEnPack && Number(formEditarProducto.unidades_por_pack) > 1 ? Number(formEditarProducto.unidades_por_pack) : 1,
+            precio_venta_pack: formEditarProducto.vendeEnPack && formEditarProducto.precio_venta_pack ? Number(formEditarProducto.precio_venta_pack) : null
           };
           if (sbClient) {
             const { error } = await sbClient.from('productos').update(payload).eq('id', productoEditando.id);
@@ -2959,10 +3019,14 @@
               .eq('id', venta.id);
             if (errAnular) throw errAnular;
 
-            // Reponer el stock de los productos de esta venta (ajuste atómico)
+            // Reponer el stock de los productos de esta venta (ajuste atómico).
+            // Usa unidades_stock (lo que de verdad se descontó, en unidades
+            // base) en vez de "cantidad" -- si la línea era un pack, cantidad
+            // son packs, no unidades. Si es una venta vieja sin esa columna
+            // (previa a esta función), cae de vuelta a cantidad.
             for (const d of (venta.ventas_detalle || [])) {
               if (d.producto_id) {
-                await sbClient.rpc('ajustar_stock', { p_producto_id: d.producto_id, p_delta: Number(d.cantidad) });
+                await sbClient.rpc('ajustar_stock', { p_producto_id: d.producto_id, p_delta: Number(d.unidades_stock ?? d.cantidad) });
               }
             }
           }
@@ -3278,13 +3342,18 @@
                 precio_unitario: Number(item.precioUnitario),
                 precio_costo: Number(item.precioCosto) || 0,
                 subtotal: Number(item.subtotal),
-                utilidad: +(Number(item.subtotal) - costoTotal).toFixed(2)
+                utilidad: +(Number(item.subtotal) - costoTotal).toFixed(2),
+                // Unidades base descontadas de stock por esta línea (si se
+                // vendió por pack, son más que "cantidad"). Se guarda tal
+                // cual para poder revertirlo bien al anular, aunque después
+                // cambie la configuración de pack del producto.
+                unidades_stock: Number(item.unidadesStock || item.cantidad)
               };
             });
 
             const ajustesStock = carrito
               .filter(item => typeof item.productoId === 'string' && item.productoId.length > 10)
-              .map(item => ({ productoId: item.productoId, delta: -Number(item.cantidad) }));
+              .map(item => ({ productoId: item.productoId, delta: -Number(item.unidadesStock || item.cantidad) }));
 
             if (!enLinea) {
               // ------------------------------------------------------------
@@ -3310,7 +3379,7 @@
               setProductos(prev => prev.map(p => {
                 const item = carrito.find(it => it.productoId === p.id);
                 if (!item || p.stock_actual === null || p.stock_actual === undefined) return p;
-                return { ...p, stock_actual: Math.max(0, Number(p.stock_actual) - Number(item.cantidad)) };
+                return { ...p, stock_actual: Math.max(0, Number(p.stock_actual) - Number(item.unidadesStock || item.cantidad)) };
               }));
 
               if (medioPago === 'CREDITO' && idClienteReal) {
@@ -4089,6 +4158,11 @@
                               KG
                             </span>
                           )}
+                          {Number(prod.unidades_por_pack) > 1 && (
+                            <span className="absolute top-2 right-2 text-[10px] font-bold text-white bg-stone-900/85 px-1.5 py-0.5 rounded-md flex items-center gap-1">
+                              <i className="fa-solid fa-boxes-packing"></i> x{prod.unidades_por_pack}
+                            </span>
+                          )}
                         </div>
                         <div className="p-3">
                           <h3 className="text-xs font-semibold text-stone-900 line-clamp-2 leading-snug group-hover:text-stone-900 min-h-[2rem]">
@@ -4635,19 +4709,61 @@
             <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4">
               <div className="bg-stone-100 border border-stone-200 rounded-2xl max-w-xs w-full p-5 shadow-2xl space-y-4 text-center">
                 <h3 className="text-sm font-bold text-stone-900 leading-tight">{productoSeleccionadoCantidad.descripcion}</h3>
-                <p className="text-xs text-stone-600">Ingresa la cantidad o peso en KG:</p>
-                <div className="flex items-center justify-center gap-2">
-                  <input
-                    type="number"
-                    step="0.005"
-                    min="0.001"
-                    value={inputCantidad}
-                    onChange={(e) => setInputCantidad(e.target.value)}
-                    className="w-32 bg-stone-50 border border-stone-200 text-center font-mono font-bold text-xl text-orange-600 p-2 rounded-xl focus:outline-none focus:border-orange-500"
-                    autoFocus
-                  />
-                  <span className="text-sm font-bold text-stone-700">KG</span>
-                </div>
+
+                {productoSeleccionadoCantidad.unidad === 'KG' ? (
+                  <>
+                    <p className="text-xs text-stone-600">Ingresa la cantidad o peso en KG:</p>
+                    <div className="flex items-center justify-center gap-2">
+                      <input
+                        type="number"
+                        step="0.005"
+                        min="0.001"
+                        value={inputCantidad}
+                        onChange={(e) => setInputCantidad(e.target.value)}
+                        className="w-32 bg-stone-50 border border-stone-200 text-center font-mono font-bold text-xl text-orange-600 p-2 rounded-xl focus:outline-none focus:border-orange-500"
+                        autoFocus
+                      />
+                      <span className="text-sm font-bold text-stone-700">KG</span>
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    {Number(productoSeleccionadoCantidad.unidades_por_pack) > 1 && (
+                      <div className="flex bg-stone-200/60 p-1 rounded-xl border border-stone-200">
+                        <button
+                          type="button"
+                          onClick={() => setTipoVentaSeleccionado('UNIDAD')}
+                          className={`flex-1 py-2 text-xs font-bold rounded-lg transition ${tipoVentaSeleccionado === 'UNIDAD' ? 'bg-stone-900 text-white shadow' : 'text-stone-600'}`}
+                        >
+                          Suelto · S/ {Number(productoSeleccionadoCantidad.precio_venta).toFixed(2)}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setTipoVentaSeleccionado('PACK')}
+                          className={`flex-1 py-2 text-xs font-bold rounded-lg transition ${tipoVentaSeleccionado === 'PACK' ? 'bg-stone-900 text-white shadow' : 'text-stone-600'}`}
+                        >
+                          Pack x{productoSeleccionadoCantidad.unidades_por_pack} · S/ {(Number(productoSeleccionadoCantidad.precio_venta_pack) || Number(productoSeleccionadoCantidad.precio_venta) * Number(productoSeleccionadoCantidad.unidades_por_pack)).toFixed(2)}
+                        </button>
+                      </div>
+                    )}
+                    <p className="text-xs text-stone-600">
+                      {tipoVentaSeleccionado === 'PACK' ? `¿Cuántos packs de ${productoSeleccionadoCantidad.unidades_por_pack}?` : '¿Cuántas unidades sueltas?'}
+                    </p>
+                    <div className="flex items-center justify-center gap-2">
+                      <input
+                        type="number"
+                        step="1"
+                        min="1"
+                        value={inputCantidad}
+                        onChange={(e) => setInputCantidad(e.target.value)}
+                        className="w-32 bg-stone-50 border border-stone-200 text-center font-mono font-bold text-xl text-orange-600 p-2 rounded-xl focus:outline-none focus:border-orange-500"
+                        autoFocus
+                      />
+                      <span className="text-sm font-bold text-stone-700">{tipoVentaSeleccionado === 'PACK' ? 'pack(s)' : 'und'}</span>
+                    </div>
+                  </>
+                )}
+
                 <div className="flex gap-2 pt-1">
                   <button onClick={() => setModalCantidad(false)} className="flex-1 py-2 bg-stone-200 rounded-lg text-xs font-semibold">Cancelar</button>
                   <button onClick={confirmarCantidadBalanza} className="flex-1 py-2 bg-stone-900 hover:bg-stone-800 text-white rounded-lg text-xs font-bold shadow">Aceptar</button>
@@ -4748,6 +4864,27 @@
                         </div>
                       )}
 
+                      {/* Escanear primero: es el punto de partida más rápido -- si el
+                          código ya existe, la fila se autocompleta sola. */}
+                      <div className="relative pr-6">
+                        <button
+                          type="button"
+                          onClick={() => abrirEscanerParaFilaInventario(idx)}
+                          disabled={esExistente}
+                          className="w-full flex items-center justify-center gap-2 py-2.5 bg-stone-900 hover:bg-stone-800 disabled:opacity-40 text-white text-xs font-bold rounded-lg"
+                        >
+                          <i className="fa-solid fa-camera"></i> Escanear código de barras
+                        </button>
+                        <input
+                          type="text"
+                          placeholder="...o escribe el código EAN aquí (opcional)"
+                          value={fila.cod_ean}
+                          disabled={esExistente}
+                          onChange={(e) => actualizarCodigoEanFila(idx, e.target.value)}
+                          className={`w-full mt-1.5 ${esExistente ? claseCampoVinculado : claseCampoNormal}`}
+                        />
+                      </div>
+
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pr-6">
                         <div className="sm:col-span-2 relative">
                           <input
@@ -4774,29 +4911,11 @@
                             </div>
                           )}
                         </div>
-                        <div className="relative">
-                          <input
-                            type="text"
-                            placeholder="Código EAN (opcional)"
-                            value={fila.cod_ean}
-                            disabled={esExistente}
-                            onChange={(e) => actualizarCodigoEanFila(idx, e.target.value)}
-                            className={`w-full pr-9 ${esExistente ? claseCampoVinculado : claseCampoNormal}`}
-                          />
-                          <button
-                            type="button"
-                            onClick={() => abrirEscanerParaFilaInventario(idx)}
-                            className="absolute right-1.5 top-1/2 -translate-y-1/2 w-6 h-6 flex items-center justify-center text-stone-600 hover:text-orange-600 transition"
-                            title="Escanear código de barras"
-                          >
-                            <i className="fa-solid fa-camera text-xs"></i>
-                          </button>
-                        </div>
                         <select
                           value={fila.categoria}
                           disabled={esExistente}
                           onChange={(e) => actualizarFilaInventario(idx, 'categoria', e.target.value)}
-                          className={esExistente ? claseCampoVinculado : claseCampoNormal}
+                          className={`sm:col-span-2 ${esExistente ? claseCampoVinculado : claseCampoNormal}`}
                         >
                           {!categoriasDB.includes(fila.categoria) && fila.categoria && (
                             <option value={fila.categoria}>{fila.categoria}</option>
@@ -4836,6 +4955,55 @@
                           <option value="UND">Se vende por Unidad (UND)</option>
                           <option value="KG">Se vende por Peso (KG) — balanza</option>
                         </select>
+                      </div>
+
+                      {/* Venta por pack: la misma bolsa de stock sirve para vender el
+                          pack cerrado o unidades sueltas si se abre -- se descuenta en
+                          unidades base sin llevar dos contadores separados. */}
+                      {fila.unidad !== 'KG' && (
+                        <div className="pr-6">
+                          <label className="flex items-center gap-2 text-xs font-semibold text-stone-700 cursor-pointer">
+                            <input
+                              type="checkbox"
+                              checked={fila.vendeEnPack}
+                              onChange={(e) => actualizarFilaInventario(idx, 'vendeEnPack', e.target.checked)}
+                              className="w-3.5 h-3.5"
+                            />
+                            🎁 También se vende por pack/caja
+                          </label>
+                          {fila.vendeEnPack && (
+                            <div className="grid grid-cols-2 gap-2 mt-1.5">
+                              <input
+                                type="number"
+                                step="1"
+                                min="2"
+                                placeholder="Unidades por pack"
+                                value={fila.unidades_por_pack}
+                                onChange={(e) => actualizarFilaInventario(idx, 'unidades_por_pack', e.target.value)}
+                                className={claseCampoNormal}
+                              />
+                              <input
+                                type="number"
+                                step="0.10"
+                                placeholder="Precio venta del pack (S/)"
+                                value={fila.precio_venta_pack}
+                                onChange={(e) => actualizarFilaInventario(idx, 'precio_venta_pack', e.target.value)}
+                                className={claseCampoNormal}
+                              />
+                            </div>
+                          )}
+                        </div>
+                      )}
+
+                      <div className="pr-6">
+                        <label className="text-xs text-stone-600 block mb-1">SKU (código interno, opcional):</label>
+                        <input
+                          type="text"
+                          placeholder="Se genera solo si lo dejas vacío"
+                          value={fila.sku}
+                          onChange={(e) => actualizarFilaInventario(idx, 'sku', e.target.value)}
+                          className={`w-full ${claseCampoNormal}`}
+                        />
                       </div>
                     </div>
                     );
@@ -5064,6 +5232,49 @@
                       />
                     </div>
                   </div>
+                  {formEditarProducto.unidad !== 'KG' && (
+                    <div>
+                      <label className="flex items-center gap-2 text-xs font-semibold text-stone-700 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={formEditarProducto.vendeEnPack}
+                          onChange={(e) => setFormEditarProducto({ ...formEditarProducto, vendeEnPack: e.target.checked })}
+                          className="w-3.5 h-3.5"
+                        />
+                        🎁 También se vende por pack/caja
+                      </label>
+                      {formEditarProducto.vendeEnPack && (
+                        <div className="grid grid-cols-2 gap-2 mt-1.5">
+                          <input
+                            type="number"
+                            step="1"
+                            min="2"
+                            placeholder="Unidades por pack"
+                            value={formEditarProducto.unidades_por_pack}
+                            onChange={(e) => setFormEditarProducto({ ...formEditarProducto, unidades_por_pack: e.target.value })}
+                            className="w-full bg-stone-50 border border-stone-200 rounded-lg px-3 py-1.5 text-xs text-stone-900"
+                          />
+                          <input
+                            type="number"
+                            step="0.10"
+                            placeholder="Precio venta pack (S/)"
+                            value={formEditarProducto.precio_venta_pack}
+                            onChange={(e) => setFormEditarProducto({ ...formEditarProducto, precio_venta_pack: e.target.value })}
+                            className="w-full bg-stone-50 border border-stone-200 rounded-lg px-3 py-1.5 text-xs text-stone-900"
+                          />
+                        </div>
+                      )}
+                    </div>
+                  )}
+                  <div>
+                    <label className="text-xs text-stone-600 block mb-1">SKU (código interno):</label>
+                    <input
+                      type="text"
+                      value={formEditarProducto.sku}
+                      onChange={(e) => setFormEditarProducto({ ...formEditarProducto, sku: e.target.value })}
+                      className="w-full bg-stone-50 border border-stone-200 rounded-lg px-3 py-1.5 text-xs text-stone-900"
+                    />
+                  </div>
                 </div>
                 <div className="flex gap-2 pt-1">
                   <button
@@ -5196,6 +5407,50 @@
                       placeholder="0"
                       value={formProducto.stock_actual}
                       onChange={(e) => setFormProducto({ ...formProducto, stock_actual: e.target.value })}
+                      className="w-full bg-stone-50 border border-stone-200 rounded-lg px-3 py-1.5 text-xs text-stone-900"
+                    />
+                  </div>
+                  {formProducto.unidad !== 'KG' && (
+                    <div>
+                      <label className="flex items-center gap-2 text-xs font-semibold text-stone-700 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={formProducto.vendeEnPack}
+                          onChange={(e) => setFormProducto({ ...formProducto, vendeEnPack: e.target.checked })}
+                          className="w-3.5 h-3.5"
+                        />
+                        🎁 También se vende por pack/caja
+                      </label>
+                      {formProducto.vendeEnPack && (
+                        <div className="grid grid-cols-2 gap-2 mt-1.5">
+                          <input
+                            type="number"
+                            step="1"
+                            min="2"
+                            placeholder="Unidades por pack"
+                            value={formProducto.unidades_por_pack}
+                            onChange={(e) => setFormProducto({ ...formProducto, unidades_por_pack: e.target.value })}
+                            className="w-full bg-stone-50 border border-stone-200 rounded-lg px-3 py-1.5 text-xs text-stone-900"
+                          />
+                          <input
+                            type="number"
+                            step="0.10"
+                            placeholder="Precio venta pack (S/)"
+                            value={formProducto.precio_venta_pack}
+                            onChange={(e) => setFormProducto({ ...formProducto, precio_venta_pack: e.target.value })}
+                            className="w-full bg-stone-50 border border-stone-200 rounded-lg px-3 py-1.5 text-xs text-stone-900"
+                          />
+                        </div>
+                      )}
+                    </div>
+                  )}
+                  <div>
+                    <label className="text-xs text-stone-600 block mb-1">SKU (código interno, opcional):</label>
+                    <input
+                      type="text"
+                      placeholder="Se genera solo si lo dejas vacío"
+                      value={formProducto.sku}
+                      onChange={(e) => setFormProducto({ ...formProducto, sku: e.target.value })}
                       className="w-full bg-stone-50 border border-stone-200 rounded-lg px-3 py-1.5 text-xs text-stone-900"
                     />
                   </div>
