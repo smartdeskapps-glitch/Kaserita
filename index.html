@@ -1178,17 +1178,7 @@
             if (detErr) console.warn('Detalle no sincronizado de una venta offline:', detErr);
 
             if (pendiente.credito) {
-              const { data: cli } = await sbClient
-                .from('clientes')
-                .select('saldo_actual')
-                .eq('id', pendiente.credito.clienteId)
-                .single();
-              if (cli) {
-                await sbClient
-                  .from('clientes')
-                  .update({ saldo_actual: +(Number(cli.saldo_actual) + pendiente.credito.monto).toFixed(2) })
-                  .eq('id', pendiente.credito.clienteId);
-              }
+              await sbClient.rpc('ajustar_saldo_cliente', { p_cliente_id: pendiente.credito.clienteId, p_delta: pendiente.credito.monto });
             }
 
             for (const adj of pendiente.ajustesStock) {
@@ -1961,18 +1951,20 @@
           notificar('Ingresa un monto válido.', 'error');
           return;
         }
-        const saldoAnterior = Number(proveedorSeleccionado.saldo_actual) || 0;
-        const nuevoSaldo = tipo === 'pago'
-          ? Math.max(0, +(saldoAnterior - monto).toFixed(2))
-          : +(saldoAnterior + monto).toFixed(2);
+        // Ajuste atómico (RPC) en vez de leer-y-escribir: si dos personas
+        // registran un movimiento al mismo proveedor casi al mismo
+        // tiempo, ninguno de los dos se pierde.
+        const delta = tipo === 'pago' ? -monto : monto;
 
         try {
+          let nuevoSaldo = Math.max(0, +((Number(proveedorSeleccionado.saldo_actual) || 0) + delta).toFixed(2));
           if (sbClient) {
-            const { error: errUpdate } = await sbClient
-              .from('proveedores')
-              .update({ saldo_actual: nuevoSaldo })
-              .eq('id', proveedorSeleccionado.id);
+            const { data, error: errUpdate } = await sbClient.rpc('ajustar_saldo_proveedor', {
+              p_proveedor_id: proveedorSeleccionado.id,
+              p_delta: delta
+            });
             if (errUpdate) throw errUpdate;
+            if (data != null) nuevoSaldo = Number(data);
 
             if (tipo === 'pago') {
               const { error: errPago } = await sbClient
@@ -2252,20 +2244,24 @@
         }
 
         const saldoAnterior = Number(deudorSeleccionado.saldo_actual) || 0;
-        const nuevoSaldo = Math.max(0, +(saldoAnterior - abono).toFixed(2));
+        let nuevoSaldo = Math.max(0, +(saldoAnterior - abono).toFixed(2));
 
         if (sbClient) {
           try {
-            const { error: errSaldo } = await sbClient
-              .from('clientes')
-              .update({ saldo_actual: nuevoSaldo })
-              .eq('id', deudorSeleccionado.id);
+            // Ajuste atómico (RPC): si otro dispositivo también le está
+            // cobrando/vendiendo a este mismo cliente en este instante, los
+            // dos cambios se aplican uno tras otro sin pisarse.
+            const { data: saldoRpc, error: errSaldo } = await sbClient.rpc('ajustar_saldo_cliente', {
+              p_cliente_id: deudorSeleccionado.id,
+              p_delta: -abono
+            });
 
             if (errSaldo) {
               console.warn('Error al actualizar el saldo del cliente:', errSaldo);
               notificar(`No se pudo registrar el pago en el servidor (${errSaldo.message}). Avisa al soporte.`, 'error');
               return;
             }
+            if (saldoRpc != null) nuevoSaldo = Number(saldoRpc);
 
             const { error: errPago } = await sbClient.from('pagos_credito').insert([{
               bodega_id: bodegaId,
@@ -2991,17 +2987,13 @@
         try {
           if (sbClient) {
             // Si la venta era a crédito, revertir la deuda del cliente antes de anular
+            // (ajuste atómico: no se pisa con otra venta/pago simultáneo al mismo cliente).
             if (venta.medio_pago === 'CREDITO' && venta.cliente_id) {
-              const { data: cli } = await sbClient
-                .from('clientes')
-                .select('saldo_actual')
-                .eq('id', venta.cliente_id)
-                .single();
-              if (cli) {
-                const nuevoSaldo = Math.max(0, +(Number(cli.saldo_actual) - Number(venta.total_venta)).toFixed(2));
-                const { error: errSaldo } = await sbClient.from('clientes').update({ saldo_actual: nuevoSaldo }).eq('id', venta.cliente_id);
-                if (errSaldo) throw new Error(`No se pudo revertir la deuda del cliente: ${errSaldo.message}`);
-              }
+              const { error: errSaldo } = await sbClient.rpc('ajustar_saldo_cliente', {
+                p_cliente_id: venta.cliente_id,
+                p_delta: -Number(venta.total_venta)
+              });
+              if (errSaldo) throw new Error(`No se pudo revertir la deuda del cliente: ${errSaldo.message}`);
             }
 
             // Soft-delete: se marca como anulada en vez de borrarla, para conservar el historial
@@ -3172,6 +3164,22 @@
 
         if (sbClient) {
           try {
+            // Revisa primero si otro dispositivo ya abrió un turno hace un
+            // instante (evita el caso común); el índice único en la base
+            // de datos es la garantía real por si igual se cruzan.
+            const { data: yaAbierto } = await sbClient
+              .from('turnos_caja')
+              .select('*')
+              .eq('bodega_id', bodegaId)
+              .is('fecha_cierre', null)
+              .maybeSingle();
+            if (yaAbierto) {
+              setTurnoActivo(yaAbierto);
+              setModalTurno(false);
+              notificar('Ya había un turno abierto (lo abrió otro dispositivo/cajero); se usa ese.', 'info');
+              return;
+            }
+
             let { data, error } = await sbClient
               .from('turnos_caja')
               .insert([{
@@ -3190,6 +3198,24 @@
               setModalTurno(false);
               notificar(`Turno abierto con: ${cajeroFinal.nombre}`, 'success');
               return;
+            }
+
+            // Código 23505 = violación del índice único "una sola bodega
+            // abierta a la vez": otro dispositivo lo abrió en el mismo
+            // instante que este. Se adopta ese turno en vez de fallar.
+            if (error?.code === '23505') {
+              const { data: turnoDeOtro } = await sbClient
+                .from('turnos_caja')
+                .select('*')
+                .eq('bodega_id', bodegaId)
+                .is('fecha_cierre', null)
+                .maybeSingle();
+              if (turnoDeOtro) {
+                setTurnoActivo(turnoDeOtro);
+                setModalTurno(false);
+                notificar('Ya había un turno abierto (lo abrió otro dispositivo/cajero); se usa ese.', 'info');
+                return;
+              }
             }
 
             // Si falló por una razón real (no por estar en modo demo sin
@@ -3351,13 +3377,13 @@
                 notificar(`Venta registrada, pero el detalle de productos no se guardó: ${detErr.message}`, 'error');
               }
 
-              // Si es crédito, actualizar saldo
+              // Si es crédito, actualizar saldo (ajuste atómico: no se pisa
+              // con otra venta/pago simultáneo al mismo cliente).
               if (medioPago === 'CREDITO' && idClienteReal) {
-                const saldoAct = Number(clienteActual.saldo_actual) || 0;
-                const { error: errSaldoCredito } = await sbClient
-                  .from('clientes')
-                  .update({ saldo_actual: +(saldoAct + totalConDescuento).toFixed(2) })
-                  .eq('id', idClienteReal);
+                const { error: errSaldoCredito } = await sbClient.rpc('ajustar_saldo_cliente', {
+                  p_cliente_id: idClienteReal,
+                  p_delta: totalConDescuento
+                });
                 if (errSaldoCredito) {
                   console.warn('Error al actualizar la deuda del cliente:', errSaldoCredito);
                   notificar(`Venta registrada, pero no se pudo actualizar la deuda del cliente (${errSaldoCredito.message}). Avisa al soporte.`, 'error');
