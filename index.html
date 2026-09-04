@@ -406,7 +406,7 @@
             type="button"
             onClick={() => onAplicar(sugerido)}
             disabled={costoNum <= 0}
-            className="px-2 py-1 bg-orange-600 hover:bg-orange-500 disabled:opacity-40 text-white text-xs font-bold rounded"
+            className="px-2 py-1 bg-stone-900 hover:bg-stone-800 disabled:opacity-40 text-white text-xs font-bold rounded"
           >
             Usar
           </button>
@@ -510,7 +510,7 @@
             >
               {qrImg ? 'Cambiar imagen del QR' : `Subir QR de ${medioPago}`}
             </button>
-            <button onClick={onClose} className="w-full py-2.5 bg-orange-600 hover:bg-orange-500 text-white font-bold text-xs rounded-xl">
+            <button onClick={onClose} className="w-full py-2.5 bg-stone-900 hover:bg-stone-800 text-white font-bold text-xs rounded-xl">
               Cerrar
             </button>
           </div>
@@ -525,7 +525,7 @@
         : tone === 'orange'
         ? 'text-orange-600 hover:bg-orange-500/10 hover:text-orange-600'
         : active
-        ? 'bg-orange-500 text-white shadow-lg shadow-orange-500/25'
+        ? 'bg-stone-900 text-white shadow-lg shadow-stone-900/25'
         : 'text-stone-600 hover:bg-stone-200 hover:text-stone-800';
       return (
         <button
@@ -3693,14 +3693,14 @@
                   <button
                     type="button"
                     onClick={() => setAuthTab('login')}
-                    className={`flex-1 py-2 text-xs font-bold rounded-lg transition ${authTab === 'login' ? 'bg-orange-600 text-white shadow-md' : 'text-stone-600 hover:text-stone-800'}`}
+                    className={`flex-1 py-2 text-xs font-bold rounded-lg transition ${authTab === 'login' ? 'bg-stone-900 text-white shadow-md' : 'text-stone-600 hover:text-stone-800'}`}
                   >
                     Iniciar Sesión
                   </button>
                   <button
                     type="button"
                     onClick={() => setAuthTab('register')}
-                    className={`flex-1 py-2 text-xs font-bold rounded-lg transition ${authTab === 'register' ? 'bg-orange-600 text-white shadow-md' : 'text-stone-600 hover:text-stone-800'}`}
+                    className={`flex-1 py-2 text-xs font-bold rounded-lg transition ${authTab === 'register' ? 'bg-stone-900 text-white shadow-md' : 'text-stone-600 hover:text-stone-800'}`}
                   >
                     Crear Bodega
                   </button>
@@ -3777,7 +3777,7 @@
                   <button
                     type="submit"
                     disabled={cargandoAuth}
-                    className="w-full py-3.5 bg-orange-600 hover:bg-orange-500 text-white font-black text-sm uppercase rounded-full transition shadow-lg shadow-orange-500/30 disabled:opacity-50"
+                    className="w-full py-3.5 bg-stone-900 hover:bg-stone-800 text-white font-black text-sm uppercase rounded-full transition shadow-lg shadow-stone-900/30 disabled:opacity-50"
                   >
                     {cargandoAuth ? 'Verificando...' : 'Ingresar'}
                   </button>
@@ -3871,7 +3871,7 @@
                   <button
                     type="submit"
                     disabled={cargandoAuth}
-                    className="w-full py-3.5 bg-orange-600 hover:bg-orange-500 text-white font-black text-sm uppercase rounded-full transition shadow-lg shadow-orange-500/30 disabled:opacity-50"
+                    className="w-full py-3.5 bg-stone-900 hover:bg-stone-800 text-white font-black text-sm uppercase rounded-full transition shadow-lg shadow-stone-900/30 disabled:opacity-50"
                   >
                     🚀 Crear Bodega y Entrar
                   </button>
@@ -4068,7 +4068,7 @@
                   <button
                     key={cat}
                     onClick={() => setCategoriaFiltro(cat)}
-                    className={`px-3 py-1.5 rounded-full whitespace-nowrap font-semibold transition ${categoriaFiltro === cat ? 'bg-orange-500 text-white shadow' : 'bg-stone-100 text-stone-600 hover:bg-stone-200 border border-stone-200'}`}
+                    className={`px-3 py-1.5 rounded-full whitespace-nowrap font-semibold transition ${categoriaFiltro === cat ? 'bg-stone-900 text-white shadow' : 'bg-stone-100 text-stone-600 hover:bg-stone-200 border border-stone-200'}`}
                   >
                     {cat}
                   </button>
@@ -4093,7 +4093,7 @@
                     </p>
                     <button
                       onClick={() => setModalInventarioInicial(true)}
-                      className="mt-4 px-5 py-2.5 bg-orange-500 hover:bg-orange-400 text-white text-sm font-bold rounded-xl shadow-lg shadow-orange-500/25 flex items-center gap-2"
+                      className="mt-4 px-5 py-2.5 bg-stone-900 hover:bg-stone-800 text-white text-sm font-bold rounded-xl shadow-lg shadow-stone-900/25 flex items-center gap-2"
                     >
                       <i className="fa-solid fa-boxes-stacked"></i> Registrar mi Inventario
                     </button>
@@ -4324,7 +4324,7 @@
                     className={`w-full py-3.5 rounded-xl font-bold text-sm transition-all flex items-center justify-center gap-2 ${
                       !turnoActivo || carrito.length === 0
                         ? 'bg-stone-200 text-stone-400 cursor-not-allowed'
-                        : 'bg-orange-500 hover:bg-orange-400 text-white shadow-lg shadow-orange-500/25 active:scale-[0.98]'
+                        : 'bg-stone-900 hover:bg-stone-800 text-white shadow-lg shadow-stone-900/25 active:scale-[0.98]'
                     }`}
                   >
                     {!turnoActivo ? (
@@ -4365,7 +4365,7 @@
                       }}
                       className={`flex flex-col items-center gap-1 py-2.5 text-xs font-semibold rounded-xl border transition ${
                         medioPago === m.id
-                          ? 'bg-orange-500 border-orange-400 text-white shadow-lg shadow-orange-500/20'
+                          ? 'bg-stone-900 border-stone-900 text-white shadow-lg shadow-stone-900/20'
                           : 'bg-stone-200/60 border-stone-300 text-stone-600 hover:bg-stone-200 hover:text-stone-800'
                       }`}
                     >
@@ -4393,7 +4393,7 @@
                         type="button"
                         onClick={() => setCampoTeclado(campoTeclado === 'recibido' ? null : 'recibido')}
                         title="Teclado numérico"
-                        className={`shrink-0 w-11 h-11 flex items-center justify-center rounded-lg transition ${campoTeclado === 'recibido' ? 'bg-orange-500 text-white' : 'bg-stone-300 hover:bg-stone-400 text-stone-700'}`}
+                        className={`shrink-0 w-11 h-11 flex items-center justify-center rounded-lg transition ${campoTeclado === 'recibido' ? 'bg-stone-900 text-white' : 'bg-stone-300 hover:bg-stone-400 text-stone-700'}`}
                       >
                         <i className="fa-solid fa-calculator"></i>
                       </button>
@@ -4463,7 +4463,7 @@
                         type="button"
                         onClick={() => setCampoTeclado(campoTeclado === 'mixtoOtro' ? null : 'mixtoOtro')}
                         title="Teclado numérico"
-                        className={`shrink-0 w-9 h-9 flex items-center justify-center rounded-lg transition ${campoTeclado === 'mixtoOtro' ? 'bg-orange-500 text-white' : 'bg-stone-300 hover:bg-stone-400 text-stone-700'}`}
+                        className={`shrink-0 w-9 h-9 flex items-center justify-center rounded-lg transition ${campoTeclado === 'mixtoOtro' ? 'bg-stone-900 text-white' : 'bg-stone-300 hover:bg-stone-400 text-stone-700'}`}
                       >
                         <i className="fa-solid fa-calculator text-xs"></i>
                       </button>
@@ -4499,7 +4499,7 @@
                           type="button"
                           onClick={() => setCampoTeclado(campoTeclado === 'mixtoRecibido' ? null : 'mixtoRecibido')}
                           title="Teclado numérico"
-                          className={`shrink-0 w-9 h-9 flex items-center justify-center rounded-lg transition ${campoTeclado === 'mixtoRecibido' ? 'bg-orange-500 text-white' : 'bg-stone-300 hover:bg-stone-400 text-stone-700'}`}
+                          className={`shrink-0 w-9 h-9 flex items-center justify-center rounded-lg transition ${campoTeclado === 'mixtoRecibido' ? 'bg-stone-900 text-white' : 'bg-stone-300 hover:bg-stone-400 text-stone-700'}`}
                         >
                           <i className="fa-solid fa-calculator text-xs"></i>
                         </button>
@@ -4541,14 +4541,14 @@
                         <button
                           type="button"
                           onClick={() => setDescuentoTipo('PORCENTAJE')}
-                          className={`px-2.5 py-1.5 text-xs font-bold ${descuentoTipo === 'PORCENTAJE' ? 'bg-orange-500 text-white' : 'text-stone-600'}`}
+                          className={`px-2.5 py-1.5 text-xs font-bold ${descuentoTipo === 'PORCENTAJE' ? 'bg-stone-900 text-white' : 'text-stone-600'}`}
                         >
                           %
                         </button>
                         <button
                           type="button"
                           onClick={() => setDescuentoTipo('MONTO')}
-                          className={`px-2.5 py-1.5 text-xs font-bold ${descuentoTipo === 'MONTO' ? 'bg-orange-500 text-white' : 'text-stone-600'}`}
+                          className={`px-2.5 py-1.5 text-xs font-bold ${descuentoTipo === 'MONTO' ? 'bg-stone-900 text-white' : 'text-stone-600'}`}
                         >
                           S/
                         </button>
@@ -4595,7 +4595,7 @@
                 className={`w-full py-3.5 rounded-xl font-bold text-sm transition-all flex items-center justify-center gap-2 ${
                   !turnoActivo || procesandoVenta || carrito.length === 0
                     ? 'bg-stone-200 text-stone-400 cursor-not-allowed'
-                    : 'bg-orange-500 hover:bg-orange-400 text-white shadow-lg shadow-orange-500/25 active:scale-[0.98]'
+                    : 'bg-stone-900 hover:bg-stone-800 text-white shadow-lg shadow-stone-900/25 active:scale-[0.98]'
                 }`}
               >
                 {!turnoActivo ? (
@@ -4694,7 +4694,7 @@
                 </div>
                 <div className="flex gap-2 pt-1">
                   <button onClick={() => setModalCantidad(false)} className="flex-1 py-2 bg-stone-200 rounded-lg text-xs font-semibold">Cancelar</button>
-                  <button onClick={confirmarCantidadBalanza} className="flex-1 py-2 bg-orange-600 hover:bg-orange-500 text-white rounded-lg text-xs font-bold shadow">Aceptar</button>
+                  <button onClick={confirmarCantidadBalanza} className="flex-1 py-2 bg-stone-900 hover:bg-stone-800 text-white rounded-lg text-xs font-bold shadow">Aceptar</button>
                 </div>
               </div>
             </div>
@@ -4896,7 +4896,7 @@
                   <button
                     onClick={guardarInventarioInicial}
                     disabled={guardandoInventario}
-                    className="w-full py-2.5 bg-orange-600 hover:bg-orange-500 disabled:opacity-60 text-white font-bold text-xs rounded-xl shadow flex items-center justify-center gap-1.5"
+                    className="w-full py-2.5 bg-stone-900 hover:bg-stone-800 disabled:opacity-60 text-white font-bold text-xs rounded-xl shadow flex items-center justify-center gap-1.5"
                   >
                     {guardandoInventario ? (
                       <><i className="fa-solid fa-spinner fa-spin"></i> Guardando...</>
@@ -5119,7 +5119,7 @@
                   <button
                     onClick={guardarEdicionProducto}
                     disabled={guardandoEdicionProducto}
-                    className="flex-1 py-2.5 bg-orange-600 hover:bg-orange-500 disabled:opacity-60 text-white font-bold text-xs rounded-xl shadow"
+                    className="flex-1 py-2.5 bg-stone-900 hover:bg-stone-800 disabled:opacity-60 text-white font-bold text-xs rounded-xl shadow"
                   >
                     {guardandoEdicionProducto ? 'Guardando...' : 'Guardar Cambios'}
                   </button>
@@ -5243,7 +5243,7 @@
                       className="w-full bg-stone-50 border border-stone-200 rounded-lg px-3 py-1.5 text-xs text-stone-900"
                     />
                   </div>
-                  <button type="submit" className="w-full py-2.5 bg-orange-600 hover:bg-orange-500 text-white font-bold text-xs rounded-xl shadow mt-2">
+                  <button type="submit" className="w-full py-2.5 bg-stone-900 hover:bg-stone-800 text-white font-bold text-xs rounded-xl shadow mt-2">
                     Guardar Producto
                   </button>
                 </form>
@@ -5333,7 +5333,7 @@
                   </span>
                 </div>
 
-                <button onClick={guardarEntradaMercaderia} className="w-full py-2.5 bg-orange-600 hover:bg-orange-500 text-white font-bold text-xs rounded-xl shadow">
+                <button onClick={guardarEntradaMercaderia} className="w-full py-2.5 bg-stone-900 hover:bg-stone-800 text-white font-bold text-xs rounded-xl shadow">
                   Confirmar Entrada de Mercadería
                 </button>
               </div>
@@ -5434,7 +5434,7 @@
                         className="w-full bg-stone-100 border border-stone-200 rounded-lg p-2 text-sm font-bold text-stone-900 focus:outline-none focus:border-orange-500"
                       />
                     </div>
-                    <button onClick={procesarPagoDeudaCliente} className="w-full py-2 bg-orange-600 hover:bg-orange-500 text-white font-bold text-xs rounded-xl shadow flex items-center justify-center gap-1.5">
+                    <button onClick={procesarPagoDeudaCliente} className="w-full py-2 bg-stone-900 hover:bg-stone-800 text-white font-bold text-xs rounded-xl shadow flex items-center justify-center gap-1.5">
                       <i className="fa-solid fa-check"></i> Registrar Pago de Deuda
                     </button>
                   </div>
@@ -5508,7 +5508,7 @@
                       </button>
                       <button
                         onClick={() => registrarMovimientoProveedor('pago')}
-                        className="py-2 bg-orange-600 hover:bg-orange-500 text-white font-bold text-xs rounded-xl shadow flex items-center justify-center gap-1.5"
+                        className="py-2 bg-stone-900 hover:bg-stone-800 text-white font-bold text-xs rounded-xl shadow flex items-center justify-center gap-1.5"
                       >
                         <i className="fa-solid fa-check"></i> Registrar Pago
                       </button>
@@ -5602,7 +5602,7 @@
                   </div>
                   <button
                     type="submit"
-                    className="w-full py-2.5 bg-orange-600 hover:bg-orange-500 text-white font-bold text-xs rounded-xl shadow"
+                    className="w-full py-2.5 bg-stone-900 hover:bg-stone-800 text-white font-bold text-xs rounded-xl shadow"
                   >
                     Guardar Proveedor
                   </button>
@@ -5643,7 +5643,7 @@
                   </div>
                   <button
                     onClick={() => cargarHistorialCierresPorRango(fechaInicioCierres, fechaFinCierres)}
-                    className="px-3 py-1.5 bg-orange-600 hover:bg-orange-500 text-white text-xs font-semibold rounded-lg"
+                    className="px-3 py-1.5 bg-stone-900 hover:bg-stone-800 text-white text-xs font-semibold rounded-lg"
                   >
                     Buscar
                   </button>
@@ -5757,7 +5757,7 @@
                       <button
                         onClick={registrarNuevoCajeroCompleto}
                         disabled={guardandoNuevoCajero}
-                        className="flex-1 py-2 bg-orange-600 hover:bg-orange-500 disabled:opacity-60 text-white font-bold text-xs rounded-xl shadow"
+                        className="flex-1 py-2 bg-stone-900 hover:bg-stone-800 disabled:opacity-60 text-white font-bold text-xs rounded-xl shadow"
                       >
                         {guardandoNuevoCajero ? 'Guardando...' : 'Agregar'}
                       </button>
@@ -5877,7 +5877,7 @@
                     <button
                       onClick={guardarEdicionCliente}
                       disabled={guardandoEdicionCliente}
-                      className="w-full py-2.5 bg-orange-600 hover:bg-orange-500 disabled:opacity-60 text-white font-bold text-xs rounded-xl shadow"
+                      className="w-full py-2.5 bg-stone-900 hover:bg-stone-800 disabled:opacity-60 text-white font-bold text-xs rounded-xl shadow"
                     >
                       {guardandoEdicionCliente ? 'Guardando...' : 'Guardar Cambios'}
                     </button>
@@ -6050,7 +6050,7 @@
                       className="w-full bg-stone-50 border border-stone-200 rounded-lg px-3 py-1.5 text-sm font-bold text-orange-600"
                     />
                   </div>
-                  <button type="submit" className="w-full py-2.5 bg-orange-600 hover:bg-orange-500 text-white font-bold text-xs rounded-xl shadow mt-2">
+                  <button type="submit" className="w-full py-2.5 bg-stone-900 hover:bg-stone-800 text-white font-bold text-xs rounded-xl shadow mt-2">
                     Guardar Cliente
                   </button>
                 </form>
@@ -6090,7 +6090,7 @@
                   </div>
                   <button
                     onClick={() => cargarDashboard(fechaInicioDash, fechaFinDash)}
-                    className="px-3 py-1.5 bg-orange-600 hover:bg-orange-500 text-white text-xs font-semibold rounded-lg"
+                    className="px-3 py-1.5 bg-stone-900 hover:bg-stone-800 text-white text-xs font-semibold rounded-lg"
                   >
                     Buscar
                   </button>
@@ -6378,7 +6378,7 @@
                   </div>
                   <button
                     onClick={() => cargarHistorialPorRango(fechaInicioHistorial, fechaFinHistorial)}
-                    className="px-3 py-1.5 bg-orange-600 hover:bg-orange-500 text-white text-xs font-semibold rounded-lg"
+                    className="px-3 py-1.5 bg-stone-900 hover:bg-stone-800 text-white text-xs font-semibold rounded-lg"
                   >
                     Buscar
                   </button>
@@ -6533,7 +6533,7 @@
                     <span>Diferencia:</span><span>{resumenCierre.diferencia === 0 ? '✓ Cuadre Perfecto' : `S/ ${resumenCierre.diferencia.toFixed(2)}`}</span>
                   </div>
                 </div>
-                <button onClick={() => setResumenCierre(null)} className="w-full py-2.5 bg-orange-600 text-white font-bold text-xs rounded-xl">Entendido</button>
+                <button onClick={() => setResumenCierre(null)} className="w-full py-2.5 bg-stone-900 text-white font-bold text-xs rounded-xl">Entendido</button>
               </div>
             </div>
           )}
@@ -6554,7 +6554,7 @@
                         <p className="text-xs text-stone-600">{v.items.length} ítems</p>
                       </div>
                       <div className="flex gap-1.5">
-                        <button onClick={() => recuperarVentaEspera(i)} className="px-2 py-1 bg-orange-600 text-white text-xs font-bold rounded">Recuperar</button>
+                        <button onClick={() => recuperarVentaEspera(i)} className="px-2 py-1 bg-stone-900 text-white text-xs font-bold rounded">Recuperar</button>
                         <button onClick={() => borrarVentaEspera(i)} className="px-1.5 py-1 bg-rose-900 text-rose-200 text-xs rounded">✕</button>
                       </div>
                     </div>
@@ -6596,7 +6596,7 @@
                 </div>
                 <div className="flex gap-2">
                   <button onClick={() => setModalTurno(false)} className="flex-1 py-2 bg-stone-200 text-xs font-semibold rounded-xl">Cancelar</button>
-                  <button onClick={handleAbrirTurno} className="flex-1 py-2 bg-orange-600 text-white text-xs font-bold rounded-xl shadow">Confirmar y Abrir</button>
+                  <button onClick={handleAbrirTurno} className="flex-1 py-2 bg-stone-900 text-white text-xs font-bold rounded-xl shadow">Confirmar y Abrir</button>
                 </div>
               </div>
             </div>
@@ -6715,7 +6715,7 @@
                 </div>
                 <div className="flex gap-2">
                   <button onClick={() => window.print()} className="flex-1 py-2 bg-stone-200 text-stone-900 font-bold text-xs rounded-xl">🖨️ Imprimir</button>
-                  <button onClick={() => setReciboReimpresion(null)} className="flex-1 py-2 bg-orange-600 text-white font-bold text-xs rounded-xl shadow">Cerrar</button>
+                  <button onClick={() => setReciboReimpresion(null)} className="flex-1 py-2 bg-stone-900 text-white font-bold text-xs rounded-xl shadow">Cerrar</button>
                 </div>
               </div>
               <ReciboImprimible
@@ -6765,7 +6765,7 @@
                   </button>
                   <button
                     onClick={() => { modalPrompt.onConfirmar(modalPromptValor); setModalPrompt(null); }}
-                    className="flex-1 py-2.5 bg-orange-600 hover:bg-orange-500 text-white font-bold text-xs rounded-xl shadow"
+                    className="flex-1 py-2.5 bg-stone-900 hover:bg-stone-800 text-white font-bold text-xs rounded-xl shadow"
                   >
                     {modalPrompt.textoBoton}
                   </button>
@@ -6789,7 +6789,7 @@
                   </button>
                   <button
                     onClick={() => { modalConfirmar.onConfirmar(); setModalConfirmar(null); }}
-                    className={`flex-1 py-2.5 text-white font-bold text-xs rounded-xl shadow ${modalConfirmar.peligroso ? 'bg-rose-600 hover:bg-rose-500' : 'bg-orange-600 hover:bg-orange-500'}`}
+                    className={`flex-1 py-2.5 text-white font-bold text-xs rounded-xl shadow ${modalConfirmar.peligroso ? 'bg-rose-600 hover:bg-rose-500' : 'bg-stone-900 hover:bg-stone-800'}`}
                   >
                     {modalConfirmar.textoBoton}
                   </button>
