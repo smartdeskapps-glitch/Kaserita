@@ -3377,6 +3377,114 @@
         notificar('Se descargó el PDF de la boleta. Adjúntalo manualmente en el chat de WhatsApp que se abrió.', 'info');
       };
 
+      // ==========================================
+      // IMPRESIÓN DIRECTA POR BLUETOOTH (ticketera térmica)
+      // ==========================================
+      // Servicios GATT que usan la mayoría de ticketeras térmicas Bluetooth
+      // BLE "genéricas" (las comunes de 58/80mm que se compran sueltas, no
+      // de marca). Si la impresora usa un chip distinto puede que no
+      // aparezca un canal de escritura -- es un protocolo no estandarizado.
+      const SERVICIOS_IMPRESORA_BLUETOOTH = [
+        '000018f0-0000-1000-8000-00805f9b34fb',
+        '0000ff00-0000-1000-8000-00805f9b34fb',
+        '0000ffe0-0000-1000-8000-00805f9b34fb',
+        '49535343-fe7d-4ae5-8fa9-9fafd205e455'
+      ];
+
+      // Quita tildes/ñ: la mayoría de estas impresoras solo entienden la
+      // página de código básica (ASCII/CP437) y muestran símbolos raros
+      // con acentos si se les manda UTF-8 tal cual.
+      const aTextoImprimible = (s) => (s || '').normalize('NFD').replace(/[^\x00-\x7F]/g, '');
+
+      // Arma el ticket en comandos ESC/POS crudos (texto + alineación +
+      // negrita), igual de angosto que el PDF/ticket impreso.
+      const construirTicketEscPos = (venta) => {
+        const bytes = [];
+        const cmd = (...arr) => bytes.push(...arr);
+        const texto = (s) => { for (const ch of aTextoImprimible(s)) bytes.push(ch.charCodeAt(0) & 0xFF); };
+        const salto = (n = 1) => { for (let i = 0; i < n; i++) bytes.push(0x0A); };
+        const ANCHO = 32; // caracteres por línea en una ticketera de 58mm
+
+        cmd(0x1B, 0x40); // inicializar
+        cmd(0x1B, 0x61, 0x01); // centrado
+        cmd(0x1B, 0x45, 0x01); // negrita on
+        texto(bodegaNombre); salto();
+        cmd(0x1B, 0x45, 0x00); // negrita off
+        texto(`Boleta: ${venta.nro_boleta}`); salto();
+        texto(venta.fecha || new Date().toLocaleString('es-PE')); salto();
+        texto(`Cliente: ${venta.cliente}`); salto();
+        cmd(0x1B, 0x61, 0x00); // izquierda
+        texto('-'.repeat(ANCHO)); salto();
+
+        (venta.items || []).forEach((it) => {
+          texto(it.descripcion); salto();
+          const izq = `${it.cantidad} ${it.unidad || 'UND'} x ${Number(it.precioUnitario || 0).toFixed(2)}`;
+          const der = `S/ ${Number(it.subtotal).toFixed(2)}`;
+          const espacios = Math.max(1, ANCHO - izq.length - der.length);
+          texto(izq + ' '.repeat(espacios) + der); salto();
+        });
+
+        texto('-'.repeat(ANCHO)); salto();
+        if (venta.descuento > 0) {
+          texto(`Subtotal:${' '.repeat(Math.max(1, ANCHO - 9 - 12))}S/ ${venta.subtotal.toFixed(2)}`); salto();
+          texto(`Descuento:${' '.repeat(Math.max(1, ANCHO - 10 - 12))}-S/ ${venta.descuento.toFixed(2)}`); salto();
+        }
+        cmd(0x1B, 0x45, 0x01);
+        texto(`TOTAL: S/ ${venta.total_venta.toFixed(2)}`); salto();
+        cmd(0x1B, 0x45, 0x00);
+        texto(`Pago: ${venta.medio_pago}`); salto(2);
+
+        cmd(0x1B, 0x61, 0x01);
+        texto('Documento sin valor tributario.'); salto();
+        texto('Solo informativo.'); salto();
+        texto('Gracias por su compra!'); salto(4);
+
+        return new Uint8Array(bytes);
+      };
+
+      const imprimirBoletaBluetooth = async (venta) => {
+        if (!navigator.bluetooth) {
+          notificar('Este navegador no soporta impresión Bluetooth. Usa Chrome en Android o en una PC con Bluetooth.', 'error');
+          return;
+        }
+        try {
+          const device = await navigator.bluetooth.requestDevice({
+            acceptAllDevices: true,
+            optionalServices: SERVICIOS_IMPRESORA_BLUETOOTH
+          });
+          const server = await device.gatt.connect();
+          const servicios = await server.getPrimaryServices();
+
+          let caracteristica = null;
+          for (const servicio of servicios) {
+            const chars = await servicio.getCharacteristics();
+            caracteristica = chars.find((c) => c.properties.write || c.properties.writeWithoutResponse) || caracteristica;
+            if (caracteristica) break;
+          }
+          if (!caracteristica) {
+            notificar('No se encontró un canal de impresión en ese dispositivo. Puede que no sea compatible.', 'error');
+            return;
+          }
+
+          const datos = construirTicketEscPos(venta);
+          const TAMANO_BLOQUE = 20; // BLE suele limitar el tamaño por escritura
+          for (let i = 0; i < datos.length; i += TAMANO_BLOQUE) {
+            const bloque = datos.slice(i, i + TAMANO_BLOQUE);
+            if (caracteristica.properties.writeWithoutResponse) {
+              await caracteristica.writeValueWithoutResponse(bloque);
+            } else {
+              await caracteristica.writeValue(bloque);
+            }
+            await new Promise((r) => setTimeout(r, 30));
+          }
+          notificar('Boleta enviada a la impresora Bluetooth.', 'success');
+        } catch (err) {
+          if (err?.name === 'NotFoundError') return; // el cajero canceló la selección
+          console.warn(err);
+          notificar(`No se pudo imprimir por Bluetooth: ${err.message}`, 'error');
+        }
+      };
+
       // =========================================================================
       // VISTA 1: AUTH (LOGIN / REGISTRO)
       // =========================================================================
@@ -6304,6 +6412,14 @@
                       <i className="fa-brands fa-whatsapp"></i> WhatsApp
                     </button>
                   </div>
+                  {typeof navigator !== 'undefined' && navigator.bluetooth && (
+                    <button
+                      onClick={() => imprimirBoletaBluetooth(ventaCompletada)}
+                      className="w-full py-2.5 bg-sky-600 hover:bg-sky-500 text-white font-semibold text-xs rounded-full transition flex items-center justify-center gap-1.5"
+                    >
+                      <i className="fa-brands fa-bluetooth-b"></i> Imprimir en ticketera Bluetooth
+                    </button>
+                  )}
                 </div>
               </div>
               <ReciboImprimible
