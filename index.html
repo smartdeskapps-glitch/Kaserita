@@ -665,6 +665,9 @@
       const [clientesDeuda, setClientesDeuda] = useState([]);
 
       // --- Cobro / Pagos ---
+      // Los métodos de pago y el descuento se mantienen ocultos hasta tocar
+      // "Cobrar" -- así el carrito queda limpio y solo se ve lo esencial.
+      const [mostrarPago, setMostrarPago] = useState(false);
       const [medioPago, setMedioPago] = useState('EFECTIVO');
       // 'PORCENTAJE' | 'MONTO' | null (null = sin descuento en esta venta)
       const [descuentoTipo, setDescuentoTipo] = useState(null);
@@ -1486,6 +1489,7 @@
         const nuevaLista = [...ventasEnEspera, nuevaVentaEspera];
         guardarVentasEnEsperaLS(nuevaLista);
         setCarrito([]);
+        setMostrarPago(false);
         notificar('Venta puesta en espera ⏸️', 'info');
       };
 
@@ -1494,6 +1498,7 @@
         if (!v) return;
         setCarrito(v.items);
         if (v.cliente) setClienteActual(v.cliente);
+        setMostrarPago(false);
         const nuevaLista = ventasEnEspera.filter((_, i) => i !== index);
         guardarVentasEnEsperaLS(nuevaLista);
         setModalVentasEspera(false);
@@ -2790,6 +2795,8 @@
           setMontoMixtoOtro('');
           setMontoMixtoRecibido('');
           setCampoTeclado(null);
+          setMostrarPago(false);
+          setMedioPago('EFECTIVO');
           // Vuelve al cliente genérico para la siguiente venta (evita dejar
           // seleccionado por accidente al mismo cliente de la venta a crédito).
           setDniCliente('99999999');
@@ -3345,45 +3352,6 @@
               <button onClick={() => setMostrarResumenMobile(false)} className="text-stone-600 hover:text-stone-900 text-lg">✕</button>
             </div>
 
-            {/* Cliente Selector */}
-            <div className="p-3 bg-stone-100 border-b border-stone-200">
-              <div className="flex items-center gap-2">
-                <span className="text-xs text-stone-600 font-bold uppercase tracking-wider">Cliente:</span>
-                <input
-                  type="text"
-                  value={dniCliente}
-                  onChange={(e) => setDniCliente(e.target.value)}
-                  onKeyDown={(e) => e.key === 'Enter' && obtenerOCrearCliente(dniCliente)}
-                  placeholder="DNI / RUC"
-                  className="w-24 bg-stone-200 border border-stone-300 text-xs text-stone-900 px-2 py-1 rounded focus:outline-none focus:border-orange-500"
-                />
-                <button
-                  onClick={abrirBuscarClientePOS}
-                  className="px-2.5 py-1 text-xs bg-stone-200 hover:bg-stone-300 text-stone-900 rounded font-medium transition"
-                >
-                  Buscar
-                </button>
-                <button
-                  onClick={() => setModalNuevoCliente(true)}
-                  className="text-xs text-orange-600 hover:underline ml-auto"
-                >
-                  + Nuevo Cliente
-                </button>
-              </div>
-              {clienteActual && (
-                <div className="mt-1.5 flex items-center justify-between text-xs text-stone-700">
-                  <span className="font-semibold truncate max-w-[240px]">
-                    <i className="fa-solid fa-user text-xs text-stone-500"></i> {clienteActual.nombre_completo}
-                  </span>
-                  {clienteActual.saldo_actual > 0 && (
-                    <span className="text-xs text-rose-600 font-bold">
-                      Deuda: S/ {Number(clienteActual.saldo_actual).toFixed(2)}
-                    </span>
-                  )}
-                </div>
-              )}
-            </div>
-
             {/* Encabezado Carrito */}
             <div className="flex items-center justify-between px-3 py-2 bg-stone-100 border-b border-stone-200">
               <span className="text-xs font-bold text-stone-700 uppercase tracking-wider">
@@ -3400,7 +3368,7 @@
                 )}
                 {carrito.length > 0 && (
                   <button
-                    onClick={() => { setCarrito([]); setDescuentoTipo(null); setDescuentoValor(''); }}
+                    onClick={() => { setCarrito([]); setDescuentoTipo(null); setDescuentoValor(''); setMostrarPago(false); }}
                     className="text-xs text-rose-600 hover:text-rose-600 transition"
                   >
                     Vaciar
@@ -3470,6 +3438,54 @@
 
             {/* Panel Cobro */}
             <div className="p-4 bg-stone-100 border-t border-stone-200 space-y-3">
+              {!mostrarPago ? (
+                <>
+                  {montoDescuento > 0 && (
+                    <div className="space-y-0.5">
+                      <div className="flex items-center justify-between text-xs text-stone-600">
+                        <span>Subtotal</span>
+                        <span className="tabular-nums">S/ {totalVenta.toFixed(2)}</span>
+                      </div>
+                      <div className="flex items-center justify-between text-xs text-rose-600 font-semibold">
+                        <span>Descuento</span>
+                        <span className="tabular-nums">- S/ {montoDescuento.toFixed(2)}</span>
+                      </div>
+                    </div>
+                  )}
+                  <div className="flex items-center justify-between pt-1 pb-0.5">
+                    <span className="text-xs font-semibold text-stone-600 uppercase tracking-wider">
+                      Total a Cobrar
+                    </span>
+                    <span className="text-2xl font-extrabold text-stone-900 tabular-nums">
+                      S/ {totalConDescuento.toFixed(2)}
+                    </span>
+                  </div>
+                  <button
+                    onClick={() => setMostrarPago(true)}
+                    disabled={carrito.length === 0 || !turnoActivo}
+                    className={`w-full py-3.5 rounded-xl font-bold text-sm transition-all flex items-center justify-center gap-2 ${
+                      !turnoActivo || carrito.length === 0
+                        ? 'bg-stone-200 text-stone-400 cursor-not-allowed'
+                        : 'bg-orange-500 hover:bg-orange-400 text-white shadow-lg shadow-orange-500/25 active:scale-[0.98]'
+                    }`}
+                  >
+                    {!turnoActivo ? (
+                      <><i className="fa-solid fa-triangle-exclamation"></i> Abre un Turno para Cobrar</>
+                    ) : (
+                      <><i className="fa-solid fa-cash-register"></i> Cobrar</>
+                    )}
+                  </button>
+                </>
+              ) : (
+              <>
+              <button
+                type="button"
+                onClick={() => setMostrarPago(false)}
+                className="text-xs text-stone-500 hover:text-stone-800 font-semibold flex items-center gap-1"
+              >
+                <i className="fa-solid fa-chevron-left text-xs"></i> Volver
+              </button>
+
               <div>
                 <div className="grid grid-cols-3 gap-2">
                   {[
@@ -3482,7 +3498,13 @@
                   ].map((m) => (
                     <button
                       key={m.id}
-                      onClick={() => { setMedioPago(m.id); setCampoTeclado(null); }}
+                      onClick={() => {
+                        setMedioPago(m.id);
+                        setCampoTeclado(null);
+                        if (m.id === 'CREDITO' && (!clienteActual || clienteActual.dni === '99999999')) {
+                          abrirBuscarClientePOS();
+                        }
+                      }}
                       className={`flex flex-col items-center gap-1 py-2.5 text-xs font-semibold rounded-xl border transition ${
                         medioPago === m.id
                           ? 'bg-orange-500 border-orange-400 text-white shadow-lg shadow-orange-500/20'
@@ -3542,16 +3564,27 @@
               )}
 
               {medioPago === 'CREDITO' && (
-                <div className={`p-2 rounded-lg border text-xs ${
-                  (!clienteActual || clienteActual.dni === '99999999')
-                    ? 'bg-rose-950/40 border-rose-800/50 text-rose-600'
-                    : 'bg-orange-950/30 border-orange-800/50 text-orange-600'
-                }`}>
-                  {(!clienteActual || clienteActual.dni === '99999999') ? (
-                    'Asigna un cliente registrado para vender a crédito.'
-                  ) : (
-                    <>Disponible: S/ {Math.max(0, (Number(clienteActual.limite_credito) || 0) - (Number(clienteActual.saldo_actual) || 0)).toFixed(2)} de S/ {(Number(clienteActual.limite_credito) || 0).toFixed(2)}</>
-                  )}
+                <div className="space-y-1.5">
+                  <div className="flex items-center justify-between text-xs bg-stone-200/60 border border-stone-200 rounded-lg p-2">
+                    <span className="font-semibold text-stone-800 truncate flex items-center gap-1.5">
+                      <i className="fa-solid fa-user text-stone-500"></i>
+                      {(!clienteActual || clienteActual.dni === '99999999') ? 'Sin cliente asignado' : clienteActual.nombre_completo}
+                    </span>
+                    <button type="button" onClick={abrirBuscarClientePOS} className="text-orange-600 font-semibold hover:underline shrink-0 ml-2">
+                      Cambiar
+                    </button>
+                  </div>
+                  <div className={`p-2 rounded-lg border text-xs ${
+                    (!clienteActual || clienteActual.dni === '99999999')
+                      ? 'bg-rose-950/40 border-rose-800/50 text-rose-600'
+                      : 'bg-orange-950/30 border-orange-800/50 text-orange-600'
+                  }`}>
+                    {(!clienteActual || clienteActual.dni === '99999999') ? (
+                      'Asigna un cliente registrado para vender a crédito.'
+                    ) : (
+                      <>Disponible: S/ {Math.max(0, (Number(clienteActual.limite_credito) || 0) - (Number(clienteActual.saldo_actual) || 0)).toFixed(2)} de S/ {(Number(clienteActual.limite_credito) || 0).toFixed(2)}</>
+                    )}
+                  </div>
                 </div>
               )}
 
@@ -3717,6 +3750,8 @@
                   <><i className="fa-solid fa-receipt"></i> Cobrar e Imprimir Boleta</>
                 )}
               </button>
+              </>
+              )}
             </div>
           </section>
 
