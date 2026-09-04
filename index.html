@@ -2851,8 +2851,8 @@
       const generarPDFBoleta = (venta) => {
         const { jsPDF } = window.jspdf;
         const items = venta.items || [];
-        const alturaEstimada = 42 + items.length * 9 + (venta.descuento > 0 ? 10 : 0);
-        const doc = new jsPDF({ unit: 'mm', format: [80, Math.max(90, alturaEstimada)] });
+        const alturaEstimada = 58 + items.length * 9 + (venta.descuento > 0 ? 10 : 0);
+        const doc = new jsPDF({ unit: 'mm', format: [80, Math.max(100, alturaEstimada)] });
         let y = 8;
 
         doc.setFont(undefined, 'bold');
@@ -2892,9 +2892,20 @@
         doc.setFont(undefined, 'normal');
         doc.setFontSize(8);
         doc.text(`Pago: ${venta.medio_pago}`, 4, y);
-        y += 7;
+        y += 6;
+        doc.line(4, y, 76, y); y += 5;
+
         doc.setFontSize(7);
-        doc.text('¡Gracias por tu compra!', 40, y, { align: 'center' });
+        const disclaimer = doc.splitTextToSize(
+          'Documento sin valor tributario. No válido como comprobante de pago ante SUNAT. Solo informativo.',
+          72
+        );
+        doc.text(disclaimer, 40, y, { align: 'center' });
+        y += disclaimer.length * 3.2 + 4;
+
+        doc.setFont(undefined, 'bold');
+        doc.setFontSize(9);
+        doc.text('¡Gracias por su compra!', 40, y, { align: 'center' });
 
         return doc;
       };
