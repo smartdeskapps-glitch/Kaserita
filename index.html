@@ -571,7 +571,17 @@
       const [resumenCierre, setResumenCierre] = useState(null);
 
       // --- Carrito & Ventas en Espera (Park Sales) ---
-      const [carrito, setCarrito] = useState([]);
+      // El carrito se guarda en localStorage en cada cambio y se recupera al
+      // cargar la página -- así un refresh accidental (F5, se cae el wifi,
+      // se cierra el navegador) no borra una venta que ya se estaba armando.
+      const [carrito, setCarrito] = useState(() => {
+        try {
+          const p = localStorage.getItem('pos_carrito_actual');
+          return p ? JSON.parse(p) : [];
+        } catch {
+          return [];
+        }
+      });
       const [ventasEnEspera, setVentasEnEspera] = useState(() => {
         const p = localStorage.getItem('pos_ventas_espera');
         return p ? JSON.parse(p) : [];
@@ -951,6 +961,7 @@
         }
       };
 
+      const avisoCarritoRecuperadoRef = useRef(false);
       useEffect(() => {
         if (sesion && bodegaId) {
           cargarProductos(busqueda);
@@ -958,8 +969,28 @@
           cargarCategorias();
           obtenerOCrearCliente('99999999');
           verificarTurno();
+          // Avisa una sola vez (por sesión iniciada) si se recuperó una venta
+          // que había quedado a medias por un refresh accidental.
+          if (!avisoCarritoRecuperadoRef.current) {
+            avisoCarritoRecuperadoRef.current = true;
+            if (carrito.length > 0) {
+              notificar('Se recuperó una venta que habías dejado a medias.', 'info');
+            }
+          }
         }
       }, [sesion, bodegaId, sbClient]);
+
+      // Persiste el carrito en cada cambio (ver useState de arriba para la
+      // recuperación al cargar).
+      useEffect(() => {
+        try {
+          if (carrito.length > 0) {
+            localStorage.setItem('pos_carrito_actual', JSON.stringify(carrito));
+          } else {
+            localStorage.removeItem('pos_carrito_actual');
+          }
+        } catch { /* localStorage lleno o bloqueado: no es crítico */ }
+      }, [carrito]);
 
       // Trae las categorías globales (bodega_id NULL, visibles para todas las
       // bodegas) más las que esta bodega haya agregado por su cuenta (privadas).
