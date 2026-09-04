@@ -554,6 +554,23 @@
       const [busqueda, setBusqueda] = useState('');
       const [cargandoProductos, setCargandoProductos] = useState(false);
 
+      // --- Modo Offline: si se corta el internet a media venta, no se
+      // pierde -- se guarda en una cola local y se sincroniza sola cuando
+      // vuelve la conexión. ---
+      const [enLinea, setEnLinea] = useState(() => (typeof navigator !== 'undefined' ? navigator.onLine : true));
+      const [ventasPendientesSync, setVentasPendientesSync] = useState(() => {
+        try {
+          const p = localStorage.getItem('pos_ventas_pendientes_sync');
+          return p ? JSON.parse(p) : [];
+        } catch {
+          return [];
+        }
+      });
+      const [sincronizandoVentas, setSincronizandoVentas] = useState(false);
+      // Cliente "Desconocido" real, cacheado la última vez que hubo
+      // conexión -- se reutiliza para ventas offline (ver obtenerOCrearCliente).
+      const desconocidoCacheRef = useRef(null);
+
       // --- Turno de Caja ---
       const [turnoActivo, setTurnoActivo] = useState(null);
       const [modalTurno, setModalTurno] = useState(false);
@@ -1001,6 +1018,97 @@
           }
         } catch { /* localStorage lleno o bloqueado: no es crítico */ }
       }, [carrito]);
+
+      // Detecta cuándo se cae o vuelve la conexión a internet.
+      useEffect(() => {
+        const marcarOnline = () => setEnLinea(true);
+        const marcarOffline = () => setEnLinea(false);
+        window.addEventListener('online', marcarOnline);
+        window.addEventListener('offline', marcarOffline);
+        return () => {
+          window.removeEventListener('online', marcarOnline);
+          window.removeEventListener('offline', marcarOffline);
+        };
+      }, []);
+
+      const guardarVentasPendientesLS = (lista) => {
+        setVentasPendientesSync(lista);
+        try {
+          localStorage.setItem('pos_ventas_pendientes_sync', JSON.stringify(lista));
+        } catch { /* localStorage lleno o bloqueado: no es crítico */ }
+      };
+
+      // Sube a Supabase las ventas que se hicieron sin conexión: inserta la
+      // venta con su fecha_hora original, su detalle, aplica el ajuste de
+      // stock (RPC) y, si era a crédito, recién ahí suma la deuda real en
+      // la base de datos (en el momento offline solo se actualizó en
+      // pantalla, de forma optimista).
+      const sincronizarVentasPendientes = async () => {
+        if (!sbClient || !bodegaId || sincronizandoVentas) return;
+        const cola = ventasPendientesSync;
+        if (cola.length === 0) return;
+
+        setSincronizandoVentas(true);
+        let exitosas = 0;
+        const restantes = [];
+
+        for (const pendiente of cola) {
+          try {
+            const { data: vCreada, error: vErr } = await sbClient
+              .from('ventas')
+              .insert([pendiente.payloadVenta])
+              .select()
+              .single();
+            if (vErr) throw vErr;
+
+            const detalles = pendiente.payloadDetalles.map((d) => ({ ...d, venta_id: vCreada.id }));
+            const { error: detErr } = await sbClient.from('ventas_detalle').insert(detalles);
+            if (detErr) console.warn('Detalle no sincronizado de una venta offline:', detErr);
+
+            if (pendiente.credito) {
+              const { data: cli } = await sbClient
+                .from('clientes')
+                .select('saldo_actual')
+                .eq('id', pendiente.credito.clienteId)
+                .single();
+              if (cli) {
+                await sbClient
+                  .from('clientes')
+                  .update({ saldo_actual: +(Number(cli.saldo_actual) + pendiente.credito.monto).toFixed(2) })
+                  .eq('id', pendiente.credito.clienteId);
+              }
+            }
+
+            for (const adj of pendiente.ajustesStock) {
+              await sbClient.rpc('ajustar_stock', { p_producto_id: adj.productoId, p_delta: adj.delta });
+            }
+
+            exitosas++;
+          } catch (err) {
+            console.warn('No se pudo sincronizar una venta offline, se reintentará:', err);
+            restantes.push(pendiente);
+          }
+        }
+
+        guardarVentasPendientesLS(restantes);
+        setSincronizandoVentas(false);
+
+        if (exitosas > 0) {
+          notificar(`Se sincronizaron ${exitosas} venta${exitosas === 1 ? '' : 's'} hecha${exitosas === 1 ? '' : 's'} sin conexión.`, 'success');
+          cargarProductos(busqueda);
+        }
+        if (restantes.length > 0) {
+          notificar(`${restantes.length} venta(s) offline no se pudieron sincronizar todavía. Se reintentará.`, 'error');
+        }
+      };
+
+      // Apenas vuelve la conexión, intenta subir lo pendiente.
+      useEffect(() => {
+        if (enLinea && sesion && bodegaId && ventasPendientesSync.length > 0) {
+          sincronizarVentasPendientes();
+        }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+      }, [enLinea, bodegaId]);
 
       // Trae las categorías globales (bodega_id NULL, visibles para todas las
       // bodegas) más las que esta bodega haya agregado por su cuenta (privadas).
@@ -1557,7 +1665,19 @@
       // ==========================================
       const obtenerOCrearCliente = async (dni = '99999999') => {
         const dniLimpio = dni.trim() || '99999999';
-        if (!sbClient || !bodegaId) {
+
+        // Sin conexión: no se puede consultar/crear en Supabase. Si ya
+        // teníamos el cliente "Desconocido" real (cacheado la última vez
+        // que sí hubo internet), se reutiliza -- así una venta offline
+        // sigue apuntando a un cliente_id válido que existe de verdad en
+        // la base de datos, en vez de un id inventado que fallaría al
+        // sincronizar.
+        if (!enLinea && dniLimpio === '99999999' && desconocidoCacheRef.current) {
+          setClienteActual(desconocidoCacheRef.current);
+          return desconocidoCacheRef.current;
+        }
+
+        if (!sbClient || !bodegaId || !enLinea) {
           const mock = { id: generarUUID(), bodega_id: bodegaId, dni: dniLimpio, nombre_completo: dniLimpio === '99999999' ? 'Desconocido' : `CLIENTE DNI ${dniLimpio}`, saldo_actual: 0 };
           setClienteActual(mock);
           return mock;
@@ -1573,6 +1693,7 @@
 
           if (data) {
             setClienteActual(data);
+            if (dniLimpio === '99999999') desconocidoCacheRef.current = data;
             return data;
           }
 
@@ -1590,6 +1711,7 @@
             .single();
 
           setClienteActual(creado || nuevo);
+          if (dniLimpio === '99999999') desconocidoCacheRef.current = creado || nuevo;
           return creado || nuevo;
         } catch (err) {
           console.warn(err);
@@ -2878,6 +3000,8 @@
         setProcesandoVenta(true);
         const correlativo = `B001-${String(Date.now()).slice(-8)}`;
 
+        let seVendioOffline = false;
+
         try {
           if (sbClient) {
             const idTurnoReal = turnoActivo?.id;
@@ -2905,19 +3029,10 @@
               monto_otro: medioPago === 'MIXTO' ? montoOtroMixto : 0
             };
 
-            const { data: vCreada, error: vErr } = await sbClient
-              .from('ventas')
-              .insert([payloadVenta])
-              .select()
-              .single();
-
-            if (vErr) throw vErr;
-
-            const payloadDetalles = carrito.map(item => {
+            const payloadDetallesSinVentaId = carrito.map(item => {
               const costoTotal = (Number(item.precioCosto) || 0) * Number(item.cantidad);
               return {
                 bodega_id: bodegaId,
-                venta_id: vCreada.id,
                 producto_id: typeof item.productoId === 'string' && item.productoId.length > 10 ? item.productoId : null,
                 cod_ean: item.cod_ean || '',
                 descripcion: item.descripcion || '',
@@ -2929,32 +3044,76 @@
               };
             });
 
-            const { error: detErr } = await sbClient.from('ventas_detalle').insert(payloadDetalles);
-            if (detErr) {
-              console.error('Error al guardar el detalle de la venta:', detErr);
-              notificar(`Venta registrada, pero el detalle de productos no se guardó: ${detErr.message}`, 'error');
-            }
+            const ajustesStock = carrito
+              .filter(item => typeof item.productoId === 'string' && item.productoId.length > 10)
+              .map(item => ({ productoId: item.productoId, delta: -Number(item.cantidad) }));
 
-            // Si es crédito, actualizar saldo
-            if (medioPago === 'CREDITO' && idClienteReal) {
-              const saldoAct = Number(clienteActual.saldo_actual) || 0;
-              const { error: errSaldoCredito } = await sbClient
-                .from('clientes')
-                .update({ saldo_actual: +(saldoAct + totalConDescuento).toFixed(2) })
-                .eq('id', idClienteReal);
-              if (errSaldoCredito) {
-                console.warn('Error al actualizar la deuda del cliente:', errSaldoCredito);
-                notificar(`Venta registrada, pero no se pudo actualizar la deuda del cliente (${errSaldoCredito.message}). Avisa al soporte.`, 'error');
+            if (!enLinea) {
+              // ------------------------------------------------------------
+              // MODO OFFLINE: no se puede hablar con Supabase ahora mismo.
+              // Se guarda la venta en una cola local (con su hora real) y se
+              // aplican sus efectos de inmediato en pantalla (stock, deuda
+              // del cliente); todo se sube solo apenas vuelva la conexión.
+              // ------------------------------------------------------------
+              seVendioOffline = true;
+              payloadVenta.fecha_hora = new Date().toISOString();
+
+              const pendiente = {
+                idLocal: `local-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+                payloadVenta,
+                payloadDetalles: payloadDetallesSinVentaId,
+                credito: medioPago === 'CREDITO' && idClienteReal ? { clienteId: idClienteReal, monto: totalConDescuento } : null,
+                ajustesStock
+              };
+              guardarVentasPendientesLS([...ventasPendientesSync, pendiente]);
+
+              // Refleja el descuento de stock en el catálogo ya mismo (la
+              // cifra real de la base de datos se corrige sola al sincronizar).
+              setProductos(prev => prev.map(p => {
+                const item = carrito.find(it => it.productoId === p.id);
+                if (!item || p.stock_actual === null || p.stock_actual === undefined) return p;
+                return { ...p, stock_actual: Math.max(0, Number(p.stock_actual) - Number(item.cantidad)) };
+              }));
+
+              if (medioPago === 'CREDITO' && idClienteReal) {
+                const saldoAct = Number(clienteActual.saldo_actual) || 0;
+                setClienteActual(prev => (prev ? { ...prev, saldo_actual: +(saldoAct + totalConDescuento).toFixed(2) } : prev));
               }
-            }
+            } else {
+              const { data: vCreada, error: vErr } = await sbClient
+                .from('ventas')
+                .insert([payloadVenta])
+                .select()
+                .single();
 
-            // Descontar el stock vendido de cada producto real (no de catálogo de demo).
-            // Se usa la función ajustar_stock (ajuste atómico en la base de
-            // datos) en vez de leer y luego escribir desde aquí, para que
-            // dos cajeros vendiendo el mismo producto a la vez no se pisen.
-            for (const item of carrito) {
-              if (typeof item.productoId === 'string' && item.productoId.length > 10) {
-                await sbClient.rpc('ajustar_stock', { p_producto_id: item.productoId, p_delta: -Number(item.cantidad) });
+              if (vErr) throw vErr;
+
+              const payloadDetalles = payloadDetallesSinVentaId.map(d => ({ ...d, venta_id: vCreada.id }));
+              const { error: detErr } = await sbClient.from('ventas_detalle').insert(payloadDetalles);
+              if (detErr) {
+                console.error('Error al guardar el detalle de la venta:', detErr);
+                notificar(`Venta registrada, pero el detalle de productos no se guardó: ${detErr.message}`, 'error');
+              }
+
+              // Si es crédito, actualizar saldo
+              if (medioPago === 'CREDITO' && idClienteReal) {
+                const saldoAct = Number(clienteActual.saldo_actual) || 0;
+                const { error: errSaldoCredito } = await sbClient
+                  .from('clientes')
+                  .update({ saldo_actual: +(saldoAct + totalConDescuento).toFixed(2) })
+                  .eq('id', idClienteReal);
+                if (errSaldoCredito) {
+                  console.warn('Error al actualizar la deuda del cliente:', errSaldoCredito);
+                  notificar(`Venta registrada, pero no se pudo actualizar la deuda del cliente (${errSaldoCredito.message}). Avisa al soporte.`, 'error');
+                }
+              }
+
+              // Descontar el stock vendido de cada producto real (no de catálogo de demo).
+              // Se usa la función ajustar_stock (ajuste atómico en la base de
+              // datos) en vez de leer y luego escribir desde aquí, para que
+              // dos cajeros vendiendo el mismo producto a la vez no se pisen.
+              for (const adj of ajustesStock) {
+                await sbClient.rpc('ajustar_stock', { p_producto_id: adj.productoId, p_delta: adj.delta });
               }
             }
           }
@@ -2969,7 +3128,8 @@
             cliente: clienteActual?.nombre_completo || 'Desconocido',
             telefono: clienteActual?.telefono || '',
             cajero: cajeroSeleccionado?.nombre || usuarioActivo?.nombre || 'Cajero',
-            fecha: new Date().toLocaleTimeString()
+            fecha: new Date().toLocaleTimeString(),
+            offline: seVendioOffline
           };
 
           setVentaCompletada(resultado);
@@ -2989,7 +3149,7 @@
           // seleccionado por accidente al mismo cliente de la venta a crédito).
           setDniCliente('99999999');
           obtenerOCrearCliente('99999999');
-          cargarProductos(busqueda); // refresca el stock mostrado en el catálogo
+          if (enLinea) cargarProductos(busqueda); // refresca el stock mostrado en el catálogo
           // No se usa notificar() aquí: el modal de "¡Venta Exitosa!" ya
           // muestra la boleta y el detalle, un toast encima sería redundante.
         } catch (err) {
@@ -3348,12 +3508,28 @@
       // VISTA 2: POS INTERFACE COMPLETO
       // =========================================================================
       return (
-        <div className="flex h-screen bg-stone-50 text-stone-900 font-sans select-none overflow-hidden">
+        <div className={`flex h-screen bg-stone-50 text-stone-900 font-sans select-none overflow-hidden ${(!enLinea || ventasPendientesSync.length > 0) ? 'pt-7' : ''}`}>
           {/* Toast */}
           {toast.visible && (
             <div className={`fixed top-[4.75rem] inset-x-4 md:top-4 md:inset-x-auto md:right-4 md:max-w-xs z-[100] pointer-events-none flex items-center gap-2.5 px-4 py-3 rounded-xl shadow-xl border-l-4 bg-white text-xs font-semibold ${toast.tipo === 'error' ? 'border-rose-500 text-rose-700' : 'border-emerald-500 text-emerald-700'}`}>
               <i className={`fa-solid ${toast.tipo === 'error' ? 'fa-circle-exclamation' : 'fa-circle-check'} text-sm shrink-0`}></i>
               {toast.texto}
+            </div>
+          )}
+
+          {/* Aviso de modo offline / sincronización pendiente */}
+          {(!enLinea || ventasPendientesSync.length > 0) && (
+            <div className={`fixed top-0 inset-x-0 z-[90] text-center text-xs font-semibold py-1.5 px-3 flex items-center justify-center gap-2 ${!enLinea ? 'bg-stone-900 text-white' : 'bg-amber-500 text-white'}`}>
+              {!enLinea ? (
+                <><i className="fa-solid fa-wifi-slash"></i> Sin conexión — las ventas se guardan y se suben solas al volver el internet{ventasPendientesSync.length > 0 ? ` (${ventasPendientesSync.length} pendiente${ventasPendientesSync.length === 1 ? '' : 's'})` : ''}.</>
+              ) : sincronizandoVentas ? (
+                <><i className="fa-solid fa-arrows-rotate fa-spin"></i> Sincronizando {ventasPendientesSync.length} venta{ventasPendientesSync.length === 1 ? '' : 's'} pendiente{ventasPendientesSync.length === 1 ? '' : 's'}...</>
+              ) : (
+                <>
+                  <i className="fa-solid fa-triangle-exclamation"></i> {ventasPendientesSync.length} venta{ventasPendientesSync.length === 1 ? '' : 's'} sin sincronizar.
+                  <button onClick={sincronizarVentasPendientes} className="underline font-bold">Reintentar ahora</button>
+                </>
+              )}
             </div>
           )}
 
@@ -5912,6 +6088,11 @@
                 <div>
                   <h3 className="text-xl font-black text-stone-900">¡Venta Exitosa!</h3>
                   <p className="text-xs text-stone-500 mt-1">Boleta <span className="font-bold text-orange-600">{ventaCompletada.nro_boleta}</span> registrada correctamente.</p>
+                  {ventaCompletada.offline && (
+                    <p className="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-2.5 py-1.5 mt-2 flex items-center justify-center gap-1.5">
+                      <i className="fa-solid fa-cloud-arrow-up"></i> Guardada sin conexión. Se sincronizará sola cuando vuelva el internet.
+                    </p>
+                  )}
                 </div>
                 <div className="bg-white p-3 rounded-xl text-left text-xs font-mono space-y-1 text-stone-700 border border-stone-200">
                   <p><strong>Pago:</strong> {ventaCompletada.medio_pago}</p>
