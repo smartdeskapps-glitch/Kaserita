@@ -2783,6 +2783,7 @@
             descuento: montoDescuento,
             items: [...carrito],
             cliente: clienteActual?.nombre_completo || 'Desconocido',
+            telefono: clienteActual?.telefono || '',
             cajero: cajeroSeleccionado?.nombre || usuarioActivo?.nombre || 'Cajero',
             fecha: new Date().toLocaleTimeString()
           };
@@ -2802,12 +2803,35 @@
           setDniCliente('99999999');
           obtenerOCrearCliente('99999999');
           cargarProductos(busqueda); // refresca el stock mostrado en el catálogo
-          notificar(`¡Venta completada! Boleta: ${correlativo}`, 'success');
+          // No se usa notificar() aquí: el modal de "¡Venta Exitosa!" ya
+          // muestra la boleta y el detalle, un toast encima sería redundante.
         } catch (err) {
           notificar(`Error al registrar venta: ${err.message}`, 'error');
         } finally {
           setProcesandoVenta(false);
         }
+      };
+
+      // Comparte el resumen de la boleta recién cobrada por WhatsApp (texto,
+      // sin PDF): si el cliente tiene teléfono guardado abre el chat directo
+      // con él, si no deja que el cajero elija el contacto.
+      const enviarBoletaWhatsApp = (venta) => {
+        const lineasItems = (venta.items || [])
+          .map((it) => `• ${it.descripcion} x${it.cantidad} — S/ ${Number(it.subtotal).toFixed(2)}`)
+          .join('\n');
+        const mensaje = encodeURIComponent(
+          `🧾 Boleta ${venta.nro_boleta} - ${bodegaNombre}\n` +
+          `Cliente: ${venta.cliente}\n\n` +
+          `${lineasItems}\n\n` +
+          (venta.descuento > 0
+            ? `Subtotal: S/ ${venta.subtotal.toFixed(2)}\nDescuento: -S/ ${venta.descuento.toFixed(2)}\n`
+            : '') +
+          `TOTAL: S/ ${venta.total_venta.toFixed(2)}\nPago: ${venta.medio_pago}\n\n¡Gracias por tu compra!`
+        );
+        const soloNumeros = (venta.telefono || '').replace(/\D/g, '');
+        const telConCodigo = soloNumeros.length === 9 ? `51${soloNumeros}` : soloNumeros;
+        const url = telConCodigo ? `https://wa.me/${telConCodigo}?text=${mensaje}` : `https://wa.me/?text=${mensaje}`;
+        window.open(url, '_blank');
       };
 
       // =========================================================================
@@ -5412,11 +5436,22 @@
           {/* Modal: Boleta Emitida */}
           {ventaCompletada && (
             <div className="fixed inset-0 bg-black/85 flex items-center justify-center z-50 p-4">
-              <div className="bg-stone-100 border border-stone-200 rounded-2xl max-w-sm w-full p-5 shadow-2xl text-center space-y-3">
-                <div className="w-12 h-12 bg-orange-500/20 text-orange-600 rounded-full flex items-center justify-center mx-auto text-xl font-bold">✓</div>
-                <h3 className="text-lg font-black text-stone-900">¡Venta Exitosa!</h3>
-                <p className="text-xs text-stone-700 font-mono">Boleta: <span className="text-orange-600 font-bold">{ventaCompletada.nro_boleta}</span></p>
-                <div className="bg-stone-50 p-3 rounded-lg text-left text-xs font-mono space-y-1 text-stone-700 border border-stone-100">
+              <div className="bg-stone-100 border border-stone-200 rounded-3xl max-w-sm w-full p-6 shadow-2xl text-center space-y-4">
+                <div className="relative w-20 h-20 mx-auto">
+                  <span className="absolute -top-1 left-1 w-1.5 h-1.5 bg-stone-300 rounded-full"></span>
+                  <span className="absolute top-4 -left-3 w-1 h-1 bg-stone-300 rounded-full"></span>
+                  <span className="absolute -top-2 right-4 w-1 h-1 bg-stone-300 rounded-full"></span>
+                  <span className="absolute top-2 -right-3 w-1.5 h-1.5 bg-stone-300 rounded-full"></span>
+                  <span className="absolute bottom-0 -right-3 w-1 h-1 bg-stone-300 rounded-full"></span>
+                  <div className="w-20 h-20 rounded-full bg-gradient-to-br from-orange-500 to-orange-600 flex items-center justify-center shadow-lg shadow-orange-500/30 ring-4 ring-white">
+                    <i className="fa-solid fa-check text-white text-3xl"></i>
+                  </div>
+                </div>
+                <div>
+                  <h3 className="text-xl font-black text-stone-900">¡Venta Exitosa!</h3>
+                  <p className="text-xs text-stone-500 mt-1">Boleta <span className="font-bold text-orange-600">{ventaCompletada.nro_boleta}</span> registrada correctamente.</p>
+                </div>
+                <div className="bg-white p-3 rounded-xl text-left text-xs font-mono space-y-1 text-stone-700 border border-stone-200">
                   <p><strong>Pago:</strong> {ventaCompletada.medio_pago}</p>
                   <p><strong>Cliente:</strong> {ventaCompletada.cliente}</p>
                   {ventaCompletada.descuento > 0 && (
@@ -5429,9 +5464,18 @@
                     <span>TOTAL:</span><span>S/ {ventaCompletada.total_venta.toFixed(2)}</span>
                   </div>
                 </div>
-                <div className="flex gap-2">
-                  <button onClick={() => window.print()} className="flex-1 py-2 bg-stone-200 text-stone-900 font-bold text-xs rounded-xl">🖨️ Imprimir</button>
-                  <button onClick={() => setVentaCompletada(null)} className="flex-1 py-2 bg-orange-600 text-white font-bold text-xs rounded-xl shadow">Nueva Venta</button>
+                <div className="space-y-2 pt-1">
+                  <button onClick={() => setVentaCompletada(null)} className="w-full py-3 bg-stone-900 hover:bg-stone-800 text-white font-bold text-sm rounded-full shadow transition">
+                    Nueva Venta
+                  </button>
+                  <div className="grid grid-cols-2 gap-2">
+                    <button onClick={() => window.print()} className="py-2.5 bg-stone-200 hover:bg-stone-300 text-stone-800 font-semibold text-xs rounded-full transition">
+                      🖨️ Imprimir
+                    </button>
+                    <button onClick={() => enviarBoletaWhatsApp(ventaCompletada)} className="py-2.5 bg-emerald-500 hover:bg-emerald-400 text-white font-semibold text-xs rounded-full transition flex items-center justify-center gap-1.5">
+                      <i className="fa-brands fa-whatsapp"></i> WhatsApp
+                    </button>
+                  </div>
                 </div>
               </div>
               <ReciboImprimible
