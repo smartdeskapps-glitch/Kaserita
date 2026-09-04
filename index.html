@@ -1469,8 +1469,7 @@
         if (modoEscaner === 'inventario') {
           if (filaEscaneandoIndex !== null) {
             if (campoEscaneandoFila === 'cod_ean_pack') {
-              actualizarFilaInventario(filaEscaneandoIndex, 'cod_ean_pack', codigoLimpio);
-              notificar(`Código de pack capturado: ${codigoLimpio}`, 'success');
+              actualizarCodigoEanPackFila(filaEscaneandoIndex, codigoLimpio, true);
             } else {
               actualizarCodigoEanFila(filaEscaneandoIndex, codigoLimpio);
               const encontrado = buscarProductoExistente(codigoLimpio);
@@ -2348,18 +2347,27 @@
         setFilasInventario((prev) => prev.map((fila, i) => (i === index ? { ...fila, [campo]: valor } : fila)));
       };
 
-      // Busca en el catálogo ya cargado un producto por EAN exacto o por
-      // coincidencia parcial de descripción (para el buscador/autocompletar).
+      // Busca en el catálogo ya cargado un producto por cualquiera de sus
+      // identificadores exactos: EAN de la unidad, EAN del pack o SKU. Así,
+      // si escaneas/escribes el código del pack (o el SKU) de un producto
+      // que ya existe, lo reconoce y vincula la fila a ese mismo producto
+      // en vez de crear uno duplicado.
       const buscarProductoExistente = (texto) => {
         const t = (texto || '').trim().toLowerCase();
         if (!t) return null;
-        return productos.find((p) => (p.cod_ean || '').toLowerCase() === t) || null;
+        return productos.find((p) =>
+          (p.cod_ean || '').toLowerCase() === t ||
+          (p.cod_ean_pack || '').toLowerCase() === t ||
+          (p.sku || '').toLowerCase() === t
+        ) || null;
       };
 
       const sugerenciasParaFila = (fila) => {
         const t = fila.descripcion.trim().toLowerCase();
         if (!t || t.length < 2 || fila.productoExistenteId) return [];
-        return productos.filter((p) => (p.descripcion || '').toLowerCase().includes(t)).slice(0, 5);
+        return productos.filter((p) =>
+          (p.descripcion || '').toLowerCase().includes(t) || (p.sku || '').toLowerCase().includes(t)
+        ).slice(0, 5);
       };
 
       // Vincula la fila a un producto ya existente: autocompleta sus datos y
@@ -2401,6 +2409,22 @@
           vincularProductoExistenteEnFila(index, encontrado);
         } else {
           setFilasInventario((prev) => prev.map((fila, i) => (i === index ? { ...fila, cod_ean: codigo, productoExistenteId: null } : fila)));
+        }
+      };
+
+      // Igual que arriba pero para el campo "Código EAN del pack": si ese
+      // código (o el SKU que escribas ahí) ya pertenece a un producto
+      // existente -- por ejemplo, uno que ya registraste solo con su EAN de
+      // unidad y ahora le quieres agregar el del pack -- vincula la fila a
+      // ese producto para completarlo, en vez de crear uno nuevo.
+      const actualizarCodigoEanPackFila = (index, codigo, notificarCaptura = false) => {
+        const encontrado = buscarProductoExistente(codigo);
+        if (encontrado) {
+          vincularProductoExistenteEnFila(index, encontrado);
+          notificar(`Vinculado al producto existente: ${encontrado.descripcion}`, 'success');
+        } else {
+          setFilasInventario((prev) => prev.map((fila, i) => (i === index ? { ...fila, cod_ean_pack: codigo } : fila)));
+          if (notificarCaptura) notificar(`Código de pack capturado: ${codigo}`, 'success');
         }
       };
 
@@ -5053,9 +5077,9 @@
                               <div className="col-span-2 relative">
                                 <input
                                   type="text"
-                                  placeholder="Código EAN del pack (si es distinto al de la unidad)"
+                                  placeholder="EAN o SKU del pack (si ya existe, se vincula solo)"
                                   value={fila.cod_ean_pack}
-                                  onChange={(e) => actualizarFilaInventario(idx, 'cod_ean_pack', e.target.value)}
+                                  onChange={(e) => actualizarCodigoEanPackFila(idx, e.target.value)}
                                   className={`w-full pr-9 ${claseCampoNormal}`}
                                 />
                                 <button
