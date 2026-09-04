@@ -769,7 +769,7 @@
       const [modalEntradaMercaderia, setModalEntradaMercaderia] = useState(false);
       const [compraCabecera, setCompraCabecera] = useState({ proveedor: 'Distribuidora Central', ruc: '', nroComprobante: '' });
       const [compraItems, setCompraItems] = useState([]);
-      const [compraItemTemp, setCompraItemTemp] = useState({ productoId: '', cantidad: 1, costoUnitario: '' });
+      const [compraItemTemp, setCompraItemTemp] = useState({ productoId: '', cantidad: 1, costoUnitario: '', tipo: 'UNIDAD' });
 
       // --- Módulo: Historial de Ventas (por rango de fechas) ---
       const fechaHoyISO = () => new Date().toISOString().slice(0, 10);
@@ -2370,6 +2370,21 @@
         ).slice(0, 5);
       };
 
+      // Igual que arriba pero para el campo "EAN o SKU del pack": deja
+      // buscar por descripción, SKU o cualquiera de los dos códigos, para
+      // poder elegir de una lista en vez de tener que escribir el código
+      // exacto de memoria.
+      const sugerenciasParaFilaPack = (fila) => {
+        const t = (fila.cod_ean_pack || '').trim().toLowerCase();
+        if (!t || t.length < 2 || fila.productoExistenteId) return [];
+        return productos.filter((p) =>
+          (p.descripcion || '').toLowerCase().includes(t) ||
+          (p.sku || '').toLowerCase().includes(t) ||
+          (p.cod_ean_pack || '').toLowerCase().includes(t) ||
+          (p.cod_ean || '').toLowerCase().includes(t)
+        ).slice(0, 5);
+      };
+
       // Vincula la fila a un producto ya existente: autocompleta sus datos y
       // cambia el campo de cantidad a "sumar al stock actual" en vez de "stock inicial".
       const vincularProductoExistenteEnFila = (index, producto) => {
@@ -2675,8 +2690,16 @@
           notificar('Selecciona producto y costo unitario.', 'error');
           return;
         }
+        const unidadesPorPack = Number(prod.unidades_por_pack) || 1;
+        const esPack = compraItemTemp.tipo === 'PACK' && unidadesPorPack > 1;
         const cant = Number(compraItemTemp.cantidad) || 1;
         const costo = Number(compraItemTemp.costoUnitario) || 0;
+        // El proveedor a veces entrega en packs cerrados (ej: 10 packs de 6)
+        // pero el stock siempre se guarda en unidades sueltas -- por eso se
+        // convierte aquí, así el usuario solo escribe "10 packs" y no tiene
+        // que calcular a mano que son 60 unidades.
+        const cantidadStock = esPack ? cant * unidadesPorPack : cant;
+        const costoPorUnidad = esPack ? costo / unidadesPorPack : costo;
         const sub = +(cant * costo).toFixed(2);
 
         setCompraItems(prev => [
@@ -2685,11 +2708,14 @@
             productoId: prod.id,
             descripcion: prod.descripcion,
             cantidad: cant,
-            costoUnitario: costo,
+            cantidadStock,
+            esPack,
+            unidadesPorPack,
+            costoUnitario: costoPorUnidad,
             subtotal: sub
           }
         ]);
-        setCompraItemTemp({ productoId: '', cantidad: 1, costoUnitario: '' });
+        setCompraItemTemp({ productoId: '', cantidad: 1, costoUnitario: '', tipo: 'UNIDAD' });
       };
 
       const guardarEntradaMercaderia = async () => {
@@ -2732,9 +2758,10 @@
             // Si el producto no tenía seguimiento de stock (null), la propia
             // entrada de mercadería lo inicializa con lo recibido.
             for (const it of compraItems) {
-              const { data: nuevoStock } = await sbClient.rpc('ajustar_stock', { p_producto_id: it.productoId, p_delta: Number(it.cantidad) });
+              const unidadesStock = Number(it.cantidadStock ?? it.cantidad);
+              const { data: nuevoStock } = await sbClient.rpc('ajustar_stock', { p_producto_id: it.productoId, p_delta: unidadesStock });
               if (nuevoStock === null) {
-                await sbClient.from('productos').update({ stock_actual: Number(it.cantidad) }).eq('id', it.productoId);
+                await sbClient.from('productos').update({ stock_actual: unidadesStock }).eq('id', it.productoId);
               }
               await sbClient.from('productos').update({ precio_costo: it.costoUnitario }).eq('id', it.productoId);
             }
@@ -4924,6 +4951,7 @@
                 <div className="flex-1 overflow-y-auto space-y-2 pr-1">
                   {filasInventario.map((fila, idx) => {
                     const esExistente = !!fila.productoExistenteId;
+                    const sugerenciasPack = sugerenciasParaFilaPack(fila);
                     const sugerencias = sugerenciasParaFila(fila);
                     const claseCampoVinculado = 'bg-stone-100/40 border border-stone-200 rounded-lg px-3 py-1.5 text-xs text-stone-600 cursor-not-allowed';
                     const claseCampoNormal = 'bg-stone-100 border border-stone-200 rounded-lg px-3 py-1.5 text-xs text-stone-900 focus:outline-none focus:border-orange-500';
@@ -5090,6 +5118,21 @@
                                 >
                                   <i className="fa-solid fa-camera text-xs"></i>
                                 </button>
+                                {sugerenciasPack.length > 0 && (
+                                  <div className="absolute z-10 top-full left-0 right-0 mt-1 bg-stone-200 border border-stone-300 rounded-lg shadow-xl overflow-hidden">
+                                    {sugerenciasPack.map((s) => (
+                                      <button
+                                        type="button"
+                                        key={s.id}
+                                        onClick={() => vincularProductoExistenteEnFila(idx, s)}
+                                        className="w-full text-left px-3 py-2 text-xs text-stone-800 hover:bg-stone-300 flex items-center justify-between gap-2"
+                                      >
+                                        <span className="truncate">{s.descripcion}{s.sku ? ` · ${s.sku}` : ''}</span>
+                                        <span className="text-stone-500 shrink-0">S/ {Number(s.precio_venta).toFixed(2)}</span>
+                                      </button>
+                                    ))}
+                                  </div>
+                                )}
                               </div>
                             </div>
                           )}
@@ -5626,47 +5669,74 @@
                 {/* Agregar Ítem */}
                 <div className="p-3 bg-stone-50 rounded-xl border border-stone-200 space-y-2">
                   <span className="text-xs font-bold text-amber-600 block">Agregar Producto a la Entrada:</span>
-                  <div className="grid grid-cols-3 gap-2">
-                    <select
-                      value={compraItemTemp.productoId}
-                      onChange={(e) => setCompraItemTemp({ ...compraItemTemp, productoId: e.target.value })}
-                      className="col-span-3 bg-stone-100 border border-stone-200 rounded-lg px-2.5 py-1.5 text-xs text-stone-900"
-                    >
-                      <option value="">-- Seleccionar Producto --</option>
-                      {productos.map(p => (
-                        <option key={p.id} value={p.id}>{p.descripcion}</option>
-                      ))}
-                    </select>
-                    <input
-                      type="number"
-                      placeholder="Cantidad"
-                      value={compraItemTemp.cantidad}
-                      onChange={(e) => setCompraItemTemp({ ...compraItemTemp, cantidad: e.target.value })}
-                      className="bg-stone-100 border border-stone-200 rounded-lg px-2 py-1 text-xs text-stone-900"
-                    />
-                    <input
-                      type="number"
-                      step="0.10"
-                      placeholder="Costo Unit."
-                      value={compraItemTemp.costoUnitario}
-                      onChange={(e) => setCompraItemTemp({ ...compraItemTemp, costoUnitario: e.target.value })}
-                      className="bg-stone-100 border border-stone-200 rounded-lg px-2 py-1 text-xs text-stone-900"
-                    />
-                    <button
-                      type="button"
-                      onClick={agregarItemEntradaMercaderia}
-                      className="bg-amber-600 hover:bg-amber-500 text-white font-bold text-xs rounded-lg py-1"
-                    >
-                      + Añadir
-                    </button>
-                  </div>
+                  {(() => {
+                    const prodSel = productos.find(p => p.id === compraItemTemp.productoId);
+                    const unidadesPorPack = Number(prodSel?.unidades_por_pack) || 1;
+                    const tieneP = unidadesPorPack > 1;
+                    const esPack = tieneP && compraItemTemp.tipo === 'PACK';
+                    return (
+                    <div className="grid grid-cols-3 gap-2">
+                      <select
+                        value={compraItemTemp.productoId}
+                        onChange={(e) => setCompraItemTemp({ ...compraItemTemp, productoId: e.target.value, tipo: 'UNIDAD' })}
+                        className="col-span-3 bg-stone-100 border border-stone-200 rounded-lg px-2.5 py-1.5 text-xs text-stone-900"
+                      >
+                        <option value="">-- Seleccionar Producto --</option>
+                        {productos.map(p => (
+                          <option key={p.id} value={p.id}>{p.descripcion}</option>
+                        ))}
+                      </select>
+                      {tieneP && (
+                        <select
+                          value={compraItemTemp.tipo}
+                          onChange={(e) => setCompraItemTemp({ ...compraItemTemp, tipo: e.target.value })}
+                          className="col-span-3 bg-stone-100 border border-stone-200 rounded-lg px-2.5 py-1.5 text-xs text-stone-900"
+                        >
+                          <option value="UNIDAD">Llega por unidad suelta</option>
+                          <option value="PACK">Llega por pack/caja (x{unidadesPorPack})</option>
+                        </select>
+                      )}
+                      <input
+                        type="number"
+                        placeholder={esPack ? 'Cantidad de packs' : 'Cantidad'}
+                        value={compraItemTemp.cantidad}
+                        onChange={(e) => setCompraItemTemp({ ...compraItemTemp, cantidad: e.target.value })}
+                        className="bg-stone-100 border border-stone-200 rounded-lg px-2 py-1 text-xs text-stone-900"
+                      />
+                      <input
+                        type="number"
+                        step="0.10"
+                        placeholder={esPack ? 'Costo por pack' : 'Costo Unit.'}
+                        value={compraItemTemp.costoUnitario}
+                        onChange={(e) => setCompraItemTemp({ ...compraItemTemp, costoUnitario: e.target.value })}
+                        className="bg-stone-100 border border-stone-200 rounded-lg px-2 py-1 text-xs text-stone-900"
+                      />
+                      <button
+                        type="button"
+                        onClick={agregarItemEntradaMercaderia}
+                        className="bg-amber-600 hover:bg-amber-500 text-white font-bold text-xs rounded-lg py-1"
+                      >
+                        + Añadir
+                      </button>
+                      {esPack && compraItemTemp.cantidad && (
+                        <span className="col-span-3 text-[11px] text-stone-500">
+                          = {(Number(compraItemTemp.cantidad) || 0) * unidadesPorPack} unidades en stock
+                        </span>
+                      )}
+                    </div>
+                    );
+                  })()}
                 </div>
 
                 {/* Lista de Ítems Comprados */}
                 <div className="max-h-40 overflow-y-auto space-y-1">
                   {compraItems.map((it, idx) => (
                     <div key={idx} className="flex justify-between items-center text-xs bg-stone-50 p-2 rounded-lg border border-stone-100">
-                      <span>{it.cantidad}x {it.descripcion} (S/ {it.costoUnitario.toFixed(2)})</span>
+                      <span>
+                        {it.cantidad}{it.esPack ? ` pack${it.cantidad > 1 ? 's' : ''} x${it.unidadesPorPack}` : 'x'} {it.descripcion}
+                        {it.esPack && <span className="text-stone-500"> (={it.cantidadStock} und)</span>}
+                        {' '}(S/ {it.costoUnitario.toFixed(2)}/und)
+                      </span>
                       <span className="font-bold text-orange-600">S/ {it.subtotal.toFixed(2)}</span>
                     </div>
                   ))}
