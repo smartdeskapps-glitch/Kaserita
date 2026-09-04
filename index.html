@@ -2804,24 +2804,34 @@
         );
         XLSX.utils.book_append_sheet(libro, hojaPagar, 'Cuentas por Pagar');
 
-        // Detalle de cada venta del período (una fila por boleta, con el
-        // resumen de productos incluido).
-        const hojaDetalle = XLSX.utils.json_to_sheet(
-          ventasDashboard.map((v) => ({
+        // Detalle de cada venta del período: una fila POR PRODUCTO vendido
+        // (no por boleta), para que Subtotal/Unidades sean del producto de
+        // esa fila y no de la venta completa.
+        const filasDetalle = [];
+        ventasDashboard.forEach((v) => {
+          const detalles = v.ventas_detalle || [];
+          const base = {
             Boleta: v.nro_boleta,
             'Fecha y Hora': new Date(v.fecha_hora).toLocaleString('es-PE'),
             'Medio de Pago': v.medio_pago,
-            Subtotal: Number(v.total_venta) + Number(v.descuento_monto || 0),
-            Descuento: Number(v.descuento_monto || 0),
-            Total: Number(v.total_venta),
-            Utilidad: Number(v.utilidad_total || 0),
-            Estado: v.anulada ? 'Anulada' : 'Válida',
-            Unidades: (v.ventas_detalle || []).reduce((a, d) => a + Number(d.cantidad || 0), 0),
-            Productos: (v.ventas_detalle || [])
-              .map((d) => `${d.descripcion} x${d.cantidad}`)
-              .join(', ')
-          }))
-        );
+            Estado: v.anulada ? 'Anulada' : 'Válida'
+          };
+          if (detalles.length === 0) {
+            filasDetalle.push({ ...base, Producto: '', Unidades: 0, 'Precio Unitario': 0, Subtotal: Number(v.total_venta), Utilidad: Number(v.utilidad_total || 0) });
+            return;
+          }
+          detalles.forEach((d) => {
+            filasDetalle.push({
+              ...base,
+              Producto: d.descripcion,
+              Unidades: Number(d.cantidad),
+              'Precio Unitario': Number(d.precio_unitario),
+              Subtotal: Number(d.subtotal),
+              Utilidad: Number(d.utilidad || 0)
+            });
+          });
+        });
+        const hojaDetalle = XLSX.utils.json_to_sheet(filasDetalle);
         XLSX.utils.book_append_sheet(libro, hojaDetalle, 'Detalle de Ventas');
 
         XLSX.writeFile(libro, `Dashboard_${fechaInicioDash}_a_${fechaFinDash}.xlsx`);
