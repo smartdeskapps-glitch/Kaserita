@@ -1360,6 +1360,11 @@
         const cantNum = parseFloat(cantidad) || 1;
         const unidadesPorPack = Number(producto.unidades_por_pack) || 1;
         const esPack = tipoVenta === 'PACK' && unidadesPorPack > 1;
+        // Ojo: unidadesPorPack es la config del PRODUCTO (para precio/label del
+        // pack), no lo que hay que descontar de stock -- una venta suelta
+        // siempre descuenta 1 por unidad, aunque el producto tenga pack
+        // configurado. Solo una venta de pack descuenta unidadesPorPack.
+        const multiplicadorStock = esPack ? unidadesPorPack : 1;
         const precioUnit = esPack
           ? (Number(producto.precio_venta_pack) || Number(producto.precio_venta) * unidadesPorPack)
           : Number(producto.precio_venta) || 0;
@@ -1379,7 +1384,7 @@
               ...actual,
               cantidad: nuevaCant,
               subtotal: +(nuevaCant * actual.precioUnitario).toFixed(2),
-              unidadesStock: +(nuevaCant * unidadesPorPack).toFixed(3)
+              unidadesStock: +(nuevaCant * multiplicadorStock).toFixed(3)
             };
             return nuevo;
           } else {
@@ -1397,7 +1402,7 @@
                 unidad: esPack ? `PACK x${unidadesPorPack}` : (producto.unidad || 'UND'),
                 esPack,
                 unidadesPorPack,
-                unidadesStock: +(cantNum * unidadesPorPack).toFixed(3)
+                unidadesStock: +(cantNum * multiplicadorStock).toFixed(3)
               }
             ];
           }
