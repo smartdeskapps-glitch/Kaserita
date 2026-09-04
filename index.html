@@ -2816,6 +2816,7 @@
             Total: Number(v.total_venta),
             Utilidad: Number(v.utilidad_total || 0),
             Estado: v.anulada ? 'Anulada' : 'Válida',
+            Unidades: (v.ventas_detalle || []).reduce((a, d) => a + Number(d.cantidad || 0), 0),
             Productos: (v.ventas_detalle || [])
               .map((d) => `${d.descripcion} x${d.cantidad}`)
               .join(', ')
