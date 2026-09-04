@@ -2804,6 +2804,25 @@
         );
         XLSX.utils.book_append_sheet(libro, hojaPagar, 'Cuentas por Pagar');
 
+        // Detalle de cada venta del período (una fila por boleta, con el
+        // resumen de productos incluido).
+        const hojaDetalle = XLSX.utils.json_to_sheet(
+          ventasDashboard.map((v) => ({
+            Boleta: v.nro_boleta,
+            'Fecha y Hora': new Date(v.fecha_hora).toLocaleString('es-PE'),
+            'Medio de Pago': v.medio_pago,
+            Subtotal: Number(v.total_venta) + Number(v.descuento_monto || 0),
+            Descuento: Number(v.descuento_monto || 0),
+            Total: Number(v.total_venta),
+            Utilidad: Number(v.utilidad_total || 0),
+            Estado: v.anulada ? 'Anulada' : 'Válida',
+            Productos: (v.ventas_detalle || [])
+              .map((d) => `${d.descripcion} x${d.cantidad}`)
+              .join(', ')
+          }))
+        );
+        XLSX.utils.book_append_sheet(libro, hojaDetalle, 'Detalle de Ventas');
+
         XLSX.writeFile(libro, `Dashboard_${fechaInicioDash}_a_${fechaFinDash}.xlsx`);
       };
 
