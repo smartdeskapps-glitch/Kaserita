@@ -827,8 +827,20 @@
       // --- Vista: Productos con Stock Bajo ---
       const [modalStockBajo, setModalStockBajo] = useState(false);
 
+      // --- Vista: Ver Stock (todo el catálogo, no solo lo urgente) ---
+      const [modalVerStock, setModalVerStock] = useState(false);
+      const [verStockCategoria, setVerStockCategoria] = useState('');
+      const [verStockBusqueda, setVerStockBusqueda] = useState('');
+
+      // --- Módulo: Toma de Inventario (conteo físico vs. sistema) ---
+      const [modalTomaInventario, setModalTomaInventario] = useState(false);
+      const [filasTomaInventario, setFilasTomaInventario] = useState([]);
+      const [tomaInventarioCategoria, setTomaInventarioCategoria] = useState('');
+      const [tomaInventarioBusqueda, setTomaInventarioBusqueda] = useState('');
+      const [guardandoTomaInventario, setGuardandoTomaInventario] = useState(false);
+
       // --- Módulo: Inventario Inicial (carga de varios productos a la vez) ---
-      const filaInventarioVacia = () => ({ descripcion: '', cod_ean: '', sku: '', categoria: 'Abarrotes', precio_costo: '', precio_venta: '', unidad: 'UND', stock_actual: '', vendeEnPack: false, unidades_por_pack: '', precio_venta_pack: '', cod_ean_pack: '', productoExistenteId: null });
+      const filaInventarioVacia = () => ({ descripcion: '', cod_ean: '', sku: '', categoria: 'Abarrotes', precio_costo: '', precio_venta: '', unidad: 'UND', vendeEnPack: false, unidades_por_pack: '', precio_venta_pack: '', cod_ean_pack: '', productoExistenteId: null });
       const [modalInventarioInicial, setModalInventarioInicial] = useState(false);
       const [filasInventario, setFilasInventario] = useState([filaInventarioVacia()]);
       const [guardandoInventario, setGuardandoInventario] = useState(false);
@@ -1348,6 +1360,26 @@
         () => productos.filter((p) => p.stock_actual != null && Number(p.stock_actual) <= Number(p.stock_min || 5)).length,
         [productos]
       );
+
+      // Lista de "Ver Stock": todo el catálogo, filtrable por categoría y
+      // texto, ordenado de menor a mayor stock (lo más urgente primero).
+      const productosVerStock = useMemo(() => {
+        const t = verStockBusqueda.trim().toLowerCase();
+        return productos
+          .filter((p) => !verStockCategoria || p.categoria === verStockCategoria)
+          .filter((p) => !t || (p.descripcion || '').toLowerCase().includes(t))
+          .sort((a, b) => Number(a.stock_actual || 0) - Number(b.stock_actual || 0));
+      }, [productos, verStockCategoria, verStockBusqueda]);
+
+      // Filas visibles de "Toma de Inventario", filtradas por categoría y
+      // texto igual que "Ver Stock" -- para no tener que contar las 300
+      // filas de una sola vez si la bodega es grande.
+      const filasTomaInventarioVisibles = useMemo(() => {
+        const t = tomaInventarioBusqueda.trim().toLowerCase();
+        return filasTomaInventario
+          .filter((f) => !tomaInventarioCategoria || f.categoria === tomaInventarioCategoria)
+          .filter((f) => !t || (f.descripcion || '').toLowerCase().includes(t));
+      }, [filasTomaInventario, tomaInventarioCategoria, tomaInventarioBusqueda]);
 
       // Como los abonos se descuentan del saldo total del cliente (no boleta por
       // boleta), acá se marcan como "pagadas" las boletas más antiguas hasta
@@ -2491,7 +2523,6 @@
                   precio_costo: producto.precio_costo != null ? String(producto.precio_costo) : '',
                   precio_venta: producto.precio_venta != null ? String(producto.precio_venta) : '',
                   unidad: producto.unidad || 'UND',
-                  stock_actual: '',
                   vendeEnPack: Number(producto.unidades_por_pack) > 1,
                   unidades_por_pack: producto.unidades_por_pack != null && Number(producto.unidades_por_pack) > 1 ? String(producto.unidades_por_pack) : '',
                   precio_venta_pack: producto.precio_venta_pack != null ? String(producto.precio_venta_pack) : '',
@@ -2563,7 +2594,10 @@
                 precio_costo: Number(f.precio_costo) || 0,
                 precio_venta: Number(f.precio_venta) || 0,
                 unidad: f.unidad === 'KG' ? 'KG' : 'UND',
-                stock_actual: f.stock_actual === '' ? 0 : Number(f.stock_actual) || 0,
+                // Este formulario ya solo crea/actualiza la ficha del producto
+                // (maestro) -- el stock siempre entra después por "Entrada de
+                // Mercadería", así que un producto nuevo arranca en 0.
+                stock_actual: 0,
                 unidades_por_pack: f.vendeEnPack && Number(f.unidades_por_pack) > 1 ? Number(f.unidades_por_pack) : 1,
                 precio_venta_pack: f.vendeEnPack && f.precio_venta_pack ? Number(f.precio_venta_pack) : null,
                 cod_ean_pack: f.vendeEnPack && f.cod_ean_pack.trim() ? f.cod_ean_pack.trim() : null
@@ -2572,18 +2606,13 @@
               if (error) throw error;
             }
 
-            // Productos ya existentes: suma la cantidad ingresada al stock
-            // actual (ajuste atómico, no lee-y-escribe: si otro dispositivo
-            // también le está sumando stock a este producto a la vez, no se
-            // pisan) y de paso actualiza precios por si cambiaron.
+            // Productos ya existentes: solo actualiza su ficha (precio,
+            // categoría, sku, pack) -- este formulario ya no toca el stock,
+            // eso se hace siempre desde "Entrada de Mercadería".
             // Cada fila es un producto distinto, así que se procesan todas a
             // la vez en vez de una por una -- con varias filas, esto evita
             // esperar N viajes de red seguidos antes de terminar de guardar.
             await Promise.all(filasExistentes.map(async (f) => {
-              const cantidadASumar = Number(f.stock_actual) || 0;
-              if (cantidadASumar !== 0) {
-                await sbClient.rpc('ajustar_stock', { p_producto_id: f.productoExistenteId, p_delta: cantidadASumar });
-              }
               const { error: errUpd } = await sbClient
                 .from('productos')
                 .update({
@@ -2771,6 +2800,74 @@
           notificar(`Error al registrar la merma: ${err.message}`, 'error');
         } finally {
           setGuardandoMerma(false);
+        }
+      };
+
+      // --- Módulo: Toma de Inventario (conteo físico vs. sistema) ---
+      // Se arranca una fila por producto ya cargado (mismo array `productos`
+      // que usa "Stock Bajo", sin pedirle nada nuevo al servidor) y se deja
+      // en blanco "contado" -- el cajero solo llena lo que efectivamente
+      // contó, el resto se ignora al guardar.
+      const abrirTomaInventario = () => {
+        setFilasTomaInventario(
+          productos.map((p) => ({
+            productoId: p.id,
+            descripcion: p.descripcion,
+            categoria: p.categoria || 'General',
+            stockSistema: Number(p.stock_actual) || 0,
+            stockContado: ''
+          }))
+        );
+        setTomaInventarioCategoria('');
+        setTomaInventarioBusqueda('');
+        setModalTomaInventario(true);
+      };
+
+      const actualizarStockContado = (productoId, valor) => {
+        setFilasTomaInventario((prev) =>
+          prev.map((f) => (f.productoId === productoId ? { ...f, stockContado: valor } : f))
+        );
+      };
+
+      const guardarTomaInventario = async () => {
+        const filas = filasTomaInventario.filter((f) => f.stockContado !== '');
+        if (filas.length === 0) {
+          notificar('Ingresa la cantidad contada de al menos un producto.', 'error');
+          return;
+        }
+        setGuardandoTomaInventario(true);
+        try {
+          if (sbClient) {
+            const detalles = filas.map((f) => ({
+              bodega_id: bodegaId,
+              producto_id: f.productoId,
+              cajero_id: cajeroSeleccionado?.id || null,
+              fecha: new Date().toISOString(),
+              stock_sistema: f.stockSistema,
+              stock_contado: Number(f.stockContado) || 0,
+              diferencia: (Number(f.stockContado) || 0) - f.stockSistema
+            }));
+            const { error } = await sbClient.from('tomas_inventario').insert(detalles);
+            if (error) throw error;
+
+            // Solo los productos con diferencia real necesitan ajustar el
+            // stock -- los que calzaron exacto ya quedaron con su registro
+            // de "se contaron y estaban bien" en la tabla, sin tocar nada más.
+            const conDiferencia = detalles.filter((d) => d.diferencia !== 0);
+            await Promise.all(
+              conDiferencia.map((d) =>
+                sbClient.rpc('ajustar_stock', { p_producto_id: d.producto_id, p_delta: d.diferencia })
+              )
+            );
+          }
+          setModalTomaInventario(false);
+          setFilasTomaInventario([]);
+          cargarProductos();
+          notificar(`Toma de inventario guardada: ${filas.length} producto(s) verificado(s).`, 'success');
+        } catch (err) {
+          notificar(`Error al guardar la toma de inventario: ${err.message}`, 'error');
+        } finally {
+          setGuardandoTomaInventario(false);
         }
       };
 
@@ -4165,6 +4262,8 @@
             <SidebarIcon icon="fa-hand-holding-dollar" label="Cuentas por Cobrar" texto="Cobrar Deuda" onClick={abrirModuloCobroDeudas} />
             <SidebarIcon icon="fa-user-plus" label="Nuevo Cliente" texto="Nuevo Cliente" onClick={() => setModalNuevoCliente(true)} />
             <SidebarIcon icon="fa-triangle-exclamation" label="Stock Bajo" texto="Stock Bajo" badge={cantidadStockBajo} tone={cantidadStockBajo > 0 ? 'orange' : 'default'} onClick={() => setModalStockBajo(true)} />
+            <SidebarIcon icon="fa-table-list" label="Ver Stock" texto="Stock" onClick={() => setModalVerStock(true)} />
+            <SidebarIcon icon="fa-clipboard-check" label="Toma de Inventario" texto="Conteo" onClick={abrirTomaInventario} />
             <SidebarIcon icon="fa-box" label="Registrar Merma" texto="Merma" onClick={() => setModalMerma(true)} />
             {esAdmin && (
               <>
@@ -4172,7 +4271,7 @@
                 <SidebarIcon icon="fa-chart-pie" label="Dashboard de Ventas" texto="Dashboard" onClick={abrirDashboard} />
                 <SidebarIcon icon="fa-file-invoice" label="Cuentas por Pagar" texto="Por Pagar" onClick={abrirCuentasPorPagar} />
                 <SidebarIcon icon="fa-cash-register" label="Historial de Cierres de Caja" texto="Cierres" onClick={abrirHistorialCierres} />
-                <SidebarIcon icon="fa-boxes-stacked" label="Registrar Inventario" texto="Inventario" onClick={() => setModalInventarioInicial(true)} />
+                <SidebarIcon icon="fa-boxes-stacked" label="Registrar Productos" texto="Productos" onClick={() => setModalInventarioInicial(true)} />
                 <SidebarIcon icon="fa-truck-ramp-box" label="Entrada de Mercadería" texto="Mercadería" onClick={() => setModalEntradaMercaderia(true)} />
                 <SidebarIcon icon="fa-box-open" label="Nuevo Producto" texto="Producto" onClick={() => setModalNuevoProducto(true)} />
                 <SidebarIcon icon="fa-users" label="Clientes (editar)" texto="Clientes" onClick={abrirGestionClientes} />
@@ -4326,7 +4425,7 @@
                       onClick={() => setModalInventarioInicial(true)}
                       className="mt-4 px-5 py-2.5 bg-stone-900 hover:bg-stone-800 text-white text-sm font-bold rounded-xl shadow-lg shadow-stone-900/25 flex items-center gap-2"
                     >
-                      <i className="fa-solid fa-boxes-stacked"></i> Registrar mi Inventario
+                      <i className="fa-solid fa-boxes-stacked"></i> Registrar Productos
                     </button>
                   </div>
                 ) : productosFiltrados.length === 0 ? (
@@ -4813,6 +4912,12 @@
                 <button onClick={() => { setModalStockBajo(true); setMenuMas(false); }} className="w-full text-left px-3.5 py-3 rounded-xl hover:bg-stone-200 flex items-center gap-3 text-stone-800 font-medium text-sm">
                   <i className="fa-solid fa-triangle-exclamation w-5 text-amber-600"></i> Stock Bajo {cantidadStockBajo > 0 && `(${cantidadStockBajo})`}
                 </button>
+                <button onClick={() => { setModalVerStock(true); setMenuMas(false); }} className="w-full text-left px-3.5 py-3 rounded-xl hover:bg-stone-200 flex items-center gap-3 text-stone-800 font-medium text-sm">
+                  <i className="fa-solid fa-table-list w-5 text-amber-600"></i> Ver Stock
+                </button>
+                <button onClick={() => { abrirTomaInventario(); setMenuMas(false); }} className="w-full text-left px-3.5 py-3 rounded-xl hover:bg-stone-200 flex items-center gap-3 text-stone-800 font-medium text-sm">
+                  <i className="fa-solid fa-clipboard-check w-5 text-amber-600"></i> Toma de Inventario
+                </button>
                 <button onClick={() => { setModalMerma(true); setMenuMas(false); }} className="w-full text-left px-3.5 py-3 rounded-xl hover:bg-stone-200 flex items-center gap-3 text-stone-800 font-medium text-sm">
                   <i className="fa-solid fa-box w-5 text-amber-600"></i> Registrar Merma
                 </button>
@@ -4829,7 +4934,7 @@
                       <i className="fa-solid fa-cash-register w-5 text-orange-600"></i> Historial de Cierres de Caja
                     </button>
                     <button onClick={() => { setModalInventarioInicial(true); setMenuMas(false); }} className="w-full text-left px-3.5 py-3 rounded-xl hover:bg-stone-200 flex items-center gap-3 text-orange-600 font-semibold text-sm">
-                      <i className="fa-solid fa-boxes-stacked w-5"></i> Registrar Inventario
+                      <i className="fa-solid fa-boxes-stacked w-5"></i> Registrar Productos
                     </button>
                     <button onClick={() => { setModalNuevoProducto(true); setMenuMas(false); }} className="w-full text-left px-3.5 py-3 rounded-xl hover:bg-stone-200 flex items-center gap-3 text-stone-800 font-medium text-sm">
                       <i className="fa-solid fa-box-open w-5 text-orange-600"></i> Nuevo Producto
@@ -4983,9 +5088,9 @@
                 <div className="flex justify-between items-start shrink-0">
                   <div>
                     <h3 className="text-base font-bold text-stone-900 flex items-center gap-2">
-                      <i className="fa-solid fa-boxes-stacked text-orange-600"></i> Registrar mi Inventario
+                      <i className="fa-solid fa-boxes-stacked text-orange-600"></i> Registrar Productos
                     </h3>
-                    <p className="text-xs text-stone-600 mt-0.5">Agrega todos los productos que vendes, uno debajo del otro.</p>
+                    <p className="text-xs text-stone-600 mt-0.5">Crea o actualiza la ficha de tus productos (precio, categoría, EAN/SKU). La cantidad se carga después desde "Entrada de Mercadería".</p>
                   </div>
                   <button onClick={() => setModalInventarioInicial(false)} className="text-stone-600 hover:text-stone-900 shrink-0">✕</button>
                 </div>
@@ -5092,19 +5197,11 @@
                           onChange={(e) => actualizarFilaInventario(idx, 'precio_venta', e.target.value)}
                           className={claseCampoNormal}
                         />
-                        <input
-                          type="number"
-                          step="0.10"
-                          placeholder={esExistente ? 'Cantidad a sumar al stock' : 'Cantidad que tienes ahora (stock)'}
-                          value={fila.stock_actual}
-                          onChange={(e) => actualizarFilaInventario(idx, 'stock_actual', e.target.value)}
-                          className={claseCampoNormal}
-                        />
                         <select
                           value={fila.unidad}
                           disabled={esExistente}
                           onChange={(e) => actualizarFilaInventario(idx, 'unidad', e.target.value)}
-                          className={esExistente ? claseCampoVinculado : claseCampoNormal}
+                          className={`sm:col-span-2 ${esExistente ? claseCampoVinculado : claseCampoNormal}`}
                         >
                           <option value="UND">Se vende por Unidad (UND)</option>
                           <option value="KG">Se vende por Peso (KG) — balanza</option>
@@ -5309,6 +5406,127 @@
                       ))
                   )}
                 </div>
+              </div>
+            </div>
+          )}
+
+          {/* Modal: Ver Stock (todo el catálogo) */}
+          {modalVerStock && (
+            <div className="fixed inset-0 bg-black/85 flex items-center justify-center z-50 p-4">
+              <div className="bg-stone-100 border border-stone-200 rounded-2xl max-w-2xl w-full p-5 shadow-2xl space-y-3 max-h-[85vh] flex flex-col">
+                <div className="flex justify-between items-center shrink-0">
+                  <h3 className="text-base font-bold text-stone-900 flex items-center gap-2">
+                    <i className="fa-solid fa-table-list text-orange-600"></i> Ver Stock
+                  </h3>
+                  <button onClick={() => setModalVerStock(false)} className="text-stone-600 hover:text-stone-900">✕</button>
+                </div>
+                <div className="flex gap-2 shrink-0">
+                  <input
+                    type="text"
+                    placeholder="Buscar producto..."
+                    value={verStockBusqueda}
+                    onChange={(e) => setVerStockBusqueda(e.target.value)}
+                    className="flex-1 bg-stone-50 border border-stone-200 rounded-lg px-2.5 py-1.5 text-xs text-stone-900"
+                  />
+                  <select
+                    value={verStockCategoria}
+                    onChange={(e) => setVerStockCategoria(e.target.value)}
+                    className="bg-stone-50 border border-stone-200 rounded-lg px-2.5 py-1.5 text-xs text-stone-900"
+                  >
+                    <option value="">Todas las categorías</option>
+                    {categoriasDB.map(c => <option key={c} value={c}>{c}</option>)}
+                  </select>
+                </div>
+                <div className="flex-1 overflow-y-auto space-y-1.5">
+                  {productosVerStock.length === 0 ? (
+                    <p className="text-xs text-stone-500 text-center py-8">No hay productos que coincidan.</p>
+                  ) : (
+                    productosVerStock.map((p) => (
+                      <div key={p.id} className="flex items-center justify-between p-2.5 bg-stone-50 border border-stone-200 rounded-xl">
+                        <div>
+                          <p className="text-xs font-semibold text-stone-800">{p.descripcion}</p>
+                          <p className="text-xs text-stone-500">{p.categoria || 'General'} · Mínimo: {p.stock_min || 5}</p>
+                        </div>
+                        <span className={`text-sm font-black ${
+                          Number(p.stock_actual) <= 0 ? 'text-rose-600' : Number(p.stock_actual) <= Number(p.stock_min || 5) ? 'text-amber-600' : 'text-stone-700'
+                        }`}>
+                          {Number(p.stock_actual) <= 0 ? 'Sin stock' : `${p.stock_actual}`}
+                        </span>
+                      </div>
+                    ))
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Modal: Toma de Inventario (conteo físico vs. sistema) */}
+          {modalTomaInventario && (
+            <div className="fixed inset-0 bg-black/85 flex items-center justify-center z-50 p-4">
+              <div className="bg-stone-100 border border-stone-200 rounded-2xl max-w-2xl w-full p-5 shadow-2xl space-y-3 max-h-[90vh] flex flex-col">
+                <div className="flex justify-between items-start shrink-0">
+                  <div>
+                    <h3 className="text-base font-bold text-stone-900 flex items-center gap-2">
+                      <i className="fa-solid fa-clipboard-check text-orange-600"></i> Toma de Inventario
+                    </h3>
+                    <p className="text-xs text-stone-600 mt-0.5">Cuenta lo que tienes físicamente. Deja en blanco lo que no vas a contar ahora.</p>
+                  </div>
+                  <button onClick={() => setModalTomaInventario(false)} className="text-stone-600 hover:text-stone-900 shrink-0">✕</button>
+                </div>
+                <div className="flex gap-2 shrink-0">
+                  <input
+                    type="text"
+                    placeholder="Buscar producto..."
+                    value={tomaInventarioBusqueda}
+                    onChange={(e) => setTomaInventarioBusqueda(e.target.value)}
+                    className="flex-1 bg-stone-50 border border-stone-200 rounded-lg px-2.5 py-1.5 text-xs text-stone-900"
+                  />
+                  <select
+                    value={tomaInventarioCategoria}
+                    onChange={(e) => setTomaInventarioCategoria(e.target.value)}
+                    className="bg-stone-50 border border-stone-200 rounded-lg px-2.5 py-1.5 text-xs text-stone-900"
+                  >
+                    <option value="">Todas las categorías</option>
+                    {categoriasDB.map(c => <option key={c} value={c}>{c}</option>)}
+                  </select>
+                </div>
+                <div className="flex-1 overflow-y-auto space-y-1.5">
+                  {filasTomaInventarioVisibles.length === 0 ? (
+                    <p className="text-xs text-stone-500 text-center py-8">No hay productos que coincidan.</p>
+                  ) : (
+                    filasTomaInventarioVisibles.map((f) => {
+                      const diferencia = f.stockContado === '' ? null : (Number(f.stockContado) || 0) - f.stockSistema;
+                      return (
+                        <div key={f.productoId} className="flex items-center gap-2 p-2.5 bg-stone-50 border border-stone-200 rounded-xl">
+                          <div className="flex-1 min-w-0">
+                            <p className="text-xs font-semibold text-stone-800 truncate">{f.descripcion}</p>
+                            <p className="text-xs text-stone-500">Sistema: {f.stockSistema}</p>
+                          </div>
+                          <input
+                            type="number"
+                            step="0.10"
+                            placeholder="Contado"
+                            value={f.stockContado}
+                            onChange={(e) => actualizarStockContado(f.productoId, e.target.value)}
+                            className="w-20 bg-stone-100 border border-stone-200 rounded-lg px-2 py-1.5 text-xs text-stone-900 text-right"
+                          />
+                          <span className={`w-14 text-right text-xs font-bold ${
+                            diferencia === null || diferencia === 0 ? 'text-stone-400' : diferencia > 0 ? 'text-emerald-600' : 'text-rose-600'
+                          }`}>
+                            {diferencia === null ? '—' : diferencia > 0 ? `+${diferencia}` : diferencia}
+                          </span>
+                        </div>
+                      );
+                    })
+                  )}
+                </div>
+                <button
+                  onClick={guardarTomaInventario}
+                  disabled={guardandoTomaInventario}
+                  className="w-full py-2.5 bg-stone-900 hover:bg-stone-800 disabled:opacity-50 text-white font-bold text-xs rounded-xl shadow shrink-0"
+                >
+                  {guardandoTomaInventario ? 'Guardando...' : 'Guardar Toma de Inventario'}
+                </button>
               </div>
             </div>
           )}
