@@ -248,7 +248,7 @@
 
   <!-- Aplicación React + Supabase con Todos los Módulos -->
   <script type="text/babel">
-    const { useState, useEffect, useRef, useMemo } = React;
+    const { useState, useEffect, useRef, useMemo, useCallback } = React;
 
     const generarUUID = () => {
       if (typeof crypto !== 'undefined' && crypto.randomUUID) {
@@ -1160,9 +1160,9 @@
               await sbClient.rpc('ajustar_saldo_cliente', { p_cliente_id: pendiente.credito.clienteId, p_delta: pendiente.credito.monto });
             }
 
-            for (const adj of pendiente.ajustesStock) {
-              await sbClient.rpc('ajustar_stock', { p_producto_id: adj.productoId, p_delta: adj.delta });
-            }
+            await Promise.all(pendiente.ajustesStock.map((adj) =>
+              sbClient.rpc('ajustar_stock', { p_producto_id: adj.productoId, p_delta: adj.delta })
+            ));
 
             exitosas++;
           } catch (err) {
@@ -1263,6 +1263,18 @@
         if (categoriaFiltro === 'TODOS') return productos;
         return productos.filter(p => p.categoria === categoriaFiltro);
       }, [productos, categoriaFiltro]);
+
+      // Versión del catálogo con los campos de texto ya en minúscula, para
+      // no repetir toLowerCase() sobre cada producto en cada tecla que se
+      // escribe en los buscadores de "Registrar Inventario" (se recalcula
+      // solo cuando cambia el catálogo, no en cada keystroke).
+      const productosBusqueda = useMemo(() => productos.map((p) => ({
+        producto: p,
+        desc: (p.descripcion || '').toLowerCase(),
+        sku: (p.sku || '').toLowerCase(),
+        ean: (p.cod_ean || '').toLowerCase(),
+        eanPack: (p.cod_ean_pack || '').toLowerCase()
+      })), [productos]);
 
       const cantidadStockBajo = useMemo(
         () => productos.filter((p) => p.stock_actual != null && Number(p.stock_actual) <= Number(p.stock_min || 5)).length,
@@ -2352,38 +2364,34 @@
       // si escaneas/escribes el código del pack (o el SKU) de un producto
       // que ya existe, lo reconoce y vincula la fila a ese mismo producto
       // en vez de crear uno duplicado.
-      const buscarProductoExistente = (texto) => {
+      const buscarProductoExistente = useCallback((texto) => {
         const t = (texto || '').trim().toLowerCase();
         if (!t) return null;
-        return productos.find((p) =>
-          (p.cod_ean || '').toLowerCase() === t ||
-          (p.cod_ean_pack || '').toLowerCase() === t ||
-          (p.sku || '').toLowerCase() === t
-        ) || null;
-      };
+        const hit = productosBusqueda.find((e) => e.ean === t || e.eanPack === t || e.sku === t);
+        return hit ? hit.producto : null;
+      }, [productosBusqueda]);
 
-      const sugerenciasParaFila = (fila) => {
+      const sugerenciasParaFila = useCallback((fila) => {
         const t = fila.descripcion.trim().toLowerCase();
         if (!t || t.length < 2 || fila.productoExistenteId) return [];
-        return productos.filter((p) =>
-          (p.descripcion || '').toLowerCase().includes(t) || (p.sku || '').toLowerCase().includes(t)
-        ).slice(0, 5);
-      };
+        return productosBusqueda
+          .filter((e) => e.desc.includes(t) || e.sku.includes(t))
+          .slice(0, 5)
+          .map((e) => e.producto);
+      }, [productosBusqueda]);
 
       // Igual que arriba pero para el campo "EAN o SKU del pack": deja
       // buscar por descripción, SKU o cualquiera de los dos códigos, para
       // poder elegir de una lista en vez de tener que escribir el código
       // exacto de memoria.
-      const sugerenciasParaFilaPack = (fila) => {
+      const sugerenciasParaFilaPack = useCallback((fila) => {
         const t = (fila.cod_ean_pack || '').trim().toLowerCase();
         if (!t || t.length < 2 || fila.productoExistenteId) return [];
-        return productos.filter((p) =>
-          (p.descripcion || '').toLowerCase().includes(t) ||
-          (p.sku || '').toLowerCase().includes(t) ||
-          (p.cod_ean_pack || '').toLowerCase().includes(t) ||
-          (p.cod_ean || '').toLowerCase().includes(t)
-        ).slice(0, 5);
-      };
+        return productosBusqueda
+          .filter((e) => e.desc.includes(t) || e.sku.includes(t) || e.eanPack.includes(t) || e.ean.includes(t))
+          .slice(0, 5)
+          .map((e) => e.producto);
+      }, [productosBusqueda]);
 
       // Vincula la fila a un producto ya existente: autocompleta sus datos y
       // cambia el campo de cantidad a "sumar al stock actual" en vez de "stock inicial".
@@ -2486,7 +2494,10 @@
             // actual (ajuste atómico, no lee-y-escribe: si otro dispositivo
             // también le está sumando stock a este producto a la vez, no se
             // pisan) y de paso actualiza precios por si cambiaron.
-            for (const f of filasExistentes) {
+            // Cada fila es un producto distinto, así que se procesan todas a
+            // la vez en vez de una por una -- con varias filas, esto evita
+            // esperar N viajes de red seguidos antes de terminar de guardar.
+            await Promise.all(filasExistentes.map(async (f) => {
               const cantidadASumar = Number(f.stock_actual) || 0;
               if (cantidadASumar !== 0) {
                 await sbClient.rpc('ajustar_stock', { p_producto_id: f.productoExistenteId, p_delta: cantidadASumar });
@@ -2503,7 +2514,7 @@
                 })
                 .eq('id', f.productoExistenteId);
               if (errUpd) throw errUpd;
-            }
+            }));
           }
 
           setModalInventarioInicial(false);
@@ -2757,14 +2768,17 @@
             // producto (el stock se ajusta de forma atómica por separado).
             // Si el producto no tenía seguimiento de stock (null), la propia
             // entrada de mercadería lo inicializa con lo recibido.
-            for (const it of compraItems) {
+            // Cada línea de la compra es un producto distinto -- se procesan
+            // todas a la vez en vez de esperar una por una (una factura con
+            // 30 líneas antes hacía 30 viajes de red seguidos).
+            await Promise.all(compraItems.map(async (it) => {
               const unidadesStock = Number(it.cantidadStock ?? it.cantidad);
               const { data: nuevoStock } = await sbClient.rpc('ajustar_stock', { p_producto_id: it.productoId, p_delta: unidadesStock });
               if (nuevoStock === null) {
                 await sbClient.from('productos').update({ stock_actual: unidadesStock }).eq('id', it.productoId);
               }
               await sbClient.from('productos').update({ precio_costo: it.costoUnitario }).eq('id', it.productoId);
-            }
+            }));
           }
 
           setModalEntradaMercaderia(false);
@@ -3135,11 +3149,10 @@
             // base) en vez de "cantidad" -- si la línea era un pack, cantidad
             // son packs, no unidades. Si es una venta vieja sin esa columna
             // (previa a esta función), cae de vuelta a cantidad.
-            for (const d of (venta.ventas_detalle || [])) {
-              if (d.producto_id) {
-                await sbClient.rpc('ajustar_stock', { p_producto_id: d.producto_id, p_delta: Number(d.unidades_stock ?? d.cantidad) });
-              }
-            }
+            await Promise.all((venta.ventas_detalle || [])
+              .filter((d) => d.producto_id)
+              .map((d) => sbClient.rpc('ajustar_stock', { p_producto_id: d.producto_id, p_delta: Number(d.unidades_stock ?? d.cantidad) }))
+            );
           }
           setVentasDelDia(prev => prev.map(v => v.id === venta.id ? { ...v, anulada: true, motivo_anulacion: motivo } : v));
           cargarProductos(busqueda); // refresca el stock repuesto en el catálogo
@@ -3530,9 +3543,9 @@
               // Se usa la función ajustar_stock (ajuste atómico en la base de
               // datos) en vez de leer y luego escribir desde aquí, para que
               // dos cajeros vendiendo el mismo producto a la vez no se pisen.
-              for (const adj of ajustesStock) {
-                await sbClient.rpc('ajustar_stock', { p_producto_id: adj.productoId, p_delta: adj.delta });
-              }
+              await Promise.all(ajustesStock.map((adj) =>
+                sbClient.rpc('ajustar_stock', { p_producto_id: adj.productoId, p_delta: adj.delta })
+              ));
             }
           }
 
