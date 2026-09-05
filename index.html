@@ -850,6 +850,10 @@
       const [compraCabecera, setCompraCabecera] = useState({ proveedor: 'Distribuidora Central', ruc: '', nroComprobante: '' });
       const [compraItems, setCompraItems] = useState([]);
       const [compraItemTemp, setCompraItemTemp] = useState({ productoId: '', cantidad: 1, costoUnitario: '', tipo: 'UNIDAD' });
+      // Ficha rápida para crear un producto sin salir de "Entrada de
+      // Mercadería" -- null cuando el mini-formulario está cerrado.
+      const [nuevoProductoInlineCompra, setNuevoProductoInlineCompra] = useState(null);
+      const [guardandoProductoInlineCompra, setGuardandoProductoInlineCompra] = useState(false);
 
       // --- Módulo: Historial de Ventas (por rango de fechas) ---
       const fechaHoyISO = () => new Date().toISOString().slice(0, 10);
@@ -2874,6 +2878,52 @@
       // ==========================================
       // ENTRADA DE MERCADERÍA (COMPRAS)
       // ==========================================
+
+      // Ficha rápida de producto, sin salir de "Entrada de Mercadería":
+      // solo lo esencial para poder seguir cargando la entrada (EAN/SKU se
+      // autogeneran, igual que en los demás formularios de creación). Si
+      // después hace falta el EAN real, pack, etc., se completa desde
+      // "Editar Producto".
+      const crearProductoInlineCompra = async () => {
+        const f = nuevoProductoInlineCompra;
+        if (!f || !f.descripcion.trim() || !f.precio_venta) {
+          notificar('Completa la descripción y el precio de venta.', 'error');
+          return;
+        }
+        setGuardandoProductoInlineCompra(true);
+        try {
+          const payload = {
+            bodega_id: bodegaId,
+            descripcion: f.descripcion.trim(),
+            cod_ean: generarCodigoInterno(),
+            sku: generarSKU(f.categoria),
+            categoria: f.categoria.trim() || 'General',
+            precio_costo: Number(f.precio_costo) || 0,
+            precio_venta: Number(f.precio_venta) || 0,
+            unidad: f.unidad === 'KG' ? 'KG' : 'UND',
+            stock_actual: 0
+          };
+          let nuevoProd = null;
+          if (sbClient) {
+            const { data, error } = await sbClient.from('productos').insert([payload]).select().single();
+            if (error) throw error;
+            nuevoProd = data;
+          }
+          if (nuevoProd) {
+            // Se agrega al catálogo en memoria al toque -- no hay que
+            // esperar un refetch completo solo para poder seleccionarlo.
+            setProductos((prev) => [...prev, nuevoProd]);
+            setCompraItemTemp((prev) => ({ ...prev, productoId: nuevoProd.id }));
+          }
+          setNuevoProductoInlineCompra(null);
+          notificar(`Producto "${payload.descripcion}" creado. Ya lo puedes agregar a la entrada.`, 'success');
+        } catch (err) {
+          notificar(`Error al crear el producto: ${err.message}`, 'error');
+        } finally {
+          setGuardandoProductoInlineCompra(false);
+        }
+      };
+
       const agregarItemEntradaMercaderia = () => {
         const prod = productos.find(p => p.id === compraItemTemp.productoId);
         if (!prod || !compraItemTemp.costoUnitario) {
@@ -5938,14 +5988,83 @@
                     <div className="grid grid-cols-3 gap-2">
                       <select
                         value={compraItemTemp.productoId}
-                        onChange={(e) => setCompraItemTemp({ ...compraItemTemp, productoId: e.target.value, tipo: 'UNIDAD' })}
+                        onChange={(e) => {
+                          if (e.target.value === '__nuevo__') {
+                            setNuevoProductoInlineCompra({ descripcion: '', categoria: 'Abarrotes', precio_costo: '', precio_venta: '', unidad: 'UND' });
+                            return;
+                          }
+                          setCompraItemTemp({ ...compraItemTemp, productoId: e.target.value, tipo: 'UNIDAD' });
+                        }}
                         className="col-span-3 bg-stone-100 border border-stone-200 rounded-lg px-2.5 py-1.5 text-xs text-stone-900"
                       >
                         <option value="">-- Seleccionar Producto --</option>
                         {productos.map(p => (
                           <option key={p.id} value={p.id}>{p.descripcion}</option>
                         ))}
+                        <option value="__nuevo__">+ Nuevo producto...</option>
                       </select>
+                      {nuevoProductoInlineCompra && (
+                        <div className="col-span-3 p-2.5 bg-amber-50 border border-amber-200 rounded-lg space-y-2">
+                          <span className="text-xs font-bold text-amber-700 block">Crear producto rápido:</span>
+                          <input
+                            type="text"
+                            placeholder="Descripción *"
+                            value={nuevoProductoInlineCompra.descripcion}
+                            onChange={(e) => setNuevoProductoInlineCompra({ ...nuevoProductoInlineCompra, descripcion: e.target.value })}
+                            className="w-full bg-white border border-stone-200 rounded-lg px-2.5 py-1.5 text-xs text-stone-900"
+                          />
+                          <div className="grid grid-cols-2 gap-2">
+                            <select
+                              value={nuevoProductoInlineCompra.categoria}
+                              onChange={(e) => setNuevoProductoInlineCompra({ ...nuevoProductoInlineCompra, categoria: e.target.value })}
+                              className="bg-white border border-stone-200 rounded-lg px-2.5 py-1.5 text-xs text-stone-900"
+                            >
+                              {categoriasDB.map(c => <option key={c} value={c}>{c}</option>)}
+                            </select>
+                            <select
+                              value={nuevoProductoInlineCompra.unidad}
+                              onChange={(e) => setNuevoProductoInlineCompra({ ...nuevoProductoInlineCompra, unidad: e.target.value })}
+                              className="bg-white border border-stone-200 rounded-lg px-2.5 py-1.5 text-xs text-stone-900"
+                            >
+                              <option value="UND">Se vende por Unidad (UND)</option>
+                              <option value="KG">Se vende por Peso (KG) — balanza</option>
+                            </select>
+                            <input
+                              type="number"
+                              step="0.10"
+                              placeholder="Precio costo (S/)"
+                              value={nuevoProductoInlineCompra.precio_costo}
+                              onChange={(e) => setNuevoProductoInlineCompra({ ...nuevoProductoInlineCompra, precio_costo: e.target.value })}
+                              className="bg-white border border-stone-200 rounded-lg px-2.5 py-1.5 text-xs text-stone-900"
+                            />
+                            <input
+                              type="number"
+                              step="0.10"
+                              placeholder="Precio venta (S/) *"
+                              value={nuevoProductoInlineCompra.precio_venta}
+                              onChange={(e) => setNuevoProductoInlineCompra({ ...nuevoProductoInlineCompra, precio_venta: e.target.value })}
+                              className="bg-white border border-stone-200 rounded-lg px-2.5 py-1.5 text-xs text-stone-900"
+                            />
+                          </div>
+                          <div className="grid grid-cols-2 gap-2">
+                            <button
+                              type="button"
+                              onClick={() => setNuevoProductoInlineCompra(null)}
+                              className="bg-stone-200 hover:bg-stone-300 text-stone-700 font-bold text-xs rounded-lg py-1.5"
+                            >
+                              Cancelar
+                            </button>
+                            <button
+                              type="button"
+                              onClick={crearProductoInlineCompra}
+                              disabled={guardandoProductoInlineCompra}
+                              className="bg-amber-600 hover:bg-amber-500 disabled:opacity-50 text-white font-bold text-xs rounded-lg py-1.5"
+                            >
+                              {guardandoProductoInlineCompra ? 'Creando...' : 'Crear y usar'}
+                            </button>
+                          </div>
+                        </div>
+                      )}
                       {tieneP && (
                         <select
                           value={compraItemTemp.tipo}
