@@ -9,7 +9,7 @@
 -- después por qué cambió el stock de un producto.
 create table if not exists tomas_inventario (
   id uuid primary key default gen_random_uuid(),
-  bodega_id text not null,
+  bodega_id uuid not null,
   producto_id uuid not null references productos(id),
   cajero_id uuid,
   fecha timestamptz not null default now(),
