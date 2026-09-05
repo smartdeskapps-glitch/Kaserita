@@ -2039,10 +2039,18 @@
             if (error) throw error;
             setClienteActual(data);
             setDniCliente(data.dni);
+            // Si se creó desde dentro de "Clientes", que aparezca en la
+            // lista al toque en vez de tener que cerrar y volver a entrar.
+            if (modalGestionClientes) {
+              setClientesLista((prev) => [...prev, data].sort((a, b) => (a.nombre_completo || '').localeCompare(b.nombre_completo || '')));
+            }
           } else {
             const cLocal = { id: generarUUID(), bodega_id: bodegaId, dni: dni.trim(), nombre_completo: nombre.trim(), telefono, correo, limite_credito: limite, dias_credito: 30, saldo_actual: 0 };
             setClienteActual(cLocal);
             setDniCliente(cLocal.dni);
+            if (modalGestionClientes) {
+              setClientesLista((prev) => [...prev, cLocal].sort((a, b) => (a.nombre_completo || '').localeCompare(b.nombre_completo || '')));
+            }
           }
 
           setModalNuevoCliente(false);
@@ -4314,7 +4322,11 @@
             <SidebarIcon icon="fa-clock-rotate-left" label="Ventas en Espera" texto="En Espera" badge={ventasEnEspera.length} onClick={() => setModalVentasEspera(true)} />
             <SidebarIcon icon="fa-receipt" label="Historial de Ventas" texto="Historial" onClick={abrirHistorialDelDia} />
             <SidebarIcon icon="fa-hand-holding-dollar" label="Cuentas por Cobrar" texto="Cobrar Deuda" onClick={abrirModuloCobroDeudas} />
-            <SidebarIcon icon="fa-user-plus" label="Nuevo Cliente" texto="Nuevo Cliente" onClick={() => setModalNuevoCliente(true)} />
+            {/* Los admins ya tienen "Agregar Cliente" dentro de "Clientes" --
+                este acceso directo queda solo para cajeros sin ese menú. */}
+            {!esAdmin && (
+              <SidebarIcon icon="fa-user-plus" label="Nuevo Cliente" texto="Nuevo Cliente" onClick={() => setModalNuevoCliente(true)} />
+            )}
             <SidebarIcon icon="fa-triangle-exclamation" label="Stock Bajo" texto="Stock Bajo" badge={cantidadStockBajo} tone={cantidadStockBajo > 0 ? 'orange' : 'default'} onClick={() => setModalStockBajo(true)} />
             <SidebarIcon icon="fa-table-list" label="Ver Stock" texto="Stock" onClick={() => setModalVerStock(true)} />
             <SidebarIcon icon="fa-clipboard-check" label="Toma de Inventario" texto="Conteo" onClick={abrirTomaInventario} />
@@ -4978,9 +4990,11 @@
                 <button onClick={() => { abrirHistorialDelDia(); setMenuMas(false); }} className="w-full text-left px-3.5 py-3 rounded-xl hover:bg-stone-200 flex items-center gap-3 text-stone-800 font-medium text-sm">
                   <i className="fa-solid fa-receipt w-5 text-orange-600"></i> Historial de Ventas Hoy
                 </button>
-                <button onClick={() => { setModalNuevoCliente(true); setMenuMas(false); }} className="w-full text-left px-3.5 py-3 rounded-xl hover:bg-stone-200 flex items-center gap-3 text-stone-800 font-medium text-sm">
-                  <i className="fa-solid fa-user-plus w-5 text-orange-600"></i> Registrar Cliente
-                </button>
+                {!esAdmin && (
+                  <button onClick={() => { setModalNuevoCliente(true); setMenuMas(false); }} className="w-full text-left px-3.5 py-3 rounded-xl hover:bg-stone-200 flex items-center gap-3 text-stone-800 font-medium text-sm">
+                    <i className="fa-solid fa-user-plus w-5 text-orange-600"></i> Registrar Cliente
+                  </button>
+                )}
                 <button onClick={() => { setModalStockBajo(true); setMenuMas(false); }} className="w-full text-left px-3.5 py-3 rounded-xl hover:bg-stone-200 flex items-center gap-3 text-stone-800 font-medium text-sm">
                   <i className="fa-solid fa-triangle-exclamation w-5 text-amber-600"></i> Stock Bajo {cantidadStockBajo > 0 && `(${cantidadStockBajo})`}
                 </button>
@@ -6642,6 +6656,16 @@
                   </h3>
                   <button onClick={() => { setModalGestionClientes(false); setClienteEditando(null); }} className="text-stone-600 hover:text-stone-900">✕</button>
                 </div>
+
+                {!clienteEditando && (
+                  <button
+                    type="button"
+                    onClick={() => setModalNuevoCliente(true)}
+                    className="shrink-0 w-full py-2 bg-orange-600 hover:bg-orange-500 text-white text-xs font-bold rounded-xl shadow flex items-center justify-center gap-2"
+                  >
+                    <i className="fa-solid fa-user-plus"></i> Agregar Cliente
+                  </button>
+                )}
 
                 {clienteEditando ? (
                   <div className="p-3 bg-stone-50 rounded-xl border border-orange-700/40 space-y-2.5">
