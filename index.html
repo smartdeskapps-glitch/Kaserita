@@ -1673,12 +1673,26 @@
               setDebugEscaner({ frames, tamano: `${video.videoWidth}x${video.videoHeight}`, error: '' });
             }
             try {
-              canvas.width = video.videoWidth;
-              canvas.height = video.videoHeight;
+              // Decodificar a resolución completa (hasta 1920x1080) es
+              // innecesario para leer un código de barras y en celulares sin
+              // detector nativo mantenía la CPU/batería trabajando fuerte
+              // mientras el escáner estaba abierto. Se achica la imagen a un
+              // ancho máximo antes de decodificar -- mucho más liviano y
+              // sigue siendo más que suficiente resolución para el código.
+              const ANCHO_MAX_DECODIFICAR = 640;
+              const escala = Math.min(1, ANCHO_MAX_DECODIFICAR / video.videoWidth);
+              canvas.width = Math.round(video.videoWidth * escala);
+              canvas.height = Math.round(video.videoHeight * escala);
               ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
               const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+              // "tryHarder" es el modo más lento y minucioso del decodificador.
+              // Se usa solo cada 4 intentos (~800ms) en vez de siempre -- la
+              // mayoría de las veces un código se lee al toque con el modo
+              // rápido, y el modo a fondo sigue entrando periódicamente por si
+              // el código está borroso, girado o con poca luz.
+              const usarTryHarder = frames % 4 === 0;
               const resultados = await ZXingWASM.readBarcodesFromImageData(imgData, {
-                tryHarder: true,
+                tryHarder: usarTryHarder,
                 formats: ['EAN13', 'EAN8', 'UPCA', 'UPCE', 'Code128', 'Code39', 'QRCode']
               });
               if (activo && resultados && resultados.length > 0 && resultados[0].text) {
