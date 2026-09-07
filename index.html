@@ -284,6 +284,52 @@
       return `${prefijo}-${sufijo}`;
     };
 
+    // Convierte los campos de pack de un formulario (vendeEnPack,
+    // unidades_por_pack, precio_venta_pack, cod_ean_pack -- como strings,
+    // que es como los guardan los inputs) a los valores que espera la
+    // columna de `productos`. Centralizado porque esta misma normalización
+    // se repetía en cada lugar que crea o actualiza un producto -- si
+    // alguna vez cambian las reglas (ej. permitir unidades_por_pack === 1),
+    // solo hay que tocarlo acá.
+    // OJO: no usar `.toISOString().slice(0, 10)` para esto -- toISOString()
+    // convierte a UTC, así que en Perú (UTC-5) desde ~7pm hora local ya es
+    // "mañana" en UTC y "Hoy" mostraba la fecha equivocada (ventas del día
+    // desaparecían del historial). Se arma la fecha con los componentes
+    // locales del Date en vez de convertir a UTC.
+    const fechaISOLocal = (d) => {
+      const y = d.getFullYear();
+      const m = String(d.getMonth() + 1).padStart(2, '0');
+      const day = String(d.getDate()).padStart(2, '0');
+      return `${y}-${m}-${day}`;
+    };
+    const fechaHoyISO = () => fechaISOLocal(new Date());
+
+    const normalizarCamposPack = (f) => ({
+      unidades_por_pack: f.vendeEnPack && Number(f.unidades_por_pack) > 1 ? Number(f.unidades_por_pack) : 1,
+      precio_venta_pack: f.vendeEnPack && f.precio_venta_pack ? Number(f.precio_venta_pack) : null,
+      cod_ean_pack: f.vendeEnPack && (f.cod_ean_pack || '').trim() ? f.cod_ean_pack.trim() : null
+    });
+
+    // La otra dirección: de una fila de `productos` a los campos (todos en
+    // string, como los maneja un <input>) que arman un formulario de
+    // creación/edición. Usado tanto al vincular una fila de "Registrar
+    // Productos" a un producto existente como al abrir "Editar Producto" --
+    // cada llamador le agrega encima los campos propios de su formulario
+    // (stock_actual, productoExistenteId, etc.).
+    const datosFormularioDesdeProducto = (producto) => ({
+      descripcion: producto.descripcion || '',
+      cod_ean: producto.cod_ean || '',
+      sku: producto.sku || '',
+      categoria: producto.categoria || 'General',
+      precio_costo: producto.precio_costo != null ? String(producto.precio_costo) : '',
+      precio_venta: producto.precio_venta != null ? String(producto.precio_venta) : '',
+      unidad: producto.unidad || 'UND',
+      vendeEnPack: Number(producto.unidades_por_pack) > 1,
+      unidades_por_pack: Number(producto.unidades_por_pack) > 1 ? String(producto.unidades_por_pack) : '',
+      precio_venta_pack: producto.precio_venta_pack != null ? String(producto.precio_venta_pack) : '',
+      cod_ean_pack: producto.cod_ean_pack || ''
+    });
+
     // Exporta un arreglo de objetos a un archivo Excel (.xlsx) real descargable,
     // generado en el propio navegador con SheetJS (sin backend).
     const exportarExcel = (nombreArchivo, filas, nombreHoja = 'Datos') => {
@@ -516,6 +562,67 @@
               hover nunca se ve, así que el texto no puede depender de eso. */}
           <span className="text-[10px] font-semibold leading-tight text-center px-0.5">{texto || label}</span>
         </button>
+      );
+    }
+
+    // Barra de "Desde / Hasta" + atajos rápidos (Hoy / Últimos N días / Este
+    // mes), usada en Historial de Cierres y en el Dashboard de Ventas -- antes
+    // este bloque estaba copiado en los dos lugares, con solo el nombre de los
+    // setters y el número de días distinto.
+    function FiltroFechasRapido({ desde, hasta, setDesde, setHasta, onRango, diasAtras, children }) {
+      const irAHoy = () => {
+        const hoy = fechaHoyISO();
+        setDesde(hoy); setHasta(hoy); onRango(hoy, hoy);
+      };
+      const irAUltimosNDias = () => {
+        const hoy = fechaHoyISO();
+        const desdeDate = new Date();
+        desdeDate.setDate(desdeDate.getDate() - (diasAtras - 1));
+        const desdeStr = fechaISOLocal(desdeDate);
+        setDesde(desdeStr); setHasta(hoy); onRango(desdeStr, hoy);
+      };
+      const irAEsteMes = () => {
+        const hoy = fechaHoyISO();
+        const inicioMes = hoy.slice(0, 8) + '01';
+        setDesde(inicioMes); setHasta(hoy); onRango(inicioMes, hoy);
+      };
+      return (
+        <div className="flex flex-wrap items-end gap-2 shrink-0">
+          <div>
+            <label className="text-xs text-stone-600 block mb-1">Desde:</label>
+            <input
+              type="date"
+              value={desde}
+              onChange={(e) => setDesde(e.target.value)}
+              className="bg-stone-50 border border-stone-200 rounded-lg px-2 py-1.5 text-xs text-stone-900"
+            />
+          </div>
+          <div>
+            <label className="text-xs text-stone-600 block mb-1">Hasta:</label>
+            <input
+              type="date"
+              value={hasta}
+              onChange={(e) => setHasta(e.target.value)}
+              className="bg-stone-50 border border-stone-200 rounded-lg px-2 py-1.5 text-xs text-stone-900"
+            />
+          </div>
+          <button
+            onClick={() => onRango(desde, hasta)}
+            className="px-3 py-1.5 bg-stone-900 hover:bg-stone-800 text-white text-xs font-semibold rounded-lg"
+          >
+            Buscar
+          </button>
+          <button onClick={irAHoy} className="px-3 py-1.5 bg-stone-200 hover:bg-stone-300 text-stone-700 text-xs font-semibold rounded-lg">
+            Hoy
+          </button>
+          <button onClick={irAUltimosNDias} className="px-3 py-1.5 bg-stone-200 hover:bg-stone-300 text-stone-700 text-xs font-semibold rounded-lg">
+            Últimos {diasAtras} días
+          </button>
+          <button onClick={irAEsteMes} className="px-3 py-1.5 bg-stone-200 hover:bg-stone-300 text-stone-700 text-xs font-semibold rounded-lg">
+            Este mes
+          </button>
+          {children}
+        </div>
       );
     }
 
@@ -860,18 +967,6 @@
       const [guardandoProductoInlineCompra, setGuardandoProductoInlineCompra] = useState(false);
 
       // --- Módulo: Historial de Ventas (por rango de fechas) ---
-      // OJO: no usar `.toISOString().slice(0, 10)` para esto -- toISOString()
-      // convierte a UTC, así que en Perú (UTC-5) desde ~7pm hora local ya es
-      // "mañana" en UTC y "Hoy" mostraba la fecha equivocada (ventas del día
-      // desaparecían del historial). Se arma la fecha con los componentes
-      // locales del Date en vez de convertir a UTC.
-      const fechaISOLocal = (d) => {
-        const y = d.getFullYear();
-        const m = String(d.getMonth() + 1).padStart(2, '0');
-        const day = String(d.getDate()).padStart(2, '0');
-        return `${y}-${m}-${day}`;
-      };
-      const fechaHoyISO = () => fechaISOLocal(new Date());
       const [modalHistorial, setModalHistorial] = useState(false);
       const [ventasDelDia, setVentasDelDia] = useState([]);
       const [cargandoHistorial, setCargandoHistorial] = useState(false);
@@ -2566,24 +2661,14 @@
               ? {
                   ...fila,
                   productoExistenteId: producto.id,
-                  descripcion: producto.descripcion,
-                  cod_ean: producto.cod_ean || '',
-                  sku: producto.sku || '',
-                  categoria: producto.categoria || 'General',
-                  precio_costo: producto.precio_costo != null ? String(producto.precio_costo) : '',
-                  precio_venta: producto.precio_venta != null ? String(producto.precio_venta) : '',
-                  unidad: producto.unidad || 'UND',
-                  vendeEnPack: Number(producto.unidades_por_pack) > 1,
+                  ...datosFormularioDesdeProducto(producto),
                   // Se guarda aparte para poder avisar si el operador
                   // destilda el pack de un producto que sí lo tenía --
                   // el campo queda editable (a propósito, para poder
                   // agregarle/quitarle pack a un producto ya existente
                   // desde acá), pero un clic sin querer no debería pasar
                   // desapercibido.
-                  vendeEnPackOriginal: Number(producto.unidades_por_pack) > 1,
-                  unidades_por_pack: producto.unidades_por_pack != null && Number(producto.unidades_por_pack) > 1 ? String(producto.unidades_por_pack) : '',
-                  precio_venta_pack: producto.precio_venta_pack != null ? String(producto.precio_venta_pack) : '',
-                  cod_ean_pack: producto.cod_ean_pack || ''
+                  vendeEnPackOriginal: Number(producto.unidades_por_pack) > 1
                 }
               : fila
           )
@@ -2655,9 +2740,7 @@
                 // (maestro) -- el stock siempre entra después por "Entrada de
                 // Mercadería", así que un producto nuevo arranca en 0.
                 stock_actual: 0,
-                unidades_por_pack: f.vendeEnPack && Number(f.unidades_por_pack) > 1 ? Number(f.unidades_por_pack) : 1,
-                precio_venta_pack: f.vendeEnPack && f.precio_venta_pack ? Number(f.precio_venta_pack) : null,
-                cod_ean_pack: f.vendeEnPack && f.cod_ean_pack.trim() ? f.cod_ean_pack.trim() : null
+                ...normalizarCamposPack(f)
               }));
               const { error } = await sbClient.from('productos').insert(payloadNuevos);
               if (error) throw error;
@@ -2676,9 +2759,7 @@
                   precio_costo: Number(f.precio_costo) || 0,
                   precio_venta: Number(f.precio_venta) || 0,
                   sku: f.sku.trim() || undefined,
-                  unidades_por_pack: f.vendeEnPack && Number(f.unidades_por_pack) > 1 ? Number(f.unidades_por_pack) : 1,
-                  precio_venta_pack: f.vendeEnPack && f.precio_venta_pack ? Number(f.precio_venta_pack) : null,
-                  cod_ean_pack: f.vendeEnPack && f.cod_ean_pack.trim() ? f.cod_ean_pack.trim() : null
+                  ...normalizarCamposPack(f)
                 })
                 .eq('id', f.productoExistenteId);
               if (errUpd) throw errUpd;
@@ -2721,9 +2802,7 @@
             categoria: categoria.trim() || 'General',
             unidad: unidad === 'KG' ? 'KG' : 'UND',
             stock_actual: stock_actual === '' ? 0 : Number(stock_actual) || 0,
-            unidades_por_pack: vendeEnPack && Number(unidades_por_pack) > 1 ? Number(unidades_por_pack) : 1,
-            precio_venta_pack: vendeEnPack && precio_venta_pack ? Number(precio_venta_pack) : null,
-            cod_ean_pack: vendeEnPack && cod_ean_pack.trim() ? cod_ean_pack.trim() : null
+            ...normalizarCamposPack({ vendeEnPack, unidades_por_pack, precio_venta_pack, cod_ean_pack })
           };
 
           if (sbClient) {
@@ -2746,18 +2825,8 @@
       const abrirEdicionProducto = useCallback((prod) => {
         setProductoEditando(prod);
         setFormEditarProducto({
-          descripcion: prod.descripcion || '',
-          cod_ean: prod.cod_ean || '',
-          sku: prod.sku || '',
-          categoria: prod.categoria || 'General',
-          precio_costo: prod.precio_costo != null ? String(prod.precio_costo) : '',
-          precio_venta: prod.precio_venta != null ? String(prod.precio_venta) : '',
-          unidad: prod.unidad || 'UND',
-          stock_actual: prod.stock_actual != null ? String(prod.stock_actual) : '',
-          vendeEnPack: Number(prod.unidades_por_pack) > 1,
-          unidades_por_pack: Number(prod.unidades_por_pack) > 1 ? String(prod.unidades_por_pack) : '',
-          precio_venta_pack: prod.precio_venta_pack != null ? String(prod.precio_venta_pack) : '',
-          cod_ean_pack: prod.cod_ean_pack || ''
+          ...datosFormularioDesdeProducto(prod),
+          stock_actual: prod.stock_actual != null ? String(prod.stock_actual) : ''
         });
         setModalEditarProducto(true);
       }, []);
@@ -2779,9 +2848,7 @@
             precio_venta: Number(formEditarProducto.precio_venta) || 0,
             unidad: formEditarProducto.unidad === 'KG' ? 'KG' : 'UND',
             stock_actual: formEditarProducto.stock_actual === '' ? null : Number(formEditarProducto.stock_actual),
-            unidades_por_pack: formEditarProducto.vendeEnPack && Number(formEditarProducto.unidades_por_pack) > 1 ? Number(formEditarProducto.unidades_por_pack) : 1,
-            precio_venta_pack: formEditarProducto.vendeEnPack && formEditarProducto.precio_venta_pack ? Number(formEditarProducto.precio_venta_pack) : null,
-            cod_ean_pack: formEditarProducto.vendeEnPack && formEditarProducto.cod_ean_pack.trim() ? formEditarProducto.cod_ean_pack.trim() : null
+            ...normalizarCamposPack(formEditarProducto)
           };
           if (sbClient) {
             const { error } = await sbClient.from('productos').update(payload).eq('id', productoEditando.id);
@@ -6574,59 +6641,14 @@
                   <button onClick={() => setModalHistorialCierres(false)} className="text-stone-600 hover:text-stone-900">✕</button>
                 </div>
 
-                <div className="flex flex-wrap items-end gap-2 shrink-0">
-                  <div>
-                    <label className="text-xs text-stone-600 block mb-1">Desde:</label>
-                    <input
-                      type="date"
-                      value={fechaInicioCierres}
-                      onChange={(e) => setFechaInicioCierres(e.target.value)}
-                      className="bg-stone-50 border border-stone-200 rounded-lg px-2 py-1.5 text-xs text-stone-900"
-                    />
-                  </div>
-                  <div>
-                    <label className="text-xs text-stone-600 block mb-1">Hasta:</label>
-                    <input
-                      type="date"
-                      value={fechaFinCierres}
-                      onChange={(e) => setFechaFinCierres(e.target.value)}
-                      className="bg-stone-50 border border-stone-200 rounded-lg px-2 py-1.5 text-xs text-stone-900"
-                    />
-                  </div>
-                  <button
-                    onClick={() => cargarHistorialCierresPorRango(fechaInicioCierres, fechaFinCierres)}
-                    className="px-3 py-1.5 bg-stone-900 hover:bg-stone-800 text-white text-xs font-semibold rounded-lg"
-                  >
-                    Buscar
-                  </button>
-                  <button
-                    onClick={() => { const hoy = fechaHoyISO(); setFechaInicioCierres(hoy); setFechaFinCierres(hoy); cargarHistorialCierresPorRango(hoy, hoy); }}
-                    className="px-3 py-1.5 bg-stone-200 hover:bg-stone-300 text-stone-700 text-xs font-semibold rounded-lg"
-                  >
-                    Hoy
-                  </button>
-                  <button
-                    onClick={() => {
-                      const hoy = fechaHoyISO();
-                      const hace30 = new Date(); hace30.setDate(hace30.getDate() - 29);
-                      const desde = fechaISOLocal(hace30);
-                      setFechaInicioCierres(desde); setFechaFinCierres(hoy); cargarHistorialCierresPorRango(desde, hoy);
-                    }}
-                    className="px-3 py-1.5 bg-stone-200 hover:bg-stone-300 text-stone-700 text-xs font-semibold rounded-lg"
-                  >
-                    Últimos 30 días
-                  </button>
-                  <button
-                    onClick={() => {
-                      const hoy = fechaHoyISO();
-                      const inicioMes = hoy.slice(0, 8) + '01';
-                      setFechaInicioCierres(inicioMes); setFechaFinCierres(hoy); cargarHistorialCierresPorRango(inicioMes, hoy);
-                    }}
-                    className="px-3 py-1.5 bg-stone-200 hover:bg-stone-300 text-stone-700 text-xs font-semibold rounded-lg"
-                  >
-                    Este mes
-                  </button>
-                </div>
+                <FiltroFechasRapido
+                  desde={fechaInicioCierres}
+                  hasta={fechaFinCierres}
+                  setDesde={setFechaInicioCierres}
+                  setHasta={setFechaFinCierres}
+                  onRango={cargarHistorialCierresPorRango}
+                  diasAtras={30}
+                />
 
                 <div className="flex-1 overflow-y-auto space-y-2">
                   {cargandoCierres ? (
@@ -7031,58 +7053,14 @@
                   <button onClick={() => setModalDashboard(false)} className="text-stone-600 hover:text-stone-900">✕</button>
                 </div>
 
-                <div className="flex flex-wrap items-end gap-2">
-                  <div>
-                    <label className="text-xs text-stone-600 block mb-1">Desde:</label>
-                    <input
-                      type="date"
-                      value={fechaInicioDash}
-                      onChange={(e) => setFechaInicioDash(e.target.value)}
-                      className="bg-stone-50 border border-stone-200 rounded-lg px-2 py-1.5 text-xs text-stone-900"
-                    />
-                  </div>
-                  <div>
-                    <label className="text-xs text-stone-600 block mb-1">Hasta:</label>
-                    <input
-                      type="date"
-                      value={fechaFinDash}
-                      onChange={(e) => setFechaFinDash(e.target.value)}
-                      className="bg-stone-50 border border-stone-200 rounded-lg px-2 py-1.5 text-xs text-stone-900"
-                    />
-                  </div>
-                  <button
-                    onClick={() => cargarDashboard(fechaInicioDash, fechaFinDash)}
-                    className="px-3 py-1.5 bg-stone-900 hover:bg-stone-800 text-white text-xs font-semibold rounded-lg"
-                  >
-                    Buscar
-                  </button>
-                  <button
-                    onClick={() => { const hoy = fechaHoyISO(); setFechaInicioDash(hoy); setFechaFinDash(hoy); cargarDashboard(hoy, hoy); }}
-                    className="px-3 py-1.5 bg-stone-200 hover:bg-stone-300 text-stone-700 text-xs font-semibold rounded-lg"
-                  >
-                    Hoy
-                  </button>
-                  <button
-                    onClick={() => {
-                      const hoy = fechaHoyISO();
-                      const hace6 = new Date(); hace6.setDate(hace6.getDate() - 6);
-                      const desde = fechaISOLocal(hace6);
-                      setFechaInicioDash(desde); setFechaFinDash(hoy); cargarDashboard(desde, hoy);
-                    }}
-                    className="px-3 py-1.5 bg-stone-200 hover:bg-stone-300 text-stone-700 text-xs font-semibold rounded-lg"
-                  >
-                    Últimos 7 días
-                  </button>
-                  <button
-                    onClick={() => {
-                      const hoy = fechaHoyISO();
-                      const inicioMes = hoy.slice(0, 8) + '01';
-                      setFechaInicioDash(inicioMes); setFechaFinDash(hoy); cargarDashboard(inicioMes, hoy);
-                    }}
-                    className="px-3 py-1.5 bg-stone-200 hover:bg-stone-300 text-stone-700 text-xs font-semibold rounded-lg"
-                  >
-                    Este mes
-                  </button>
+                <FiltroFechasRapido
+                  desde={fechaInicioDash}
+                  hasta={fechaFinDash}
+                  setDesde={setFechaInicioDash}
+                  setHasta={setFechaFinDash}
+                  onRango={cargarDashboard}
+                  diasAtras={7}
+                >
                   {dashStats.numVentas > 0 && (
                     <button
                       onClick={exportarDashboardExcel}
@@ -7092,7 +7070,7 @@
                       <i className="fa-solid fa-file-excel"></i> Excel
                     </button>
                   )}
-                </div>
+                </FiltroFechasRapido>
 
                 {cargandoDashboard ? (
                   <p className="text-xs text-center py-10 text-stone-600">Calculando estadísticas...</p>
