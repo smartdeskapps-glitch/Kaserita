@@ -860,7 +860,18 @@
       const [guardandoProductoInlineCompra, setGuardandoProductoInlineCompra] = useState(false);
 
       // --- Módulo: Historial de Ventas (por rango de fechas) ---
-      const fechaHoyISO = () => new Date().toISOString().slice(0, 10);
+      // OJO: no usar `.toISOString().slice(0, 10)` para esto -- toISOString()
+      // convierte a UTC, así que en Perú (UTC-5) desde ~7pm hora local ya es
+      // "mañana" en UTC y "Hoy" mostraba la fecha equivocada (ventas del día
+      // desaparecían del historial). Se arma la fecha con los componentes
+      // locales del Date en vez de convertir a UTC.
+      const fechaISOLocal = (d) => {
+        const y = d.getFullYear();
+        const m = String(d.getMonth() + 1).padStart(2, '0');
+        const day = String(d.getDate()).padStart(2, '0');
+        return `${y}-${m}-${day}`;
+      };
+      const fechaHoyISO = () => fechaISOLocal(new Date());
       const [modalHistorial, setModalHistorial] = useState(false);
       const [ventasDelDia, setVentasDelDia] = useState([]);
       const [cargandoHistorial, setCargandoHistorial] = useState(false);
@@ -3140,7 +3151,7 @@
         const hoy = fechaHoyISO();
         const hace6dias = new Date();
         hace6dias.setDate(hace6dias.getDate() - 6);
-        const desde = hace6dias.toISOString().slice(0, 10);
+        const desde = fechaISOLocal(hace6dias);
         setFechaInicioDash(desde);
         setFechaFinDash(hoy);
         setModalDashboard(true);
@@ -3508,7 +3519,7 @@
         const hoy = fechaHoyISO();
         const hace30dias = new Date();
         hace30dias.setDate(hace30dias.getDate() - 29);
-        const desde = hace30dias.toISOString().slice(0, 10);
+        const desde = fechaISOLocal(hace30dias);
         setFechaInicioCierres(desde);
         setFechaFinCierres(hoy);
         setModalHistorialCierres(true);
@@ -6496,7 +6507,7 @@
                     onClick={() => {
                       const hoy = fechaHoyISO();
                       const hace30 = new Date(); hace30.setDate(hace30.getDate() - 29);
-                      const desde = hace30.toISOString().slice(0, 10);
+                      const desde = fechaISOLocal(hace30);
                       setFechaInicioCierres(desde); setFechaFinCierres(hoy); cargarHistorialCierresPorRango(desde, hoy);
                     }}
                     className="px-3 py-1.5 bg-stone-200 hover:bg-stone-300 text-stone-700 text-xs font-semibold rounded-lg"
@@ -6953,7 +6964,7 @@
                     onClick={() => {
                       const hoy = fechaHoyISO();
                       const hace6 = new Date(); hace6.setDate(hace6.getDate() - 6);
-                      const desde = hace6.toISOString().slice(0, 10);
+                      const desde = fechaISOLocal(hace6);
                       setFechaInicioDash(desde); setFechaFinDash(hoy); cargarDashboard(desde, hoy);
                     }}
                     className="px-3 py-1.5 bg-stone-200 hover:bg-stone-300 text-stone-700 text-xs font-semibold rounded-lg"
