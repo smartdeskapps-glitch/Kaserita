@@ -840,7 +840,7 @@
       const [guardandoTomaInventario, setGuardandoTomaInventario] = useState(false);
 
       // --- Módulo: Inventario Inicial (carga de varios productos a la vez) ---
-      const filaInventarioVacia = () => ({ descripcion: '', cod_ean: '', sku: '', categoria: 'Abarrotes', precio_costo: '', precio_venta: '', unidad: 'UND', vendeEnPack: false, unidades_por_pack: '', precio_venta_pack: '', cod_ean_pack: '', productoExistenteId: null });
+      const filaInventarioVacia = () => ({ descripcion: '', cod_ean: '', sku: '', categoria: 'Abarrotes', precio_costo: '', precio_venta: '', unidad: 'UND', vendeEnPack: false, vendeEnPackOriginal: false, unidades_por_pack: '', precio_venta_pack: '', cod_ean_pack: '', productoExistenteId: null });
       const [modalInventarioInicial, setModalInventarioInicial] = useState(false);
       const [filasInventario, setFilasInventario] = useState([filaInventarioVacia()]);
       const [guardandoInventario, setGuardandoInventario] = useState(false);
@@ -1240,9 +1240,11 @@
 
         setSincronizandoVentas(true);
         let exitosas = 0;
+        let hayFallosDeStock = false;
         const restantes = [];
 
-        for (const pendiente of cola) {
+        for (let i = 0; i < cola.length; i++) {
+          const pendiente = cola[i];
           try {
             const { data: vCreada, error: vErr } = await sbClient
               .from('ventas')
@@ -1259,23 +1261,38 @@
               await sbClient.rpc('ajustar_saldo_cliente', { p_cliente_id: pendiente.credito.clienteId, p_delta: pendiente.credito.monto });
             }
 
-            await Promise.all(pendiente.ajustesStock.map((adj) =>
+            // Si esto falla, NO se puede simplemente reintentar todo el
+            // `pendiente` (eso volvería a insertar la venta de arriba, que ya
+            // quedó guardada) -- se avisa para corregir el stock a mano en
+            // vez de eso.
+            const resultadosAjuste = await Promise.all(pendiente.ajustesStock.map((adj) =>
               sbClient.rpc('ajustar_stock', { p_producto_id: adj.productoId, p_delta: adj.delta })
             ));
+            if (resultadosAjuste.some((r) => r.error)) {
+              console.warn('Una venta offline se sincronizó pero su ajuste de stock falló:', pendiente);
+              hayFallosDeStock = true;
+            }
 
             exitosas++;
           } catch (err) {
             console.warn('No se pudo sincronizar una venta offline, se reintentará:', err);
             restantes.push(pendiente);
           }
+          // Se guarda el progreso después de CADA venta (no solo al final del
+          // loop) -- si la app se cierra a la mitad de la sincronización, lo
+          // que ya se subió con éxito no debe quedar en la cola y subirse
+          // doble en el próximo intento.
+          guardarVentasPendientesLS([...restantes, ...cola.slice(i + 1)]);
         }
 
-        guardarVentasPendientesLS(restantes);
         setSincronizandoVentas(false);
 
         if (exitosas > 0) {
           notificar(`Se sincronizaron ${exitosas} venta${exitosas === 1 ? '' : 's'} hecha${exitosas === 1 ? '' : 's'} sin conexión.`, 'success');
           cargarProductos(busqueda);
+        }
+        if (hayFallosDeStock) {
+          notificar('Algunas ventas offline se sincronizaron pero su stock no se pudo ajustar. Revísalo en "Ver Stock".', 'error');
         }
         if (restantes.length > 0) {
           notificar(`${restantes.length} venta(s) offline no se pudieron sincronizar todavía. Se reintentará.`, 'error');
@@ -1850,17 +1867,23 @@
         };
       }, [modalEscaner, metodoForzado]);
 
-      const cambiarCantidadCarrito = (productoId, delta) => {
+      const cambiarCantidadCarrito = (claveCarrito, delta) => {
         setCarrito(prev =>
           prev.map(item => {
-            if (item.productoId === productoId) {
+            if ((item.claveCarrito || item.productoId) === claveCarrito) {
               const step = item.unidad === 'KG' ? 0.250 : 1;
               const nCant = +(item.cantidad + (delta * step)).toFixed(3);
               if (nCant <= 0) return null;
+              // El multiplicador de stock depende de si esta línea es pack o
+              // suelta -- sin esto, subir/bajar la cantidad de una línea en
+              // pack dejaba unidadesStock desactualizado y el checkout
+              // descontaba mal el stock.
+              const multiplicadorStock = item.esPack ? (item.unidadesPorPack || 1) : 1;
               return {
                 ...item,
                 cantidad: nCant,
-                subtotal: +(nCant * item.precioUnitario).toFixed(2)
+                subtotal: +(nCant * item.precioUnitario).toFixed(2),
+                unidadesStock: +(nCant * multiplicadorStock).toFixed(3)
               };
             }
             return item;
@@ -1868,8 +1891,8 @@
         );
       };
 
-      const eliminarItemCarrito = (productoId) => {
-        setCarrito(prev => prev.filter(item => item.productoId !== productoId));
+      const eliminarItemCarrito = (claveCarrito) => {
+        setCarrito(prev => prev.filter(item => (item.claveCarrito || item.productoId) !== claveCarrito));
       };
 
       const totalVenta = useMemo(() => {
@@ -2551,6 +2574,13 @@
                   precio_venta: producto.precio_venta != null ? String(producto.precio_venta) : '',
                   unidad: producto.unidad || 'UND',
                   vendeEnPack: Number(producto.unidades_por_pack) > 1,
+                  // Se guarda aparte para poder avisar si el operador
+                  // destilda el pack de un producto que sí lo tenía --
+                  // el campo queda editable (a propósito, para poder
+                  // agregarle/quitarle pack a un producto ya existente
+                  // desde acá), pero un clic sin querer no debería pasar
+                  // desapercibido.
+                  vendeEnPackOriginal: Number(producto.unidades_por_pack) > 1,
                   unidades_por_pack: producto.unidades_por_pack != null && Number(producto.unidades_por_pack) > 1 ? String(producto.unidades_por_pack) : '',
                   precio_venta_pack: producto.precio_venta_pack != null ? String(producto.precio_venta_pack) : '',
                   cod_ean_pack: producto.cod_ean_pack || ''
@@ -2804,6 +2834,7 @@
         setGuardandoMerma(true);
         try {
           const totalCosto = +(cant * (Number(prod.precio_costo) || 0)).toFixed(2);
+          let errorAjusteStock = null;
           if (sbClient) {
             const { error } = await sbClient.from('mermas').insert([{
               bodega_id: bodegaId,
@@ -2817,12 +2848,18 @@
             if (error) throw error;
 
             // Descuenta la merma del stock, igual que una venta (ajuste atómico)
-            await sbClient.rpc('ajustar_stock', { p_producto_id: prod.id, p_delta: -cant });
+            const { error: errAjuste } = await sbClient.rpc('ajustar_stock', { p_producto_id: prod.id, p_delta: -cant });
+            if (errAjuste) console.warn('Error al ajustar stock por merma:', errAjuste);
+            errorAjusteStock = errAjuste;
           }
           setModalMerma(false);
           setFormMerma({ productoId: '', cantidad: '', motivo: 'Vencido' });
           cargarProductos(busqueda);
-          notificar(`Merma registrada: ${cant} x ${prod.descripcion} (S/ ${totalCosto.toFixed(2)}).`, 'info');
+          if (errorAjusteStock) {
+            notificar(`Merma registrada, pero el stock no se pudo ajustar (${errorAjusteStock.message}). Revísalo en "Ver Stock".`, 'error');
+          } else {
+            notificar(`Merma registrada: ${cant} x ${prod.descripcion} (S/ ${totalCosto.toFixed(2)}).`, 'info');
+          }
         } catch (err) {
           notificar(`Error al registrar la merma: ${err.message}`, 'error');
         } finally {
@@ -2865,15 +2902,31 @@
         setGuardandoTomaInventario(true);
         try {
           if (sbClient) {
-            const detalles = filas.map((f) => ({
-              bodega_id: bodegaId,
-              producto_id: f.productoId,
-              cajero_id: cajeroSeleccionado?.id || null,
-              fecha: new Date().toISOString(),
-              stock_sistema: f.stockSistema,
-              stock_contado: Number(f.stockContado) || 0,
-              diferencia: (Number(f.stockContado) || 0) - f.stockSistema
-            }));
+            // `f.stockSistema` es una foto de cuando se abrió el modal -- si
+            // pasó tiempo contando (o hubo una venta/merma mientras tanto),
+            // ya no refleja el stock real. Se vuelve a consultar justo antes
+            // de calcular la diferencia, para que el ajuste se aplique sobre
+            // el número correcto y no sobre uno viejo.
+            const idsFilas = filas.map((f) => f.productoId);
+            const { data: stockFresco, error: errFresco } = await sbClient
+              .from('productos')
+              .select('id, stock_actual')
+              .in('id', idsFilas);
+            if (errFresco) throw errFresco;
+            const stockFrescoPorId = new Map((stockFresco || []).map((p) => [p.id, Number(p.stock_actual) || 0]));
+
+            const detalles = filas.map((f) => {
+              const stockSistemaFresco = stockFrescoPorId.has(f.productoId) ? stockFrescoPorId.get(f.productoId) : f.stockSistema;
+              return {
+                bodega_id: bodegaId,
+                producto_id: f.productoId,
+                cajero_id: cajeroSeleccionado?.id || null,
+                fecha: new Date().toISOString(),
+                stock_sistema: stockSistemaFresco,
+                stock_contado: Number(f.stockContado) || 0,
+                diferencia: (Number(f.stockContado) || 0) - stockSistemaFresco
+              };
+            });
             const { error } = await sbClient.from('tomas_inventario').insert(detalles);
             if (error) throw error;
 
@@ -2881,11 +2934,16 @@
             // stock -- los que calzaron exacto ya quedaron con su registro
             // de "se contaron y estaban bien" en la tabla, sin tocar nada más.
             const conDiferencia = detalles.filter((d) => d.diferencia !== 0);
-            await Promise.all(
+            const resultadosAjuste = await Promise.all(
               conDiferencia.map((d) =>
                 sbClient.rpc('ajustar_stock', { p_producto_id: d.producto_id, p_delta: d.diferencia })
               )
             );
+            const fallosAjuste = resultadosAjuste.filter((r) => r.error);
+            if (fallosAjuste.length > 0) {
+              console.warn('Error al ajustar stock en toma de inventario:', fallosAjuste);
+              notificar(`Se guardó el conteo, pero ${fallosAjuste.length} producto(s) no se pudieron ajustar. Revísalos en "Ver Stock".`, 'error');
+            }
           }
           setModalTomaInventario(false);
           setFilasTomaInventario([]);
@@ -3201,7 +3259,10 @@
 
         const porDiaMap = {};
         validas.forEach(v => {
-          const dia = v.fecha_hora.slice(0, 10);
+          // fecha_hora es un timestamp UTC (como lo devuelve Supabase) --
+          // recortar los primeros 10 caracteres agrupa por el día en UTC, no
+          // en el día local, mismo tipo de bug que fechaHoyISO() (ver arriba).
+          const dia = fechaISOLocal(new Date(v.fecha_hora));
           porDiaMap[dia] = (porDiaMap[dia] || 0) + Number(v.total_venta);
         });
         const porDia = Object.entries(porDiaMap)
@@ -3614,18 +3675,27 @@
               }
             }
 
-            // Si falló por una razón real (no por estar en modo demo sin
-            // bodega válida en la BD), se avisa en vez de fallar en
-            // silencio y seguir como si nada -- así este tipo de error no
-            // vuelve a pasar desapercibido.
-            if (error && bodegaId !== BODEGA_DEMO_ID) {
+            // Si falló por una razón real estando en línea (no por estar
+            // offline ni en modo demo), NO se sigue con un turno fantasma
+            // que solo existe en este dispositivo -- las ventas de ese
+            // turno quedarían referenciando un turno_caja_id que no existe
+            // en la base. Se corta acá y se deja reintentar.
+            if (error && bodegaId !== BODEGA_DEMO_ID && enLinea) {
               console.warn('Error al abrir turno en la base de datos:', error);
-              notificar(`No se pudo abrir el turno en el servidor (${error.message}). Se abrió localmente; avisa al soporte.`, 'error');
+              notificar(`No se pudo abrir el turno en el servidor (${error.message}). Intenta de nuevo.`, 'error');
+              return;
+            }
+            if (error) {
+              notificar('Sin conexión: el turno se abrió localmente y se sincroniza cuando vuelva el internet.', 'info');
             } else {
               notificar('Turno abierto.', 'info');
             }
           } catch (err) {
             console.warn(err);
+            if (enLinea && bodegaId !== BODEGA_DEMO_ID) {
+              notificar('No se pudo abrir el turno (error de conexión con el servidor). Intenta de nuevo.', 'error');
+              return;
+            }
           }
         }
 
@@ -3652,7 +3722,21 @@
             return;
           }
           const limiteCred = Number(clienteActual.limite_credito) || 0;
-          const saldoAct = Number(clienteActual.saldo_actual) || 0;
+          // `clienteActual.saldo_actual` puede estar desactualizado si otro
+          // dispositivo/cajero le vendió a este mismo cliente hace un
+          // momento -- se vuelve a leer justo antes de cobrar para no
+          // aprobar una venta contra un saldo viejo.
+          let saldoAct = Number(clienteActual.saldo_actual) || 0;
+          if (sbClient) {
+            const { data: clienteFresco, error: errClienteFresco } = await sbClient
+              .from('clientes')
+              .select('saldo_actual')
+              .eq('id', clienteActual.id)
+              .maybeSingle();
+            if (!errClienteFresco && clienteFresco) {
+              saldoAct = Number(clienteFresco.saldo_actual) || 0;
+            }
+          }
           const nuevoSaldoProyectado = +(saldoAct + totalConDescuento).toFixed(2);
           if (nuevoSaldoProyectado > limiteCred) {
             const disponible = Math.max(0, +(limiteCred - saldoAct).toFixed(2));
@@ -3795,9 +3879,18 @@
               // Se usa la función ajustar_stock (ajuste atómico en la base de
               // datos) en vez de leer y luego escribir desde aquí, para que
               // dos cajeros vendiendo el mismo producto a la vez no se pisen.
-              await Promise.all(ajustesStock.map((adj) =>
+              // La venta ya se cobró y no tiene vuelta atrás en este punto,
+              // así que un error acá no debe bloquear la boleta -- pero
+              // tampoco debe pasar callado: si algo falla, se avisa para que
+              // el stock se pueda corregir a mano.
+              const resultadosAjusteStock = await Promise.all(ajustesStock.map((adj) =>
                 sbClient.rpc('ajustar_stock', { p_producto_id: adj.productoId, p_delta: adj.delta })
               ));
+              const fallosAjusteStock = resultadosAjusteStock.filter((r) => r.error);
+              if (fallosAjusteStock.length > 0) {
+                console.warn('Error al ajustar stock de la venta:', fallosAjusteStock);
+                notificar(`Venta registrada, pero el stock de ${fallosAjusteStock.length} producto(s) no se pudo actualizar. Revísalo en "Ver Stock".`, 'error');
+              }
             }
           }
 
@@ -4202,7 +4295,11 @@
                     const { data: bCreada, error: errBodega } = await sbClient.from('bodegas').insert([{ nombre: formRegistro.nombreBodega.trim() }]).select().single();
                     if (errBodega) throw errBodega;
 
-                    const { data: uCreado, error: errUsuario } = await sbClient.from('usuarios').insert([{ bodega_id: bCreada.id, nombre: formRegistro.nombreDueno.trim(), dni, pin_acceso: pin, rol: 'dueno', activo: true, auth_id: authData.user.id }]).select().single();
+                    // El PIN real ya vive protegido dentro de Supabase Auth (es la
+                    // contraseña de authData.user) -- no hace falta guardarlo también
+                    // en texto plano acá, sería un segundo lugar de donde se puede
+                    // filtrar.
+                    const { data: uCreado, error: errUsuario } = await sbClient.from('usuarios').insert([{ bodega_id: bCreada.id, nombre: formRegistro.nombreDueno.trim(), dni, rol: 'dueno', activo: true, auth_id: authData.user.id }]).select().single();
                     if (errUsuario) throw errUsuario;
 
                     const { error: errCajero } = await sbClient.from('cajeros').insert([{ bodega_id: bCreada.id, nombre: formRegistro.nombreDueno.trim(), dni, rol: 'dueno', activo: true }]);
@@ -4625,7 +4722,7 @@
               ) : (
                 carrito.map((item) => (
                   <div
-                    key={item.productoId}
+                    key={item.claveCarrito || item.productoId}
                     className="flex items-center gap-2.5 p-2.5 bg-stone-200/40 border border-stone-200 rounded-xl hover:border-stone-300 transition"
                   >
                     <div className="flex-1 min-w-0">
@@ -4639,7 +4736,7 @@
 
                     <div className="flex items-center gap-1 bg-stone-100 p-1 rounded-lg border border-stone-300 shrink-0">
                       <button
-                        onClick={() => cambiarCantidadCarrito(item.productoId, -1)}
+                        onClick={() => cambiarCantidadCarrito(item.claveCarrito || item.productoId, -1)}
                         className="w-6 h-6 flex items-center justify-center text-xs text-stone-600 hover:bg-stone-300 hover:text-stone-900 rounded-md transition"
                       >
                         <i className="fa-solid fa-minus text-xs"></i>
@@ -4648,7 +4745,7 @@
                         {item.cantidad}
                       </span>
                       <button
-                        onClick={() => cambiarCantidadCarrito(item.productoId, 1)}
+                        onClick={() => cambiarCantidadCarrito(item.claveCarrito || item.productoId, 1)}
                         className="w-6 h-6 flex items-center justify-center text-xs text-stone-600 hover:bg-stone-300 hover:text-stone-900 rounded-md transition"
                       >
                         <i className="fa-solid fa-plus text-xs"></i>
@@ -4660,7 +4757,7 @@
                         S/ {item.subtotal.toFixed(2)}
                       </span>
                       <button
-                        onClick={() => eliminarItemCarrito(item.productoId)}
+                        onClick={() => eliminarItemCarrito(item.claveCarrito || item.productoId)}
                         className="text-xs text-stone-500 hover:text-rose-600 transition"
                       >
                         <i className="fa-solid fa-trash-can text-xs"></i> Quitar
@@ -5327,6 +5424,11 @@
                             />
                             🎁 También se vende por pack/caja
                           </label>
+                          {esExistente && fila.vendeEnPackOriginal && !fila.vendeEnPack && (
+                            <p className="text-[11px] text-rose-600 font-semibold mt-1">
+                              ⚠️ Este producto ya vendía por pack -- al guardar se le va a quitar esa configuración.
+                            </p>
+                          )}
                           {fila.vendeEnPack && (
                             <div className="grid grid-cols-2 gap-2 mt-1.5">
                               <input
