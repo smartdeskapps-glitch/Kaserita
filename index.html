@@ -956,7 +956,7 @@
       const [modalEntradaMercaderia, setModalEntradaMercaderia] = useState(false);
       const [compraCabecera, setCompraCabecera] = useState({ proveedor: '', ruc: '', nroComprobante: '' });
       const [compraItems, setCompraItems] = useState([]);
-      const [compraItemTemp, setCompraItemTemp] = useState({ productoId: '', cantidad: 1, costoUnitario: '', tipo: 'UNIDAD' });
+      const [compraItemTemp, setCompraItemTemp] = useState({ productoId: '', cantidad: '', costoUnitario: '', tipo: 'UNIDAD' });
       // Agrupa "Registrar Productos" / "Entrada de Mercadería" / "Maestro"
       // bajo un solo desplegable "Entradas" en el menú lateral, en vez de
       // 3 íconos sueltos.
@@ -3086,13 +3086,13 @@
 
       const agregarItemEntradaMercaderia = () => {
         const prod = productos.find(p => p.id === compraItemTemp.productoId);
-        if (!prod || !compraItemTemp.costoUnitario) {
-          notificar('Selecciona producto y costo unitario.', 'error');
+        const cant = Number(compraItemTemp.cantidad) || 0;
+        if (!prod || !compraItemTemp.costoUnitario || cant <= 0) {
+          notificar('Selecciona producto, cantidad y costo unitario.', 'error');
           return;
         }
         const unidadesPorPack = Number(prod.unidades_por_pack) || 1;
         const esPack = compraItemTemp.tipo === 'PACK' && unidadesPorPack > 1;
-        const cant = Number(compraItemTemp.cantidad) || 1;
         const costo = Number(compraItemTemp.costoUnitario) || 0;
         // El proveedor a veces entrega en packs cerrados (ej: 10 packs de 6)
         // pero el stock siempre se guarda en unidades sueltas -- por eso se
@@ -3115,7 +3115,7 @@
             subtotal: sub
           }
         ]);
-        setCompraItemTemp({ productoId: '', cantidad: 1, costoUnitario: '', tipo: 'UNIDAD' });
+        setCompraItemTemp({ productoId: '', cantidad: '', costoUnitario: '', tipo: 'UNIDAD' });
       };
 
       const quitarItemEntradaMercaderia = (idx) => {
@@ -3129,7 +3129,7 @@
         setModalEntradaMercaderia(false);
         setCompraItems([]);
         setCompraCabecera({ proveedor: '', ruc: '', nroComprobante: '' });
-        setCompraItemTemp({ productoId: '', cantidad: 1, costoUnitario: '', tipo: 'UNIDAD' });
+        setCompraItemTemp({ productoId: '', cantidad: '', costoUnitario: '', tipo: 'UNIDAD' });
         setNuevoProductoInlineCompra(null);
       };
 
