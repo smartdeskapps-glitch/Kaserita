@@ -626,6 +626,32 @@
       );
     }
 
+    // Informativo dentro del cierre de turno: cuánto se vendió en cada medio
+    // que NO es efectivo, para que el cajero lo cruce contra su POS de
+    // tarjeta / apps de Yape y Plin -- no participa en el cálculo de cuánto
+    // debería haber en la caja física, que sigue siendo solo efectivo.
+    function DesgloseMediosPago({ desglose }) {
+      if (!desglose) return null;
+      const filas = [
+        { label: 'Yape', valor: desglose.YAPE },
+        { label: 'Plin', valor: desglose.PLIN },
+        { label: 'Tarjeta', valor: desglose.TARJETA },
+        { label: 'Crédito', valor: desglose.CREDITO },
+        { label: 'Tarjeta/Otro (de ventas Mixtas)', valor: desglose.MIXTO_OTRO }
+      ].filter((f) => f.valor > 0);
+      if (filas.length === 0) return null;
+      return (
+        <div className="bg-stone-50 border border-stone-200 rounded-xl p-3 text-left text-xs text-stone-600 space-y-1">
+          <p className="font-semibold text-stone-500">Otros medios de pago (informativo, no es efectivo):</p>
+          {filas.map((f) => (
+            <div key={f.label} className="flex justify-between">
+              <span>{f.label}:</span><span>S/ {f.valor.toFixed(2)}</span>
+            </div>
+          ))}
+        </div>
+      );
+    }
+
     // Cada categoría tiene su ícono de línea y un color de acento propio, para que
     // el catálogo se lea de un vistazo sin depender de fotos de producto.
     const CATEGORIA_ESTILO = {
@@ -3590,6 +3616,28 @@
         }, 0);
       };
 
+      // Solo informativo para el arqueo: cuánto se vendió en cada medio que
+      // NO es efectivo, para que el cajero pueda cruzarlo contra su POS de
+      // tarjeta, Yape, etc. -- no afecta el cálculo de "cuánto debería haber
+      // en la caja física", que sigue siendo solo efectivo.
+      const calcularDesgloseMedioPagoTurno = async () => {
+        if (!turnoActivo || !sbClient) return null;
+        const { data: vts } = await sbClient
+          .from('ventas')
+          .select('total_venta, medio_pago, monto_otro')
+          .eq('turno_caja_id', turnoActivo.id);
+
+        const desglose = { YAPE: 0, PLIN: 0, TARJETA: 0, CREDITO: 0, MIXTO_OTRO: 0 };
+        (vts || []).forEach((v) => {
+          if (v.medio_pago === 'MIXTO') {
+            desglose.MIXTO_OTRO += Number(v.monto_otro) || 0;
+          } else if (Object.prototype.hasOwnProperty.call(desglose, v.medio_pago)) {
+            desglose[v.medio_pago] += Number(v.total_venta) || 0;
+          }
+        });
+        return desglose;
+      };
+
       // Abre el modal de cierre ya mostrando cuánto debería haber en caja,
       // para que el cajero sepa qué buscar antes de contar el efectivo.
       const abrirCierreCaja = async () => {
@@ -3598,15 +3646,21 @@
         setArqueoEsperado(null);
         if (!turnoActivo) return;
         const montoIni = Number(turnoActivo.monto_inicial) || 0;
-        const ventasEfectivo = await calcularVentasEfectivoTurno();
-        setArqueoEsperado({ inicio: montoIni, ventas: ventasEfectivo, esperado: +(montoIni + ventasEfectivo).toFixed(2) });
+        const [ventasEfectivo, desglose] = await Promise.all([
+          calcularVentasEfectivoTurno(),
+          calcularDesgloseMedioPagoTurno()
+        ]);
+        setArqueoEsperado({ inicio: montoIni, ventas: ventasEfectivo, esperado: +(montoIni + ventasEfectivo).toFixed(2), desglose });
       };
 
       const handleCierreConArqueo = async () => {
         if (!turnoActivo) return;
         const montoReal = parseFloat(montoConteoEfectivo) || 0;
         const montoIni = Number(turnoActivo.monto_inicial) || 0;
-        const ventasEfectivo = await calcularVentasEfectivoTurno();
+        const [ventasEfectivo, desglose] = await Promise.all([
+          calcularVentasEfectivoTurno(),
+          calcularDesgloseMedioPagoTurno()
+        ]);
         const esperado = +(montoIni + ventasEfectivo).toFixed(2);
         const dif = +(montoReal - esperado).toFixed(2);
 
@@ -3636,7 +3690,8 @@
           ventas: ventasEfectivo,
           esperado,
           real: montoReal,
-          diferencia: dif
+          diferencia: dif,
+          desglose
         });
 
         setModalCierreCaja(false);
@@ -7465,6 +7520,8 @@
                   </div>
                 )}
 
+                <DesgloseMediosPago desglose={arqueoEsperado?.desglose} />
+
                 <p className="text-xs text-stone-700">Cuenta todo el dinero en efectivo que tienes físicamente en la caja e ingrésalo:</p>
                 <input
                   type="number"
@@ -7505,6 +7562,7 @@
                     <span>Diferencia:</span><span>{resumenCierre.diferencia === 0 ? '✓ Cuadre Perfecto' : `S/ ${resumenCierre.diferencia.toFixed(2)}`}</span>
                   </div>
                 </div>
+                <DesgloseMediosPago desglose={resumenCierre.desglose} />
                 <button onClick={() => setResumenCierre(null)} className="w-full py-2.5 bg-stone-900 text-white font-bold text-xs rounded-xl">Entendido</button>
               </div>
             </div>
