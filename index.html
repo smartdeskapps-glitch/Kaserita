@@ -2043,6 +2043,17 @@
         : campoTeclado === 'mixtoRecibido' ? montoMixtoRecibido
         : '';
 
+      // El medio de pago y el cliente elegidos son parte de la venta en curso,
+      // no un ajuste de la sesión -- si no se limpian al terminar esa venta
+      // (se pausa, se vacía el carrito, o se cancela el cobro), quedan
+      // "pegados" y la siguiente venta puede terminar cobrada a crédito o a
+      // nombre de un cliente que nadie eligió para ella.
+      const reiniciarClienteYMedioPago = () => {
+        setMedioPago('EFECTIVO');
+        setDniCliente('99999999');
+        obtenerOCrearCliente('99999999');
+      };
+
       // ==========================================
       // ⏸️ VENTAS EN ESPERA (PARK SALES)
       // ==========================================
@@ -2060,6 +2071,7 @@
         guardarVentasEnEsperaLS(nuevaLista);
         setCarrito([]);
         setMostrarPago(false);
+        reiniciarClienteYMedioPago();
         notificar('Venta puesta en espera ⏸️', 'info');
       };
 
@@ -3998,14 +4010,10 @@
           setMontoMixtoRecibido('');
           setCampoTeclado(null);
           setMostrarPago(false);
-          setMedioPago('EFECTIVO');
+          reiniciarClienteYMedioPago();
           // Cierra la hoja del carrito (mobile): que la venta exitosa vuelva
           // al catálogo en vez de dejar ver el carrito ya vacío detrás.
           setMostrarResumenMobile(false);
-          // Vuelve al cliente genérico para la siguiente venta (evita dejar
-          // seleccionado por accidente al mismo cliente de la venta a crédito).
-          setDniCliente('99999999');
-          obtenerOCrearCliente('99999999');
           if (enLinea) cargarProductos(busqueda); // refresca el stock mostrado en el catálogo
           // No se usa notificar() aquí: el modal de "¡Venta Exitosa!" ya
           // muestra la boleta y el detalle, un toast encima sería redundante.
@@ -4781,7 +4789,7 @@
                 )}
                 {carrito.length > 0 && (
                   <button
-                    onClick={() => { setCarrito([]); setDescuentoTipo(null); setDescuentoValor(''); setMostrarPago(false); }}
+                    onClick={() => { setCarrito([]); setDescuentoTipo(null); setDescuentoValor(''); setMostrarPago(false); reiniciarClienteYMedioPago(); }}
                     className="text-xs text-rose-600 hover:text-rose-600 transition"
                   >
                     Vaciar
@@ -4893,7 +4901,7 @@
               <>
               <button
                 type="button"
-                onClick={() => setMostrarPago(false)}
+                onClick={() => { setMostrarPago(false); reiniciarClienteYMedioPago(); }}
                 className="text-xs text-stone-500 hover:text-stone-800 font-semibold flex items-center gap-1"
               >
                 <i className="fa-solid fa-chevron-left text-xs"></i> Volver
