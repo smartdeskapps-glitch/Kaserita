@@ -961,14 +961,17 @@
       const [filasInventario, setFilasInventario] = useState([filaInventarioVacia()]);
       const [guardandoInventario, setGuardandoInventario] = useState(false);
 
-      // --- Módulo: Levantamiento de Inventario (para negocios que recién
-      // empiezan a usar el sistema y ya tienen mercadería en el local -- a
-      // diferencia de "Registrar Productos", este SÍ declara costo y stock
-      // inicial de una sola vez, en vez de forzar crear el producto y
-      // después hacer una Toma de Inventario o Entrada de Mercadería aparte). ---
-      const filaLevantamientoVacia = () => ({ descripcion: '', cod_ean: '', sku: '', categoria: 'Abarrotes', precio_costo: '', precio_venta: '', cantidad_inicial: '', unidad: 'UND', vendeEnPack: false, unidades_por_pack: '', precio_venta_pack: '', cod_ean_pack: '' });
+      // --- Módulo: Levantamiento de Inventario -- conteo físico rápido,
+      // escaneando de a un producto a la vez. El producto ya tiene que
+      // estar registrado en el catálogo, esto solo declara cuánto hay. ---
       const [modalLevantamiento, setModalLevantamiento] = useState(false);
-      const [filasLevantamiento, setFilasLevantamiento] = useState([filaLevantamientoVacia()]);
+      const [levantamientoEan, setLevantamientoEan] = useState('');
+      // null = todavía no se buscó nada; 'no-encontrado' = se buscó y no
+      // existe; { producto, esPack } = encontrado (mismo shape que
+      // buscarProductoPorCodigo, así se reutiliza tal cual).
+      const [levantamientoResultado, setLevantamientoResultado] = useState(null);
+      const [levantamientoPacks, setLevantamientoPacks] = useState('');
+      const [levantamientoSueltas, setLevantamientoSueltas] = useState('');
       const [guardandoLevantamiento, setGuardandoLevantamiento] = useState(false);
 
       // --- Módulo: Entrada de Mercadería (Compras) ---
@@ -1749,6 +1752,17 @@
         if (modoEscaner === 'editar-pack-ean') {
           setFormEditarProducto((prev) => ({ ...prev, cod_ean_pack: codigoLimpio }));
           notificar(`Código de pack capturado: ${codigoLimpio}`, 'success');
+          setModalEscaner(false);
+          return;
+        }
+
+        if (modoEscaner === 'levantamiento') {
+          setLevantamientoEan(codigoLimpio);
+          const encontrado = buscarProductoPorCodigo(codigoLimpio);
+          setLevantamientoResultado(encontrado || 'no-encontrado');
+          setLevantamientoPacks('');
+          setLevantamientoSueltas('');
+          if (!encontrado) notificar(`Código ${codigoLimpio} no encontrado en el catálogo.`, 'error');
           setModalEscaner(false);
           return;
         }
@@ -2797,56 +2811,68 @@
       };
 
       // ==========================================
-      // LEVANTAMIENTO DE INVENTARIO (carga inicial con costo y stock)
+      // LEVANTAMIENTO DE INVENTARIO (conteo físico, escaneando de a uno)
       // ==========================================
-      const actualizarFilaLevantamiento = (index, campo, valor) => {
-        setFilasLevantamiento((prev) => prev.map((fila, i) => (i === index ? { ...fila, [campo]: valor } : fila)));
+      const buscarLevantamientoPorEan = () => {
+        const codigo = levantamientoEan.trim();
+        if (!codigo) return;
+        const encontrado = buscarProductoPorCodigo(codigo);
+        setLevantamientoResultado(encontrado || 'no-encontrado');
+        setLevantamientoPacks('');
+        setLevantamientoSueltas('');
       };
 
-      const agregarFilaLevantamiento = () => {
-        setFilasLevantamiento((prev) => [...prev, filaLevantamientoVacia()]);
+      const cerrarResultadoLevantamiento = () => {
+        setLevantamientoEan('');
+        setLevantamientoResultado(null);
+        setLevantamientoPacks('');
+        setLevantamientoSueltas('');
       };
 
-      const eliminarFilaLevantamiento = (index) => {
-        setFilasLevantamiento((prev) => (prev.length > 1 ? prev.filter((_, i) => i !== index) : prev));
-      };
-
-      const guardarLevantamientoInventario = async () => {
-        const filasValidas = filasLevantamiento.filter((f) => f.descripcion.trim() && f.precio_venta);
-        if (filasValidas.length === 0) {
-          notificar('Completa al menos un producto con descripción y precio de venta.', 'error');
-          return;
-        }
+      const confirmarConteoLevantamiento = async () => {
+        if (!levantamientoResultado || levantamientoResultado === 'no-encontrado') return;
+        const { producto } = levantamientoResultado;
+        const unidadesPorPack = Number(producto.unidades_por_pack) > 1 ? Number(producto.unidades_por_pack) : 1;
+        const totalContado = (Number(levantamientoPacks) || 0) * unidadesPorPack + (Number(levantamientoSueltas) || 0);
 
         setGuardandoLevantamiento(true);
         try {
+          let stockSistema = Number(producto.stock_actual) || 0;
           if (sbClient) {
-            const payload = filasValidas.map((f) => ({
-              bodega_id: bodegaId,
-              descripcion: f.descripcion.trim(),
-              cod_ean: f.cod_ean.trim() || generarCodigoInterno(),
-              sku: f.sku.trim() || generarSKU(f.categoria),
-              categoria: f.categoria.trim() || 'General',
-              precio_costo: Number(f.precio_costo) || 0,
-              precio_venta: Number(f.precio_venta) || 0,
-              unidad: f.unidad === 'KG' ? 'KG' : 'UND',
-              // A diferencia de "Registrar Productos" (que siempre arranca en 0
-              // porque el stock se carga después por Entrada de Mercadería),
-              // este formulario es justo para declarar de una sola vez lo que
-              // el negocio YA tiene en el local al empezar a usar el sistema.
-              stock_actual: Number(f.cantidad_inicial) || 0,
-              ...normalizarCamposPack(f)
-            }));
-            const { error } = await sbClient.from('productos').insert(payload);
-            if (error) throw error;
-          }
+            // Relee el stock justo antes de calcular la diferencia (igual que
+            // en Toma de Inventario) -- por si hubo una venta o ajuste
+            // mientras se estaba contando este producto.
+            const { data: fresco, error: errFresco } = await sbClient
+              .from('productos').select('stock_actual').eq('id', producto.id).maybeSingle();
+            if (errFresco) throw errFresco;
+            if (fresco) stockSistema = Number(fresco.stock_actual) || 0;
 
-          setModalLevantamiento(false);
-          setFilasLevantamiento([filaLevantamientoVacia()]);
+            const diferencia = totalContado - stockSistema;
+            const { error: errInsert } = await sbClient.from('tomas_inventario').insert([{
+              bodega_id: bodegaId,
+              producto_id: producto.id,
+              cajero_id: cajeroSeleccionado?.id || null,
+              fecha: new Date().toISOString(),
+              stock_sistema: stockSistema,
+              stock_contado: totalContado,
+              diferencia
+            }]);
+            if (errInsert) throw errInsert;
+
+            if (diferencia !== 0) {
+              const { error: errAjuste } = await sbClient.rpc('ajustar_stock', { p_producto_id: producto.id, p_delta: diferencia });
+              if (errAjuste) {
+                notificar(`Se guardó el conteo, pero no se pudo ajustar el stock (${errAjuste.message}).`, 'error');
+                setGuardandoLevantamiento(false);
+                return;
+              }
+            }
+          }
           cargarProductos();
-          notificar(`¡Listo! ${filasValidas.length} producto(s) cargado(s) con su stock inicial.`, 'success');
+          notificar(`${producto.descripcion}: ${totalContado} unidades registradas.`, 'success');
+          cerrarResultadoLevantamiento();
         } catch (err) {
-          notificar(`Error al guardar el levantamiento: ${err.message}`, 'error');
+          notificar(`Error al guardar el conteo: ${err.message}`, 'error');
         } finally {
           setGuardandoLevantamiento(false);
         }
@@ -6066,176 +6092,122 @@
             </div>
           )}
 
-          {/* Modal: Levantamiento de Inventario (carga inicial con costo y stock) */}
+          {/* Modal: Levantamiento de Inventario (conteo físico, escaneando de a uno) */}
           {modalLevantamiento && (
             <div className="fixed inset-0 bg-black/85 flex items-center justify-center z-50 p-4">
-              <div className="bg-stone-100 border border-stone-200 rounded-2xl max-w-2xl w-full p-5 shadow-2xl space-y-3 max-h-[90vh] flex flex-col">
+              <div className="bg-stone-100 border border-stone-200 rounded-2xl max-w-md w-full p-5 shadow-2xl space-y-4">
                 <div className="flex justify-between items-start shrink-0">
                   <div>
                     <h3 className="text-base font-bold text-stone-900 flex items-center gap-2">
                       <i className="fa-solid fa-clipboard-list text-orange-600"></i> Levantamiento de Inventario
                     </h3>
-                    <p className="text-xs text-stone-600 mt-0.5">Para cuando recién empiezas: declara de una vez la mercadería que ya tienes en el local, con su costo y cantidad actual -- a diferencia de "Registrar Productos", este sí carga el stock directo.</p>
+                    <p className="text-xs text-stone-600 mt-0.5">Escanea o busca el producto, cuenta lo que tienes físicamente y listo.</p>
                   </div>
-                  <button onClick={() => setModalLevantamiento(false)} className="text-stone-600 hover:text-stone-900 shrink-0">✕</button>
+                  <button onClick={() => { setModalLevantamiento(false); cerrarResultadoLevantamiento(); }} className="text-stone-600 hover:text-stone-900 shrink-0">✕</button>
                 </div>
 
-                <div className="flex-1 overflow-y-auto space-y-2 pr-1">
-                  {filasLevantamiento.map((fila, idx) => (
-                    <div key={idx} className="p-3 rounded-xl space-y-2 relative border bg-stone-50 border-stone-200">
-                      {filasLevantamiento.length > 1 && (
-                        <button
-                          onClick={() => eliminarFilaLevantamiento(idx)}
-                          className="absolute top-2 right-2 w-6 h-6 flex items-center justify-center text-stone-500 hover:text-rose-600 hover:bg-stone-100 rounded-lg transition"
-                          title="Quitar producto"
-                        >
-                          <i className="fa-solid fa-xmark text-xs"></i>
-                        </button>
-                      )}
+                <div className="space-y-1.5">
+                  <label className="text-xs font-bold text-stone-500 uppercase tracking-wide">Escanear producto</label>
+                  <div className="flex gap-1.5">
+                    <input
+                      type="text"
+                      autoFocus
+                      placeholder="Escanea o escribe el EAN..."
+                      value={levantamientoEan}
+                      onChange={(e) => setLevantamientoEan(e.target.value)}
+                      onKeyDown={(e) => { if (e.key === 'Enter') buscarLevantamientoPorEan(); }}
+                      className="flex-1 min-w-0 bg-stone-50 border border-stone-200 rounded-lg px-3 py-2 text-sm text-stone-900 focus:outline-none focus:border-orange-500"
+                    />
+                    <button
+                      onClick={buscarLevantamientoPorEan}
+                      className="px-4 bg-stone-900 hover:bg-stone-800 text-white text-xs font-bold rounded-lg"
+                    >
+                      Buscar
+                    </button>
+                    <button
+                      onClick={() => { setModoEscaner('levantamiento'); setMetodoForzado(null); setModalEscaner(true); }}
+                      title="Escanear con la cámara"
+                      className="shrink-0 w-10 flex items-center justify-center bg-stone-200 hover:bg-stone-300 text-stone-700 rounded-lg"
+                    >
+                      <i className="fa-solid fa-camera"></i>
+                    </button>
+                  </div>
+                  {cargandoProductos && (
+                    <p className="text-[11px] text-stone-500">Cargando catálogo de productos...</p>
+                  )}
+                </div>
 
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pr-6">
-                        <input
-                          type="text"
-                          placeholder="Descripción del producto *"
-                          value={fila.descripcion}
-                          onChange={(e) => actualizarFilaLevantamiento(idx, 'descripcion', e.target.value)}
-                          className="sm:col-span-2 bg-stone-100 border border-stone-200 rounded-lg px-3 py-1.5 text-xs text-stone-900 focus:outline-none focus:border-orange-500"
-                        />
-                        <div className="sm:col-span-2 flex gap-1.5">
-                          <select
-                            value={fila.categoria}
-                            onChange={(e) => actualizarFilaLevantamiento(idx, 'categoria', e.target.value)}
-                            className="flex-1 min-w-0 bg-stone-100 border border-stone-200 rounded-lg px-3 py-1.5 text-xs text-stone-900 focus:outline-none focus:border-orange-500"
-                          >
-                            {!categoriasDB.includes(fila.categoria) && fila.categoria && (
-                              <option value={fila.categoria}>{fila.categoria}</option>
-                            )}
-                            {categoriasDB.map(c => <option key={c} value={c}>{c}</option>)}
-                          </select>
-                          <button
-                            type="button"
-                            onClick={() => agregarCategoriaPersonalizada((v) => actualizarFilaLevantamiento(idx, 'categoria', v))}
-                            title="Agregar categoría nueva"
-                            className="shrink-0 w-8 h-8 flex items-center justify-center bg-stone-200 hover:bg-stone-300 text-stone-700 rounded-lg"
-                          >
-                            <i className="fa-solid fa-plus text-xs"></i>
-                          </button>
-                        </div>
-                        <input
-                          type="number"
-                          step="0.10"
-                          placeholder="Precio costo (S/)"
-                          value={fila.precio_costo}
-                          onChange={(e) => actualizarFilaLevantamiento(idx, 'precio_costo', e.target.value)}
-                          className="bg-stone-100 border border-stone-200 rounded-lg px-3 py-1.5 text-xs text-stone-900 focus:outline-none focus:border-orange-500"
-                        />
-                        <input
-                          type="number"
-                          step="0.10"
-                          placeholder="Precio venta (S/) *"
-                          value={fila.precio_venta}
-                          onChange={(e) => actualizarFilaLevantamiento(idx, 'precio_venta', e.target.value)}
-                          className="bg-stone-100 border border-stone-200 rounded-lg px-3 py-1.5 text-xs text-stone-900 focus:outline-none focus:border-orange-500"
-                        />
-                        <input
-                          type="number"
-                          step="0.10"
-                          placeholder={fila.unidad === 'KG' ? 'Cantidad actual (KG)' : 'Cantidad actual (und)'}
-                          value={fila.cantidad_inicial}
-                          onChange={(e) => actualizarFilaLevantamiento(idx, 'cantidad_inicial', e.target.value)}
-                          className="bg-amber-50 border border-amber-300 rounded-lg px-3 py-1.5 text-xs text-stone-900 font-semibold focus:outline-none focus:border-orange-500"
-                        />
-                        <select
-                          value={fila.unidad}
-                          onChange={(e) => actualizarFilaLevantamiento(idx, 'unidad', e.target.value)}
-                          className="bg-stone-100 border border-stone-200 rounded-lg px-3 py-1.5 text-xs text-stone-900 focus:outline-none focus:border-orange-500"
-                        >
-                          <option value="UND">Se vende por Unidad (UND)</option>
-                          <option value="KG">Se vende por Peso (KG) — balanza</option>
-                        </select>
-                      </div>
-
-                      {fila.unidad !== 'KG' && (
-                        <div className="pr-6">
-                          <label className="flex items-center gap-2 text-xs font-semibold text-stone-700 cursor-pointer">
-                            <input
-                              type="checkbox"
-                              checked={fila.vendeEnPack}
-                              onChange={(e) => actualizarFilaLevantamiento(idx, 'vendeEnPack', e.target.checked)}
-                              className="w-3.5 h-3.5"
-                            />
-                            🎁 También se vende por pack/caja
-                          </label>
-                          {fila.vendeEnPack && (
-                            <div className="grid grid-cols-2 gap-2 mt-1.5">
-                              <input
-                                type="number"
-                                step="1"
-                                min="2"
-                                placeholder="Unidades por pack"
-                                value={fila.unidades_por_pack}
-                                onChange={(e) => actualizarFilaLevantamiento(idx, 'unidades_por_pack', e.target.value)}
-                                className="bg-stone-100 border border-stone-200 rounded-lg px-3 py-1.5 text-xs text-stone-900 focus:outline-none focus:border-orange-500"
-                              />
-                              <input
-                                type="number"
-                                step="0.10"
-                                placeholder="Precio venta del pack (S/)"
-                                value={fila.precio_venta_pack}
-                                onChange={(e) => actualizarFilaLevantamiento(idx, 'precio_venta_pack', e.target.value)}
-                                className="bg-stone-100 border border-stone-200 rounded-lg px-3 py-1.5 text-xs text-stone-900 focus:outline-none focus:border-orange-500"
-                              />
-                              <input
-                                type="text"
-                                placeholder="EAN o SKU del pack (opcional)"
-                                value={fila.cod_ean_pack}
-                                onChange={(e) => actualizarFilaLevantamiento(idx, 'cod_ean_pack', e.target.value)}
-                                className="col-span-2 bg-stone-100 border border-stone-200 rounded-lg px-3 py-1.5 text-xs text-stone-900 focus:outline-none focus:border-orange-500"
-                              />
-                            </div>
-                          )}
-                        </div>
-                      )}
-
-                      <div className="grid grid-cols-2 gap-2 pr-6">
-                        <input
-                          type="text"
-                          placeholder="Código EAN (opcional)"
-                          value={fila.cod_ean}
-                          onChange={(e) => actualizarFilaLevantamiento(idx, 'cod_ean', e.target.value)}
-                          className="bg-stone-100 border border-stone-200 rounded-lg px-3 py-1.5 text-xs text-stone-900 focus:outline-none focus:border-orange-500"
-                        />
-                        <input
-                          type="text"
-                          placeholder="SKU (se genera solo)"
-                          value={fila.sku}
-                          onChange={(e) => actualizarFilaLevantamiento(idx, 'sku', e.target.value)}
-                          className="bg-stone-100 border border-stone-200 rounded-lg px-3 py-1.5 text-xs text-stone-900 focus:outline-none focus:border-orange-500"
-                        />
-                      </div>
+                {levantamientoResultado === 'no-encontrado' && (
+                  <div className="bg-rose-50 border border-rose-200 rounded-xl p-3 flex items-start justify-between gap-2">
+                    <div>
+                      <p className="text-xs font-bold text-rose-700">Producto no encontrado</p>
+                      <p className="text-xs text-rose-600 mt-0.5">Regístralo primero en "Registrar Productos" y vuelve a intentarlo.</p>
                     </div>
-                  ))}
-                </div>
+                    <button onClick={cerrarResultadoLevantamiento} className="text-rose-400 hover:text-rose-600 shrink-0">✕</button>
+                  </div>
+                )}
 
-                <div className="shrink-0 space-y-2 pt-1">
-                  <button
-                    onClick={agregarFilaLevantamiento}
-                    className="w-full py-2 bg-stone-200 hover:bg-stone-300 text-stone-800 text-xs font-semibold rounded-xl border border-stone-300 border-dashed flex items-center justify-center gap-1.5"
-                  >
-                    <i className="fa-solid fa-plus"></i> Agregar otro producto
-                  </button>
-                  <button
-                    onClick={guardarLevantamientoInventario}
-                    disabled={guardandoLevantamiento}
-                    className="w-full py-2.5 bg-stone-900 hover:bg-stone-800 disabled:opacity-60 text-white font-bold text-xs rounded-xl shadow flex items-center justify-center gap-1.5"
-                  >
-                    {guardandoLevantamiento ? (
-                      <><i className="fa-solid fa-spinner fa-spin"></i> Guardando...</>
-                    ) : (
-                      <><i className="fa-solid fa-check"></i> Guardar Levantamiento</>
-                    )}
-                  </button>
-                </div>
+                {levantamientoResultado && levantamientoResultado !== 'no-encontrado' && (() => {
+                  const producto = levantamientoResultado.producto;
+                  const unidadesPorPack = Number(producto.unidades_por_pack) > 1 ? Number(producto.unidades_por_pack) : 1;
+                  const totalContado = (Number(levantamientoPacks) || 0) * unidadesPorPack + (Number(levantamientoSueltas) || 0);
+                  return (
+                    <>
+                      <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-3 flex items-start justify-between gap-2">
+                        <div className="min-w-0">
+                          <p className="text-[11px] font-bold text-emerald-700 uppercase tracking-wide">Producto encontrado</p>
+                          <p className="text-sm font-bold text-stone-900 truncate">{producto.descripcion}</p>
+                          <p className="text-[11px] text-stone-500 mt-0.5">SKU: {producto.sku || '—'} · 1 pack = {unidadesPorPack} und.</p>
+                        </div>
+                        <button onClick={cerrarResultadoLevantamiento} className="text-emerald-500 hover:text-emerald-700 shrink-0">✕</button>
+                      </div>
+
+                      <div className="space-y-1.5">
+                        <label className="text-xs font-bold text-stone-500 uppercase tracking-wide">Cantidades</label>
+                        <div className="grid grid-cols-3 gap-2">
+                          <div>
+                            <label className="text-[11px] text-stone-600 block mb-1">Packs contados <span className="text-rose-600">*</span></label>
+                            <input
+                              type="number"
+                              placeholder="0"
+                              value={levantamientoPacks}
+                              onChange={(e) => setLevantamientoPacks(e.target.value)}
+                              className="w-full bg-stone-50 border border-stone-200 rounded-lg px-2.5 py-2 text-center text-sm font-bold text-stone-900 focus:outline-none focus:border-orange-500"
+                            />
+                          </div>
+                          <div>
+                            <label className="text-[11px] text-stone-600 block mb-1">Unidades sueltas</label>
+                            <input
+                              type="number"
+                              placeholder="0"
+                              value={levantamientoSueltas}
+                              onChange={(e) => setLevantamientoSueltas(e.target.value)}
+                              className="w-full bg-stone-50 border border-stone-200 rounded-lg px-2.5 py-2 text-center text-sm font-bold text-stone-900 focus:outline-none focus:border-orange-500"
+                            />
+                          </div>
+                          <div>
+                            <label className="text-[11px] text-stone-600 block mb-1">Unidades totales</label>
+                            <div className="w-full bg-stone-200 rounded-lg px-2.5 py-2 text-center text-sm font-black text-stone-900">
+                              {totalContado} <span className="text-[10px] font-normal text-stone-600">und.</span>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+
+                      <button
+                        onClick={confirmarConteoLevantamiento}
+                        disabled={guardandoLevantamiento || levantamientoPacks === ''}
+                        className="w-full py-2.5 bg-stone-900 hover:bg-stone-800 disabled:opacity-60 text-white font-bold text-xs rounded-xl shadow flex items-center justify-center gap-1.5"
+                      >
+                        {guardandoLevantamiento ? (
+                          <><i className="fa-solid fa-spinner fa-spin"></i> Guardando...</>
+                        ) : (
+                          <><i className="fa-solid fa-check"></i> Guardar y escanear siguiente</>
+                        )}
+                      </button>
+                    </>
+                  );
+                })()}
               </div>
             </div>
           )}
