@@ -2822,6 +2822,21 @@
         setLevantamientoSueltas('');
       };
 
+      // Busca automáticamente mientras se escribe/escanea, sin esperar Enter
+      // ni el botón "Buscar" -- así el escáner de mano (que dispara Enter al
+      // terminar) y la escritura manual funcionan igual de rápido.
+      useEffect(() => {
+        const codigo = levantamientoEan.trim();
+        if (!codigo) { setLevantamientoResultado(null); return; }
+        const timer = setTimeout(() => {
+          const encontrado = buscarProductoPorCodigo(codigo);
+          setLevantamientoResultado(encontrado || 'no-encontrado');
+          setLevantamientoPacks('');
+          setLevantamientoSueltas('');
+        }, 200);
+        return () => clearTimeout(timer);
+      }, [levantamientoEan]);
+
       const cerrarResultadoLevantamiento = () => {
         setLevantamientoEan('');
         setLevantamientoResultado(null);
