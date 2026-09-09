@@ -5530,18 +5530,10 @@
                         <input
                           type="number"
                           step="0.10"
-                          placeholder="Precio costo (S/)"
-                          value={fila.precio_costo}
-                          onChange={(e) => actualizarFilaInventario(idx, 'precio_costo', e.target.value)}
-                          className={claseCampoNormal}
-                        />
-                        <input
-                          type="number"
-                          step="0.10"
                           placeholder="Precio venta (S/) *"
                           value={fila.precio_venta}
                           onChange={(e) => actualizarFilaInventario(idx, 'precio_venta', e.target.value)}
-                          className={claseCampoNormal}
+                          className={`sm:col-span-2 ${claseCampoNormal}`}
                         />
                         <select
                           value={fila.unidad}
@@ -6087,36 +6079,18 @@
                       className="w-full bg-stone-50 border border-stone-200 rounded-lg px-3 py-1.5 text-xs text-stone-900"
                     />
                   </div>
-                  <div className="grid grid-cols-2 gap-2">
-                    <div>
-                      <label className="text-xs text-stone-600 block mb-1">Precio Venta (S/):</label>
-                      <input
-                        type="number"
-                        step="0.10"
-                        required
-                        placeholder="0.00"
-                        value={formProducto.precio_venta}
-                        onChange={(e) => setFormProducto({ ...formProducto, precio_venta: e.target.value })}
-                        className="w-full bg-stone-50 border border-stone-200 rounded-lg px-3 py-1.5 text-xs text-stone-900"
-                      />
-                    </div>
-                    <div>
-                      <label className="text-xs text-stone-600 block mb-1">Precio Costo (S/):</label>
-                      <input
-                        type="number"
-                        step="0.10"
-                        placeholder="0.00"
-                        value={formProducto.precio_costo}
-                        onChange={(e) => setFormProducto({ ...formProducto, precio_costo: e.target.value })}
-                        className="w-full bg-stone-50 border border-stone-200 rounded-lg px-3 py-1.5 text-xs text-stone-900"
-                      />
-                      {Number(formProducto.precio_costo) > 0 && (
-                        <CalculadoraMargen
-                          costo={formProducto.precio_costo}
-                          onAplicar={(precio) => setFormProducto({ ...formProducto, precio_venta: String(precio) })}
-                        />
-                      )}
-                    </div>
+                  <div>
+                    <label className="text-xs text-stone-600 block mb-1">Precio Venta (S/):</label>
+                    <input
+                      type="number"
+                      step="0.10"
+                      required
+                      placeholder="0.00"
+                      value={formProducto.precio_venta}
+                      onChange={(e) => setFormProducto({ ...formProducto, precio_venta: e.target.value })}
+                      className="w-full bg-stone-50 border border-stone-200 rounded-lg px-3 py-1.5 text-xs text-stone-900"
+                    />
+                    <p className="text-[11px] text-stone-500 mt-1">El precio de costo se define después, al recibir mercadería en "Entrada de Mercadería".</p>
                   </div>
                   <div className="grid grid-cols-2 gap-2">
                     <div>
