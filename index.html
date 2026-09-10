@@ -5272,6 +5272,16 @@
             <div className="md:hidden fixed inset-0 bg-black/70 z-[60] flex items-end" onClick={() => setMenuMas(false)}>
               <div className="w-full bg-stone-100 border-t border-stone-200 rounded-t-3xl p-4 pb-6 space-y-1" onClick={(e) => e.stopPropagation()}>
                 <div className="w-10 h-1 bg-stone-300 rounded-full mx-auto mb-2"></div>
+                {turnoActivo ? (
+                  <button onClick={() => { abrirCierreCaja(); setMenuMas(false); }} className="w-full text-left px-3.5 py-3 rounded-xl bg-rose-50 hover:bg-rose-100 flex items-center gap-3 text-rose-600 font-bold text-sm">
+                    <i className="fa-solid fa-lock w-5"></i> Cerrar Caja
+                  </button>
+                ) : (
+                  <button onClick={() => { setModalTurno(true); setMenuMas(false); }} className="w-full text-left px-3.5 py-3 rounded-xl bg-orange-50 hover:bg-orange-100 flex items-center gap-3 text-orange-600 font-bold text-sm">
+                    <i className="fa-solid fa-bolt w-5"></i> Abrir Turno
+                  </button>
+                )}
+                <div className="border-t border-stone-200 my-1"></div>
                 <button onClick={() => { abrirModuloCobroDeudas(); setMenuMas(false); }} className="w-full text-left px-3.5 py-3 rounded-xl hover:bg-stone-200 flex items-center gap-3 text-orange-600 font-semibold text-sm">
                   <i className="fa-solid fa-hand-holding-dollar w-5"></i> Cuentas por Cobrar
                 </button>
