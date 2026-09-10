@@ -809,6 +809,10 @@
 
       // --- Bodega & Cajeros ---
       const bodegaId = sesion?.bodega?.id || sesion?.usuario?.bodega_id;
+      // "Modo Demo Local": no usa Auth real ni una bodega real en Supabase, así
+      // que ningún guardado (venta, producto, turno, etc.) debe intentar
+      // escribir en el servidor -- todo se simula solo en el estado local.
+      const esModoDemo = bodegaId === BODEGA_DEMO_ID;
       const bodegaNombre = sesion?.bodega?.nombre || 'Mi Bodega';
       const usuarioActivo = sesion?.usuario || null;
       const [listaCajeros, setListaCajeros] = useState([]);
@@ -845,6 +849,27 @@
       // Cliente "Desconocido" real, cacheado la última vez que hubo
       // conexión -- se reutiliza para ventas offline (ver obtenerOCrearCliente).
       const desconocidoCacheRef = useRef(null);
+
+      // Catálogo del Modo Demo Local: se genera una sola vez a partir de
+      // PRODUCTOS_SEMILLA y desde ahí vive solo en memoria -- cualquier
+      // cambio hecho durante la demo (venta, entrada de mercadería, conteo,
+      // merma, producto nuevo) se aplica aquí para que no se pierda cada vez
+      // que algo vuelve a pedir el catálogo.
+      const catalogoDemoRef = useRef(null);
+      const catalogoDemoInicial = () => PRODUCTOS_SEMILLA.map((p, i) => ({
+        id: i + 1,
+        bodega_id: BODEGA_DEMO_ID,
+        stock_actual: 50,
+        unidades_por_pack: 1,
+        cod_ean_pack: '',
+        sku: `DEMO-${i + 1}`,
+        activo: true,
+        ...p
+      }));
+      // Ventas hechas durante el Modo Demo Local (nunca se insertan en
+      // Supabase): se guardan acá para que el arqueo de "Cerrar Caja" pueda
+      // calcular el efectivo/desglose del turno igual que con datos reales.
+      const ventasDemoRef = useRef([]);
 
       // --- Turno de Caja ---
       const [turnoActivo, setTurnoActivo] = useState(null);
@@ -1078,6 +1103,13 @@
         setCajeroSeleccionado(null);
         setCarrito([]);
         setTurnoActivo(null);
+        // Limpia el estado del Modo Demo Local para que no se filtre a la
+        // siguiente sesión (real o demo de nuevo) en esta misma pestaña.
+        catalogoDemoRef.current = null;
+        ventasDemoRef.current = [];
+        setListaCajeros([]);
+        setClientesLista([]);
+        setProductos([]);
         notificar('Has cerrado sesión.', 'info');
       };
 
@@ -1112,7 +1144,10 @@
 
       // Cargar cajeros
       const cargarCajeros = async () => {
-        if (!sbClient || !bodegaId) return;
+        // Modo Demo Local: la lista ya arranca con el "Dueño Demo" (ver botón
+        // de login); no hay nada real que traer ni ninguna auto-reparación
+        // que intentar, así que se deja tal cual está en memoria.
+        if (!sbClient || !bodegaId || esModoDemo) return;
         try {
           let { data } = await sbClient
             .from('cajeros')
@@ -1160,6 +1195,10 @@
       const abrirGestionCajeros = async () => {
         setModalGestionCajeros(true);
         setMostrarFormNuevoCajero(false);
+        if (esModoDemo) {
+          setCajerosGestion(listaCajeros);
+          return;
+        }
         if (!sbClient || !bodegaId) return;
         setCargandoCajerosGestion(true);
         try {
@@ -1191,7 +1230,11 @@
         }
         setGuardandoNuevoCajero(true);
         try {
-          if (sbClient) {
+          if (esModoDemo) {
+            const nuevo = { id: generarUUID(), bodega_id: bodegaId, nombre: nombre.trim(), dni: dni.trim(), rol, activo: true };
+            setListaCajeros((prev) => [...prev, nuevo].sort((a, b) => a.nombre.localeCompare(b.nombre)));
+            setCajerosGestion((prev) => [...prev, nuevo].sort((a, b) => a.nombre.localeCompare(b.nombre)));
+          } else if (sbClient) {
             const { error: errCajero } = await sbClient.from('cajeros').insert([{
               bodega_id: bodegaId,
               nombre: nombre.trim(),
@@ -1200,11 +1243,11 @@
               activo: true
             }]);
             if (errCajero) throw errCajero;
+            abrirGestionCajeros();
+            cargarCajeros();
           }
           setFormNuevoCajero({ nombre: '', dni: '', rol: 'cajero' });
           setMostrarFormNuevoCajero(false);
-          abrirGestionCajeros();
-          cargarCajeros();
           notificar(`¡"${nombre}" agregado! Ya aparece en la lista para elegir al abrir turno.`, 'success');
         } catch (err) {
           notificar(`Error al registrar: ${err.message}`, 'error');
@@ -1218,7 +1261,7 @@
       const alternarActivoCajero = async (cajero) => {
         const nuevoEstado = !cajero.activo;
         try {
-          if (sbClient) {
+          if (sbClient && !esModoDemo) {
             const { error: err1 } = await sbClient
               .from('cajeros')
               .update({ activo: nuevoEstado })
@@ -1233,7 +1276,11 @@
             if (err2) console.warn('No se pudo actualizar el acceso de login:', err2.message);
           }
           setCajerosGestion((prev) => prev.map((c) => (c.id === cajero.id ? { ...c, activo: nuevoEstado } : c)));
-          cargarCajeros();
+          if (esModoDemo) {
+            setListaCajeros((prev) => (nuevoEstado ? prev : prev.filter((c) => c.id !== cajero.id)));
+          } else {
+            cargarCajeros();
+          }
           notificar(nuevoEstado ? `${cajero.nombre} reactivado.` : `${cajero.nombre} desactivado.`, 'info');
         } catch (err) {
           notificar(`Error: ${err.message}`, 'error');
@@ -1245,6 +1292,23 @@
       // ==========================================
       const cargarProductos = async (termino = '') => {
         if (!bodegaId) return;
+
+        // Modo Demo Local: nunca toca Supabase -- el catálogo vive en
+        // catalogoDemoRef (se crea una sola vez) y conserva ahí cualquier
+        // cambio hecho durante la demo en vez de reiniciarse a los datos
+        // de ejemplo cada vez que algo refresca el catálogo.
+        if (esModoDemo) {
+          if (!catalogoDemoRef.current) catalogoDemoRef.current = catalogoDemoInicial();
+          const base = catalogoDemoRef.current.filter((p) => p.activo !== false);
+          const b = termino.trim().toLowerCase();
+          const visibles = b
+            ? base.filter((p) => (p.cod_ean || '').toLowerCase().includes(b) || (p.descripcion || '').toLowerCase().includes(b) || (p.categoria || '').toLowerCase().includes(b))
+            : base;
+          setProductos(visibles);
+          setCargandoProductos(false);
+          return;
+        }
+
         setCargandoProductos(true);
         if (sbClient) {
           try {
@@ -1267,29 +1331,15 @@
             // esa columna: un producto sin el campo (undefined) se sigue
             // mostrando con normalidad.
             const visibles = (data || []).filter((p) => p.activo !== false);
-
-            if (visibles.length > 0) {
-              setProductos(visibles);
-            } else if (bodegaId === BODEGA_DEMO_ID) {
-              const demo = PRODUCTOS_SEMILLA.map((p, i) => ({ ...p, id: i + 1, bodega_id: bodegaId }));
-              setProductos(demo);
-            } else {
-              setProductos([]);
-            }
+            setProductos(visibles);
           } catch (err) {
-            if (bodegaId === BODEGA_DEMO_ID) {
-              const demo = PRODUCTOS_SEMILLA.map((p, i) => ({ ...p, id: i + 1, bodega_id: bodegaId }));
-              setProductos(demo);
-            } else {
-              setProductos([]);
-              notificar(`No se pudo cargar el catálogo: ${err.message}`, 'error');
-            }
+            setProductos([]);
+            notificar(`No se pudo cargar el catálogo: ${err.message}`, 'error');
           } finally {
             setCargandoProductos(false);
           }
         } else {
-          const demo = bodegaId === BODEGA_DEMO_ID ? PRODUCTOS_SEMILLA.map((p, i) => ({ ...p, id: i + 1, bodega_id: bodegaId })) : [];
-          setProductos(demo);
+          setProductos([]);
           setCargandoProductos(false);
         }
       };
@@ -1459,7 +1509,7 @@
           return;
         }
         try {
-          if (sbClient && bodegaId) {
+          if (sbClient && bodegaId && !esModoDemo) {
             const { error } = await sbClient.from('categorias').insert([{ nombre: limpio, bodega_id: bodegaId }]);
             if (error) throw error;
           }
@@ -2128,7 +2178,7 @@
           return desconocidoCacheRef.current;
         }
 
-        if (!sbClient || !bodegaId || !enLinea) {
+        if (!sbClient || !bodegaId || !enLinea || esModoDemo) {
           const mock = { id: generarUUID(), bodega_id: bodegaId, dni: dniLimpio, nombre_completo: dniLimpio === '99999999' ? 'Desconocido' : `CLIENTE DNI ${dniLimpio}`, saldo_actual: 0 };
           setClienteActual(mock);
           return mock;
@@ -2179,7 +2229,7 @@
         const limite = Number(limiteCredito) || 0;
 
         try {
-          if (sbClient) {
+          if (sbClient && !esModoDemo) {
             const { data, error } = await sbClient
               .from('clientes')
               .insert([{
@@ -2207,7 +2257,10 @@
             const cLocal = { id: generarUUID(), bodega_id: bodegaId, dni: dni.trim(), nombre_completo: nombre.trim(), telefono, correo, limite_credito: limite, dias_credito: 30, saldo_actual: 0 };
             setClienteActual(cLocal);
             setDniCliente(cLocal.dni);
-            if (modalGestionClientes) {
+            // En Modo Demo Local se agrega siempre a la lista (sin importar
+            // desde qué modal se creó) para que luego aparezca tanto en
+            // "Clientes" como en "Cuentas por Cobrar" si queda con deuda.
+            if (modalGestionClientes || esModoDemo) {
               setClientesLista((prev) => [...prev, cLocal].sort((a, b) => (a.nombre_completo || '').localeCompare(b.nombre_completo || '')));
             }
           }
@@ -2223,6 +2276,12 @@
       // Cargar deudores
       const abrirModuloCobroDeudas = async () => {
         setModalCobrarDeudas(true);
+        if (esModoDemo) {
+          // No hay servidor real del que traer deudores -- se calculan a
+          // partir de los clientes creados en esta misma demo.
+          setClientesDeudores(clientesLista.filter((c) => (Number(c.saldo_actual) || 0) > 0).sort((a, b) => (Number(b.saldo_actual) || 0) - (Number(a.saldo_actual) || 0)));
+          return;
+        }
         if (sbClient && bodegaId) {
           try {
             const { data } = await sbClient
@@ -2271,7 +2330,10 @@
         }
         const saldo = Math.max(0, Number(saldoInicial) || 0);
         try {
-          if (sbClient) {
+          if (esModoDemo) {
+            const local = { id: generarUUID(), bodega_id: bodegaId, nombre: nombre.trim(), ruc: ruc.trim() || null, telefono: telefono.trim() || null, saldo_actual: saldo };
+            setProveedoresLista((prev) => [local, ...prev].sort((a, b) => Number(b.saldo_actual) - Number(a.saldo_actual)));
+          } else if (sbClient) {
             const { data, error } = await sbClient
               .from('proveedores')
               .insert([{
@@ -2310,7 +2372,7 @@
 
         try {
           let nuevoSaldo = Math.max(0, +((Number(proveedorSeleccionado.saldo_actual) || 0) + delta).toFixed(2));
-          if (sbClient) {
+          if (sbClient && !esModoDemo) {
             const { data, error: errUpdate } = await sbClient.rpc('ajustar_saldo_proveedor', {
               p_proveedor_id: proveedorSeleccionado.id,
               p_delta: delta
@@ -2343,7 +2405,10 @@
       const abrirGestionClientes = async () => {
         setModalGestionClientes(true);
         setClienteEditando(null);
-        if (!sbClient || !bodegaId) return;
+        // Modo Demo Local: no hay nada que traer del servidor -- se deja la
+        // lista tal cual está en memoria (los clientes creados en la demo
+        // ya viven ahí) en vez de reemplazarla por un resultado vacío.
+        if (esModoDemo || !sbClient || !bodegaId) return;
         setCargandoClientes(true);
         try {
           const { data, error } = await sbClient
@@ -2451,7 +2516,7 @@
             limite_credito: Number(formEditarCliente.limite_credito) || 0,
             dias_credito: Number(formEditarCliente.dias_credito) || 30
           };
-          if (sbClient) {
+          if (sbClient && !esModoDemo) {
             const { error } = await sbClient.from('clientes').update(payload).eq('id', clienteEditando.id);
             if (error) throw error;
           }
@@ -2598,7 +2663,7 @@
         const saldoAnterior = Number(deudorSeleccionado.saldo_actual) || 0;
         let nuevoSaldo = Math.max(0, +(saldoAnterior - abono).toFixed(2));
 
-        if (sbClient) {
+        if (sbClient && !esModoDemo) {
           try {
             // Ajuste atómico (RPC): si otro dispositivo también le está
             // cobrando/vendiendo a este mismo cliente en este instante, los
@@ -2633,6 +2698,13 @@
 
         // Lanzar Confeti 🎉
         confetti({ particleCount: 120, spread: 70, origin: { y: 0.6 } });
+
+        if (esModoDemo) {
+          setClientesLista((prev) => prev.map((c) => (c.id === deudorSeleccionado.id ? { ...c, saldo_actual: nuevoSaldo } : c)));
+          if (clienteActual?.id === deudorSeleccionado.id) {
+            setClienteActual((prev) => (prev ? { ...prev, saldo_actual: nuevoSaldo } : prev));
+          }
+        }
 
         notificar(`¡Pago de S/ ${abono.toFixed(2)} registrado! Saldo restante: S/ ${nuevoSaldo.toFixed(2)}`, 'success');
         setMontoAbonoDeuda('');
@@ -2755,7 +2827,42 @@
 
         setGuardandoInventario(true);
         try {
-          if (sbClient) {
+          if (esModoDemo) {
+            // Modo Demo Local: se escribe directo en el catálogo en memoria,
+            // sin tocar Supabase (la bodega demo no existe de verdad ahí).
+            if (!catalogoDemoRef.current) catalogoDemoRef.current = catalogoDemoInicial();
+            let siguienteId = catalogoDemoRef.current.reduce((max, p) => Math.max(max, Number(p.id) || 0), 0) + 1;
+            if (filasNuevas.length > 0) {
+              const nuevos = filasNuevas.map((f) => ({
+                id: siguienteId++,
+                bodega_id: bodegaId,
+                descripcion: f.descripcion.trim(),
+                cod_ean: f.cod_ean.trim() || generarCodigoInterno(),
+                sku: f.sku.trim() || generarSKU(f.categoria),
+                categoria: f.categoria.trim() || 'General',
+                precio_costo: Number(f.precio_costo) || 0,
+                precio_venta: Number(f.precio_venta) || 0,
+                unidad: f.unidad === 'KG' ? 'KG' : 'UND',
+                stock_actual: 0,
+                activo: true,
+                ...normalizarCamposPack(f)
+              }));
+              catalogoDemoRef.current = [...catalogoDemoRef.current, ...nuevos];
+            }
+            if (filasExistentes.length > 0) {
+              catalogoDemoRef.current = catalogoDemoRef.current.map((p) => {
+                const f = filasExistentes.find((fe) => fe.productoExistenteId === p.id);
+                if (!f) return p;
+                return {
+                  ...p,
+                  precio_costo: Number(f.precio_costo) || 0,
+                  precio_venta: Number(f.precio_venta) || 0,
+                  sku: f.sku.trim() || p.sku,
+                  ...normalizarCamposPack(f)
+                };
+              });
+            }
+          } else if (sbClient) {
             if (filasNuevas.length > 0) {
               const payloadNuevos = filasNuevas.map((f) => ({
                 bodega_id: bodegaId,
@@ -2853,7 +2960,12 @@
         setGuardandoLevantamiento(true);
         try {
           let stockSistema = Number(producto.stock_actual) || 0;
-          if (sbClient) {
+          if (esModoDemo) {
+            const diferencia = totalContado - stockSistema;
+            if (catalogoDemoRef.current) {
+              catalogoDemoRef.current = catalogoDemoRef.current.map((p) => (p.id === producto.id ? { ...p, stock_actual: totalContado } : p));
+            }
+          } else if (sbClient) {
             // Relee el stock justo antes de calcular la diferencia (igual que
             // en Toma de Inventario) -- por si hubo una venta o ajuste
             // mientras se estaba contando este producto.
@@ -2924,7 +3036,11 @@
             stock_actual: formEditarProducto.stock_actual === '' ? null : Number(formEditarProducto.stock_actual),
             ...normalizarCamposPack(formEditarProducto)
           };
-          if (sbClient) {
+          if (esModoDemo) {
+            if (catalogoDemoRef.current) {
+              catalogoDemoRef.current = catalogoDemoRef.current.map((p) => (p.id === productoEditando.id ? { ...p, ...payload } : p));
+            }
+          } else if (sbClient) {
             const { error } = await sbClient.from('productos').update(payload).eq('id', productoEditando.id);
             if (error) throw error;
           }
@@ -2949,7 +3065,11 @@
         });
         if (!ok) return;
         try {
-          if (sbClient) {
+          if (esModoDemo) {
+            if (catalogoDemoRef.current) {
+              catalogoDemoRef.current = catalogoDemoRef.current.map((p) => (p.id === productoEditando.id ? { ...p, activo: false } : p));
+            }
+          } else if (sbClient) {
             const { error } = await sbClient.from('productos').update({ activo: false }).eq('id', productoEditando.id);
             if (error) throw error;
           }
@@ -2976,7 +3096,11 @@
         try {
           const totalCosto = +(cant * (Number(prod.precio_costo) || 0)).toFixed(2);
           let errorAjusteStock = null;
-          if (sbClient) {
+          if (esModoDemo) {
+            if (catalogoDemoRef.current) {
+              catalogoDemoRef.current = catalogoDemoRef.current.map((p) => (p.id === prod.id ? { ...p, stock_actual: Math.max(0, (Number(p.stock_actual) || 0) - cant) } : p));
+            }
+          } else if (sbClient) {
             const { error } = await sbClient.from('mermas').insert([{
               bodega_id: bodegaId,
               producto_id: prod.id,
@@ -3042,7 +3166,12 @@
         }
         setGuardandoTomaInventario(true);
         try {
-          if (sbClient) {
+          if (esModoDemo) {
+            if (catalogoDemoRef.current) {
+              const contadoPorId = new Map(filas.map((f) => [f.productoId, Number(f.stockContado) || 0]));
+              catalogoDemoRef.current = catalogoDemoRef.current.map((p) => (contadoPorId.has(p.id) ? { ...p, stock_actual: contadoPorId.get(p.id) } : p));
+            }
+          } else if (sbClient) {
             // `f.stockSistema` es una foto de cuando se abrió el modal -- si
             // pasó tiempo contando (o hubo una venta/merma mientras tanto),
             // ya no refleja el stock real. Se vuelve a consultar justo antes
@@ -3126,7 +3255,12 @@
             stock_actual: 0
           };
           let nuevoProd = null;
-          if (sbClient) {
+          if (esModoDemo) {
+            if (!catalogoDemoRef.current) catalogoDemoRef.current = catalogoDemoInicial();
+            const siguienteId = catalogoDemoRef.current.reduce((max, p) => Math.max(max, Number(p.id) || 0), 0) + 1;
+            nuevoProd = { id: siguienteId, activo: true, unidades_por_pack: 1, cod_ean_pack: '', ...payload };
+            catalogoDemoRef.current = [...catalogoDemoRef.current, nuevoProd];
+          } else if (sbClient) {
             const { data, error } = await sbClient.from('productos').insert([payload]).select().single();
             if (error) throw error;
             nuevoProd = data;
@@ -3203,7 +3337,25 @@
         const totalCompra = compraItems.reduce((acc, i) => acc + i.subtotal, 0);
 
         try {
-          if (sbClient) {
+          if (esModoDemo) {
+            if (catalogoDemoRef.current) {
+              const incrementosPorId = new Map();
+              const costoPorId = new Map();
+              compraItems.forEach((it) => {
+                const unidadesStock = Number(it.cantidadStock ?? it.cantidad);
+                incrementosPorId.set(it.productoId, (incrementosPorId.get(it.productoId) || 0) + unidadesStock);
+                costoPorId.set(it.productoId, it.costoUnitario);
+              });
+              catalogoDemoRef.current = catalogoDemoRef.current.map((p) => {
+                if (!incrementosPorId.has(p.id)) return p;
+                return {
+                  ...p,
+                  stock_actual: (Number(p.stock_actual) || 0) + incrementosPorId.get(p.id),
+                  precio_costo: costoPorId.get(p.id)
+                };
+              });
+            }
+          } else if (sbClient) {
             const { data: cData, error: cErr } = await sbClient
               .from('compras')
               .insert([{
@@ -3639,12 +3791,14 @@
       // mostrar cuánto debería haber antes de contar) y al confirmar el
       // cierre (para el cálculo final, con los datos más frescos).
       const calcularVentasEfectivoTurno = async () => {
-        if (!turnoActivo || !sbClient) return 0;
-        const { data: vts } = await sbClient
-          .from('ventas')
-          .select('total_venta, medio_pago, monto_efectivo')
-          .eq('turno_caja_id', turnoActivo.id)
-          .in('medio_pago', ['EFECTIVO', 'MIXTO']);
+        if (!turnoActivo) return 0;
+        const vts = esModoDemo
+          ? ventasDemoRef.current.filter((v) => v.turno_caja_id === turnoActivo.id && ['EFECTIVO', 'MIXTO'].includes(v.medio_pago))
+          : (sbClient ? (await sbClient
+              .from('ventas')
+              .select('total_venta, medio_pago, monto_efectivo')
+              .eq('turno_caja_id', turnoActivo.id)
+              .in('medio_pago', ['EFECTIVO', 'MIXTO'])).data : null);
 
         return (vts || []).reduce((acc, v) => {
           const efectivo = v.medio_pago === 'EFECTIVO' ? Number(v.total_venta) : Number(v.monto_efectivo) || 0;
@@ -3657,11 +3811,13 @@
       // tarjeta, Yape, etc. -- no afecta el cálculo de "cuánto debería haber
       // en la caja física", que sigue siendo solo efectivo.
       const calcularDesgloseMedioPagoTurno = async () => {
-        if (!turnoActivo || !sbClient) return null;
-        const { data: vts } = await sbClient
-          .from('ventas')
-          .select('total_venta, medio_pago, monto_otro')
-          .eq('turno_caja_id', turnoActivo.id);
+        if (!turnoActivo) return null;
+        const vts = esModoDemo
+          ? ventasDemoRef.current.filter((v) => v.turno_caja_id === turnoActivo.id)
+          : (sbClient ? (await sbClient
+              .from('ventas')
+              .select('total_venta, medio_pago, monto_otro')
+              .eq('turno_caja_id', turnoActivo.id)).data : null);
 
         const desglose = { YAPE: 0, PLIN: 0, TARJETA: 0, CREDITO: 0, MIXTO_OTRO: 0 };
         (vts || []).forEach((v) => {
@@ -3700,7 +3856,7 @@
         const esperado = +(montoIni + ventasEfectivo).toFixed(2);
         const dif = +(montoReal - esperado).toFixed(2);
 
-        if (sbClient) {
+        if (sbClient && !esModoDemo) {
           try {
             const { error } = await sbClient
               .from('turnos_caja')
@@ -3773,7 +3929,7 @@
 
       // Turno activo check
       const verificarTurno = async () => {
-        if (!sbClient || !bodegaId) return;
+        if (!sbClient || !bodegaId || esModoDemo) return;
         try {
           // Un turno se considera abierto si su estado lo indica O si aún no tiene
           // fecha_cierre (indicador más confiable, no depende de qué texto haya
@@ -3800,6 +3956,16 @@
 
         if (!cajeroFinal || !cajeroFinal.id) {
           notificar('Selecciona un cajero.', 'error');
+          return;
+        }
+
+        // Modo Demo Local: la bodega no existe de verdad en Supabase, así
+        // que ni siquiera se intenta la red -- se abre el turno directo en
+        // memoria, igual que cualquier otro cambio de la demo.
+        if (esModoDemo) {
+          setTurnoActivo({ id: generarUUID(), bodega_id: bodegaId, cajero_id: cajeroFinal.id, monto_inicial: monto, estado: 'ABIERTA', fecha_apertura: new Date().toISOString() });
+          setModalTurno(false);
+          notificar(`Turno abierto con: ${cajeroFinal.nombre}`, 'success');
           return;
         }
 
@@ -3860,11 +4026,11 @@
             }
 
             // Si falló por una razón real estando en línea (no por estar
-            // offline ni en modo demo), NO se sigue con un turno fantasma
-            // que solo existe en este dispositivo -- las ventas de ese
-            // turno quedarían referenciando un turno_caja_id que no existe
-            // en la base. Se corta acá y se deja reintentar.
-            if (error && bodegaId !== BODEGA_DEMO_ID && enLinea) {
+            // offline), NO se sigue con un turno fantasma que solo existe en
+            // este dispositivo -- las ventas de ese turno quedarían
+            // referenciando un turno_caja_id que no existe en la base. Se
+            // corta acá y se deja reintentar.
+            if (error && enLinea) {
               console.warn('Error al abrir turno en la base de datos:', error);
               notificar(`No se pudo abrir el turno en el servidor (${error.message}). Intenta de nuevo.`, 'error');
               return;
@@ -3876,7 +4042,7 @@
             }
           } catch (err) {
             console.warn(err);
-            if (enLinea && bodegaId !== BODEGA_DEMO_ID) {
+            if (enLinea) {
               notificar('No se pudo abrir el turno (error de conexión con el servidor). Intenta de nuevo.', 'error');
               return;
             }
@@ -3911,7 +4077,7 @@
           // momento -- se vuelve a leer justo antes de cobrar para no
           // aprobar una venta contra un saldo viejo.
           let saldoAct = Number(clienteActual.saldo_actual) || 0;
-          if (sbClient) {
+          if (sbClient && !esModoDemo) {
             const { data: clienteFresco, error: errClienteFresco } = await sbClient
               .from('clientes')
               .select('saldo_actual')
@@ -3999,7 +4165,35 @@
               .filter(item => typeof item.productoId === 'string' && item.productoId.length > 10)
               .map(item => ({ productoId: item.productoId, delta: -Number(item.unidadesStock || item.cantidad) }));
 
-            if (!enLinea) {
+            if (esModoDemo) {
+              // ------------------------------------------------------------
+              // MODO DEMO LOCAL: la bodega no existe de verdad en Supabase,
+              // así que no se intenta la red -- se aplica todo en memoria
+              // (catálogo demo, cliente, y el registro de la venta para que
+              // el arqueo de "Cerrar Caja" la pueda contar).
+              // ------------------------------------------------------------
+              ventasDemoRef.current = [...ventasDemoRef.current, {
+                turno_caja_id: idTurnoReal || null,
+                medio_pago: medioPago,
+                total_venta: totalConDescuento,
+                monto_efectivo: payloadVenta.monto_efectivo,
+                monto_otro: payloadVenta.monto_otro
+              }];
+
+              if (catalogoDemoRef.current) {
+                const cantidadesPorId = new Map(carrito.map((it) => [it.productoId, Number(it.unidadesStock || it.cantidad)]));
+                catalogoDemoRef.current = catalogoDemoRef.current.map((p) => (cantidadesPorId.has(p.id)
+                  ? { ...p, stock_actual: Math.max(0, (Number(p.stock_actual) || 0) - cantidadesPorId.get(p.id)) }
+                  : p));
+              }
+
+              if (medioPago === 'CREDITO' && idClienteReal) {
+                const saldoActDemo = Number(clienteActual.saldo_actual) || 0;
+                const nuevoSaldo = +(saldoActDemo + totalConDescuento).toFixed(2);
+                setClienteActual(prev => (prev ? { ...prev, saldo_actual: nuevoSaldo } : prev));
+                setClientesLista(prev => prev.map(c => (c.id === idClienteReal ? { ...c, saldo_actual: nuevoSaldo } : c)));
+              }
+            } else if (!enLinea) {
               // ------------------------------------------------------------
               // MODO OFFLINE: no se puede hablar con Supabase ahora mismo.
               // Se guarda la venta en una cola local (con su hora real) y se
@@ -4105,7 +4299,7 @@
           // Cierra la hoja del carrito (mobile): que la venta exitosa vuelva
           // al catálogo en vez de dejar ver el carrito ya vacío detrás.
           setMostrarResumenMobile(false);
-          if (enLinea) cargarProductos(busqueda); // refresca el stock mostrado en el catálogo
+          if (enLinea || esModoDemo) cargarProductos(busqueda); // refresca el stock mostrado en el catálogo
           // No se usa notificar() aquí: el modal de "¡Venta Exitosa!" ya
           // muestra la boleta y el detalle, un toast encima sería redundante.
         } catch (err) {
