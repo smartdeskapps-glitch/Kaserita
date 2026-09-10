@@ -856,8 +856,12 @@
       // merma, producto nuevo) se aplica aquí para que no se pierda cada vez
       // que algo vuelve a pedir el catálogo.
       const catalogoDemoRef = useRef(null);
+      // IDs como texto (no número): los <select> del formulario siempre
+      // entregan el valor elegido como string, y comparaciones como
+      // `productos.find(p => p.id === valor)` son con === estricto -- si
+      // p.id fuera number, nunca calzaría con el string del <select>.
       const catalogoDemoInicial = () => PRODUCTOS_SEMILLA.map((p, i) => ({
-        id: i + 1,
+        id: String(i + 1),
         bodega_id: BODEGA_DEMO_ID,
         stock_actual: 50,
         unidades_por_pack: 1,
@@ -2834,7 +2838,7 @@
             let siguienteId = catalogoDemoRef.current.reduce((max, p) => Math.max(max, Number(p.id) || 0), 0) + 1;
             if (filasNuevas.length > 0) {
               const nuevos = filasNuevas.map((f) => ({
-                id: siguienteId++,
+                id: String(siguienteId++),
                 bodega_id: bodegaId,
                 descripcion: f.descripcion.trim(),
                 cod_ean: f.cod_ean.trim() || generarCodigoInterno(),
@@ -3258,7 +3262,7 @@
           if (esModoDemo) {
             if (!catalogoDemoRef.current) catalogoDemoRef.current = catalogoDemoInicial();
             const siguienteId = catalogoDemoRef.current.reduce((max, p) => Math.max(max, Number(p.id) || 0), 0) + 1;
-            nuevoProd = { id: siguienteId, activo: true, unidades_por_pack: 1, cod_ean_pack: '', ...payload };
+            nuevoProd = { id: String(siguienteId), activo: true, unidades_por_pack: 1, cod_ean_pack: '', ...payload };
             catalogoDemoRef.current = [...catalogoDemoRef.current, nuevoProd];
           } else if (sbClient) {
             const { data, error } = await sbClient.from('productos').insert([payload]).select().single();
