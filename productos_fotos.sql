@@ -24,7 +24,17 @@ set allowed_mime_types = array['image/png', 'image/jpeg'],
     file_size_limit = 102400
 where id = 'Productos';
 
--- Paso 3: solo un usuario autenticado puede subir/reemplazar/borrar
+-- Paso 3: lectura pública -- aunque el bucket ya esté marcado "Public"
+-- (eso solo salta la autenticación en la URL pública de lectura), subir
+-- una foto internamente necesita poder "ver" el objeto para decidir si
+-- crea uno nuevo o reemplaza uno existente (upsert). Sin esta política,
+-- esa verificación también choca con RLS y la subida falla.
+drop policy if exists "productos_fotos_lectura_publica" on storage.objects;
+create policy "productos_fotos_lectura_publica"
+  on storage.objects for select
+  using (bucket_id = 'Productos');
+
+-- Paso 4: solo un usuario autenticado puede subir/reemplazar/borrar
 -- fotos, y solo dentro de la carpeta de SU PROPIA bodega. La app sube
 -- cada foto a la ruta "{bodega_id}/{producto_id}.jpg", así que el primer
 -- segmento de la ruta identifica de quién es.
