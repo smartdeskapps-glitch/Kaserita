@@ -999,7 +999,7 @@
       }, [vistaAdmin, cargarCatalogoMaestro]);
 
       const abrirNuevoProductoMaestro = () => {
-        setFormMaestro({ id: crypto.randomUUID(), descripcion: '', categoria: 'Abarrotes', cod_ean: '', foto_url: '' });
+        setFormMaestro({ id: crypto.randomUUID(), descripcion: '', categoria: 'Abarrotes', sku: '', foto_url: '' });
       };
 
       const subirFotoMaestro = async (file) => {
@@ -1028,7 +1028,9 @@
             id: formMaestro.id,
             descripcion: formMaestro.descripcion.trim(),
             categoria: formMaestro.categoria,
-            cod_ean: formMaestro.cod_ean.trim() || null,
+            // El SKU es un código interno de Kaserita, no un EAN real (ese
+            // varía por proveedor/empaque) -- se genera solo, una sola vez.
+            sku: (formMaestro.sku || '').trim() || generarSKU(formMaestro.categoria),
             foto_url: formMaestro.foto_url || null
           };
           const { error } = await sbClient.from('catalogo_maestro').upsert([payload]);
@@ -1251,27 +1253,19 @@
                     className="w-full bg-stone-50 border border-stone-200 rounded-lg px-3 py-2 text-sm text-stone-900"
                   />
                 </div>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  <div>
-                    <label className="text-xs text-stone-600 block mb-1">Categoría:</label>
-                    <select
-                      value={formMaestro.categoria}
-                      onChange={(e) => setFormMaestro({ ...formMaestro, categoria: e.target.value })}
-                      className="w-full bg-stone-50 border border-stone-200 rounded-lg px-3 py-2 text-sm text-stone-900"
-                    >
-                      {CATEGORIAS_FALLBACK.map((c) => <option key={c} value={c}>{c}</option>)}
-                    </select>
-                  </div>
-                  <div>
-                    <label className="text-xs text-stone-600 block mb-1">Código EAN (opcional):</label>
-                    <input
-                      type="text"
-                      value={formMaestro.cod_ean}
-                      onChange={(e) => setFormMaestro({ ...formMaestro, cod_ean: e.target.value })}
-                      className="w-full bg-stone-50 border border-stone-200 rounded-lg px-3 py-2 text-sm text-stone-900"
-                    />
-                  </div>
+                <div>
+                  <label className="text-xs text-stone-600 block mb-1">Categoría:</label>
+                  <select
+                    value={formMaestro.categoria}
+                    onChange={(e) => setFormMaestro({ ...formMaestro, categoria: e.target.value })}
+                    className="w-full bg-stone-50 border border-stone-200 rounded-lg px-3 py-2 text-sm text-stone-900"
+                  >
+                    {CATEGORIAS_FALLBACK.map((c) => <option key={c} value={c}>{c}</option>)}
+                  </select>
                 </div>
+                {formMaestro.sku && (
+                  <p className="text-xs text-stone-500">SKU: <span className="font-mono">{formMaestro.sku}</span></p>
+                )}
                 <div className="flex gap-2 pt-1">
                   <button type="button" onClick={() => setFormMaestro(null)} className="flex-1 py-2.5 bg-stone-100 hover:bg-stone-200 text-stone-700 font-bold text-sm rounded-xl">
                     Cancelar
@@ -1319,7 +1313,7 @@
                           <p className="text-[11px] text-stone-500">{p.categoria || 'Sin categoría'}</p>
                         </div>
                         <div className="flex gap-1 shrink-0">
-                          <button onClick={() => setFormMaestro({ id: p.id, descripcion: p.descripcion, categoria: p.categoria || 'Abarrotes', cod_ean: p.cod_ean || '', foto_url: p.foto_url || '' })} className="w-7 h-7 flex items-center justify-center bg-stone-100 hover:bg-stone-200 text-stone-700 rounded-lg">
+                          <button onClick={() => setFormMaestro({ id: p.id, descripcion: p.descripcion, categoria: p.categoria || 'Abarrotes', sku: p.sku || '', foto_url: p.foto_url || '' })} className="w-7 h-7 flex items-center justify-center bg-stone-100 hover:bg-stone-200 text-stone-700 rounded-lg">
                             <i className="fa-solid fa-pen text-xs"></i>
                           </button>
                           <button onClick={() => eliminarProductoMaestro(p)} className="w-7 h-7 flex items-center justify-center bg-rose-50 hover:bg-rose-100 text-rose-600 rounded-lg">
@@ -3707,7 +3701,9 @@
 
       const seleccionarProductoMaestro = (item) => {
         setProductoMaestroSeleccionado(item);
-        setFormImportarMaestro({ precio_venta: '', precio_costo: '', stock_actual: '', cod_ean: item.cod_ean || '', unidad: 'UND' });
+        // El catálogo maestro ya no trae EAN (varía por proveedor/empaque);
+        // si la bodega tiene el código real de este producto, lo escribe acá.
+        setFormImportarMaestro({ precio_venta: '', precio_costo: '', stock_actual: '', cod_ean: '', unidad: 'UND' });
       };
 
       const importarProductoMaestro = async (e) => {
