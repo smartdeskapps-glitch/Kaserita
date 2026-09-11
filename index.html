@@ -361,62 +361,6 @@
       XLSX.writeFile(libro, nombreArchivo);
     };
 
-    // Recomprime una imagen a JPEG en el navegador (canvas), bajando primero
-    // la calidad y después también la resolución, hasta quedar bajo maxKB o
-    // hasta agotar los intentos -- así una foto de cámara (varios MB) no
-    // llena el Storage ni tarda en cargar en el catálogo desde un celular
-    // con poco dato móvil.
-    const comprimirImagenJPEG = (file, maxKB = 20, dimensionInicial = 480) => {
-      return new Promise((resolve, reject) => {
-        const urlTemp = URL.createObjectURL(file);
-        const img = new Image();
-        img.onload = () => {
-          let dimension = dimensionInicial;
-          let calidad = 0.8;
-          let intentos = 0;
-          const maxIntentos = 25;
-
-          const intentar = () => {
-            intentos += 1;
-            const escala = Math.min(1, dimension / Math.max(img.width, img.height));
-            const w = Math.max(1, Math.round(img.width * escala));
-            const h = Math.max(1, Math.round(img.height * escala));
-            const canvas = document.createElement('canvas');
-            canvas.width = w;
-            canvas.height = h;
-            canvas.getContext('2d').drawImage(img, 0, 0, w, h);
-            canvas.toBlob((blob) => {
-              if (!blob) {
-                URL.revokeObjectURL(urlTemp);
-                reject(new Error('No se pudo procesar la imagen.'));
-                return;
-              }
-              const dentroDelLimite = blob.size <= maxKB * 1024;
-              const sinMasMargen = intentos >= maxIntentos || (calidad <= 0.35 && dimension <= 120);
-              if (dentroDelLimite || sinMasMargen) {
-                URL.revokeObjectURL(urlTemp);
-                resolve(blob);
-                return;
-              }
-              if (calidad > 0.35) {
-                calidad = +(calidad - 0.1).toFixed(2);
-              } else {
-                dimension = Math.round(dimension * 0.8);
-                calidad = 0.6;
-              }
-              intentar();
-            }, 'image/jpeg', calidad);
-          };
-          intentar();
-        };
-        img.onerror = () => {
-          URL.revokeObjectURL(urlTemp);
-          reject(new Error('No se pudo leer la imagen.'));
-        };
-        img.src = urlTemp;
-      });
-    };
-
     // ID fijo usado únicamente por "Modo Demo Local" (no corresponde a ninguna
     // bodega real). Solo en ese caso se muestra el catálogo de ejemplo; una
     // bodega real sin productos debe ver un catálogo vacío de verdad.
@@ -1347,7 +1291,6 @@
       const [productoEditando, setProductoEditando] = useState(null);
       const [formEditarProducto, setFormEditarProducto] = useState(null);
       const [guardandoEdicionProducto, setGuardandoEdicionProducto] = useState(false);
-      const [subiendoFotoProducto, setSubiendoFotoProducto] = useState(false);
 
       // --- Módulo: Mermas (pérdidas de producto) ---
       const [modalMerma, setModalMerma] = useState(false);
@@ -3448,39 +3391,6 @@
       // ==========================================
       // EDITAR / DESACTIVAR PRODUCTO
       // ==========================================
-      // Sube la foto al bucket "productos" (carpeta por bodega, para que la
-      // política de Storage pueda limitar quién escribe dónde) y devuelve la
-      // URL pública ya lista para guardar en productos.foto_url. En Modo Demo
-      // no se sube nada de verdad -- se usa una URL local del archivo, igual
-      // que el resto del modo demo.
-      const subirFotoProducto = async (file, productoId) => {
-        if (!file) return null;
-        setSubiendoFotoProducto(true);
-        try {
-          // Recomprime a JPEG achicando resolución y calidad hasta bajar de
-          // ~20KB -- el bucket de Storage tiene un límite de tamaño pensado
-          // para que el catálogo cargue rápido en un celular con datos
-          // limitados, no para fotos de resolución completa.
-          const comprimida = await comprimirImagenJPEG(file, 20, 480);
-          if (esModoDemo) return URL.createObjectURL(comprimida);
-          if (!sbClient || !bodegaId) return null;
-          const ruta = `${bodegaId}/${productoId}.jpg`;
-          const { error } = await sbClient.storage
-            .from('Productos')
-            .upload(ruta, comprimida, { upsert: true, cacheControl: '3600', contentType: 'image/jpeg' });
-          if (error) throw error;
-          const { data } = sbClient.storage.from('Productos').getPublicUrl(ruta);
-          // Cache-bust: si se reemplaza la foto, la URL pública es la misma
-          // ruta de antes y el navegador podría seguir mostrando la vieja.
-          return `${data.publicUrl}?t=${Date.now()}`;
-        } catch (err) {
-          notificar(`No se pudo subir la foto: ${err.message}`, 'error');
-          return null;
-        } finally {
-          setSubiendoFotoProducto(false);
-        }
-      };
-
       const abrirEdicionProducto = useCallback((prod) => {
         setProductoEditando(prod);
         setFormEditarProducto({
@@ -6788,36 +6698,19 @@
                   <button onClick={() => setModalEditarProducto(false)} className="text-stone-600 hover:text-stone-900"><i className="fa-solid fa-xmark"></i></button>
                 </div>
                 <div className="flex items-center gap-3">
-                  <label className="relative w-16 h-16 rounded-xl overflow-hidden shrink-0 cursor-pointer group border border-stone-200">
+                  <div className="relative w-16 h-16 rounded-xl overflow-hidden shrink-0 border border-stone-200">
                     <FotoProducto
                       fotoUrl={formEditarProducto.foto_url}
                       categoria={formEditarProducto.categoria}
                       className="w-16 h-16"
                       iconClassName="text-xl"
                     />
-                    <div className="absolute inset-0 flex items-center justify-center bg-black/0 group-hover:bg-black/40 transition">
-                      {subiendoFotoProducto ? (
-                        <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                      ) : (
-                        <i className="fa-solid fa-camera text-white text-sm opacity-0 group-hover:opacity-100 transition"></i>
-                      )}
-                    </div>
-                    <input
-                      type="file"
-                      accept="image/*"
-                      className="hidden"
-                      onChange={async (e) => {
-                        const file = e.target.files && e.target.files[0];
-                        e.target.value = '';
-                        if (!file) return;
-                        const url = await subirFotoProducto(file, productoEditando.id);
-                        if (url) setFormEditarProducto((prev) => ({ ...prev, foto_url: url }));
-                      }}
-                    />
-                  </label>
+                  </div>
                   <p className="text-xs text-stone-500">
                     <span className="font-semibold text-stone-700 block">Foto del producto</span>
-                    Toca el cuadro para {formEditarProducto.foto_url ? 'cambiarla' : 'subir una'}. Si no subes ninguna, se usa el ícono de su categoría.
+                    {formEditarProducto.foto_url
+                      ? 'Esta foto la administra Kaserita.'
+                      : 'Sin foto todavía se usa el ícono de su categoría.'}
                   </p>
                 </div>
                 <div className="space-y-2.5">
