@@ -985,7 +985,11 @@
         setGenerandoBackupId(bodega.id);
         try {
           const resultados = await Promise.all([
-            sbClient.from('usuarios').select('*').eq('bodega_id', bodega.id),
+            // Todas las columnas menos pin_acceso -- si la bodega
+            // todavía no fue reclamada, ahí vive su PIN en texto plano
+            // (necesario hasta su primer login, ver reclamar_cuenta_bodega)
+            // y no tiene por qué terminar en un archivo descargable.
+            sbClient.from('usuarios').select('id, bodega_id, nombre, dni, telefono, rol, activo, auth_id').eq('bodega_id', bodega.id),
             sbClient.from('productos').select('*').eq('bodega_id', bodega.id),
             sbClient.from('compras').select('*, compras_detalle(*)').eq('bodega_id', bodega.id),
             sbClient.from('ventas').select('*, ventas_detalle(*)').eq('bodega_id', bodega.id),
