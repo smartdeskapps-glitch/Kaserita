@@ -895,7 +895,7 @@
         try {
           const { data: bodegas, error } = await sbClient.from('bodegas').select('*').order('nombre');
           if (error) throw error;
-          const { data: duenos } = await sbClient.from('usuarios').select('bodega_id, nombre, dni, auth_id').eq('rol', 'dueno');
+          const { data: duenos } = await sbClient.from('usuarios').select('bodega_id, nombre, dni, auth_id, telefono').eq('rol', 'dueno');
           const duenoPorBodega = new Map((duenos || []).map((d) => [d.bodega_id, d]));
           setBodegasAdmin((bodegas || []).map((b) => ({ ...b, dueno: duenoPorBodega.get(b.id) || null })));
         } catch (err) {
@@ -921,12 +921,13 @@
             p_nombre_dueno: formNuevaBodega.nombreDueno.trim(),
             p_dni: formNuevaBodega.dni.trim(),
             p_pin: formNuevaBodega.pin.trim(),
-            p_dias: Number(formNuevaBodega.dias) || 0
+            p_dias: Number(formNuevaBodega.dias) || 0,
+            p_telefono: formNuevaBodega.telefono.trim() || null
           });
           if (error) throw error;
 
           notificar('Bodega creada. El dueño ya puede iniciar sesión con su DNI y PIN.', 'success');
-          setFormNuevaBodega({ nombreBodega: '', nombreDueno: '', dni: '', pin: '', dias: '30' });
+          setFormNuevaBodega({ nombreBodega: '', nombreDueno: '', dni: '', pin: '', dias: '30', telefono: '' });
           cargarBodegas();
         } catch (err) {
           notificar(`No se pudo crear la bodega: ${err.message}`, 'error');
@@ -1124,6 +1125,15 @@
                   />
                 </div>
                 <div>
+                  <label className="text-xs text-stone-600 block mb-1">Celular del Dueño (WhatsApp, opcional):</label>
+                  <input
+                    type="text" placeholder="Ej: 987654321"
+                    value={formNuevaBodega.telefono}
+                    onChange={(e) => setFormNuevaBodega({ ...formNuevaBodega, telefono: e.target.value })}
+                    className="w-full bg-stone-50 border border-stone-200 rounded-lg px-3 py-2 text-sm text-stone-900"
+                  />
+                </div>
+                <div>
                   <label className="text-xs text-stone-600 block mb-1">DNI (usuario de acceso):</label>
                   <input
                     type="text" required maxLength={8} placeholder="8 dígitos"
@@ -1181,9 +1191,24 @@
                             {b.dueno ? `${b.dueno.nombre} · DNI ${b.dueno.dni}${b.dueno.auth_id ? '' : ' · sin reclamar aún'}` : 'Sin dueño registrado'}
                           </p>
                         </div>
-                        <span className={`shrink-0 text-[10px] font-bold px-2 py-1 rounded-full ${vencida ? 'bg-rose-100 text-rose-600' : 'bg-emerald-100 text-emerald-600'}`}>
-                          {vencida ? 'VENCIDA' : 'ACTIVA'}
-                        </span>
+                        <div className="shrink-0 flex items-center gap-1.5">
+                          {b.dueno && b.dueno.telefono && (
+                            <button
+                              onClick={() => {
+                                const soloNumeros = b.dueno.telefono.replace(/\D/g, '');
+                                const telConCodigo = soloNumeros.length === 9 ? `51${soloNumeros}` : soloNumeros;
+                                window.open(`https://wa.me/${telConCodigo}`, '_blank');
+                              }}
+                              title={`Escribir a ${b.dueno.nombre} por WhatsApp`}
+                              className="w-6 h-6 flex items-center justify-center bg-emerald-50 hover:bg-emerald-100 text-emerald-600 rounded-full"
+                            >
+                              <i className="fa-brands fa-whatsapp text-xs"></i>
+                            </button>
+                          )}
+                          <span className={`text-[10px] font-bold px-2 py-1 rounded-full ${vencida ? 'bg-rose-100 text-rose-600' : 'bg-emerald-100 text-emerald-600'}`}>
+                            {vencida ? 'VENCIDA' : 'ACTIVA'}
+                          </span>
+                        </div>
                       </div>
                       <p className="text-xs text-stone-600">
                         Vigencia: {b.activa_hasta ? new Date(`${b.activa_hasta}T00:00:00`).toLocaleDateString('es-PE') : 'Sin vencimiento'}
@@ -1398,7 +1423,7 @@
       const [cargandoAdminLogin, setCargandoAdminLogin] = useState(false);
       const [bodegasAdmin, setBodegasAdmin] = useState([]);
       const [cargandoBodegasAdmin, setCargandoBodegasAdmin] = useState(false);
-      const [formNuevaBodega, setFormNuevaBodega] = useState({ nombreBodega: '', nombreDueno: '', dni: '', pin: '', dias: '30' });
+      const [formNuevaBodega, setFormNuevaBodega] = useState({ nombreBodega: '', nombreDueno: '', dni: '', pin: '', dias: '30', telefono: '' });
       const [guardandoNuevaBodega, setGuardandoNuevaBodega] = useState(false);
 
       // --- Bodega & Cajeros ---
