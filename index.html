@@ -5569,6 +5569,29 @@
                       // sistema de acceso (bodega creada antes de este cambio):
                       // se crea su cuenta real y, si el DNI+PIN coincide con lo
                       // que ya tenía guardado, se vincula automáticamente.
+                      //
+                      // Antes de crear esa cuenta, se valida que el DNI+PIN de
+                      // verdad corresponda a una bodega sin reclamar -- si no,
+                      // un PIN mal tecleado dejaría creada una cuenta de Auth
+                      // "huérfana" con una contraseña equivocada, y como el
+                      // correo (derivado del DNI) queda ocupado, ningún intento
+                      // futuro -- ni con el PIN correcto -- podría volver a
+                      // crearla ni iniciar sesión con ella nunca más.
+                      const { data: puedeReclamar, error: errPuedeReclamar } = await sbClient.rpc('puede_reclamar_bodega', { p_dni: dni, p_pin: pin });
+                      // Si la función todavía no existe (falta correr el SQL
+                      // de esta mejora), no se bloquea el login: se sigue el
+                      // flujo anterior en vez de dejar a todas las bodegas
+                      // nuevas sin poder entrar mientras tanto.
+                      const faltaFuncion = errPuedeReclamar && errPuedeReclamar.code === 'PGRST202';
+                      if (errPuedeReclamar && !faltaFuncion) {
+                        console.warn('[login] puede_reclamar_bodega:', errPuedeReclamar.message);
+                        throw new Error('DNI o PIN incorrecto.');
+                      }
+                      if (!faltaFuncion && !puedeReclamar) {
+                        console.warn('[login] puede_reclamar_bodega: DNI/PIN no coincide con ninguna bodega sin reclamar.');
+                        throw new Error('DNI o PIN incorrecto.');
+                      }
+
                       const { error: errSignUp } = await sbClient.auth.signUp({ email, password });
                       if (errSignUp) {
                         console.warn('[login] signUp falló:', errSignUp.status, errSignUp.message);
