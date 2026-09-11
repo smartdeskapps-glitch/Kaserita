@@ -969,6 +969,72 @@
       };
 
       // ==========================================
+      // BACKUP y ELIMINACIÓN DE BODEGA -- "por las dudas" antes de dar de
+      // baja definitivamente a un negocio (o limpiar una de prueba).
+      // ==========================================
+      const [generandoBackupId, setGenerandoBackupId] = useState(null);
+      const [modalEliminarBodega, setModalEliminarBodega] = useState(null);
+      const [textoConfirmarEliminar, setTextoConfirmarEliminar] = useState('');
+      const [eliminandoBodega, setEliminandoBodega] = useState(false);
+
+      // Tablas que se relacionan con una bodega por una columna bodega_id
+      // simple (sin sub-detalle que valga la pena anidar en el JSON).
+      const TABLAS_BACKUP_SIMPLES = ['clientes', 'turnos_caja', 'mermas', 'pagos_credito', 'cajeros', 'categorias', 'tomas_inventario'];
+
+      const descargarBackupBodega = async (bodega) => {
+        setGenerandoBackupId(bodega.id);
+        try {
+          const resultados = await Promise.all([
+            sbClient.from('usuarios').select('*').eq('bodega_id', bodega.id),
+            sbClient.from('productos').select('*').eq('bodega_id', bodega.id),
+            sbClient.from('compras').select('*, compras_detalle(*)').eq('bodega_id', bodega.id),
+            sbClient.from('ventas').select('*, ventas_detalle(*)').eq('bodega_id', bodega.id),
+            sbClient.from('proveedores').select('*, pagos_proveedor(*)').eq('bodega_id', bodega.id),
+            ...TABLAS_BACKUP_SIMPLES.map((t) => sbClient.from(t).select('*').eq('bodega_id', bodega.id))
+          ]);
+          const conError = resultados.find((r) => r.error);
+          if (conError) throw conError.error;
+
+          const [usuarios, productos, compras, ventas, proveedores, ...simples] = resultados.map((r) => r.data || []);
+          const backup = { generado_en: new Date().toISOString(), bodega, usuarios, productos, compras, ventas, proveedores };
+          TABLAS_BACKUP_SIMPLES.forEach((t, i) => { backup[t] = simples[i]; });
+
+          const blob = new Blob([JSON.stringify(backup, null, 2)], { type: 'application/json' });
+          const url = URL.createObjectURL(blob);
+          const nombreArchivo = `backup_${bodega.nombre.replace(/[^a-z0-9]+/gi, '_')}_${new Date().toISOString().slice(0, 10)}.json`;
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = nombreArchivo;
+          document.body.appendChild(a);
+          a.click();
+          a.remove();
+          URL.revokeObjectURL(url);
+          notificar('Backup descargado.', 'success');
+        } catch (err) {
+          notificar(`No se pudo generar el backup: ${err.message}`, 'error');
+        } finally {
+          setGenerandoBackupId(null);
+        }
+      };
+
+      const eliminarBodegaConfirmado = async () => {
+        if (!modalEliminarBodega) return;
+        setEliminandoBodega(true);
+        try {
+          const { error } = await sbClient.rpc('admin_eliminar_bodega', { p_bodega_id: modalEliminarBodega.id });
+          if (error) throw error;
+          notificar('Bodega eliminada junto con todos sus datos.', 'success');
+          setModalEliminarBodega(null);
+          setTextoConfirmarEliminar('');
+          cargarBodegas();
+        } catch (err) {
+          notificar(`No se pudo eliminar: ${err.message}`, 'error');
+        } finally {
+          setEliminandoBodega(false);
+        }
+      };
+
+      // ==========================================
       // CATÁLOGO MAESTRO -- banco de productos (descripción + categoría +
       // foto) que administra solo el super-admin. Cada bodega lo puede
       // leer para "importar" un producto al suyo (ver PosApp), pero solo
@@ -1222,6 +1288,19 @@
                         {b.activa_hasta && (
                           <button onClick={() => quitarVencimiento(b)} className="text-xs font-semibold px-2.5 py-1.5 rounded-lg bg-stone-100 text-stone-700 hover:bg-stone-200">Quitar vencimiento</button>
                         )}
+                        <button
+                          onClick={() => descargarBackupBodega(b)}
+                          disabled={generandoBackupId === b.id}
+                          className="text-xs font-semibold px-2.5 py-1.5 rounded-lg bg-sky-50 text-sky-700 hover:bg-sky-100 disabled:opacity-60 flex items-center gap-1.5"
+                        >
+                          <i className="fa-solid fa-download text-[10px]"></i> {generandoBackupId === b.id ? 'Generando...' : 'Backup'}
+                        </button>
+                        <button
+                          onClick={() => { setModalEliminarBodega(b); setTextoConfirmarEliminar(''); }}
+                          className="text-xs font-semibold px-2.5 py-1.5 rounded-lg bg-rose-50 text-rose-600 hover:bg-rose-100 flex items-center gap-1.5 ml-auto"
+                        >
+                          <i className="fa-solid fa-trash text-[10px]"></i> Eliminar tienda
+                        </button>
                       </div>
                     </div>
                   );
@@ -1354,6 +1433,52 @@
           </div>
           )}
           </div>
+
+          {modalEliminarBodega && (
+            <div className="fixed inset-0 bg-black/85 flex items-center justify-center z-50 p-4">
+              <div className="bg-white border border-stone-200 rounded-2xl max-w-sm w-full p-5 shadow-2xl space-y-4">
+                <div className="flex items-center gap-2 text-rose-600">
+                  <i className="fa-solid fa-triangle-exclamation text-lg"></i>
+                  <h3 className="text-sm font-bold">Eliminar "{modalEliminarBodega.nombre}"</h3>
+                </div>
+                <p className="text-xs text-stone-600 leading-relaxed">
+                  Esto borra <strong>para siempre</strong> todas las ventas, compras, productos, clientes, turnos de caja y demás datos de esta bodega, junto con su cuenta de acceso. No se puede deshacer.
+                </p>
+                <button
+                  onClick={() => descargarBackupBodega(modalEliminarBodega)}
+                  disabled={generandoBackupId === modalEliminarBodega.id}
+                  className="w-full py-2 bg-sky-50 hover:bg-sky-100 disabled:opacity-60 text-sky-700 font-bold text-xs rounded-xl flex items-center justify-center gap-1.5"
+                >
+                  <i className="fa-solid fa-download text-[10px]"></i> {generandoBackupId === modalEliminarBodega.id ? 'Generando...' : 'Descargar backup primero'}
+                </button>
+                <div>
+                  <label className="text-[11px] font-bold text-stone-400 uppercase tracking-wide">Escribe "{modalEliminarBodega.nombre}" para confirmar</label>
+                  <input
+                    type="text"
+                    autoFocus
+                    value={textoConfirmarEliminar}
+                    onChange={(e) => setTextoConfirmarEliminar(e.target.value)}
+                    className="w-full bg-stone-50 border border-stone-200 rounded-lg px-3 py-2 text-sm text-stone-900 mt-1"
+                  />
+                </div>
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => { setModalEliminarBodega(null); setTextoConfirmarEliminar(''); }}
+                    className="flex-1 py-2.5 bg-stone-100 hover:bg-stone-200 text-stone-700 font-bold text-sm rounded-xl"
+                  >
+                    Cancelar
+                  </button>
+                  <button
+                    onClick={eliminarBodegaConfirmado}
+                    disabled={eliminandoBodega || textoConfirmarEliminar.trim() !== modalEliminarBodega.nombre}
+                    className="flex-1 py-2.5 bg-rose-600 hover:bg-rose-700 disabled:opacity-40 disabled:cursor-not-allowed text-white font-bold text-sm rounded-xl"
+                  >
+                    {eliminandoBodega ? 'Eliminando...' : 'Eliminar definitivamente'}
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       );
     }
