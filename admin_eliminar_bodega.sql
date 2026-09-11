@@ -25,14 +25,21 @@ security definer
 set search_path = public
 as $$
 declare
-  v_auth_ids uuid[];
+  v_emails text[];
 begin
   if not es_superadmin() then
     raise exception 'No autorizado.';
   end if;
 
-  select array_agg(auth_id) into v_auth_ids
-    from usuarios where bodega_id = p_bodega_id and auth_id is not null;
+  -- El correo se arma siempre igual a partir del DNI (ver
+  -- emailAuthDesdeDni en el cliente) -- se borra por correo, no por
+  -- usuarios.auth_id, porque una cuenta que nunca llegó a reclamarse
+  -- (login fallido antes de este arreglo) tiene auth_id en null pero SÍ
+  -- puede tener una cuenta huérfana ya creada en Auth con ese correo, que
+  -- si no se borra acá, bloquea para siempre a la próxima bodega que use
+  -- el mismo DNI.
+  select array_agg('bodega_' || dni || '@kaserita.app') into v_emails
+    from usuarios where bodega_id = p_bodega_id;
 
   delete from pagos_proveedor where bodega_id = p_bodega_id;
   delete from proveedores where bodega_id = p_bodega_id;
@@ -61,8 +68,8 @@ begin
 
   -- Cuenta(s) de acceso de esta bodega -- se borran de Auth también, para
   -- no dejar un correo ocupado que nadie más va a poder volver a usar.
-  if v_auth_ids is not null then
-    delete from auth.users where id = any(v_auth_ids);
+  if v_emails is not null then
+    delete from auth.users where email = any(v_emails);
   end if;
 
   delete from bodegas where id = p_bodega_id;
