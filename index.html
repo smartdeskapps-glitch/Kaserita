@@ -885,6 +885,12 @@
       // combinación exacta de cajas abiertas (ver claveAviso en
       // verificarTurno), no en cada recarga de la página.
       const [cajasAbiertasAviso, setCajasAbiertasAviso] = useState(null);
+      // Aviso liviano (solo informativo, sin nada para elegir) de que este
+      // dispositivo se acaba de unir a SU PROPIA caja que ya estaba abierta
+      // desde otro navegador/equipo -- para que no pase desapercibido, sin
+      // interrumpir con una decisión que no existe (es indudablemente la
+      // misma persona). Una vez por turno_id (ver claveAvisoPropia).
+      const [avisoPropiaCajaAbierta, setAvisoPropiaCajaAbierta] = useState(null);
       const [montoApertura, setMontoApertura] = useState('100.00');
       const [modalGestionCajeros, setModalGestionCajeros] = useState(false);
       const [cajerosGestion, setCajerosGestion] = useState([]);
@@ -3960,9 +3966,12 @@
         if (!sbClient || !bodegaId || esModoDemo) return;
         try {
           // Paso 1 -- ¿El cajero de este dispositivo ya tiene su propia caja
-          //    abierta? (ej. el mismo cajero entrando desde otro equipo).
-          //    Se retoma directo, sin preguntar nada -- es indudablemente
-          //    la misma persona continuando.
+          //    abierta? (ej. el mismo cajero entrando desde otro equipo o
+          //    navegador). Es indudablemente la misma persona continuando,
+          //    así que se retoma directo -- sin dejar elegir ni cambiar de
+          //    cajero -- pero sí se avisa (una vez por caja) que se está
+          //    entrando a una caja que ya estaba abierta, para que no pase
+          //    desapercibido.
           if (cajeroActual?.id) {
             const { data: propio } = await sbClient
               .from('turnos_caja')
@@ -3973,6 +3982,13 @@
               .maybeSingle();
             if (propio) {
               setTurnoActivo(propio);
+              const claveAvisoPropia = `pos_turno_avisado_${propio.id}`;
+              let yaAvisadoPropia = false;
+              try { yaAvisadoPropia = sessionStorage.getItem(claveAvisoPropia) === '1'; } catch (e) { /* ignorar */ }
+              if (!yaAvisadoPropia) {
+                try { sessionStorage.setItem(claveAvisoPropia, '1'); } catch (e) { /* ignorar */ }
+                setAvisoPropiaCajaAbierta(propio);
+              }
               return;
             }
           }
@@ -7896,6 +7912,30 @@
                   <button onClick={() => setModalTurno(false)} className="flex-1 py-2 bg-stone-200 text-xs font-semibold rounded-xl">Cancelar</button>
                   <button onClick={handleAbrirTurno} className="flex-1 py-2 bg-stone-900 text-white text-xs font-bold rounded-xl shadow">Confirmar y Abrir</button>
                 </div>
+              </div>
+            </div>
+          )}
+
+          {/* Aviso liviano: este dispositivo se unió a SU PROPIA caja, que
+              ya estaba abierta desde otro navegador/equipo. Solo informa
+              -- no hay nada que elegir, es indudablemente la misma persona. */}
+          {avisoPropiaCajaAbierta && (
+            <div className="fixed inset-0 bg-black/85 flex items-center justify-center z-50 p-4">
+              <div className="bg-stone-100 border border-orange-500/80 rounded-2xl max-w-md w-full p-6 shadow-2xl space-y-4 text-center">
+                <div className="w-14 h-14 mx-auto bg-orange-100 rounded-full flex items-center justify-center">
+                  <i className="fa-solid fa-cash-register text-orange-600 text-xl"></i>
+                </div>
+                <div>
+                  <h2 className="text-base font-bold text-stone-900">Retomando tu caja</h2>
+                  <p className="text-xs text-stone-600 mt-2 leading-relaxed">
+                    Ya tenías una caja abierta desde otro navegador/equipo, abierta
+                    el {new Date(avisoPropiaCajaAbierta.fecha_apertura).toLocaleString('es-PE', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}
+                    {' '}con S/ {Number(avisoPropiaCajaAbierta.monto_inicial || 0).toFixed(2)} de fondo inicial. Este dispositivo se conecta a esa misma caja.
+                  </p>
+                </div>
+                <button onClick={() => setAvisoPropiaCajaAbierta(null)} className="w-full py-2.5 bg-stone-900 hover:bg-stone-800 text-white text-xs font-bold rounded-xl shadow">
+                  Entendido, seguir con esta caja
+                </button>
               </div>
             </div>
           )}
