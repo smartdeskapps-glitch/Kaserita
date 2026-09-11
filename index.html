@@ -1619,7 +1619,7 @@
       const [guardandoTomaInventario, setGuardandoTomaInventario] = useState(false);
 
       // --- Módulo: Inventario Inicial (carga de varios productos a la vez) ---
-      const filaInventarioVacia = () => ({ descripcion: '', cod_ean: '', sku: '', categoria: 'Abarrotes', precio_costo: '', precio_venta: '', unidad: 'UND', vendeEnPack: false, vendeEnPackOriginal: false, unidades_por_pack: '', precio_venta_pack: '', cod_ean_pack: '', productoExistenteId: null, foto_url: '' });
+      const filaInventarioVacia = () => ({ descripcion: '', cod_ean: '', sku: '', categoria: 'Abarrotes', precio_costo: '', precio_venta: '', unidad: 'UND', vendeEnPack: false, vendeEnPackOriginal: false, unidades_por_pack: '', precio_venta_pack: '', cod_ean_pack: '', productoExistenteId: null, foto_url: '', catalogoMaestroId: null });
       const [modalInventarioInicial, setModalInventarioInicial] = useState(false);
       const [filasInventario, setFilasInventario] = useState([filaInventarioVacia()]);
       const [guardandoInventario, setGuardandoInventario] = useState(false);
@@ -1983,25 +1983,40 @@
         setCargandoProductos(true);
         if (sbClient) {
           try {
-            let query = sbClient
-              .from('productos')
-              .select('*')
-              .eq('bodega_id', bodegaId)
-              .order('descripcion', { ascending: true });
+            const construirQuery = (conFotoMaestro) => {
+              let q = sbClient
+                .from('productos')
+                .select(conFotoMaestro ? '*, catalogo_maestro(foto_url)' : '*')
+                .eq('bodega_id', bodegaId)
+                .order('descripcion', { ascending: true });
+              if (termino.trim()) {
+                const b = termino.trim();
+                q = q.or(`cod_ean.ilike.%${b}%,descripcion.ilike.%${b}%,categoria.ilike.%${b}%`);
+              }
+              return q;
+            };
 
-            if (termino.trim()) {
-              const b = termino.trim();
-              query = query.or(`cod_ean.ilike.%${b}%,descripcion.ilike.%${b}%,categoria.ilike.%${b}%`);
+            let { data, error } = await construirQuery(true);
+            if (error) {
+              // Compatibilidad: si todavía no se corrió
+              // catalogo_maestro_enlazar_foto.sql, la relación no existe en
+              // el schema cache y este primer intento falla -- se reintenta
+              // sin el JOIN en vez de dejar el catálogo entero sin cargar.
+              ({ data, error } = await construirQuery(false));
             }
-
-            const { data, error } = await query;
             if (error) throw error;
 
             // Se filtra "activo" en el cliente (no en la consulta) para que la
             // app no se rompa si todavía no corriste la migración que agrega
             // esa columna: un producto sin el campo (undefined) se sigue
             // mostrando con normalidad.
-            const visibles = (data || []).filter((p) => p.activo !== false);
+            const visibles = (data || [])
+              .filter((p) => p.activo !== false)
+              // Si el producto está enlazado a una ficha del catálogo
+              // maestro, su foto en vivo manda sobre la que se copió al
+              // importarlo -- así una foto que subas después también les
+              // llega a las bodegas que ya lo tenían.
+              .map((p) => (p.catalogo_maestro ? { ...p, foto_url: p.catalogo_maestro.foto_url || p.foto_url } : p));
             setProductos(visibles);
           } catch (err) {
             setProductos([]);
@@ -3459,7 +3474,7 @@
         setFilasInventario((prev) =>
           prev.map((fila, i) =>
             i === index
-              ? { ...fila, descripcion: item.descripcion, categoria: item.categoria || fila.categoria, foto_url: item.foto_url || '' }
+              ? { ...fila, descripcion: item.descripcion, categoria: item.categoria || fila.categoria, foto_url: item.foto_url || '', catalogoMaestroId: item.id }
               : fila
           )
         );
@@ -3596,6 +3611,10 @@
                 sku: f.sku.trim() || generarSKU(f.categoria),
                 categoria: f.categoria.trim() || 'General',
                 foto_url: f.foto_url || null,
+                // Si la descripción/categoría/foto vinieron de una
+                // sugerencia del catálogo maestro, queda enlazado a esa
+                // ficha (ver el JOIN en cargarProductos).
+                catalogo_maestro_id: f.catalogoMaestroId || null,
                 precio_costo: Number(f.precio_costo) || 0,
                 precio_venta: Number(f.precio_venta) || 0,
                 unidad: f.unidad === 'KG' ? 'KG' : 'UND',
@@ -3783,6 +3802,10 @@
             descripcion: productoMaestroSeleccionado.descripcion,
             categoria: productoMaestroSeleccionado.categoria || 'General',
             foto_url: productoMaestroSeleccionado.foto_url || null,
+            // Enlaza el producto a su ficha del catálogo maestro: si más
+            // adelante se le agrega o cambia la foto ahí, se actualiza sola
+            // acá también (ver el JOIN en cargarProductos).
+            catalogo_maestro_id: productoMaestroSeleccionado.id,
             cod_ean: formImportarMaestro.cod_ean.trim() || generarCodigoInterno(),
             sku: generarSKU(productoMaestroSeleccionado.categoria),
             precio_costo: Number(formImportarMaestro.precio_costo) || 0,
