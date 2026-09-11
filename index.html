@@ -1920,7 +1920,10 @@
           try {
             const { data: { session } } = await sbClient.auth.getSession();
             if (session?.user) {
-              const { data: usuario } = await sbClient.from('usuarios').select('*').eq('auth_id', session.user.id).single();
+              // maybeSingle (no single): una sesión guardada puede ser la del
+            // super-admin, que no tiene fila en "usuarios" -- eso es
+            // normal, no un error a mostrar en consola.
+            const { data: usuario } = await sbClient.from('usuarios').select('*').eq('auth_id', session.user.id).maybeSingle();
               if (usuario) {
                 const { data: bodega } = await sbClient.from('bodegas').select('*').eq('id', usuario.bodega_id).single();
                 setSesion({ usuario, bodega: bodega || { id: usuario.bodega_id, nombre: 'Mi Bodega' } });
