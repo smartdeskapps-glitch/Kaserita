@@ -361,6 +361,63 @@
       XLSX.writeFile(libro, nombreArchivo);
     };
 
+    // Recomprime una imagen a JPEG en el navegador (canvas), bajando primero
+    // la calidad y después también la resolución, hasta quedar bajo maxKB o
+    // hasta agotar los intentos -- así una foto de cámara (varios MB) no
+    // llena el Storage ni tarda en cargar en el catálogo desde un celular
+    // con poco dato móvil. La usa solo el admin (catálogo maestro): las
+    // bodegas ya no pueden subir fotos, ver bloquear_fotos_bodega.sql.
+    const comprimirImagenJPEG = (file, maxKB = 20, dimensionInicial = 480) => {
+      return new Promise((resolve, reject) => {
+        const urlTemp = URL.createObjectURL(file);
+        const img = new Image();
+        img.onload = () => {
+          let dimension = dimensionInicial;
+          let calidad = 0.8;
+          let intentos = 0;
+          const maxIntentos = 25;
+
+          const intentar = () => {
+            intentos += 1;
+            const escala = Math.min(1, dimension / Math.max(img.width, img.height));
+            const w = Math.max(1, Math.round(img.width * escala));
+            const h = Math.max(1, Math.round(img.height * escala));
+            const canvas = document.createElement('canvas');
+            canvas.width = w;
+            canvas.height = h;
+            canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+            canvas.toBlob((blob) => {
+              if (!blob) {
+                URL.revokeObjectURL(urlTemp);
+                reject(new Error('No se pudo procesar la imagen.'));
+                return;
+              }
+              const dentroDelLimite = blob.size <= maxKB * 1024;
+              const sinMasMargen = intentos >= maxIntentos || (calidad <= 0.35 && dimension <= 120);
+              if (dentroDelLimite || sinMasMargen) {
+                URL.revokeObjectURL(urlTemp);
+                resolve(blob);
+                return;
+              }
+              if (calidad > 0.35) {
+                calidad = +(calidad - 0.1).toFixed(2);
+              } else {
+                dimension = Math.round(dimension * 0.8);
+                calidad = 0.6;
+              }
+              intentar();
+            }, 'image/jpeg', calidad);
+          };
+          intentar();
+        };
+        img.onerror = () => {
+          URL.revokeObjectURL(urlTemp);
+          reject(new Error('No se pudo leer la imagen.'));
+        };
+        img.src = urlTemp;
+      });
+    };
+
     // ID fijo usado únicamente por "Modo Demo Local" (no corresponde a ninguna
     // bodega real). Solo en ese caso se muestra el catálogo de ejemplo; una
     // bodega real sin productos debe ver un catálogo vacío de verdad.
@@ -910,6 +967,97 @@
         }
       };
 
+      // ==========================================
+      // CATÁLOGO MAESTRO -- banco de productos (descripción + categoría +
+      // foto) que administra solo el super-admin. Cada bodega lo puede
+      // leer para "importar" un producto al suyo (ver PosApp), pero solo
+      // acá se crea, edita o borra.
+      // ==========================================
+      const [vistaAdmin, setVistaAdmin] = useState('bodegas');
+      const [catalogoMaestro, setCatalogoMaestro] = useState([]);
+      const [cargandoMaestro, setCargandoMaestro] = useState(false);
+      const [busquedaMaestro, setBusquedaMaestro] = useState('');
+      const [formMaestro, setFormMaestro] = useState(null);
+      const [guardandoMaestro, setGuardandoMaestro] = useState(false);
+      const [subiendoFotoMaestro, setSubiendoFotoMaestro] = useState(false);
+
+      const cargarCatalogoMaestro = useCallback(async () => {
+        setCargandoMaestro(true);
+        try {
+          const { data, error } = await sbClient.from('catalogo_maestro').select('*').order('descripcion');
+          if (error) throw error;
+          setCatalogoMaestro(data || []);
+        } catch (err) {
+          notificar(`No se pudo cargar el catálogo maestro: ${err.message}`, 'error');
+        } finally {
+          setCargandoMaestro(false);
+        }
+      }, [sbClient]);
+
+      useEffect(() => {
+        if (vistaAdmin === 'maestro' && catalogoMaestro.length === 0) cargarCatalogoMaestro();
+      }, [vistaAdmin, cargarCatalogoMaestro]);
+
+      const abrirNuevoProductoMaestro = () => {
+        setFormMaestro({ id: crypto.randomUUID(), descripcion: '', categoria: 'Abarrotes', cod_ean: '', foto_url: '' });
+      };
+
+      const subirFotoMaestro = async (file) => {
+        setSubiendoFotoMaestro(true);
+        try {
+          const comprimida = await comprimirImagenJPEG(file, 20, 480);
+          const ruta = `maestro/${formMaestro.id}.jpg`;
+          const { error } = await sbClient.storage
+            .from('Productos')
+            .upload(ruta, comprimida, { upsert: true, cacheControl: '3600', contentType: 'image/jpeg' });
+          if (error) throw error;
+          const { data } = sbClient.storage.from('Productos').getPublicUrl(ruta);
+          setFormMaestro((prev) => ({ ...prev, foto_url: `${data.publicUrl}?t=${Date.now()}` }));
+        } catch (err) {
+          notificar(`No se pudo subir la foto: ${err.message}`, 'error');
+        } finally {
+          setSubiendoFotoMaestro(false);
+        }
+      };
+
+      const guardarProductoMaestro = async (e) => {
+        e.preventDefault();
+        setGuardandoMaestro(true);
+        try {
+          const payload = {
+            id: formMaestro.id,
+            descripcion: formMaestro.descripcion.trim(),
+            categoria: formMaestro.categoria,
+            cod_ean: formMaestro.cod_ean.trim() || null,
+            foto_url: formMaestro.foto_url || null
+          };
+          const { error } = await sbClient.from('catalogo_maestro').upsert([payload]);
+          if (error) throw error;
+          notificar('Producto guardado en el catálogo maestro.', 'success');
+          setFormMaestro(null);
+          cargarCatalogoMaestro();
+        } catch (err) {
+          notificar(`No se pudo guardar: ${err.message}`, 'error');
+        } finally {
+          setGuardandoMaestro(false);
+        }
+      };
+
+      const eliminarProductoMaestro = async (item) => {
+        if (!window.confirm(`¿Borrar "${item.descripcion}" del catálogo maestro? Esto no afecta los productos que ya importó alguna bodega.`)) return;
+        try {
+          const { error } = await sbClient.from('catalogo_maestro').delete().eq('id', item.id);
+          if (error) throw error;
+          cargarCatalogoMaestro();
+        } catch (err) {
+          notificar(`No se pudo borrar: ${err.message}`, 'error');
+        }
+      };
+
+      const catalogoMaestroFiltrado = catalogoMaestro.filter((p) =>
+        !busquedaMaestro.trim() || p.descripcion.toLowerCase().includes(busquedaMaestro.trim().toLowerCase())
+      );
+
       return (
         <div className="h-screen bg-stone-50 flex flex-col overflow-hidden">
           {toast.visible && (
@@ -932,7 +1080,23 @@
             </button>
           </header>
 
-          <div className="flex-1 overflow-y-auto">
+          <div className="shrink-0 bg-white border-b border-stone-200 px-4 md:px-6 flex gap-1 pt-2">
+            <button
+              onClick={() => setVistaAdmin('bodegas')}
+              className={`px-4 py-2 text-xs font-bold rounded-t-lg transition ${vistaAdmin === 'bodegas' ? 'bg-stone-100 text-stone-900 border-t border-x border-stone-200' : 'text-stone-500 hover:text-stone-800'}`}
+            >
+              <i className="fa-solid fa-store mr-1.5"></i> Bodegas
+            </button>
+            <button
+              onClick={() => setVistaAdmin('maestro')}
+              className={`px-4 py-2 text-xs font-bold rounded-t-lg transition ${vistaAdmin === 'maestro' ? 'bg-stone-100 text-stone-900 border-t border-x border-stone-200' : 'text-stone-500 hover:text-stone-800'}`}
+            >
+              <i className="fa-solid fa-book mr-1.5"></i> Catálogo Maestro
+            </button>
+          </div>
+
+          <div className="flex-1 overflow-y-auto bg-stone-100">
+          {vistaAdmin === 'bodegas' && (
           <div className="max-w-3xl mx-auto p-4 md:p-6 space-y-6">
             <form onSubmit={crearBodega} className="bg-white border border-stone-200 rounded-2xl p-5 space-y-3">
               <h2 className="text-sm font-bold text-stone-900 flex items-center gap-2">
@@ -1038,6 +1202,138 @@
               )}
             </div>
           </div>
+          )}
+
+          {vistaAdmin === 'maestro' && (
+          <div className="max-w-4xl mx-auto p-4 md:p-6 space-y-6">
+            {formMaestro ? (
+              <form onSubmit={guardarProductoMaestro} className="bg-white border border-stone-200 rounded-2xl p-5 space-y-3">
+                <h2 className="text-sm font-bold text-stone-900 flex items-center gap-2">
+                  <i className="fa-solid fa-book text-orange-600"></i> {catalogoMaestro.some((p) => p.id === formMaestro.id) ? 'Editar Producto' : 'Nuevo Producto del Catálogo Maestro'}
+                </h2>
+                <div className="flex items-center gap-3">
+                  <label className="relative w-16 h-16 rounded-xl overflow-hidden shrink-0 cursor-pointer group border border-stone-200">
+                    <FotoProducto
+                      fotoUrl={formMaestro.foto_url}
+                      categoria={formMaestro.categoria}
+                      className="w-16 h-16"
+                      iconClassName="text-xl"
+                    />
+                    <div className="absolute inset-0 flex items-center justify-center bg-black/0 group-hover:bg-black/40 transition">
+                      {subiendoFotoMaestro ? (
+                        <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                      ) : (
+                        <i className="fa-solid fa-camera text-white text-sm opacity-0 group-hover:opacity-100 transition"></i>
+                      )}
+                    </div>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      onChange={(e) => {
+                        const file = e.target.files && e.target.files[0];
+                        e.target.value = '';
+                        if (file) subirFotoMaestro(file);
+                      }}
+                    />
+                  </label>
+                  <p className="text-xs text-stone-500">
+                    <span className="font-semibold text-stone-700 block">Foto del producto</span>
+                    Toca el cuadro para {formMaestro.foto_url ? 'cambiarla' : 'subir una'}.
+                  </p>
+                </div>
+                <div>
+                  <label className="text-xs text-stone-600 block mb-1">Descripción:</label>
+                  <input
+                    type="text" required placeholder="Ej: Coca Cola 500ml"
+                    value={formMaestro.descripcion}
+                    onChange={(e) => setFormMaestro({ ...formMaestro, descripcion: e.target.value })}
+                    className="w-full bg-stone-50 border border-stone-200 rounded-lg px-3 py-2 text-sm text-stone-900"
+                  />
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label className="text-xs text-stone-600 block mb-1">Categoría:</label>
+                    <select
+                      value={formMaestro.categoria}
+                      onChange={(e) => setFormMaestro({ ...formMaestro, categoria: e.target.value })}
+                      className="w-full bg-stone-50 border border-stone-200 rounded-lg px-3 py-2 text-sm text-stone-900"
+                    >
+                      {CATEGORIAS_FALLBACK.map((c) => <option key={c} value={c}>{c}</option>)}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="text-xs text-stone-600 block mb-1">Código EAN (opcional):</label>
+                    <input
+                      type="text"
+                      value={formMaestro.cod_ean}
+                      onChange={(e) => setFormMaestro({ ...formMaestro, cod_ean: e.target.value })}
+                      className="w-full bg-stone-50 border border-stone-200 rounded-lg px-3 py-2 text-sm text-stone-900"
+                    />
+                  </div>
+                </div>
+                <div className="flex gap-2 pt-1">
+                  <button type="button" onClick={() => setFormMaestro(null)} className="flex-1 py-2.5 bg-stone-100 hover:bg-stone-200 text-stone-700 font-bold text-sm rounded-xl">
+                    Cancelar
+                  </button>
+                  <button type="submit" disabled={guardandoMaestro} className="flex-1 py-2.5 bg-stone-900 hover:bg-stone-800 disabled:opacity-60 text-white font-bold text-sm rounded-xl shadow">
+                    {guardandoMaestro ? 'Guardando...' : 'Guardar'}
+                  </button>
+                </div>
+              </form>
+            ) : (
+              <div className="flex items-center gap-2">
+                <div className="relative flex-1">
+                  <i className="fa-solid fa-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-stone-400 text-xs"></i>
+                  <input
+                    type="text" placeholder="Buscar producto..."
+                    value={busquedaMaestro}
+                    onChange={(e) => setBusquedaMaestro(e.target.value)}
+                    className="w-full bg-white border border-stone-200 rounded-xl pl-9 pr-3 py-2.5 text-sm text-stone-900"
+                  />
+                </div>
+                <button onClick={abrirNuevoProductoMaestro} className="shrink-0 px-4 py-2.5 bg-stone-900 hover:bg-stone-800 text-white font-bold text-sm rounded-xl shadow flex items-center gap-1.5">
+                  <i className="fa-solid fa-plus"></i> Nuevo
+                </button>
+              </div>
+            )}
+
+            {!formMaestro && (
+              <div className="space-y-2">
+                <h2 className="text-sm font-bold text-stone-900 flex items-center gap-2">
+                  <i className="fa-solid fa-list text-orange-600"></i> Catálogo Maestro ({catalogoMaestroFiltrado.length})
+                </h2>
+                {cargandoMaestro ? (
+                  <p className="text-xs text-stone-500 text-center py-6">Cargando...</p>
+                ) : catalogoMaestroFiltrado.length === 0 ? (
+                  <p className="text-xs text-stone-500 text-center py-6">
+                    {catalogoMaestro.length === 0 ? 'Todavía no agregaste ningún producto al catálogo maestro.' : 'No se encontraron productos con esa búsqueda.'}
+                  </p>
+                ) : (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                    {catalogoMaestroFiltrado.map((p) => (
+                      <div key={p.id} className="bg-white border border-stone-200 rounded-xl p-3 flex items-center gap-3">
+                        <FotoProducto fotoUrl={p.foto_url} categoria={p.categoria} className="w-12 h-12 rounded-lg shrink-0" iconClassName="text-lg" />
+                        <div className="min-w-0 flex-1">
+                          <p className="text-xs font-bold text-stone-900 truncate">{p.descripcion}</p>
+                          <p className="text-[11px] text-stone-500">{p.categoria || 'Sin categoría'}</p>
+                        </div>
+                        <div className="flex gap-1 shrink-0">
+                          <button onClick={() => setFormMaestro({ id: p.id, descripcion: p.descripcion, categoria: p.categoria || 'Abarrotes', cod_ean: p.cod_ean || '', foto_url: p.foto_url || '' })} className="w-7 h-7 flex items-center justify-center bg-stone-100 hover:bg-stone-200 text-stone-700 rounded-lg">
+                            <i className="fa-solid fa-pen text-xs"></i>
+                          </button>
+                          <button onClick={() => eliminarProductoMaestro(p)} className="w-7 h-7 flex items-center justify-center bg-rose-50 hover:bg-rose-100 text-rose-600 rounded-lg">
+                            <i className="fa-solid fa-trash-can text-xs"></i>
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+          )}
           </div>
         </div>
       );
@@ -1308,6 +1604,18 @@
       const [modalInventarioInicial, setModalInventarioInicial] = useState(false);
       const [filasInventario, setFilasInventario] = useState([filaInventarioVacia()]);
       const [guardandoInventario, setGuardandoInventario] = useState(false);
+
+      // --- Módulo: Importar del Catálogo Maestro -- banco de productos que
+      // administra Kaserita (descripción + categoría + foto); la bodega
+      // busca uno y le pone su propio precio/costo/stock antes de sumarlo
+      // a su inventario. No existe en Modo Demo (no hay sesión real). ---
+      const [modalImportarMaestro, setModalImportarMaestro] = useState(false);
+      const [catalogoMaestroDisponible, setCatalogoMaestroDisponible] = useState([]);
+      const [cargandoMaestroImport, setCargandoMaestroImport] = useState(false);
+      const [busquedaMaestroImport, setBusquedaMaestroImport] = useState('');
+      const [productoMaestroSeleccionado, setProductoMaestroSeleccionado] = useState(null);
+      const [formImportarMaestro, setFormImportarMaestro] = useState({ precio_venta: '', precio_costo: '', stock_actual: '', cod_ean: '', unidad: 'UND' });
+      const [guardandoImportMaestro, setGuardandoImportMaestro] = useState(false);
 
       // --- Módulo: Levantamiento de Inventario -- conteo físico rápido,
       // escaneando de a un producto a la vez. El producto ya tiene que
@@ -3380,6 +3688,72 @@
       };
 
       // ==========================================
+      // IMPORTAR DEL CATÁLOGO MAESTRO
+      // ==========================================
+      const abrirImportarMaestro = useCallback(() => {
+        setModalImportarMaestro(true);
+        setProductoMaestroSeleccionado(null);
+        setBusquedaMaestroImport('');
+        if (esModoDemo || !sbClient) return;
+        setCargandoMaestroImport(true);
+        sbClient.from('catalogo_maestro').select('*').order('descripcion')
+          .then(({ data, error }) => {
+            if (error) throw error;
+            setCatalogoMaestroDisponible(data || []);
+          })
+          .catch((err) => notificar(`No se pudo cargar el catálogo maestro: ${err.message}`, 'error'))
+          .finally(() => setCargandoMaestroImport(false));
+      }, [esModoDemo, sbClient]);
+
+      const seleccionarProductoMaestro = (item) => {
+        setProductoMaestroSeleccionado(item);
+        setFormImportarMaestro({ precio_venta: '', precio_costo: '', stock_actual: '', cod_ean: item.cod_ean || '', unidad: 'UND' });
+      };
+
+      const importarProductoMaestro = async (e) => {
+        e.preventDefault();
+        if (!formImportarMaestro.precio_venta) {
+          notificar('Ponle un precio de venta.', 'error');
+          return;
+        }
+        setGuardandoImportMaestro(true);
+        try {
+          const payload = {
+            bodega_id: bodegaId,
+            descripcion: productoMaestroSeleccionado.descripcion,
+            categoria: productoMaestroSeleccionado.categoria || 'General',
+            foto_url: productoMaestroSeleccionado.foto_url || null,
+            cod_ean: formImportarMaestro.cod_ean.trim() || generarCodigoInterno(),
+            sku: generarSKU(productoMaestroSeleccionado.categoria),
+            precio_costo: Number(formImportarMaestro.precio_costo) || 0,
+            precio_venta: Number(formImportarMaestro.precio_venta) || 0,
+            unidad: formImportarMaestro.unidad === 'KG' ? 'KG' : 'UND',
+            stock_actual: formImportarMaestro.stock_actual === '' ? null : Number(formImportarMaestro.stock_actual),
+            activo: true
+          };
+          if (esModoDemo) {
+            if (!catalogoDemoRef.current) catalogoDemoRef.current = catalogoDemoInicial();
+            const siguienteId = catalogoDemoRef.current.reduce((max, p) => Math.max(max, Number(p.id) || 0), 0) + 1;
+            catalogoDemoRef.current = [...catalogoDemoRef.current, { ...payload, id: String(siguienteId) }];
+          } else if (sbClient) {
+            const { error } = await sbClient.from('productos').insert([payload]);
+            if (error) throw error;
+          }
+          notificar(`"${productoMaestroSeleccionado.descripcion}" agregado a tu inventario.`, 'success');
+          cargarProductos(busqueda);
+          setProductoMaestroSeleccionado(null);
+        } catch (err) {
+          notificar(`No se pudo importar: ${err.message}`, 'error');
+        } finally {
+          setGuardandoImportMaestro(false);
+        }
+      };
+
+      const catalogoMaestroDisponibleFiltrado = catalogoMaestroDisponible.filter((p) =>
+        !busquedaMaestroImport.trim() || p.descripcion.toLowerCase().includes(busquedaMaestroImport.trim().toLowerCase())
+      );
+
+      // ==========================================
       // EDITAR / DESACTIVAR PRODUCTO
       // ==========================================
       const abrirEdicionProducto = useCallback((prod) => {
@@ -5369,6 +5743,7 @@
                       <SidebarIcon icon="fa-boxes-stacked" label="Registrar Productos" onClick={() => setModalInventarioInicial(true)} />
                       <SidebarIcon icon="fa-truck-ramp-box" label="Entrada de Mercadería" onClick={() => setModalEntradaMercaderia(true)} />
                       <SidebarIcon icon="fa-clipboard-list" label="Levantamiento de Inventario" onClick={() => setModalLevantamiento(true)} />
+                      <SidebarIcon icon="fa-book" label="Importar del Catálogo Maestro" onClick={abrirImportarMaestro} />
                     </div>
                   )}
                 </div>
@@ -6081,6 +6456,9 @@
                         </button>
                         <button onClick={() => { setModalLevantamiento(true); setMenuMas(false); }} className="w-full text-left px-3.5 py-2.5 rounded-xl hover:bg-stone-200 flex items-center gap-3 text-stone-800 font-medium text-sm">
                           <i className="fa-solid fa-clipboard-list w-5 text-orange-600"></i> Levantamiento de Inventario
+                        </button>
+                        <button onClick={() => { abrirImportarMaestro(); setMenuMas(false); }} className="w-full text-left px-3.5 py-2.5 rounded-xl hover:bg-stone-200 flex items-center gap-3 text-stone-800 font-medium text-sm">
+                          <i className="fa-solid fa-book w-5 text-orange-600"></i> Importar del Catálogo Maestro
                         </button>
                       </div>
                     )}
@@ -6880,6 +7258,124 @@
                     {guardandoEdicionProducto ? 'Guardando...' : 'Guardar Cambios'}
                   </button>
                 </div>
+              </div>
+            </div>
+          )}
+
+          {/* Modal: Importar del Catálogo Maestro */}
+          {modalImportarMaestro && (
+            <div className="fixed inset-0 bg-black/85 flex items-center justify-center z-50 p-4">
+              <div className="bg-stone-100 border border-stone-200 rounded-2xl max-w-lg w-full p-5 shadow-2xl space-y-3 max-h-[85vh] flex flex-col">
+                <div className="flex justify-between items-center shrink-0">
+                  <h3 className="text-base font-bold text-stone-900 flex items-center gap-2">
+                    <i className="fa-solid fa-book text-orange-600"></i> Importar del Catálogo Maestro
+                  </h3>
+                  <button onClick={() => setModalImportarMaestro(false)} className="text-stone-600 hover:text-stone-900"><i className="fa-solid fa-xmark"></i></button>
+                </div>
+
+                {productoMaestroSeleccionado ? (
+                  <form onSubmit={importarProductoMaestro} className="space-y-2.5 overflow-y-auto">
+                    <button type="button" onClick={() => setProductoMaestroSeleccionado(null)} className="text-xs font-semibold text-stone-500 hover:text-stone-800 flex items-center gap-1">
+                      <i className="fa-solid fa-arrow-left"></i> Volver a la búsqueda
+                    </button>
+                    <div className="flex items-center gap-3 bg-white border border-stone-200 rounded-xl p-3">
+                      <FotoProducto fotoUrl={productoMaestroSeleccionado.foto_url} categoria={productoMaestroSeleccionado.categoria} className="w-14 h-14 rounded-lg shrink-0" iconClassName="text-xl" />
+                      <div className="min-w-0">
+                        <p className="text-sm font-bold text-stone-900 truncate">{productoMaestroSeleccionado.descripcion}</p>
+                        <p className="text-xs text-stone-500">{productoMaestroSeleccionado.categoria || 'Sin categoría'}</p>
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-2 gap-2">
+                      <div>
+                        <label className="text-xs text-stone-600 block mb-1">Precio Venta (S/):</label>
+                        <input
+                          type="number" step="0.10" required
+                          value={formImportarMaestro.precio_venta}
+                          onChange={(e) => setFormImportarMaestro({ ...formImportarMaestro, precio_venta: e.target.value })}
+                          className="w-full bg-stone-50 border border-stone-200 rounded-lg px-3 py-1.5 text-xs text-stone-900"
+                        />
+                      </div>
+                      <div>
+                        <label className="text-xs text-stone-600 block mb-1">Precio Costo (S/):</label>
+                        <input
+                          type="number" step="0.10"
+                          value={formImportarMaestro.precio_costo}
+                          onChange={(e) => setFormImportarMaestro({ ...formImportarMaestro, precio_costo: e.target.value })}
+                          className="w-full bg-stone-50 border border-stone-200 rounded-lg px-3 py-1.5 text-xs text-stone-900"
+                        />
+                      </div>
+                      <div>
+                        <label className="text-xs text-stone-600 block mb-1">Stock inicial:</label>
+                        <input
+                          type="number" step="1"
+                          value={formImportarMaestro.stock_actual}
+                          onChange={(e) => setFormImportarMaestro({ ...formImportarMaestro, stock_actual: e.target.value })}
+                          className="w-full bg-stone-50 border border-stone-200 rounded-lg px-3 py-1.5 text-xs text-stone-900"
+                        />
+                      </div>
+                      <div>
+                        <label className="text-xs text-stone-600 block mb-1">Unidad:</label>
+                        <select
+                          value={formImportarMaestro.unidad}
+                          onChange={(e) => setFormImportarMaestro({ ...formImportarMaestro, unidad: e.target.value })}
+                          className="w-full bg-stone-50 border border-stone-200 rounded-lg px-3 py-1.5 text-xs text-stone-900"
+                        >
+                          <option value="UND">Unidad (UND)</option>
+                          <option value="KG">Peso (KG)</option>
+                        </select>
+                      </div>
+                      <div className="col-span-2">
+                        <label className="text-xs text-stone-600 block mb-1">Código EAN (opcional):</label>
+                        <input
+                          type="text"
+                          value={formImportarMaestro.cod_ean}
+                          onChange={(e) => setFormImportarMaestro({ ...formImportarMaestro, cod_ean: e.target.value })}
+                          className="w-full bg-stone-50 border border-stone-200 rounded-lg px-3 py-1.5 text-xs text-stone-900"
+                        />
+                      </div>
+                    </div>
+                    <button type="submit" disabled={guardandoImportMaestro} className="w-full py-2.5 bg-stone-900 hover:bg-stone-800 disabled:opacity-60 text-white font-bold text-xs rounded-xl shadow">
+                      {guardandoImportMaestro ? 'Agregando...' : 'Agregar a mi Inventario'}
+                    </button>
+                  </form>
+                ) : (
+                  <>
+                    <input
+                      type="text" placeholder="Buscar producto..."
+                      value={busquedaMaestroImport}
+                      onChange={(e) => setBusquedaMaestroImport(e.target.value)}
+                      className="w-full bg-white border border-stone-200 rounded-lg px-3 py-2 text-xs text-stone-900 shrink-0"
+                    />
+                    <div className="flex-1 overflow-y-auto space-y-1.5">
+                      {cargandoMaestroImport ? (
+                        <p className="text-xs text-stone-500 text-center py-6">Cargando...</p>
+                      ) : catalogoMaestroDisponibleFiltrado.length === 0 ? (
+                        <p className="text-xs text-stone-500 text-center py-6">
+                          {esModoDemo
+                            ? 'El catálogo maestro no está disponible en el Modo Demo.'
+                            : catalogoMaestroDisponible.length === 0
+                            ? 'El administrador todavía no cargó productos al catálogo maestro.'
+                            : 'No se encontraron productos con esa búsqueda.'}
+                        </p>
+                      ) : (
+                        catalogoMaestroDisponibleFiltrado.map((p) => (
+                          <button
+                            key={p.id}
+                            onClick={() => seleccionarProductoMaestro(p)}
+                            className="w-full flex items-center gap-3 bg-white border border-stone-200 hover:border-orange-500/50 rounded-xl p-2.5 text-left transition"
+                          >
+                            <FotoProducto fotoUrl={p.foto_url} categoria={p.categoria} className="w-11 h-11 rounded-lg shrink-0" iconClassName="text-base" />
+                            <div className="min-w-0 flex-1">
+                              <p className="text-xs font-bold text-stone-900 truncate">{p.descripcion}</p>
+                              <p className="text-[11px] text-stone-500">{p.categoria || 'Sin categoría'}</p>
+                            </div>
+                            <i className="fa-solid fa-chevron-right text-stone-400 text-xs shrink-0"></i>
+                          </button>
+                        ))
+                      )}
+                    </div>
+                  </>
+                )}
               </div>
             </div>
           )}
