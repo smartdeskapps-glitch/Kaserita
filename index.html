@@ -881,6 +881,233 @@
       );
     });
 
+    // Panel del super-administrador: crea bodegas (el único lugar donde se
+    // puede crear una, ver panel_admin.sql) y controla su vigencia. No usa
+    // "sesion" (esa es la de dueño/cajero de una bodega) -- entra con su
+    // propia cuenta de correo+contraseña de Supabase Auth.
+    function PanelAdmin({
+      adminSesion, sbClient, bodegasAdmin, setBodegasAdmin, cargandoBodegasAdmin, setCargandoBodegasAdmin,
+      formNuevaBodega, setFormNuevaBodega, guardandoNuevaBodega, setGuardandoNuevaBodega, notificar, toast, onCerrarSesion
+    }) {
+      const cargarBodegas = useCallback(async () => {
+        setCargandoBodegasAdmin(true);
+        try {
+          const { data: bodegas, error } = await sbClient.from('bodegas').select('*').order('nombre');
+          if (error) throw error;
+          const { data: duenos } = await sbClient.from('usuarios').select('bodega_id, nombre, dni, auth_id').eq('rol', 'dueno');
+          const duenoPorBodega = new Map((duenos || []).map((d) => [d.bodega_id, d]));
+          setBodegasAdmin((bodegas || []).map((b) => ({ ...b, dueno: duenoPorBodega.get(b.id) || null })));
+        } catch (err) {
+          notificar(`No se pudo cargar la lista de bodegas: ${err.message}`, 'error');
+        } finally {
+          setCargandoBodegasAdmin(false);
+        }
+      }, [sbClient]);
+
+      useEffect(() => { cargarBodegas(); }, [cargarBodegas]);
+
+      const crearBodega = async (e) => {
+        e.preventDefault();
+        setGuardandoNuevaBodega(true);
+        try {
+          const dias = Number(formNuevaBodega.dias) || 0;
+          const activaHasta = dias > 0 ? fechaISOLocal(new Date(Date.now() + dias * 86400000)) : null;
+
+          const { data: bCreada, error: errBodega } = await sbClient.from('bodegas').insert([{
+            nombre: formNuevaBodega.nombreBodega.trim(),
+            activa: true,
+            activa_hasta: activaHasta
+          }]).select().single();
+          if (errBodega) throw errBodega;
+
+          // Se crea la fila del dueño sin auth_id -- recién queda vinculada a
+          // una cuenta real de Supabase Auth cuando ese dueño inicia sesión
+          // por primera vez con este DNI+PIN (ver reclamar_cuenta_bodega en
+          // el flujo de login normal).
+          const { error: errUsuario } = await sbClient.from('usuarios').insert([{
+            bodega_id: bCreada.id,
+            nombre: formNuevaBodega.nombreDueno.trim(),
+            dni: formNuevaBodega.dni.trim(),
+            pin_acceso: formNuevaBodega.pin.trim(),
+            rol: 'dueno',
+            activo: true,
+            auth_id: null
+          }]);
+          if (errUsuario) throw errUsuario;
+
+          notificar('Bodega creada. El dueño ya puede iniciar sesión con su DNI y PIN.', 'success');
+          setFormNuevaBodega({ nombreBodega: '', nombreDueno: '', dni: '', pin: '', dias: '30' });
+          cargarBodegas();
+        } catch (err) {
+          notificar(`No se pudo crear la bodega: ${err.message}`, 'error');
+        } finally {
+          setGuardandoNuevaBodega(false);
+        }
+      };
+
+      const alternarActiva = async (bodega) => {
+        try {
+          const { error } = await sbClient.from('bodegas').update({ activa: !bodega.activa }).eq('id', bodega.id);
+          if (error) throw error;
+          cargarBodegas();
+        } catch (err) {
+          notificar(`No se pudo actualizar: ${err.message}`, 'error');
+        }
+      };
+
+      const extenderVigencia = async (bodega, dias) => {
+        try {
+          const base = bodega.activa_hasta && bodega.activa_hasta > fechaHoyISO() ? new Date(`${bodega.activa_hasta}T00:00:00`) : new Date();
+          const nueva = fechaISOLocal(new Date(base.getTime() + dias * 86400000));
+          const { error } = await sbClient.from('bodegas').update({ activa_hasta: nueva }).eq('id', bodega.id);
+          if (error) throw error;
+          cargarBodegas();
+        } catch (err) {
+          notificar(`No se pudo actualizar: ${err.message}`, 'error');
+        }
+      };
+
+      const quitarVencimiento = async (bodega) => {
+        try {
+          const { error } = await sbClient.from('bodegas').update({ activa_hasta: null }).eq('id', bodega.id);
+          if (error) throw error;
+          cargarBodegas();
+        } catch (err) {
+          notificar(`No se pudo actualizar: ${err.message}`, 'error');
+        }
+      };
+
+      return (
+        <div className="min-h-screen bg-stone-50">
+          {toast.visible && (
+            <div className={`fixed top-6 inset-x-4 md:inset-x-auto md:right-6 md:max-w-xs z-50 flex items-center gap-2.5 px-4 py-3 rounded-xl shadow-xl border-l-4 bg-white text-xs font-semibold ${toast.tipo === 'error' ? 'border-rose-500 text-rose-700' : 'border-emerald-500 text-emerald-700'}`}>
+              <i className={`fa-solid ${toast.tipo === 'error' ? 'fa-circle-exclamation' : 'fa-circle-check'} text-sm shrink-0`}></i>
+              {toast.texto}
+            </div>
+          )}
+
+          <header className="bg-stone-900 text-white px-5 py-4 flex items-center justify-between">
+            <div className="flex items-center gap-2.5">
+              <div className="w-9 h-9 bg-gradient-to-br from-orange-400 to-orange-600 rounded-xl flex items-center justify-center font-extrabold text-sm">K</div>
+              <div>
+                <h1 className="text-sm font-black leading-tight">Panel de Administrador</h1>
+                <p className="text-[11px] text-stone-400">{adminSesion.nombre || 'Administrador'}</p>
+              </div>
+            </div>
+            <button onClick={onCerrarSesion} className="text-xs font-semibold text-stone-300 hover:text-white flex items-center gap-1.5">
+              <i className="fa-solid fa-right-from-bracket"></i> Salir
+            </button>
+          </header>
+
+          <div className="max-w-3xl mx-auto p-4 md:p-6 space-y-6">
+            <form onSubmit={crearBodega} className="bg-white border border-stone-200 rounded-2xl p-5 space-y-3">
+              <h2 className="text-sm font-bold text-stone-900 flex items-center gap-2">
+                <i className="fa-solid fa-store text-orange-600"></i> Nueva Bodega
+              </h2>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="text-xs text-stone-600 block mb-1">Nombre de la Bodega:</label>
+                  <input
+                    type="text" required placeholder="Ej: Bodega Don Pepe"
+                    value={formNuevaBodega.nombreBodega}
+                    onChange={(e) => setFormNuevaBodega({ ...formNuevaBodega, nombreBodega: e.target.value })}
+                    className="w-full bg-stone-50 border border-stone-200 rounded-lg px-3 py-2 text-sm text-stone-900"
+                  />
+                </div>
+                <div>
+                  <label className="text-xs text-stone-600 block mb-1">Nombre del Dueño:</label>
+                  <input
+                    type="text" required placeholder="Ej: Juan Pérez"
+                    value={formNuevaBodega.nombreDueno}
+                    onChange={(e) => setFormNuevaBodega({ ...formNuevaBodega, nombreDueno: e.target.value })}
+                    className="w-full bg-stone-50 border border-stone-200 rounded-lg px-3 py-2 text-sm text-stone-900"
+                  />
+                </div>
+                <div>
+                  <label className="text-xs text-stone-600 block mb-1">DNI (usuario de acceso):</label>
+                  <input
+                    type="text" required maxLength={8} placeholder="8 dígitos"
+                    value={formNuevaBodega.dni}
+                    onChange={(e) => setFormNuevaBodega({ ...formNuevaBodega, dni: e.target.value })}
+                    className="w-full bg-stone-50 border border-stone-200 rounded-lg px-3 py-2 text-sm text-stone-900"
+                  />
+                </div>
+                <div>
+                  <label className="text-xs text-stone-600 block mb-1">PIN inicial:</label>
+                  <input
+                    type="text" required maxLength={6} placeholder="4-6 dígitos"
+                    value={formNuevaBodega.pin}
+                    onChange={(e) => setFormNuevaBodega({ ...formNuevaBodega, pin: e.target.value })}
+                    className="w-full bg-stone-50 border border-stone-200 rounded-lg px-3 py-2 text-sm text-stone-900"
+                  />
+                </div>
+                <div>
+                  <label className="text-xs text-stone-600 block mb-1">Días de vigencia (0 = sin vencimiento):</label>
+                  <input
+                    type="number" min="0" step="1"
+                    value={formNuevaBodega.dias}
+                    onChange={(e) => setFormNuevaBodega({ ...formNuevaBodega, dias: e.target.value })}
+                    className="w-full bg-stone-50 border border-stone-200 rounded-lg px-3 py-2 text-sm text-stone-900"
+                  />
+                </div>
+              </div>
+              <button
+                type="submit"
+                disabled={guardandoNuevaBodega}
+                className="w-full py-2.5 bg-stone-900 hover:bg-stone-800 disabled:opacity-60 text-white font-bold text-sm rounded-xl shadow"
+              >
+                {guardandoNuevaBodega ? 'Creando...' : 'Crear Bodega'}
+              </button>
+            </form>
+
+            <div className="space-y-2">
+              <h2 className="text-sm font-bold text-stone-900 flex items-center gap-2">
+                <i className="fa-solid fa-list text-orange-600"></i> Bodegas ({bodegasAdmin.length})
+              </h2>
+              {cargandoBodegasAdmin ? (
+                <p className="text-xs text-stone-500 text-center py-6">Cargando...</p>
+              ) : bodegasAdmin.length === 0 ? (
+                <p className="text-xs text-stone-500 text-center py-6">Todavía no creaste ninguna bodega.</p>
+              ) : (
+                bodegasAdmin.map((b) => {
+                  const hoy = fechaHoyISO();
+                  const vencida = b.activa === false || (b.activa_hasta && b.activa_hasta < hoy);
+                  return (
+                    <div key={b.id} className="bg-white border border-stone-200 rounded-xl p-4 space-y-2.5">
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="min-w-0">
+                          <p className="text-sm font-bold text-stone-900 truncate">{b.nombre}</p>
+                          <p className="text-xs text-stone-500">
+                            {b.dueno ? `${b.dueno.nombre} · DNI ${b.dueno.dni}${b.dueno.auth_id ? '' : ' · sin reclamar aún'}` : 'Sin dueño registrado'}
+                          </p>
+                        </div>
+                        <span className={`shrink-0 text-[10px] font-bold px-2 py-1 rounded-full ${vencida ? 'bg-rose-100 text-rose-600' : 'bg-emerald-100 text-emerald-600'}`}>
+                          {vencida ? 'VENCIDA' : 'ACTIVA'}
+                        </span>
+                      </div>
+                      <p className="text-xs text-stone-600">
+                        Vigencia: {b.activa_hasta ? new Date(`${b.activa_hasta}T00:00:00`).toLocaleDateString('es-PE') : 'Sin vencimiento'}
+                      </p>
+                      <div className="flex flex-wrap gap-1.5">
+                        <button onClick={() => alternarActiva(b)} className={`text-xs font-semibold px-2.5 py-1.5 rounded-lg ${b.activa ? 'bg-rose-50 text-rose-600 hover:bg-rose-100' : 'bg-emerald-50 text-emerald-600 hover:bg-emerald-100'}`}>
+                          {b.activa ? 'Desactivar ahora' : 'Activar'}
+                        </button>
+                        <button onClick={() => extenderVigencia(b, 7)} className="text-xs font-semibold px-2.5 py-1.5 rounded-lg bg-stone-100 text-stone-700 hover:bg-stone-200">+7 días</button>
+                        <button onClick={() => extenderVigencia(b, 30)} className="text-xs font-semibold px-2.5 py-1.5 rounded-lg bg-stone-100 text-stone-700 hover:bg-stone-200">+30 días</button>
+                        {b.activa_hasta && (
+                          <button onClick={() => quitarVencimiento(b)} className="text-xs font-semibold px-2.5 py-1.5 rounded-lg bg-stone-100 text-stone-700 hover:bg-stone-200">Quitar vencimiento</button>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })
+              )}
+            </div>
+          </div>
+        </div>
+      );
+    }
+
     function PosApp() {
       // --- Supabase Config ---
       const [supabaseUrl, setSupabaseUrl] = useState(
@@ -938,8 +1165,16 @@
       // --- Auth Form ---
       const [authTab, setAuthTab] = useState('login');
       const [formLogin, setFormLogin] = useState({ dni: '', pin: '' });
-      const [formRegistro, setFormRegistro] = useState({ nombreBodega: '', nombreDueno: '', dni: '', pin: '' });
       const [cargandoAuth, setCargandoAuth] = useState(false);
+
+      // --- Panel de Administrador (super-admin, separado de las bodegas) ---
+      const [adminSesion, setAdminSesion] = useState(null);
+      const [formAdminLogin, setFormAdminLogin] = useState({ email: '', password: '' });
+      const [cargandoAdminLogin, setCargandoAdminLogin] = useState(false);
+      const [bodegasAdmin, setBodegasAdmin] = useState([]);
+      const [cargandoBodegasAdmin, setCargandoBodegasAdmin] = useState(false);
+      const [formNuevaBodega, setFormNuevaBodega] = useState({ nombreBodega: '', nombreDueno: '', dni: '', pin: '', dias: '30' });
+      const [guardandoNuevaBodega, setGuardandoNuevaBodega] = useState(false);
 
       // --- Bodega & Cajeros ---
       const bodegaId = sesion?.bodega?.id || sesion?.usuario?.bodega_id;
@@ -949,6 +1184,14 @@
       const esModoDemo = bodegaId === BODEGA_DEMO_ID;
       const bodegaNombre = sesion?.bodega?.nombre || 'Mi Bodega';
       const usuarioActivo = sesion?.usuario || null;
+      // Una bodega vencida (o desactivada a mano) sigue existiendo, pero
+      // mi_bodega_id() en el servidor ya no la reconoce -- acá solo se usa
+      // para mostrar la pantalla de aviso en vez de un catálogo vacío sin
+      // explicación.
+      const cuentaVencida = !esModoDemo && !!sesion?.bodega && (
+        sesion.bodega.activa === false ||
+        (sesion.bodega.activa_hasta && sesion.bodega.activa_hasta < fechaHoyISO())
+      );
       const [listaCajeros, setListaCajeros] = useState([]);
       const [cajeroSeleccionado, setCajeroSeleccionado] = useState(null);
       // El "rol activo" es el de quien está atendiendo la caja en este momento
@@ -4879,6 +5122,31 @@
         );
       }
 
+      // =========================================================================
+      // VISTA: PANEL DE ADMINISTRADOR (super-admin, no depende de "sesion")
+      // =========================================================================
+      if (adminSesion) {
+        return <PanelAdmin
+          adminSesion={adminSesion}
+          sbClient={sbClient}
+          bodegasAdmin={bodegasAdmin}
+          setBodegasAdmin={setBodegasAdmin}
+          cargandoBodegasAdmin={cargandoBodegasAdmin}
+          setCargandoBodegasAdmin={setCargandoBodegasAdmin}
+          formNuevaBodega={formNuevaBodega}
+          setFormNuevaBodega={setFormNuevaBodega}
+          guardandoNuevaBodega={guardandoNuevaBodega}
+          setGuardandoNuevaBodega={setGuardandoNuevaBodega}
+          notificar={notificar}
+          toast={toast}
+          onCerrarSesion={async () => {
+            try { await sbClient.auth.signOut(); } catch (err) { console.warn(err); }
+            setAdminSesion(null);
+            setBodegasAdmin([]);
+          }}
+        />;
+      }
+
       if (!sesion) {
         return (
           <div className="min-h-screen bg-orange-600 md:bg-stone-50 flex flex-col md:flex-row select-none">
@@ -4905,31 +5173,15 @@
             <div className="relative flex-1 md:w-1/2 flex md:items-center justify-center md:px-5">
               <div className="w-full md:max-w-md flex-1 md:flex-none bg-white rounded-t-[2.5rem] md:rounded-3xl shadow-2xl px-7 pt-9 pb-10 md:p-10 space-y-6">
                 <div className="text-center space-y-1">
-                  <h2 className="text-xl font-black text-stone-900">{authTab === 'login' ? '¡Bienvenido de nuevo!' : 'Crea tu Bodega'}</h2>
-                  <p className="text-xs text-stone-500">{authTab === 'login' ? 'Ingresa tus datos para continuar' : 'Regístrate para empezar a vender'}</p>
-                </div>
-
-                <div className="flex bg-stone-100 p-1 rounded-xl border border-stone-200">
-                  <button
-                    type="button"
-                    onClick={() => setAuthTab('login')}
-                    className={`flex-1 py-2 text-xs font-bold rounded-lg transition ${authTab === 'login' ? 'bg-stone-900 text-white shadow-md' : 'text-stone-600 hover:text-stone-800'}`}
-                  >
-                    Iniciar Sesión
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setAuthTab('register')}
-                    className={`flex-1 py-2 text-xs font-bold rounded-lg transition ${authTab === 'register' ? 'bg-stone-900 text-white shadow-md' : 'text-stone-600 hover:text-stone-800'}`}
-                  >
-                    Crear Bodega
-                  </button>
+                  <h2 className="text-xl font-black text-stone-900">{authTab === 'admin' ? 'Panel de Administrador' : '¡Bienvenido de nuevo!'}</h2>
+                  <p className="text-xs text-stone-500">{authTab === 'admin' ? 'Ingresa con tu cuenta de administrador' : 'Ingresa tus datos para continuar'}</p>
                 </div>
 
                 {authTab === 'login' && (
                 <form onSubmit={async (e) => {
                   e.preventDefault();
                   setCargandoAuth(true);
+                  let esCuentaRecienReclamada = false;
                   try {
                     const dni = formLogin.dni.trim();
                     const pin = formLogin.pin.trim();
@@ -4956,12 +5208,30 @@
                         await sbClient.auth.signOut();
                         throw new Error('DNI o PIN incorrecto.');
                       }
+                      esCuentaRecienReclamada = true;
                     }
 
                     const { data: { user } } = await sbClient.auth.getUser();
                     const { data: usuario, error: errUsuario } = await sbClient.from('usuarios').select('*').eq('auth_id', user.id).single();
                     if (errUsuario || !usuario) throw new Error('No se pudo cargar tu cuenta. Intenta de nuevo.');
                     const { data: bodega } = await sbClient.from('bodegas').select('*').eq('id', usuario.bodega_id).single();
+
+                    // Primer login de verdad de una bodega creada por el admin
+                    // (o de una cuenta vieja migrándose): recién ahora
+                    // mi_bodega_id() resuelve para este usuario, así que se
+                    // pueden crear su fila de cajero propio y su cliente
+                    // "Desconocido" por defecto -- antes el admin no podía
+                    // hacerlo (esas tablas están scoped a mi_bodega_id(), que
+                    // para el admin da null porque no pertenece a la bodega).
+                    if (esCuentaRecienReclamada) {
+                      try {
+                        await sbClient.from('cajeros').insert([{ bodega_id: usuario.bodega_id, nombre: usuario.nombre, dni: usuario.dni, rol: usuario.rol, activo: true }]);
+                        await sbClient.from('clientes').insert([{ bodega_id: usuario.bodega_id, dni: '99999999', nombre_completo: 'Desconocido', saldo_actual: 0 }]);
+                      } catch (errSetup) {
+                        console.warn('No se pudo terminar de preparar la bodega:', errSetup.message);
+                      }
+                    }
+
                     guardarSesion({ usuario, bodega: bodega || { id: usuario.bodega_id, nombre: 'Mi Bodega' } });
                     notificar(`¡Bienvenido ${usuario.nombre}!`, 'success');
                   } catch (err) {
@@ -5004,115 +5274,118 @@
                 </form>
               )}
 
-              {authTab === 'register' && (
+              {authTab === 'admin' && (
                 <form onSubmit={async (e) => {
                   e.preventDefault();
-                  setCargandoAuth(true);
+                  setCargandoAdminLogin(true);
                   try {
-                    const dni = formRegistro.dni.trim();
-                    const pin = formRegistro.pin.trim();
-                    const email = emailAuthDesdeDni(dni);
-                    const password = passwordAuthDesdePin(pin);
-
-                    const { data: authData, error: errAuth } = await sbClient.auth.signUp({ email, password });
-                    if (errAuth) throw new Error(errAuth.message.includes('registered') ? 'Ese DNI ya tiene una cuenta registrada. Inicia sesión en vez de crear una bodega nueva.' : errAuth.message);
-                    if (!authData?.user) throw new Error('No se pudo crear la cuenta. Intenta de nuevo.');
-
-                    const { data: bCreada, error: errBodega } = await sbClient.from('bodegas').insert([{ nombre: formRegistro.nombreBodega.trim() }]).select().single();
-                    if (errBodega) throw errBodega;
-
-                    // El PIN real ya vive protegido dentro de Supabase Auth (es la
-                    // contraseña de authData.user) -- no hace falta guardarlo también
-                    // en texto plano acá, sería un segundo lugar de donde se puede
-                    // filtrar.
-                    const { data: uCreado, error: errUsuario } = await sbClient.from('usuarios').insert([{ bodega_id: bCreada.id, nombre: formRegistro.nombreDueno.trim(), dni, rol: 'dueno', activo: true, auth_id: authData.user.id }]).select().single();
-                    if (errUsuario) throw errUsuario;
-
-                    const { error: errCajero } = await sbClient.from('cajeros').insert([{ bodega_id: bCreada.id, nombre: formRegistro.nombreDueno.trim(), dni, rol: 'dueno', activo: true }]);
-                    if (errCajero) throw errCajero;
-
-                    const { error: errCliente } = await sbClient.from('clientes').insert([{ bodega_id: bCreada.id, dni: '99999999', nombre_completo: 'Desconocido', saldo_actual: 0 }]);
-                    if (errCliente) throw errCliente;
-
-                    guardarSesion({ usuario: uCreado, bodega: bCreada });
-                    notificar(`¡Bodega creada con éxito! Ahora registra tu inventario.`, 'success');
-                    // Como bodega nueva no tiene productos aún, se lleva directo a
-                    // cargar el inventario inicial en vez de sembrar datos de ejemplo
-                    // que no corresponden al negocio real del dueño.
-                    setModalInventarioInicial(true);
+                    const email = formAdminLogin.email.trim();
+                    const password = formAdminLogin.password;
+                    const { error: errSignIn } = await sbClient.auth.signInWithPassword({ email, password });
+                    if (errSignIn) throw new Error('Correo o contraseña incorrectos.');
+                    const { data: { user } } = await sbClient.auth.getUser();
+                    const { data: admin, error: errAdmin } = await sbClient.from('super_admins').select('*').eq('auth_id', user.id).maybeSingle();
+                    if (errAdmin || !admin) {
+                      await sbClient.auth.signOut();
+                      throw new Error('Esta cuenta no tiene acceso de administrador.');
+                    }
+                    setAdminSesion(admin);
+                    notificar(`Bienvenido, ${admin.nombre || 'Administrador'}.`, 'success');
                   } catch (err) {
                     notificar(err.message, 'error');
                   } finally {
-                    setCargandoAuth(false);
+                    setCargandoAdminLogin(false);
                   }
-                }} className="space-y-4">
+                }} className="space-y-5">
                   <div>
-                    <label className="text-[11px] font-bold text-stone-400 uppercase tracking-wide">Nombre de Bodega</label>
+                    <label className="text-[11px] font-bold text-stone-400 uppercase tracking-wide">Correo</label>
                     <input
-                      type="text"
+                      type="email"
                       required
-                      placeholder="Ej: Bodega Don Pepe"
-                      value={formRegistro.nombreBodega}
-                      onChange={(e) => setFormRegistro({ ...formRegistro, nombreBodega: e.target.value })}
+                      placeholder="tu@correo.com"
+                      value={formAdminLogin.email}
+                      onChange={(e) => setFormAdminLogin({ ...formAdminLogin, email: e.target.value })}
                       className="w-full bg-transparent border-b-2 border-stone-200 focus:border-orange-500 outline-none py-2 text-sm text-stone-900 transition"
                     />
                   </div>
                   <div>
-                    <label className="text-[11px] font-bold text-stone-400 uppercase tracking-wide">Dueño</label>
+                    <label className="text-[11px] font-bold text-stone-400 uppercase tracking-wide">Contraseña</label>
                     <input
-                      type="text"
+                      type="password"
                       required
-                      placeholder="Ej: Juan Pérez"
-                      value={formRegistro.nombreDueno}
-                      onChange={(e) => setFormRegistro({ ...formRegistro, nombreDueno: e.target.value })}
+                      value={formAdminLogin.password}
+                      onChange={(e) => setFormAdminLogin({ ...formAdminLogin, password: e.target.value })}
                       className="w-full bg-transparent border-b-2 border-stone-200 focus:border-orange-500 outline-none py-2 text-sm text-stone-900 transition"
                     />
-                  </div>
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <label className="text-[11px] font-bold text-stone-400 uppercase tracking-wide">DNI</label>
-                      <input
-                        type="text"
-                        required
-                        maxLength={8}
-                        value={formRegistro.dni}
-                        onChange={(e) => setFormRegistro({ ...formRegistro, dni: e.target.value })}
-                        className="w-full bg-transparent border-b-2 border-stone-200 focus:border-orange-500 outline-none py-2 text-sm text-stone-900 transition"
-                      />
-                    </div>
-                    <div>
-                      <label className="text-[11px] font-bold text-stone-400 uppercase tracking-wide">PIN</label>
-                      <input
-                        type="password"
-                        required
-                        maxLength={6}
-                        value={formRegistro.pin}
-                        onChange={(e) => setFormRegistro({ ...formRegistro, pin: e.target.value })}
-                        className="w-full bg-transparent border-b-2 border-stone-200 focus:border-orange-500 outline-none py-2 text-sm text-stone-900 tracking-widest transition"
-                      />
-                    </div>
                   </div>
                   <button
                     type="submit"
-                    disabled={cargandoAuth}
+                    disabled={cargandoAdminLogin}
                     className="w-full py-3.5 bg-stone-900 hover:bg-stone-800 text-white font-black text-sm uppercase rounded-full transition shadow-lg shadow-stone-900/30 disabled:opacity-50"
                   >
-                    <i className="fa-solid fa-store mr-1.5"></i> Crear Bodega y Entrar
+                    {cargandoAdminLogin ? 'Verificando...' : 'Ingresar'}
                   </button>
                 </form>
               )}
 
-              <div className="pt-2 border-t border-stone-100 flex items-center justify-center text-xs">
-                <button type="button" onClick={() => {
-                  const demoU = { id: 'c0000000-0000-0000-0000-000000000001', bodega_id: BODEGA_DEMO_ID, nombre: 'Dueño Demo', dni: '12345678', rol: 'dueno', activo: true };
-                  setListaCajeros([demoU]);
-                  setCajeroSeleccionado(demoU);
-                  guardarSesion({ usuario: demoU, bodega: { id: BODEGA_DEMO_ID, nombre: 'Bodega Demo' } });
-                }} className="text-stone-500 hover:text-orange-600 font-semibold">
-                  <i className="fa-solid fa-bolt mr-1"></i> Modo Demo Local
-                </button>
+              <div className="pt-2 border-t border-stone-100 flex items-center justify-center gap-4 text-xs">
+                {authTab === 'login' ? (
+                  <>
+                    <button type="button" onClick={() => {
+                      const demoU = { id: 'c0000000-0000-0000-0000-000000000001', bodega_id: BODEGA_DEMO_ID, nombre: 'Dueño Demo', dni: '12345678', rol: 'dueno', activo: true };
+                      setListaCajeros([demoU]);
+                      setCajeroSeleccionado(demoU);
+                      guardarSesion({ usuario: demoU, bodega: { id: BODEGA_DEMO_ID, nombre: 'Bodega Demo' } });
+                    }} className="text-stone-500 hover:text-orange-600 font-semibold">
+                      <i className="fa-solid fa-bolt mr-1"></i> Modo Demo Local
+                    </button>
+                    <button type="button" onClick={() => setAuthTab('admin')} className="text-stone-300 hover:text-stone-500 font-semibold">
+                      Administrador
+                    </button>
+                  </>
+                ) : (
+                  <button type="button" onClick={() => setAuthTab('login')} className="text-stone-500 hover:text-orange-600 font-semibold">
+                    <i className="fa-solid fa-arrow-left mr-1"></i> Volver
+                  </button>
+                )}
               </div>
               </div>
+            </div>
+          </div>
+        );
+      }
+
+      // =========================================================================
+      // VISTA: CUENTA VENCIDA -- la bodega existe y el login funcionó, pero
+      // el administrador la desactivó o se venció su plazo. mi_bodega_id()
+      // ya bloquea cualquier consulta real del lado del servidor; esto es
+      // solo para que el dueño entienda por qué, en vez de ver un catálogo
+      // vacío sin explicación.
+      // =========================================================================
+      if (cuentaVencida) {
+        return (
+          <div className="min-h-screen bg-stone-50 flex items-center justify-center p-4">
+            {toast.visible && (
+              <div className={`fixed top-6 inset-x-4 md:inset-x-auto md:right-6 md:max-w-xs z-50 flex items-center gap-2.5 px-4 py-3 rounded-xl shadow-xl border-l-4 bg-white text-xs font-semibold ${toast.tipo === 'error' ? 'border-rose-500 text-rose-700' : 'border-emerald-500 text-emerald-700'}`}>
+                <i className={`fa-solid ${toast.tipo === 'error' ? 'fa-circle-exclamation' : 'fa-circle-check'} text-sm shrink-0`}></i>
+                {toast.texto}
+              </div>
+            )}
+            <div className="bg-white rounded-3xl shadow-2xl p-8 max-w-sm w-full text-center space-y-4">
+              <div className="w-16 h-16 mx-auto bg-rose-100 rounded-full flex items-center justify-center">
+                <i className="fa-solid fa-lock text-2xl text-rose-600"></i>
+              </div>
+              <div>
+                <h2 className="text-lg font-black text-stone-900">Cuenta Vencida</h2>
+                <p className="text-xs text-stone-500 mt-1">
+                  El acceso de <strong>{bodegaNombre}</strong> está desactivado
+                  {sesion.bodega.activa_hasta ? ` desde el ${new Date(`${sesion.bodega.activa_hasta}T00:00:00`).toLocaleDateString('es-PE')}` : ''}.
+                  Contacta al administrador para renovarlo.
+                </p>
+              </div>
+              <button onClick={cerrarSesion} className="w-full py-3 bg-stone-900 hover:bg-stone-800 text-white font-bold text-sm rounded-xl">
+                Cerrar Sesión
+              </button>
             </div>
           </div>
         );
