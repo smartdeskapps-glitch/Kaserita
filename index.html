@@ -75,6 +75,26 @@
       border-radius: 4px;
     }
 
+    /* Oculta las flechitas de subir/bajar de los inputs numéricos: le
+       restan ancho útil al campo (recortando placeholders como "Contado")
+       y no aportan nada en campos de precio/cantidad que se escriben
+       directo o tienen sus propios botones +/-. */
+    input[type="number"] {
+      -moz-appearance: textfield;
+      appearance: textfield;
+    }
+    input[type="number"]::-webkit-inner-spin-button,
+    input[type="number"]::-webkit-outer-spin-button {
+      -webkit-appearance: none;
+      margin: 0;
+    }
+
+    /* Entrada suave del tooltip del riel de íconos del menú lateral. */
+    @keyframes tooltip-rail-in {
+      from { opacity: 0; transform: translateY(-50%) translateX(-4px); }
+      to { opacity: 1; transform: translateY(-50%) translateX(0); }
+    }
+
     /* Formato de ticket angosto (impresora térmica 80mm) al imprimir.
        Se oculta todo menos el recibo marcado con #recibo-imprimible. */
     @media print {
@@ -327,7 +347,8 @@
       vendeEnPack: Number(producto.unidades_por_pack) > 1,
       unidades_por_pack: Number(producto.unidades_por_pack) > 1 ? String(producto.unidades_por_pack) : '',
       precio_venta_pack: producto.precio_venta_pack != null ? String(producto.precio_venta_pack) : '',
-      cod_ean_pack: producto.cod_ean_pack || ''
+      cod_ean_pack: producto.cod_ean_pack || '',
+      foto_url: producto.foto_url || ''
     });
 
     // Exporta un arreglo de objetos a un archivo Excel (.xlsx) real descargable,
@@ -338,6 +359,62 @@
       const libro = XLSX.utils.book_new();
       XLSX.utils.book_append_sheet(libro, hoja, nombreHoja);
       XLSX.writeFile(libro, nombreArchivo);
+    };
+
+    // Recomprime una imagen a JPEG en el navegador (canvas), bajando primero
+    // la calidad y después también la resolución, hasta quedar bajo maxKB o
+    // hasta agotar los intentos -- así una foto de cámara (varios MB) no
+    // llena el Storage ni tarda en cargar en el catálogo desde un celular
+    // con poco dato móvil.
+    const comprimirImagenJPEG = (file, maxKB = 20, dimensionInicial = 480) => {
+      return new Promise((resolve, reject) => {
+        const urlTemp = URL.createObjectURL(file);
+        const img = new Image();
+        img.onload = () => {
+          let dimension = dimensionInicial;
+          let calidad = 0.8;
+          let intentos = 0;
+          const maxIntentos = 25;
+
+          const intentar = () => {
+            intentos += 1;
+            const escala = Math.min(1, dimension / Math.max(img.width, img.height));
+            const w = Math.max(1, Math.round(img.width * escala));
+            const h = Math.max(1, Math.round(img.height * escala));
+            const canvas = document.createElement('canvas');
+            canvas.width = w;
+            canvas.height = h;
+            canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+            canvas.toBlob((blob) => {
+              if (!blob) {
+                URL.revokeObjectURL(urlTemp);
+                reject(new Error('No se pudo procesar la imagen.'));
+                return;
+              }
+              const dentroDelLimite = blob.size <= maxKB * 1024;
+              const sinMasMargen = intentos >= maxIntentos || (calidad <= 0.35 && dimension <= 120);
+              if (dentroDelLimite || sinMasMargen) {
+                URL.revokeObjectURL(urlTemp);
+                resolve(blob);
+                return;
+              }
+              if (calidad > 0.35) {
+                calidad = +(calidad - 0.1).toFixed(2);
+              } else {
+                dimension = Math.round(dimension * 0.8);
+                calidad = 0.6;
+              }
+              intentar();
+            }, 'image/jpeg', calidad);
+          };
+          intentar();
+        };
+        img.onerror = () => {
+          URL.revokeObjectURL(urlTemp);
+          reject(new Error('No se pudo leer la imagen.'));
+        };
+        img.src = urlTemp;
+      });
     };
 
     // ID fijo usado únicamente por "Modo Demo Local" (no corresponde a ninguna
@@ -535,7 +612,7 @@
     }
 
     // Ícono de la barra lateral de navegación (desktop) / barra inferior (mobile).
-    function SidebarIcon({ icon, label, texto, badge, tone = 'default', active = false, onClick }) {
+    function SidebarIcon({ icon, label, badge, tone = 'default', active = false, onClick }) {
       const toneClasses = tone === 'rose'
         ? 'text-rose-600 hover:bg-rose-500/10 hover:text-rose-600'
         : tone === 'orange'
@@ -547,20 +624,16 @@
         <button
           type="button"
           onClick={onClick}
-          title={label}
-          className={`group relative w-full flex flex-col items-center justify-center gap-1 py-2.5 rounded-xl transition-all duration-200 ${toneClasses}`}
+          data-tip={label}
+          aria-label={label}
+          className={`relative w-11 h-11 flex items-center justify-center rounded-xl transition-all duration-200 shrink-0 ${toneClasses}`}
         >
-          <span className="relative">
-            <i className={`fa-solid ${icon} text-base`}></i>
-            {badge > 0 && (
-              <span className="absolute -top-1.5 -right-2.5 bg-orange-500 text-white text-[10px] font-bold rounded-full min-w-[16px] h-4 px-1 flex items-center justify-center ring-2 ring-stone-100">
-                {badge}
-              </span>
-            )}
-          </span>
-          {/* Etiqueta siempre visible: en celular/tablet táctil el tooltip por
-              hover nunca se ve, así que el texto no puede depender de eso. */}
-          <span className="text-[10px] font-semibold leading-tight text-center px-0.5">{texto || label}</span>
+          <i className={`fa-solid ${icon} text-base`}></i>
+          {badge > 0 && (
+            <span className="absolute -top-1 -right-1 bg-orange-500 text-white text-[10px] font-bold rounded-full min-w-[16px] h-4 px-1 flex items-center justify-center ring-2 ring-stone-100">
+              {badge}
+            </span>
+          )}
         </button>
       );
     }
@@ -677,7 +750,57 @@
     // falla la consulta: la lista real y editable vive en Supabase, esto solo
     // evita que la app se quede sin categorías si algo sale mal.
     const CATEGORIAS_FALLBACK = Object.keys(CATEGORIA_ESTILO);
-    const estiloCategoria = (cat) => CATEGORIA_ESTILO[cat] || { icono: 'fa-box', color: 'text-stone-700', fondo: 'from-stone-400/20 to-stone-400/5' };
+
+    const normalizarCategoria = (s) => (s || '').toString().normalize('NFD').replace(/[̀-ͯ]/g, '').trim().toLowerCase();
+
+    const CATEGORIA_ESTILO_POR_NOMBRE_NORMALIZADO = Object.keys(CATEGORIA_ESTILO).reduce((acc, clave) => {
+      acc[normalizarCategoria(clave)] = clave;
+      return acc;
+    }, {});
+
+    // Cada bodega puede escribir su propio nombre de categoría (ej. "Bebidas"
+    // en vez de "Gaseosas", o sin tildes: "Lacteos"). Estos alias mapean las
+    // formas cortas/comunes que un bodeguero realmente escribiría hacia la
+    // categoría con ícono definido más cercana, para no mostrarle una caja
+    // gris genérica solo porque el texto no calzó exacto.
+    const CATEGORIA_ALIAS = {
+      bebida: 'Gaseosas', bebidas: 'Gaseosas', gaseosa: 'Gaseosas',
+      carne: 'Carnes y Embutidos', carnes: 'Carnes y Embutidos', embutido: 'Carnes y Embutidos', embutidos: 'Carnes y Embutidos',
+      verdura: 'Verduras y Frutas', verduras: 'Verduras y Frutas', fruta: 'Verduras y Frutas', frutas: 'Verduras y Frutas',
+      fresco: 'Huevos y Frescos', frescos: 'Huevos y Frescos', huevo: 'Huevos y Frescos', huevos: 'Huevos y Frescos',
+      limpieza: 'Limpieza del Hogar',
+      golosina: 'Golosinas y Snacks', golosinas: 'Golosinas y Snacks', snack: 'Golosinas y Snacks', snacks: 'Golosinas y Snacks',
+      panaderia: 'Panadería', pan: 'Panadería',
+      lacteo: 'Lácteos', lacteos: 'Lácteos',
+      cuidado: 'Cuidado Personal',
+      mascota: 'Mascotas', mascotas: 'Mascotas',
+      jugo: 'Jugos y Néctares', jugos: 'Jugos y Néctares', nectar: 'Jugos y Néctares', nectares: 'Jugos y Néctares',
+      agua: 'Aguas', aguas: 'Aguas',
+      cerveza: 'Cervezas', cervezas: 'Cervezas',
+      licor: 'Licores', licores: 'Licores',
+      energizante: 'Energizantes e Isotónicas', energizantes: 'Energizantes e Isotónicas', isotonica: 'Energizantes e Isotónicas', isotonicas: 'Energizantes e Isotónicas'
+    };
+
+    const estiloCategoria = (cat) => {
+      const norm = normalizarCategoria(cat);
+      const clave = CATEGORIA_ESTILO_POR_NOMBRE_NORMALIZADO[norm] || CATEGORIA_ALIAS[norm];
+      return CATEGORIA_ESTILO[clave] || { icono: 'fa-box', color: 'text-stone-700', fondo: 'from-stone-400/20 to-stone-400/5' };
+    };
+
+    // Miniatura de producto reutilizada en la tarjeta del catálogo y en el
+    // carrito: si el producto tiene una foto subida se muestra esa foto,
+    // si no, cae de vuelta al ícono de categoría (nunca queda un hueco vacío).
+    function FotoProducto({ fotoUrl, categoria, className, iconClassName }) {
+      if (fotoUrl) {
+        return <img src={fotoUrl} alt="" className={`object-cover ${className}`} />;
+      }
+      const est = estiloCategoria(categoria);
+      return (
+        <div className={`flex items-center justify-center bg-gradient-to-br ${est.fondo} ${className}`}>
+          <i className={`fa-solid ${est.icono} ${est.color} ${iconClassName || 'text-2xl'}`}></i>
+        </div>
+      );
+    }
 
     // Tarjeta de producto de la grilla principal, memoizada: como el catálogo
     // puede tener cientos de tarjetas, sin esto cualquier cambio de estado en
@@ -685,15 +808,16 @@
     // volvía a renderizar TODAS las tarjetas aunque no tuvieran nada que ver.
     // Con React.memo, una tarjeta solo se vuelve a renderizar si cambian sus
     // propias props (su producto, o si cambia esAdmin/onSelect/onEdit).
-    const ProductoCard = React.memo(function ProductoCard({ prod, esAdmin, onSelect, onEdit }) {
-      const est = estiloCategoria(prod.categoria);
+    const ProductoCard = React.memo(function ProductoCard({ prod, esAdmin, enCarrito = 0, onSelect, onEdit }) {
       return (
         <div
           role="button"
           tabIndex={0}
           onClick={() => onSelect(prod)}
           onKeyDown={(e) => { if (e.key === 'Enter') onSelect(prod); }}
-          className="text-left bg-gradient-to-b from-stone-100 to-stone-100/60 border border-stone-200 rounded-2xl overflow-hidden hover:border-orange-500/50 hover:-translate-y-0.5 hover:shadow-xl hover:shadow-black/40 transition-all duration-200 active:scale-[0.98] group cursor-pointer relative"
+          className={`text-left bg-gradient-to-b from-stone-100 to-stone-100/60 border rounded-2xl overflow-hidden hover:-translate-y-0.5 hover:shadow-xl hover:shadow-black/40 transition-all duration-200 active:scale-[0.98] group cursor-pointer relative ${
+            enCarrito > 0 ? 'border-orange-500 ring-2 ring-orange-500/40' : 'border-stone-200 hover:border-orange-500/50'
+          }`}
         >
           {esAdmin && (
             <button
@@ -705,8 +829,13 @@
               <i className="fa-solid fa-pen text-xs"></i>
             </button>
           )}
-          <div className={`h-20 md:h-24 flex items-center justify-center bg-gradient-to-br ${est.fondo} relative`}>
-            <i className={`fa-solid ${est.icono} ${est.color} text-2xl md:text-3xl opacity-90 group-hover:scale-110 transition-transform duration-200`}></i>
+          <div className="relative">
+            <FotoProducto
+              fotoUrl={prod.foto_url}
+              categoria={prod.categoria}
+              className="w-full h-24 md:h-28 group-hover:scale-105 transition-transform duration-200"
+              iconClassName="text-2xl md:text-3xl opacity-90"
+            />
             {prod.unidad === 'KG' && (
               <span className="absolute top-2 right-2 text-xs font-bold text-stone-100 bg-white/90 px-1.5 py-0.5 rounded-md">
                 KG
@@ -715,6 +844,11 @@
             {Number(prod.unidades_por_pack) > 1 && (
               <span className="absolute top-2 right-2 text-[10px] font-bold text-white bg-stone-900/85 px-1.5 py-0.5 rounded-md flex items-center gap-1">
                 <i className="fa-solid fa-boxes-packing"></i> x{prod.unidades_por_pack}
+              </span>
+            )}
+            {enCarrito > 0 && (
+              <span className="absolute bottom-2 left-1/2 -translate-x-1/2 text-[10px] font-bold text-white bg-orange-500 px-2.5 py-1 rounded-full shadow flex items-center gap-1 whitespace-nowrap">
+                <i className="fa-solid fa-check"></i> En carrito · {enCarrito}
               </span>
             )}
           </div>
@@ -970,6 +1104,7 @@
       const [productoEditando, setProductoEditando] = useState(null);
       const [formEditarProducto, setFormEditarProducto] = useState(null);
       const [guardandoEdicionProducto, setGuardandoEdicionProducto] = useState(false);
+      const [subiendoFotoProducto, setSubiendoFotoProducto] = useState(false);
 
       // --- Módulo: Mermas (pérdidas de producto) ---
       const [modalMerma, setModalMerma] = useState(false);
@@ -1018,6 +1153,19 @@
       // Agrupa "Registrar Productos" / "Entrada de Mercadería" bajo un solo
       // desplegable "Entradas" en el menú lateral, en vez de íconos sueltos.
       const [menuEntradasAbierto, setMenuEntradasAbierto] = useState(false);
+      // Tooltip flotante del riel de íconos del menú lateral (desktop): con
+      // position:fixed y coordenadas calculadas al vuelo en vez de CSS puro,
+      // para que nunca se recorte por el overflow-y-auto del <aside>.
+      const [tooltipRail, setTooltipRail] = useState(null);
+      const manejarHoverRail = (e) => {
+        const btn = e.target.closest('[data-tip]');
+        if (btn) {
+          const rect = btn.getBoundingClientRect();
+          setTooltipRail({ top: rect.top + rect.height / 2, left: rect.right + 8, label: btn.getAttribute('data-tip') });
+        } else {
+          setTooltipRail(null);
+        }
+      };
       // Ficha rápida para crear un producto sin salir de "Entrada de
       // Mercadería" -- null cuando el mini-formulario está cerrado.
       const [nuevoProductoInlineCompra, setNuevoProductoInlineCompra] = useState(null);
@@ -1571,6 +1719,28 @@
         return productos.filter(p => p.categoria === categoriaFiltro);
       }, [productos, categoriaFiltro]);
 
+      // Cuántos productos hay en cada categoría, para mostrarlo junto al
+      // nombre en las pestañas ("Bebidas · 8 items").
+      const conteoPorCategoria = useMemo(() => {
+        const mapa = new Map();
+        productos.forEach((p) => {
+          const cat = p.categoria || 'General';
+          mapa.set(cat, (mapa.get(cat) || 0) + 1);
+        });
+        return mapa;
+      }, [productos]);
+
+      // Cuántas unidades de cada producto hay ya en el carrito, para el
+      // badge "En carrito" de la tarjeta (suma todas sus líneas -- ej. si se
+      // vendió suelto y también por pack, son dos líneas del mismo producto).
+      const cantidadEnCarritoPorProducto = useMemo(() => {
+        const mapa = new Map();
+        carrito.forEach((item) => {
+          mapa.set(item.productoId, (mapa.get(item.productoId) || 0) + Number(item.cantidad || 0));
+        });
+        return mapa;
+      }, [carrito]);
+
       // Versión del catálogo con los campos de texto ya en minúscula, para
       // no repetir toLowerCase() sobre cada producto en cada tecla que se
       // escribe en los buscadores de "Registrar Inventario" (se recalcula
@@ -1713,6 +1883,8 @@
                 productoId: producto.id,
                 claveCarrito,
                 cod_ean: producto.cod_ean,
+                categoria: producto.categoria,
+                foto_url: producto.foto_url,
                 descripcion: descripcionMostrada,
                 precioUnitario: precioUnit,
                 precioCosto: precioCostoUnit,
@@ -1731,10 +1903,10 @@
         // (el conteo puede tener un pequeño desfase o vender algo aún no registrado).
         if (producto.stock_actual !== null && producto.stock_actual !== undefined) {
           if (Number(producto.stock_actual) <= 0) {
-            notificar(`⚠️ "${producto.descripcion}" figura sin stock, pero se agregó igual.`, 'error');
+            notificar(`"${producto.descripcion}" figura sin stock, pero se agregó igual.`, 'error');
             return;
           } else if (Number(producto.stock_actual) <= Number(producto.stock_min || 5)) {
-            notificar(`⚠️ Stock bajo de "${producto.descripcion}" (quedan ${producto.stock_actual}).`, 'error');
+            notificar(`Stock bajo de "${producto.descripcion}" (quedan ${producto.stock_actual}).`, 'error');
             return;
           }
         }
@@ -2148,7 +2320,7 @@
       };
 
       // ==========================================
-      // ⏸️ VENTAS EN ESPERA (PARK SALES)
+      // VENTAS EN ESPERA (PARK SALES)
       // ==========================================
       const aparcarVentaActual = () => {
         if (carrito.length === 0) return;
@@ -2165,7 +2337,7 @@
         setCarrito([]);
         setMostrarPago(false);
         reiniciarClienteYMedioPago();
-        notificar('Venta puesta en espera ⏸️', 'info');
+        notificar('Venta puesta en espera', 'info');
       };
 
       const recuperarVentaEspera = (index) => {
@@ -2721,7 +2893,7 @@
           }
         }
 
-        // Lanzar Confeti 🎉
+        // Lanzar Confeti
         confetti({ particleCount: 120, spread: 70, origin: { y: 0.6 } });
 
         if (esModoDemo) {
@@ -3033,6 +3205,39 @@
       // ==========================================
       // EDITAR / DESACTIVAR PRODUCTO
       // ==========================================
+      // Sube la foto al bucket "productos" (carpeta por bodega, para que la
+      // política de Storage pueda limitar quién escribe dónde) y devuelve la
+      // URL pública ya lista para guardar en productos.foto_url. En Modo Demo
+      // no se sube nada de verdad -- se usa una URL local del archivo, igual
+      // que el resto del modo demo.
+      const subirFotoProducto = async (file, productoId) => {
+        if (!file) return null;
+        setSubiendoFotoProducto(true);
+        try {
+          // Recomprime a JPEG achicando resolución y calidad hasta bajar de
+          // ~20KB -- el bucket de Storage tiene un límite de tamaño pensado
+          // para que el catálogo cargue rápido en un celular con datos
+          // limitados, no para fotos de resolución completa.
+          const comprimida = await comprimirImagenJPEG(file, 20, 480);
+          if (esModoDemo) return URL.createObjectURL(comprimida);
+          if (!sbClient || !bodegaId) return null;
+          const ruta = `${bodegaId}/${productoId}.jpg`;
+          const { error } = await sbClient.storage
+            .from('Productos')
+            .upload(ruta, comprimida, { upsert: true, cacheControl: '3600', contentType: 'image/jpeg' });
+          if (error) throw error;
+          const { data } = sbClient.storage.from('Productos').getPublicUrl(ruta);
+          // Cache-bust: si se reemplaza la foto, la URL pública es la misma
+          // ruta de antes y el navegador podría seguir mostrando la vieja.
+          return `${data.publicUrl}?t=${Date.now()}`;
+        } catch (err) {
+          notificar(`No se pudo subir la foto: ${err.message}`, 'error');
+          return null;
+        } finally {
+          setSubiendoFotoProducto(false);
+        }
+      };
+
       const abrirEdicionProducto = useCallback((prod) => {
         setProductoEditando(prod);
         setFormEditarProducto({
@@ -3059,6 +3264,7 @@
             precio_venta: Number(formEditarProducto.precio_venta) || 0,
             unidad: formEditarProducto.unidad === 'KG' ? 'KG' : 'UND',
             stock_actual: formEditarProducto.stock_actual === '' ? null : Number(formEditarProducto.stock_actual),
+            foto_url: formEditarProducto.foto_url || null,
             ...normalizarCamposPack(formEditarProducto)
           };
           if (esModoDemo) {
@@ -3437,11 +3643,25 @@
       // ==========================================
       const cargarHistorialPorRango = async (desde, hasta) => {
         setCargandoHistorial(true);
+        const inicio = new Date(`${desde}T00:00:00`);
+        const fin = new Date(`${hasta}T23:59:59.999`);
+
+        if (esModoDemo) {
+          // El catálogo/ventas del Modo Demo solo viven en memoria (ver
+          // ventasDemoRef): filtrar y ordenar acá en vez de ir a Supabase.
+          const enRango = ventasDemoRef.current
+            .filter((v) => {
+              const f = new Date(v.fecha_hora);
+              return f >= inicio && f <= fin;
+            })
+            .sort((a, b) => new Date(b.fecha_hora) - new Date(a.fecha_hora));
+          setVentasDelDia(enRango);
+          setCargandoHistorial(false);
+          return;
+        }
+
         if (sbClient && bodegaId) {
           try {
-            const inicio = new Date(`${desde}T00:00:00`);
-            const fin = new Date(`${hasta}T23:59:59.999`);
-
             const { data, error } = await sbClient
               .from('ventas')
               .select('*, clientes(nombre_completo), ventas_detalle(*, productos(descripcion, unidad))')
@@ -3477,10 +3697,35 @@
       // ==========================================
       const cargarDashboard = async (desde, hasta) => {
         setCargandoDashboard(true);
+        const inicio = new Date(`${desde}T00:00:00`);
+        const fin = new Date(`${hasta}T23:59:59.999`);
+
+        if (esModoDemo) {
+          // Mismo cálculo, pero leyendo del catálogo/ventas en memoria del
+          // Modo Demo en vez de Supabase (ver ventasDemoRef).
+          const enRango = ventasDemoRef.current.filter((v) => {
+            const f = new Date(v.fecha_hora);
+            return f >= inicio && f <= fin;
+          });
+          setVentasDashboard(enRango);
+
+          const duracionMs = fin.getTime() - inicio.getTime();
+          const finAnterior = new Date(inicio.getTime() - 1);
+          const inicioAnterior = new Date(finAnterior.getTime() - duracionMs);
+          const anterior = ventasDemoRef.current.filter((v) => {
+            const f = new Date(v.fecha_hora);
+            return f >= inicioAnterior && f <= finAnterior;
+          });
+          setVentasDashboardAnterior(anterior);
+
+          setClientesDeuda(clientesLista.filter((c) => (Number(c.saldo_actual) || 0) > 0).sort((a, b) => (Number(b.saldo_actual) || 0) - (Number(a.saldo_actual) || 0)));
+          setProveedoresDeudaDash([]);
+          setCargandoDashboard(false);
+          return;
+        }
+
         if (sbClient && bodegaId) {
           try {
-            const inicio = new Date(`${desde}T00:00:00`);
-            const fin = new Date(`${hasta}T23:59:59.999`);
             const { data, error } = await sbClient
               .from('ventas')
               .select('*, ventas_detalle(*)')
@@ -3771,7 +4016,27 @@
         const motivo = (motivoIngresado || '').trim() || 'Sin motivo especificado';
 
         try {
-          if (sbClient) {
+          if (esModoDemo) {
+            // Todo en memoria, igual que el resto del Modo Demo: nada de esto
+            // debe tocar Supabase de verdad.
+            if (venta.medio_pago === 'CREDITO' && venta.cliente_id) {
+              setClientesLista((prev) => prev.map((c) => (c.id === venta.cliente_id
+                ? { ...c, saldo_actual: Math.max(0, (Number(c.saldo_actual) || 0) - Number(venta.total_venta)) }
+                : c)));
+              if (clienteActual?.id === venta.cliente_id) {
+                setClienteActual((prev) => (prev ? { ...prev, saldo_actual: Math.max(0, (Number(prev.saldo_actual) || 0) - Number(venta.total_venta)) } : prev));
+              }
+            }
+            if (catalogoDemoRef.current) {
+              const repuestoPorId = new Map((venta.ventas_detalle || [])
+                .filter((d) => d.producto_id)
+                .map((d) => [d.producto_id, Number(d.unidades_stock ?? d.cantidad)]));
+              catalogoDemoRef.current = catalogoDemoRef.current.map((p) => (repuestoPorId.has(p.id)
+                ? { ...p, stock_actual: (Number(p.stock_actual) || 0) + repuestoPorId.get(p.id) }
+                : p));
+            }
+            ventasDemoRef.current = ventasDemoRef.current.map((v) => (v.id === venta.id ? { ...v, anulada: true, motivo_anulacion: motivo } : v));
+          } else if (sbClient) {
             // Si la venta era a crédito, revertir la deuda del cliente antes de anular
             // (ajuste atómico: no se pisa con otra venta/pago simultáneo al mismo cliente).
             if (venta.medio_pago === 'CREDITO' && venta.cliente_id) {
@@ -4237,11 +4502,34 @@
               // el arqueo de "Cerrar Caja" la pueda contar).
               // ------------------------------------------------------------
               ventasDemoRef.current = [...ventasDemoRef.current, {
+                id: `demo-${Date.now()}`,
+                fecha_hora: new Date().toISOString(),
+                nro_boleta: correlativo,
                 turno_caja_id: idTurnoReal || null,
+                cliente_id: idClienteReal || null,
+                clientes: clienteActual ? { nombre_completo: clienteActual.nombre_completo } : null,
                 medio_pago: medioPago,
                 total_venta: totalConDescuento,
+                descuento_monto: montoDescuento,
+                utilidad_total: +utilidadTotal.toFixed(2),
+                anulada: false,
                 monto_efectivo: payloadVenta.monto_efectivo,
-                monto_otro: payloadVenta.monto_otro
+                monto_otro: payloadVenta.monto_otro,
+                // A diferencia de payloadDetallesSinVentaId (que solo manda a
+                // Supabase producto_id cuando es un uuid real, de más de 10
+                // caracteres), acá se conserva el id del catálogo demo tal
+                // cual -- si no, anular la boleta después no podría ubicar
+                // qué producto reponer en catalogoDemoRef.
+                ventas_detalle: carrito.map((item) => ({
+                  producto_id: item.productoId,
+                  descripcion: item.descripcion || '',
+                  cantidad: Number(item.cantidad),
+                  precio_costo: Number(item.precioCosto) || 0,
+                  subtotal: Number(item.subtotal),
+                  utilidad: +(Number(item.subtotal) - (Number(item.precioCosto) || 0) * Number(item.cantidad)).toFixed(2),
+                  unidades_stock: Number(item.unidadesStock || item.cantidad),
+                  productos: { descripcion: item.descripcion, unidad: null }
+                }))
               }];
 
               if (catalogoDemoRef.current) {
@@ -4465,7 +4753,7 @@
         const soloNumeros = (venta.telefono || '').replace(/\D/g, '');
         const telConCodigo = soloNumeros.length === 9 ? `51${soloNumeros}` : soloNumeros;
         const mensaje = encodeURIComponent(
-          `🧾 Boleta ${venta.nro_boleta} - ${bodegaNombre}. Total: S/ ${venta.total_venta.toFixed(2)}. Adjunta el PDF que se acaba de descargar. ¡Gracias por tu compra!`
+          `Boleta ${venta.nro_boleta} - ${bodegaNombre}. Total: S/ ${venta.total_venta.toFixed(2)}. Adjunta el PDF que se acaba de descargar. ¡Gracias por tu compra!`
         );
         const url = telConCodigo ? `https://wa.me/${telConCodigo}?text=${mensaje}` : `https://wa.me/?text=${mensaje}`;
         window.open(url, '_blank');
@@ -4809,7 +5097,7 @@
                     disabled={cargandoAuth}
                     className="w-full py-3.5 bg-stone-900 hover:bg-stone-800 text-white font-black text-sm uppercase rounded-full transition shadow-lg shadow-stone-900/30 disabled:opacity-50"
                   >
-                    🚀 Crear Bodega y Entrar
+                    <i className="fa-solid fa-store mr-1.5"></i> Crear Bodega y Entrar
                   </button>
                 </form>
               )}
@@ -4821,7 +5109,7 @@
                   setCajeroSeleccionado(demoU);
                   guardarSesion({ usuario: demoU, bodega: { id: BODEGA_DEMO_ID, nombre: 'Bodega Demo' } });
                 }} className="text-stone-500 hover:text-orange-600 font-semibold">
-                  ⚡ Modo Demo Local
+                  <i className="fa-solid fa-bolt mr-1"></i> Modo Demo Local
                 </button>
               </div>
               </div>
@@ -4860,62 +5148,76 @@
           )}
 
           {/* Sidebar de navegación (solo desktop) */}
-          <aside className="hidden md:flex flex-col items-center w-24 bg-stone-100 border-r border-stone-200/80 py-3 gap-0.5 shrink-0 overflow-y-auto">
-            <div className="w-11 h-11 bg-gradient-to-br from-orange-400 to-orange-600 rounded-2xl flex items-center justify-center text-white font-extrabold text-lg shadow-lg shadow-orange-500/25 mb-3 shrink-0">
+          <aside
+            onMouseOver={manejarHoverRail}
+            onMouseLeave={() => setTooltipRail(null)}
+            className="hidden md:flex flex-col items-center w-16 bg-stone-100 border-r border-stone-200/80 py-3 gap-1.5 shrink-0 overflow-y-auto"
+          >
+            <div className="w-10 h-10 bg-gradient-to-br from-orange-400 to-orange-600 rounded-2xl flex items-center justify-center text-white font-extrabold text-lg shadow-lg shadow-orange-500/25 mb-2 shrink-0">
               K
             </div>
-            <SidebarIcon icon="fa-grip" label="Catálogo" texto="Vender" active onClick={() => setMostrarResumenMobile(false)} />
-            <SidebarIcon icon="fa-clock-rotate-left" label="Ventas en Espera" texto="En Espera" badge={ventasEnEspera.length} onClick={() => setModalVentasEspera(true)} />
-            <SidebarIcon icon="fa-receipt" label="Historial de Ventas" texto="Historial" onClick={abrirHistorialDelDia} />
-            <SidebarIcon icon="fa-hand-holding-dollar" label="Cuentas por Cobrar" texto="Cobrar Deuda" onClick={abrirModuloCobroDeudas} />
+            <SidebarIcon icon="fa-grip" label="Catálogo" active onClick={() => setMostrarResumenMobile(false)} />
+            <SidebarIcon icon="fa-clock-rotate-left" label="Ventas en Espera" badge={ventasEnEspera.length} onClick={() => setModalVentasEspera(true)} />
+            <SidebarIcon icon="fa-receipt" label="Historial de Ventas" onClick={abrirHistorialDelDia} />
+            <SidebarIcon icon="fa-hand-holding-dollar" label="Cuentas por Cobrar" onClick={abrirModuloCobroDeudas} />
             {/* Los admins ya tienen "Agregar Cliente" dentro de "Clientes" --
                 este acceso directo queda solo para cajeros sin ese menú. */}
             {!esAdmin && (
-              <SidebarIcon icon="fa-user-plus" label="Nuevo Cliente" texto="Nuevo Cliente" onClick={() => setModalNuevoCliente(true)} />
+              <SidebarIcon icon="fa-user-plus" label="Nuevo Cliente" onClick={() => setModalNuevoCliente(true)} />
             )}
-            <SidebarIcon icon="fa-triangle-exclamation" label="Stock Bajo" texto="Stock Bajo" badge={cantidadStockBajo} tone={cantidadStockBajo > 0 ? 'orange' : 'default'} onClick={() => setModalStockBajo(true)} />
-            <SidebarIcon icon="fa-table-list" label="Ver Stock" texto="Stock" onClick={() => setModalVerStock(true)} />
-            <SidebarIcon icon="fa-clipboard-check" label="Toma de Inventario" texto="Conteo" onClick={abrirTomaInventario} />
-            <SidebarIcon icon="fa-box" label="Registrar Merma" texto="Merma" onClick={() => setModalMerma(true)} />
+            <SidebarIcon icon="fa-triangle-exclamation" label="Stock Bajo" badge={cantidadStockBajo} tone={cantidadStockBajo > 0 ? 'orange' : 'default'} onClick={() => setModalStockBajo(true)} />
+            <SidebarIcon icon="fa-table-list" label="Ver Stock" onClick={() => setModalVerStock(true)} />
+            <SidebarIcon icon="fa-clipboard-check" label="Toma de Inventario" onClick={abrirTomaInventario} />
+            <SidebarIcon icon="fa-box" label="Registrar Merma" onClick={() => setModalMerma(true)} />
             {esAdmin && (
               <>
                 <div className="w-10 h-px bg-stone-200 my-2 shrink-0"></div>
-                <SidebarIcon icon="fa-chart-pie" label="Dashboard de Ventas" texto="Dashboard" onClick={abrirDashboard} />
-                <SidebarIcon icon="fa-file-invoice" label="Cuentas por Pagar" texto="Por Pagar" onClick={abrirCuentasPorPagar} />
-                <SidebarIcon icon="fa-cash-register" label="Historial de Cierres de Caja" texto="Cierres" onClick={abrirHistorialCierres} />
-                <div className="w-full">
+                <SidebarIcon icon="fa-chart-pie" label="Dashboard de Ventas" onClick={abrirDashboard} />
+                <SidebarIcon icon="fa-file-invoice" label="Cuentas por Pagar" onClick={abrirCuentasPorPagar} />
+                <SidebarIcon icon="fa-cash-register" label="Historial de Cierres de Caja" onClick={abrirHistorialCierres} />
+                <div className="flex flex-col items-center">
                   <button
                     type="button"
                     onClick={() => setMenuEntradasAbierto((v) => !v)}
-                    title="Entradas"
-                    className={`group relative w-full flex flex-col items-center justify-center gap-1 py-2.5 rounded-xl transition-all duration-200 ${menuEntradasAbierto ? 'bg-stone-900 text-white shadow-lg shadow-stone-900/25' : 'text-stone-600 hover:bg-stone-200 hover:text-stone-800'}`}
+                    data-tip="Entradas"
+                    aria-label="Entradas"
+                    className={`relative w-11 h-11 flex items-center justify-center rounded-xl transition-all duration-200 shrink-0 ${menuEntradasAbierto ? 'bg-stone-900 text-white shadow-lg shadow-stone-900/25' : 'text-stone-600 hover:bg-stone-200 hover:text-stone-800'}`}
                   >
                     <i className="fa-solid fa-dolly text-base"></i>
-                    <span className="text-[10px] font-semibold leading-tight text-center px-0.5 flex items-center gap-1">
-                      Entradas
-                      <i className={`fa-solid fa-chevron-down text-[8px] transition-transform ${menuEntradasAbierto ? 'rotate-180' : ''}`}></i>
-                    </span>
+                    <i className={`fa-solid fa-chevron-down text-[7px] absolute -bottom-0.5 right-1.5 transition-transform ${menuEntradasAbierto ? 'rotate-180' : ''}`}></i>
                   </button>
                   {menuEntradasAbierto && (
-                    <div className="w-full pl-1.5 ml-2 border-l-2 border-orange-500/30 space-y-0.5 py-0.5">
-                      <SidebarIcon icon="fa-boxes-stacked" label="Registrar Productos" texto="Productos" onClick={() => setModalInventarioInicial(true)} />
-                      <SidebarIcon icon="fa-truck-ramp-box" label="Entrada de Mercadería" texto="Mercadería" onClick={() => setModalEntradaMercaderia(true)} />
-                      <SidebarIcon icon="fa-clipboard-list" label="Levantamiento de Inventario" texto="Levantamiento" onClick={() => setModalLevantamiento(true)} />
+                    <div className="flex flex-col items-center gap-1 mt-1.5 py-1.5 px-1 bg-stone-200/60 rounded-xl">
+                      <SidebarIcon icon="fa-boxes-stacked" label="Registrar Productos" onClick={() => setModalInventarioInicial(true)} />
+                      <SidebarIcon icon="fa-truck-ramp-box" label="Entrada de Mercadería" onClick={() => setModalEntradaMercaderia(true)} />
+                      <SidebarIcon icon="fa-clipboard-list" label="Levantamiento de Inventario" onClick={() => setModalLevantamiento(true)} />
                     </div>
                   )}
                 </div>
-                <SidebarIcon icon="fa-users" label="Clientes (editar)" texto="Clientes" onClick={abrirGestionClientes} />
-                <SidebarIcon icon="fa-user-group" label="Cajeros y Empleados" texto="Cajeros" onClick={abrirGestionCajeros} />
+                <SidebarIcon icon="fa-users" label="Clientes (editar)" onClick={abrirGestionClientes} />
+                <SidebarIcon icon="fa-user-group" label="Cajeros y Empleados" onClick={abrirGestionCajeros} />
               </>
             )}
             <div className="flex-1 min-h-2"></div>
             {turnoActivo ? (
-              <SidebarIcon icon="fa-lock" label="Cerrar Caja" texto="Cerrar Caja" tone="rose" onClick={abrirCierreCaja} />
+              <SidebarIcon icon="fa-lock" label="Cerrar Caja" tone="rose" onClick={abrirCierreCaja} />
             ) : (
-              <SidebarIcon icon="fa-lock-open" label="Abrir Turno" texto="Abrir Turno" tone="orange" onClick={() => setModalTurno(true)} />
+              <SidebarIcon icon="fa-lock-open" label="Abrir Turno" tone="orange" onClick={() => setModalTurno(true)} />
             )}
-            <SidebarIcon icon="fa-right-from-bracket" label="Cerrar Sesión" texto="Salir" onClick={cerrarSesion} />
+            <SidebarIcon icon="fa-right-from-bracket" label="Cerrar Sesión" onClick={cerrarSesion} />
           </aside>
+
+          {/* Tooltip flotante del riel de íconos -- position:fixed con
+              coordenadas calculadas en manejarHoverRail, así que nunca lo
+              recorta el overflow-y-auto del <aside>. */}
+          {tooltipRail && (
+            <div
+              className="hidden md:block fixed z-[70] pointer-events-none bg-stone-900 text-white text-xs font-semibold px-2.5 py-1.5 rounded-lg shadow-xl whitespace-nowrap animate-[tooltip-rail-in_0.12s_ease-out]"
+              style={{ top: tooltipRail.top, left: tooltipRail.left, transform: 'translateY(-50%)' }}
+            >
+              {tooltipRail.label}
+            </div>
+          )}
 
           {/* Columna Central: Catálogo (Order Line) */}
           <div className="flex-1 flex flex-col overflow-hidden">
@@ -4986,9 +5288,7 @@
                         cargarProductos('');
                       }}
                       className="absolute right-2 top-1/2 -translate-y-1/2 w-7 h-7 flex items-center justify-center text-stone-500 hover:text-stone-800 rounded-lg transition"
-                    >
-                      ✕
-                    </button>
+                    ><i className="fa-solid fa-xmark"></i></button>
                   )}
                 </div>
                 <button
@@ -5024,15 +5324,22 @@
 
               {/* Categorías */}
               <div className="flex gap-1.5 overflow-x-auto pb-1 text-xs">
-                {categorias.map(cat => (
-                  <button
-                    key={cat}
-                    onClick={() => setCategoriaFiltro(cat)}
-                    className={`px-3 py-1.5 rounded-full whitespace-nowrap font-semibold transition ${categoriaFiltro === cat ? 'bg-stone-900 text-white shadow' : 'bg-stone-100 text-stone-600 hover:bg-stone-200 border border-stone-200'}`}
-                  >
-                    {cat}
-                  </button>
-                ))}
+                {categorias.map(cat => {
+                  const cantidad = cat === 'TODOS' ? productos.length : (conteoPorCategoria.get(cat) || 0);
+                  const activo = categoriaFiltro === cat;
+                  return (
+                    <button
+                      key={cat}
+                      onClick={() => setCategoriaFiltro(cat)}
+                      className={`shrink-0 flex flex-col items-start px-3.5 py-1.5 rounded-xl transition ${activo ? 'bg-stone-900 text-white shadow' : 'bg-stone-100 text-stone-700 hover:bg-stone-200 border border-stone-200'}`}
+                    >
+                      <span className="font-bold whitespace-nowrap">{cat}</span>
+                      <span className={`text-[10px] font-medium ${activo ? 'text-white/70' : 'text-stone-400'}`}>
+                        {cantidad} {cantidad === 1 ? 'item' : 'items'}
+                      </span>
+                    </button>
+                  );
+                })}
               </div>
 
               {/* Grilla de Productos */}
@@ -5070,6 +5377,7 @@
                         key={prod.id}
                         prod={prod}
                         esAdmin={esAdmin}
+                        enCarrito={cantidadEnCarritoPorProducto.get(prod.id) || 0}
                         onSelect={handleClicProducto}
                         onEdit={abrirEdicionProducto}
                       />
@@ -5119,7 +5427,7 @@
             {/* Encabezado del resumen (solo mobile trae botón de cerrar) */}
             <div className="flex items-center justify-between px-4 py-3 border-b border-stone-200 md:hidden shrink-0">
               <h2 className="text-sm font-black text-stone-900">Resumen de Venta</h2>
-              <button onClick={() => setMostrarResumenMobile(false)} className="text-stone-600 hover:text-stone-900 text-lg">✕</button>
+              <button onClick={() => setMostrarResumenMobile(false)} className="text-stone-600 hover:text-stone-900 text-lg"><i className="fa-solid fa-xmark"></i></button>
             </div>
 
             {/* Encabezado Carrito */}
@@ -5163,6 +5471,12 @@
                     key={item.claveCarrito || item.productoId}
                     className="flex items-center gap-2.5 p-2.5 bg-stone-200/40 border border-stone-200 rounded-xl hover:border-stone-300 transition"
                   >
+                    <FotoProducto
+                      fotoUrl={item.foto_url}
+                      categoria={item.categoria}
+                      className="w-10 h-10 rounded-lg shrink-0"
+                      iconClassName="text-sm"
+                    />
                     <div className="flex-1 min-w-0">
                       <p className="text-xs font-semibold text-stone-900 truncate">
                         {item.descripcion}
@@ -5210,25 +5524,25 @@
             <div className="p-4 bg-stone-100 border-t border-stone-200 space-y-3">
               {!mostrarPago ? (
                 <>
-                  {montoDescuento > 0 && (
-                    <div className="space-y-0.5">
-                      <div className="flex items-center justify-between text-xs text-stone-600">
-                        <span>Subtotal</span>
-                        <span className="tabular-nums">S/ {totalVenta.toFixed(2)}</span>
-                      </div>
+                  <div className="bg-white border border-stone-200 rounded-xl px-3.5 py-3 space-y-1.5">
+                    <div className="flex items-center justify-between text-xs text-stone-600">
+                      <span>Subtotal</span>
+                      <span className="tabular-nums">S/ {totalVenta.toFixed(2)}</span>
+                    </div>
+                    {montoDescuento > 0 && (
                       <div className="flex items-center justify-between text-xs text-rose-600 font-semibold">
                         <span>Descuento</span>
                         <span className="tabular-nums">- S/ {montoDescuento.toFixed(2)}</span>
                       </div>
+                    )}
+                    <div className="flex items-center justify-between pt-1.5 mt-1 border-t border-stone-100">
+                      <span className="text-xs font-semibold text-stone-600 uppercase tracking-wider">
+                        Total
+                      </span>
+                      <span className="text-2xl font-extrabold text-stone-900 tabular-nums">
+                        S/ {totalConDescuento.toFixed(2)}
+                      </span>
                     </div>
-                  )}
-                  <div className="flex items-center justify-between pt-1 pb-0.5">
-                    <span className="text-xs font-semibold text-stone-600 uppercase tracking-wider">
-                      Total a Cobrar
-                    </span>
-                    <span className="text-2xl font-extrabold text-stone-900 tabular-nums">
-                      S/ {totalConDescuento.toFixed(2)}
-                    </span>
                   </div>
                   <button
                     onClick={() => setMostrarPago(true)}
@@ -5540,8 +5854,8 @@
                   </button>
                 )}
                 <div className="border-t border-stone-200 my-1"></div>
-                <button onClick={() => { abrirModuloCobroDeudas(); setMenuMas(false); }} className="w-full text-left px-3.5 py-3 rounded-xl hover:bg-stone-200 flex items-center gap-3 text-orange-600 font-semibold text-sm">
-                  <i className="fa-solid fa-hand-holding-dollar w-5"></i> Cuentas por Cobrar
+                <button onClick={() => { abrirModuloCobroDeudas(); setMenuMas(false); }} className="w-full text-left px-3.5 py-3 rounded-xl hover:bg-stone-200 flex items-center gap-3 text-stone-800 font-medium text-sm">
+                  <i className="fa-solid fa-hand-holding-dollar w-5 text-orange-600"></i> Cuentas por Cobrar
                 </button>
                 <button onClick={() => { abrirHistorialDelDia(); setMenuMas(false); }} className="w-full text-left px-3.5 py-3 rounded-xl hover:bg-stone-200 flex items-center gap-3 text-stone-800 font-medium text-sm">
                   <i className="fa-solid fa-receipt w-5 text-orange-600"></i> Historial de Ventas Hoy
@@ -5566,8 +5880,8 @@
                 {esAdmin && (
                   <>
                     <div className="border-t border-stone-200 my-1"></div>
-                    <button onClick={() => { abrirDashboard(); setMenuMas(false); }} className="w-full text-left px-3.5 py-3 rounded-xl hover:bg-stone-200 flex items-center gap-3 text-orange-600 font-semibold text-sm">
-                      <i className="fa-solid fa-chart-pie w-5"></i> Dashboard de Ventas
+                    <button onClick={() => { abrirDashboard(); setMenuMas(false); }} className="w-full text-left px-3.5 py-3 rounded-xl hover:bg-stone-200 flex items-center gap-3 text-stone-800 font-medium text-sm">
+                      <i className="fa-solid fa-chart-pie w-5 text-orange-600"></i> Dashboard de Ventas
                     </button>
                     <button onClick={() => { abrirCuentasPorPagar(); setMenuMas(false); }} className="w-full text-left px-3.5 py-3 rounded-xl hover:bg-stone-200 flex items-center gap-3 text-stone-800 font-medium text-sm">
                       <i className="fa-solid fa-file-invoice w-5 text-orange-600"></i> Cuentas por Pagar
@@ -5575,8 +5889,8 @@
                     <button onClick={() => { abrirHistorialCierres(); setMenuMas(false); }} className="w-full text-left px-3.5 py-3 rounded-xl hover:bg-stone-200 flex items-center gap-3 text-stone-800 font-medium text-sm">
                       <i className="fa-solid fa-cash-register w-5 text-orange-600"></i> Historial de Cierres de Caja
                     </button>
-                    <button onClick={() => setMenuEntradasAbierto((v) => !v)} className="w-full text-left px-3.5 py-3 rounded-xl hover:bg-stone-200 flex items-center gap-3 text-orange-600 font-semibold text-sm">
-                      <i className="fa-solid fa-dolly w-5"></i> Entradas
+                    <button onClick={() => setMenuEntradasAbierto((v) => !v)} className="w-full text-left px-3.5 py-3 rounded-xl hover:bg-stone-200 flex items-center gap-3 text-stone-800 font-medium text-sm">
+                      <i className="fa-solid fa-dolly w-5 text-orange-600"></i> Entradas
                       <i className={`fa-solid fa-chevron-down text-[10px] ml-auto transition-transform ${menuEntradasAbierto ? 'rotate-180' : ''}`}></i>
                     </button>
                     {menuEntradasAbierto && (
@@ -5742,7 +6056,7 @@
                     </h3>
                     <p className="text-xs text-stone-600 mt-0.5">Crea o actualiza la ficha de tus productos (precio, categoría, EAN/SKU). La cantidad se carga después desde "Entrada de Mercadería".</p>
                   </div>
-                  <button onClick={() => setModalInventarioInicial(false)} className="text-stone-600 hover:text-stone-900 shrink-0">✕</button>
+                  <button onClick={() => setModalInventarioInicial(false)} className="text-stone-600 hover:text-stone-900 shrink-0"><i className="fa-solid fa-xmark"></i></button>
                 </div>
 
                 <div className="flex-1 overflow-y-auto space-y-2 pr-1">
@@ -5874,11 +6188,11 @@
                               onChange={(e) => actualizarFilaInventario(idx, 'vendeEnPack', e.target.checked)}
                               className="w-3.5 h-3.5"
                             />
-                            🎁 También se vende por pack/caja
+                            <i className="fa-solid fa-box mr-1"></i> También se vende por pack/caja
                           </label>
                           {esExistente && fila.vendeEnPackOriginal && !fila.vendeEnPack && (
                             <p className="text-[11px] text-rose-600 font-semibold mt-1">
-                              ⚠️ Este producto ya vendía por pack -- al guardar se le va a quitar esa configuración.
+                              <i className="fa-solid fa-triangle-exclamation mr-1"></i> Este producto ya vendía por pack -- al guardar se le va a quitar esa configuración.
                             </p>
                           )}
                           {fila.vendeEnPack && (
@@ -5983,7 +6297,7 @@
                   <h3 className="text-base font-bold text-stone-900 flex items-center gap-2">
                     <i className="fa-solid fa-triangle-exclamation text-amber-600"></i> Registrar Merma
                   </h3>
-                  <button onClick={() => setModalMerma(false)} className="text-stone-600 hover:text-stone-900">✕</button>
+                  <button onClick={() => setModalMerma(false)} className="text-stone-600 hover:text-stone-900"><i className="fa-solid fa-xmark"></i></button>
                 </div>
                 <p className="text-xs text-stone-600">Para productos vencidos, rotos, robados o perdidos. Se descuenta del stock automáticamente.</p>
                 <div>
@@ -6043,11 +6357,11 @@
                   <h3 className="text-base font-bold text-stone-900 flex items-center gap-2">
                     <i className="fa-solid fa-triangle-exclamation text-amber-600"></i> Stock Bajo / Por Agotarse
                   </h3>
-                  <button onClick={() => setModalStockBajo(false)} className="text-stone-600 hover:text-stone-900">✕</button>
+                  <button onClick={() => setModalStockBajo(false)} className="text-stone-600 hover:text-stone-900"><i className="fa-solid fa-xmark"></i></button>
                 </div>
                 <div className="flex-1 overflow-y-auto space-y-1.5">
                   {productos.filter((p) => p.stock_actual != null && Number(p.stock_actual) <= Number(p.stock_min || 5)).length === 0 ? (
-                    <p className="text-xs text-emerald-600 text-center py-8">✓ Todo tu stock está en buen nivel.</p>
+                    <p className="text-xs text-emerald-600 text-center py-8"><i className="fa-solid fa-circle-check mr-1"></i> Todo tu stock está en buen nivel.</p>
                   ) : (
                     productos
                       .filter((p) => p.stock_actual != null && Number(p.stock_actual) <= Number(p.stock_min || 5))
@@ -6077,7 +6391,7 @@
                   <h3 className="text-base font-bold text-stone-900 flex items-center gap-2">
                     <i className="fa-solid fa-table-list text-orange-600"></i> Ver Stock
                   </h3>
-                  <button onClick={() => setModalVerStock(false)} className="text-stone-600 hover:text-stone-900">✕</button>
+                  <button onClick={() => setModalVerStock(false)} className="text-stone-600 hover:text-stone-900"><i className="fa-solid fa-xmark"></i></button>
                 </div>
                 <div className="flex gap-2 shrink-0">
                   <input
@@ -6130,7 +6444,7 @@
                     </h3>
                     <p className="text-xs text-stone-600 mt-0.5">Cuenta lo que tienes físicamente. Deja en blanco lo que no vas a contar ahora.</p>
                   </div>
-                  <button onClick={() => setModalTomaInventario(false)} className="text-stone-600 hover:text-stone-900 shrink-0">✕</button>
+                  <button onClick={() => setModalTomaInventario(false)} className="text-stone-600 hover:text-stone-900 shrink-0"><i className="fa-solid fa-xmark"></i></button>
                 </div>
                 <div className="flex gap-2 shrink-0">
                   <input
@@ -6198,7 +6512,40 @@
                   <h3 className="text-base font-bold text-stone-900 flex items-center gap-2">
                     <i className="fa-solid fa-pen text-orange-600"></i> Editar Producto
                   </h3>
-                  <button onClick={() => setModalEditarProducto(false)} className="text-stone-600 hover:text-stone-900">✕</button>
+                  <button onClick={() => setModalEditarProducto(false)} className="text-stone-600 hover:text-stone-900"><i className="fa-solid fa-xmark"></i></button>
+                </div>
+                <div className="flex items-center gap-3">
+                  <label className="relative w-16 h-16 rounded-xl overflow-hidden shrink-0 cursor-pointer group border border-stone-200">
+                    <FotoProducto
+                      fotoUrl={formEditarProducto.foto_url}
+                      categoria={formEditarProducto.categoria}
+                      className="w-16 h-16"
+                      iconClassName="text-xl"
+                    />
+                    <div className="absolute inset-0 flex items-center justify-center bg-black/0 group-hover:bg-black/40 transition">
+                      {subiendoFotoProducto ? (
+                        <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                      ) : (
+                        <i className="fa-solid fa-camera text-white text-sm opacity-0 group-hover:opacity-100 transition"></i>
+                      )}
+                    </div>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      onChange={async (e) => {
+                        const file = e.target.files && e.target.files[0];
+                        e.target.value = '';
+                        if (!file) return;
+                        const url = await subirFotoProducto(file, productoEditando.id);
+                        if (url) setFormEditarProducto((prev) => ({ ...prev, foto_url: url }));
+                      }}
+                    />
+                  </label>
+                  <p className="text-xs text-stone-500">
+                    <span className="font-semibold text-stone-700 block">Foto del producto</span>
+                    Toca el cuadro para {formEditarProducto.foto_url ? 'cambiarla' : 'subir una'}. Si no subes ninguna, se usa el ícono de su categoría.
+                  </p>
                 </div>
                 <div className="space-y-2.5">
                   <div>
@@ -6304,7 +6651,7 @@
                           onChange={(e) => setFormEditarProducto({ ...formEditarProducto, vendeEnPack: e.target.checked })}
                           className="w-3.5 h-3.5"
                         />
-                        🎁 También se vende por pack/caja
+                        <i className="fa-solid fa-box mr-1"></i> También se vende por pack/caja
                       </label>
                       {formEditarProducto.vendeEnPack && (
                         <div className="grid grid-cols-2 gap-2 mt-1.5">
@@ -6359,6 +6706,7 @@
                 <div className="flex gap-2 pt-1">
                   <button
                     onClick={desactivarProducto}
+                    title="Eliminar producto"
                     className="px-4 py-2.5 bg-rose-950/60 hover:bg-rose-900 text-rose-600 text-xs font-semibold rounded-xl border border-rose-800"
                   >
                     <i className="fa-solid fa-trash-can"></i>
@@ -6386,7 +6734,7 @@
                     </h3>
                     <p className="text-xs text-stone-600 mt-0.5">Escanea o busca el producto, cuenta lo que tienes físicamente y listo.</p>
                   </div>
-                  <button onClick={() => { setModalLevantamiento(false); cerrarResultadoLevantamiento(); }} className="text-stone-600 hover:text-stone-900 shrink-0">✕</button>
+                  <button onClick={() => { setModalLevantamiento(false); cerrarResultadoLevantamiento(); }} className="text-stone-600 hover:text-stone-900 shrink-0"><i className="fa-solid fa-xmark"></i></button>
                 </div>
 
                 <div className="space-y-1.5">
@@ -6426,7 +6774,7 @@
                       <p className="text-xs font-bold text-rose-700">Producto no encontrado</p>
                       <p className="text-xs text-rose-600 mt-0.5">Regístralo primero en "Registrar Productos" y vuelve a intentarlo.</p>
                     </div>
-                    <button onClick={cerrarResultadoLevantamiento} className="text-rose-400 hover:text-rose-600 shrink-0">✕</button>
+                    <button onClick={cerrarResultadoLevantamiento} className="text-rose-400 hover:text-rose-600 shrink-0"><i className="fa-solid fa-xmark"></i></button>
                   </div>
                 )}
 
@@ -6442,7 +6790,7 @@
                           <p className="text-sm font-bold text-stone-900 truncate">{producto.descripcion}</p>
                           <p className="text-[11px] text-stone-500 mt-0.5">SKU: {producto.sku || '—'} · 1 pack = {unidadesPorPack} und.</p>
                         </div>
-                        <button onClick={cerrarResultadoLevantamiento} className="text-emerald-500 hover:text-emerald-700 shrink-0">✕</button>
+                        <button onClick={cerrarResultadoLevantamiento} className="text-emerald-500 hover:text-emerald-700 shrink-0"><i className="fa-solid fa-xmark"></i></button>
                       </div>
 
                       <div className="space-y-1.5">
@@ -6500,8 +6848,8 @@
             <div className="fixed inset-0 bg-black/85 flex items-center justify-center z-50 p-4">
               <div className="bg-stone-100 border border-stone-200 rounded-2xl max-w-lg w-full p-5 shadow-2xl space-y-3">
                 <div className="flex justify-between items-center">
-                  <h3 className="text-base font-bold text-stone-900">📥 Entrada de Mercadería (Compras)</h3>
-                  <button onClick={cerrarModalEntradaMercaderia} className="text-stone-600 hover:text-stone-900">✕</button>
+                  <h3 className="text-base font-bold text-stone-900"><i className="fa-solid fa-truck-ramp-box mr-1.5"></i> Entrada de Mercadería (Compras)</h3>
+                  <button onClick={cerrarModalEntradaMercaderia} className="text-stone-600 hover:text-stone-900"><i className="fa-solid fa-xmark"></i></button>
                 </div>
 
                 <div className="grid grid-cols-2 gap-2">
@@ -6698,7 +7046,7 @@
                   <h3 className="text-base font-bold text-stone-900 flex items-center gap-2">
                     <i className="fa-solid fa-hand-holding-dollar text-orange-600"></i> Cuentas por Cobrar
                   </h3>
-                  <button onClick={() => setModalCobrarDeudas(false)} className="text-stone-600 hover:text-stone-900">✕</button>
+                  <button onClick={() => setModalCobrarDeudas(false)} className="text-stone-600 hover:text-stone-900"><i className="fa-solid fa-xmark"></i></button>
                 </div>
 
                 {deudorSeleccionado ? (
@@ -6735,7 +7083,7 @@
                       ) : boletasDeudorConEstado.length === 0 ? (
                         <p className="text-xs text-stone-500 text-center py-3">Sin boletas a crédito registradas.</p>
                       ) : (mostrarHistorialCompletoDeuda ? boletasDeudorConEstado : boletasPendientesDeuda).length === 0 ? (
-                        <p className="text-xs text-emerald-600 text-center py-3">✓ No hay boletas pendientes.</p>
+                        <p className="text-xs text-emerald-600 text-center py-3"><i className="fa-solid fa-circle-check mr-1"></i> No hay boletas pendientes.</p>
                       ) : (
                         <div className="space-y-2">
                           {(mostrarHistorialCompletoDeuda ? boletasDeudorConEstado : boletasPendientesDeuda).map((b) => (
@@ -6791,7 +7139,7 @@
                 ) : (
                   <div className="max-h-60 overflow-y-auto space-y-1.5">
                     {clientesDeudores.length === 0 ? (
-                      <p className="text-xs text-stone-600 text-center py-6">¡No hay clientes con deuda pendiente!</p>
+                      <p className="text-xs text-emerald-600 text-center py-6"><i className="fa-solid fa-circle-check mr-1"></i>No hay clientes con deuda pendiente.</p>
                     ) : (
                       clientesDeudores.map(cl => (
                         <div
@@ -6821,7 +7169,7 @@
                   <h3 className="text-base font-bold text-stone-900 flex items-center gap-2">
                     <i className="fa-solid fa-file-invoice text-orange-600"></i> Cuentas por Pagar
                   </h3>
-                  <button onClick={() => setModalCuentasPagar(false)} className="text-stone-600 hover:text-stone-900">✕</button>
+                  <button onClick={() => setModalCuentasPagar(false)} className="text-stone-600 hover:text-stone-900"><i className="fa-solid fa-xmark"></i></button>
                 </div>
 
                 {proveedorSeleccionado ? (
@@ -6891,7 +7239,7 @@
                 {!proveedorSeleccionado && (
                   <button
                     onClick={() => setModalNuevoProveedor(true)}
-                    className="w-full py-2 bg-stone-200 hover:bg-stone-300 text-stone-800 font-bold text-xs rounded-xl border border-stone-300 flex items-center justify-center gap-1.5"
+                    className="w-full py-2 bg-stone-200 hover:bg-stone-300 text-stone-800 font-bold text-xs rounded-xl border border-stone-300 border-dashed flex items-center justify-center gap-1.5"
                   >
                     <i className="fa-solid fa-plus"></i> Nuevo Proveedor
                   </button>
@@ -6905,8 +7253,8 @@
             <div className="fixed inset-0 bg-black/85 flex items-center justify-center z-50 p-4">
               <div className="bg-stone-100 border border-stone-200 rounded-2xl max-w-sm w-full p-5 shadow-2xl space-y-3">
                 <div className="flex justify-between items-center">
-                  <h3 className="text-base font-bold text-stone-900">🚚 Nuevo Proveedor</h3>
-                  <button onClick={() => setModalNuevoProveedor(false)} className="text-stone-600 hover:text-stone-900">✕</button>
+                  <h3 className="text-base font-bold text-stone-900"><i className="fa-solid fa-truck mr-1.5"></i> Nuevo Proveedor</h3>
+                  <button onClick={() => setModalNuevoProveedor(false)} className="text-stone-600 hover:text-stone-900"><i className="fa-solid fa-xmark"></i></button>
                 </div>
                 <form onSubmit={handleGuardarNuevoProveedor} className="space-y-2.5">
                   <div>
@@ -6969,7 +7317,7 @@
                   <h3 className="text-base font-bold text-stone-900 flex items-center gap-2">
                     <i className="fa-solid fa-cash-register text-orange-600"></i> Historial de Cierres de Caja
                   </h3>
-                  <button onClick={() => setModalHistorialCierres(false)} className="text-stone-600 hover:text-stone-900">✕</button>
+                  <button onClick={() => setModalHistorialCierres(false)} className="text-stone-600 hover:text-stone-900"><i className="fa-solid fa-xmark"></i></button>
                 </div>
 
                 <FiltroFechasRapido
@@ -6994,7 +7342,7 @@
                             <i className="fa-solid fa-user text-stone-400"></i> {t.cajeros?.nombre || 'Cajero'}
                           </span>
                           <span className={`font-black ${t.diferencia === 0 ? 'text-emerald-600' : Math.abs(Number(t.diferencia)) < 1 ? 'text-amber-600' : 'text-rose-600'}`}>
-                            {Number(t.diferencia) === 0 ? '✓ Cuadre perfecto' : `${Number(t.diferencia) > 0 ? '+' : ''}S/ ${Number(t.diferencia).toFixed(2)}`}
+                            {Number(t.diferencia) === 0 ? (<><i className="fa-solid fa-circle-check mr-1"></i>Cuadre perfecto</>) : `${Number(t.diferencia) > 0 ? '+' : ''}S/ ${Number(t.diferencia).toFixed(2)}`}
                           </span>
                         </div>
                         <div className="grid grid-cols-2 gap-x-3 gap-y-0.5 text-stone-600">
@@ -7020,7 +7368,7 @@
                   <h3 className="text-base font-bold text-stone-900 flex items-center gap-2">
                     <i className="fa-solid fa-user-group text-orange-600"></i> Cajeros y Empleados
                   </h3>
-                  <button onClick={() => setModalGestionCajeros(false)} className="text-stone-600 hover:text-stone-900">✕</button>
+                  <button onClick={() => setModalGestionCajeros(false)} className="text-stone-600 hover:text-stone-900"><i className="fa-solid fa-xmark"></i></button>
                 </div>
 
                 {mostrarFormNuevoCajero ? (
@@ -7120,7 +7468,7 @@
                   <h3 className="text-base font-bold text-stone-900 flex items-center gap-2">
                     <i className="fa-solid fa-users text-orange-600"></i> Clientes
                   </h3>
-                  <button onClick={() => { setModalGestionClientes(false); setClienteEditando(null); }} className="text-stone-600 hover:text-stone-900">✕</button>
+                  <button onClick={() => { setModalGestionClientes(false); setClienteEditando(null); }} className="text-stone-600 hover:text-stone-900"><i className="fa-solid fa-xmark"></i></button>
                 </div>
 
                 {!clienteEditando && (
@@ -7255,8 +7603,8 @@
             <div className="fixed inset-0 bg-black/85 flex items-center justify-center z-50 p-4">
               <div className="bg-stone-100 border border-stone-200 rounded-2xl max-w-sm w-full p-5 shadow-2xl space-y-3 max-h-[85vh] flex flex-col">
                 <div className="flex justify-between items-center shrink-0">
-                  <h3 className="text-base font-bold text-stone-900">👤 Seleccionar Cliente</h3>
-                  <button onClick={() => setModalBuscarCliente(false)} className="text-stone-600 hover:text-stone-900">✕</button>
+                  <h3 className="text-base font-bold text-stone-900"><i className="fa-solid fa-user mr-1.5"></i> Seleccionar Cliente</h3>
+                  <button onClick={() => setModalBuscarCliente(false)} className="text-stone-600 hover:text-stone-900"><i className="fa-solid fa-xmark"></i></button>
                 </div>
                 <input
                   type="text"
@@ -7310,8 +7658,8 @@
             <div className="fixed inset-0 bg-black/85 flex items-center justify-center z-50 p-4">
               <div className="bg-stone-100 border border-stone-200 rounded-2xl max-w-sm w-full p-5 shadow-2xl space-y-3">
                 <div className="flex justify-between items-center">
-                  <h3 className="text-base font-bold text-stone-900">👤 Registrar Nuevo Cliente</h3>
-                  <button onClick={() => setModalNuevoCliente(false)} className="text-stone-600 hover:text-stone-900">✕</button>
+                  <h3 className="text-base font-bold text-stone-900"><i className="fa-solid fa-user-plus mr-1.5"></i> Registrar Nuevo Cliente</h3>
+                  <button onClick={() => setModalNuevoCliente(false)} className="text-stone-600 hover:text-stone-900"><i className="fa-solid fa-xmark"></i></button>
                 </div>
                 <form onSubmit={handleGuardarNuevoCliente} className="space-y-2.5">
                   <div>
@@ -7381,7 +7729,7 @@
                   <h3 className="text-base font-bold text-stone-900 flex items-center gap-2">
                     <i className="fa-solid fa-chart-pie text-orange-600"></i> Dashboard de Ventas
                   </h3>
-                  <button onClick={() => setModalDashboard(false)} className="text-stone-600 hover:text-stone-900">✕</button>
+                  <button onClick={() => setModalDashboard(false)} className="text-stone-600 hover:text-stone-900"><i className="fa-solid fa-xmark"></i></button>
                 </div>
 
                 <FiltroFechasRapido
@@ -7463,7 +7811,7 @@
                         </div>
                       </div>
                       {dashStats.numDeudores === 0 ? (
-                        <p className="text-xs text-rose-700/70">Ningún cliente tiene deuda pendiente. 🎉</p>
+                        <p className="text-xs text-rose-700/70"><i className="fa-solid fa-circle-check mr-1"></i>Ningún cliente tiene deuda pendiente.</p>
                       ) : (
                         <div className="space-y-2 max-h-40 overflow-y-auto pr-1">
                           {clientesDeuda.map((c, i) => (
@@ -7499,7 +7847,7 @@
                         </div>
                       </div>
                       {dashStats.numProveedoresDeuda === 0 ? (
-                        <p className="text-xs text-amber-700/70">No le debes a ningún proveedor. 🎉</p>
+                        <p className="text-xs text-amber-700/70"><i className="fa-solid fa-circle-check mr-1"></i>No le debes a ningún proveedor.</p>
                       ) : (
                         <div className="space-y-2 max-h-40 overflow-y-auto pr-1">
                           {proveedoresDeudaDash.map((p, i) => (
@@ -7625,7 +7973,7 @@
                   <h3 className="text-base font-bold text-stone-900 flex items-center gap-2">
                     <i className="fa-solid fa-receipt text-orange-600"></i> Historial de Ventas
                   </h3>
-                  <button onClick={() => setModalHistorial(false)} className="text-stone-600 hover:text-stone-900">✕</button>
+                  <button onClick={() => setModalHistorial(false)} className="text-stone-600 hover:text-stone-900"><i className="fa-solid fa-xmark"></i></button>
                 </div>
 
                 <div className="flex flex-wrap items-end gap-2">
@@ -7726,7 +8074,7 @@
                             className="text-xs bg-stone-200 hover:bg-stone-200 text-stone-800 px-2 py-1 rounded border border-stone-200"
                             title="Reimprimir boleta"
                           >
-                            🖨️
+                            <i className="fa-solid fa-print"></i>
                           </button>
                           {!v.anulada && esAdmin && (
                             <button
@@ -7750,7 +8098,7 @@
           {modalCierreCaja && (
             <div className="fixed inset-0 bg-black/85 flex items-center justify-center z-50 p-4">
               <div className="bg-stone-100 border border-stone-200 rounded-2xl max-w-sm w-full p-5 shadow-2xl space-y-3 text-center">
-                <h3 className="text-base font-bold text-stone-900">🔒 Cierre de Turno y Arqueo de Caja</h3>
+                <h3 className="text-base font-bold text-stone-900"><i className="fa-solid fa-lock mr-1.5"></i> Cierre de Turno y Arqueo de Caja</h3>
 
                 {!arqueoEsperado ? (
                   <p className="text-xs text-stone-500 py-2">Calculando cuánto debería haber en caja...</p>
@@ -7780,7 +8128,7 @@
                   <p className={`text-xs font-bold ${+(parseFloat(montoConteoEfectivo) - arqueoEsperado.esperado).toFixed(2) === 0 ? 'text-emerald-600' : 'text-rose-600'}`}>
                     {(() => {
                       const dif = +((parseFloat(montoConteoEfectivo) || 0) - arqueoEsperado.esperado).toFixed(2);
-                      return dif === 0 ? '✓ Cuadra perfecto' : dif > 0 ? `Sobran S/ ${dif.toFixed(2)}` : `Faltan S/ ${Math.abs(dif).toFixed(2)}`;
+                      return dif === 0 ? (<><i className="fa-solid fa-circle-check mr-1"></i>Cuadra perfecto</>) : dif > 0 ? `Sobran S/ ${dif.toFixed(2)}` : `Faltan S/ ${Math.abs(dif).toFixed(2)}`;
                     })()}
                   </p>
                 )}
@@ -7796,14 +8144,14 @@
           {resumenCierre && (
             <div className="fixed inset-0 bg-black/85 flex items-center justify-center z-50 p-4">
               <div className="bg-stone-100 border border-stone-200 rounded-2xl max-w-sm w-full p-5 shadow-2xl space-y-3 text-center">
-                <h3 className="text-base font-bold text-stone-900">📊 Resumen del Turno</h3>
+                <h3 className="text-base font-bold text-stone-900"><i className="fa-solid fa-chart-simple mr-1.5"></i> Resumen del Turno</h3>
                 <div className="bg-stone-50 p-3 rounded-xl border border-stone-100 text-xs space-y-1.5 text-left font-mono">
                   <div className="flex justify-between"><span>Fondo Inicial:</span><span>S/ {resumenCierre.inicio.toFixed(2)}</span></div>
                   <div className="flex justify-between"><span>+ Efectivo recibido:</span><span>S/ {resumenCierre.ventas.toFixed(2)}</span></div>
                   <div className="border-t border-stone-100 pt-1 flex justify-between font-bold"><span>= Debería haber:</span><span>S/ {resumenCierre.esperado.toFixed(2)}</span></div>
                   <div className="flex justify-between text-orange-600 font-bold"><span>Tú contaste:</span><span>S/ {resumenCierre.real.toFixed(2)}</span></div>
                   <div className={`border-t border-stone-100 pt-1 flex justify-between font-black text-sm ${resumenCierre.diferencia === 0 ? 'text-orange-600' : resumenCierre.diferencia > 0 ? 'text-blue-600' : 'text-rose-600'}`}>
-                    <span>Diferencia:</span><span>{resumenCierre.diferencia === 0 ? '✓ Cuadre Perfecto' : `S/ ${resumenCierre.diferencia.toFixed(2)}`}</span>
+                    <span>Diferencia:</span><span>{resumenCierre.diferencia === 0 ? (<><i className="fa-solid fa-circle-check mr-1"></i>Cuadre Perfecto</>) : `S/ ${resumenCierre.diferencia.toFixed(2)}`}</span>
                   </div>
                 </div>
                 <DesgloseMediosPago desglose={resumenCierre.desglose} />
@@ -7817,19 +8165,21 @@
             <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4">
               <div className="bg-stone-100 border border-stone-200 rounded-2xl max-w-sm w-full p-5 shadow-2xl space-y-3">
                 <div className="flex justify-between items-center">
-                  <h3 className="text-sm font-bold text-stone-900">⏸️ Ventas en Espera</h3>
-                  <button onClick={() => setModalVentasEspera(false)} className="text-stone-600">✕</button>
+                  <h3 className="text-sm font-bold text-stone-900"><i className="fa-solid fa-pause mr-1.5"></i> Ventas en Espera</h3>
+                  <button onClick={() => setModalVentasEspera(false)} className="text-stone-600"><i className="fa-solid fa-xmark"></i></button>
                 </div>
                 <div className="space-y-2 max-h-56 overflow-y-auto">
-                  {ventasEnEspera.map((v, i) => (
+                  {ventasEnEspera.length === 0 ? (
+                    <p className="text-xs text-stone-500 text-center py-6">No hay ventas en espera.</p>
+                  ) : ventasEnEspera.map((v, i) => (
                     <div key={v.id} className="flex justify-between items-center p-2 bg-stone-50 rounded-lg border border-stone-200 text-xs">
                       <div>
-                        <p className="font-bold text-stone-900">🕒 {v.hora} · S/ {v.total.toFixed(2)}</p>
+                        <p className="font-bold text-stone-900"><i className="fa-solid fa-clock mr-1"></i> {v.hora} · S/ {v.total.toFixed(2)}</p>
                         <p className="text-xs text-stone-600">{v.items.length} ítems</p>
                       </div>
                       <div className="flex gap-1.5">
                         <button onClick={() => recuperarVentaEspera(i)} className="px-2 py-1 bg-stone-900 text-white text-xs font-bold rounded">Recuperar</button>
-                        <button onClick={() => borrarVentaEspera(i)} className="px-1.5 py-1 bg-rose-900 text-rose-200 text-xs rounded">✕</button>
+                        <button onClick={() => borrarVentaEspera(i)} className="px-1.5 py-1 bg-rose-900 text-rose-200 text-xs rounded"><i className="fa-solid fa-xmark"></i></button>
                       </div>
                     </div>
                   ))}
@@ -7842,7 +8192,7 @@
           {modalTurno && (
             <div className="fixed inset-0 bg-black/85 flex items-center justify-center z-50 p-4">
               <div className="bg-stone-100 border border-orange-500/80 rounded-2xl max-w-md w-full p-6 shadow-2xl space-y-4">
-                <h2 className="text-base font-bold text-stone-900">💼 Apertura de Turno de Caja</h2>
+                <h2 className="text-base font-bold text-stone-900"><i className="fa-solid fa-cash-register mr-1.5"></i> Apertura de Turno de Caja</h2>
                 <div>
                   <label className="text-xs font-semibold text-stone-700 block mb-1">Cajero:</label>
                   <select
@@ -7854,7 +8204,7 @@
                     className="w-full bg-stone-50 border border-stone-200 rounded-xl px-3 py-2 text-xs text-stone-900"
                   >
                     {listaCajeros.map(c => (
-                      <option key={c.id} value={c.id}>👤 {c.nombre} ({c.rol || 'Cajero'})</option>
+                      <option key={c.id} value={c.id}>{c.nombre} ({c.rol || 'Cajero'})</option>
                     ))}
                   </select>
                   {esAdmin && (
@@ -7978,7 +8328,7 @@
                   </button>
                   <div className="grid grid-cols-2 gap-2">
                     <button onClick={() => window.print()} className="py-2.5 bg-stone-200 hover:bg-stone-300 text-stone-800 font-semibold text-xs rounded-full transition">
-                      🖨️ Imprimir
+                      <i className="fa-solid fa-print mr-1"></i> Imprimir
                     </button>
                     <button onClick={() => enviarBoletaWhatsApp(ventaCompletada)} className="py-2.5 bg-emerald-500 hover:bg-emerald-400 text-white font-semibold text-xs rounded-full transition flex items-center justify-center gap-1.5">
                       <i className="fa-brands fa-whatsapp"></i> WhatsApp
@@ -8022,11 +8372,11 @@
           {reciboReimpresion && (
             <div className="fixed inset-0 bg-black/85 flex items-center justify-center z-50 p-4">
               <div className="bg-stone-100 border border-stone-200 rounded-2xl max-w-sm w-full p-5 shadow-2xl text-center space-y-3">
-                <div className="w-12 h-12 bg-stone-200 text-stone-800 rounded-full flex items-center justify-center mx-auto text-xl">🖨️</div>
+                <div className="w-12 h-12 bg-stone-200 text-stone-800 rounded-full flex items-center justify-center mx-auto text-xl"><i className="fa-solid fa-print"></i></div>
                 <h3 className="text-lg font-black text-stone-900">Reimpresión de Boleta</h3>
                 <p className="text-xs text-stone-700 font-mono">Boleta: <span className="text-orange-600 font-bold">{reciboReimpresion.nro_boleta}</span></p>
                 {reciboReimpresion.anulada && (
-                  <p className="text-xs font-bold text-rose-600">⚠️ Esta venta está ANULADA</p>
+                  <p className="text-xs font-bold text-rose-600"><i className="fa-solid fa-triangle-exclamation mr-1"></i> Esta venta está ANULADA</p>
                 )}
                 <div className="bg-stone-50 p-3 rounded-lg text-left text-xs font-mono space-y-1 text-stone-700 border border-stone-100 max-h-56 overflow-y-auto">
                   <p><strong>Pago:</strong> {reciboReimpresion.medio_pago}</p>
@@ -8048,7 +8398,7 @@
                   </div>
                 </div>
                 <div className="flex gap-2">
-                  <button onClick={() => window.print()} className="flex-1 py-2 bg-stone-200 text-stone-900 font-bold text-xs rounded-xl">🖨️ Imprimir</button>
+                  <button onClick={() => window.print()} className="flex-1 py-2 bg-stone-200 text-stone-900 font-bold text-xs rounded-xl"><i className="fa-solid fa-print mr-1"></i> Imprimir</button>
                   <button onClick={() => setReciboReimpresion(null)} className="flex-1 py-2 bg-stone-900 text-white font-bold text-xs rounded-xl shadow">Cerrar</button>
                 </div>
               </div>
