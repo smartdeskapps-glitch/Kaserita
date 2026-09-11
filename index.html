@@ -878,6 +878,14 @@
       // --- Turno de Caja ---
       const [turnoActivo, setTurnoActivo] = useState(null);
       const [modalTurno, setModalTurno] = useState(false);
+      // Aviso (una sola vez por sesión) de que este dispositivo se está
+      // conectando a un turno que ya abrió otro cajero/dispositivo -- el
+      // sistema no puede saber si eso es intencional (otro cajero
+      // atendiendo la misma caja) o un descuido (se te olvidó cerrar
+      // turno en el otro equipo), así que se lo dejamos ver a quien
+      // recién inicia sesión en vez de engancharlo en silencio.
+      const [avisoTurnoCompartido, setAvisoTurnoCompartido] = useState(null);
+      const avisoTurnoCompartidoMostradoRef = useRef(false);
       const [montoApertura, setMontoApertura] = useState('100.00');
       const [modalGestionCajeros, setModalGestionCajeros] = useState(false);
       const [cajerosGestion, setCajerosGestion] = useState([]);
@@ -3940,14 +3948,25 @@
           // quedado guardado en `estado`).
           const { data } = await sbClient
             .from('turnos_caja')
-            .select('*')
+            .select('*, cajeros(nombre)')
             .eq('bodega_id', bodegaId)
             .or('estado.ilike.%abierto%,estado.ilike.%open%,estado.ilike.%activo%,fecha_cierre.is.null')
             .order('fecha_apertura', { ascending: false })
             .limit(1)
             .maybeSingle();
 
-          if (data) setTurnoActivo(data);
+          if (data) {
+            setTurnoActivo(data);
+            // Solo se avisa una vez por sesión (no cada vez que este efecto
+            // se vuelva a disparar) y solo la primera vez que se descubre el
+            // turno -- si el propio dispositivo lo abre desde el modal de
+            // "Abrir Turno" no pasa por acá, así que esto es siempre un
+            // turno que ya estaba abierto de antes.
+            if (!avisoTurnoCompartidoMostradoRef.current) {
+              avisoTurnoCompartidoMostradoRef.current = true;
+              setAvisoTurnoCompartido(data);
+            }
+          }
         } catch (err) {
           console.warn(err);
         }
@@ -7812,6 +7831,33 @@
                   <button onClick={() => setModalTurno(false)} className="flex-1 py-2 bg-stone-200 text-xs font-semibold rounded-xl">Cancelar</button>
                   <button onClick={handleAbrirTurno} className="flex-1 py-2 bg-stone-900 text-white text-xs font-bold rounded-xl shadow">Confirmar y Abrir</button>
                 </div>
+              </div>
+            </div>
+          )}
+
+          {/* Aviso: este dispositivo se conectó a un turno que ya abrió
+              otro cajero/dispositivo -- se muestra una sola vez al iniciar
+              sesión, para que sea visible en vez de un simple toast. */}
+          {avisoTurnoCompartido && (
+            <div className="fixed inset-0 bg-black/85 flex items-center justify-center z-50 p-4">
+              <div className="bg-stone-100 border border-orange-500/80 rounded-2xl max-w-md w-full p-6 shadow-2xl space-y-4 text-center">
+                <div className="w-14 h-14 mx-auto bg-orange-100 rounded-full flex items-center justify-center">
+                  <i className="fa-solid fa-cash-register text-orange-600 text-xl"></i>
+                </div>
+                <div>
+                  <h2 className="text-base font-bold text-stone-900">Ya hay un turno abierto</h2>
+                  <p className="text-xs text-stone-600 mt-2 leading-relaxed">
+                    <span className="font-semibold text-stone-800">{avisoTurnoCompartido.cajeros?.nombre || 'Otro cajero'}</span> abrió esta caja
+                    el {new Date(avisoTurnoCompartido.fecha_apertura).toLocaleString('es-PE', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}
+                    {' '}con S/ {Number(avisoTurnoCompartido.monto_inicial || 0).toFixed(2)} de fondo inicial.
+                  </p>
+                  <p className="text-xs text-stone-500 mt-2">
+                    Este dispositivo va a operar sobre esa misma caja compartida. Si esperabas que estuviera cerrada, ciérrala primero en el otro equipo antes de seguir vendiendo acá.
+                  </p>
+                </div>
+                <button onClick={() => setAvisoTurnoCompartido(null)} className="w-full py-2.5 bg-stone-900 hover:bg-stone-800 text-white text-xs font-bold rounded-xl shadow">
+                  Entendido, seguir con esta caja
+                </button>
               </div>
             </div>
           )}
