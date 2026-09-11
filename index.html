@@ -911,7 +911,7 @@
       };
 
       return (
-        <div className="min-h-screen bg-stone-50">
+        <div className="h-screen bg-stone-50 flex flex-col overflow-hidden">
           {toast.visible && (
             <div className={`fixed top-6 inset-x-4 md:inset-x-auto md:right-6 md:max-w-xs z-50 flex items-center gap-2.5 px-4 py-3 rounded-xl shadow-xl border-l-4 bg-white text-xs font-semibold ${toast.tipo === 'error' ? 'border-rose-500 text-rose-700' : 'border-emerald-500 text-emerald-700'}`}>
               <i className={`fa-solid ${toast.tipo === 'error' ? 'fa-circle-exclamation' : 'fa-circle-check'} text-sm shrink-0`}></i>
@@ -919,7 +919,7 @@
             </div>
           )}
 
-          <header className="bg-stone-900 text-white px-5 py-4 flex items-center justify-between">
+          <header className="shrink-0 bg-stone-900 text-white px-5 py-4 flex items-center justify-between">
             <div className="flex items-center gap-2.5">
               <div className="w-9 h-9 bg-gradient-to-br from-orange-400 to-orange-600 rounded-xl flex items-center justify-center font-extrabold text-sm">K</div>
               <div>
@@ -932,6 +932,7 @@
             </button>
           </header>
 
+          <div className="flex-1 overflow-y-auto">
           <div className="max-w-3xl mx-auto p-4 md:p-6 space-y-6">
             <form onSubmit={crearBodega} className="bg-white border border-stone-200 rounded-2xl p-5 space-y-3">
               <h2 className="text-sm font-bold text-stone-900 flex items-center gap-2">
@@ -1036,6 +1037,7 @@
                 })
               )}
             </div>
+          </div>
           </div>
         </div>
       );
