@@ -3433,7 +3433,19 @@
       // INVENTARIO INICIAL (carga de varios productos a la vez)
       // ==========================================
       const actualizarFilaInventario = (index, campo, valor) => {
-        setFilasInventario((prev) => prev.map((fila, i) => (i === index ? { ...fila, [campo]: valor } : fila)));
+        setFilasInventario((prev) => prev.map((fila, i) => {
+          if (i !== index) return fila;
+          if (campo === 'descripcion') {
+            // Si se vuelve a tocar la descripción a mano después de elegir
+            // una sugerencia del catálogo maestro, se suelta ese enlace (y
+            // su foto) -- si no, la sugerencia se queda pegada en pantalla
+            // (el texto ya escrito sigue "coincidiendo consigo mismo") y el
+            // enlace podría terminar apuntando a un producto distinto del
+            // que finalmente se escribió.
+            return { ...fila, descripcion: valor, catalogoMaestroId: null, foto_url: '' };
+          }
+          return { ...fila, [campo]: valor };
+        }));
       };
 
       // Busca en el catálogo ya cargado un producto por cualquiera de sus
@@ -3464,7 +3476,10 @@
       // producto nuevo para esta bodega (su propio precio, su propio stock).
       const sugerenciasMaestroParaFila = useCallback((fila) => {
         const t = fila.descripcion.trim().toLowerCase();
-        if (!t || t.length < 2 || fila.productoExistenteId) return [];
+        // Si ya se eligió una sugerencia (catalogoMaestroId puesto), no se
+        // vuelve a mostrar la lista -- si no, como el texto ya escrito
+        // sigue "coincidiendo consigo mismo", se quedaría pegada en pantalla.
+        if (!t || t.length < 2 || fila.productoExistenteId || fila.catalogoMaestroId) return [];
         return catalogoMaestroDisponible
           .filter((p) => p.descripcion.toLowerCase().includes(t))
           .slice(0, 5);
