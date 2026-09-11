@@ -1,9 +1,10 @@
 -- ============================================================
 -- Kaserita: elimina una bodega y absolutamente todos sus datos --
 -- ventas, compras, clientes, productos, turnos de caja, mermas, créditos,
--- proveedores, fotos que hubiera subido, sus usuarios y su cuenta de
--- acceso -- pensado para dar de baja definitivamente a un negocio que ya
--- no usa el sistema (o limpiar una bodega de prueba).
+-- proveedores, sus usuarios y su cuenta de acceso -- pensado para dar de
+-- baja definitivamente a un negocio que ya no usa el sistema (o limpiar
+-- una bodega de prueba). Las fotos que hubiera subido se borran aparte,
+-- desde el panel, con la API de Storage (ver nota más abajo).
 --
 -- Es IRREVERSIBLE -- por eso valida que quien llama sea super-admin, y
 -- desde el panel se exige escribir el nombre exacto de la bodega antes
@@ -51,9 +52,12 @@ begin
   delete from cajeros where bodega_id = p_bodega_id;
   delete from usuarios where bodega_id = p_bodega_id;
 
-  -- Fotos que la bodega hubiera subido antes de bloquear esa función.
-  delete from storage.objects
-    where bucket_id = 'Productos' and name like (p_bodega_id::text || '/%');
+  -- Las fotos que la bodega hubiera subido (antes de bloquear esa función)
+  -- NO se borran acá -- Supabase Storage no permite el DELETE directo por
+  -- SQL sobre storage.objects ("Direct deletion from storage tables is
+  -- not allowed. Use the Storage API instead."). Por eso el panel las
+  -- borra aparte, desde el cliente, con la API de Storage, justo antes de
+  -- llamar a esta función.
 
   -- Cuenta(s) de acceso de esta bodega -- se borran de Auth también, para
   -- no dejar un correo ocupado que nadie más va a poder volver a usar.

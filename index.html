@@ -1021,6 +1021,16 @@
         if (!modalEliminarBodega) return;
         setEliminandoBodega(true);
         try {
+          // Las fotos que la bodega hubiera subido (antes de bloquear esa
+          // función) se borran acá, con la API de Storage -- Supabase no
+          // permite borrar directo por SQL en storage.objects ("Direct
+          // deletion from storage tables is not allowed"), así que la
+          // función del servidor ya no lo intenta.
+          const { data: archivos } = await sbClient.storage.from('Productos').list(modalEliminarBodega.id);
+          if (archivos && archivos.length > 0) {
+            await sbClient.storage.from('Productos').remove(archivos.map((f) => `${modalEliminarBodega.id}/${f.name}`));
+          }
+
           const { error } = await sbClient.rpc('admin_eliminar_bodega', { p_bodega_id: modalEliminarBodega.id });
           if (error) throw error;
           notificar('Bodega eliminada junto con todos sus datos.', 'success');
