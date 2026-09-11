@@ -878,14 +878,14 @@
       // --- Turno de Caja ---
       const [turnoActivo, setTurnoActivo] = useState(null);
       const [modalTurno, setModalTurno] = useState(false);
-      // Aviso (una sola vez por sesión) de que este dispositivo se está
-      // conectando a un turno que ya abrió otro cajero/dispositivo -- el
-      // sistema no puede saber si eso es intencional (otro cajero
-      // atendiendo la misma caja) o un descuido (se te olvidó cerrar
-      // turno en el otro equipo), así que se lo dejamos ver a quien
-      // recién inicia sesión en vez de engancharlo en silencio.
+      // Aviso de que este dispositivo se está conectando a un turno que ya
+      // abrió otro cajero/dispositivo -- el sistema no puede saber si eso
+      // es intencional (otro cajero atendiendo la misma caja) o un
+      // descuido (se te olvidó cerrar turno en el otro equipo), así que se
+      // lo dejamos ver en vez de engancharlo en silencio. Se muestra una
+      // vez por turno_id (ver claveAviso en verificarTurno), no en cada
+      // recarga de la página.
       const [avisoTurnoCompartido, setAvisoTurnoCompartido] = useState(null);
-      const avisoTurnoCompartidoMostradoRef = useRef(false);
       const [montoApertura, setMontoApertura] = useState('100.00');
       const [modalGestionCajeros, setModalGestionCajeros] = useState(false);
       const [cajerosGestion, setCajerosGestion] = useState([]);
@@ -3957,13 +3957,20 @@
 
           if (data) {
             setTurnoActivo(data);
-            // Solo se avisa una vez por sesión (no cada vez que este efecto
-            // se vuelva a disparar) y solo la primera vez que se descubre el
-            // turno -- si el propio dispositivo lo abre desde el modal de
-            // "Abrir Turno" no pasa por acá, así que esto es siempre un
-            // turno que ya estaba abierto de antes.
-            if (!avisoTurnoCompartidoMostradoRef.current) {
-              avisoTurnoCompartidoMostradoRef.current = true;
+            // El aviso se muestra la primera vez que este dispositivo
+            // detecta CADA turno (guardado en sessionStorage, por turno_id).
+            // Así no vuelve a salir si solo recargas la página (F5 mantiene
+            // sessionStorage), pero si cierras la pestaña/navegador y la
+            // vuelves a abrir sí sale de nuevo -- y si el turno cambia (se
+            // cerró y otro dispositivo abrió uno nuevo) también avisa,
+            // porque es un turno_id distinto. Si el propio dispositivo lo
+            // abre desde el modal de "Abrir Turno" no pasa por acá, así que
+            // esto es siempre un turno que ya estaba abierto de antes.
+            const claveAviso = `pos_turno_avisado_${data.id}`;
+            let yaAvisado = false;
+            try { yaAvisado = sessionStorage.getItem(claveAviso) === '1'; } catch (e) { /* ignorar */ }
+            if (!yaAvisado) {
+              try { sessionStorage.setItem(claveAviso, '1'); } catch (e) { /* ignorar */ }
               setAvisoTurnoCompartido(data);
             }
           }
