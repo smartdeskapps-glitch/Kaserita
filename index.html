@@ -1619,7 +1619,7 @@
       const [guardandoTomaInventario, setGuardandoTomaInventario] = useState(false);
 
       // --- Módulo: Inventario Inicial (carga de varios productos a la vez) ---
-      const filaInventarioVacia = () => ({ descripcion: '', cod_ean: '', sku: '', categoria: 'Abarrotes', precio_costo: '', precio_venta: '', unidad: 'UND', vendeEnPack: false, vendeEnPackOriginal: false, unidades_por_pack: '', precio_venta_pack: '', cod_ean_pack: '', productoExistenteId: null });
+      const filaInventarioVacia = () => ({ descripcion: '', cod_ean: '', sku: '', categoria: 'Abarrotes', precio_costo: '', precio_venta: '', unidad: 'UND', vendeEnPack: false, vendeEnPackOriginal: false, unidades_por_pack: '', precio_venta_pack: '', cod_ean_pack: '', productoExistenteId: null, foto_url: '' });
       const [modalInventarioInicial, setModalInventarioInicial] = useState(false);
       const [filasInventario, setFilasInventario] = useState([filaInventarioVacia()]);
       const [guardandoInventario, setGuardandoInventario] = useState(false);
@@ -3442,6 +3442,29 @@
           .map((e) => e.producto);
       }, [productosBusqueda]);
 
+      // Sugerencias del catálogo maestro mientras se escribe la descripción:
+      // a diferencia de sugerenciasParaFila (productos que la bodega YA
+      // tiene, para sumarle stock), estas son productos que todavía no
+      // tiene -- elegir una precarga categoría y foto, pero sigue siendo un
+      // producto nuevo para esta bodega (su propio precio, su propio stock).
+      const sugerenciasMaestroParaFila = useCallback((fila) => {
+        const t = fila.descripcion.trim().toLowerCase();
+        if (!t || t.length < 2 || fila.productoExistenteId) return [];
+        return catalogoMaestroDisponible
+          .filter((p) => p.descripcion.toLowerCase().includes(t))
+          .slice(0, 5);
+      }, [catalogoMaestroDisponible]);
+
+      const usarSugerenciaMaestraEnFila = (index, item) => {
+        setFilasInventario((prev) =>
+          prev.map((fila, i) =>
+            i === index
+              ? { ...fila, descripcion: item.descripcion, categoria: item.categoria || fila.categoria, foto_url: item.foto_url || '' }
+              : fila
+          )
+        );
+      };
+
       // Igual que arriba pero para el campo "EAN o SKU del pack": deja
       // buscar por descripción, SKU o cualquiera de los dos códigos, para
       // poder elegir de una lista en vez de tener que escribir el código
@@ -3541,6 +3564,7 @@
                 cod_ean: f.cod_ean.trim() || generarCodigoInterno(),
                 sku: f.sku.trim() || generarSKU(f.categoria),
                 categoria: f.categoria.trim() || 'General',
+                foto_url: f.foto_url || null,
                 precio_costo: Number(f.precio_costo) || 0,
                 precio_venta: Number(f.precio_venta) || 0,
                 unidad: f.unidad === 'KG' ? 'KG' : 'UND',
@@ -3571,6 +3595,7 @@
                 cod_ean: f.cod_ean.trim() || generarCodigoInterno(),
                 sku: f.sku.trim() || generarSKU(f.categoria),
                 categoria: f.categoria.trim() || 'General',
+                foto_url: f.foto_url || null,
                 precio_costo: Number(f.precio_costo) || 0,
                 precio_venta: Number(f.precio_venta) || 0,
                 unidad: f.unidad === 'KG' ? 'KG' : 'UND',
@@ -3709,10 +3734,10 @@
       // ==========================================
       // IMPORTAR DEL CATÁLOGO MAESTRO
       // ==========================================
-      const abrirImportarMaestro = useCallback(() => {
-        setModalImportarMaestro(true);
-        setProductoMaestroSeleccionado(null);
-        setBusquedaMaestroImport('');
+      // Se reutiliza tanto al abrir "Importar del Catálogo Maestro" como al
+      // abrir "Registrar Productos" (ahí sugiere categoría + foto mientras
+      // se escribe la descripción, ver sugerenciasParaFila).
+      const cargarCatalogoMaestroDisponible = useCallback(() => {
         if (esModoDemo || !sbClient) return;
         setCargandoMaestroImport(true);
         sbClient.from('catalogo_maestro').select('*').order('descripcion')
@@ -3720,9 +3745,23 @@
             if (error) throw error;
             setCatalogoMaestroDisponible(data || []);
           })
-          .catch((err) => notificar(`No se pudo cargar el catálogo maestro: ${err.message}`, 'error'))
+          .catch((err) => console.warn('No se pudo cargar el catálogo maestro:', err.message))
           .finally(() => setCargandoMaestroImport(false));
       }, [esModoDemo, sbClient]);
+
+      const abrirImportarMaestro = useCallback(() => {
+        setModalImportarMaestro(true);
+        setProductoMaestroSeleccionado(null);
+        setBusquedaMaestroImport('');
+        cargarCatalogoMaestroDisponible();
+      }, [cargarCatalogoMaestroDisponible]);
+
+      // "Registrar Productos" también se apoya en el catálogo maestro para
+      // sugerir categoría y foto -- se carga apenas se abre el modal, sin
+      // que el bodeguero tenga que ir a buscarlo a otro lado.
+      useEffect(() => {
+        if (modalInventarioInicial) cargarCatalogoMaestroDisponible();
+      }, [modalInventarioInicial]);
 
       const seleccionarProductoMaestro = (item) => {
         setProductoMaestroSeleccionado(item);
@@ -6641,6 +6680,7 @@
                     const esExistente = !!fila.productoExistenteId;
                     const sugerenciasPack = sugerenciasParaFilaPack(fila);
                     const sugerencias = sugerenciasParaFila(fila);
+                    const sugerenciasMaestro = sugerenciasMaestroParaFila(fila);
                     const claseCampoVinculado = 'bg-stone-100/40 border border-stone-200 rounded-lg px-3 py-1.5 text-xs text-stone-600 cursor-not-allowed';
                     const claseCampoNormal = 'bg-stone-100 border border-stone-200 rounded-lg px-3 py-1.5 text-xs text-stone-900 focus:outline-none focus:border-orange-500';
                     return (
@@ -6695,17 +6735,34 @@
                             onChange={(e) => actualizarFilaInventario(idx, 'descripcion', e.target.value)}
                             className={`w-full ${esExistente ? claseCampoVinculado : claseCampoNormal}`}
                           />
-                          {sugerencias.length > 0 && (
-                            <div className="absolute z-10 top-full left-0 right-0 mt-1 bg-stone-200 border border-stone-300 rounded-lg shadow-xl overflow-hidden">
+                          {(sugerencias.length > 0 || sugerenciasMaestro.length > 0) && (
+                            <div className="absolute z-10 top-full left-0 right-0 mt-1 bg-stone-200 border border-stone-300 rounded-lg shadow-xl overflow-hidden max-h-56 overflow-y-auto">
                               {sugerencias.map((s) => (
                                 <button
                                   type="button"
-                                  key={s.id}
+                                  key={`propio-${s.id}`}
                                   onClick={() => vincularProductoExistenteEnFila(idx, s)}
                                   className="w-full text-left px-3 py-2 text-xs text-stone-800 hover:bg-stone-300 flex items-center justify-between gap-2"
                                 >
                                   <span className="truncate">{s.descripcion}</span>
                                   <span className="text-stone-500 shrink-0">S/ {Number(s.precio_venta).toFixed(2)}</span>
+                                </button>
+                              ))}
+                              {sugerenciasMaestro.length > 0 && (
+                                <div className="px-3 pt-1.5 pb-0.5 text-[10px] font-bold text-stone-500 uppercase tracking-wide bg-stone-100/60">
+                                  Del catálogo maestro
+                                </div>
+                              )}
+                              {sugerenciasMaestro.map((s) => (
+                                <button
+                                  type="button"
+                                  key={`maestro-${s.id}`}
+                                  onClick={() => usarSugerenciaMaestraEnFila(idx, s)}
+                                  className="w-full text-left px-3 py-2 text-xs text-stone-800 hover:bg-stone-300 flex items-center gap-2"
+                                >
+                                  <FotoProducto fotoUrl={s.foto_url} categoria={s.categoria} className="w-7 h-7 rounded-md shrink-0" iconClassName="text-[10px]" />
+                                  <span className="truncate flex-1">{s.descripcion}</span>
+                                  <span className="text-stone-500 shrink-0 text-[10px]">{s.categoria}</span>
                                 </button>
                               ))}
                             </div>
