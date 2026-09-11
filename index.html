@@ -854,30 +854,19 @@
         e.preventDefault();
         setGuardandoNuevaBodega(true);
         try {
-          const dias = Number(formNuevaBodega.dias) || 0;
-          const activaHasta = dias > 0 ? fechaISOLocal(new Date(Date.now() + dias * 86400000)) : null;
-
-          const { data: bCreada, error: errBodega } = await sbClient.from('bodegas').insert([{
-            nombre: formNuevaBodega.nombreBodega.trim(),
-            activa: true,
-            activa_hasta: activaHasta
-          }]).select().single();
-          if (errBodega) throw errBodega;
-
-          // Se crea la fila del dueño sin auth_id -- recién queda vinculada a
-          // una cuenta real de Supabase Auth cuando ese dueño inicia sesión
-          // por primera vez con este DNI+PIN (ver reclamar_cuenta_bodega en
-          // el flujo de login normal).
-          const { error: errUsuario } = await sbClient.from('usuarios').insert([{
-            bodega_id: bCreada.id,
-            nombre: formNuevaBodega.nombreDueno.trim(),
-            dni: formNuevaBodega.dni.trim(),
-            pin_acceso: formNuevaBodega.pin.trim(),
-            rol: 'dueno',
-            activo: true,
-            auth_id: null
-          }]);
-          if (errUsuario) throw errUsuario;
+          // admin_crear_bodega crea la bodega y la fila del dueño (sin
+          // auth_id -- recién queda vinculada a una cuenta real cuando ese
+          // dueño inicia sesión por primera vez con su DNI+PIN, ver
+          // reclamar_cuenta_bodega) en una sola transacción: si el DNI ya
+          // existe en otra bodega, no queda ninguna bodega a medio crear.
+          const { error } = await sbClient.rpc('admin_crear_bodega', {
+            p_nombre_bodega: formNuevaBodega.nombreBodega.trim(),
+            p_nombre_dueno: formNuevaBodega.nombreDueno.trim(),
+            p_dni: formNuevaBodega.dni.trim(),
+            p_pin: formNuevaBodega.pin.trim(),
+            p_dias: Number(formNuevaBodega.dias) || 0
+          });
+          if (error) throw error;
 
           notificar('Bodega creada. El dueño ya puede iniciar sesión con su DNI y PIN.', 'success');
           setFormNuevaBodega({ nombreBodega: '', nombreDueno: '', dni: '', pin: '', dias: '30' });
@@ -5289,7 +5278,11 @@
                 <h2 className="text-lg font-black text-stone-900">Cuenta Vencida</h2>
                 <p className="text-xs text-stone-500 mt-1">
                   El acceso de <strong>{bodegaNombre}</strong> está desactivado
-                  {sesion.bodega.activa_hasta ? ` desde el ${new Date(`${sesion.bodega.activa_hasta}T00:00:00`).toLocaleDateString('es-PE')}` : ''}.
+                  {sesion.bodega.activa === false
+                    ? ''
+                    : sesion.bodega.activa_hasta
+                    ? ` desde el ${new Date(`${sesion.bodega.activa_hasta}T00:00:00`).toLocaleDateString('es-PE')}`
+                    : ''}.
                   Contacta al administrador para renovarlo.
                 </p>
               </div>
