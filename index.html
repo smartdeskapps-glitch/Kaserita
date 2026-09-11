@@ -878,14 +878,13 @@
       // --- Turno de Caja ---
       const [turnoActivo, setTurnoActivo] = useState(null);
       const [modalTurno, setModalTurno] = useState(false);
-      // Aviso de que este dispositivo se está conectando a un turno que ya
-      // abrió otro cajero/dispositivo -- el sistema no puede saber si eso
-      // es intencional (otro cajero atendiendo la misma caja) o un
-      // descuido (se te olvidó cerrar turno en el otro equipo), así que se
-      // lo dejamos ver en vez de engancharlo en silencio. Se muestra una
-      // vez por turno_id (ver claveAviso en verificarTurno), no en cada
-      // recarga de la página.
-      const [avisoTurnoCompartido, setAvisoTurnoCompartido] = useState(null);
+      // Lista de cajas ya abiertas por OTROS cajeros (este dispositivo no
+      // tiene la suya propia) -- cada cajero puede tener su propia caja
+      // abierta a la vez, así que hace falta dejar elegir: unirse a una de
+      // esas, o abrir una caja nueva y separada. Se muestra una vez por
+      // combinación exacta de cajas abiertas (ver claveAviso en
+      // verificarTurno), no en cada recarga de la página.
+      const [cajasAbiertasAviso, setCajasAbiertasAviso] = useState(null);
       const [montoApertura, setMontoApertura] = useState('100.00');
       const [modalGestionCajeros, setModalGestionCajeros] = useState(false);
       const [cajerosGestion, setCajerosGestion] = useState([]);
@@ -1192,10 +1191,18 @@
           }
 
           setListaCajeros(cjs);
+          // Se devuelve el cajero resuelto (no solo se guarda en estado)
+          // para que quien llama a cargarCajeros (el efecto de carga
+          // inicial) pueda pasárselo de una a verificarTurno sin esperar
+          // un re-render -- el estado de React no se actualiza al toque
+          // dentro de la misma función.
+          let resuelto = cajeroSeleccionado;
           if (cjs.length > 0 && !cajeroSeleccionado) {
             const propio = cjs.find((c) => c.dni === usuarioActivo?.dni);
-            setCajeroSeleccionado(propio || cjs[0]);
+            resuelto = propio || cjs[0];
+            setCajeroSeleccionado(resuelto);
           }
+          return resuelto;
         } catch (err) {
           console.warn(err);
         }
@@ -1360,10 +1367,16 @@
       useEffect(() => {
         if (sesion && bodegaId) {
           cargarProductos(busqueda);
-          cargarCajeros();
           cargarCategorias();
           obtenerOCrearCliente('99999999');
-          verificarTurno();
+          // Encadenado (no en paralelo): verificarTurno necesita saber ya
+          // resuelto qué cajero es "el mío" en este dispositivo (por DNI)
+          // para decidir si hay que retomar mi propia caja en silencio o
+          // avisar que hay otras cajas abiertas de otros cajeros.
+          (async () => {
+            const cajero = await cargarCajeros();
+            verificarTurno(cajero);
+          })();
           // Avisa una sola vez (por sesión iniciada) si se recuperó una venta
           // que había quedado a medias por un refresh accidental.
           if (!avisoCarritoRecuperadoRef.current) {
@@ -3939,44 +3952,75 @@
         cargarHistorialCierresPorRango(desde, hoy);
       };
 
-      // Turno activo check
-      const verificarTurno = async () => {
+      // Turno activo check -- cada cajero puede tener su propia caja
+      // abierta (varias registradoras a la vez en la misma bodega), así
+      // que esto ya no busca "el turno de la bodega" sino "mi propio
+      // turno" primero, y recién si no tengo uno mira si hay otros.
+      const verificarTurno = async (cajeroActual) => {
         if (!sbClient || !bodegaId || esModoDemo) return;
         try {
-          // Un turno se considera abierto si su estado lo indica O si aún no tiene
-          // fecha_cierre (indicador más confiable, no depende de qué texto haya
-          // quedado guardado en `estado`).
-          const { data } = await sbClient
-            .from('turnos_caja')
-            .select('*, cajeros(nombre)')
-            .eq('bodega_id', bodegaId)
-            .or('estado.ilike.%abierto%,estado.ilike.%open%,estado.ilike.%activo%,fecha_cierre.is.null')
-            .order('fecha_apertura', { ascending: false })
-            .limit(1)
-            .maybeSingle();
+          // Paso 1 -- ¿El cajero de este dispositivo ya tiene su propia caja
+          //    abierta? (ej. el mismo cajero entrando desde otro equipo).
+          //    Se retoma directo, sin preguntar nada -- es indudablemente
+          //    la misma persona continuando.
+          if (cajeroActual?.id) {
+            const { data: propio } = await sbClient
+              .from('turnos_caja')
+              .select('*, cajeros(*)')
+              .eq('bodega_id', bodegaId)
+              .eq('cajero_id', cajeroActual.id)
+              .is('fecha_cierre', null)
+              .maybeSingle();
+            if (propio) {
+              setTurnoActivo(propio);
+              return;
+            }
+          }
 
-          if (data) {
-            setTurnoActivo(data);
-            // El aviso se muestra la primera vez que este dispositivo
-            // detecta CADA turno (guardado en sessionStorage, por turno_id).
-            // Así no vuelve a salir si solo recargas la página (F5 mantiene
-            // sessionStorage), pero si cierras la pestaña/navegador y la
-            // vuelves a abrir sí sale de nuevo -- y si el turno cambia (se
-            // cerró y otro dispositivo abrió uno nuevo) también avisa,
-            // porque es un turno_id distinto. Si el propio dispositivo lo
-            // abre desde el modal de "Abrir Turno" no pasa por acá, así que
-            // esto es siempre un turno que ya estaba abierto de antes.
-            const claveAviso = `pos_turno_avisado_${data.id}`;
+          // Paso 2 -- este cajero no tiene caja propia abierta -- pero puede que
+          //    otros cajeros sí tengan la suya en la misma bodega. Se
+          //    informa y se deja elegir: unirse a una de esas cajas, o
+          //    abrir una caja nueva y separada para este cajero.
+          const { data: otras } = await sbClient
+            .from('turnos_caja')
+            .select('*, cajeros(*)')
+            .eq('bodega_id', bodegaId)
+            .is('fecha_cierre', null)
+            .order('fecha_apertura', { ascending: false });
+
+          if (otras && otras.length > 0) {
+            // Se avisa una vez por combinación exacta de cajas abiertas
+            // (guardado en sessionStorage) -- no en cada recarga de la
+            // página, pero si la lista cambia (se abrió o cerró alguna)
+            // se vuelve a avisar.
+            const claveAviso = `pos_cajas_avisadas_${otras.map((t) => t.id).sort().join('-')}`;
             let yaAvisado = false;
             try { yaAvisado = sessionStorage.getItem(claveAviso) === '1'; } catch (e) { /* ignorar */ }
             if (!yaAvisado) {
               try { sessionStorage.setItem(claveAviso, '1'); } catch (e) { /* ignorar */ }
-              setAvisoTurnoCompartido(data);
+              setCajasAbiertasAviso(otras);
             }
           }
         } catch (err) {
           console.warn(err);
         }
+      };
+
+      // Este dispositivo se suma a una caja que ya abrió otro cajero: pasa
+      // a operar con ese mismo cajero (no tiene sentido vender bajo otra
+      // identidad en una caja que no es la suya).
+      const unirseACaja = (turno) => {
+        setTurnoActivo(turno);
+        if (turno.cajeros) setCajeroSeleccionado(turno.cajeros);
+        setCajasAbiertasAviso(null);
+      };
+
+      // En vez de sumarse a una caja existente, este dispositivo abre la
+      // suya propia -- reutiliza el modal normal de "Abrir Turno" (ahí se
+      // elige o se agrega el cajero).
+      const abrirCajaNueva = () => {
+        setCajasAbiertasAviso(null);
+        setModalTurno(true);
       };
 
       // Abrir turno
@@ -4001,19 +4045,22 @@
 
         if (sbClient) {
           try {
-            // Revisa primero si otro dispositivo ya abrió un turno hace un
-            // instante (evita el caso común); el índice único en la base
-            // de datos es la garantía real por si igual se cruzan.
+            // Revisa primero si este MISMO cajero ya tiene una caja abierta
+            // (ej. otro dispositivo suyo hace un instante) -- el índice
+            // único en la base de datos (por bodega + cajero) es la
+            // garantía real por si igual se cruzan. Esto ya no bloquea que
+            // OTROS cajeros tengan su propia caja abierta en paralelo.
             const { data: yaAbierto } = await sbClient
               .from('turnos_caja')
               .select('*')
               .eq('bodega_id', bodegaId)
+              .eq('cajero_id', cajeroFinal.id)
               .is('fecha_cierre', null)
               .maybeSingle();
             if (yaAbierto) {
               setTurnoActivo(yaAbierto);
               setModalTurno(false);
-              notificar('Ya había un turno abierto (lo abrió otro dispositivo/cajero); se usa ese.', 'info');
+              notificar('Este cajero ya tenía una caja abierta (la abrió otro dispositivo); se usa esa.', 'info');
               return;
             }
 
@@ -4037,20 +4084,22 @@
               return;
             }
 
-            // Código 23505 = violación del índice único "una sola bodega
-            // abierta a la vez": otro dispositivo lo abrió en el mismo
-            // instante que este. Se adopta ese turno en vez de fallar.
+            // Código 23505 = violación del índice único "una sola caja
+            // abierta a la vez por cajero": otro dispositivo la abrió para
+            // este mismo cajero en el mismo instante. Se adopta esa caja
+            // en vez de fallar.
             if (error?.code === '23505') {
               const { data: turnoDeOtro } = await sbClient
                 .from('turnos_caja')
                 .select('*')
                 .eq('bodega_id', bodegaId)
+                .eq('cajero_id', cajeroFinal.id)
                 .is('fecha_cierre', null)
                 .maybeSingle();
               if (turnoDeOtro) {
                 setTurnoActivo(turnoDeOtro);
                 setModalTurno(false);
-                notificar('Ya había un turno abierto (lo abrió otro dispositivo/cajero); se usa ese.', 'info');
+                notificar('Este cajero ya tenía una caja abierta (la abrió otro dispositivo); se usa esa.', 'info');
                 return;
               }
             }
@@ -7823,6 +7872,15 @@
                       <option key={c.id} value={c.id}>👤 {c.nombre} ({c.rol || 'Cajero'})</option>
                     ))}
                   </select>
+                  {esAdmin && (
+                    <button
+                      type="button"
+                      onClick={() => { setModalTurno(false); abrirGestionCajeros(); setMostrarFormNuevoCajero(true); }}
+                      className="text-[11px] font-semibold text-orange-600 hover:text-orange-700 mt-1"
+                    >
+                      + No está en la lista, agregarlo
+                    </button>
+                  )}
                 </div>
                 <div>
                   <label className="text-xs font-semibold text-stone-700 block mb-1">Monto Inicial (S/):</label>
@@ -7842,56 +7900,47 @@
             </div>
           )}
 
-          {/* Aviso: este dispositivo se conectó a un turno que ya abrió
-              otro cajero/dispositivo -- se muestra una sola vez al iniciar
-              sesión, para que sea visible en vez de un simple toast. */}
-          {avisoTurnoCompartido && (
+          {/* Aviso: este dispositivo no tiene su propia caja abierta, pero
+              otros cajeros sí tienen la suya -- se deja elegir entre
+              unirse a una de esas o abrir una caja nueva y separada. */}
+          {cajasAbiertasAviso && (
             <div className="fixed inset-0 bg-black/85 flex items-center justify-center z-50 p-4">
-              <div className="bg-stone-100 border border-orange-500/80 rounded-2xl max-w-md w-full p-6 shadow-2xl space-y-4 text-center">
-                <div className="w-14 h-14 mx-auto bg-orange-100 rounded-full flex items-center justify-center">
-                  <i className="fa-solid fa-cash-register text-orange-600 text-xl"></i>
-                </div>
-                <div>
-                  <h2 className="text-base font-bold text-stone-900">Ya hay un turno abierto</h2>
-                  <p className="text-xs text-stone-600 mt-2 leading-relaxed">
-                    <span className="font-semibold text-stone-800">{avisoTurnoCompartido.cajeros?.nombre || 'Otro cajero'}</span> abrió esta caja
-                    el {new Date(avisoTurnoCompartido.fecha_apertura).toLocaleString('es-PE', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}
-                    {' '}con S/ {Number(avisoTurnoCompartido.monto_inicial || 0).toFixed(2)} de fondo inicial.
+              <div className="bg-stone-100 border border-orange-500/80 rounded-2xl max-w-md w-full p-6 shadow-2xl space-y-4">
+                <div className="text-center">
+                  <div className="w-14 h-14 mx-auto bg-orange-100 rounded-full flex items-center justify-center">
+                    <i className="fa-solid fa-cash-register text-orange-600 text-xl"></i>
+                  </div>
+                  <h2 className="text-base font-bold text-stone-900 mt-3">
+                    {cajasAbiertasAviso.length === 1 ? 'Ya hay una caja abierta' : `Ya hay ${cajasAbiertasAviso.length} cajas abiertas`}
+                  </h2>
+                  <p className="text-xs text-stone-500 mt-1">
+                    Este dispositivo todavía no tiene una caja propia. Únete a una de estas, o abre una nueva y separada.
                   </p>
-                  <p className="text-xs text-stone-500 mt-2">
-                    Este dispositivo va a operar sobre esa misma caja compartida. Si esperabas que estuviera cerrada, ciérrala primero en el otro equipo antes de seguir vendiendo acá.
-                  </p>
-                </div>
-
-                <div className="text-left">
-                  <label className="text-xs font-semibold text-stone-700 block mb-1">¿Quién va a vender desde este dispositivo?</label>
-                  <select
-                    value={cajeroSeleccionado?.id || ''}
-                    onChange={(e) => {
-                      const f = listaCajeros.find(c => c.id === e.target.value);
-                      if (f) setCajeroSeleccionado(f);
-                    }}
-                    className="w-full bg-stone-50 border border-stone-200 rounded-xl px-3 py-2 text-xs text-stone-900"
-                  >
-                    {listaCajeros.map(c => (
-                      <option key={c.id} value={c.id}>👤 {c.nombre} ({c.rol || 'Cajero'})</option>
-                    ))}
-                  </select>
                 </div>
 
                 <div className="space-y-2">
-                  <button onClick={() => setAvisoTurnoCompartido(null)} className="w-full py-2.5 bg-stone-900 hover:bg-stone-800 text-white text-xs font-bold rounded-xl shadow">
-                    Entendido, seguir con esta caja
-                  </button>
-                  {esAdmin && (
-                    <button
-                      onClick={() => { setAvisoTurnoCompartido(null); abrirGestionCajeros(); setMostrarFormNuevoCajero(true); }}
-                      className="w-full py-2.5 bg-stone-200 hover:bg-stone-300 text-stone-800 text-xs font-bold rounded-xl flex items-center justify-center gap-1.5"
-                    >
-                      <i className="fa-solid fa-user-plus"></i> No está en la lista -- agregarlo
-                    </button>
-                  )}
+                  {cajasAbiertasAviso.map((t) => (
+                    <div key={t.id} className="bg-white border border-stone-200 rounded-xl p-3 flex items-center justify-between gap-3">
+                      <div className="min-w-0">
+                        <p className="text-xs font-bold text-stone-800 truncate">{t.cajeros?.nombre || 'Cajero'}</p>
+                        <p className="text-[11px] text-stone-500">
+                          Desde el {new Date(t.fecha_apertura).toLocaleString('es-PE', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}
+                          {' '}· S/ {Number(t.monto_inicial || 0).toFixed(2)} inicial
+                        </p>
+                      </div>
+                      <button onClick={() => unirseACaja(t)} className="shrink-0 px-3 py-2 bg-stone-900 hover:bg-stone-800 text-white text-xs font-bold rounded-lg">
+                        Usar esta caja
+                      </button>
+                    </div>
+                  ))}
                 </div>
+
+                <button
+                  onClick={abrirCajaNueva}
+                  className="w-full py-2.5 bg-orange-500 hover:bg-orange-400 text-white text-xs font-bold rounded-xl shadow flex items-center justify-center gap-1.5"
+                >
+                  <i className="fa-solid fa-plus"></i> Abrir otra caja
+                </button>
               </div>
             </div>
           )}

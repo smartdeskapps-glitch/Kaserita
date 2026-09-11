@@ -49,21 +49,58 @@ $$;
 
 grant execute on function public.ajustar_saldo_proveedor(uuid, numeric) to anon, authenticated;
 
--- 3) Evita que queden dos turnos de caja "abiertos" a la vez para la
---    misma bodega (por ejemplo si dos cajeros abren turno casi al mismo
---    tiempo desde dispositivos distintos). Un índice único parcial: solo
---    puede existir UNA fila con fecha_cierre nula por bodega.
+-- 3) Evita que un mismo CAJERO tenga dos turnos de caja "abiertos" a la
+--    vez (ej. dos dispositivos suyos abriendo turno casi al mismo
+--    tiempo). Ya NO es "una sola caja por bodega" -- ahora la app deja
+--    que varios cajeros de la misma bodega tengan cada uno su propia
+--    caja abierta en paralelo (varias registradoras a la vez), así que
+--    el índice único pasa a ser por (bodega_id, cajero_id) en vez de
+--    solo bodega_id.
 
--- Revisa primero si ya hay bodegas con más de un turno abierto (de
--- pruebas anteriores, por ejemplo). Si esta consulta devuelve filas, hay
--- que cerrar manualmente los turnos de más antes de seguir, o el índice
--- de abajo va a fallar al crearse.
-select bodega_id, count(*) as turnos_abiertos
+-- Si ya existe el índice viejo (una sola caja por BODEGA, sin importar
+-- el cajero), se borra -- si no, el "if exists" no falla igual.
+drop index if exists turnos_caja_una_abierta;
+
+-- Diagnóstico -- cajeros con más de un turno abierto ahora mismo (de
+-- pruebas anteriores, por ejemplo). Solo informativo: el paso de abajo
+-- ya los cierra automáticamente antes de crear el índice.
+select bodega_id, cajero_id, count(*) as turnos_abiertos
 from turnos_caja
 where fecha_cierre is null
-group by bodega_id
+group by bodega_id, cajero_id
 having count(*) > 1;
 
-create unique index if not exists turnos_caja_una_abierta
-  on turnos_caja(bodega_id)
+-- Cierra los duplicados: por cada (bodega, cajero) con más de un turno
+-- "abierto", deja abierto solo el más reciente y cierra los demás con
+-- el mismo criterio manual que se usaba antes (monto_final_real =
+-- monto_inicial, sin diferencia) -- así el índice único de abajo se
+-- puede crear sin fallar.
+with turnos_a_cerrar as (
+  select id
+  from (
+    select id, row_number() over (partition by bodega_id, cajero_id order by fecha_apertura desc) as orden
+    from turnos_caja
+    where fecha_cierre is null
+  ) ranked
+  where orden > 1
+)
+update turnos_caja
+set fecha_cierre = now(),
+    estado = 'CERRADA',
+    monto_final_real = monto_inicial,
+    ventas_sistema = 0,
+    diferencia = 0
+where id in (select id from turnos_a_cerrar);
+
+-- Verificación: debería devolver 0 filas antes de crear el índice.
+select bodega_id, cajero_id, count(*) as turnos_abiertos
+from turnos_caja
+where fecha_cierre is null
+group by bodega_id, cajero_id
+having count(*) > 1;
+
+create unique index if not exists turnos_caja_una_abierta_por_cajero
+  on turnos_caja(bodega_id, cajero_id)
   where fecha_cierre is null;
+
+NOTIFY pgrst, 'reload schema';
