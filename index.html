@@ -7097,26 +7097,29 @@
                       <div className="space-y-1.5">
                         <p className="text-[10px] font-bold text-stone-400 uppercase tracking-wide">1. Identificación</p>
 
-                        {/* Escanear primero: es el punto de partida más rápido -- si el
+                        {/* Escanear y escribir van en el mismo campo -- si el
                             código ya existe, la fila se autocompleta sola. */}
-                        <div className="relative pr-6">
-                          <button
-                            type="button"
-                            onClick={() => abrirEscanerParaFilaInventario(idx)}
-                            disabled={esExistente}
-                            className="w-full flex items-center justify-center gap-2 py-2.5 bg-stone-900 hover:bg-stone-800 disabled:opacity-40 text-white text-xs font-bold rounded-lg"
-                          >
-                            <i className="fa-solid fa-camera"></i> Escanear código de barras
-                          </button>
-                          <label className="text-[10px] font-semibold text-stone-500 block mb-0.5 mt-1.5">Código EAN (opcional si vas a escanear)</label>
-                          <input
-                            type="text"
-                            placeholder="...o escríbelo aquí"
-                            value={fila.cod_ean}
-                            disabled={esExistente}
-                            onChange={(e) => actualizarCodigoEanFila(idx, e.target.value)}
-                            className={`w-full ${esExistente ? claseCampoVinculado : claseCampoNormal}`}
-                          />
+                        <div className="pr-6">
+                          <label className="text-[10px] font-semibold text-stone-500 block mb-0.5">Código EAN / Código de barras (opcional)</label>
+                          <div className="relative">
+                            <input
+                              type="text"
+                              placeholder="Escanea o escribe el código..."
+                              value={fila.cod_ean}
+                              disabled={esExistente}
+                              onChange={(e) => actualizarCodigoEanFila(idx, e.target.value)}
+                              className={`w-full pr-9 ${esExistente ? claseCampoVinculado : claseCampoNormal}`}
+                            />
+                            <button
+                              type="button"
+                              onClick={() => abrirEscanerParaFilaInventario(idx)}
+                              disabled={esExistente}
+                              className="absolute right-1.5 top-1/2 -translate-y-1/2 w-6 h-6 flex items-center justify-center text-stone-600 hover:text-orange-600 disabled:opacity-40 transition"
+                              title="Escanear código de barras"
+                            >
+                              <i className="fa-solid fa-camera text-xs"></i>
+                            </button>
+                          </div>
                         </div>
 
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pr-6">
