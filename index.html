@@ -1645,6 +1645,7 @@
       const [authTab, setAuthTab] = useState('login');
       const [formLogin, setFormLogin] = useState({ dni: '', pin: '' });
       const [cargandoAuth, setCargandoAuth] = useState(false);
+      const [mostrarPin, setMostrarPin] = useState(false);
 
       // --- Panel de Administrador (super-admin, separado de las bodegas) ---
       const [adminSesion, setAdminSesion] = useState(null);
@@ -5783,8 +5784,17 @@
               <div className="absolute -top-10 -left-10 w-40 h-40 bg-white/10 rounded-full"></div>
               <div className="absolute bottom-6 -right-14 w-56 h-56 bg-white/10 rounded-full"></div>
               <div className="absolute top-1/3 right-8 w-16 h-16 bg-white/10 rounded-full hidden md:block"></div>
+
+              <div className="hidden md:flex absolute top-6 left-6 items-center gap-1.5 bg-white/15 backdrop-blur-sm border border-white/20 rounded-full px-3 py-1.5">
+                <span className="relative flex w-1.5 h-1.5">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-300 opacity-75"></span>
+                  <span className="relative inline-flex rounded-full w-1.5 h-1.5 bg-emerald-300"></span>
+                </span>
+                <span className="text-[11px] font-semibold text-white/90">Sistema Conectado</span>
+              </div>
+
               <div
-                className="relative w-32 h-32 md:w-36 md:h-36 bg-white rounded-[2rem] shadow-[0_20px_45px_-15px_rgba(124,45,18,0.55)] mb-6"
+                className="relative w-32 h-32 md:w-28 md:h-28 bg-white rounded-[2rem] shadow-[0_20px_45px_-15px_rgba(124,45,18,0.55)] mb-6"
                 style={{
                   // El PNG trae mucho margen transparente alrededor del dibujo
                   // (el ícono real ocupa ~36% del ancho de la imagen) -- con
@@ -5793,14 +5803,40 @@
                   // ampliado se recorta ese margen invisible y el ícono
                   // llena el recuadro.
                   backgroundImage: "url('https://hzmrsbeamtbloudmxjrp.supabase.co/storage/v1/object/public/Logo/Gemini_Generated_Image_9g0vw69g0vw69g0v.png')",
-                  backgroundSize: '250% auto',
+                  backgroundSize: '190% auto',
                   backgroundPosition: 'center',
                   backgroundRepeat: 'no-repeat',
                   animation: 'auth-panel-in 0.5s ease'
                 }}
               ></div>
-              <h1 className="relative text-3xl md:text-4xl font-black tracking-tight">Kaserita</h1>
-              <p className="relative text-sm text-orange-50/90 mt-1.5 text-center max-w-[240px]">Punto de Venta para tu Bodega o Negocio</p>
+              <div className="relative flex items-center gap-2">
+                <h1 className="text-3xl md:text-4xl font-black tracking-tight">Kaserita</h1>
+                <span className="hidden md:inline-block text-[10px] font-black tracking-wide bg-white/20 border border-white/25 text-white px-2 py-1 rounded-full">POS PRO</span>
+              </div>
+              <p className="relative text-sm text-orange-50/90 mt-1.5 text-center max-w-[240px] md:max-w-none">Punto de Venta para tu Bodega o Negocio</p>
+
+              <div className="hidden md:block relative mt-8 max-w-md">
+                <h2 className="text-2xl font-black leading-tight">Vende más rápido, controla tu stock y atiende con la calidad de siempre.</h2>
+                <p className="text-sm text-orange-50/80 mt-3 leading-relaxed">Diseñado para el ritmo real de las tiendas de barrio, minimarkets y bodegas. Cierra caja en segundos y controla los fiados sin enredos.</p>
+
+                <div className="grid grid-cols-3 gap-2.5 mt-6">
+                  <div className="bg-white/10 border border-white/15 rounded-xl p-3">
+                    <i className="fa-solid fa-bolt text-sm"></i>
+                    <p className="text-xs font-bold mt-1.5">Ventas al Toque</p>
+                    <p className="text-[10px] text-orange-50/70 mt-0.5 leading-snug">Compatible con lector USB y Bluetooth</p>
+                  </div>
+                  <div className="bg-white/10 border border-white/15 rounded-xl p-3">
+                    <i className="fa-solid fa-chart-simple text-sm"></i>
+                    <p className="text-xs font-bold mt-1.5">Caja Cuadrada</p>
+                    <p className="text-[10px] text-orange-50/70 mt-0.5 leading-snug">Reportes diarios de ganancia neta</p>
+                  </div>
+                  <div className="bg-white/10 border border-white/15 rounded-xl p-3">
+                    <i className="fa-solid fa-hand-holding-dollar text-sm"></i>
+                    <p className="text-xs font-bold mt-1.5">Gestión de Fiados</p>
+                    <p className="text-[10px] text-orange-50/70 mt-0.5 leading-snug">Control de cuentas de clientes al día</p>
+                  </div>
+                </div>
+              </div>
             </div>
 
             {/* Tarjeta de formulario */}
@@ -5902,34 +5938,58 @@
                 }} className="space-y-5">
                   <div>
                     <label className="text-[11px] font-bold text-stone-400 uppercase tracking-wide">DNI del Usuario</label>
-                    <input
-                      type="text"
-                      required
-                      maxLength={8}
-                      placeholder="8 dígitos"
-                      value={formLogin.dni}
-                      onChange={(e) => setFormLogin({ ...formLogin, dni: e.target.value })}
-                      className="w-full bg-transparent border-b-2 border-stone-200 focus:border-orange-500 outline-none py-2 text-sm text-stone-900 transition"
-                    />
+                    <div className="relative mt-1">
+                      <i className="fa-solid fa-user absolute left-3 top-1/2 -translate-y-1/2 text-stone-400 text-sm"></i>
+                      <input
+                        type="text"
+                        required
+                        maxLength={8}
+                        placeholder="Ingresa los 8 dígitos"
+                        value={formLogin.dni}
+                        onChange={(e) => setFormLogin({ ...formLogin, dni: e.target.value })}
+                        className="w-full bg-stone-100 border border-stone-200 focus:border-orange-500 outline-none rounded-xl pl-9 pr-3 py-2.5 text-sm text-stone-900 transition"
+                      />
+                    </div>
+                    <p className="text-[10px] text-stone-400 mt-1">Ej: 45678901 (Cajero / Administrador)</p>
                   </div>
                   <div>
-                    <label className="text-[11px] font-bold text-stone-400 uppercase tracking-wide">PIN de Acceso</label>
-                    <input
-                      type="password"
-                      required
-                      maxLength={6}
-                      placeholder="••••"
-                      value={formLogin.pin}
-                      onChange={(e) => setFormLogin({ ...formLogin, pin: e.target.value })}
-                      className="w-full bg-transparent border-b-2 border-stone-200 focus:border-orange-500 outline-none py-2 text-sm text-stone-900 tracking-widest transition"
-                    />
+                    <div className="flex items-center justify-between">
+                      <label className="text-[11px] font-bold text-stone-400 uppercase tracking-wide">PIN de Acceso</label>
+                      <button
+                        type="button"
+                        onClick={() => notificar('Pídele a la persona a cargo (dueño/administrador) que te genere un PIN nuevo.', 'info')}
+                        className="text-[10px] font-semibold text-orange-600 hover:text-orange-700"
+                      >
+                        ¿Olvidaste tu PIN?
+                      </button>
+                    </div>
+                    <div className="relative mt-1">
+                      <i className="fa-solid fa-lock absolute left-3 top-1/2 -translate-y-1/2 text-stone-400 text-sm"></i>
+                      <input
+                        type={mostrarPin ? 'text' : 'password'}
+                        required
+                        maxLength={6}
+                        placeholder="••••"
+                        value={formLogin.pin}
+                        onChange={(e) => setFormLogin({ ...formLogin, pin: e.target.value })}
+                        className="w-full bg-stone-100 border border-stone-200 focus:border-orange-500 outline-none rounded-xl pl-9 pr-9 py-2.5 text-sm text-stone-900 tracking-widest transition"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setMostrarPin((v) => !v)}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-stone-400 hover:text-stone-600"
+                        title={mostrarPin ? 'Ocultar PIN' : 'Mostrar PIN'}
+                      >
+                        <i className={`fa-solid ${mostrarPin ? 'fa-eye-slash' : 'fa-eye'} text-sm`}></i>
+                      </button>
+                    </div>
                   </div>
                   <button
                     type="submit"
                     disabled={cargandoAuth}
-                    className="w-full py-3.5 bg-stone-900 hover:bg-stone-800 text-white font-black text-sm uppercase rounded-full transition shadow-lg shadow-stone-900/30 disabled:opacity-50"
+                    className="w-full py-3.5 bg-stone-900 hover:bg-stone-800 text-white font-black text-sm uppercase rounded-full transition shadow-lg shadow-stone-900/30 disabled:opacity-50 flex items-center justify-center gap-2"
                   >
-                    {cargandoAuth ? 'Verificando...' : 'Ingresar'}
+                    {cargandoAuth ? 'Verificando...' : (<>Ingresar al Sistema <i className="fa-solid fa-arrow-right"></i></>)}
                   </button>
                 </form>
               )}
@@ -5959,24 +6019,30 @@
                 }} className="space-y-5">
                   <div>
                     <label className="text-[11px] font-bold text-stone-400 uppercase tracking-wide">Correo</label>
-                    <input
-                      type="email"
-                      required
-                      placeholder="tu@correo.com"
-                      value={formAdminLogin.email}
-                      onChange={(e) => setFormAdminLogin({ ...formAdminLogin, email: e.target.value })}
-                      className="w-full bg-transparent border-b-2 border-stone-200 focus:border-orange-500 outline-none py-2 text-sm text-stone-900 transition"
-                    />
+                    <div className="relative mt-1">
+                      <i className="fa-solid fa-envelope absolute left-3 top-1/2 -translate-y-1/2 text-stone-400 text-sm"></i>
+                      <input
+                        type="email"
+                        required
+                        placeholder="tu@correo.com"
+                        value={formAdminLogin.email}
+                        onChange={(e) => setFormAdminLogin({ ...formAdminLogin, email: e.target.value })}
+                        className="w-full bg-stone-100 border border-stone-200 focus:border-orange-500 outline-none rounded-xl pl-9 pr-3 py-2.5 text-sm text-stone-900 transition"
+                      />
+                    </div>
                   </div>
                   <div>
                     <label className="text-[11px] font-bold text-stone-400 uppercase tracking-wide">Contraseña</label>
-                    <input
-                      type="password"
-                      required
-                      value={formAdminLogin.password}
-                      onChange={(e) => setFormAdminLogin({ ...formAdminLogin, password: e.target.value })}
-                      className="w-full bg-transparent border-b-2 border-stone-200 focus:border-orange-500 outline-none py-2 text-sm text-stone-900 transition"
-                    />
+                    <div className="relative mt-1">
+                      <i className="fa-solid fa-lock absolute left-3 top-1/2 -translate-y-1/2 text-stone-400 text-sm"></i>
+                      <input
+                        type="password"
+                        required
+                        value={formAdminLogin.password}
+                        onChange={(e) => setFormAdminLogin({ ...formAdminLogin, password: e.target.value })}
+                        className="w-full bg-stone-100 border border-stone-200 focus:border-orange-500 outline-none rounded-xl pl-9 pr-3 py-2.5 text-sm text-stone-900 transition"
+                      />
+                    </div>
                   </div>
                   <button
                     type="submit"
@@ -5988,7 +6054,7 @@
                 </form>
               )}
 
-              <div className="pt-2 border-t border-stone-100 flex items-center justify-center gap-4 text-xs">
+              <div className="pt-2 border-t border-stone-100 flex items-center justify-center gap-2.5 text-xs">
                 {authTab === 'login' ? (
                   <>
                     <button type="button" onClick={() => {
@@ -5996,11 +6062,11 @@
                       setListaCajeros([demoU]);
                       setCajeroSeleccionado(demoU);
                       guardarSesion({ usuario: demoU, bodega: { id: BODEGA_DEMO_ID, nombre: 'Bodega Demo' } });
-                    }} className="text-stone-500 hover:text-orange-600 font-semibold">
+                    }} className="px-3 py-1.5 rounded-full bg-orange-50 hover:bg-orange-100 text-orange-700 font-semibold transition">
                       <i className="fa-solid fa-bolt mr-1"></i> Modo Demo Local
                     </button>
-                    <button type="button" onClick={() => setAuthTab('admin')} className="text-stone-300 hover:text-stone-500 font-semibold">
-                      Administrador
+                    <button type="button" onClick={() => setAuthTab('admin')} className="px-3 py-1.5 rounded-full bg-stone-100 hover:bg-stone-200 text-stone-500 font-semibold transition">
+                      <i className="fa-solid fa-shield-halved mr-1"></i> Panel Administrador
                     </button>
                   </>
                 ) : (
