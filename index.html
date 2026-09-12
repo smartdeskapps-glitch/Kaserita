@@ -88,6 +88,25 @@
       border-radius: 4px;
     }
 
+    /* El navegador pinta los campos autocompletados (usuario/contraseña
+       guardados) con un fondo celeste propio que no se puede tapar con
+       background-color normal -- solo con este truco del box-shadow
+       "inset" gigante, del mismo color que el fondo real del input. */
+    input:-webkit-autofill,
+    input:-webkit-autofill:hover,
+    input:-webkit-autofill:focus {
+      -webkit-text-fill-color: #1c1917;
+      -webkit-box-shadow: 0 0 0px 1000px #fff inset;
+      box-shadow: 0 0 0px 1000px #fff inset;
+      transition: background-color 9999s ease-in-out 0s;
+    }
+
+    /* Entrada suave de la pantalla de login/panel de marca. */
+    @keyframes auth-panel-in {
+      from { opacity: 0; transform: translateY(14px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
     /* Oculta las flechitas de subir/bajar de los inputs numéricos: le
        restan ancho útil al campo (recortando placeholders como "Contado")
        y no aportan nada en campos de precio/cantidad que se escriben
@@ -5749,26 +5768,41 @@
               <div className="absolute bottom-6 -right-14 w-56 h-56 bg-white/10 rounded-full"></div>
               <div className="absolute top-1/3 right-8 w-16 h-16 bg-white/10 rounded-full hidden md:block"></div>
               <div
-                className="relative w-32 h-32 md:w-36 md:h-36 bg-white rounded-[2rem] shadow-2xl mb-6"
-                // El PNG trae mucho margen transparente alrededor del dibujo (el
-                // ícono real ocupa ~36% del ancho de la imagen) -- con <img>
-                // normal ese margen se ve como si el logo fuera diminuto. Con
-                // background-image + background-size ampliado se recorta ese
-                // margen invisible y el ícono llena el recuadro.
+                className="relative w-32 h-32 md:w-36 md:h-36 bg-white rounded-[2rem] shadow-[0_20px_45px_-15px_rgba(124,45,18,0.55)] mb-6"
                 style={{
+                  // El PNG trae mucho margen transparente alrededor del dibujo
+                  // (el ícono real ocupa ~36% del ancho de la imagen) -- con
+                  // <img> normal ese margen se ve como si el logo fuera
+                  // diminuto. Con background-image + background-size
+                  // ampliado se recorta ese margen invisible y el ícono
+                  // llena el recuadro.
                   backgroundImage: "url('https://hzmrsbeamtbloudmxjrp.supabase.co/storage/v1/object/public/Logo/Gemini_Generated_Image_9g0vw69g0vw69g0v.png')",
                   backgroundSize: '250% auto',
                   backgroundPosition: 'center',
-                  backgroundRepeat: 'no-repeat'
+                  backgroundRepeat: 'no-repeat',
+                  animation: 'auth-panel-in 0.5s ease'
                 }}
               ></div>
               <h1 className="relative text-3xl md:text-4xl font-black tracking-tight">Kaserita</h1>
               <p className="relative text-sm text-orange-50/90 mt-1.5 text-center max-w-[240px]">Punto de Venta para tu Bodega o Negocio</p>
+              <ul className="relative mt-6 space-y-2.5 text-sm text-orange-50/95">
+                {['Control de stock y alertas de vencimiento', 'Ventas, créditos y clientes en un solo lugar', 'Boletas por WhatsApp en un clic'].map((texto) => (
+                  <li key={texto} className="flex items-center gap-2.5">
+                    <span className="w-5 h-5 rounded-full bg-white/20 flex items-center justify-center shrink-0">
+                      <i className="fa-solid fa-check text-[10px]"></i>
+                    </span>
+                    {texto}
+                  </li>
+                ))}
+              </ul>
             </div>
 
             {/* Tarjeta de formulario */}
             <div className="relative flex-1 md:w-1/2 flex md:items-center justify-center md:px-5">
-              <div className="w-full md:max-w-md flex-1 md:flex-none bg-white rounded-t-[2.5rem] md:rounded-3xl shadow-2xl px-7 pt-9 pb-10 md:p-10 space-y-6">
+              <div
+                className="w-full md:max-w-md flex-1 md:flex-none bg-white rounded-t-[2.5rem] md:rounded-3xl shadow-2xl px-7 pt-9 pb-10 md:p-10 space-y-6"
+                style={{ animation: 'auth-panel-in 0.5s ease 0.1s backwards' }}
+              >
                 <div className="text-center space-y-1">
                   <h2 className="text-xl font-black text-stone-900">{authTab === 'admin' ? 'Panel de Administrador' : '¡Bienvenido de nuevo!'}</h2>
                   <p className="text-xs text-stone-500">{authTab === 'admin' ? 'Ingresa con tu cuenta de administrador' : 'Ingresa tus datos para continuar'}</p>
