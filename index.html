@@ -1852,6 +1852,10 @@
       const [modalInventarioInicial, setModalInventarioInicial] = useState(false);
       const [filasInventario, setFilasInventario] = useState([filaInventarioVacia()]);
       const [guardandoInventario, setGuardandoInventario] = useState(false);
+      // Solo una fila se muestra expandida (formulario completo) a la vez --
+      // las demás quedan colapsadas como un resumen tipo "historial", para
+      // que cargar varios productos seguidos no vuelva la pantalla eterna.
+      const [filaInventarioExpandidaIdx, setFilaInventarioExpandidaIdx] = useState(0);
 
       // --- Módulo: Importar del Catálogo Maestro -- banco de productos que
       // administra Kaserita (descripción + categoría + foto); la bodega
@@ -3795,11 +3799,22 @@
       };
 
       const agregarFilaInventario = () => {
-        setFilasInventario((prev) => [...prev, filaInventarioVacia()]);
+        setFilasInventario((prev) => {
+          setFilaInventarioExpandidaIdx(prev.length);
+          return [...prev, filaInventarioVacia()];
+        });
       };
 
       const eliminarFilaInventario = (index) => {
-        setFilasInventario((prev) => (prev.length > 1 ? prev.filter((_, i) => i !== index) : prev));
+        setFilasInventario((prev) => {
+          if (prev.length <= 1) return prev;
+          const nuevas = prev.filter((_, i) => i !== index);
+          setFilaInventarioExpandidaIdx((actual) => {
+            if (actual === index) return Math.max(0, index - 1);
+            return actual > index ? actual - 1 : actual;
+          });
+          return nuevas;
+        });
       };
 
       const guardarInventarioInicial = async () => {
@@ -3897,6 +3912,7 @@
 
           setModalInventarioInicial(false);
           setFilasInventario([filaInventarioVacia()]);
+          setFilaInventarioExpandidaIdx(0);
           cargarProductos();
           const partes = [];
           if (filasNuevas.length > 0) partes.push(`${filasNuevas.length} nuevo(s)`);
@@ -6992,6 +7008,53 @@
                     const sugerenciasMaestro = sugerenciasMaestroParaFila(fila);
                     const claseCampoVinculado = 'bg-stone-100/40 border border-stone-200 rounded-lg px-3 py-1.5 text-xs text-stone-600 cursor-not-allowed';
                     const claseCampoNormal = 'bg-stone-100 border border-stone-200 rounded-lg px-3 py-1.5 text-xs text-stone-900 focus:outline-none focus:border-orange-500';
+
+                    // Fila ya completada y no es la que se está editando ahora --
+                    // se muestra colapsada como un renglón de "historial" en vez
+                    // del formulario completo, para que cargar varios productos
+                    // seguidos no vuelva la pantalla eterna.
+                    if (idx !== filaInventarioExpandidaIdx) {
+                      return (
+                        <div key={idx} className="p-2 rounded-xl border bg-white border-stone-200 flex items-center gap-2">
+                          <button
+                            type="button"
+                            onClick={() => setFilaInventarioExpandidaIdx(idx)}
+                            className="flex-1 min-w-0 flex items-center gap-2 text-left"
+                          >
+                            <span className="shrink-0 w-5 h-5 rounded-full bg-stone-200 text-stone-600 text-[10px] font-bold flex items-center justify-center">{idx + 1}</span>
+                            <span className="min-w-0 flex-1">
+                              <span className="block text-xs font-semibold text-stone-800 truncate">
+                                {fila.descripcion || `(sin nombre todavía)`}
+                              </span>
+                              <span className="block text-[10px] text-stone-500 truncate">
+                                {fila.categoria || '—'} · S/ {Number(fila.precio_venta || 0).toFixed(2)}
+                                {fila.vendeEnPack && Number(fila.unidades_por_pack) > 1 ? ` · Pack x${fila.unidades_por_pack}` : ''}
+                                {esExistente ? ' · Existente' : ''}
+                              </span>
+                            </span>
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setFilaInventarioExpandidaIdx(idx)}
+                            className="shrink-0 w-7 h-7 flex items-center justify-center text-stone-500 hover:text-orange-600"
+                            title="Editar este producto"
+                          >
+                            <i className="fa-solid fa-pen text-xs"></i>
+                          </button>
+                          {filasInventario.length > 1 && (
+                            <button
+                              type="button"
+                              onClick={() => eliminarFilaInventario(idx)}
+                              className="shrink-0 w-7 h-7 flex items-center justify-center text-stone-500 hover:text-rose-600"
+                              title="Quitar producto"
+                            >
+                              <i className="fa-solid fa-xmark text-xs"></i>
+                            </button>
+                          )}
+                        </div>
+                      );
+                    }
+
                     return (
                     <div key={idx} className={`p-3 rounded-xl space-y-3 relative border ${esExistente ? 'bg-orange-950/20 border-orange-700/40' : 'bg-stone-50 border-stone-200'}`}>
                       <div className="flex items-center justify-between pr-6">
