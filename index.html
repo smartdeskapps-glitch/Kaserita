@@ -67,8 +67,7 @@
   <script defer src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 
   <!-- Logo: se precarga para que el splash de abajo lo muestre al instante -->
-  <link rel="preload" as="image" href="https://hzmrsbeamtbloudmxjrp.supabase.co/storage/v1/object/public/Logo/Gemini_Generated_Image_9g0vw69g0vw69g0v.jfif">
-  <link rel="preload" as="image" href="https://hzmrsbeamtbloudmxjrp.supabase.co/storage/v1/object/public/Logo/Gemini_Generated_Image_90q5hw90q5hw90q5%20(1).jfif">
+  <link rel="preload" as="image" href="https://hzmrsbeamtbloudmxjrp.supabase.co/storage/v1/object/public/Logo/Gemini_Generated_Image_96pr6996pr6996pr%20(1).png">
 
   <style>
     body {
@@ -144,11 +143,8 @@
       flex-direction: column;
       align-items: center;
       justify-content: center;
-      gap: 1.5rem;
+      gap: clamp(0.75rem, 4vh, 1.5rem);
       overflow: hidden;
-      /* Blanco, igual que el fondo del logo (es un .jfif sin transparencia)
-         -- así el cuadrado blanco de la imagen se funde con el splash en
-         vez de verse como un recuadro pegado encima de un fondo oscuro. */
       background: #fff;
       color: #1c1917;
       font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
@@ -159,82 +155,29 @@
       visibility: hidden;
       pointer-events: none;
     }
-    #splash-kaserita .splash-loader-inner {
-      position: relative;
-      width: 210px;
-      aspect-ratio: 1;
-      display: flex;
-      align-items: center;
-      justify-content: center;
+    /* Una sola imagen (logo + texto, PNG con fondo transparente) centrada
+       -- ancho relativo a la pantalla (clamp: mínimo, ideal en vw, máximo)
+       así no se ve gigante en un celular angosto ni diminuta en un
+       monitor grande; el alto sigue solo (auto) para no deformarla. */
+    #splash-kaserita .splash-logo-img {
+      width: clamp(160px, 42vw, 280px);
+      height: auto;
+      animation: splash-pulso 1.8s infinite ease-in-out;
     }
-    #splash-kaserita .splash-loader-logo {
-      position: absolute;
-      width: 72px;
-      height: 72px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      object-fit: contain;
-      animation: splash-color-change 2s infinite ease-in-out;
-      z-index: 20;
+    @keyframes splash-pulso {
+      0%, 100% { transform: scale(1); opacity: 0.85; }
+      50% { transform: scale(1.04); opacity: 1; }
     }
-    #splash-kaserita .splash-ring {
-      position: absolute;
-      background: rgba(234,88,12,0.06);
-      border-radius: 50%;
-      border: 1px solid rgba(234,88,12,0.35);
-      animation: splash-ripple 2s infinite ease-out;
-      will-change: transform, opacity;
-      /* transform-origin en el centro evita que, al escalar, el anillo se
-         vea "correr" hacia una esquina en navegadores más lentos. */
-      transform-origin: center;
-    }
-    #splash-kaserita .splash-ring:nth-child(1) { width: 26%; aspect-ratio: 1; z-index: 14; }
-    #splash-kaserita .splash-ring:nth-child(2) { inset: 30%; z-index: 13; border-color: rgba(234,88,12,0.28); animation-delay: 0.2s; }
-    #splash-kaserita .splash-ring:nth-child(3) { inset: 20%; z-index: 12; border-color: rgba(234,88,12,0.2); animation-delay: 0.4s; }
-    #splash-kaserita .splash-ring:nth-child(4) { inset: 10%; z-index: 11; border-color: rgba(234,88,12,0.13); animation-delay: 0.6s; }
-    #splash-kaserita .splash-ring:nth-child(5) { inset: 0; z-index: 10; border-color: rgba(234,88,12,0.07); animation-delay: 0.8s; }
-    /* Solo transform + opacity: son las dos únicas propiedades que el
-       navegador puede animar en el hilo de composición (GPU) sin volver a
-       calcular el layout/pintado en cada frame -- por eso se ve fluida
-       incluso en celulares de gama baja. La versión anterior animaba
-       box-shadow (fuerza repintado) y usaba backdrop-filter (muy caro), y
-       ahí es donde se sentía lenta o se trababa en varios equipos. */
-    @keyframes splash-ripple {
-      0% { transform: scale(1); opacity: 0.65; }
-      70% { transform: scale(1.3); opacity: 0; }
-      100% { transform: scale(1.3); opacity: 0; }
-    }
-    @keyframes splash-color-change {
-      0% { opacity: 0.65; } 50% { opacity: 1; } 100% { opacity: 0.65; }
-    }
-    /* Si el sistema pide menos movimiento (o un navegador viejo no anima
-       bien), se queda quieto en vez de verse trabado a medio camino. */
+    /* Si el sistema pide menos movimiento, se queda quieto en vez de verse
+       trabado a medio camino. */
     @media (prefers-reduced-motion: reduce) {
-      #splash-kaserita .splash-ring,
-      #splash-kaserita .splash-loader-logo {
-        animation: none;
-        opacity: 0.5;
-      }
-    }
-    #splash-kaserita .splash-wordmark-img {
-      position: relative;
-      height: 42px;
-      width: auto;
+      #splash-kaserita .splash-logo-img { animation: none; }
     }
   </style>
 </head>
 <body class="bg-stone-50 text-stone-900 h-screen overflow-hidden font-sans">
   <div id="splash-kaserita">
-    <div class="splash-loader-inner">
-      <div class="splash-ring"></div>
-      <div class="splash-ring"></div>
-      <div class="splash-ring"></div>
-      <div class="splash-ring"></div>
-      <div class="splash-ring"></div>
-      <img class="splash-loader-logo" src="https://hzmrsbeamtbloudmxjrp.supabase.co/storage/v1/object/public/Logo/Gemini_Generated_Image_9g0vw69g0vw69g0v.jfif" alt="">
-    </div>
-    <img class="splash-wordmark-img" src="https://hzmrsbeamtbloudmxjrp.supabase.co/storage/v1/object/public/Logo/Gemini_Generated_Image_90q5hw90q5hw90q5%20(1).jfif" alt="Kaserita - Punto de Venta">
+    <img class="splash-logo-img" src="https://hzmrsbeamtbloudmxjrp.supabase.co/storage/v1/object/public/Logo/Gemini_Generated_Image_96pr6996pr6996pr%20(1).png" alt="Kaserita - Punto de Venta">
   </div>
   <div id="root"></div>
 
