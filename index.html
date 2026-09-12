@@ -742,6 +742,16 @@
       return CATEGORIA_ESTILO[clave] || { icono: 'fa-box', color: 'text-stone-700', fondo: 'from-stone-400/20 to-stone-400/5' };
     };
 
+    // Convierte el texto libre de categoría que viene de un Excel externo
+    // (ej. "CERVEZAS", "Bebidas") a una de las categorías con ícono que
+    // reconoce Kaserita -- si no matchea ninguna, cae a "Otros" en vez de
+    // dejar guardada una categoría rara que después no se puede filtrar.
+    const categoriaDesdeTexto = (texto) => {
+      const norm = normalizarCategoria(texto);
+      if (!norm) return 'Otros';
+      return CATEGORIA_ESTILO_POR_NOMBRE_NORMALIZADO[norm] || CATEGORIA_ALIAS[norm] || 'Otros';
+    };
+
     // Miniatura de producto reutilizada en la tarjeta del catálogo y en el
     // carrito: si el producto tiene una foto subida se muestra esa foto,
     // si no, cae de vuelta al ícono de categoría (nunca queda un hueco vacío).
@@ -1069,6 +1079,8 @@
       const [formMaestro, setFormMaestro] = useState(null);
       const [guardandoMaestro, setGuardandoMaestro] = useState(false);
       const [subiendoFotoMaestro, setSubiendoFotoMaestro] = useState(false);
+      const [previewImportMaestro, setPreviewImportMaestro] = useState(null);
+      const [guardandoImportMaestro, setGuardandoImportMaestro] = useState(false);
 
       const cargarCatalogoMaestro = useCallback(async () => {
         setCargandoMaestro(true);
@@ -1148,6 +1160,83 @@
       const catalogoMaestroFiltrado = catalogoMaestro.filter((p) =>
         !busquedaMaestro.trim() || p.descripcion.toLowerCase().includes(busquedaMaestro.trim().toLowerCase())
       );
+
+      // Importación masiva desde un Excel/CSV de un proveedor (ej. la lista de
+      // precios de un distribuidor con columnas de código, descripción,
+      // marca y categoría) -- así no hay que tipear producto por producto en
+      // el formulario de arriba. Los encabezados de columna pueden variar
+      // según el proveedor, por eso se buscan por varios nombres posibles en
+      // vez de exigir uno exacto.
+      const procesarArchivoImportMaestro = (file) => {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          try {
+            const libro = XLSX.read(new Uint8Array(e.target.result), { type: 'array' });
+            const hoja = libro.Sheets[libro.SheetNames[0]];
+            const filas = XLSX.utils.sheet_to_json(hoja, { defval: '' });
+
+            const buscarCampo = (fila, candidatos) => {
+              const claves = Object.keys(fila);
+              for (const candidato of candidatos) {
+                const clave = claves.find((k) => normalizarCategoria(k) === candidato);
+                if (clave && fila[clave] !== '') return fila[clave].toString().trim();
+              }
+              return '';
+            };
+
+            const existentesPorSku = new Map(
+              catalogoMaestro.filter((p) => p.sku).map((p) => [p.sku.trim().toLowerCase(), p])
+            );
+
+            const items = filas.map((fila) => {
+              const descripcion = buscarCampo(fila, ['descripcion', 'producto', 'nombre', 'detalle', 'item']);
+              if (!descripcion) return null;
+              const categoriaTexto = buscarCampo(fila, ['categoria', 'rubro', 'familia']);
+              const codigo = buscarCampo(fila, ['lovis', 'sku', 'codigo', 'cod']);
+              const categoria = categoriaDesdeTexto(categoriaTexto);
+              const existente = codigo ? existentesPorSku.get(codigo.toLowerCase()) : null;
+              return {
+                id: existente ? existente.id : crypto.randomUUID(),
+                descripcion,
+                categoria,
+                sku: codigo || generarSKU(categoria),
+                foto_url: existente ? (existente.foto_url || null) : null,
+                _categoriaReconocida: !categoriaTexto || categoria !== 'Otros',
+                _actualiza: !!existente
+              };
+            }).filter(Boolean);
+
+            if (items.length === 0) {
+              notificar('No se encontró ninguna fila con descripción en el archivo.', 'error');
+              return;
+            }
+            setPreviewImportMaestro(items);
+          } catch (err) {
+            notificar(`No se pudo leer el archivo: ${err.message}`, 'error');
+          }
+        };
+        reader.readAsArrayBuffer(file);
+      };
+
+      const confirmarImportMaestro = async () => {
+        if (!previewImportMaestro || previewImportMaestro.length === 0) return;
+        setGuardandoImportMaestro(true);
+        try {
+          const payload = previewImportMaestro.map(({ _categoriaReconocida, _actualiza, ...resto }) => resto);
+          const TAMANO_LOTE = 300;
+          for (let i = 0; i < payload.length; i += TAMANO_LOTE) {
+            const { error } = await sbClient.from('catalogo_maestro').upsert(payload.slice(i, i + TAMANO_LOTE));
+            if (error) throw error;
+          }
+          notificar(`Se importaron ${payload.length} productos al catálogo maestro.`, 'success');
+          setPreviewImportMaestro(null);
+          cargarCatalogoMaestro();
+        } catch (err) {
+          notificar(`No se pudo importar: ${err.message}`, 'error');
+        } finally {
+          setGuardandoImportMaestro(false);
+        }
+      };
 
       return (
         <div className="h-screen bg-stone-50 flex flex-col overflow-hidden">
@@ -1417,6 +1506,35 @@
                   </button>
                 </div>
               </form>
+            ) : previewImportMaestro ? (
+              <div className="bg-white border border-stone-200 rounded-2xl p-5 space-y-3">
+                <h2 className="text-sm font-bold text-stone-900 flex items-center gap-2">
+                  <i className="fa-solid fa-file-import text-orange-600"></i> Revisar importación ({previewImportMaestro.length} productos)
+                </h2>
+                <p className="text-xs text-stone-500">
+                  Se detectaron {previewImportMaestro.length} filas con descripción. Las categorías que no se reconocieron quedaron en <span className="font-semibold text-stone-700">Otros</span> -- puedes editarlas después desde la lista.
+                </p>
+                <div className="max-h-80 overflow-y-auto border border-stone-100 rounded-xl divide-y divide-stone-100">
+                  {previewImportMaestro.map((item, i) => (
+                    <div key={i} className="flex items-center gap-2 px-3 py-2 text-xs">
+                      <span className="flex-1 min-w-0 truncate font-semibold text-stone-800">{item.descripcion}</span>
+                      <span className={`shrink-0 px-2 py-0.5 rounded-full font-semibold ${item._categoriaReconocida ? 'bg-stone-100 text-stone-600' : 'bg-amber-50 text-amber-700'}`}>
+                        {item.categoria}
+                      </span>
+                      <span className="shrink-0 font-mono text-stone-400">{item.sku}</span>
+                      {item._actualiza && <span className="shrink-0 text-[10px] font-semibold text-sky-600">Actualiza</span>}
+                    </div>
+                  ))}
+                </div>
+                <div className="flex gap-2 pt-1">
+                  <button type="button" onClick={() => setPreviewImportMaestro(null)} className="flex-1 py-2.5 bg-stone-100 hover:bg-stone-200 text-stone-700 font-bold text-sm rounded-xl">
+                    Cancelar
+                  </button>
+                  <button type="button" onClick={confirmarImportMaestro} disabled={guardandoImportMaestro} className="flex-1 py-2.5 bg-stone-900 hover:bg-stone-800 disabled:opacity-60 text-white font-bold text-sm rounded-xl shadow">
+                    {guardandoImportMaestro ? 'Importando...' : `Importar ${previewImportMaestro.length} productos`}
+                  </button>
+                </div>
+              </div>
             ) : (
               <div className="flex items-center gap-2">
                 <div className="relative flex-1">
@@ -1428,13 +1546,26 @@
                     className="w-full bg-white border border-stone-200 rounded-xl pl-9 pr-3 py-2.5 text-sm text-stone-900"
                   />
                 </div>
+                <label className="shrink-0 px-4 py-2.5 bg-white hover:bg-stone-50 border border-stone-200 text-stone-700 font-bold text-sm rounded-xl shadow-sm flex items-center gap-1.5 cursor-pointer">
+                  <i className="fa-solid fa-file-excel text-emerald-600"></i> Importar Excel
+                  <input
+                    type="file"
+                    accept=".xlsx,.xls,.csv"
+                    className="hidden"
+                    onChange={(e) => {
+                      const file = e.target.files && e.target.files[0];
+                      e.target.value = '';
+                      if (file) procesarArchivoImportMaestro(file);
+                    }}
+                  />
+                </label>
                 <button onClick={abrirNuevoProductoMaestro} className="shrink-0 px-4 py-2.5 bg-stone-900 hover:bg-stone-800 text-white font-bold text-sm rounded-xl shadow flex items-center gap-1.5">
                   <i className="fa-solid fa-plus"></i> Nuevo
                 </button>
               </div>
             )}
 
-            {!formMaestro && (
+            {!formMaestro && !previewImportMaestro && (
               <div className="space-y-2">
                 <h2 className="text-sm font-bold text-stone-900 flex items-center gap-2">
                   <i className="fa-solid fa-list text-orange-600"></i> Catálogo Maestro ({catalogoMaestroFiltrado.length})
