@@ -895,7 +895,7 @@
         try {
           const { data: bodegas, error } = await sbClient.from('bodegas').select('*').order('nombre');
           if (error) throw error;
-          const { data: duenos } = await sbClient.from('usuarios').select('bodega_id, nombre, dni, auth_id, telefono').eq('rol', 'dueno');
+          const { data: duenos } = await sbClient.from('usuarios').select('id, bodega_id, nombre, dni, auth_id, telefono').eq('rol', 'dueno');
           const duenoPorBodega = new Map((duenos || []).map((d) => [d.bodega_id, d]));
           setBodegasAdmin((bodegas || []).map((b) => ({ ...b, dueno: duenoPorBodega.get(b.id) || null })));
         } catch (err) {
@@ -1045,6 +1045,60 @@
           notificar(`No se pudo eliminar: ${err.message}`, 'error');
         } finally {
           setEliminandoBodega(false);
+        }
+      };
+
+      // ==========================================
+      // EDITAR TELÉFONO y RESETEAR PIN -- para cuando el dueño cambia de
+      // número o se olvida su PIN. El teléfono se edita directo (no toca
+      // autenticación); el PIN se resetea borrando la cuenta de Auth (si
+      // existe) y guardando el PIN nuevo en texto plano en pin_acceso --
+      // igual que al crear la bodega, el dueño vuelve a "reclamarla" en su
+      // próximo login (ver reclamar_cuenta_bodega), sin necesitar el
+      // service_role key para cambiar la contraseña directamente.
+      // ==========================================
+      const [modalEditarBodega, setModalEditarBodega] = useState(null);
+      const [telefonoEditar, setTelefonoEditar] = useState('');
+      const [guardandoEditarBodega, setGuardandoEditarBodega] = useState(false);
+      const [modalResetearPin, setModalResetearPin] = useState(null);
+      const [nuevoPinReset, setNuevoPinReset] = useState('');
+      const [reseteandoPin, setReseteandoPin] = useState(false);
+
+      const guardarTelefonoBodega = async (e) => {
+        e.preventDefault();
+        if (!modalEditarBodega || !modalEditarBodega.dueno) return;
+        setGuardandoEditarBodega(true);
+        try {
+          const { error } = await sbClient.from('usuarios')
+            .update({ telefono: telefonoEditar.trim() || null })
+            .eq('id', modalEditarBodega.dueno.id);
+          if (error) throw error;
+          notificar('Teléfono actualizado.', 'success');
+          setModalEditarBodega(null);
+          cargarBodegas();
+        } catch (err) {
+          notificar(`No se pudo actualizar: ${err.message}`, 'error');
+        } finally {
+          setGuardandoEditarBodega(false);
+        }
+      };
+
+      const resetearPinConfirmado = async () => {
+        if (!modalResetearPin) return;
+        const pin = nuevoPinReset.trim();
+        if (pin.length < 4) { notificar('El PIN debe tener al menos 4 dígitos.', 'error'); return; }
+        setReseteandoPin(true);
+        try {
+          const { error } = await sbClient.rpc('admin_resetear_pin_bodega', { p_bodega_id: modalResetearPin.id, p_pin: pin });
+          if (error) throw error;
+          notificar('PIN reseteado. El dueño debe iniciar sesión con su DNI y el PIN nuevo para reclamar la cuenta de nuevo.', 'success');
+          setModalResetearPin(null);
+          setNuevoPinReset('');
+          cargarBodegas();
+        } catch (err) {
+          notificar(`No se pudo resetear el PIN: ${err.message}`, 'error');
+        } finally {
+          setReseteandoPin(false);
         }
       };
 
@@ -1309,6 +1363,22 @@
                         >
                           <i className="fa-solid fa-download text-[10px]"></i> {generandoBackupId === b.id ? 'Generando...' : 'Backup'}
                         </button>
+                        {b.dueno && (
+                          <button
+                            onClick={() => { setModalEditarBodega(b); setTelefonoEditar(b.dueno.telefono || ''); }}
+                            className="text-xs font-semibold px-2.5 py-1.5 rounded-lg bg-stone-100 text-stone-700 hover:bg-stone-200 flex items-center gap-1.5"
+                          >
+                            <i className="fa-solid fa-pen text-[10px]"></i> Editar teléfono
+                          </button>
+                        )}
+                        {b.dueno && (
+                          <button
+                            onClick={() => { setModalResetearPin(b); setNuevoPinReset(''); }}
+                            className="text-xs font-semibold px-2.5 py-1.5 rounded-lg bg-amber-50 text-amber-700 hover:bg-amber-100 flex items-center gap-1.5"
+                          >
+                            <i className="fa-solid fa-key text-[10px]"></i> Resetear PIN
+                          </button>
+                        )}
                         <button
                           onClick={() => { setModalEliminarBodega(b); setTextoConfirmarEliminar(''); }}
                           className="text-xs font-semibold px-2.5 py-1.5 rounded-lg bg-rose-50 text-rose-600 hover:bg-rose-100 flex items-center gap-1.5 ml-auto"
@@ -1447,6 +1517,72 @@
           </div>
           )}
           </div>
+
+          {modalEditarBodega && (
+            <div className="fixed inset-0 bg-black/85 flex items-center justify-center z-50 p-4">
+              <form onSubmit={guardarTelefonoBodega} className="bg-white border border-stone-200 rounded-2xl max-w-sm w-full p-5 shadow-2xl space-y-4">
+                <h3 className="text-sm font-bold text-stone-900">Editar teléfono -- {modalEditarBodega.nombre}</h3>
+                <div>
+                  <label className="text-[11px] font-bold text-stone-400 uppercase tracking-wide">Teléfono de {modalEditarBodega.dueno?.nombre}</label>
+                  <input
+                    type="text"
+                    autoFocus
+                    value={telefonoEditar}
+                    onChange={(e) => setTelefonoEditar(e.target.value)}
+                    placeholder="999888777"
+                    className="w-full bg-stone-50 border border-stone-200 rounded-lg px-3 py-2 text-sm text-stone-900 mt-1"
+                  />
+                </div>
+                <div className="flex gap-2">
+                  <button type="button" onClick={() => setModalEditarBodega(null)} className="flex-1 py-2.5 bg-stone-100 hover:bg-stone-200 text-stone-700 font-bold text-sm rounded-xl">
+                    Cancelar
+                  </button>
+                  <button type="submit" disabled={guardandoEditarBodega} className="flex-1 py-2.5 bg-stone-900 hover:bg-stone-800 disabled:opacity-60 text-white font-bold text-sm rounded-xl">
+                    {guardandoEditarBodega ? 'Guardando...' : 'Guardar'}
+                  </button>
+                </div>
+              </form>
+            </div>
+          )}
+
+          {modalResetearPin && (
+            <div className="fixed inset-0 bg-black/85 flex items-center justify-center z-50 p-4">
+              <div className="bg-white border border-stone-200 rounded-2xl max-w-sm w-full p-5 shadow-2xl space-y-4">
+                <div className="flex items-center gap-2 text-amber-600">
+                  <i className="fa-solid fa-key text-lg"></i>
+                  <h3 className="text-sm font-bold">Resetear PIN -- {modalResetearPin.nombre}</h3>
+                </div>
+                <p className="text-xs text-stone-600 leading-relaxed">
+                  Se cerrará la sesión actual de {modalResetearPin.dueno?.nombre} y deberá volver a ingresar con su DNI y el PIN nuevo la próxima vez.
+                </p>
+                <div>
+                  <label className="text-[11px] font-bold text-stone-400 uppercase tracking-wide">PIN nuevo (mínimo 4 dígitos)</label>
+                  <input
+                    type="text"
+                    autoFocus
+                    value={nuevoPinReset}
+                    onChange={(e) => setNuevoPinReset(e.target.value)}
+                    className="w-full bg-stone-50 border border-stone-200 rounded-lg px-3 py-2 text-sm text-stone-900 mt-1"
+                  />
+                </div>
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => { setModalResetearPin(null); setNuevoPinReset(''); }}
+                    className="flex-1 py-2.5 bg-stone-100 hover:bg-stone-200 text-stone-700 font-bold text-sm rounded-xl"
+                  >
+                    Cancelar
+                  </button>
+                  <button
+                    onClick={resetearPinConfirmado}
+                    disabled={reseteandoPin || nuevoPinReset.trim().length < 4}
+                    className="flex-1 py-2.5 bg-amber-600 hover:bg-amber-700 disabled:opacity-40 disabled:cursor-not-allowed text-white font-bold text-sm rounded-xl"
+                  >
+                    {reseteandoPin ? 'Reseteando...' : 'Resetear PIN'}
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
 
           {modalEliminarBodega && (
             <div className="fixed inset-0 bg-black/85 flex items-center justify-center z-50 p-4">
