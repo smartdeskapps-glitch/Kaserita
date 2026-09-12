@@ -1530,6 +1530,9 @@
                     onChange={(e) => setFormMaestro({ ...formMaestro, categoria: e.target.value })}
                     className="w-full bg-stone-50 border border-stone-200 rounded-lg px-3 py-2 text-sm text-stone-900"
                   >
+                    {!CATEGORIAS_FALLBACK.includes(formMaestro.categoria) && formMaestro.categoria && (
+                      <option value={formMaestro.categoria}>{formMaestro.categoria} (del proveedor)</option>
+                    )}
                     {CATEGORIAS_FALLBACK.map((c) => <option key={c} value={c}>{c}</option>)}
                   </select>
                 </div>
