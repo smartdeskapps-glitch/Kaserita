@@ -7001,7 +7001,15 @@
                 </div>
 
                 <div className="flex-1 overflow-y-auto space-y-2 pr-1">
-                  {filasInventario.map((fila, idx) => {
+                  {/* El producto activo (el que se está llenando) siempre va
+                      primero, para no tener que bajar entre el historial
+                      colapsado cada vez que se agrega uno nuevo. */}
+                  {[
+                    filaInventarioExpandidaIdx,
+                    ...filasInventario.map((_, i) => i).filter((i) => i !== filaInventarioExpandidaIdx)
+                  ].map((idx) => {
+                    const fila = filasInventario[idx];
+                    if (!fila) return null;
                     const esExistente = !!fila.productoExistenteId;
                     const sugerenciasPack = sugerenciasParaFilaPack(fila);
                     const sugerencias = sugerenciasParaFila(fila);
