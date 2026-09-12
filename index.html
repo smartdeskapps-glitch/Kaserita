@@ -5748,11 +5748,22 @@
               <div className="absolute -top-10 -left-10 w-40 h-40 bg-white/10 rounded-full"></div>
               <div className="absolute bottom-6 -right-14 w-56 h-56 bg-white/10 rounded-full"></div>
               <div className="absolute top-1/3 right-8 w-16 h-16 bg-white/10 rounded-full hidden md:block"></div>
-              <div className="relative inline-flex items-center justify-center w-20 h-20 bg-amber-300 rounded-full shadow-lg mb-5">
-                <img src="https://hzmrsbeamtbloudmxjrp.supabase.co/storage/v1/object/public/Logo/Gemini_Generated_Image_9g0vw69g0vw69g0v.png" alt="" className="w-12 h-12 object-contain" />
-              </div>
-              <h1 className="relative text-3xl font-black tracking-tight">Kaserita</h1>
-              <p className="relative text-sm text-orange-50/90 mt-1 text-center max-w-[220px]">Punto de Venta para tu Bodega o Negocio</p>
+              <div
+                className="relative w-32 h-32 md:w-36 md:h-36 bg-white rounded-[2rem] shadow-2xl mb-6"
+                // El PNG trae mucho margen transparente alrededor del dibujo (el
+                // ícono real ocupa ~36% del ancho de la imagen) -- con <img>
+                // normal ese margen se ve como si el logo fuera diminuto. Con
+                // background-image + background-size ampliado se recorta ese
+                // margen invisible y el ícono llena el recuadro.
+                style={{
+                  backgroundImage: "url('https://hzmrsbeamtbloudmxjrp.supabase.co/storage/v1/object/public/Logo/Gemini_Generated_Image_9g0vw69g0vw69g0v.png')",
+                  backgroundSize: '250% auto',
+                  backgroundPosition: 'center',
+                  backgroundRepeat: 'no-repeat'
+                }}
+              ></div>
+              <h1 className="relative text-3xl md:text-4xl font-black tracking-tight">Kaserita</h1>
+              <p className="relative text-sm text-orange-50/90 mt-1.5 text-center max-w-[240px]">Punto de Venta para tu Bodega o Negocio</p>
             </div>
 
             {/* Tarjeta de formulario */}
