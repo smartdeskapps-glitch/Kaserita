@@ -7114,17 +7114,22 @@
                               type="button"
                               onClick={() => abrirEscanerParaFilaInventario(idx)}
                               disabled={esExistente}
-                              className="absolute right-1.5 top-1/2 -translate-y-1/2 w-6 h-6 flex items-center justify-center text-stone-600 hover:text-orange-600 disabled:opacity-40 transition"
+                              className="absolute right-1.5 top-1/2 -translate-y-1/2 h-7 px-2.5 flex items-center gap-1 bg-orange-100 hover:bg-orange-200 text-orange-700 disabled:opacity-40 rounded-lg text-[11px] font-bold transition"
                               title="Escanear código de barras"
                             >
-                              <i className="fa-solid fa-camera text-xs"></i>
+                              <i className="fa-solid fa-camera text-xs"></i> Escanear
                             </button>
                           </div>
                         </div>
 
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pr-6">
                         <div className="sm:col-span-2 relative">
-                          <label className="text-[10px] font-semibold text-stone-500 block mb-0.5">Descripción del producto *</label>
+                          <div className="flex items-center justify-between mb-0.5">
+                            <label className="text-[10px] font-semibold text-stone-500">Descripción del producto *</label>
+                            <span className="text-[10px] font-semibold text-orange-600 flex items-center gap-1">
+                              <i className="fa-solid fa-wand-magic-sparkles"></i> Catálogo sugerido
+                            </span>
+                          </div>
                           <input
                             type="text"
                             placeholder="Escribe para buscar uno existente..."
@@ -7169,17 +7174,20 @@
                         <div className="sm:col-span-2 flex gap-1.5">
                           <div className="flex-1 min-w-0">
                             <label className="text-[10px] font-semibold text-stone-500 block mb-0.5">Categoría</label>
-                            <select
-                              value={fila.categoria}
-                              disabled={esExistente}
-                              onChange={(e) => actualizarFilaInventario(idx, 'categoria', e.target.value)}
-                              className={`w-full ${esExistente ? claseCampoVinculado : claseCampoNormal}`}
-                            >
-                              {!categoriasDB.includes(fila.categoria) && fila.categoria && (
-                                <option value={fila.categoria}>{fila.categoria}</option>
-                              )}
-                              {categoriasDB.map(c => <option key={c} value={c}>{c}</option>)}
-                            </select>
+                            <div className="relative">
+                              <i className={`fa-solid ${estiloCategoria(fila.categoria).icono} ${estiloCategoria(fila.categoria).color} absolute left-2.5 top-1/2 -translate-y-1/2 text-xs pointer-events-none`}></i>
+                              <select
+                                value={fila.categoria}
+                                disabled={esExistente}
+                                onChange={(e) => actualizarFilaInventario(idx, 'categoria', e.target.value)}
+                                className={`w-full pl-7 ${esExistente ? claseCampoVinculado : claseCampoNormal}`}
+                              >
+                                {!categoriasDB.includes(fila.categoria) && fila.categoria && (
+                                  <option value={fila.categoria}>{fila.categoria}</option>
+                                )}
+                                {categoriasDB.map(c => <option key={c} value={c}>{c}</option>)}
+                              </select>
+                            </div>
                           </div>
                           {!esExistente && (
                             <button
@@ -7200,15 +7208,18 @@
                         <p className="text-[10px] font-bold text-stone-400 uppercase tracking-wide">2. Precio y forma de venta</p>
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pr-6">
                         <div className="sm:col-span-2">
-                          <label className="text-[10px] font-semibold text-stone-500 block mb-0.5">Precio venta POR UNIDAD (S/) *</label>
-                          <input
-                            type="number"
-                            step="0.10"
-                            placeholder="Ej: 5.00"
-                            value={fila.precio_venta}
-                            onChange={(e) => actualizarFilaInventario(idx, 'precio_venta', e.target.value)}
-                            className={`w-full ${claseCampoNormal}`}
-                          />
+                          <label className="text-[10px] font-semibold text-stone-500 block mb-0.5">Precio venta POR UNIDAD *</label>
+                          <div className="relative">
+                            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm font-bold text-stone-500 pointer-events-none">S/</span>
+                            <input
+                              type="number"
+                              step="0.10"
+                              placeholder="0.00"
+                              value={fila.precio_venta}
+                              onChange={(e) => actualizarFilaInventario(idx, 'precio_venta', e.target.value)}
+                              className="w-full pl-8 pr-3 py-2.5 rounded-xl border border-stone-200 bg-stone-100 text-base font-bold text-stone-900 focus:outline-none focus:border-orange-500"
+                            />
+                          </div>
                         </div>
                         <div className="sm:col-span-2">
                           <label className="text-[10px] font-semibold text-stone-500 block mb-0.5">Se vende por</label>
@@ -7229,14 +7240,20 @@
                           unidades base sin llevar dos contadores separados. */}
                       {fila.unidad !== 'KG' && (
                         <div className="pr-6">
-                          <label className="flex items-center gap-2 text-xs font-semibold text-stone-700 cursor-pointer">
+                          <label className={`flex items-start gap-2.5 p-2.5 rounded-xl border cursor-pointer transition ${fila.vendeEnPack ? 'bg-orange-50 border-orange-300' : 'bg-white border-stone-200'}`}>
                             <input
                               type="checkbox"
                               checked={fila.vendeEnPack}
                               onChange={(e) => actualizarFilaInventario(idx, 'vendeEnPack', e.target.checked)}
-                              className="w-3.5 h-3.5"
+                              className="w-3.5 h-3.5 mt-0.5 shrink-0"
                             />
-                            <i className="fa-solid fa-box mr-1"></i> También se vende en pack/caja cerrada (ej: six-pack, caja x12)
+                            <span className={`shrink-0 w-7 h-7 rounded-lg flex items-center justify-center ${fila.vendeEnPack ? 'bg-orange-500 text-white' : 'bg-stone-100 text-stone-500'}`}>
+                              <i className="fa-solid fa-box text-xs"></i>
+                            </span>
+                            <span>
+                              <span className="block text-xs font-bold text-stone-800">Vender también en pack o caja cerrada</span>
+                              <span className="block text-[10px] text-stone-500">Ideal para six-packs de cerveza, displays x12 o cajas cerradas x24.</span>
+                            </span>
                           </label>
                           {esExistente && fila.vendeEnPackOriginal && !fila.vendeEnPack && (
                             <p className="text-[11px] text-rose-600 font-semibold mt-1">
