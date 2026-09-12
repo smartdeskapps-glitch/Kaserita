@@ -37,24 +37,38 @@
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
 
   <!-- React 18, ReactDOM y Babel Standalone -->
-  <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
-  <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
-  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <!-- "defer" en todas estas: sin eso, el navegador tiene que descargar Y
+       ejecutar estas 8 librerías, una por una, ANTES de poder pintar el
+       <body> -- osea antes de que se vea el splash screen de acá abajo,
+       que está pensado para aparecer al instante. Con "defer" el HTML del
+       body se parsea (y el splash se pinta) mientras estas se siguen
+       descargando en paralelo, y se ejecutan en este mismo orden justo
+       antes de que termine de cargar la página -- Babel igual espera a que
+       el documento esté listo para buscar el <script type="text/babel">
+       de más abajo, así que el comportamiento no cambia, solo cuándo se
+       pinta el splash. -->
+  <script defer crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script defer crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+  <script defer src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
 
   <!-- Supabase JS Client CDN -->
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
   <!-- Canvas Confetti -->
-  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
 
   <!-- Generación de PDF en el navegador (sin backend) -->
-  <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
 
   <!-- Lector de código de barras por cámara (sin backend) -->
-  <script src="https://cdn.jsdelivr.net/npm/zxing-wasm@3.1.3/dist/iife/reader/index.min.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/zxing-wasm@3.1.3/dist/iife/reader/index.min.js"></script>
 
   <!-- Generar archivos Excel (.xlsx) reales en el navegador, sin backend -->
-  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+
+  <!-- Logo: se precarga para que el splash de abajo lo muestre al instante -->
+  <link rel="preload" as="image" href="https://hzmrsbeamtbloudmxjrp.supabase.co/storage/v1/object/public/Logo/Gemini_Generated_Image_9g0vw69g0vw69g0v.jfif">
+  <link rel="preload" as="image" href="https://hzmrsbeamtbloudmxjrp.supabase.co/storage/v1/object/public/Logo/Gemini_Generated_Image_90q5hw90q5hw90q5%20(1).jfif">
 
   <style>
     body {
@@ -130,10 +144,13 @@
       flex-direction: column;
       align-items: center;
       justify-content: center;
-      gap: 2rem;
+      gap: 1.5rem;
       overflow: hidden;
-      background: radial-gradient(circle at 50% 38%, #241206 0%, #0d0805 55%, #000 100%);
-      color: #fff;
+      /* Blanco, igual que el fondo del logo (es un .jfif sin transparencia)
+         -- así el cuadrado blanco de la imagen se funde con el splash en
+         vez de verse como un recuadro pegado encima de un fondo oscuro. */
+      background: #fff;
+      color: #1c1917;
       font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
       transition: opacity 0.4s ease, visibility 0.4s ease;
     }
@@ -152,27 +169,20 @@
     }
     #splash-kaserita .splash-loader-logo {
       position: absolute;
-      width: 58px;
-      height: 58px;
+      width: 72px;
+      height: 72px;
       display: flex;
       align-items: center;
       justify-content: center;
+      object-fit: contain;
       animation: splash-color-change 2s infinite ease-in-out;
       z-index: 20;
     }
-    #splash-kaserita .splash-loader-logo svg { width: 100%; height: 100%; }
-    #splash-kaserita .splash-loader-k {
-      font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
-      font-weight: 900;
-      font-size: 2.2rem;
-      color: #fff;
-      text-shadow: 0 0 18px rgba(251,146,60,0.7), 0 2px 6px rgba(0,0,0,0.5);
-    }
     #splash-kaserita .splash-ring {
       position: absolute;
-      background: rgba(251,146,60,0.1);
+      background: rgba(234,88,12,0.06);
       border-radius: 50%;
-      border: 1px solid rgba(251,191,36,0.4);
+      border: 1px solid rgba(234,88,12,0.35);
       animation: splash-ripple 2s infinite ease-out;
       will-change: transform, opacity;
       /* transform-origin en el centro evita que, al escalar, el anillo se
@@ -180,10 +190,10 @@
       transform-origin: center;
     }
     #splash-kaserita .splash-ring:nth-child(1) { width: 26%; aspect-ratio: 1; z-index: 14; }
-    #splash-kaserita .splash-ring:nth-child(2) { inset: 30%; z-index: 13; border-color: rgba(251,191,36,0.32); animation-delay: 0.2s; }
-    #splash-kaserita .splash-ring:nth-child(3) { inset: 20%; z-index: 12; border-color: rgba(251,191,36,0.24); animation-delay: 0.4s; }
-    #splash-kaserita .splash-ring:nth-child(4) { inset: 10%; z-index: 11; border-color: rgba(251,191,36,0.16); animation-delay: 0.6s; }
-    #splash-kaserita .splash-ring:nth-child(5) { inset: 0; z-index: 10; border-color: rgba(251,191,36,0.08); animation-delay: 0.8s; }
+    #splash-kaserita .splash-ring:nth-child(2) { inset: 30%; z-index: 13; border-color: rgba(234,88,12,0.28); animation-delay: 0.2s; }
+    #splash-kaserita .splash-ring:nth-child(3) { inset: 20%; z-index: 12; border-color: rgba(234,88,12,0.2); animation-delay: 0.4s; }
+    #splash-kaserita .splash-ring:nth-child(4) { inset: 10%; z-index: 11; border-color: rgba(234,88,12,0.13); animation-delay: 0.6s; }
+    #splash-kaserita .splash-ring:nth-child(5) { inset: 0; z-index: 10; border-color: rgba(234,88,12,0.07); animation-delay: 0.8s; }
     /* Solo transform + opacity: son las dos únicas propiedades que el
        navegador puede animar en el hilo de composición (GPU) sin volver a
        calcular el layout/pintado en cada frame -- por eso se ve fluida
@@ -207,25 +217,10 @@
         opacity: 0.5;
       }
     }
-    #splash-kaserita .splash-wordmark {
+    #splash-kaserita .splash-wordmark-img {
       position: relative;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 0.4rem;
-    }
-    #splash-kaserita .splash-wordmark h1 {
-      margin: 0;
-      font-size: 2.1rem;
-      font-weight: 800;
-      letter-spacing: -0.03em;
-    }
-    #splash-kaserita .splash-tagline {
-      font-size: 0.7rem;
-      font-weight: 700;
-      letter-spacing: 0.16em;
-      text-transform: uppercase;
-      color: rgba(255,255,255,0.55);
+      height: 42px;
+      width: auto;
     }
   </style>
 </head>
@@ -237,12 +232,9 @@
       <div class="splash-ring"></div>
       <div class="splash-ring"></div>
       <div class="splash-ring"></div>
-      <div class="splash-loader-logo splash-loader-k">K</div>
+      <img class="splash-loader-logo" src="https://hzmrsbeamtbloudmxjrp.supabase.co/storage/v1/object/public/Logo/Gemini_Generated_Image_9g0vw69g0vw69g0v.jfif" alt="">
     </div>
-    <div class="splash-wordmark">
-      <h1>Kaserita</h1>
-      <span class="splash-tagline">Punto de Venta</span>
-    </div>
+    <img class="splash-wordmark-img" src="https://hzmrsbeamtbloudmxjrp.supabase.co/storage/v1/object/public/Logo/Gemini_Generated_Image_90q5hw90q5hw90q5%20(1).jfif" alt="Kaserita - Punto de Venta">
   </div>
   <div id="root"></div>
 
