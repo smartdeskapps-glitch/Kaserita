@@ -1095,6 +1095,7 @@
       const [catalogoMaestro, setCatalogoMaestro] = useState([]);
       const [cargandoMaestro, setCargandoMaestro] = useState(false);
       const [busquedaMaestro, setBusquedaMaestro] = useState('');
+      const [filtroFotoMaestro, setFiltroFotoMaestro] = useState('todos');
       const [formMaestro, setFormMaestro] = useState(null);
       const [guardandoMaestro, setGuardandoMaestro] = useState(false);
       const [subiendoFotoMaestro, setSubiendoFotoMaestro] = useState(false);
@@ -1190,9 +1191,14 @@
         }
       };
 
-      const catalogoMaestroFiltrado = catalogoMaestro.filter((p) =>
-        !busquedaMaestro.trim() || p.descripcion.toLowerCase().includes(busquedaMaestro.trim().toLowerCase())
-      );
+      const catalogoMaestroConFoto = catalogoMaestro.filter((p) => !!p.foto_url).length;
+      const catalogoMaestroSinFoto = catalogoMaestro.length - catalogoMaestroConFoto;
+
+      const catalogoMaestroFiltrado = catalogoMaestro.filter((p) => {
+        if (filtroFotoMaestro === 'con' && !p.foto_url) return false;
+        if (filtroFotoMaestro === 'sin' && p.foto_url) return false;
+        return !busquedaMaestro.trim() || p.descripcion.toLowerCase().includes(busquedaMaestro.trim().toLowerCase());
+      });
 
       // Importación masiva desde un Excel/CSV de un proveedor (ej. la lista de
       // precios de un distribuidor con columnas de código, descripción,
@@ -1604,6 +1610,25 @@
                 <button onClick={abrirNuevoProductoMaestro} className="shrink-0 px-4 py-2.5 bg-stone-900 hover:bg-stone-800 text-white font-bold text-sm rounded-xl shadow flex items-center gap-1.5">
                   <i className="fa-solid fa-plus"></i> Nuevo
                 </button>
+              </div>
+            )}
+
+            {!formMaestro && !previewImportMaestro && (
+              <div className="flex items-center gap-1.5">
+                {[
+                  { valor: 'todos', etiqueta: `Todos (${catalogoMaestro.length})` },
+                  { valor: 'sin', etiqueta: `Sin foto (${catalogoMaestroSinFoto})` },
+                  { valor: 'con', etiqueta: `Con foto (${catalogoMaestroConFoto})` }
+                ].map((op) => (
+                  <button
+                    key={op.valor}
+                    type="button"
+                    onClick={() => setFiltroFotoMaestro(op.valor)}
+                    className={`px-3 py-1.5 rounded-full text-xs font-semibold transition ${filtroFotoMaestro === op.valor ? 'bg-stone-900 text-white' : 'bg-white border border-stone-200 text-stone-600 hover:bg-stone-100'}`}
+                  >
+                    {op.etiqueta}
+                  </button>
+                ))}
               </div>
             )}
 
