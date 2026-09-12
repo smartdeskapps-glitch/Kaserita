@@ -1102,6 +1102,61 @@
       const [previewImportMaestro, setPreviewImportMaestro] = useState(null);
       const [guardandoImportMaestro, setGuardandoImportMaestro] = useState(false);
 
+      // --- Productos de Clientes: mercadería que una bodega agregó por su
+      // cuenta y todavía no tiene ficha en el catálogo maestro -- se revisan
+      // acá para, si conviene, sumarlas al maestro general (ver
+      // guardarProductoMaestro, que detecta _origenProductoId). ---
+      const [productosSinMaestro, setProductosSinMaestro] = useState([]);
+      const [cargandoProductosSinMaestro, setCargandoProductosSinMaestro] = useState(false);
+      const [busquedaProductosSinMaestro, setBusquedaProductosSinMaestro] = useState('');
+
+      const cargarProductosSinMaestro = useCallback(async () => {
+        setCargandoProductosSinMaestro(true);
+        try {
+          let { data, error } = await sbClient
+            .from('productos')
+            .select('id, descripcion, categoria, foto_url, cod_ean, bodega_id, bodegas(nombre)')
+            .is('catalogo_maestro_id', null)
+            .order('descripcion');
+          if (error) {
+            // El embed a "bodegas" puede fallar si PostgREST no reconoce esa
+            // relación -- se reintenta sin el nombre de la bodega en vez de
+            // dejar la sección entera rota.
+            ({ data, error } = await sbClient
+              .from('productos')
+              .select('id, descripcion, categoria, foto_url, cod_ean, bodega_id')
+              .is('catalogo_maestro_id', null)
+              .order('descripcion'));
+            if (error) throw error;
+          }
+          setProductosSinMaestro(data || []);
+        } catch (err) {
+          notificar(`No se pudo cargar la mercadería de clientes: ${err.message}`, 'error');
+        } finally {
+          setCargandoProductosSinMaestro(false);
+        }
+      }, [sbClient]);
+
+      useEffect(() => {
+        if (vistaAdmin === 'nuevos' && productosSinMaestro.length === 0) cargarProductosSinMaestro();
+      }, [vistaAdmin, cargarProductosSinMaestro]);
+
+      const productosSinMaestroFiltrado = productosSinMaestro.filter((p) =>
+        !busquedaProductosSinMaestro.trim() || p.descripcion.toLowerCase().includes(busquedaProductosSinMaestro.trim().toLowerCase())
+      );
+
+      const abrirPromoverAMaestro = (p) => {
+        setFormMaestro({
+          id: crypto.randomUUID(),
+          descripcion: p.descripcion,
+          categoria: p.categoria || 'Abarrotes',
+          sku: '',
+          foto_url: p.foto_url || '',
+          _origenProductoId: p.id
+        });
+        setVistaAdmin('maestro');
+      };
+
       const cargarCatalogoMaestro = useCallback(async () => {
         setCargandoMaestro(true);
         try {
@@ -1170,8 +1225,27 @@
           };
           const { error } = await sbClient.from('catalogo_maestro').upsert([payload]);
           if (error) throw error;
-          notificar('Producto guardado en el catálogo maestro.', 'success');
-          setFormMaestro(null);
+
+          // Si este formulario se abrió desde "Productos de Clientes" (un
+          // producto que una bodega agregó por su cuenta, todavía sin ficha
+          // en el maestro), se vincula ese producto a la ficha recién creada
+          // -- así deja de aparecer en esa lista de pendientes y, de paso, si
+          // más adelante se le mejora la foto en el maestro, esa bodega la ve
+          // actualizada sola.
+          if (formMaestro._origenProductoId) {
+            const { error: errVincular } = await sbClient.rpc('admin_vincular_producto_maestro', {
+              p_producto_id: formMaestro._origenProductoId,
+              p_catalogo_maestro_id: payload.id
+            });
+            if (errVincular) throw errVincular;
+            setProductosSinMaestro((prev) => prev.filter((p) => p.id !== formMaestro._origenProductoId));
+            notificar('Producto agregado al catálogo maestro y vinculado a la bodega que lo creó.', 'success');
+            setFormMaestro(null);
+            setVistaAdmin('nuevos');
+          } else {
+            notificar('Producto guardado en el catálogo maestro.', 'success');
+            setFormMaestro(null);
+          }
           cargarCatalogoMaestro();
         } catch (err) {
           notificar(`No se pudo guardar: ${err.message}`, 'error');
@@ -1317,6 +1391,15 @@
               className={`px-4 py-2 text-xs font-bold rounded-t-lg transition ${vistaAdmin === 'maestro' ? 'bg-stone-100 text-stone-900 border-t border-x border-stone-200' : 'text-stone-500 hover:text-stone-800'}`}
             >
               <i className="fa-solid fa-book mr-1.5"></i> Catálogo Maestro
+            </button>
+            <button
+              onClick={() => setVistaAdmin('nuevos')}
+              className={`px-4 py-2 text-xs font-bold rounded-t-lg transition ${vistaAdmin === 'nuevos' ? 'bg-stone-100 text-stone-900 border-t border-x border-stone-200' : 'text-stone-500 hover:text-stone-800'}`}
+            >
+              <i className="fa-solid fa-boxes-packing mr-1.5"></i> Productos de Clientes
+              {productosSinMaestro.length > 0 && (
+                <span className="ml-1.5 px-1.5 py-0.5 rounded-full bg-amber-100 text-amber-700 text-[10px]">{productosSinMaestro.length}</span>
+              )}
             </button>
           </div>
 
@@ -1487,8 +1570,13 @@
             {formMaestro ? (
               <form onSubmit={guardarProductoMaestro} className="bg-white border border-stone-200 rounded-2xl p-5 space-y-3">
                 <h2 className="text-sm font-bold text-stone-900 flex items-center gap-2">
-                  <i className="fa-solid fa-book text-orange-600"></i> {catalogoMaestro.some((p) => p.id === formMaestro.id) ? 'Editar Producto' : 'Nuevo Producto del Catálogo Maestro'}
+                  <i className="fa-solid fa-book text-orange-600"></i> {formMaestro._origenProductoId ? 'Agregar al Catálogo Maestro' : catalogoMaestro.some((p) => p.id === formMaestro.id) ? 'Editar Producto' : 'Nuevo Producto del Catálogo Maestro'}
                 </h2>
+                {formMaestro._origenProductoId && (
+                  <p className="text-xs text-stone-500 -mt-2">
+                    Revisa/corrige la descripción, categoría y foto antes de sumarlo al catálogo general -- esto no modifica el producto tal cual quedó en la bodega que lo creó.
+                  </p>
+                )}
                 <div className="flex items-center gap-3">
                   <label className="relative w-16 h-16 rounded-xl overflow-hidden shrink-0 cursor-pointer group border border-stone-200">
                     <FotoProducto
@@ -1546,7 +1634,15 @@
                   <p className="text-xs text-stone-500">SKU: <span className="font-mono">{formMaestro.sku}</span></p>
                 )}
                 <div className="flex gap-2 pt-1">
-                  <button type="button" onClick={() => setFormMaestro(null)} className="flex-1 py-2.5 bg-stone-100 hover:bg-stone-200 text-stone-700 font-bold text-sm rounded-xl">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const veniaDeNuevos = !!formMaestro._origenProductoId;
+                      setFormMaestro(null);
+                      if (veniaDeNuevos) setVistaAdmin('nuevos');
+                    }}
+                    className="flex-1 py-2.5 bg-stone-100 hover:bg-stone-200 text-stone-700 font-bold text-sm rounded-xl"
+                  >
                     Cancelar
                   </button>
                   <button type="submit" disabled={guardandoMaestro} className="flex-1 py-2.5 bg-stone-900 hover:bg-stone-800 disabled:opacity-60 text-white font-bold text-sm rounded-xl shadow">
@@ -1664,6 +1760,49 @@
                     ))}
                   </div>
                 )}
+              </div>
+            )}
+          </div>
+          )}
+
+          {vistaAdmin === 'nuevos' && (
+          <div className="max-w-4xl mx-auto p-4 md:p-6 space-y-4">
+            <p className="text-xs text-stone-500">
+              Mercadería que alguna bodega agregó por su cuenta y todavía no tiene ficha en el catálogo maestro. Revisa la descripción/foto y, si conviene, súmala al catálogo general para que le sirva de sugerencia a todas las demás bodegas también.
+            </p>
+            <div className="relative">
+              <i className="fa-solid fa-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-stone-400 text-xs"></i>
+              <input
+                type="text" placeholder="Buscar producto..."
+                value={busquedaProductosSinMaestro}
+                onChange={(e) => setBusquedaProductosSinMaestro(e.target.value)}
+                className="w-full bg-white border border-stone-200 rounded-xl pl-9 pr-3 py-2.5 text-sm text-stone-900"
+              />
+            </div>
+            {cargandoProductosSinMaestro ? (
+              <p className="text-xs text-stone-500 text-center py-6">Cargando...</p>
+            ) : productosSinMaestroFiltrado.length === 0 ? (
+              <p className="text-xs text-stone-500 text-center py-6">
+                {productosSinMaestro.length === 0 ? 'No hay mercadería pendiente -- todo lo que agregaron las bodegas ya está en el catálogo maestro.' : 'No se encontraron productos con esa búsqueda.'}
+              </p>
+            ) : (
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                {productosSinMaestroFiltrado.map((p) => (
+                  <div key={p.id} className="bg-white border border-stone-200 rounded-xl p-3 flex items-center gap-3">
+                    <FotoProducto fotoUrl={p.foto_url} categoria={p.categoria} className="w-12 h-12 rounded-lg shrink-0" iconClassName="text-lg" />
+                    <div className="min-w-0 flex-1">
+                      <p className="text-xs font-bold text-stone-900 truncate">{p.descripcion}</p>
+                      <p className="text-[11px] text-stone-500 truncate">{p.categoria || 'Sin categoría'}{p.bodegas?.nombre ? ` · ${p.bodegas.nombre}` : ''}</p>
+                    </div>
+                    <button
+                      onClick={() => abrirPromoverAMaestro(p)}
+                      title="Agregar al catálogo maestro"
+                      className="shrink-0 w-7 h-7 flex items-center justify-center bg-orange-50 hover:bg-orange-100 text-orange-600 rounded-lg"
+                    >
+                      <i className="fa-solid fa-arrow-up-from-bracket text-xs"></i>
+                    </button>
+                  </div>
+                ))}
               </div>
             )}
           </div>
