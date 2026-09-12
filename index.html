@@ -523,8 +523,7 @@
       const [qrImg, setQrImg] = useState(() => localStorage.getItem(storageKey));
       const inputRef = useRef(null);
 
-      const handleSubirQR = (e) => {
-        const file = e.target.files?.[0];
+      const guardarQRDesdeArchivo = (file) => {
         if (!file) return;
         const reader = new FileReader();
         reader.onload = () => {
@@ -533,6 +532,20 @@
         };
         reader.readAsDataURL(file);
       };
+
+      const handleSubirQR = (e) => guardarQRDesdeArchivo(e.target.files?.[0]);
+
+      // Muchos dueños ya tienen el QR como una captura de pantalla en el
+      // portapapeles (de Yape/Plin) -- con Ctrl+V se pega directo, sin tener
+      // que guardarla como archivo primero para recién subirla.
+      useEffect(() => {
+        const manejarPegado = (e) => {
+          const item = Array.from(e.clipboardData?.items || []).find((it) => it.type.startsWith('image/'));
+          if (item) guardarQRDesdeArchivo(item.getAsFile());
+        };
+        window.addEventListener('paste', manejarPegado);
+        return () => window.removeEventListener('paste', manejarPegado);
+      }, [storageKey]);
 
       return (
         <div className="fixed inset-0 bg-black/85 flex items-center justify-center z-50 p-4">
@@ -558,6 +571,7 @@
             >
               {qrImg ? 'Cambiar imagen del QR' : `Subir QR de ${medioPago}`}
             </button>
+            <p className="text-[10px] text-stone-400">o copia la imagen y pégala aquí con Ctrl+V</p>
             <button onClick={onClose} className="w-full py-2.5 bg-stone-900 hover:bg-stone-800 text-white font-bold text-xs rounded-xl">
               Cerrar
             </button>
@@ -1126,6 +1140,20 @@
         }
       };
 
+      // Con el formulario de un producto del catálogo maestro abierto, Ctrl+V
+      // sube directo la imagen que se tenga copiada (ej. una foto del
+      // producto bajada de internet) sin tener que guardarla como archivo
+      // antes.
+      useEffect(() => {
+        if (!formMaestro) return;
+        const manejarPegado = (e) => {
+          const item = Array.from(e.clipboardData?.items || []).find((it) => it.type.startsWith('image/'));
+          if (item) subirFotoMaestro(item.getAsFile());
+        };
+        window.addEventListener('paste', manejarPegado);
+        return () => window.removeEventListener('paste', manejarPegado);
+      }, [formMaestro?.id]);
+
       const guardarProductoMaestro = async (e) => {
         e.preventDefault();
         setGuardandoMaestro(true);
@@ -1483,7 +1511,7 @@
                   </label>
                   <p className="text-xs text-stone-500">
                     <span className="font-semibold text-stone-700 block">Foto del producto</span>
-                    Toca el cuadro para {formMaestro.foto_url ? 'cambiarla' : 'subir una'}.
+                    Toca el cuadro para {formMaestro.foto_url ? 'cambiarla' : 'subir una'}, o copia una imagen y pégala con Ctrl+V.
                   </p>
                 </div>
                 <div>
