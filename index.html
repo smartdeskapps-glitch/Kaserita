@@ -3197,7 +3197,7 @@
         if (modoEscaner === 'toma-inventario') {
           const encontrado = buscarProductoPorCodigo(codigoLimpio);
           if (encontrado) {
-            agregarProductoAConteo(encontrado.producto);
+            agregarProductoAConteo(encontrado.producto, true);
             notificar(`Agregado al conteo: ${encontrado.producto.descripcion}`, 'success');
           } else {
             notificar(`Código ${codigoLimpio} no encontrado en el catálogo.`, 'error');
@@ -4719,7 +4719,7 @@
       // hallazgos (cada vez que se agrega una cantidad encontrada en algún
       // lugar) y el total contado es la suma de todos ellos, en vez de un
       // solo número que se pisa cada vez que se vuelve a tocar el producto.
-      const agregarProductoAConteo = (producto) => {
+      const agregarProductoAConteo = (producto, viaEscaner = false) => {
         setFilasTomaInventario((prev) => {
           const existente = prev.find((f) => f.productoId === producto.id);
           // El producto tocado (nuevo o reencontrado en otro lugar del
@@ -4727,7 +4727,7 @@
           // vista arriba mientras se sigue contando, y el resto de lo ya
           // contado queda debajo como historial, sin tener que hacer scroll
           // para encontrarlo en un catálogo de cientos de productos.
-          if (existente) return [existente, ...prev.filter((f) => f.productoId !== producto.id)];
+          if (existente) return [{ ...existente, viaEscaner }, ...prev.filter((f) => f.productoId !== producto.id)];
           return [{
             productoId: producto.id,
             descripcion: producto.descripcion,
@@ -4738,7 +4738,12 @@
             stockContado: '',
             pendienteCantidad: '',
             pendientePacks: '',
-            pendienteSueltas: ''
+            pendienteSueltas: '',
+            // Se recuerda si este producto se agregó escaneando -- así,
+            // al confirmar la cantidad (ver agregarHallazgo), se sabe si
+            // hay que volver a abrir la cámara para seguir escaneando el
+            // siguiente producto sin tener que tocarla a mano de nuevo.
+            viaEscaner
           }, ...prev];
         });
         setConteoFisicoBusqueda('');
@@ -4782,18 +4787,20 @@
       // si el producto vende también por pack) como un hallazgo más del
       // historial, y recalcula el total sumando todos los hallazgos.
       const agregarHallazgo = (productoId) => {
+        const f = filasTomaInventario.find((x) => x.productoId === productoId);
+        if (!f) return;
+        const tienePack = f.unidadesPorPack > 1;
+        const escribioAlgo = tienePack ? (f.pendientePacks !== '' || f.pendienteSueltas !== '') : f.pendienteCantidad !== '';
+        if (!escribioAlgo) return;
+        const cantidad = tienePack
+          ? (Number(f.pendientePacks) || 0) * f.unidadesPorPack + (Number(f.pendienteSueltas) || 0)
+          : Number(f.pendienteCantidad) || 0;
         setFilasTomaInventario((prev) => {
-          const f = prev.find((x) => x.productoId === productoId);
-          if (!f) return prev;
-          const tienePack = f.unidadesPorPack > 1;
-          const escribioAlgo = tienePack ? (f.pendientePacks !== '' || f.pendienteSueltas !== '') : f.pendienteCantidad !== '';
-          if (!escribioAlgo) return prev;
-          const cantidad = tienePack
-            ? (Number(f.pendientePacks) || 0) * f.unidadesPorPack + (Number(f.pendienteSueltas) || 0)
-            : Number(f.pendienteCantidad) || 0;
-          const historial = [...f.historial, { id: `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`, cantidad }];
+          const actual = prev.find((x) => x.productoId === productoId);
+          if (!actual) return prev;
+          const historial = [...actual.historial, { id: `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`, cantidad }];
           const total = historial.reduce((acc, h) => acc + h.cantidad, 0);
-          const actualizado = { ...f, historial, stockContado: String(total), pendienteCantidad: '', pendientePacks: '', pendienteSueltas: '' };
+          const actualizado = { ...actual, historial, stockContado: String(total), pendienteCantidad: '', pendientePacks: '', pendienteSueltas: '' };
           // Sube al principio junto con el resto -- así el producto que se
           // está contando ahora mismo siempre queda arriba, visible sin
           // scroll, y lo demás va quedando como historial debajo.
@@ -4802,6 +4809,14 @@
         // Vuelve a enfocar el mismo input -- lo normal es seguir encontrando
         // más de este producto en otros lugares antes de pasar al siguiente.
         setFocoPendienteConteo(productoId);
+        // Si este producto se agregó escaneando, se reabre la cámara sola
+        // para seguir escaneando el siguiente producto de una -- sin esto,
+        // había que tocar el ícono de la cámara a mano después de cada uno.
+        if (f.viaEscaner) {
+          setModoEscaner('toma-inventario');
+          setMetodoForzado(null);
+          setModalEscaner(true);
+        }
       };
 
       const quitarHallazgo = (productoId, hallazgoId) => {
@@ -4821,7 +4836,10 @@
         setFilasTomaInventario((prev) => {
           const existente = prev.find((f) => f.productoId === productoId);
           if (!existente) return prev;
-          return [existente, ...prev.filter((f) => f.productoId !== productoId)];
+          // Se promueve a mano desde el Historial (no escaneando) -- se
+          // apaga viaEscaner para que al confirmar la cantidad no se
+          // reabra la cámara sola sin que la hayan pedido.
+          return [{ ...existente, viaEscaner: false }, ...prev.filter((f) => f.productoId !== productoId)];
         });
         setFocoPendienteConteo(productoId);
       };
