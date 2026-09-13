@@ -1994,15 +1994,31 @@
       // --- Sesión (Tabla `usuarios`, respaldada por Supabase Auth) ---
       const [sesion, setSesion] = useState(null);
       const [verificandoSesion, setVerificandoSesion] = useState(true);
+      const splashRafRef = useRef(null);
 
       // Oculta el splash screen estático (definido en el <body>, visible desde
       // antes de que React/Babel terminen de cargar) recién cuando ya sabemos
       // qué pantalla mostrar -- así no hay parpadeo entre el splash y un
       // segundo spinner de React.
+      //
+      // El doble requestAnimationFrame es a propósito: React ya montó el
+      // login/la app en este punto, pero Tailwind (que genera las clases
+      // como CSS recién al detectar el DOM nuevo, no antes) todavía puede
+      // no haber terminado -- sacar el splash un instante antes de que
+      // Tailwind aplique sus estilos dejaba ver, una fracción de segundo,
+      // la pantalla de login sin flexbox ni fondos (como partida a la
+      // mitad). Esperar dos frames alcanza para que el navegador ya haya
+      // pintado con los estilos puestos antes de retirar el splash.
       useEffect(() => {
-        if (!verificandoSesion && typeof window.ocultarSplashKaserita === 'function') {
-          window.ocultarSplashKaserita();
-        }
+        if (verificandoSesion || typeof window.ocultarSplashKaserita !== 'function') return;
+        const id1 = requestAnimationFrame(() => {
+          const id2 = requestAnimationFrame(() => {
+            window.ocultarSplashKaserita();
+          });
+          splashRafRef.current = id2;
+        });
+        splashRafRef.current = id1;
+        return () => cancelAnimationFrame(splashRafRef.current);
       }, [verificandoSesion]);
 
       // --- Auth Form ---
