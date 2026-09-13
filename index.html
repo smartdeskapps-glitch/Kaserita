@@ -2223,6 +2223,18 @@
         } catch {}
       }, [filasTomaInventario, modalTomaInventario, bodegaId]);
 
+      // Cada toma de inventario guardada (ver guardarTomaInventario) ya
+      // queda insertada en la tabla `tomas_inventario` -- lo único que
+      // faltaba era una pantalla para revisar ese historial más adelante y
+      // comparar, producto por producto, si un día cuadró y otro no.
+      const [modalHistorialInventario, setModalHistorialInventario] = useState(false);
+      const [historialInventario, setHistorialInventario] = useState([]);
+      const [cargandoHistorialInventario, setCargandoHistorialInventario] = useState(false);
+      const [fechaInicioHistInventario, setFechaInicioHistInventario] = useState('');
+      const [fechaFinHistInventario, setFechaFinHistInventario] = useState('');
+      const [historialInventarioBusqueda, setHistorialInventarioBusqueda] = useState('');
+      const [historialInventarioSoloDif, setHistorialInventarioSoloDif] = useState(false);
+
       // --- Módulo: Inventario Inicial (carga de varios productos a la vez) ---
       const filaInventarioVacia = () => ({ descripcion: '', cod_ean: '', sku: '', categoria: 'Abarrotes', precio_costo: '', precio_venta: '', unidad: 'UND', vendeEnPack: false, vendeEnPackOriginal: false, unidades_por_pack: '', precio_venta_pack: '', cod_ean_pack: '', productoExistenteId: null, foto_url: '', catalogoMaestroId: null });
       const [modalInventarioInicial, setModalInventarioInicial] = useState(false);
@@ -4857,6 +4869,66 @@
       };
 
       // ==========================================
+      // HISTORIAL DE TOMAS DE INVENTARIO (comparar cuadres a lo largo del tiempo)
+      // ==========================================
+      const cargarHistorialInventarioPorRango = async (desde, hasta) => {
+        if (!sbClient || !bodegaId) return;
+        setCargandoHistorialInventario(true);
+        try {
+          const inicio = new Date(`${desde}T00:00:00`);
+          const fin = new Date(`${hasta}T23:59:59.999`);
+          const { data, error } = await sbClient
+            .from('tomas_inventario')
+            .select('*, productos(descripcion, categoria)')
+            .eq('bodega_id', bodegaId)
+            .gte('fecha', inicio.toISOString())
+            .lte('fecha', fin.toISOString())
+            .order('fecha', { ascending: false })
+            .limit(500);
+          if (error) throw error;
+          setHistorialInventario(data || []);
+        } catch (err) {
+          notificar(`No se pudo cargar el historial: ${err.message}`, 'error');
+        } finally {
+          setCargandoHistorialInventario(false);
+        }
+      };
+
+      const abrirHistorialInventario = () => {
+        const hoy = fechaHoyISO();
+        const hace30dias = new Date();
+        hace30dias.setDate(hace30dias.getDate() - 29);
+        const desde = fechaISOLocal(hace30dias);
+        setFechaInicioHistInventario(desde);
+        setFechaFinHistInventario(hoy);
+        setHistorialInventarioBusqueda('');
+        setHistorialInventarioSoloDif(false);
+        setModalHistorialInventario(true);
+        cargarHistorialInventarioPorRango(desde, hoy);
+      };
+
+      // Agrupado por día (más nuevo primero) para poder leer el historial
+      // como una comparación día a día: "el 12 cuadró, el 13 no, el 14 se
+      // mantuvo" -- en vez de una lista plana sin contexto de fecha.
+      const historialInventarioAgrupado = useMemo(() => {
+        const t = historialInventarioBusqueda.trim().toLowerCase();
+        const filtrado = historialInventario
+          .filter((h) => !t || (h.productos?.descripcion || '').toLowerCase().includes(t))
+          .filter((h) => !historialInventarioSoloDif || Number(h.diferencia) !== 0);
+        const grupos = [];
+        let grupoActual = null;
+        filtrado.forEach((h) => {
+          const dia = h.fecha.slice(0, 10);
+          if (!grupoActual || grupoActual.dia !== dia) {
+            grupoActual = { dia, items: [] };
+            grupos.push(grupoActual);
+          }
+          grupoActual.items.push(h);
+        });
+        return grupos;
+      }, [historialInventario, historialInventarioBusqueda, historialInventarioSoloDif]);
+
+      // ==========================================
       // ENTRADA DE MERCADERÍA (COMPRAS)
       // ==========================================
 
@@ -6705,6 +6777,7 @@
             <SidebarIcon icon="fa-triangle-exclamation" label="Stock Bajo" badge={cantidadStockBajo} tone={cantidadStockBajo > 0 ? 'orange' : 'default'} onClick={() => setModalStockBajo(true)} />
             <SidebarIcon icon="fa-table-list" label="Ver Stock" onClick={() => setModalVerStock(true)} />
             <SidebarIcon icon="fa-clipboard-check" label="Toma de Inventario" onClick={abrirTomaInventario} />
+            <SidebarIcon icon="fa-scale-balanced" label="Historial de Inventario" onClick={abrirHistorialInventario} />
             <SidebarIcon icon="fa-box" label="Registrar Merma" onClick={() => setModalMerma(true)} />
             {esAdmin && (
               <>
@@ -7411,6 +7484,9 @@
                 </button>
                 <button onClick={() => { abrirTomaInventario(); setMenuMas(false); }} className="w-full text-left px-3.5 py-3 rounded-xl hover:bg-stone-200 flex items-center gap-3 text-stone-800 font-medium text-sm">
                   <i className="fa-solid fa-clipboard-check w-5 text-amber-600"></i> Toma de Inventario
+                </button>
+                <button onClick={() => { abrirHistorialInventario(); setMenuMas(false); }} className="w-full text-left px-3.5 py-3 rounded-xl hover:bg-stone-200 flex items-center gap-3 text-stone-800 font-medium text-sm">
+                  <i className="fa-solid fa-scale-balanced w-5 text-amber-600"></i> Historial de Inventario
                 </button>
                 <button onClick={() => { setModalMerma(true); setMenuMas(false); }} className="w-full text-left px-3.5 py-3 rounded-xl hover:bg-stone-200 flex items-center gap-3 text-stone-800 font-medium text-sm">
                   <i className="fa-solid fa-box w-5 text-amber-600"></i> Registrar Merma
@@ -9314,6 +9390,90 @@
                           <span>Fondo inicial: S/ {Number(t.monto_inicial).toFixed(2)}</span>
                           <span>Ventas efectivo: S/ {Number(t.ventas_sistema || 0).toFixed(2)}</span>
                           <span className="col-span-2 font-semibold text-stone-800">Contado: S/ {Number(t.monto_final_real || 0).toFixed(2)}</span>
+                        </div>
+                      </div>
+                    ))
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Modal: Historial de Toma de Inventario -- comparar, producto por
+              producto, si un día cuadró contra el sistema y otro no. */}
+          {modalHistorialInventario && (
+            <div className="fixed inset-0 bg-black/85 flex items-center justify-center z-50 p-4">
+              <div className="bg-stone-100 border border-stone-200 rounded-2xl max-w-lg w-full p-5 shadow-2xl space-y-3 max-h-[90vh] flex flex-col">
+                <div className="flex justify-between items-center shrink-0">
+                  <h3 className="text-base font-bold text-stone-900 flex items-center gap-2">
+                    <i className="fa-solid fa-scale-balanced text-orange-600"></i> Historial de Inventario
+                  </h3>
+                  <button onClick={() => setModalHistorialInventario(false)} className="text-stone-600 hover:text-stone-900"><i className="fa-solid fa-xmark"></i></button>
+                </div>
+
+                <FiltroFechasRapido
+                  desde={fechaInicioHistInventario}
+                  hasta={fechaFinHistInventario}
+                  setDesde={setFechaInicioHistInventario}
+                  setHasta={setFechaFinHistInventario}
+                  onRango={cargarHistorialInventarioPorRango}
+                  diasAtras={30}
+                />
+
+                <div className="flex gap-2 shrink-0">
+                  <input
+                    type="text"
+                    placeholder="Buscar producto..."
+                    value={historialInventarioBusqueda}
+                    onChange={(e) => setHistorialInventarioBusqueda(e.target.value)}
+                    className="flex-1 bg-stone-50 border border-stone-200 rounded-lg px-2.5 py-1.5 text-xs text-stone-900"
+                  />
+                  <label className="flex items-center gap-1.5 px-2.5 py-1.5 bg-stone-50 border border-stone-200 rounded-lg text-xs text-stone-700 font-semibold cursor-pointer shrink-0">
+                    <input
+                      type="checkbox"
+                      checked={historialInventarioSoloDif}
+                      onChange={(e) => setHistorialInventarioSoloDif(e.target.checked)}
+                    />
+                    Solo con diferencia
+                  </label>
+                </div>
+
+                <div className="flex-1 overflow-y-auto space-y-3">
+                  {cargandoHistorialInventario ? (
+                    <p className="text-xs text-center py-8 text-stone-600">Cargando...</p>
+                  ) : historialInventarioAgrupado.length === 0 ? (
+                    <p className="text-xs text-center py-8 text-stone-500">No hay conteos registrados en ese rango.</p>
+                  ) : (
+                    historialInventarioAgrupado.map((grupo) => (
+                      <div key={grupo.dia}>
+                        <p className="text-[11px] font-bold text-stone-500 uppercase tracking-wide mb-1.5">
+                          {new Date(`${grupo.dia}T00:00:00`).toLocaleDateString('es-PE', { weekday: 'long', day: '2-digit', month: 'long' })}
+                        </p>
+                        <div className="space-y-1.5">
+                          {grupo.items.map((h) => {
+                            const dif = Number(h.diferencia);
+                            const cajero = listaCajeros.find((c) => c.id === h.cajero_id);
+                            return (
+                              <div key={h.id} className="p-2.5 bg-white rounded-xl border border-stone-200 text-xs">
+                                <div className="flex justify-between items-start gap-2">
+                                  <div className="min-w-0">
+                                    <p className="font-semibold text-stone-800 truncate">{h.productos?.descripcion || 'Producto eliminado'}</p>
+                                    <p className="text-[10px] text-stone-500">
+                                      {new Date(h.fecha).toLocaleTimeString('es-PE', { hour: '2-digit', minute: '2-digit' })}
+                                      {cajero ? ` · ${cajero.nombre}` : ''}
+                                    </p>
+                                  </div>
+                                  <span className={`shrink-0 font-black ${dif === 0 ? 'text-emerald-600' : 'text-rose-600'}`}>
+                                    {dif === 0 ? (<><i className="fa-solid fa-circle-check mr-1"></i>Cuadró</>) : (dif > 0 ? `+${dif}` : dif)}
+                                  </span>
+                                </div>
+                                <div className="flex gap-3 mt-1 text-[11px] text-stone-600">
+                                  <span>Sistema: <b className="text-stone-800">{Number(h.stock_sistema)}</b></span>
+                                  <span>Contado: <b className="text-stone-800">{Number(h.stock_contado)}</b></span>
+                                </div>
+                              </div>
+                            );
+                          })}
                         </div>
                       </div>
                     ))
