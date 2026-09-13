@@ -2206,11 +2206,16 @@
       // se puede abrir para revisar o retomar cualquiera de ellos.
       const [historialConteoAbierto, setHistorialConteoAbierto] = useState(false);
       useEffect(() => {
-        if (!focoPendienteConteo) return;
+        // Mientras el escáner de cámara está abierto (z-index por encima),
+        // el input real que ve el usuario es el del panel del propio
+        // escáner, no el de esta lista (que queda tapada detrás) -- no hay
+        // que robarle el foco a algo que no se ve. Al cerrar la cámara,
+        // este mismo pedido de foco (todavía pendiente) se aplica solo.
+        if (!focoPendienteConteo || modalEscaner) return;
         const el = refsPendientesConteo.current[focoPendienteConteo];
         if (el) el.focus();
         setFocoPendienteConteo(null);
-      }, [focoPendienteConteo, filasTomaInventario]);
+      }, [focoPendienteConteo, filasTomaInventario, modalEscaner]);
 
       // Un conteo físico de cientos de productos puede tomar horas -- si se
       // recarga la página (o el celular la mata en segundo plano) a mitad de
@@ -2387,6 +2392,15 @@
       // de "Cambiar cámara" como respaldo si la detección automática falla.
       const [camarasDisponibles, setCamarasDisponibles] = useState([]);
       const [camaraDeviceId, setCamaraDeviceId] = useState(null);
+      // Para el conteo de inventario, el escáner queda abierto entre un
+      // producto y otro (no se cierra al detectar uno) -- este es el
+      // producto que se acaba de escanear y para el que se muestra el
+      // panel de cantidad encima del visor, hasta que se confirme o se
+      // escanee otro código distinto.
+      const [productoEscaneadoId, setProductoEscaneadoId] = useState(null);
+      useEffect(() => {
+        if (!modalEscaner) setProductoEscaneadoId(null);
+      }, [modalEscaner]);
       // Diagnóstico visible en pantalla (para poder revisar desde el celular
       // sin necesitar la consola del navegador).
       const [debugEscaner, setDebugEscaner] = useState({ frames: 0, tamano: '', error: '' });
@@ -3202,14 +3216,19 @@
         }
 
         if (modoEscaner === 'toma-inventario') {
+          // A diferencia de los demás modos, acá la cámara NO se cierra al
+          // detectar un código -- se queda abierta y arriba del visor
+          // aparece un panel para anotar la cantidad de ese producto (ver
+          // el modal del escáner), para poder seguir escaneando uno tras
+          // otro sin soltar el celular ni perder de vista la cámara.
           const encontrado = buscarProductoPorCodigo(codigoLimpio);
           if (encontrado) {
-            agregarProductoAConteo(encontrado.producto, true);
-            notificar(`Agregado al conteo: ${encontrado.producto.descripcion}`, 'success');
+            agregarProductoAConteo(encontrado.producto);
+            setProductoEscaneadoId(encontrado.producto.id);
           } else {
+            setProductoEscaneadoId(null);
             notificar(`Código ${codigoLimpio} no encontrado en el catálogo.`, 'error');
           }
-          setModalEscaner(false);
           return;
         }
 
@@ -4779,7 +4798,7 @@
       // hallazgos (cada vez que se agrega una cantidad encontrada en algún
       // lugar) y el total contado es la suma de todos ellos, en vez de un
       // solo número que se pisa cada vez que se vuelve a tocar el producto.
-      const agregarProductoAConteo = (producto, viaEscaner = false) => {
+      const agregarProductoAConteo = (producto) => {
         setFilasTomaInventario((prev) => {
           const existente = prev.find((f) => f.productoId === producto.id);
           // El producto tocado (nuevo o reencontrado en otro lugar del
@@ -4787,7 +4806,7 @@
           // vista arriba mientras se sigue contando, y el resto de lo ya
           // contado queda debajo como historial, sin tener que hacer scroll
           // para encontrarlo en un catálogo de cientos de productos.
-          if (existente) return [{ ...existente, viaEscaner }, ...prev.filter((f) => f.productoId !== producto.id)];
+          if (existente) return [existente, ...prev.filter((f) => f.productoId !== producto.id)];
           return [{
             productoId: producto.id,
             descripcion: producto.descripcion,
@@ -4798,12 +4817,7 @@
             stockContado: '',
             pendienteCantidad: '',
             pendientePacks: '',
-            pendienteSueltas: '',
-            // Se recuerda si este producto se agregó escaneando -- así,
-            // al confirmar la cantidad (ver agregarHallazgo), se sabe si
-            // hay que volver a abrir la cámara para seguir escaneando el
-            // siguiente producto sin tener que tocarla a mano de nuevo.
-            viaEscaner
+            pendienteSueltas: ''
           }, ...prev];
         });
         setConteoFisicoBusqueda('');
@@ -4869,14 +4883,10 @@
         // Vuelve a enfocar el mismo input -- lo normal es seguir encontrando
         // más de este producto en otros lugares antes de pasar al siguiente.
         setFocoPendienteConteo(productoId);
-        // Si este producto se agregó escaneando, se reabre la cámara sola
-        // para seguir escaneando el siguiente producto de una -- sin esto,
-        // había que tocar el ícono de la cámara a mano después de cada uno.
-        if (f.viaEscaner) {
-          setModoEscaner('toma-inventario');
-          setMetodoForzado(null);
-          setModalEscaner(true);
-        }
+        // Si se estaba escaneando, el panel de cantidad vive dentro del
+        // propio visor de la cámara (que nunca se cerró) -- se limpia acá
+        // para que vuelva a mostrar "apunta al siguiente código".
+        if (productoId === productoEscaneadoId) setProductoEscaneadoId(null);
       };
 
       const quitarHallazgo = (productoId, hallazgoId) => {
@@ -4896,10 +4906,7 @@
         setFilasTomaInventario((prev) => {
           const existente = prev.find((f) => f.productoId === productoId);
           if (!existente) return prev;
-          // Se promueve a mano desde el Historial (no escaneando) -- se
-          // apaga viaEscaner para que al confirmar la cantidad no se
-          // reabra la cámara sola sin que la hayan pedido.
-          return [{ ...existente, viaEscaner: false }, ...prev.filter((f) => f.productoId !== productoId)];
+          return [existente, ...prev.filter((f) => f.productoId !== productoId)];
         });
         setFocoPendienteConteo(productoId);
       };
@@ -7756,7 +7763,7 @@
             <div className="fixed inset-0 bg-black z-[70] flex flex-col">
               <div className="flex items-center justify-between px-4 py-3 bg-stone-50/90">
                 <h3 className="text-sm font-bold text-stone-900 flex items-center gap-2">
-                  <i className="fa-solid fa-camera text-orange-600"></i> Escanear Código de Barras
+                  <i className="fa-solid fa-camera text-orange-600"></i> {modoEscaner === 'toma-inventario' ? 'Escanear para el Conteo' : 'Escanear Código de Barras'}
                 </h3>
                 <div className="flex items-center gap-2">
                   {camarasDisponibles.length > 1 && (
@@ -7800,16 +7807,105 @@
                 )}
               </div>
 
-              <div className="p-4 bg-stone-50/90 text-center space-y-1.5">
-                <p className="text-xs text-stone-600">Apunta la cámara al código de barras del producto.</p>
-                <button
-                  type="button"
-                  onClick={() => setMetodoForzado(usandoDetectorNativo ? 'wasm' : 'nativo')}
-                  className="text-xs text-orange-600 underline"
-                >
-                  ¿No detecta? Probar con el otro método ({usandoDetectorNativo ? 'clásico' : 'nativo'})
-                </button>
-              </div>
+              {modoEscaner === 'toma-inventario' ? (
+                <div className="bg-stone-50 rounded-t-2xl shadow-2xl">
+                  {productoEscaneadoId && (() => {
+                    const f = filasTomaInventario.find((x) => x.productoId === productoEscaneadoId);
+                    if (!f) return null;
+                    const tienePack = f.unidadesPorPack > 1;
+                    return (
+                      <div className="p-4 border-b border-stone-200 space-y-2">
+                        <div className="flex items-center gap-3">
+                          <div className="w-11 h-11 rounded-xl bg-orange-100 text-orange-600 flex items-center justify-center shrink-0">
+                            <i className="fa-solid fa-box text-lg"></i>
+                          </div>
+                          <div className="min-w-0 flex-1">
+                            <p className="text-sm font-bold text-stone-900 truncate">{f.descripcion}</p>
+                            <p className="text-xs text-stone-500">
+                              {f.stockContado === '' ? 'Aún sin contar' : `Ya llevas ${f.stockContado} und`}
+                            </p>
+                          </div>
+                        </div>
+
+                        {f.historial.length > 0 && (
+                          <div className="flex flex-wrap gap-1">
+                            {f.historial.map((h) => (
+                              <span key={h.id} className="inline-flex items-center gap-1 bg-stone-200 rounded-full pl-2 pr-1 py-0.5 text-[11px] text-stone-700">
+                                +{h.cantidad}
+                                <button onClick={() => quitarHallazgo(f.productoId, h.id)} className="w-3.5 h-3.5 flex items-center justify-center text-stone-500 hover:text-rose-600">
+                                  <i className="fa-solid fa-xmark text-[9px]"></i>
+                                </button>
+                              </span>
+                            ))}
+                          </div>
+                        )}
+
+                        {!tienePack ? (
+                          <div className="flex items-center gap-1.5">
+                            <input
+                              type="number"
+                              step="0.10"
+                              autoFocus
+                              placeholder="Cantidad encontrada aquí"
+                              value={f.pendienteCantidad}
+                              onChange={(e) => actualizarPendienteConteo(f.productoId, 'pendienteCantidad', e.target.value)}
+                              onKeyDown={(e) => { if (e.key === 'Enter') agregarHallazgo(f.productoId); }}
+                              className="flex-1 min-w-0 bg-white border border-stone-300 rounded-lg px-3 py-2 text-sm text-stone-900"
+                            />
+                            <button onClick={() => agregarHallazgo(f.productoId)} className="px-4 py-2 bg-stone-900 hover:bg-stone-800 text-white rounded-lg text-xs font-bold shrink-0">
+                              <i className="fa-solid fa-plus"></i> Agregar
+                            </button>
+                          </div>
+                        ) : (
+                          <div className="flex items-center gap-1.5">
+                            <input
+                              type="number"
+                              autoFocus
+                              placeholder="Packs"
+                              value={f.pendientePacks}
+                              onChange={(e) => actualizarPendienteConteo(f.productoId, 'pendientePacks', e.target.value)}
+                              onKeyDown={(e) => { if (e.key === 'Enter') agregarHallazgo(f.productoId); }}
+                              className="w-16 bg-white border border-stone-300 rounded-lg px-2 py-2 text-sm text-stone-900 text-center"
+                            />
+                            <span className="text-[10px] text-stone-500 shrink-0">x{f.unidadesPorPack} +</span>
+                            <input
+                              type="number"
+                              placeholder="Sueltas"
+                              value={f.pendienteSueltas}
+                              onChange={(e) => actualizarPendienteConteo(f.productoId, 'pendienteSueltas', e.target.value)}
+                              onKeyDown={(e) => { if (e.key === 'Enter') agregarHallazgo(f.productoId); }}
+                              className="w-16 bg-white border border-stone-300 rounded-lg px-2 py-2 text-sm text-stone-900 text-center"
+                            />
+                            <button onClick={() => agregarHallazgo(f.productoId)} className="flex-1 py-2 bg-stone-900 hover:bg-stone-800 text-white rounded-lg text-xs font-bold shrink-0">
+                              <i className="fa-solid fa-plus"></i> Agregar
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })()}
+                  <div className="px-4 py-3 text-center space-y-1">
+                    <p className="text-xs text-stone-600">
+                      {productoEscaneadoId ? 'Confirma y sigue escaneando el siguiente.' : 'Apunta la cámara al código de barras del producto.'}
+                    </p>
+                    <p className="text-[11px] text-stone-500">
+                      <i className="fa-solid fa-clipboard-check mr-1"></i>
+                      {filasTomaInventario.length} producto{filasTomaInventario.length === 1 ? '' : 's'} en el conteo
+                    </p>
+                  </div>
+                </div>
+              ) : (
+                <div className="p-4 bg-stone-50/90 text-center space-y-1.5">
+                  <p className="text-xs text-stone-600">Apunta la cámara al código de barras del producto.</p>
+                  <button
+                    type="button"
+                    onClick={() => setMetodoForzado(usandoDetectorNativo ? 'wasm' : 'nativo')}
+                    className="text-xs text-orange-600 underline"
+                  >
+                    ¿No detecta? Probar con el otro método ({usandoDetectorNativo ? 'clásico' : 'nativo'})
+                  </button>
+                </div>
+              )}
             </div>
           )}
 
