@@ -2896,19 +2896,22 @@
       // cuando hay texto escrito (evita mostrar los 300 productos de la
       // bodega de una sola vez) y ya no incluyen lo que ya se agregó al
       // conteo, para no volver a contarlo dos veces por error.
+      // OJO: a propósito NO excluye los productos que ya están en el conteo
+      // -- con una lista de 500 productos, ir a buscarlo de nuevo (para
+      // sumarle lo que se encontró en otro lugar del local) tiene que ser
+      // tan fácil como agregarlo la primera vez, no obligar a hacer scroll
+      // manual hasta encontrar su fila.
       const resultadosBusquedaConteo = useMemo(() => {
         const t = conteoFisicoBusqueda.trim().toLowerCase();
         if (!t) return [];
-        const yaContados = new Set(filasTomaInventario.map((f) => f.productoId));
         return productos
-          .filter((p) => !yaContados.has(p.id))
           .filter((p) =>
             (p.descripcion || '').toLowerCase().includes(t) ||
             (p.cod_ean || '').toLowerCase().includes(t) ||
             (p.sku || '').toLowerCase().includes(t)
           )
           .slice(0, 8);
-      }, [productos, conteoFisicoBusqueda, filasTomaInventario]);
+      }, [productos, conteoFisicoBusqueda]);
 
       // Como los abonos se descuentan del saldo total del cliente (no boleta por
       // boleta), acá se marcan como "pagadas" las boletas más antiguas hasta
@@ -8102,16 +8105,24 @@
                         />
                         {resultadosBusquedaConteo.length > 0 && (
                           <div className="absolute z-10 top-full left-0 right-0 mt-1 bg-white border border-stone-200 rounded-lg shadow-lg max-h-52 overflow-y-auto">
-                            {resultadosBusquedaConteo.map((p) => (
-                              <button
-                                key={p.id}
-                                type="button"
-                                onClick={() => agregarProductoAConteo(p)}
-                                className="w-full text-left px-3 py-2 text-xs text-stone-800 hover:bg-orange-50 border-b border-stone-100 last:border-0"
-                              >
-                                {p.descripcion}
-                              </button>
-                            ))}
+                            {resultadosBusquedaConteo.map((p) => {
+                              const yaContado = filasTomaInventario.find((f) => f.productoId === p.id);
+                              return (
+                                <button
+                                  key={p.id}
+                                  type="button"
+                                  onClick={() => agregarProductoAConteo(p)}
+                                  className="w-full flex items-center justify-between gap-2 text-left px-3 py-2 text-xs text-stone-800 hover:bg-orange-50 border-b border-stone-100 last:border-0"
+                                >
+                                  <span className="truncate">{p.descripcion}</span>
+                                  {yaContado && (
+                                    <span className="shrink-0 text-[10px] font-bold text-orange-600 bg-orange-100 px-1.5 py-0.5 rounded-full">
+                                      {yaContado.stockContado === '' ? 'sumar más' : `${yaContado.stockContado} und · sumar más`}
+                                    </span>
+                                  )}
+                                </button>
+                              );
+                            })}
                           </div>
                         )}
                       </div>
