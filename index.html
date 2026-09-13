@@ -2208,9 +2208,12 @@
 
       // Un conteo físico de cientos de productos puede tomar horas -- si se
       // recarga la página (o el celular la mata en segundo plano) a mitad de
-      // camino, no puede perderse todo lo ya contado. Se guarda en
-      // localStorage (por bodega) cada vez que cambia, y se ofrece
-      // restaurarlo la próxima vez que se abre "Toma de Inventario".
+      // camino, no puede perderse todo lo ya contado. Se guarda en dos
+      // niveles: localStorage al toque (instantáneo, funciona hasta sin
+      // internet) y, con un pequeño debounce, un respaldo real en Supabase
+      // (tabla tomas_inventario_borrador) -- así el conteo sobrevive aunque
+      // se pierda el celular, se borre la caché del navegador, o se cambie
+      // de dispositivo a la mitad, no solo un refresh de la página.
       const claveConteoGuardado = () => `kaserita_conteo_inventario_${bodegaId}`;
       useEffect(() => {
         if (!bodegaId || !modalTomaInventario) return;
@@ -2221,7 +2224,25 @@
             localStorage.removeItem(claveConteoGuardado());
           }
         } catch {}
-      }, [filasTomaInventario, modalTomaInventario, bodegaId]);
+
+        if (esModoDemo || !sbClient) return;
+        const temporizador = setTimeout(async () => {
+          try {
+            if (filasTomaInventario.length > 0) {
+              await sbClient.from('tomas_inventario_borrador').upsert({
+                bodega_id: bodegaId,
+                datos: filasTomaInventario,
+                actualizado_en: new Date().toISOString()
+              });
+            } else {
+              await sbClient.from('tomas_inventario_borrador').delete().eq('bodega_id', bodegaId);
+            }
+          } catch (err) {
+            console.warn('No se pudo respaldar el conteo en Supabase:', err.message);
+          }
+        }, 1000);
+        return () => clearTimeout(temporizador);
+      }, [filasTomaInventario, modalTomaInventario, bodegaId, esModoDemo, sbClient]);
 
       // Cada toma de inventario guardada (ver guardarTomaInventario) ya
       // queda insertada en la tabla `tomas_inventario` -- lo único que
@@ -4653,12 +4674,28 @@
       // a mano a medida que se cuenta de verdad en el estante, en vez de
       // partir de los ~300 productos de la bodega ya listados (eso invitaba
       // a copiar el número que ya mostraba el sistema en vez de contar).
-      const abrirTomaInventario = () => {
+      const abrirTomaInventario = async () => {
         let restaurado = [];
-        try {
-          const guardado = localStorage.getItem(claveConteoGuardado());
-          if (guardado) restaurado = JSON.parse(guardado) || [];
-        } catch {}
+        // Primero Supabase (el respaldo más confiable -- sobrevive a un
+        // celular perdido o a la caché borrada); si no hay nada ahí (sin
+        // internet en este momento, por ejemplo), se usa lo último guardado
+        // en este mismo navegador.
+        if (!esModoDemo && sbClient && bodegaId) {
+          try {
+            const { data } = await sbClient
+              .from('tomas_inventario_borrador')
+              .select('datos')
+              .eq('bodega_id', bodegaId)
+              .maybeSingle();
+            if (Array.isArray(data?.datos) && data.datos.length > 0) restaurado = data.datos;
+          } catch {}
+        }
+        if (restaurado.length === 0) {
+          try {
+            const guardado = localStorage.getItem(claveConteoGuardado());
+            if (guardado) restaurado = JSON.parse(guardado) || [];
+          } catch {}
+        }
         setFilasTomaInventario(restaurado);
         setPasoTomaInventario('conteo');
         setTomaInventarioCategoria('');
@@ -4706,6 +4743,13 @@
         setFocoPendienteConteo(producto.id);
       };
 
+      const borrarBorradorConteoRemoto = async () => {
+        try { localStorage.removeItem(claveConteoGuardado()); } catch {}
+        if (!esModoDemo && sbClient && bodegaId) {
+          try { await sbClient.from('tomas_inventario_borrador').delete().eq('bodega_id', bodegaId); } catch {}
+        }
+      };
+
       const vaciarConteoInventario = async () => {
         const ok = await pedirConfirmacion({
           titulo: 'Vaciar conteo',
@@ -4715,7 +4759,7 @@
         });
         if (!ok) return;
         setFilasTomaInventario([]);
-        try { localStorage.removeItem(claveConteoGuardado()); } catch {}
+        await borrarBorradorConteoRemoto();
       };
 
       const quitarProductoDeConteo = (productoId) => {
@@ -4858,7 +4902,7 @@
           // Se limpia a mano (no alcanza con dejar que el efecto de guardado
           // automático lo borre solo): ese efecto no corre una vez que
           // modalTomaInventario ya pasó a false en este mismo guardado.
-          try { localStorage.removeItem(claveConteoGuardado()); } catch {}
+          await borrarBorradorConteoRemoto();
           cargarProductos();
           notificar(`Toma de inventario guardada: ${filas.length} producto(s) verificado(s).`, 'success');
         } catch (err) {
