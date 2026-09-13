@@ -2206,6 +2206,23 @@
         setFocoPendienteConteo(null);
       }, [focoPendienteConteo, filasTomaInventario]);
 
+      // Un conteo físico de cientos de productos puede tomar horas -- si se
+      // recarga la página (o el celular la mata en segundo plano) a mitad de
+      // camino, no puede perderse todo lo ya contado. Se guarda en
+      // localStorage (por bodega) cada vez que cambia, y se ofrece
+      // restaurarlo la próxima vez que se abre "Toma de Inventario".
+      const claveConteoGuardado = () => `kaserita_conteo_inventario_${bodegaId}`;
+      useEffect(() => {
+        if (!bodegaId || !modalTomaInventario) return;
+        try {
+          if (filasTomaInventario.length > 0) {
+            localStorage.setItem(claveConteoGuardado(), JSON.stringify(filasTomaInventario));
+          } else {
+            localStorage.removeItem(claveConteoGuardado());
+          }
+        } catch {}
+      }, [filasTomaInventario, modalTomaInventario, bodegaId]);
+
       // --- Módulo: Inventario Inicial (carga de varios productos a la vez) ---
       const filaInventarioVacia = () => ({ descripcion: '', cod_ean: '', sku: '', categoria: 'Abarrotes', precio_costo: '', precio_venta: '', unidad: 'UND', vendeEnPack: false, vendeEnPackOriginal: false, unidades_por_pack: '', precio_venta_pack: '', cod_ean_pack: '', productoExistenteId: null, foto_url: '', catalogoMaestroId: null });
       const [modalInventarioInicial, setModalInventarioInicial] = useState(false);
@@ -4625,12 +4642,20 @@
       // partir de los ~300 productos de la bodega ya listados (eso invitaba
       // a copiar el número que ya mostraba el sistema en vez de contar).
       const abrirTomaInventario = () => {
-        setFilasTomaInventario([]);
+        let restaurado = [];
+        try {
+          const guardado = localStorage.getItem(claveConteoGuardado());
+          if (guardado) restaurado = JSON.parse(guardado) || [];
+        } catch {}
+        setFilasTomaInventario(restaurado);
         setPasoTomaInventario('conteo');
         setTomaInventarioCategoria('');
         setTomaInventarioBusqueda('');
         setConteoFisicoBusqueda('');
         setModalTomaInventario(true);
+        if (restaurado.length > 0) {
+          notificar(`Se restauró tu conteo sin terminar: ${restaurado.length} producto(s).`, 'info');
+        }
       };
 
       // Un mismo producto casi nunca está todo junto en un solo lugar de la
@@ -4640,28 +4665,45 @@
       // lugar) y el total contado es la suma de todos ellos, en vez de un
       // solo número que se pisa cada vez que se vuelve a tocar el producto.
       const agregarProductoAConteo = (producto) => {
-        setFilasTomaInventario((prev) =>
-          prev.some((f) => f.productoId === producto.id)
-            ? prev
-            : [...prev, {
-                productoId: producto.id,
-                descripcion: producto.descripcion,
-                categoria: producto.categoria || 'General',
-                stockSistema: Number(producto.stock_actual) || 0,
-                unidadesPorPack: Number(producto.unidades_por_pack) > 1 ? Number(producto.unidades_por_pack) : 1,
-                historial: [],
-                stockContado: '',
-                pendienteCantidad: '',
-                pendientePacks: '',
-                pendienteSueltas: ''
-              }]
-        );
+        setFilasTomaInventario((prev) => {
+          const existente = prev.find((f) => f.productoId === producto.id);
+          // El producto tocado (nuevo o reencontrado en otro lugar del
+          // local) sube siempre al principio de la lista -- así queda a la
+          // vista arriba mientras se sigue contando, y el resto de lo ya
+          // contado queda debajo como historial, sin tener que hacer scroll
+          // para encontrarlo en un catálogo de cientos de productos.
+          if (existente) return [existente, ...prev.filter((f) => f.productoId !== producto.id)];
+          return [{
+            productoId: producto.id,
+            descripcion: producto.descripcion,
+            categoria: producto.categoria || 'General',
+            stockSistema: Number(producto.stock_actual) || 0,
+            unidadesPorPack: Number(producto.unidades_por_pack) > 1 ? Number(producto.unidades_por_pack) : 1,
+            historial: [],
+            stockContado: '',
+            pendienteCantidad: '',
+            pendientePacks: '',
+            pendienteSueltas: ''
+          }, ...prev];
+        });
         setConteoFisicoBusqueda('');
         // Si el producto ya estaba en la lista (se encontró de nuevo en otro
         // lugar), esto lleva el foco a SU input de "cantidad encontrada aquí"
         // en vez de no hacer nada -- así se puede sumar el nuevo hallazgo al
         // toque, sin tener que buscarlo a mano en la lista.
         setFocoPendienteConteo(producto.id);
+      };
+
+      const vaciarConteoInventario = async () => {
+        const ok = await pedirConfirmacion({
+          titulo: 'Vaciar conteo',
+          mensaje: `Se va a borrar todo lo contado hasta ahora (${filasTomaInventario.length} producto(s)). Esto no se puede deshacer.`,
+          textoBoton: 'Vaciar todo',
+          peligroso: true
+        });
+        if (!ok) return;
+        setFilasTomaInventario([]);
+        try { localStorage.removeItem(claveConteoGuardado()); } catch {}
       };
 
       const quitarProductoDeConteo = (productoId) => {
@@ -4678,20 +4720,23 @@
       // si el producto vende también por pack) como un hallazgo más del
       // historial, y recalcula el total sumando todos los hallazgos.
       const agregarHallazgo = (productoId) => {
-        setFilasTomaInventario((prev) =>
-          prev.map((f) => {
-            if (f.productoId !== productoId) return f;
-            const tienePack = f.unidadesPorPack > 1;
-            const escribioAlgo = tienePack ? (f.pendientePacks !== '' || f.pendienteSueltas !== '') : f.pendienteCantidad !== '';
-            if (!escribioAlgo) return f;
-            const cantidad = tienePack
-              ? (Number(f.pendientePacks) || 0) * f.unidadesPorPack + (Number(f.pendienteSueltas) || 0)
-              : Number(f.pendienteCantidad) || 0;
-            const historial = [...f.historial, { id: `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`, cantidad }];
-            const total = historial.reduce((acc, h) => acc + h.cantidad, 0);
-            return { ...f, historial, stockContado: String(total), pendienteCantidad: '', pendientePacks: '', pendienteSueltas: '' };
-          })
-        );
+        setFilasTomaInventario((prev) => {
+          const f = prev.find((x) => x.productoId === productoId);
+          if (!f) return prev;
+          const tienePack = f.unidadesPorPack > 1;
+          const escribioAlgo = tienePack ? (f.pendientePacks !== '' || f.pendienteSueltas !== '') : f.pendienteCantidad !== '';
+          if (!escribioAlgo) return prev;
+          const cantidad = tienePack
+            ? (Number(f.pendientePacks) || 0) * f.unidadesPorPack + (Number(f.pendienteSueltas) || 0)
+            : Number(f.pendienteCantidad) || 0;
+          const historial = [...f.historial, { id: `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`, cantidad }];
+          const total = historial.reduce((acc, h) => acc + h.cantidad, 0);
+          const actualizado = { ...f, historial, stockContado: String(total), pendienteCantidad: '', pendientePacks: '', pendienteSueltas: '' };
+          // Sube al principio junto con el resto -- así el producto que se
+          // está contando ahora mismo siempre queda arriba, visible sin
+          // scroll, y lo demás va quedando como historial debajo.
+          return [actualizado, ...prev.filter((x) => x.productoId !== productoId)];
+        });
         // Vuelve a enfocar el mismo input -- lo normal es seguir encontrando
         // más de este producto en otros lugares antes de pasar al siguiente.
         setFocoPendienteConteo(productoId);
@@ -4798,6 +4843,10 @@
           }
           setModalTomaInventario(false);
           setFilasTomaInventario([]);
+          // Se limpia a mano (no alcanza con dejar que el efecto de guardado
+          // automático lo borre solo): ese efecto no corre una vez que
+          // modalTomaInventario ya pasó a false en este mismo guardado.
+          try { localStorage.removeItem(claveConteoGuardado()); } catch {}
           cargarProductos();
           notificar(`Toma de inventario guardada: ${filas.length} producto(s) verificado(s).`, 'success');
         } catch (err) {
@@ -8088,7 +8137,14 @@
                         : 'Revisa lo contado contra el sistema y guarda para ajustar el stock.'}
                     </p>
                   </div>
-                  <button onClick={() => setModalTomaInventario(false)} className="text-stone-600 hover:text-stone-900 shrink-0"><i className="fa-solid fa-xmark"></i></button>
+                  <div className="flex items-center gap-3 shrink-0">
+                    {filasTomaInventario.length > 0 && (
+                      <button onClick={vaciarConteoInventario} className="text-[11px] font-semibold text-rose-600 hover:text-rose-700">
+                        Vaciar
+                      </button>
+                    )}
+                    <button onClick={() => setModalTomaInventario(false)} className="text-stone-600 hover:text-stone-900"><i className="fa-solid fa-xmark"></i></button>
+                  </div>
                 </div>
 
                 {pasoTomaInventario === 'conteo' ? (
