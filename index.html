@@ -2191,15 +2191,20 @@
       const [tomaInventarioBusqueda, setTomaInventarioBusqueda] = useState('');
       const [conteoFisicoBusqueda, setConteoFisicoBusqueda] = useState('');
       const [guardandoTomaInventario, setGuardandoTomaInventario] = useState(false);
-      // Foco del último producto agregado al conteo -- un solo ref (no
-      // "autoFocus" repetido en cada fila) para no dejar dudas de a qué
-      // input real le llega el foco cuando se agrega un producto nuevo.
-      const ultimoInputConteoRef = useRef(null);
+      // Foco del input "cantidad encontrada aquí" -- un mapa de refs (uno
+      // por producto ya agregado al conteo, no "autoFocus" repetido) y un
+      // pedido de foco de un solo uso: se dispara al agregar un producto
+      // nuevo, al re-seleccionar uno que ya estaba en la lista (se
+      // encontró en otro lugar del local) y al confirmar un hallazgo, para
+      // poder seguir sumando el mismo producto sin tocar el mouse.
+      const refsPendientesConteo = useRef({});
+      const [focoPendienteConteo, setFocoPendienteConteo] = useState(null);
       useEffect(() => {
-        if (pasoTomaInventario === 'conteo' && ultimoInputConteoRef.current) {
-          ultimoInputConteoRef.current.focus();
-        }
-      }, [filasTomaInventario.length, pasoTomaInventario]);
+        if (!focoPendienteConteo) return;
+        const el = refsPendientesConteo.current[focoPendienteConteo];
+        if (el) el.focus();
+        setFocoPendienteConteo(null);
+      }, [focoPendienteConteo, filasTomaInventario]);
 
       // --- Módulo: Inventario Inicial (carga de varios productos a la vez) ---
       const filaInventarioVacia = () => ({ descripcion: '', cod_ean: '', sku: '', categoria: 'Abarrotes', precio_costo: '', precio_venta: '', unidad: 'UND', vendeEnPack: false, vendeEnPackOriginal: false, unidades_por_pack: '', precio_venta_pack: '', cod_ean_pack: '', productoExistenteId: null, foto_url: '', catalogoMaestroId: null });
@@ -4625,6 +4630,12 @@
         setModalTomaInventario(true);
       };
 
+      // Un mismo producto casi nunca está todo junto en un solo lugar de la
+      // tienda -- se cuenta un poco en el estante, otro poco en el depósito,
+      // etc. Por eso cada producto del conteo guarda un "historial" de
+      // hallazgos (cada vez que se agrega una cantidad encontrada en algún
+      // lugar) y el total contado es la suma de todos ellos, en vez de un
+      // solo número que se pisa cada vez que se vuelve a tocar el producto.
       const agregarProductoAConteo = (producto) => {
         setFilasTomaInventario((prev) =>
           prev.some((f) => f.productoId === producto.id)
@@ -4634,35 +4645,61 @@
                 descripcion: producto.descripcion,
                 categoria: producto.categoria || 'General',
                 stockSistema: Number(producto.stock_actual) || 0,
-                // Si el producto vende también por pack, el conteo se anota
-                // separado en packs cerrados + sueltas -- stockContado (el
-                // total en unidades, que es como se guarda el stock) se
-                // recalcula solo a partir de esos dos campos.
                 unidadesPorPack: Number(producto.unidades_por_pack) > 1 ? Number(producto.unidades_por_pack) : 1,
-                stockContadoPacks: '',
-                stockContadoSueltas: '',
-                stockContado: ''
+                historial: [],
+                stockContado: '',
+                pendienteCantidad: '',
+                pendientePacks: '',
+                pendienteSueltas: ''
               }]
         );
         setConteoFisicoBusqueda('');
+        // Si el producto ya estaba en la lista (se encontró de nuevo en otro
+        // lugar), esto lleva el foco a SU input de "cantidad encontrada aquí"
+        // en vez de no hacer nada -- así se puede sumar el nuevo hallazgo al
+        // toque, sin tener que buscarlo a mano en la lista.
+        setFocoPendienteConteo(producto.id);
       };
 
       const quitarProductoDeConteo = (productoId) => {
         setFilasTomaInventario((prev) => prev.filter((f) => f.productoId !== productoId));
       };
 
-      // Recalcula el total en unidades (stockContado) cada vez que cambia
-      // "packs" o "sueltas" -- 1 pack de un producto con unidades_por_pack=6
-      // pasa a valer 6 unidades, igual que en "Levantamiento de Inventario".
-      const actualizarConteoPack = (productoId, campo, valor) => {
+      const actualizarPendienteConteo = (productoId, campo, valor) => {
+        setFilasTomaInventario((prev) =>
+          prev.map((f) => (f.productoId === productoId ? { ...f, [campo]: valor } : f))
+        );
+      };
+
+      // Confirma lo escrito en "cantidad encontrada aquí" (o Packs/Sueltas,
+      // si el producto vende también por pack) como un hallazgo más del
+      // historial, y recalcula el total sumando todos los hallazgos.
+      const agregarHallazgo = (productoId) => {
         setFilasTomaInventario((prev) =>
           prev.map((f) => {
             if (f.productoId !== productoId) return f;
-            const packs = campo === 'packs' ? valor : f.stockContadoPacks;
-            const sueltas = campo === 'sueltas' ? valor : f.stockContadoSueltas;
-            const hayAlgoEscrito = packs !== '' || sueltas !== '';
-            const total = (Number(packs) || 0) * f.unidadesPorPack + (Number(sueltas) || 0);
-            return { ...f, stockContadoPacks: packs, stockContadoSueltas: sueltas, stockContado: hayAlgoEscrito ? String(total) : '' };
+            const tienePack = f.unidadesPorPack > 1;
+            const escribioAlgo = tienePack ? (f.pendientePacks !== '' || f.pendienteSueltas !== '') : f.pendienteCantidad !== '';
+            if (!escribioAlgo) return f;
+            const cantidad = tienePack
+              ? (Number(f.pendientePacks) || 0) * f.unidadesPorPack + (Number(f.pendienteSueltas) || 0)
+              : Number(f.pendienteCantidad) || 0;
+            const historial = [...f.historial, { id: `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`, cantidad }];
+            const total = historial.reduce((acc, h) => acc + h.cantidad, 0);
+            return { ...f, historial, stockContado: String(total), pendienteCantidad: '', pendientePacks: '', pendienteSueltas: '' };
+          })
+        );
+        // Vuelve a enfocar el mismo input -- lo normal es seguir encontrando
+        // más de este producto en otros lugares antes de pasar al siguiente.
+        setFocoPendienteConteo(productoId);
+      };
+
+      const quitarHallazgo = (productoId, hallazgoId) => {
+        setFilasTomaInventario((prev) =>
+          prev.map((f) => {
+            if (f.productoId !== productoId) return f;
+            const historial = f.historial.filter((h) => h.id !== hallazgoId);
+            return { ...f, historial, stockContado: historial.length === 0 ? '' : String(historial.reduce((acc, h) => acc + h.cantidad, 0)) };
           })
         );
       };
@@ -8044,7 +8081,7 @@
                     </h3>
                     <p className="text-xs text-stone-600 mt-0.5">
                       {pasoTomaInventario === 'conteo'
-                        ? 'Busca cada producto y anota lo que cuentes físicamente en el estante.'
+                        ? 'Busca cada producto y ve sumando lo que encuentres en cada lugar del local.'
                         : 'Revisa lo contado contra el sistema y guarda para ajustar el stock.'}
                     </p>
                   </div>
@@ -8090,50 +8127,72 @@
                       {filasTomaInventario.length === 0 ? (
                         <p className="text-xs text-stone-500 text-center py-8">Aún no agregas ningún producto al conteo.</p>
                       ) : (
-                        filasTomaInventario.map((f, idx) => {
-                          const esUltimo = idx === filasTomaInventario.length - 1;
+                        filasTomaInventario.map((f) => {
                           const tienePack = f.unidadesPorPack > 1;
                           return (
                             <div key={f.productoId} className="p-2.5 bg-stone-50 border border-stone-200 rounded-xl space-y-1.5">
                               <div className="flex items-center gap-2">
                                 <p className="flex-1 min-w-0 text-xs font-semibold text-stone-800 truncate">{f.descripcion}</p>
-                                {!tienePack && (
-                                  <input
-                                    type="number"
-                                    step="0.10"
-                                    ref={esUltimo ? ultimoInputConteoRef : null}
-                                    placeholder="Cantidad contada"
-                                    value={f.stockContado}
-                                    onChange={(e) => actualizarStockContado(f.productoId, e.target.value)}
-                                    className="w-28 bg-stone-100 border border-stone-200 rounded-lg px-2 py-1.5 text-xs text-stone-900 text-right"
-                                  />
-                                )}
+                                <span className="text-xs font-bold text-orange-600 shrink-0">
+                                  {f.stockContado === '' ? 'Sin contar' : `${f.stockContado} und`}
+                                </span>
                                 <button onClick={() => quitarProductoDeConteo(f.productoId)} className="text-stone-400 hover:text-rose-600 shrink-0">
                                   <i className="fa-solid fa-trash-can"></i>
                                 </button>
                               </div>
-                              {tienePack && (
+
+                              {f.historial.length > 0 && (
+                                <div className="flex flex-wrap gap-1">
+                                  {f.historial.map((h) => (
+                                    <span key={h.id} className="inline-flex items-center gap-1 bg-stone-200 rounded-full pl-2 pr-1 py-0.5 text-[11px] text-stone-700">
+                                      +{h.cantidad}
+                                      <button onClick={() => quitarHallazgo(f.productoId, h.id)} className="w-3.5 h-3.5 flex items-center justify-center text-stone-500 hover:text-rose-600">
+                                        <i className="fa-solid fa-xmark text-[9px]"></i>
+                                      </button>
+                                    </span>
+                                  ))}
+                                </div>
+                              )}
+
+                              {!tienePack ? (
                                 <div className="flex items-center gap-1.5">
                                   <input
                                     type="number"
-                                    ref={esUltimo ? ultimoInputConteoRef : null}
+                                    step="0.10"
+                                    ref={(el) => { refsPendientesConteo.current[f.productoId] = el; }}
+                                    placeholder="Cantidad encontrada aquí"
+                                    value={f.pendienteCantidad}
+                                    onChange={(e) => actualizarPendienteConteo(f.productoId, 'pendienteCantidad', e.target.value)}
+                                    onKeyDown={(e) => { if (e.key === 'Enter') agregarHallazgo(f.productoId); }}
+                                    className="flex-1 min-w-0 bg-stone-100 border border-stone-200 rounded-lg px-2 py-1.5 text-xs text-stone-900"
+                                  />
+                                  <button onClick={() => agregarHallazgo(f.productoId)} className="px-3 py-1.5 bg-stone-900 hover:bg-stone-800 text-white rounded-lg text-[11px] font-bold shrink-0">
+                                    <i className="fa-solid fa-plus"></i> Agregar
+                                  </button>
+                                </div>
+                              ) : (
+                                <div className="flex items-center gap-1.5">
+                                  <input
+                                    type="number"
+                                    ref={(el) => { refsPendientesConteo.current[f.productoId] = el; }}
                                     placeholder="Packs"
-                                    value={f.stockContadoPacks}
-                                    onChange={(e) => actualizarConteoPack(f.productoId, 'packs', e.target.value)}
+                                    value={f.pendientePacks}
+                                    onChange={(e) => actualizarPendienteConteo(f.productoId, 'pendientePacks', e.target.value)}
+                                    onKeyDown={(e) => { if (e.key === 'Enter') agregarHallazgo(f.productoId); }}
                                     className="w-16 bg-stone-100 border border-stone-200 rounded-lg px-2 py-1.5 text-xs text-stone-900 text-center"
                                   />
-                                  <span className="text-[10px] text-stone-500 shrink-0">packs x{f.unidadesPorPack} +</span>
+                                  <span className="text-[10px] text-stone-500 shrink-0">x{f.unidadesPorPack} +</span>
                                   <input
                                     type="number"
                                     placeholder="Sueltas"
-                                    value={f.stockContadoSueltas}
-                                    onChange={(e) => actualizarConteoPack(f.productoId, 'sueltas', e.target.value)}
+                                    value={f.pendienteSueltas}
+                                    onChange={(e) => actualizarPendienteConteo(f.productoId, 'pendienteSueltas', e.target.value)}
+                                    onKeyDown={(e) => { if (e.key === 'Enter') agregarHallazgo(f.productoId); }}
                                     className="w-16 bg-stone-100 border border-stone-200 rounded-lg px-2 py-1.5 text-xs text-stone-900 text-center"
                                   />
-                                  <span className="text-[10px] text-stone-500 shrink-0">sueltas</span>
-                                  <span className="ml-auto text-xs font-bold text-orange-600 shrink-0">
-                                    = {f.stockContado === '' ? '—' : f.stockContado} und
-                                  </span>
+                                  <button onClick={() => agregarHallazgo(f.productoId)} className="px-3 py-1.5 bg-stone-900 hover:bg-stone-800 text-white rounded-lg text-[11px] font-bold shrink-0">
+                                    <i className="fa-solid fa-plus"></i> Agregar
+                                  </button>
                                 </div>
                               )}
                             </div>
