@@ -4812,11 +4812,15 @@
             descripcion: producto.descripcion,
             categoria: producto.categoria || 'General',
             stockSistema: Number(producto.stock_actual) || 0,
-            unidadesPorPack: Number(producto.unidades_por_pack) > 1 ? Number(producto.unidades_por_pack) : 1,
             historial: [],
             stockContado: '',
-            pendienteCantidad: '',
             pendientePacks: '',
+            // Cuántas unidades trae cada pack -- se precarga con lo que el
+            // producto tenga configurado para vender (si tiene), pero es
+            // editable: en la práctica cualquier producto puede llegar en
+            // caja/paquete aunque no se venda así, así que no depende de
+            // esa configuración para poder usar el campo de Packs.
+            pendienteUnidadesPorPack: Number(producto.unidades_por_pack) > 1 ? String(producto.unidades_por_pack) : '1',
             pendienteSueltas: ''
           }, ...prev];
         });
@@ -4857,24 +4861,24 @@
         );
       };
 
-      // Confirma lo escrito en "cantidad encontrada aquí" (o Packs/Sueltas,
-      // si el producto vende también por pack) como un hallazgo más del
-      // historial, y recalcula el total sumando todos los hallazgos.
+      // Confirma lo escrito en Packs/Sueltas como un hallazgo más del
+      // historial, y recalcula el total sumando todos los hallazgos. Los
+      // dos campos siempre están disponibles para cualquier producto --
+      // "Packs" con multiplicador 1 se comporta igual que contar suelto,
+      // así que no hace falta un modo separado para productos sin pack.
       const agregarHallazgo = (productoId) => {
         const f = filasTomaInventario.find((x) => x.productoId === productoId);
         if (!f) return;
-        const tienePack = f.unidadesPorPack > 1;
-        const escribioAlgo = tienePack ? (f.pendientePacks !== '' || f.pendienteSueltas !== '') : f.pendienteCantidad !== '';
+        const escribioAlgo = f.pendientePacks !== '' || f.pendienteSueltas !== '';
         if (!escribioAlgo) return;
-        const cantidad = tienePack
-          ? (Number(f.pendientePacks) || 0) * f.unidadesPorPack + (Number(f.pendienteSueltas) || 0)
-          : Number(f.pendienteCantidad) || 0;
+        const porPack = Number(f.pendienteUnidadesPorPack) || 1;
+        const cantidad = (Number(f.pendientePacks) || 0) * porPack + (Number(f.pendienteSueltas) || 0);
         setFilasTomaInventario((prev) => {
           const actual = prev.find((x) => x.productoId === productoId);
           if (!actual) return prev;
           const historial = [...actual.historial, { id: `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`, cantidad }];
           const total = historial.reduce((acc, h) => acc + h.cantidad, 0);
-          const actualizado = { ...actual, historial, stockContado: String(total), pendienteCantidad: '', pendientePacks: '', pendienteSueltas: '' };
+          const actualizado = { ...actual, historial, stockContado: String(total), pendientePacks: '', pendienteSueltas: '' };
           // Sube al principio junto con el resto -- así el producto que se
           // está contando ahora mismo siempre queda arriba, visible sin
           // scroll, y lo demás va quedando como historial debajo.
@@ -7790,14 +7794,6 @@
                   <div className="absolute w-[85%] max-w-sm aspect-[2/1] border-2 border-orange-400 rounded-2xl shadow-[0_0_0_9999px_rgba(0,0,0,0.55)] pointer-events-none"></div>
                 </div>
 
-                {/* Diagnóstico visible en pantalla (para revisar desde el
-                    celular sin necesitar la consola del navegador). */}
-                <div className="absolute top-2 left-2 bg-black/70 text-white text-[10px] font-mono px-2 py-1 rounded-lg leading-tight max-w-[70vw]">
-                  <div>método: {usandoDetectorNativo ? 'nativo' : 'zxing-wasm'}</div>
-                  <div>frames: {debugEscaner.frames} {debugEscaner.tamano && `| video: ${debugEscaner.tamano}`}</div>
-                  {debugEscaner.error && <div className="text-rose-300">error: {debugEscaner.error}</div>}
-                </div>
-
                 {errorEscaner && (
                   <div className="absolute inset-0 flex flex-col items-center justify-center text-center p-6 bg-stone-50">
                     <i className="fa-solid fa-video-slash text-3xl text-rose-600 mb-3"></i>
@@ -7812,7 +7808,8 @@
                   {productoEscaneadoId && (() => {
                     const f = filasTomaInventario.find((x) => x.productoId === productoEscaneadoId);
                     if (!f) return null;
-                    const tienePack = f.unidadesPorPack > 1;
+                    const porPack = Number(f.pendienteUnidadesPorPack) || 1;
+                    const totalPendiente = (Number(f.pendientePacks) || 0) * porPack + (Number(f.pendienteSueltas) || 0);
                     return (
                       <div className="p-4 border-b border-stone-200 space-y-2">
                         <div className="flex items-center gap-3">
@@ -7840,47 +7837,47 @@
                           </div>
                         )}
 
-                        {!tienePack ? (
-                          <div className="flex items-center gap-1.5">
-                            <input
-                              type="number"
-                              step="0.10"
-                              autoFocus
-                              placeholder="Cantidad encontrada aquí"
-                              value={f.pendienteCantidad}
-                              onChange={(e) => actualizarPendienteConteo(f.productoId, 'pendienteCantidad', e.target.value)}
-                              onKeyDown={(e) => { if (e.key === 'Enter') agregarHallazgo(f.productoId); }}
-                              className="flex-1 min-w-0 bg-white border border-stone-300 rounded-lg px-3 py-2 text-sm text-stone-900"
-                            />
-                            <button onClick={() => agregarHallazgo(f.productoId)} className="px-4 py-2 bg-stone-900 hover:bg-stone-800 text-white rounded-lg text-xs font-bold shrink-0">
-                              <i className="fa-solid fa-plus"></i> Agregar
-                            </button>
-                          </div>
-                        ) : (
-                          <div className="flex items-center gap-1.5">
+                        <div className="flex flex-wrap items-center gap-1.5">
+                          <div className="flex flex-col items-center">
                             <input
                               type="number"
                               autoFocus
-                              placeholder="Packs"
+                              placeholder="0"
                               value={f.pendientePacks}
                               onChange={(e) => actualizarPendienteConteo(f.productoId, 'pendientePacks', e.target.value)}
                               onKeyDown={(e) => { if (e.key === 'Enter') agregarHallazgo(f.productoId); }}
-                              className="w-16 bg-white border border-stone-300 rounded-lg px-2 py-2 text-sm text-stone-900 text-center"
+                              className="w-14 bg-white border border-stone-300 rounded-lg px-2 py-2 text-sm text-stone-900 text-center"
                             />
-                            <span className="text-[10px] text-stone-500 shrink-0">x{f.unidadesPorPack} +</span>
+                            <span className="text-[9px] text-stone-500">packs</span>
+                          </div>
+                          <span className="text-xs text-stone-400">de</span>
+                          <div className="flex flex-col items-center">
                             <input
                               type="number"
-                              placeholder="Sueltas"
+                              placeholder="1"
+                              value={f.pendienteUnidadesPorPack}
+                              onChange={(e) => actualizarPendienteConteo(f.productoId, 'pendienteUnidadesPorPack', e.target.value)}
+                              className="w-14 bg-white border border-stone-300 rounded-lg px-2 py-2 text-sm text-stone-900 text-center"
+                            />
+                            <span className="text-[9px] text-stone-500">und c/u</span>
+                          </div>
+                          <span className="text-xs text-stone-400">+</span>
+                          <div className="flex flex-col items-center">
+                            <input
+                              type="number"
+                              placeholder="0"
                               value={f.pendienteSueltas}
                               onChange={(e) => actualizarPendienteConteo(f.productoId, 'pendienteSueltas', e.target.value)}
                               onKeyDown={(e) => { if (e.key === 'Enter') agregarHallazgo(f.productoId); }}
-                              className="w-16 bg-white border border-stone-300 rounded-lg px-2 py-2 text-sm text-stone-900 text-center"
+                              className="w-14 bg-white border border-stone-300 rounded-lg px-2 py-2 text-sm text-stone-900 text-center"
                             />
-                            <button onClick={() => agregarHallazgo(f.productoId)} className="flex-1 py-2 bg-stone-900 hover:bg-stone-800 text-white rounded-lg text-xs font-bold shrink-0">
-                              <i className="fa-solid fa-plus"></i> Agregar
-                            </button>
+                            <span className="text-[9px] text-stone-500">sueltas</span>
                           </div>
-                        )}
+                          <span className="text-xs font-bold text-orange-600 ml-auto shrink-0">= {totalPendiente} und</span>
+                        </div>
+                        <button onClick={() => agregarHallazgo(f.productoId)} className="w-full py-2 bg-stone-900 hover:bg-stone-800 text-white rounded-lg text-xs font-bold">
+                          <i className="fa-solid fa-plus"></i> Agregar
+                        </button>
                       </div>
                     );
                   })()}
@@ -8520,7 +8517,8 @@
                         <>
                           {(() => {
                             const f = filasTomaInventario[0];
-                            const tienePack = f.unidadesPorPack > 1;
+                            const porPack = Number(f.pendienteUnidadesPorPack) || 1;
+                            const totalPendiente = (Number(f.pendientePacks) || 0) * porPack + (Number(f.pendienteSueltas) || 0);
                             return (
                               <div className="p-2.5 bg-stone-50 border border-orange-300 rounded-xl space-y-1.5">
                                 <div className="flex items-center gap-2">
@@ -8546,47 +8544,47 @@
                                   </div>
                                 )}
 
-                                {!tienePack ? (
-                                  <div className="flex items-center gap-1.5">
-                                    <input
-                                      type="number"
-                                      step="0.10"
-                                      ref={(el) => { refsPendientesConteo.current[f.productoId] = el; }}
-                                      placeholder="Cantidad encontrada aquí"
-                                      value={f.pendienteCantidad}
-                                      onChange={(e) => actualizarPendienteConteo(f.productoId, 'pendienteCantidad', e.target.value)}
-                                      onKeyDown={(e) => { if (e.key === 'Enter') agregarHallazgo(f.productoId); }}
-                                      className="flex-1 min-w-0 bg-stone-100 border border-stone-200 rounded-lg px-2 py-1.5 text-xs text-stone-900"
-                                    />
-                                    <button onClick={() => agregarHallazgo(f.productoId)} className="px-3 py-1.5 bg-stone-900 hover:bg-stone-800 text-white rounded-lg text-[11px] font-bold shrink-0">
-                                      <i className="fa-solid fa-plus"></i> Agregar
-                                    </button>
-                                  </div>
-                                ) : (
-                                  <div className="flex items-center gap-1.5">
+                                <div className="flex flex-wrap items-center gap-1.5">
+                                  <div className="flex flex-col items-center">
                                     <input
                                       type="number"
                                       ref={(el) => { refsPendientesConteo.current[f.productoId] = el; }}
-                                      placeholder="Packs"
+                                      placeholder="0"
                                       value={f.pendientePacks}
                                       onChange={(e) => actualizarPendienteConteo(f.productoId, 'pendientePacks', e.target.value)}
                                       onKeyDown={(e) => { if (e.key === 'Enter') agregarHallazgo(f.productoId); }}
-                                      className="w-16 bg-stone-100 border border-stone-200 rounded-lg px-2 py-1.5 text-xs text-stone-900 text-center"
+                                      className="w-14 bg-stone-100 border border-stone-200 rounded-lg px-2 py-1.5 text-xs text-stone-900 text-center"
                                     />
-                                    <span className="text-[10px] text-stone-500 shrink-0">x{f.unidadesPorPack} +</span>
+                                    <span className="text-[9px] text-stone-500">packs</span>
+                                  </div>
+                                  <span className="text-[10px] text-stone-400">de</span>
+                                  <div className="flex flex-col items-center">
                                     <input
                                       type="number"
-                                      placeholder="Sueltas"
+                                      placeholder="1"
+                                      value={f.pendienteUnidadesPorPack}
+                                      onChange={(e) => actualizarPendienteConteo(f.productoId, 'pendienteUnidadesPorPack', e.target.value)}
+                                      className="w-14 bg-stone-100 border border-stone-200 rounded-lg px-2 py-1.5 text-xs text-stone-900 text-center"
+                                    />
+                                    <span className="text-[9px] text-stone-500">und c/u</span>
+                                  </div>
+                                  <span className="text-[10px] text-stone-400">+</span>
+                                  <div className="flex flex-col items-center">
+                                    <input
+                                      type="number"
+                                      placeholder="0"
                                       value={f.pendienteSueltas}
                                       onChange={(e) => actualizarPendienteConteo(f.productoId, 'pendienteSueltas', e.target.value)}
                                       onKeyDown={(e) => { if (e.key === 'Enter') agregarHallazgo(f.productoId); }}
-                                      className="w-16 bg-stone-100 border border-stone-200 rounded-lg px-2 py-1.5 text-xs text-stone-900 text-center"
+                                      className="w-14 bg-stone-100 border border-stone-200 rounded-lg px-2 py-1.5 text-xs text-stone-900 text-center"
                                     />
-                                    <button onClick={() => agregarHallazgo(f.productoId)} className="px-3 py-1.5 bg-stone-900 hover:bg-stone-800 text-white rounded-lg text-[11px] font-bold shrink-0">
-                                      <i className="fa-solid fa-plus"></i> Agregar
-                                    </button>
+                                    <span className="text-[9px] text-stone-500">sueltas</span>
                                   </div>
-                                )}
+                                  <span className="text-xs font-bold text-orange-600 ml-auto shrink-0">= {totalPendiente} und</span>
+                                </div>
+                                <button onClick={() => agregarHallazgo(f.productoId)} className="w-full py-1.5 bg-stone-900 hover:bg-stone-800 text-white rounded-lg text-[11px] font-bold">
+                                  <i className="fa-solid fa-plus"></i> Agregar
+                                </button>
                               </div>
                             );
                           })()}
