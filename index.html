@@ -2488,11 +2488,15 @@
             const { data: { session } } = await sbClient.auth.getSession();
             if (session?.user) {
               // maybeSingle (no single): una sesión guardada puede ser la del
-            // super-admin, que no tiene fila en "usuarios" -- eso es
-            // normal, no un error a mostrar en consola.
-            const { data: usuario } = await sbClient.from('usuarios').select('*').eq('auth_id', session.user.id).maybeSingle();
-              if (usuario) {
-                const { data: bodega } = await sbClient.from('bodegas').select('*').eq('id', usuario.bodega_id).single();
+              // super-admin, que no tiene fila en "usuarios" -- eso es
+              // normal, no un error a mostrar en consola.
+              // Trae la bodega en el mismo viaje (embed) en vez de una
+              // segunda consulta secuencial después -- en cada carga de la
+              // app esto le ahorra una ida y vuelta completa al servidor
+              // antes de poder ocultar el splash.
+              const { data: usuarioConBodega } = await sbClient.from('usuarios').select('*, bodegas(*)').eq('auth_id', session.user.id).maybeSingle();
+              if (usuarioConBodega) {
+                const { bodegas: bodega, ...usuario } = usuarioConBodega;
                 setSesion({ usuario, bodega: bodega || { id: usuario.bodega_id, nombre: 'Mi Bodega' } });
               }
             }
@@ -6703,9 +6707,11 @@
                     }
 
                     const { data: { user } } = await sbClient.auth.getUser();
-                    const { data: usuario, error: errUsuario } = await sbClient.from('usuarios').select('*').eq('auth_id', user.id).single();
-                    if (errUsuario || !usuario) throw new Error('No se pudo cargar tu cuenta. Intenta de nuevo.');
-                    const { data: bodega } = await sbClient.from('bodegas').select('*').eq('id', usuario.bodega_id).single();
+                    // Trae la bodega en el mismo viaje (embed) en vez de una
+                    // segunda consulta secuencial después.
+                    const { data: usuarioConBodega, error: errUsuario } = await sbClient.from('usuarios').select('*, bodegas(*)').eq('auth_id', user.id).single();
+                    if (errUsuario || !usuarioConBodega) throw new Error('No se pudo cargar tu cuenta. Intenta de nuevo.');
+                    const { bodegas: bodega, ...usuario } = usuarioConBodega;
 
                     // Primer login de verdad de una bodega creada por el admin
                     // (o de una cuenta vieja migrándose): recién ahora
