@@ -2179,10 +2179,17 @@
       const [verStockBusqueda, setVerStockBusqueda] = useState('');
 
       // --- Módulo: Toma de Inventario (conteo físico vs. sistema) ---
+      // Flujo en 2 pasos: "conteo" (se busca cada producto y se anota lo que
+      // se contó, SIN ver el stock del sistema -- para que el conteo sea
+      // real y no una copia del número que ya muestra la pantalla) y
+      // "revision" (ahí sí se ve Sistema vs Contado y la diferencia, ya
+      // completo con lo que se cargó en el paso 1, sin volver a escribirlo).
       const [modalTomaInventario, setModalTomaInventario] = useState(false);
+      const [pasoTomaInventario, setPasoTomaInventario] = useState('conteo');
       const [filasTomaInventario, setFilasTomaInventario] = useState([]);
       const [tomaInventarioCategoria, setTomaInventarioCategoria] = useState('');
       const [tomaInventarioBusqueda, setTomaInventarioBusqueda] = useState('');
+      const [conteoFisicoBusqueda, setConteoFisicoBusqueda] = useState('');
       const [guardandoTomaInventario, setGuardandoTomaInventario] = useState(false);
 
       // --- Módulo: Inventario Inicial (carga de varios productos a la vez) ---
@@ -2870,6 +2877,24 @@
           .filter((f) => !tomaInventarioCategoria || f.categoria === tomaInventarioCategoria)
           .filter((f) => !t || (f.descripcion || '').toLowerCase().includes(t));
       }, [filasTomaInventario, tomaInventarioCategoria, tomaInventarioBusqueda]);
+
+      // Resultados del buscador del Paso 1 (Conteo) -- solo se calculan
+      // cuando hay texto escrito (evita mostrar los 300 productos de la
+      // bodega de una sola vez) y ya no incluyen lo que ya se agregó al
+      // conteo, para no volver a contarlo dos veces por error.
+      const resultadosBusquedaConteo = useMemo(() => {
+        const t = conteoFisicoBusqueda.trim().toLowerCase();
+        if (!t) return [];
+        const yaContados = new Set(filasTomaInventario.map((f) => f.productoId));
+        return productos
+          .filter((p) => !yaContados.has(p.id))
+          .filter((p) =>
+            (p.descripcion || '').toLowerCase().includes(t) ||
+            (p.cod_ean || '').toLowerCase().includes(t) ||
+            (p.sku || '').toLowerCase().includes(t)
+          )
+          .slice(0, 8);
+      }, [productos, conteoFisicoBusqueda, filasTomaInventario]);
 
       // Como los abonos se descuentan del saldo total del cliente (no boleta por
       // boleta), acá se marcan como "pagadas" las boletas más antiguas hasta
@@ -4566,23 +4591,62 @@
       };
 
       // --- Módulo: Toma de Inventario (conteo físico vs. sistema) ---
-      // Se arranca una fila por producto ya cargado (mismo array `productos`
-      // que usa "Stock Bajo", sin pedirle nada nuevo al servidor) y se deja
-      // en blanco "contado" -- el cajero solo llena lo que efectivamente
-      // contó, el resto se ignora al guardar.
+      // Paso 1 (conteo): arranca vacío -- cada producto se busca y se agrega
+      // a mano a medida que se cuenta de verdad en el estante, en vez de
+      // partir de los ~300 productos de la bodega ya listados (eso invitaba
+      // a copiar el número que ya mostraba el sistema en vez de contar).
       const abrirTomaInventario = () => {
-        setFilasTomaInventario(
-          productos.map((p) => ({
-            productoId: p.id,
-            descripcion: p.descripcion,
-            categoria: p.categoria || 'General',
-            stockSistema: Number(p.stock_actual) || 0,
-            stockContado: ''
-          }))
-        );
+        setFilasTomaInventario([]);
+        setPasoTomaInventario('conteo');
         setTomaInventarioCategoria('');
         setTomaInventarioBusqueda('');
+        setConteoFisicoBusqueda('');
         setModalTomaInventario(true);
+      };
+
+      const agregarProductoAConteo = (producto) => {
+        setFilasTomaInventario((prev) =>
+          prev.some((f) => f.productoId === producto.id)
+            ? prev
+            : [...prev, {
+                productoId: producto.id,
+                descripcion: producto.descripcion,
+                categoria: producto.categoria || 'General',
+                stockSistema: Number(producto.stock_actual) || 0,
+                stockContado: ''
+              }]
+        );
+        setConteoFisicoBusqueda('');
+      };
+
+      const quitarProductoDeConteo = (productoId) => {
+        setFilasTomaInventario((prev) => prev.filter((f) => f.productoId !== productoId));
+      };
+
+      // Paso 2 (revisión): recién acá se vuelve a consultar el stock del
+      // sistema para lo que se contó -- si pasó tiempo contando (o hubo una
+      // venta mientras tanto), la diferencia que se muestra ya es la real y
+      // no una foto vieja de cuando se agregó cada producto al conteo.
+      const continuarARevisionInventario = async () => {
+        if (filasTomaInventario.length === 0) {
+          notificar('Agrega al menos un producto al conteo.', 'error');
+          return;
+        }
+        if (!esModoDemo && sbClient) {
+          const { data: stockFresco, error } = await sbClient
+            .from('productos')
+            .select('id, stock_actual')
+            .in('id', filasTomaInventario.map((f) => f.productoId));
+          if (!error && stockFresco) {
+            const stockFrescoPorId = new Map(stockFresco.map((p) => [p.id, Number(p.stock_actual) || 0]));
+            setFilasTomaInventario((prev) =>
+              prev.map((f) => (stockFrescoPorId.has(f.productoId) ? { ...f, stockSistema: stockFrescoPorId.get(f.productoId) } : f))
+            );
+          }
+        }
+        setTomaInventarioCategoria('');
+        setTomaInventarioBusqueda('');
+        setPasoTomaInventario('revision');
       };
 
       const actualizarStockContado = (productoId, valor) => {
@@ -7919,7 +7983,10 @@
             </div>
           )}
 
-          {/* Modal: Toma de Inventario (conteo físico vs. sistema) */}
+          {/* Modal: Toma de Inventario (conteo físico vs. sistema) -- 2 pasos:
+              "conteo" (se busca y anota lo contado, sin ver el stock del
+              sistema) y "revision" (recién ahí se compara y se guarda, lo
+              que ajusta el stock automáticamente si hay diferencia). */}
           {modalTomaInventario && (
             <div className="fixed inset-0 bg-black/85 flex items-center justify-center z-50 p-4">
               <div className="bg-stone-100 border border-stone-200 rounded-2xl max-w-2xl w-full p-5 shadow-2xl space-y-3 max-h-[90vh] flex flex-col">
@@ -7927,65 +7994,147 @@
                   <div>
                     <h3 className="text-base font-bold text-stone-900 flex items-center gap-2">
                       <i className="fa-solid fa-clipboard-check text-orange-600"></i> Toma de Inventario
+                      <span className="text-[10px] font-bold text-orange-600 bg-orange-100 px-2 py-0.5 rounded-full">
+                        Paso {pasoTomaInventario === 'conteo' ? '1' : '2'} de 2
+                      </span>
                     </h3>
-                    <p className="text-xs text-stone-600 mt-0.5">Cuenta lo que tienes físicamente. Deja en blanco lo que no vas a contar ahora.</p>
+                    <p className="text-xs text-stone-600 mt-0.5">
+                      {pasoTomaInventario === 'conteo'
+                        ? 'Busca cada producto y anota lo que cuentes físicamente en el estante.'
+                        : 'Revisa lo contado contra el sistema y guarda para ajustar el stock.'}
+                    </p>
                   </div>
                   <button onClick={() => setModalTomaInventario(false)} className="text-stone-600 hover:text-stone-900 shrink-0"><i className="fa-solid fa-xmark"></i></button>
                 </div>
-                <div className="flex gap-2 shrink-0">
-                  <input
-                    type="text"
-                    placeholder="Buscar producto..."
-                    value={tomaInventarioBusqueda}
-                    onChange={(e) => setTomaInventarioBusqueda(e.target.value)}
-                    className="flex-1 bg-stone-50 border border-stone-200 rounded-lg px-2.5 py-1.5 text-xs text-stone-900"
-                  />
-                  <select
-                    value={tomaInventarioCategoria}
-                    onChange={(e) => setTomaInventarioCategoria(e.target.value)}
-                    className="bg-stone-50 border border-stone-200 rounded-lg px-2.5 py-1.5 text-xs text-stone-900"
-                  >
-                    <option value="">Todas las categorías</option>
-                    {categoriasDB.map(c => <option key={c} value={c}>{c}</option>)}
-                  </select>
-                </div>
-                <div className="flex-1 overflow-y-auto space-y-1.5">
-                  {filasTomaInventarioVisibles.length === 0 ? (
-                    <p className="text-xs text-stone-500 text-center py-8">No hay productos que coincidan.</p>
-                  ) : (
-                    filasTomaInventarioVisibles.map((f) => {
-                      const diferencia = f.stockContado === '' ? null : (Number(f.stockContado) || 0) - f.stockSistema;
-                      return (
-                        <div key={f.productoId} className="flex items-center gap-2 p-2.5 bg-stone-50 border border-stone-200 rounded-xl">
-                          <div className="flex-1 min-w-0">
-                            <p className="text-xs font-semibold text-stone-800 truncate">{f.descripcion}</p>
-                            <p className="text-xs text-stone-500">Sistema: {f.stockSistema}</p>
-                          </div>
-                          <input
-                            type="number"
-                            step="0.10"
-                            placeholder="Contado"
-                            value={f.stockContado}
-                            onChange={(e) => actualizarStockContado(f.productoId, e.target.value)}
-                            className="w-20 bg-stone-100 border border-stone-200 rounded-lg px-2 py-1.5 text-xs text-stone-900 text-right"
-                          />
-                          <span className={`w-14 text-right text-xs font-bold ${
-                            diferencia === null || diferencia === 0 ? 'text-stone-400' : diferencia > 0 ? 'text-emerald-600' : 'text-rose-600'
-                          }`}>
-                            {diferencia === null ? '—' : diferencia > 0 ? `+${diferencia}` : diferencia}
-                          </span>
+
+                {pasoTomaInventario === 'conteo' ? (
+                  <>
+                    <div className="relative shrink-0">
+                      <input
+                        type="text"
+                        autoFocus
+                        placeholder="Buscar o escanear producto..."
+                        value={conteoFisicoBusqueda}
+                        onChange={(e) => setConteoFisicoBusqueda(e.target.value)}
+                        className="w-full bg-stone-50 border border-stone-200 rounded-lg px-2.5 py-2 text-xs text-stone-900"
+                      />
+                      {resultadosBusquedaConteo.length > 0 && (
+                        <div className="absolute z-10 top-full left-0 right-0 mt-1 bg-white border border-stone-200 rounded-lg shadow-lg max-h-52 overflow-y-auto">
+                          {resultadosBusquedaConteo.map((p) => (
+                            <button
+                              key={p.id}
+                              type="button"
+                              onClick={() => agregarProductoAConteo(p)}
+                              className="w-full text-left px-3 py-2 text-xs text-stone-800 hover:bg-orange-50 border-b border-stone-100 last:border-0"
+                            >
+                              {p.descripcion}
+                            </button>
+                          ))}
                         </div>
-                      );
-                    })
-                  )}
-                </div>
-                <button
-                  onClick={guardarTomaInventario}
-                  disabled={guardandoTomaInventario}
-                  className="w-full py-2.5 bg-stone-900 hover:bg-stone-800 disabled:opacity-50 text-white font-bold text-xs rounded-xl shadow shrink-0"
-                >
-                  {guardandoTomaInventario ? 'Guardando...' : 'Guardar Toma de Inventario'}
-                </button>
+                      )}
+                    </div>
+                    <div className="flex-1 overflow-y-auto space-y-1.5">
+                      {filasTomaInventario.length === 0 ? (
+                        <p className="text-xs text-stone-500 text-center py-8">Aún no agregas ningún producto al conteo.</p>
+                      ) : (
+                        filasTomaInventario.map((f) => (
+                          <div key={f.productoId} className="flex items-center gap-2 p-2.5 bg-stone-50 border border-stone-200 rounded-xl">
+                            <p className="flex-1 min-w-0 text-xs font-semibold text-stone-800 truncate">{f.descripcion}</p>
+                            <input
+                              type="number"
+                              step="0.10"
+                              autoFocus
+                              placeholder="Cantidad contada"
+                              value={f.stockContado}
+                              onChange={(e) => actualizarStockContado(f.productoId, e.target.value)}
+                              className="w-28 bg-stone-100 border border-stone-200 rounded-lg px-2 py-1.5 text-xs text-stone-900 text-right"
+                            />
+                            <button onClick={() => quitarProductoDeConteo(f.productoId)} className="text-stone-400 hover:text-rose-600 shrink-0">
+                              <i className="fa-solid fa-trash-can"></i>
+                            </button>
+                          </div>
+                        ))
+                      )}
+                    </div>
+                    <button
+                      onClick={continuarARevisionInventario}
+                      disabled={filasTomaInventario.length === 0}
+                      className="w-full py-2.5 bg-stone-900 hover:bg-stone-800 disabled:opacity-50 text-white font-bold text-xs rounded-xl shadow shrink-0"
+                    >
+                      {filasTomaInventario.length === 0 ? 'Agrega al menos un producto' : `Continuar a Revisión (${filasTomaInventario.length})`}
+                      {filasTomaInventario.length > 0 && <i className="fa-solid fa-arrow-right ml-1.5"></i>}
+                    </button>
+                  </>
+                ) : (
+                  <>
+                    <div className="flex gap-2 shrink-0">
+                      <input
+                        type="text"
+                        placeholder="Buscar en lo contado..."
+                        value={tomaInventarioBusqueda}
+                        onChange={(e) => setTomaInventarioBusqueda(e.target.value)}
+                        className="flex-1 bg-stone-50 border border-stone-200 rounded-lg px-2.5 py-1.5 text-xs text-stone-900"
+                      />
+                      <select
+                        value={tomaInventarioCategoria}
+                        onChange={(e) => setTomaInventarioCategoria(e.target.value)}
+                        className="bg-stone-50 border border-stone-200 rounded-lg px-2.5 py-1.5 text-xs text-stone-900"
+                      >
+                        <option value="">Todas las categorías</option>
+                        {categoriasDB.map(c => <option key={c} value={c}>{c}</option>)}
+                      </select>
+                    </div>
+                    <div className="flex-1 overflow-y-auto space-y-1.5">
+                      {filasTomaInventarioVisibles.length === 0 ? (
+                        <p className="text-xs text-stone-500 text-center py-8">No hay productos que coincidan.</p>
+                      ) : (
+                        filasTomaInventarioVisibles.map((f) => {
+                          const diferencia = f.stockContado === '' ? null : (Number(f.stockContado) || 0) - f.stockSistema;
+                          return (
+                            <div key={f.productoId} className="flex items-center gap-2 p-2.5 bg-stone-50 border border-stone-200 rounded-xl">
+                              <div className="flex-1 min-w-0">
+                                <p className="text-xs font-semibold text-stone-800 truncate">{f.descripcion}</p>
+                                <p className="text-xs text-stone-500">Sistema: {f.stockSistema}</p>
+                              </div>
+                              <input
+                                type="number"
+                                step="0.10"
+                                placeholder="Contado"
+                                value={f.stockContado}
+                                onChange={(e) => actualizarStockContado(f.productoId, e.target.value)}
+                                className="w-20 bg-stone-100 border border-stone-200 rounded-lg px-2 py-1.5 text-xs text-stone-900 text-right"
+                              />
+                              <span className={`w-14 text-right text-xs font-bold ${
+                                diferencia === null || diferencia === 0 ? 'text-stone-400' : diferencia > 0 ? 'text-emerald-600' : 'text-rose-600'
+                              }`}>
+                                {diferencia === null ? '—' : diferencia > 0 ? `+${diferencia}` : diferencia}
+                              </span>
+                            </div>
+                          );
+                        })
+                      )}
+                    </div>
+                    <p className="text-[11px] text-stone-500 text-center shrink-0">
+                      <i className="fa-solid fa-circle-info mr-1"></i>
+                      Al guardar, el stock del sistema se ajusta solo para que quede igual al contado.
+                    </p>
+                    <div className="flex gap-2 shrink-0">
+                      <button
+                        onClick={() => setPasoTomaInventario('conteo')}
+                        className="py-2.5 px-4 bg-stone-200 hover:bg-stone-300 text-stone-700 font-bold text-xs rounded-xl shrink-0"
+                      >
+                        <i className="fa-solid fa-arrow-left mr-1.5"></i> Seguir contando
+                      </button>
+                      <button
+                        onClick={guardarTomaInventario}
+                        disabled={guardandoTomaInventario}
+                        className="flex-1 py-2.5 bg-stone-900 hover:bg-stone-800 disabled:opacity-50 text-white font-bold text-xs rounded-xl shadow"
+                      >
+                        {guardandoTomaInventario ? 'Guardando...' : 'Guardar y Ajustar Stock'}
+                      </button>
+                    </div>
+                  </>
+                )}
               </div>
             </div>
           )}
