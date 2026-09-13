@@ -2205,6 +2205,12 @@
       // completo arriba -- el resto queda colapsado en un "Historial" que
       // se puede abrir para revisar o retomar cualquiera de ellos.
       const [historialConteoAbierto, setHistorialConteoAbierto] = useState(false);
+      // "Unidades por pack" queda bloqueado (solo texto) por defecto -- un
+      // toque sin querer ahí no debe poder arruinar el multiplicador del
+      // conteo. Guarda el productoId del ÚNICO producto que se está
+      // editando a la vez (o null si ninguno), tanto en la tarjeta activa
+      // del Paso 1 como en el panel del escáner.
+      const [editandoPackParaId, setEditandoPackParaId] = useState(null);
       useEffect(() => {
         // Mientras el escáner de cámara está abierto (z-index por encima),
         // el input real que ve el usuario es el del panel del propio
@@ -7852,14 +7858,30 @@
                           </div>
                           <span className="text-xs text-stone-400">de</span>
                           <div className="flex flex-col items-center">
-                            <input
-                              type="number"
-                              placeholder="1"
-                              value={f.pendienteUnidadesPorPack}
-                              onChange={(e) => actualizarPendienteConteo(f.productoId, 'pendienteUnidadesPorPack', e.target.value)}
-                              className="w-14 bg-white border border-stone-300 rounded-lg px-2 py-2 text-sm text-stone-900 text-center"
-                            />
-                            <span className="text-[9px] text-stone-500">und c/u</span>
+                            {editandoPackParaId === f.productoId ? (
+                              <input
+                                type="number"
+                                autoFocus
+                                placeholder="1"
+                                value={f.pendienteUnidadesPorPack}
+                                onChange={(e) => actualizarPendienteConteo(f.productoId, 'pendienteUnidadesPorPack', e.target.value)}
+                                onBlur={() => setEditandoPackParaId(null)}
+                                onKeyDown={(e) => { if (e.key === 'Enter') setEditandoPackParaId(null); }}
+                                className="w-14 bg-white border border-orange-400 rounded-lg px-2 py-2 text-sm text-stone-900 text-center"
+                              />
+                            ) : (
+                              <button
+                                type="button"
+                                onClick={() => setEditandoPackParaId(f.productoId)}
+                                title="Tocar para cambiar las unidades por pack"
+                                className="w-14 h-[38px] bg-stone-100 border border-stone-200 rounded-lg text-sm font-bold text-stone-700"
+                              >
+                                x{f.pendienteUnidadesPorPack || 1}
+                              </button>
+                            )}
+                            <span className="text-[9px] text-stone-500 flex items-center gap-0.5">
+                              {editandoPackParaId !== f.productoId && <i className="fa-solid fa-lock text-[7px]"></i>} und c/u
+                            </span>
                           </div>
                           <span className="text-xs text-stone-400">+</span>
                           <div className="flex flex-col items-center">
@@ -8559,14 +8581,30 @@
                                   </div>
                                   <span className="text-[10px] text-stone-400">de</span>
                                   <div className="flex flex-col items-center">
-                                    <input
-                                      type="number"
-                                      placeholder="1"
-                                      value={f.pendienteUnidadesPorPack}
-                                      onChange={(e) => actualizarPendienteConteo(f.productoId, 'pendienteUnidadesPorPack', e.target.value)}
-                                      className="w-14 bg-stone-100 border border-stone-200 rounded-lg px-2 py-1.5 text-xs text-stone-900 text-center"
-                                    />
-                                    <span className="text-[9px] text-stone-500">und c/u</span>
+                                    {editandoPackParaId === f.productoId ? (
+                                      <input
+                                        type="number"
+                                        autoFocus
+                                        placeholder="1"
+                                        value={f.pendienteUnidadesPorPack}
+                                        onChange={(e) => actualizarPendienteConteo(f.productoId, 'pendienteUnidadesPorPack', e.target.value)}
+                                        onBlur={() => setEditandoPackParaId(null)}
+                                        onKeyDown={(e) => { if (e.key === 'Enter') setEditandoPackParaId(null); }}
+                                        className="w-14 bg-white border border-orange-400 rounded-lg px-2 py-1.5 text-xs text-stone-900 text-center"
+                                      />
+                                    ) : (
+                                      <button
+                                        type="button"
+                                        onClick={() => setEditandoPackParaId(f.productoId)}
+                                        title="Tocar para cambiar las unidades por pack"
+                                        className="w-14 h-[30px] bg-stone-200 border border-stone-300 rounded-lg text-xs font-bold text-stone-700"
+                                      >
+                                        x{f.pendienteUnidadesPorPack || 1}
+                                      </button>
+                                    )}
+                                    <span className="text-[9px] text-stone-500 flex items-center gap-0.5">
+                                      {editandoPackParaId !== f.productoId && <i className="fa-solid fa-lock text-[7px]"></i>} und c/u
+                                    </span>
                                   </div>
                                   <span className="text-[10px] text-stone-400">+</span>
                                   <div className="flex flex-col items-center">
