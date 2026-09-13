@@ -54,17 +54,13 @@
   <!-- Supabase JS Client CDN -->
   <script defer src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
-  <!-- Canvas Confetti -->
-  <script defer src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
-
-  <!-- Generación de PDF en el navegador (sin backend) -->
-  <script defer src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
-
-  <!-- Lector de código de barras por cámara (sin backend) -->
-  <script defer src="https://cdn.jsdelivr.net/npm/zxing-wasm@3.1.3/dist/iife/reader/index.min.js"></script>
-
-  <!-- Generar archivos Excel (.xlsx) reales en el navegador, sin backend -->
-  <script defer src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+  <!-- Canvas Confetti, jsPDF, zxing-wasm y XLSX (SheetJS) NO se cargan acá.
+       Son pesadas y cada bodega usa una sola de ellas de vez en cuando (una
+       imprime boletas por Bluetooth, otra nunca exporta a Excel, etc.) --
+       cargarlas siempre de entrada demoraba el arranque en celulares de gama
+       baja para funciones que la mayoría de las veces no se van a tocar en
+       esa sesión. Se cargan solas, bajo demanda, la primera vez que hacen
+       falta -- ver cargarScriptExterno() más abajo. -->
 
   <!-- Logo: se precarga para que el splash de abajo lo muestre al instante -->
   <link rel="preload" as="image" href="https://hzmrsbeamtbloudmxjrp.supabase.co/storage/v1/object/public/Logo/Gemini_Generated_Image_96pr6996pr6996pr%20(1).png">
@@ -234,6 +230,29 @@
       });
     };
 
+    // Carga bajo demanda de librerías pesadas que solo hace falta usar de vez
+    // en cuando (Excel, PDF, lector de códigos de barras). Cada URL se
+    // descarga una sola vez -- si dos partes de la app la piden casi al
+    // mismo tiempo (ej. dos botones de exportar), ambas reciben la MISMA
+    // promesa en vez de inyectar el <script> dos veces.
+    const scriptsExternosCargados = {};
+    const cargarScriptExterno = (url) => {
+      if (!scriptsExternosCargados[url]) {
+        scriptsExternosCargados[url] = new Promise((resolve, reject) => {
+          const script = document.createElement('script');
+          script.src = url;
+          script.onload = () => resolve();
+          script.onerror = () => reject(new Error(`No se pudo cargar ${url}`));
+          document.head.appendChild(script);
+        });
+      }
+      return scriptsExternosCargados[url];
+    };
+    const asegurarXLSX = () => cargarScriptExterno('https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js');
+    const asegurarJsPDF = () => cargarScriptExterno('https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js');
+    const asegurarConfetti = () => cargarScriptExterno('https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js');
+    const asegurarZXing = () => cargarScriptExterno('https://cdn.jsdelivr.net/npm/zxing-wasm@3.1.3/dist/iife/reader/index.min.js');
+
     // La tabla productos exige cod_ean (no admite vacío), aunque hay artículos
     // reales sin código de barras (a granel, hechos en casa, etc.). Cuando el
     // cajero lo deja en blanco se genera un código interno único para que el
@@ -307,8 +326,15 @@
 
     // Exporta un arreglo de objetos a un archivo Excel (.xlsx) real descargable,
     // generado en el propio navegador con SheetJS (sin backend).
-    const exportarExcel = (nombreArchivo, filas, nombreHoja = 'Datos') => {
+    const exportarExcel = async (nombreArchivo, filas, nombreHoja = 'Datos') => {
       if (!filas || filas.length === 0) return;
+      try {
+        await asegurarXLSX();
+      } catch (err) {
+        console.error(err);
+        alert('No se pudo cargar el generador de Excel. Revisa tu conexión e intenta de nuevo.');
+        return;
+      }
       const hoja = XLSX.utils.json_to_sheet(filas);
       const libro = XLSX.utils.book_new();
       XLSX.utils.book_append_sheet(libro, hoja, nombreHoja);
@@ -1282,8 +1308,9 @@
       // vez de exigir uno exacto.
       const procesarArchivoImportMaestro = (file) => {
         const reader = new FileReader();
-        reader.onload = (e) => {
+        reader.onload = async (e) => {
           try {
+            await asegurarXLSX();
             const libro = XLSX.read(new Uint8Array(e.target.result), { type: 'array' });
             const hoja = libro.Sheets[libro.SheetNames[0]];
             const filas = XLSX.utils.sheet_to_json(hoja, { defval: '' });
@@ -3307,6 +3334,7 @@
         // siguiente intento cuando el anterior ya terminó.
         const correrFallback = async (video) => {
           try {
+            await asegurarZXing();
             await ZXingWASM.prepareZXingModule({
               overrides: {
                 locateFile: (path) => `https://cdn.jsdelivr.net/npm/zxing-wasm@3.1.3/dist/reader/${path}`
@@ -4041,7 +4069,8 @@
       };
 
       // Genera el PDF de estado de cuenta en el propio navegador (sin backend).
-      const generarPDFEstadoCuenta = (cliente, boletas) => {
+      const generarPDFEstadoCuenta = async (cliente, boletas) => {
+        await asegurarJsPDF();
         const { jsPDF } = window.jspdf;
         const doc = new jsPDF();
         let y = 18;
@@ -4097,9 +4126,9 @@
         return doc;
       };
 
-      const descargarEstadoCuenta = () => {
+      const descargarEstadoCuenta = async () => {
         if (!deudorSeleccionado) return;
-        const doc = generarPDFEstadoCuenta(deudorSeleccionado, boletasPendientesDeuda);
+        const doc = await generarPDFEstadoCuenta(deudorSeleccionado, boletasPendientesDeuda);
         doc.save(`Estado_Cuenta_${deudorSeleccionado.dni}.pdf`);
       };
 
@@ -4107,7 +4136,7 @@
       // en desktop, donde no se puede adjuntar archivos así, descarga el PDF y abre
       // WhatsApp Web con el chat listo para adjuntarlo manualmente.
       const enviarEstadoCuentaWhatsApp = async (cliente) => {
-        const doc = generarPDFEstadoCuenta(cliente, boletasPendientesDeuda);
+        const doc = await generarPDFEstadoCuenta(cliente, boletasPendientesDeuda);
         const nombreArchivo = `Estado_Cuenta_${cliente.dni}.pdf`;
         const blob = doc.output('blob');
 
@@ -4181,8 +4210,9 @@
           }
         }
 
-        // Lanzar Confeti
-        confetti({ particleCount: 120, spread: 70, origin: { y: 0.6 } });
+        // Lanzar Confeti -- puramente decorativo, así que no se espera a que
+        // cargue (no debe demorar el resto del flujo) y si falla se ignora.
+        asegurarConfetti().then(() => confetti({ particleCount: 120, spread: 70, origin: { y: 0.6 } })).catch(() => {});
 
         if (esModoDemo) {
           setClientesLista((prev) => prev.map((c) => (c.id === deudorSeleccionado.id ? { ...c, saldo_actual: nuevoSaldo } : c)));
@@ -5528,7 +5558,8 @@
 
       // Exporta todo el Dashboard a un Excel real (.xlsx, varias hojas),
       // no un CSV -- cada sección del dashboard es su propia hoja.
-      const exportarDashboardExcel = () => {
+      const exportarDashboardExcel = async () => {
+        await asegurarXLSX();
         const libro = XLSX.utils.book_new();
 
         const hojaResumen = XLSX.utils.json_to_sheet([{
@@ -6291,7 +6322,8 @@
 
       // Genera la boleta como PDF con formato de ticket angosto (80mm),
       // igual al que se usaría en una impresora térmica.
-      const generarPDFBoleta = (venta) => {
+      const generarPDFBoleta = async (venta) => {
+        await asegurarJsPDF();
         const { jsPDF } = window.jspdf;
         const items = venta.items || [];
         const alturaEstimada = 58 + items.length * 9 + (venta.descuento > 0 ? 10 : 0);
@@ -6358,7 +6390,7 @@
       // adjuntar así, descarga el PDF y abre WhatsApp Web con el chat listo
       // para adjuntarlo manualmente.
       const enviarBoletaWhatsApp = async (venta) => {
-        const doc = generarPDFBoleta(venta);
+        const doc = await generarPDFBoleta(venta);
         const nombreArchivo = `Boleta_${venta.nro_boleta}.pdf`;
         const blob = doc.output('blob');
 
