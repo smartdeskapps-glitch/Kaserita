@@ -2487,8 +2487,19 @@
       const [cajerosGestion, setCajerosGestion] = useState([]);
       const [cargandoCajerosGestion, setCargandoCajerosGestion] = useState(false);
       const [mostrarFormNuevoCajero, setMostrarFormNuevoCajero] = useState(false);
-      const [formNuevoCajero, setFormNuevoCajero] = useState({ nombre: '', dni: '', rol: 'cajero' });
+      const [formNuevoCajero, setFormNuevoCajero] = useState({ nombre: '', dni: '', rol: 'cajero', pin: '' });
       const [guardandoNuevoCajero, setGuardandoNuevoCajero] = useState(false);
+      // Cambiar el PIN de un Administrador ya existente (el dueño lo hace
+      // desde acá cuando ese empleado lo olvida, o al ascender a alguien).
+      const [modalPinCajero, setModalPinCajero] = useState(null);
+      const [nuevoPinCajero, setNuevoPinCajero] = useState('');
+      const [guardandoPinCajero, setGuardandoPinCajero] = useState(false);
+      // Al elegir en "Abrir Turno" a un Administrador que no es quien inició
+      // sesión, se le pide su PIN antes de aplicar el cambio -- si no, ese
+      // selector le daría acceso completo a cualquiera con solo tocarlo.
+      const [cajeroPendientePin, setCajeroPendientePin] = useState(null);
+      const [pinConfirmarCajero, setPinConfirmarCajero] = useState('');
+      const [verificandoPinCajero, setVerificandoPinCajero] = useState(false);
 
       // --- Arqueo y Cierre de Caja ---
       const [modalCierreCaja, setModalCierreCaja] = useState(false);
@@ -2951,9 +2962,12 @@
         // que intentar, así que se deja tal cual está en memoria.
         if (!sbClient || !bodegaId || esModoDemo) return;
         try {
+          // No se selecciona pin_seguridad -- esa columna no se puede leer
+          // desde el cliente (ver cajeros_pin_administrador.sql), así que
+          // pedirla con "*" haría fallar la consulta entera.
           let { data } = await sbClient
             .from('cajeros')
-            .select('*')
+            .select('id, bodega_id, nombre, dni, rol, activo')
             .eq('bodega_id', bodegaId)
             .eq('activo', true)
             .order('nombre', { ascending: true });
@@ -3014,7 +3028,7 @@
         try {
           const { data, error } = await sbClient
             .from('cajeros')
-            .select('*')
+            .select('id, bodega_id, nombre, dni, rol, activo')
             .eq('bodega_id', bodegaId)
             .order('nombre', { ascending: true });
           if (error) throw error;
@@ -3033,15 +3047,23 @@
       // solo se agregan a la lista de turno con nombre, DNI y rol. Nadie
       // aparte del dueño puede iniciar sesión de forma independiente.
       const registrarNuevoCajeroCompleto = async () => {
-        const { nombre, dni, rol } = formNuevoCajero;
+        const { nombre, dni, rol, pin } = formNuevoCajero;
         if (!nombre.trim() || !dni.trim()) {
           notificar('Nombre y DNI son obligatorios.', 'error');
+          return;
+        }
+        // Un Administrador desbloquea el panel completo al elegirlo en
+        // "Abrir Turno" -- por eso necesita su propio PIN desde que se
+        // crea (ver cajeros_pin_administrador.sql). Un Cajero normal no
+        // desbloquea nada, así que no lo necesita.
+        if (rol === 'administrador' && !/^\d{4,6}$/.test(pin.trim())) {
+          notificar('El PIN del Administrador debe tener entre 4 y 6 dígitos.', 'error');
           return;
         }
         setGuardandoNuevoCajero(true);
         try {
           if (esModoDemo) {
-            const nuevo = { id: generarUUID(), bodega_id: bodegaId, nombre: nombre.trim(), dni: dni.trim(), rol, activo: true };
+            const nuevo = { id: generarUUID(), bodega_id: bodegaId, nombre: nombre.trim(), dni: dni.trim(), rol, activo: true, pin_seguridad: rol === 'administrador' ? pin.trim() : null };
             setListaCajeros((prev) => [...prev, nuevo].sort((a, b) => a.nombre.localeCompare(b.nombre)));
             setCajerosGestion((prev) => [...prev, nuevo].sort((a, b) => a.nombre.localeCompare(b.nombre)));
           } else if (sbClient) {
@@ -3050,13 +3072,14 @@
               nombre: nombre.trim(),
               dni: dni.trim(),
               rol: rol,
-              activo: true
+              activo: true,
+              pin_seguridad: rol === 'administrador' ? pin.trim() : null
             }]);
             if (errCajero) throw errCajero;
             abrirGestionCajeros();
             cargarCajeros();
           }
-          setFormNuevoCajero({ nombre: '', dni: '', rol: 'cajero' });
+          setFormNuevoCajero({ nombre: '', dni: '', rol: 'cajero', pin: '' });
           setMostrarFormNuevoCajero(false);
           notificar(`¡"${nombre}" agregado! Ya aparece en la lista para elegir al abrir turno.`, 'success');
         } catch (err) {
@@ -3120,6 +3143,81 @@
           } else {
             notificar(`Error: ${err.message}`, 'error');
           }
+        }
+      };
+
+      // El dueño ya probó su identidad al iniciar sesión, así que puede
+      // elegirse a sí mismo sin nada más. Cualquier otra fila con rol
+      // "administrador" (o "dueno", que no debería repetirse) desbloquea el
+      // panel completo -- antes de aplicar ese cambio, se pide su PIN.
+      const elegirCajeroTurno = (f) => {
+        if (!f) return;
+        const esUnoMismo = usuarioActivo?.dni && f.dni === usuarioActivo.dni;
+        const esElevado = f.rol === 'administrador' || f.rol === 'dueno';
+        if (esElevado && !esUnoMismo) {
+          setCajeroPendientePin(f);
+          setPinConfirmarCajero('');
+        } else {
+          setCajeroSeleccionado(f);
+        }
+      };
+
+      const confirmarPinCajero = async () => {
+        const f = cajeroPendientePin;
+        if (!f) return;
+        setVerificandoPinCajero(true);
+        try {
+          let ok = false;
+          if (esModoDemo) {
+            ok = !!f.pin_seguridad && f.pin_seguridad === pinConfirmarCajero.trim();
+          } else {
+            const { data, error } = await sbClient.rpc('verificar_pin_cajero', {
+              p_cajero_id: f.id,
+              p_pin: pinConfirmarCajero.trim()
+            });
+            if (error) throw error;
+            ok = !!data;
+          }
+          if (ok) {
+            setCajeroSeleccionado(f);
+            setCajeroPendientePin(null);
+            setPinConfirmarCajero('');
+          } else {
+            notificar('PIN incorrecto.', 'error');
+          }
+        } catch (err) {
+          notificar(err.message, 'error');
+        } finally {
+          setVerificandoPinCajero(false);
+        }
+      };
+
+      // El dueño cambia/asigna el PIN de un Administrador desde acá (por
+      // ejemplo, si lo olvidó) -- solo se puede llegar a este modal desde
+      // "Cajeros y Empleados", que ya está detrás de esAdmin.
+      const guardarPinCajero = async () => {
+        const cajero = modalPinCajero;
+        if (!cajero) return;
+        if (!/^\d{4,6}$/.test(nuevoPinCajero.trim())) {
+          notificar('El PIN debe tener entre 4 y 6 dígitos.', 'error');
+          return;
+        }
+        setGuardandoPinCajero(true);
+        try {
+          if (esModoDemo) {
+            setListaCajeros((prev) => prev.map((c) => (c.id === cajero.id ? { ...c, pin_seguridad: nuevoPinCajero.trim() } : c)));
+            setCajerosGestion((prev) => prev.map((c) => (c.id === cajero.id ? { ...c, pin_seguridad: nuevoPinCajero.trim() } : c)));
+          } else {
+            const { error } = await sbClient.from('cajeros').update({ pin_seguridad: nuevoPinCajero.trim() }).eq('id', cajero.id);
+            if (error) throw error;
+          }
+          notificar(`PIN de ${cajero.nombre} actualizado.`, 'success');
+          setModalPinCajero(null);
+          setNuevoPinCajero('');
+        } catch (err) {
+          notificar(`Error: ${err.message}`, 'error');
+        } finally {
+          setGuardandoPinCajero(false);
         }
       };
 
@@ -6401,7 +6499,7 @@
         try {
           const { data: abiertas } = await sbClient
             .from('turnos_caja')
-            .select('*, cajeros(*)')
+            .select('*, cajeros(id, bodega_id, nombre, dni, rol, activo)')
             .eq('bodega_id', bodegaId)
             .is('fecha_cierre', null)
             .order('fecha_apertura', { ascending: false });
@@ -10435,6 +10533,20 @@
                         <option value="administrador">Administrador (acceso completo)</option>
                       </select>
                     </div>
+                    {formNuevoCajero.rol === 'administrador' && (
+                      <div>
+                        <label className="text-xs text-stone-600 block mb-1">PIN de seguridad (4-6 dígitos):</label>
+                        <input
+                          type="text"
+                          inputMode="numeric"
+                          maxLength={6}
+                          value={formNuevoCajero.pin}
+                          onChange={(e) => setFormNuevoCajero({ ...formNuevoCajero, pin: e.target.value.replace(/\D/g, '') })}
+                          className="w-full bg-stone-100 border border-stone-200 rounded-lg px-3 py-1.5 text-xs text-stone-900"
+                        />
+                        <p className="text-[10px] text-stone-500 mt-1">Se le va a pedir cada vez que alguien más lo elija al abrir turno.</p>
+                      </div>
+                    )}
                     <div className="flex gap-2 pt-1">
                       <button onClick={() => setMostrarFormNuevoCajero(false)} className="flex-1 py-2 bg-stone-200 text-stone-800 text-xs font-semibold rounded-xl">
                         Cancelar
@@ -10471,6 +10583,15 @@
                               <p className="text-xs text-stone-500 capitalize">DNI: {c.dni} · {c.rol}</p>
                             </div>
                             <div className="flex items-center gap-1.5 shrink-0">
+                              {c.rol === 'administrador' && (
+                                <button
+                                  onClick={() => { setModalPinCajero(c); setNuevoPinCajero(''); }}
+                                  title="Cambiar su PIN de seguridad"
+                                  className="w-7 h-7 flex items-center justify-center bg-stone-200 hover:bg-orange-100 text-stone-500 hover:text-orange-600 rounded-lg"
+                                >
+                                  <i className="fa-solid fa-key text-xs"></i>
+                                </button>
+                              )}
                               {c.rol !== 'dueno' && (
                                 <button
                                   onClick={() => alternarActivoCajero(c)}
@@ -10497,6 +10618,43 @@
                     </div>
                   </>
                 )}
+              </div>
+            </div>
+          )}
+
+          {/* Modal: cambiar el PIN de seguridad de un Administrador */}
+          {modalPinCajero && (
+            <div className="fixed inset-0 bg-black/85 flex items-center justify-center z-[60] p-4">
+              <div className="bg-stone-100 border border-stone-200 rounded-2xl max-w-xs w-full p-5 shadow-2xl space-y-3">
+                <h3 className="text-sm font-bold text-stone-900 flex items-center gap-2">
+                  <i className="fa-solid fa-key text-orange-600"></i> PIN de {modalPinCajero.nombre}
+                </h3>
+                <p className="text-xs text-stone-600">Se le va a pedir a cualquiera que elija a "{modalPinCajero.nombre}" al abrir turno.</p>
+                <input
+                  type="text"
+                  inputMode="numeric"
+                  maxLength={6}
+                  autoFocus
+                  value={nuevoPinCajero}
+                  onChange={(e) => setNuevoPinCajero(e.target.value.replace(/\D/g, ''))}
+                  placeholder="4-6 dígitos"
+                  className="w-full bg-white border border-stone-200 rounded-xl px-3 py-2.5 text-center text-lg tracking-widest text-stone-900 focus:outline-none focus:border-orange-500"
+                />
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => { setModalPinCajero(null); setNuevoPinCajero(''); }}
+                    className="flex-1 py-2 bg-stone-200 text-stone-800 text-xs font-semibold rounded-xl"
+                  >
+                    Cancelar
+                  </button>
+                  <button
+                    onClick={guardarPinCajero}
+                    disabled={guardandoPinCajero}
+                    className="flex-1 py-2 bg-stone-900 hover:bg-stone-800 disabled:opacity-60 text-white font-bold text-xs rounded-xl shadow"
+                  >
+                    {guardandoPinCajero ? 'Guardando...' : 'Guardar'}
+                  </button>
+                </div>
               </div>
             </div>
           )}
@@ -11238,10 +11396,7 @@
                   <label className="text-xs font-semibold text-stone-700 block mb-1">Cajero:</label>
                   <select
                     value={cajeroSeleccionado?.id || ''}
-                    onChange={(e) => {
-                      const f = listaCajeros.find(c => c.id === e.target.value);
-                      if (f) setCajeroSeleccionado(f);
-                    }}
+                    onChange={(e) => elegirCajeroTurno(listaCajeros.find(c => c.id === e.target.value))}
                     className="w-full bg-stone-50 border border-stone-200 rounded-xl px-3 py-2 text-xs text-stone-900"
                   >
                     {listaCajeros.map(c => (
@@ -11271,6 +11426,46 @@
                 <div className="flex gap-2">
                   <button onClick={() => setModalTurno(false)} className="flex-1 py-2 bg-stone-200 text-xs font-semibold rounded-xl">Cancelar</button>
                   <button onClick={handleAbrirTurno} className="flex-1 py-2 bg-stone-900 text-white text-xs font-bold rounded-xl shadow">Confirmar y Abrir</button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Modal: confirmar PIN antes de operar como un Administrador que
+              no es quien inició sesión -- sin esto, elegir ese nombre en el
+              selector de arriba desbloquearía el panel completo sin pedir
+              nada. */}
+          {cajeroPendientePin && (
+            <div className="fixed inset-0 bg-black/85 flex items-center justify-center z-[60] p-4">
+              <div className="bg-stone-100 border border-stone-200 rounded-2xl max-w-xs w-full p-5 shadow-2xl space-y-3">
+                <h3 className="text-sm font-bold text-stone-900 flex items-center gap-2">
+                  <i className="fa-solid fa-lock text-orange-600"></i> PIN de {cajeroPendientePin.nombre}
+                </h3>
+                <p className="text-xs text-stone-600">Esta cuenta tiene acceso de Administrador -- ingresa su PIN para continuar.</p>
+                <input
+                  type="password"
+                  maxLength={6}
+                  autoFocus
+                  value={pinConfirmarCajero}
+                  onChange={(e) => setPinConfirmarCajero(e.target.value)}
+                  onKeyDown={(e) => { if (e.key === 'Enter') confirmarPinCajero(); }}
+                  placeholder="••••"
+                  className="w-full bg-white border border-stone-200 rounded-xl px-3 py-2.5 text-center text-lg tracking-widest text-stone-900 focus:outline-none focus:border-orange-500"
+                />
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => { setCajeroPendientePin(null); setPinConfirmarCajero(''); }}
+                    className="flex-1 py-2 bg-stone-200 text-stone-800 text-xs font-semibold rounded-xl"
+                  >
+                    Cancelar
+                  </button>
+                  <button
+                    onClick={confirmarPinCajero}
+                    disabled={verificandoPinCajero || !pinConfirmarCajero.trim()}
+                    className="flex-1 py-2 bg-stone-900 hover:bg-stone-800 disabled:opacity-60 text-white font-bold text-xs rounded-xl shadow"
+                  >
+                    {verificandoPinCajero ? 'Verificando...' : 'Confirmar'}
+                  </button>
                 </div>
               </div>
             </div>
