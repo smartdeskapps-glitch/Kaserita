@@ -1128,12 +1128,13 @@
             p_pin: formNuevaBodega.pin.trim(),
             p_dias: Number(formNuevaBodega.dias) || 0,
             p_telefono: formNuevaBodega.telefono.trim() || null,
-            p_mostrar_catalogo_maestro: formNuevaBodega.mostrarCatalogoMaestro
+            p_mostrar_catalogo_maestro: formNuevaBodega.mostrarCatalogoMaestro,
+            p_permitir_subir_fotos: formNuevaBodega.permitirSubirFotos
           });
           if (error) throw error;
 
           notificar('Bodega creada. El dueño ya puede iniciar sesión con su DNI y PIN.', 'success');
-          setFormNuevaBodega({ nombreBodega: '', nombreDueno: '', dni: '', pin: '', dias: '30', telefono: '', mostrarCatalogoMaestro: true });
+          setFormNuevaBodega({ nombreBodega: '', nombreDueno: '', dni: '', pin: '', dias: '30', telefono: '', mostrarCatalogoMaestro: true, permitirSubirFotos: true });
           cargarBodegas();
         } catch (err) {
           notificar(`No se pudo crear la bodega: ${err.message}`, 'error');
@@ -1173,6 +1174,16 @@
       const alternarCatalogoMaestroBodega = async (bodega) => {
         try {
           const { error } = await sbClient.from('bodegas').update({ mostrar_catalogo_maestro: !bodega.mostrar_catalogo_maestro }).eq('id', bodega.id);
+          if (error) throw error;
+          cargarBodegas();
+        } catch (err) {
+          notificar(`No se pudo actualizar: ${err.message}`, 'error');
+        }
+      };
+
+      const alternarSubirFotosBodega = async (bodega) => {
+        try {
+          const { error } = await sbClient.from('bodegas').update({ permitir_subir_fotos: !bodega.permitir_subir_fotos }).eq('id', bodega.id);
           if (error) throw error;
           cargarBodegas();
         } catch (err) {
@@ -1739,6 +1750,15 @@
                 />
                 Mostrar el Catálogo Maestro en esta bodega (sugerencias e importar productos)
               </label>
+              <label className="flex items-center gap-2 text-xs text-stone-600 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={formNuevaBodega.permitirSubirFotos}
+                  onChange={(e) => setFormNuevaBodega({ ...formNuevaBodega, permitirSubirFotos: e.target.checked })}
+                  className="rounded border-stone-300"
+                />
+                Permitir que esta bodega suba fotos de sus productos
+              </label>
               <button
                 type="submit"
                 disabled={guardandoNuevaBodega}
@@ -1821,6 +1841,13 @@
                           className={`text-xs font-semibold px-2.5 py-1.5 rounded-lg flex items-center gap-1.5 ${b.mostrar_catalogo_maestro ? 'bg-violet-50 text-violet-700 hover:bg-violet-100' : 'bg-stone-100 text-stone-500 hover:bg-stone-200'}`}
                         >
                           <i className="fa-solid fa-book text-[10px]"></i> Catálogo Maestro: {b.mostrar_catalogo_maestro ? 'Sí' : 'No'}
+                        </button>
+                        <button
+                          onClick={() => alternarSubirFotosBodega(b)}
+                          title="Permitir/bloquear que esta bodega suba fotos de sus productos"
+                          className={`text-xs font-semibold px-2.5 py-1.5 rounded-lg flex items-center gap-1.5 ${b.permitir_subir_fotos ? 'bg-violet-50 text-violet-700 hover:bg-violet-100' : 'bg-stone-100 text-stone-500 hover:bg-stone-200'}`}
+                        >
+                          <i className="fa-solid fa-camera text-[10px]"></i> Subir fotos: {b.permitir_subir_fotos ? 'Sí' : 'No'}
                         </button>
                         <button
                           onClick={() => descargarBackupBodega(b)}
@@ -2318,7 +2345,7 @@
       const [cargandoAdminLogin, setCargandoAdminLogin] = useState(false);
       const [bodegasAdmin, setBodegasAdmin] = useState([]);
       const [cargandoBodegasAdmin, setCargandoBodegasAdmin] = useState(false);
-      const [formNuevaBodega, setFormNuevaBodega] = useState({ nombreBodega: '', nombreDueno: '', dni: '', pin: '', dias: '30', telefono: '', mostrarCatalogoMaestro: true });
+      const [formNuevaBodega, setFormNuevaBodega] = useState({ nombreBodega: '', nombreDueno: '', dni: '', pin: '', dias: '30', telefono: '', mostrarCatalogoMaestro: true, permitirSubirFotos: true });
       const [guardandoNuevaBodega, setGuardandoNuevaBodega] = useState(false);
 
       // --- Bodega & Cajeros ---
@@ -2501,6 +2528,11 @@
       // solo deja escribir dentro de la carpeta de la propia bodega.
       const subirFotoProducto = async (file) => {
         if (!productoEditando) return;
+        // Defensa extra además de ocultar el control en el modal -- si la
+        // bodega tiene la subida desactivada, ni pegar con Ctrl+V debería
+        // intentar nada (la política de storage lo rechazaría igual, pero
+        // así se evita hasta el intento y su aviso de error).
+        if (!esModoDemo && sesion?.bodega?.permitir_subir_fotos === false) return;
         setSubiendoFotoProducto(true);
         try {
           const comprimida = await comprimirImagenJPEG(file, 20, 480);
@@ -9100,35 +9132,54 @@
                   <button onClick={() => setModalEditarProducto(false)} className="text-stone-600 hover:text-stone-900"><i className="fa-solid fa-xmark"></i></button>
                 </div>
                 <div className="flex items-center gap-3">
-                  <label className="relative w-16 h-16 rounded-xl overflow-hidden shrink-0 cursor-pointer group border border-stone-200">
-                    <FotoProducto
-                      fotoUrl={formEditarProducto.foto_url}
-                      categoria={formEditarProducto.categoria}
-                      className="w-16 h-16"
-                      iconClassName="text-xl"
-                    />
-                    <div className="absolute inset-0 flex items-center justify-center bg-black/0 group-hover:bg-black/40 transition">
-                      {subiendoFotoProducto ? (
-                        <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                      ) : (
-                        <i className="fa-solid fa-camera text-white text-sm opacity-0 group-hover:opacity-100 transition"></i>
-                      )}
-                    </div>
-                    <input
-                      type="file"
-                      accept="image/*"
-                      className="hidden"
-                      onChange={(e) => {
-                        const file = e.target.files && e.target.files[0];
-                        e.target.value = '';
-                        if (file) subirFotoProducto(file);
-                      }}
-                    />
-                  </label>
-                  <p className="text-xs text-stone-500">
-                    <span className="font-semibold text-stone-700 block">Foto del producto</span>
-                    Toca el cuadro para {formEditarProducto.foto_url ? 'cambiarla' : 'subir una'}, o copia una imagen y pégala con Ctrl+V.
-                  </p>
+                  {sesion?.bodega?.permitir_subir_fotos === false ? (
+                    <>
+                      <div className="relative w-16 h-16 rounded-xl overflow-hidden shrink-0 border border-stone-200">
+                        <FotoProducto
+                          fotoUrl={formEditarProducto.foto_url}
+                          categoria={formEditarProducto.categoria}
+                          className="w-16 h-16"
+                          iconClassName="text-xl"
+                        />
+                      </div>
+                      <p className="text-xs text-stone-500">
+                        <span className="font-semibold text-stone-700 block">Foto del producto</span>
+                        La subida de fotos está desactivada para tu bodega. Contacta a Kaserita si la necesitas.
+                      </p>
+                    </>
+                  ) : (
+                    <>
+                      <label className="relative w-16 h-16 rounded-xl overflow-hidden shrink-0 cursor-pointer group border border-stone-200">
+                        <FotoProducto
+                          fotoUrl={formEditarProducto.foto_url}
+                          categoria={formEditarProducto.categoria}
+                          className="w-16 h-16"
+                          iconClassName="text-xl"
+                        />
+                        <div className="absolute inset-0 flex items-center justify-center bg-black/0 group-hover:bg-black/40 transition">
+                          {subiendoFotoProducto ? (
+                            <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                          ) : (
+                            <i className="fa-solid fa-camera text-white text-sm opacity-0 group-hover:opacity-100 transition"></i>
+                          )}
+                        </div>
+                        <input
+                          type="file"
+                          accept="image/*"
+                          className="hidden"
+                          onChange={(e) => {
+                            const file = e.target.files && e.target.files[0];
+                            e.target.value = '';
+                            if (file) subirFotoProducto(file);
+                          }}
+                        />
+                      </label>
+                      <p className="text-xs text-stone-500">
+                        <span className="font-semibold text-stone-700 block">Foto del producto</span>
+                        Toca el cuadro para {formEditarProducto.foto_url ? 'cambiarla' : 'subir una'}, o copia una imagen y pégala con Ctrl+V.
+                      </p>
+                    </>
+                  )}
                 </div>
                 <div className="space-y-2.5">
                   <div>
