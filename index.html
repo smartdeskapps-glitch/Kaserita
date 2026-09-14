@@ -84,7 +84,7 @@
        falta -- ver cargarScriptExterno() más abajo. -->
 
   <!-- Logo: se precarga para que el splash de abajo lo muestre al instante -->
-  <link rel="preload" as="image" href="https://hzmrsbeamtbloudmxjrp.supabase.co/storage/v1/object/public/Logo/Gemini_Generated_Image_96pr6996pr6996pr%20(1).png">
+  <link rel="preload" as="image" href="/logo-blanco.png">
 
   <style>
     body {
@@ -580,6 +580,15 @@
         };
         img.src = urlTemp;
       });
+    };
+
+    // Da formato legible (KB o MB) a un tamaño en bytes -- se usa en el
+    // panel de administrador para mostrar cuánto consume cada bodega en
+    // fotos.
+    const formatearBytes = (bytes) => {
+      if (!bytes) return '0 KB';
+      if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+      return `${(bytes / (1024 * 1024)).toFixed(2)} MB`;
     };
 
     // ID fijo usado únicamente por "Modo Demo Local" (no corresponde a ninguna
@@ -1118,17 +1127,56 @@
             p_dni: formNuevaBodega.dni.trim(),
             p_pin: formNuevaBodega.pin.trim(),
             p_dias: Number(formNuevaBodega.dias) || 0,
-            p_telefono: formNuevaBodega.telefono.trim() || null
+            p_telefono: formNuevaBodega.telefono.trim() || null,
+            p_mostrar_catalogo_maestro: formNuevaBodega.mostrarCatalogoMaestro
           });
           if (error) throw error;
 
           notificar('Bodega creada. El dueño ya puede iniciar sesión con su DNI y PIN.', 'success');
-          setFormNuevaBodega({ nombreBodega: '', nombreDueno: '', dni: '', pin: '', dias: '30', telefono: '' });
+          setFormNuevaBodega({ nombreBodega: '', nombreDueno: '', dni: '', pin: '', dias: '30', telefono: '', mostrarCatalogoMaestro: true });
           cargarBodegas();
         } catch (err) {
           notificar(`No se pudo crear la bodega: ${err.message}`, 'error');
         } finally {
           setGuardandoNuevaBodega(false);
+        }
+      };
+
+      // --- Consumo de almacenamiento en fotos, por bodega ---
+      // Cada bodega guarda sus fotos en su propia carpeta dentro del bucket
+      // "Productos" ("{bodega_id}/{producto_id}.jpg"), así que listar esa
+      // carpeta y sumar el tamaño de cada archivo alcanza para saber cuánto
+      // ocupa. Se calcula bajo demanda (botón) y no solo al cargar el panel
+      // porque implica una llamada a Storage por cada bodega.
+      const [consumoFotos, setConsumoFotos] = useState({});
+      const [cargandoConsumoFotos, setCargandoConsumoFotos] = useState(false);
+
+      const cargarConsumoFotos = useCallback(async () => {
+        setCargandoConsumoFotos(true);
+        try {
+          const resultados = await Promise.all(
+            bodegasAdmin.map(async (b) => {
+              const { data, error } = await sbClient.storage.from('Productos').list(b.id, { limit: 1000 });
+              if (error || !data) return [b.id, { archivos: 0, bytes: 0 }];
+              const bytes = data.reduce((acc, f) => acc + (f.metadata?.size || 0), 0);
+              return [b.id, { archivos: data.length, bytes }];
+            })
+          );
+          setConsumoFotos(Object.fromEntries(resultados));
+        } catch (err) {
+          notificar(`No se pudo calcular el consumo de fotos: ${err.message}`, 'error');
+        } finally {
+          setCargandoConsumoFotos(false);
+        }
+      }, [bodegasAdmin, sbClient, notificar]);
+
+      const alternarCatalogoMaestroBodega = async (bodega) => {
+        try {
+          const { error } = await sbClient.from('bodegas').update({ mostrar_catalogo_maestro: !bodega.mostrar_catalogo_maestro }).eq('id', bodega.id);
+          if (error) throw error;
+          cargarBodegas();
+        } catch (err) {
+          notificar(`No se pudo actualizar: ${err.message}`, 'error');
         }
       };
 
@@ -1682,6 +1730,15 @@
                   />
                 </div>
               </div>
+              <label className="flex items-center gap-2 text-xs text-stone-600 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={formNuevaBodega.mostrarCatalogoMaestro}
+                  onChange={(e) => setFormNuevaBodega({ ...formNuevaBodega, mostrarCatalogoMaestro: e.target.checked })}
+                  className="rounded border-stone-300"
+                />
+                Mostrar el Catálogo Maestro en esta bodega (sugerencias e importar productos)
+              </label>
               <button
                 type="submit"
                 disabled={guardandoNuevaBodega}
@@ -1692,9 +1749,19 @@
             </form>
 
             <div className="space-y-2">
-              <h2 className="text-sm font-bold text-stone-900 flex items-center gap-2">
-                <i className="fa-solid fa-list text-orange-600"></i> Bodegas ({bodegasAdmin.length})
-              </h2>
+              <div className="flex items-center justify-between gap-2 flex-wrap">
+                <h2 className="text-sm font-bold text-stone-900 flex items-center gap-2">
+                  <i className="fa-solid fa-list text-orange-600"></i> Bodegas ({bodegasAdmin.length})
+                </h2>
+                <button
+                  onClick={cargarConsumoFotos}
+                  disabled={cargandoConsumoFotos || bodegasAdmin.length === 0}
+                  className="text-xs font-semibold px-2.5 py-1.5 rounded-lg bg-violet-50 text-violet-700 hover:bg-violet-100 disabled:opacity-60 flex items-center gap-1.5"
+                >
+                  <i className="fa-solid fa-images text-[10px]"></i>
+                  {cargandoConsumoFotos ? 'Calculando...' : 'Ver consumo de fotos'}
+                </button>
+              </div>
               {cargandoBodegasAdmin ? (
                 <p className="text-xs text-stone-500 text-center py-6">Cargando...</p>
               ) : bodegasAdmin.length === 0 ? (
@@ -1733,6 +1800,11 @@
                       </div>
                       <p className="text-xs text-stone-600">
                         Vigencia: {b.activa_hasta ? new Date(`${b.activa_hasta}T00:00:00`).toLocaleDateString('es-PE') : 'Sin vencimiento'}
+                        {consumoFotos[b.id] && (
+                          <span className="ml-2 text-stone-400">
+                            · <i className="fa-solid fa-images text-[10px]"></i> {consumoFotos[b.id].archivos} fotos ({formatearBytes(consumoFotos[b.id].bytes)})
+                          </span>
+                        )}
                       </p>
                       <div className="flex flex-wrap gap-1.5">
                         <button onClick={() => alternarActiva(b)} className={`text-xs font-semibold px-2.5 py-1.5 rounded-lg ${b.activa ? 'bg-rose-50 text-rose-600 hover:bg-rose-100' : 'bg-emerald-50 text-emerald-600 hover:bg-emerald-100'}`}>
@@ -1743,6 +1815,13 @@
                         {b.activa_hasta && (
                           <button onClick={() => quitarVencimiento(b)} className="text-xs font-semibold px-2.5 py-1.5 rounded-lg bg-stone-100 text-stone-700 hover:bg-stone-200">Quitar vencimiento</button>
                         )}
+                        <button
+                          onClick={() => alternarCatalogoMaestroBodega(b)}
+                          title="Mostrar/ocultar el Catálogo Maestro en esta bodega"
+                          className={`text-xs font-semibold px-2.5 py-1.5 rounded-lg flex items-center gap-1.5 ${b.mostrar_catalogo_maestro ? 'bg-violet-50 text-violet-700 hover:bg-violet-100' : 'bg-stone-100 text-stone-500 hover:bg-stone-200'}`}
+                        >
+                          <i className="fa-solid fa-book text-[10px]"></i> Catálogo Maestro: {b.mostrar_catalogo_maestro ? 'Sí' : 'No'}
+                        </button>
                         <button
                           onClick={() => descargarBackupBodega(b)}
                           disabled={generandoBackupId === b.id}
@@ -2239,7 +2318,7 @@
       const [cargandoAdminLogin, setCargandoAdminLogin] = useState(false);
       const [bodegasAdmin, setBodegasAdmin] = useState([]);
       const [cargandoBodegasAdmin, setCargandoBodegasAdmin] = useState(false);
-      const [formNuevaBodega, setFormNuevaBodega] = useState({ nombreBodega: '', nombreDueno: '', dni: '', pin: '', dias: '30', telefono: '' });
+      const [formNuevaBodega, setFormNuevaBodega] = useState({ nombreBodega: '', nombreDueno: '', dni: '', pin: '', dias: '30', telefono: '', mostrarCatalogoMaestro: true });
       const [guardandoNuevaBodega, setGuardandoNuevaBodega] = useState(false);
 
       // --- Bodega & Cajeros ---
@@ -2413,6 +2492,50 @@
       const [productoEditando, setProductoEditando] = useState(null);
       const [formEditarProducto, setFormEditarProducto] = useState(null);
       const [guardandoEdicionProducto, setGuardandoEdicionProducto] = useState(false);
+      const [subiendoFotoProducto, setSubiendoFotoProducto] = useState(false);
+
+      // Sube la foto de UN producto de la bodega (a diferencia de
+      // subirFotoMaestro, que es del catálogo compartido) -- se guarda en
+      // "{bodega_id}/{producto_id}.jpg" dentro del mismo bucket "Productos",
+      // así el RLS de storage (ver reactivar_fotos_bodega_y_flag_catalogo_maestro.sql)
+      // solo deja escribir dentro de la carpeta de la propia bodega.
+      const subirFotoProducto = async (file) => {
+        if (!productoEditando) return;
+        setSubiendoFotoProducto(true);
+        try {
+          const comprimida = await comprimirImagenJPEG(file, 20, 480);
+          if (esModoDemo) {
+            // Modo Demo Local: no hay bodega real en Supabase -- se usa una
+            // vista previa local nomás, sin subir nada.
+            const urlLocal = URL.createObjectURL(comprimida);
+            setFormEditarProducto((prev) => ({ ...prev, foto_url: urlLocal }));
+            return;
+          }
+          const ruta = `${bodegaId}/${productoEditando.id}.jpg`;
+          const { error } = await sbClient.storage
+            .from('Productos')
+            .upload(ruta, comprimida, { upsert: true, cacheControl: '3600', contentType: 'image/jpeg' });
+          if (error) throw error;
+          const { data } = sbClient.storage.from('Productos').getPublicUrl(ruta);
+          setFormEditarProducto((prev) => ({ ...prev, foto_url: `${data.publicUrl}?t=${Date.now()}` }));
+        } catch (err) {
+          notificar(`No se pudo subir la foto: ${err.message}`, 'error');
+        } finally {
+          setSubiendoFotoProducto(false);
+        }
+      };
+
+      // Con el modal de "Editar Producto" abierto, Ctrl+V sube directo la
+      // imagen que se tenga copiada (igual que en el catálogo maestro).
+      useEffect(() => {
+        if (!modalEditarProducto) return;
+        const manejarPegado = (e) => {
+          const item = Array.from(e.clipboardData?.items || []).find((it) => it.type.startsWith('image/'));
+          if (item) subirFotoProducto(item.getAsFile());
+        };
+        window.addEventListener('paste', manejarPegado);
+        return () => window.removeEventListener('paste', manejarPegado);
+      }, [modalEditarProducto, productoEditando]);
 
       // --- Módulo: Mermas (pérdidas de producto) ---
       const [modalMerma, setModalMerma] = useState(false);
@@ -4809,7 +4932,11 @@
       // abrir "Registrar Productos" (ahí sugiere categoría + foto mientras
       // se escribe la descripción, ver sugerenciasParaFila).
       const cargarCatalogoMaestroDisponible = useCallback(() => {
-        if (esModoDemo || !sbClient) return;
+        // Si la bodega tiene el Catálogo Maestro desactivado (ver panel de
+        // administrador), ni se pide -- así también quedan sin efecto las
+        // sugerencias automáticas en "Registrar Productos", que leen de
+        // este mismo estado.
+        if (esModoDemo || !sbClient || sesion?.bodega?.mostrar_catalogo_maestro === false) return;
         setCargandoMaestroImport(true);
         sbClient.from('catalogo_maestro').select('*').order('descripcion')
           .then(({ data, error }) => {
@@ -4818,7 +4945,7 @@
           })
           .catch((err) => console.warn('No se pudo cargar el catálogo maestro:', err.message))
           .finally(() => setCargandoMaestroImport(false));
-      }, [esModoDemo, sbClient]);
+      }, [esModoDemo, sbClient, sesion?.bodega?.mostrar_catalogo_maestro]);
 
       const abrirImportarMaestro = useCallback(() => {
         setModalImportarMaestro(true);
@@ -7170,7 +7297,9 @@
                       <SidebarIcon icon="fa-boxes-stacked" label="Registrar Productos" onClick={() => setModalInventarioInicial(true)} />
                       <SidebarIcon icon="fa-truck-ramp-box" label="Entrada de Mercadería" onClick={() => setModalEntradaMercaderia(true)} />
                       <SidebarIcon icon="fa-clipboard-list" label="Levantamiento de Inventario" onClick={() => setModalLevantamiento(true)} />
-                      <SidebarIcon icon="fa-book" label="Importar del Catálogo Maestro" onClick={abrirImportarMaestro} />
+                      {sesion?.bodega?.mostrar_catalogo_maestro !== false && (
+                        <SidebarIcon icon="fa-book" label="Importar del Catálogo Maestro" onClick={abrirImportarMaestro} />
+                      )}
                     </div>
                   )}
                 </div>
@@ -8971,19 +9100,34 @@
                   <button onClick={() => setModalEditarProducto(false)} className="text-stone-600 hover:text-stone-900"><i className="fa-solid fa-xmark"></i></button>
                 </div>
                 <div className="flex items-center gap-3">
-                  <div className="relative w-16 h-16 rounded-xl overflow-hidden shrink-0 border border-stone-200">
+                  <label className="relative w-16 h-16 rounded-xl overflow-hidden shrink-0 cursor-pointer group border border-stone-200">
                     <FotoProducto
                       fotoUrl={formEditarProducto.foto_url}
                       categoria={formEditarProducto.categoria}
                       className="w-16 h-16"
                       iconClassName="text-xl"
                     />
-                  </div>
+                    <div className="absolute inset-0 flex items-center justify-center bg-black/0 group-hover:bg-black/40 transition">
+                      {subiendoFotoProducto ? (
+                        <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                      ) : (
+                        <i className="fa-solid fa-camera text-white text-sm opacity-0 group-hover:opacity-100 transition"></i>
+                      )}
+                    </div>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      onChange={(e) => {
+                        const file = e.target.files && e.target.files[0];
+                        e.target.value = '';
+                        if (file) subirFotoProducto(file);
+                      }}
+                    />
+                  </label>
                   <p className="text-xs text-stone-500">
                     <span className="font-semibold text-stone-700 block">Foto del producto</span>
-                    {formEditarProducto.foto_url
-                      ? 'Esta foto la administra Kaserita.'
-                      : 'Sin foto todavía se usa el ícono de su categoría.'}
+                    Toca el cuadro para {formEditarProducto.foto_url ? 'cambiarla' : 'subir una'}, o copia una imagen y pégala con Ctrl+V.
                   </p>
                 </div>
                 <div className="space-y-2.5">
