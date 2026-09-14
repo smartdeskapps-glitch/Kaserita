@@ -3097,6 +3097,32 @@
         }
       };
 
+      // Borra por completo el acceso de un cajero (a diferencia de
+      // desactivar, que solo lo oculta del selector conservando su
+      // historial). Si tiene ventas registradas a su nombre, la base de
+      // datos rechaza el borrado (esas filas dependen de este id) -- en ese
+      // caso conviene usar "Desactivar" en su lugar, así se avisa.
+      const eliminarCajero = async (cajero) => {
+        if (cajero.rol === 'dueno') return;
+        if (!window.confirm(`¿Eliminar a "${cajero.nombre}" de la lista de cajeros? Esta acción no se puede deshacer.`)) return;
+        try {
+          if (sbClient && !esModoDemo) {
+            const { error } = await sbClient.from('cajeros').delete().eq('id', cajero.id);
+            if (error) throw error;
+          }
+          setCajerosGestion((prev) => prev.filter((c) => c.id !== cajero.id));
+          setListaCajeros((prev) => prev.filter((c) => c.id !== cajero.id));
+          if (cajeroSeleccionado?.id === cajero.id) setCajeroSeleccionado(null);
+          notificar(`${cajero.nombre} eliminado.`, 'info');
+        } catch (err) {
+          if (err.code === '23503') {
+            notificar(`No se puede eliminar a ${cajero.nombre}: tiene ventas registradas a su nombre. Usa "Desactivar" en su lugar.`, 'error');
+          } else {
+            notificar(`Error: ${err.message}`, 'error');
+          }
+        }
+      };
+
       // ==========================================
       // PRODUCTOS & CATÁLOGO
       // ==========================================
@@ -10453,6 +10479,15 @@
                                   }`}
                                 >
                                   {c.activo ? 'Desactivar' : 'Reactivar'}
+                                </button>
+                              )}
+                              {c.rol !== 'dueno' && (
+                                <button
+                                  onClick={() => eliminarCajero(c)}
+                                  title="Eliminar de la lista de cajeros"
+                                  className="w-7 h-7 flex items-center justify-center bg-stone-200 hover:bg-rose-100 text-stone-500 hover:text-rose-600 rounded-lg"
+                                >
+                                  <i className="fa-solid fa-trash text-xs"></i>
                                 </button>
                               )}
                             </div>
