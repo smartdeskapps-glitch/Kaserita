@@ -7110,9 +7110,6 @@
             onMouseLeave={() => setTooltipRail(null)}
             className="hidden md:flex flex-col items-center w-16 bg-stone-100 border-r border-stone-200/80 py-3 gap-1.5 shrink-0 overflow-y-auto"
           >
-            <div className="w-10 h-10 bg-gradient-to-br from-blue-600 to-violet-600 rounded-2xl flex items-center justify-center text-white font-extrabold text-lg shadow-lg shadow-violet-600/25 mb-2 shrink-0">
-              K
-            </div>
             <SidebarIcon icon="fa-grip" label="Catálogo" active onClick={() => setMostrarResumenMobile(false)} />
             <SidebarIcon icon="fa-clock-rotate-left" label="Ventas en Espera" badge={ventasEnEspera.length} onClick={() => setModalVentasEspera(true)} />
             <SidebarIcon icon="fa-receipt" label="Historial de Ventas" onClick={abrirHistorialDelDia} />
@@ -7182,7 +7179,7 @@
           <div className="flex-1 flex flex-col overflow-hidden">
             <header className="flex items-center justify-between px-4 md:px-6 py-3.5 bg-stone-100 border-b border-stone-200/80 gap-3">
               <div className="flex items-center gap-3 min-w-0">
-                <div className="md:hidden h-8 px-2.5 bg-gradient-to-br from-blue-600 to-violet-600 rounded-lg flex items-center justify-center shadow-lg shadow-violet-600/25 shrink-0">
+                <div className="h-8 px-2.5 bg-gradient-to-br from-blue-600 to-violet-600 rounded-lg flex items-center justify-center shadow-lg shadow-violet-600/25 shrink-0">
                   <img src="/logo-blanco-wordmark.png" alt="Kaserita" className="h-3.5 w-auto" />
                 </div>
                 <div className="min-w-0">
