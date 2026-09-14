@@ -193,10 +193,64 @@
       0%, 100% { transform: scale(1); opacity: 0.85; }
       50% { transform: scale(1.04); opacity: 1; }
     }
+    /* Indicador de carga: barra indeterminada + frase que va cambiando.
+       Va con position:absolute (no dentro del grupo centrado del logo) a
+       propósito -- si fuera un hijo más del flex centrado, sumaría alto al
+       bloque y correría el logo hacia arriba, desalineándolo del logo real
+       del panel (el mismo efecto fantasma que ya se corrigió una vez). */
+    #splash-kaserita .splash-loading {
+      position: absolute;
+      left: 0;
+      right: 0;
+      bottom: clamp(2rem, 9vh, 4rem);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 0.75rem;
+      transition: opacity 0.25s ease;
+    }
+    /* Al empezar a encogerse ya sabemos que la carga terminó -- se apaga de
+       una vez para no mezclar "cargando" con la pantalla final apareciendo. */
+    #splash-kaserita.splash-encogiendo .splash-loading {
+      opacity: 0;
+    }
+    #splash-kaserita .splash-progress {
+      width: 160px;
+      height: 3px;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.15);
+      overflow: hidden;
+      position: relative;
+    }
+    #splash-kaserita .splash-progress::after {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: -40%;
+      height: 100%;
+      width: 40%;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.9);
+      animation: splash-progress-slide 1.4s ease-in-out infinite;
+    }
+    @keyframes splash-progress-slide {
+      0% { left: -40%; }
+      100% { left: 100%; }
+    }
+    #splash-kaserita .splash-status {
+      font-size: 0.75rem;
+      color: rgba(255, 255, 255, 0.65);
+      min-height: 1.2em;
+      transition: opacity 0.3s ease;
+    }
+    #splash-kaserita .splash-status.splash-status-oculto {
+      opacity: 0;
+    }
     /* Si el sistema pide menos movimiento, se queda quieto en vez de verse
        trabado a medio camino. */
     @media (prefers-reduced-motion: reduce) {
       #splash-kaserita .splash-logo-img { animation: none; }
+      #splash-kaserita .splash-progress::after { animation: none; left: 0; width: 100%; }
     }
 
     /* Panel de marca del login: fondo con 2 manchas de color que se
@@ -256,6 +310,10 @@
   <div id="splash-kaserita" class="login-brand-mesh">
     <img class="splash-logo-img w-52 md:w-64 h-auto mb-6" src="/logo-blanco.png" alt="Kaserita - Punto de Venta">
     <p class="text-sm text-indigo-100/80 -mt-3 text-center max-w-[240px] md:max-w-none">Para tu bodega o negocio</p>
+    <div class="splash-loading">
+      <div class="splash-progress"></div>
+      <p class="splash-status" id="splash-status">Preparando tu catálogo...</p>
+    </div>
   </div>
   <div id="root"></div>
 
@@ -266,9 +324,31 @@
     // no den un salto de posición justo cuando el splash desaparece.
     window.__kgSplashT0 = performance.now();
 
+    // Frases cortas que se van turnando en el splash mientras carga --  no
+    // reflejan un progreso real (no hay forma de medirlo acá), solo dan la
+    // sensación de que algo sigue pasando en vez de una pantalla estática.
+    const FRASES_SPLASH = [
+      'Preparando tu catálogo...',
+      'Cargando tus productos...',
+      'Afinando el punto de venta...',
+      'Ya casi está listo...'
+    ];
+    let fraseSplashIdx = 0;
+    let fraseSplashIntervalo = setInterval(() => {
+      const elFrase = document.getElementById('splash-status');
+      if (!elFrase) return;
+      elFrase.classList.add('splash-status-oculto');
+      setTimeout(() => {
+        fraseSplashIdx = (fraseSplashIdx + 1) % FRASES_SPLASH.length;
+        elFrase.textContent = FRASES_SPLASH[fraseSplashIdx];
+        elFrase.classList.remove('splash-status-oculto');
+      }, 250);
+    }, 1800);
+
     window.ocultarSplashKaserita = function () {
       const el = document.getElementById('splash-kaserita');
       if (!el) return;
+      clearInterval(fraseSplashIntervalo);
       // En escritorio primero se encoge hacia la izquierda (mismo ancho
       // final que el panel de marca real) y recién después se desvanece --
       // así se ve como si el splash se transformara en el panel en vez de
@@ -7220,7 +7300,10 @@
               </div>
 
               {/* Grilla de Productos */}
-              <div className="flex-1 overflow-y-auto pr-1">
+              {/* pb-24 en mobile: dejar espacio para que la última fila no
+                  quede tapada por la barra flotante del carrito (fixed
+                  bottom-3) ni pegada contra el borde de la pantalla. */}
+              <div className="flex-1 overflow-y-auto pr-1 pb-24 md:pb-3">
                 {cargandoProductos ? (
                   <div className="flex flex-col items-center justify-center h-48 text-stone-600 gap-2">
                     <div className="w-8 h-8 border-4 border-orange-500 border-t-transparent rounded-full animate-spin"></div>
