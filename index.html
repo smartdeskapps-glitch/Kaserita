@@ -9,7 +9,7 @@
   <link rel="manifest" href="/manifest.json">
   <link rel="icon" href="/icon.svg" type="image/svg+xml">
   <link rel="apple-touch-icon" href="/icon-192.png">
-  <meta name="theme-color" content="#4f46e5">
+  <meta name="theme-color" content="#7c3aed">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="Kaserita">
@@ -22,6 +22,27 @@
         extend: {
           fontFamily: {
             sans: ['"Plus Jakarta Sans"', 'system-ui', 'sans-serif']
+          },
+          // Pisa la escala "orange" de Tailwind con un violeta anclado
+          // exactamente en el mismo #7c3aed (violet-600) que ya se usa en
+          // el degradado del login y en los badges del encabezado -- así
+          // TODO lo que en el código sigue usando clases orange-50..950
+          // (botones, precios, pestañas activas, etc.) cambia de color
+          // automáticamente, sin tener que tocar cada pantalla a mano.
+          colors: {
+            orange: {
+              50: '#f5f0ff',
+              100: '#ece1fe',
+              200: '#d6c2fa',
+              300: '#ba97f7',
+              400: '#9b69f2',
+              500: '#925bf0',
+              600: '#7c3aed',
+              700: '#6217e2',
+              800: '#5416bf',
+              900: '#4915a2',
+              950: '#350f75'
+            }
           }
         }
       }
@@ -10558,12 +10579,12 @@
                         <h4 className="text-sm font-bold text-stone-900 mb-3">Tendencia de Ventas por Día</h4>
                         <svg viewBox="0 0 300 100" preserveAspectRatio="none" className="w-full h-28">
                           <polygon
-                            fill="#fed7aa"
+                            fill="#d6c2fa"
                             points={`0,100 ${dashStats.porDia.map((d, i) => `${(i / (dashStats.porDia.length - 1)) * 300},${100 - (d.total / dashStats.maxDia) * 85}`).join(' ')} 300,100`}
                           />
                           <polyline
                             fill="none"
-                            stroke="#ea580c"
+                            stroke="#7c3aed"
                             strokeWidth="2"
                             points={dashStats.porDia.map((d, i) => `${(i / (dashStats.porDia.length - 1)) * 300},${100 - (d.total / dashStats.maxDia) * 85}`).join(' ')}
                           />
