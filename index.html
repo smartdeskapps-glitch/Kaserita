@@ -1005,6 +1005,23 @@
       );
     }
 
+    function Interruptor({ activo, onClick, etiqueta, icono, title }) {
+      return (
+        <button
+          type="button"
+          onClick={onClick}
+          title={title}
+          className="flex items-center gap-1.5 text-xs font-semibold text-stone-600"
+        >
+          {icono && <i className={`fa-solid ${icono} text-[10px] text-stone-400`}></i>}
+          <span>{etiqueta}</span>
+          <span className={`relative inline-flex h-4 w-7 shrink-0 items-center rounded-full transition-colors ${activo ? 'bg-violet-600' : 'bg-stone-300'}`}>
+            <span className={`inline-block h-3 w-3 transform rounded-full bg-white transition-transform ${activo ? 'translate-x-3.5' : 'translate-x-0.5'}`} />
+          </span>
+        </button>
+      );
+    }
+
     // Tarjeta de producto de la grilla principal, memoizada: como el catálogo
     // puede tener cientos de tarjetas, sin esto cualquier cambio de estado en
     // PosApp (escribir en el buscador, tocar el carrito, un aviso, etc.)
@@ -1151,6 +1168,7 @@
       // porque implica una llamada a Storage por cada bodega.
       const [consumoFotos, setConsumoFotos] = useState({});
       const [cargandoConsumoFotos, setCargandoConsumoFotos] = useState(false);
+      const [busquedaBodegas, setBusquedaBodegas] = useState('');
 
       const cargarConsumoFotos = useCallback(async () => {
         setCargandoConsumoFotos(true);
@@ -1170,6 +1188,16 @@
           setCargandoConsumoFotos(false);
         }
       }, [bodegasAdmin, sbClient, notificar]);
+
+      const bodegasFiltradas = useMemo(() => {
+        const termino = busquedaBodegas.trim().toLowerCase();
+        if (!termino) return bodegasAdmin;
+        return bodegasAdmin.filter((b) =>
+          b.nombre.toLowerCase().includes(termino) ||
+          b.dueno?.nombre?.toLowerCase().includes(termino) ||
+          b.dueno?.dni?.includes(termino)
+        );
+      }, [bodegasAdmin, busquedaBodegas]);
 
       const alternarCatalogoMaestroBodega = async (bodega) => {
         try {
@@ -1782,12 +1810,26 @@
                   {cargandoConsumoFotos ? 'Calculando...' : 'Ver consumo de fotos'}
                 </button>
               </div>
+              {bodegasAdmin.length > 0 && (
+                <div className="relative">
+                  <i className="fa-solid fa-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-stone-400 text-xs"></i>
+                  <input
+                    type="text"
+                    value={busquedaBodegas}
+                    onChange={(e) => setBusquedaBodegas(e.target.value)}
+                    placeholder="Buscar por nombre de bodega, dueño o DNI..."
+                    className="w-full pl-8 pr-3 py-2 text-xs border border-stone-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-200"
+                  />
+                </div>
+              )}
               {cargandoBodegasAdmin ? (
                 <p className="text-xs text-stone-500 text-center py-6">Cargando...</p>
               ) : bodegasAdmin.length === 0 ? (
                 <p className="text-xs text-stone-500 text-center py-6">Todavía no creaste ninguna bodega.</p>
+              ) : bodegasFiltradas.length === 0 ? (
+                <p className="text-xs text-stone-500 text-center py-6">Ninguna bodega coincide con "{busquedaBodegas}".</p>
               ) : (
-                bodegasAdmin.map((b) => {
+                bodegasFiltradas.map((b) => {
                   const hoy = fechaHoyISO();
                   const vencida = b.activa === false || (b.activa_hasta && b.activa_hasta < hoy);
                   return (
@@ -1835,20 +1877,26 @@
                         {b.activa_hasta && (
                           <button onClick={() => quitarVencimiento(b)} className="text-xs font-semibold px-2.5 py-1.5 rounded-lg bg-stone-100 text-stone-700 hover:bg-stone-200">Quitar vencimiento</button>
                         )}
-                        <button
+                      </div>
+
+                      <div className="flex flex-wrap items-center gap-x-4 gap-y-2 pt-2.5 border-t border-stone-100">
+                        <Interruptor
+                          activo={b.mostrar_catalogo_maestro}
                           onClick={() => alternarCatalogoMaestroBodega(b)}
                           title="Mostrar/ocultar el Catálogo Maestro en esta bodega"
-                          className={`text-xs font-semibold px-2.5 py-1.5 rounded-lg flex items-center gap-1.5 ${b.mostrar_catalogo_maestro ? 'bg-violet-50 text-violet-700 hover:bg-violet-100' : 'bg-stone-100 text-stone-500 hover:bg-stone-200'}`}
-                        >
-                          <i className="fa-solid fa-book text-[10px]"></i> Catálogo Maestro: {b.mostrar_catalogo_maestro ? 'Sí' : 'No'}
-                        </button>
-                        <button
+                          icono="fa-book"
+                          etiqueta="Catálogo Maestro"
+                        />
+                        <Interruptor
+                          activo={b.permitir_subir_fotos}
                           onClick={() => alternarSubirFotosBodega(b)}
                           title="Permitir/bloquear que esta bodega suba fotos de sus productos"
-                          className={`text-xs font-semibold px-2.5 py-1.5 rounded-lg flex items-center gap-1.5 ${b.permitir_subir_fotos ? 'bg-violet-50 text-violet-700 hover:bg-violet-100' : 'bg-stone-100 text-stone-500 hover:bg-stone-200'}`}
-                        >
-                          <i className="fa-solid fa-camera text-[10px]"></i> Subir fotos: {b.permitir_subir_fotos ? 'Sí' : 'No'}
-                        </button>
+                          icono="fa-camera"
+                          etiqueta="Subir fotos"
+                        />
+                      </div>
+
+                      <div className="flex flex-wrap items-center gap-1.5 pt-2.5 border-t border-stone-100">
                         <button
                           onClick={() => descargarBackupBodega(b)}
                           disabled={generandoBackupId === b.id}
