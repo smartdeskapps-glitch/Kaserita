@@ -152,7 +152,10 @@
        nunca se vea una pantalla en blanco mientras carga. */
     #splash-kaserita {
       position: fixed;
-      inset: 0;
+      top: 0;
+      left: 0;
+      bottom: 0;
+      right: 0;
       z-index: 9999;
       display: flex;
       flex-direction: column;
@@ -160,22 +163,30 @@
       justify-content: center;
       gap: clamp(0.75rem, 4vh, 1.5rem);
       overflow: hidden;
-      background: #fff;
-      color: #1c1917;
+      color: #fff;
       font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
-      transition: opacity 0.4s ease, visibility 0.4s ease;
+      transition: opacity 0.4s ease, visibility 0.4s ease, right 0.7s cubic-bezier(0.65, 0, 0.35, 1);
     }
     #splash-kaserita.splash-oculto {
       opacity: 0;
       visibility: hidden;
       pointer-events: none;
     }
-    /* Una sola imagen (logo + texto, PNG con fondo transparente) centrada
-       -- ancho relativo a la pantalla (clamp: mínimo, ideal en vw, máximo)
-       así no se ve gigante en un celular angosto ni diminuta en un
-       monitor grande; el alto sigue solo (auto) para no deformarla. */
+    /* En pantallas de escritorio, al terminar de cargar el splash no se
+       desvanece de una: primero se encoge hacia la izquierda (mismo ancho
+       final que el panel de marca del login, "right: 50%") para que
+       parezca que se transforma en él, mientras a la derecha va quedando a
+       la vista el formulario. En mobile el login no se divide en columnas,
+       así que esto no aplica y pasa directo al desvanecido de siempre. */
+    @media (min-width: 768px) {
+      #splash-kaserita.splash-encogiendo { right: 50%; }
+    }
+    /* Una sola imagen (el logotipo blanco) centrada -- ancho relativo a la
+       pantalla (clamp: mínimo, ideal en vw, máximo) así no se ve gigante en
+       un celular angosto ni diminuto en un monitor grande; el alto sigue
+       solo (auto) para no deformarla. */
     #splash-kaserita .splash-logo-img {
-      width: clamp(160px, 42vw, 280px);
+      width: clamp(200px, 46vw, 320px);
       height: auto;
       animation: splash-pulso 1.8s infinite ease-in-out;
     }
@@ -243,17 +254,37 @@
   </style>
 </head>
 <body class="bg-stone-50 text-stone-900 h-screen overflow-hidden font-sans">
-  <div id="splash-kaserita">
-    <img class="splash-logo-img" src="https://hzmrsbeamtbloudmxjrp.supabase.co/storage/v1/object/public/Logo/Gemini_Generated_Image_96pr6996pr6996pr%20(1).png" alt="Kaserita - Punto de Venta">
+  <div id="splash-kaserita" class="login-brand-mesh">
+    <img class="splash-logo-img" src="/logo-blanco.png" alt="Kaserita - Punto de Venta">
   </div>
   <div id="root"></div>
 
   <script>
+    // Momento en que arrancó el splash -- el panel de marca del login toma
+    // este dato para "adelantar" su propia animación de fondo (ver
+    // kgSyncDelayRef más abajo en el componente) y que las manchas de color
+    // no den un salto de posición justo cuando el splash desaparece.
+    window.__kgSplashT0 = performance.now();
+
     window.ocultarSplashKaserita = function () {
       const el = document.getElementById('splash-kaserita');
       if (!el) return;
-      el.classList.add('splash-oculto');
-      setTimeout(() => el.remove(), 450);
+      // En escritorio primero se encoge hacia la izquierda (mismo ancho
+      // final que el panel de marca real) y recién después se desvanece --
+      // así se ve como si el splash se transformara en el panel en vez de
+      // simplemente taparlo y desaparecer. En mobile el login no se divide
+      // en columnas, así que se salta directo al desvanecido de siempre.
+      const esEscritorio = window.matchMedia('(min-width: 768px)').matches;
+      const desvanecer = () => {
+        el.classList.add('splash-oculto');
+        setTimeout(() => el.remove(), 450);
+      };
+      if (esEscritorio) {
+        el.classList.add('splash-encogiendo');
+        setTimeout(desvanecer, 700);
+      } else {
+        desvanecer();
+      }
     };
     // Salvavidas: si algo tarda demasiado en cargar, el splash no se queda
     // pegado para siempre.
@@ -2047,6 +2078,22 @@
       const [sesion, setSesion] = useState(null);
       const [verificandoSesion, setVerificandoSesion] = useState(true);
       const splashRafRef = useRef(null);
+      // El formulario del login arranca "corrido" hacia la derecha y
+      // transparente; recién se desliza a su lugar cuando el splash empieza
+      // a encogerse (ver useEffect de abajo) -- si apareciera solo ya
+      // asentado, el usuario nunca vería el gesto de "entra deslizando".
+      const [revelarLogin, setRevelarLogin] = useState(false);
+      // Desfasa el arranque de la animación de las manchas de fondo del
+      // panel de marca para que queden en fase con las del splash (que
+      // vienen corriendo desde antes) -- sin esto, al desaparecer el splash
+      // se nota un salto en la posición de las manchas. Se calcula una sola
+      // vez, al montar.
+      const kgSyncDelayRef = useRef(null);
+      if (kgSyncDelayRef.current === null) {
+        kgSyncDelayRef.current = typeof window.__kgSplashT0 === 'number'
+          ? -((performance.now() - window.__kgSplashT0) / 1000)
+          : 0;
+      }
 
       // Oculta el splash screen estático (definido en el <body>, visible desde
       // antes de que React/Babel terminen de cargar) recién cuando ya sabemos
@@ -2066,6 +2113,7 @@
         const id1 = requestAnimationFrame(() => {
           const id2 = requestAnimationFrame(() => {
             window.ocultarSplashKaserita();
+            setRevelarLogin(true);
           });
           splashRafRef.current = id2;
         });
@@ -6647,7 +6695,10 @@
             )}
 
             {/* Panel de marca */}
-            <div className="login-brand-mesh relative overflow-hidden md:w-1/2 md:min-h-screen flex flex-col items-center justify-center px-6 pt-14 pb-10 md:py-16 text-white shrink-0">
+            <div
+              className="login-brand-mesh relative overflow-hidden md:w-1/2 md:min-h-screen flex flex-col items-center justify-center px-6 pt-14 pb-10 md:py-16 text-white shrink-0"
+              style={{ animationDelay: `${kgSyncDelayRef.current}s, ${kgSyncDelayRef.current}s` }}
+            >
 
               <img
                 src="/logo-blanco.png"
@@ -6662,8 +6713,7 @@
             {/* Tarjeta de formulario */}
             <div className="relative flex-1 md:w-1/2 flex md:items-center justify-center md:px-5">
               <div
-                className="w-full md:max-w-md flex-1 md:flex-none bg-white rounded-t-[2.5rem] md:rounded-3xl shadow-2xl px-7 pt-9 pb-10 md:p-10 space-y-6"
-                style={{ animation: 'auth-panel-in 0.5s ease 0.1s backwards' }}
+                className={`w-full md:max-w-md flex-1 md:flex-none bg-white rounded-t-[2.5rem] md:rounded-3xl shadow-2xl px-7 pt-9 pb-10 md:p-10 space-y-6 transition-all duration-700 ease-out ${revelarLogin ? 'opacity-100 translate-x-0' : 'opacity-0 md:translate-x-10'}`}
               >
                 <div className="text-center space-y-1">
                   <h2 className="text-xl font-black text-stone-900">{authTab === 'admin' ? 'Panel de Administrador' : '¡Bienvenido de nuevo!'}</h2>
