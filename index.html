@@ -2988,7 +2988,7 @@
                 rol: usuarioActivo.rol || 'dueno',
                 activo: true
               }])
-              .select()
+              .select('id, bodega_id, nombre, dni, rol, activo')
               .single();
             if (!errPropio && propio) {
               cjs = [...cjs, propio].sort((a, b) => a.nombre.localeCompare(b.nombre));
