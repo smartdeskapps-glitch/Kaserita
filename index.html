@@ -2726,7 +2726,12 @@
       const [historialInventarioSoloDif, setHistorialInventarioSoloDif] = useState(false);
 
       // --- Módulo: Inventario Inicial (carga de varios productos a la vez) ---
-      const filaInventarioVacia = () => ({ descripcion: '', cod_ean: '', sku: '', categoria: 'Abarrotes', precio_costo: '', precio_venta: '', unidad: 'UND', vendeEnPack: false, vendeEnPackOriginal: false, unidades_por_pack: '', precio_venta_pack: '', cod_ean_pack: '', productoExistenteId: null, foto_url: '', catalogoMaestroId: null });
+      // El id se genera acá (en vez de dejar que la base de datos le ponga
+      // uno al guardar) para poder subir la foto a "{bodega_id}/{id}.jpg"
+      // ANTES de guardar el producto -- si no, no habría ninguna carpeta
+      // todavía donde subirla. Al guardar, este mismo id se manda explícito
+      // en el insert (ver payloadNuevos en guardarInventarioInicial).
+      const filaInventarioVacia = () => ({ id: crypto.randomUUID(), descripcion: '', cod_ean: '', sku: '', categoria: 'Abarrotes', precio_costo: '', precio_venta: '', unidad: 'UND', vendeEnPack: false, vendeEnPackOriginal: false, unidades_por_pack: '', precio_venta_pack: '', cod_ean_pack: '', productoExistenteId: null, foto_url: '', catalogoMaestroId: null });
       const [modalInventarioInicial, setModalInventarioInicial] = useState(false);
       const [filasInventario, setFilasInventario] = useState([filaInventarioVacia()]);
       const [guardandoInventario, setGuardandoInventario] = useState(false);
@@ -4666,15 +4671,62 @@
           if (campo === 'descripcion') {
             // Si se vuelve a tocar la descripción a mano después de elegir
             // una sugerencia del catálogo maestro, se suelta ese enlace (y
-            // su foto) -- si no, la sugerencia se queda pegada en pantalla
-            // (el texto ya escrito sigue "coincidiendo consigo mismo") y el
-            // enlace podría terminar apuntando a un producto distinto del
-            // que finalmente se escribió.
-            return { ...fila, descripcion: valor, catalogoMaestroId: null, foto_url: '' };
+            // su foto, que era la del maestro) -- si no, la sugerencia se
+            // queda pegada en pantalla (el texto ya escrito sigue
+            // "coincidiendo consigo mismo") y el enlace podría terminar
+            // apuntando a un producto distinto del que finalmente se
+            // escribió. Si la foto no vino de esa sugerencia sino que el
+            // usuario ya la subió a mano (cámara/galería/Ctrl+V), se respeta.
+            return { ...fila, descripcion: valor, catalogoMaestroId: null, foto_url: fila.catalogoMaestroId ? '' : fila.foto_url };
           }
           return { ...fila, [campo]: valor };
         }));
       };
+
+      // Igual que subirFotoProducto, pero para una fila de "Registrar
+      // Productos" que todavía no se guardó -- por eso usa el id que
+      // filaInventarioVacia ya generó de antemano en vez del id de un
+      // producto existente.
+      const [subiendoFotoFilaIdx, setSubiendoFotoFilaIdx] = useState(null);
+      const subirFotoFilaInventario = async (idx, file) => {
+        const fila = filasInventario[idx];
+        if (!fila || fila.productoExistenteId) return;
+        if (!esModoDemo && sesion?.bodega?.permitir_subir_fotos === false) return;
+        setSubiendoFotoFilaIdx(idx);
+        try {
+          const comprimida = await comprimirImagenJPEG(file, 20, 480);
+          if (esModoDemo) {
+            const urlLocal = URL.createObjectURL(comprimida);
+            actualizarFilaInventario(idx, 'foto_url', urlLocal);
+            return;
+          }
+          const ruta = `${bodegaId}/${fila.id}.jpg`;
+          const { error } = await sbClient.storage
+            .from('Productos')
+            .upload(ruta, comprimida, { upsert: true, cacheControl: '3600', contentType: 'image/jpeg' });
+          if (error) throw error;
+          const { data } = sbClient.storage.from('Productos').getPublicUrl(ruta);
+          actualizarFilaInventario(idx, 'foto_url', `${data.publicUrl}?t=${Date.now()}`);
+        } catch (err) {
+          notificar(`No se pudo subir la foto: ${err.message}`, 'error');
+        } finally {
+          setSubiendoFotoFilaIdx(null);
+        }
+      };
+
+      // Con el modal de "Registrar Productos" abierto, Ctrl+V sube la
+      // imagen copiada a la fila que se está llenando en ese momento.
+      useEffect(() => {
+        if (!modalInventarioInicial) return;
+        const manejarPegado = (e) => {
+          const fila = filasInventario[filaInventarioExpandidaIdx];
+          if (!fila || fila.productoExistenteId) return;
+          const item = Array.from(e.clipboardData?.items || []).find((it) => it.type.startsWith('image/'));
+          if (item) subirFotoFilaInventario(filaInventarioExpandidaIdx, item.getAsFile());
+        };
+        window.addEventListener('paste', manejarPegado);
+        return () => window.removeEventListener('paste', manejarPegado);
+      }, [modalInventarioInicial, filaInventarioExpandidaIdx, filasInventario]);
 
       // Busca en el catálogo ya cargado un producto por cualquiera de sus
       // identificadores exactos: EAN de la unidad, EAN del pack o SKU. Así,
@@ -4859,6 +4911,7 @@
           } else if (sbClient) {
             if (filasNuevas.length > 0) {
               const payloadNuevos = filasNuevas.map((f) => ({
+                id: f.id,
                 bodega_id: bodegaId,
                 descripcion: f.descripcion.trim(),
                 cod_ean: f.cod_ean.trim() || generarCodigoInterno(),
@@ -8487,6 +8540,59 @@
                             </button>
                           </div>
                         </div>
+
+                        {!esExistente && (
+                          <div className="pr-6">
+                            <label className="text-[10px] font-semibold text-stone-500 block mb-0.5">Foto del producto (opcional)</label>
+                            {sesion?.bodega?.permitir_subir_fotos === false ? (
+                              <div className="flex items-center gap-2.5">
+                                <FotoProducto fotoUrl={fila.foto_url} categoria={fila.categoria} className="w-12 h-12 rounded-lg shrink-0 border border-stone-200" iconClassName="text-base" />
+                                <p className="text-[10px] text-stone-500">La subida de fotos está desactivada para tu bodega.</p>
+                              </div>
+                            ) : (
+                              <div className="flex items-center gap-2.5">
+                                <FotoProducto fotoUrl={fila.foto_url} categoria={fila.categoria} className="w-12 h-12 rounded-lg shrink-0 border border-stone-200" iconClassName="text-base" />
+                                <div className="flex-1 space-y-1">
+                                  <div className="flex flex-wrap gap-1.5">
+                                    <label className="cursor-pointer text-[11px] font-semibold px-2.5 py-1.5 rounded-lg bg-stone-200 hover:bg-stone-300 text-stone-700 flex items-center gap-1.5">
+                                      {subiendoFotoFilaIdx === idx ? (
+                                        <i className="fa-solid fa-spinner fa-spin text-[10px]"></i>
+                                      ) : (
+                                        <i className="fa-solid fa-camera text-[10px]"></i>
+                                      )}
+                                      Tomar foto
+                                      <input
+                                        type="file"
+                                        accept="image/*"
+                                        capture="environment"
+                                        className="hidden"
+                                        onChange={(e) => {
+                                          const file = e.target.files && e.target.files[0];
+                                          e.target.value = '';
+                                          if (file) subirFotoFilaInventario(idx, file);
+                                        }}
+                                      />
+                                    </label>
+                                    <label className="cursor-pointer text-[11px] font-semibold px-2.5 py-1.5 rounded-lg bg-stone-200 hover:bg-stone-300 text-stone-700 flex items-center gap-1.5">
+                                      <i className="fa-solid fa-image text-[10px]"></i> Galería / Archivo
+                                      <input
+                                        type="file"
+                                        accept="image/*"
+                                        className="hidden"
+                                        onChange={(e) => {
+                                          const file = e.target.files && e.target.files[0];
+                                          e.target.value = '';
+                                          if (file) subirFotoFilaInventario(idx, file);
+                                        }}
+                                      />
+                                    </label>
+                                  </div>
+                                  <p className="text-[10px] text-stone-400">O copia una imagen y pégala con Ctrl+V.</p>
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        )}
 
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pr-6">
                         <div className="sm:col-span-2 relative">
