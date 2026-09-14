@@ -161,7 +161,6 @@
       flex-direction: column;
       align-items: center;
       justify-content: center;
-      gap: clamp(0.75rem, 4vh, 1.5rem);
       overflow: hidden;
       color: #fff;
       font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
@@ -181,13 +180,13 @@
     @media (min-width: 768px) {
       #splash-kaserita.splash-encogiendo { right: 50%; }
     }
-    /* Una sola imagen (el logotipo blanco) centrada -- ancho relativo a la
-       pantalla (clamp: mínimo, ideal en vw, máximo) así no se ve gigante en
-       un celular angosto ni diminuto en un monitor grande; el alto sigue
-       solo (auto) para no deformarla. */
+    /* El tamaño y espaciado del logo/subtítulo NO se define acá -- usa las
+       mismas clases de Tailwind que el panel de marca real (w-52 md:w-64,
+       mb-6, -mt-3, etc., puestas directo en el HTML de abajo) para que
+       ambos bloques midan exactamente lo mismo. Si no coinciden al pixel,
+       durante el encogido/desvanecido se alcanzan a ver los dos logos
+       superpuestos a distinta escala (efecto fantasma). */
     #splash-kaserita .splash-logo-img {
-      width: clamp(200px, 46vw, 320px);
-      height: auto;
       animation: splash-pulso 1.8s infinite ease-in-out;
     }
     @keyframes splash-pulso {
@@ -255,7 +254,8 @@
 </head>
 <body class="bg-stone-50 text-stone-900 h-screen overflow-hidden font-sans">
   <div id="splash-kaserita" class="login-brand-mesh">
-    <img class="splash-logo-img" src="/logo-blanco.png" alt="Kaserita - Punto de Venta">
+    <img class="splash-logo-img w-52 md:w-64 h-auto mb-6" src="/logo-blanco.png" alt="Kaserita - Punto de Venta">
+    <p class="text-sm text-indigo-100/80 -mt-3 text-center max-w-[240px] md:max-w-none">Para tu bodega o negocio</p>
   </div>
   <div id="root"></div>
 
