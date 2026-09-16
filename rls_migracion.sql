@@ -2,6 +2,13 @@
 -- Kaserita: RLS real por bodega usando Supabase Auth
 -- Ejecutar todo este script de una sola vez en el SQL Editor de Supabase.
 -- ============================================================
+-- NOTA (2026-09-16): este archivo describe cómo se armó RLS originalmente,
+-- pero la base ya divergió (por ejemplo, bodegas_update ya no existe, se
+-- reemplazó por bodegas_admin_todo + bodegas_select_propia +
+-- bodegas_insert_admin). Para el estado real de hoy, ver
+-- rls_estado_actual.sql en la raíz de este repo. No asumir que lo que
+-- sigue abajo es lo que corre en producción.
+-- ============================================================
 
 -- 1) Vincular cada fila de "usuarios" con su cuenta real de Supabase Auth.
 alter table usuarios add column if not exists auth_id uuid references auth.users(id);

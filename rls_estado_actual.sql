@@ -1,0 +1,106 @@
+-- Kaserita — estado REAL de RLS en producción, capturado el 2026-09-16.
+-- Esto es documentación de referencia, no un script para correr.
+--
+-- Por qué existe: rls_migracion.sql describe cómo se armó RLS originalmente,
+-- pero la base ya divergió de ese archivo (ver más abajo el caso de
+-- bodegas_update, que desapareció en algún momento sin quedar registrado
+-- en ningún commit de este repo). Este archivo es la foto de lo que
+-- realmente corre hoy, sacada con las dos consultas al final. Si algo acá
+-- vuelve a no coincidir con la base, esa desincronización es la señal de
+-- que hay que re-sacar la foto, no de que este archivo esté mal.
+
+-- ============================================================
+-- 1) Cómo funciona el modelo, en una frase
+-- ============================================================
+-- Casi todas las políticas usan bodega_id = mi_bodega_id(). mi_bodega_id()
+-- devuelve NULL para cualquiera que no esté autenticado (anon), y
+-- "columna = NULL" nunca es true en SQL -- así que aunque el rol anon
+-- tenga permisos de tabla otorgados (GRANT), la condición de la política
+-- lo bloquea igual, fila por fila. Este es el patrón de seguridad real de
+-- casi todo el sistema: los GRANT amplios que tiene anon en casi todas las
+-- tablas (ver sección 3) no importan mientras la política siga
+-- comparando contra mi_bodega_id().
+--
+-- Las únicas políticas donde esto NO alcanza son las que no dependen de
+-- auth.uid() -- esas se listan en la sección 2.
+
+-- ============================================================
+-- 2) Excepciones al patrón -- las únicas partes que dependen de que el
+--    GRANT de tabla esté bien puesto, no solo de la política
+-- ============================================================
+
+-- 2a. bodegas_select_propia tiene una cláusula "bootstrap": además de
+-- "es mi bodega", también deja pasar CUALQUIER bodega que todavía no
+-- tenga ninguna fila en usuarios (para que el flujo de "Crear Bodega"
+-- pueda leer el RETURNING antes de que exista el usuario dueño). Esa
+-- segunda condición no depende de auth.uid(), así que cualquier rol con
+-- SELECT en bodegas vería esas filas completas -- no solo el dueño en
+-- proceso de registro.
+--   - anon NO tiene hoy el GRANT de SELECT en bodegas (se revocó en
+--     Kaserita_Delivery/supabase/migration_07_cerrar_productos_y_bodegas.sql
+--     tras encontrar que sí lo tenía y se podía leer la tabla entera). Con
+--     ese grant revocado, esta cláusula no es explotable por anon.
+--   - authenticated SÍ tiene SELECT en bodegas, así que cualquier cajero
+--     logueado (de cualquier bodega) puede leer el registro completo de
+--     OTRA bodega mientras esa bodega no tenga usuarios cargados todavía
+--     (ventana corta, entre que se crea la bodega y que se crea su primer
+--     usuario). Bajo impacto, pero es una excepción real al aislamiento
+--     por bodega -- documentarlo para no sorprenderse si aparece en una
+--     auditoría futura.
+
+-- 2b. categorias_select dejar pasar bodega_id IS NULL (las categorías
+-- globales/compartidas) sin pedir autenticación. Confirmado en vivo:
+-- anon SÍ puede leer las ~17 categorías globales (nombre,
+-- porcentaje_margen) vía REST directo. Es la única tabla de negocio
+-- donde el GRANT de anon importa de verdad. Riesgo bajo -- son nombres de
+-- categoría genéricos ("Abarrotes", "Lácteos", etc.), no datos de ninguna
+-- bodega en particular -- pero técnicamente es lectura pública sin
+-- querer. No se tocó porque no está claro si algo del lado del cliente
+-- depende de poder leer esto sin sesión (revisar antes de cerrarlo).
+
+-- 2c. catalogo_maestro_select_todos usa "using (true)" para el rol
+-- authenticated -- cualquier cajero de cualquier bodega puede leer TODO
+-- el catálogo maestro. Esto es intencional (es el banco de productos
+-- compartido del que cualquier bodega puede importar), no un hallazgo.
+
+-- ============================================================
+-- 3) GRANT de tabla: por qué casi todas dicen que anon "puede" escribir
+-- ============================================================
+-- La consulta a information_schema.role_table_grants muestra que anon
+-- tiene INSERT/UPDATE/DELETE/TRUNCATE otorgados en casi todas las tablas
+-- (bodegas, cajeros, clientes, compras, etc.), no solo SELECT. Esto es el
+-- default de privilegios que Supabase deja configurado a nivel de schema
+-- para tablas nuevas, no algo que se haya otorgado a mano por error. No
+-- es explotable HOY porque cada política de escritura sigue exigiendo
+-- bodega_id = mi_bodega_id() (NULL para anon, por lo tanto siempre
+-- rechazado) -- se probó en vivo intentando INSERT/UPDATE/DELETE contra
+-- bodegas y productos con la anon key pública y todo fue bloqueado.
+--
+-- Igual, la próxima vez que se agregue una tabla o una política nueva,
+-- conviene revisar explícitamente contra qué compara el USING/WITH CHECK
+-- -- si alguna vez una política nueva no depende de auth.uid() (como el
+-- caso 2a), el GRANT amplio que ya existe la vuelve explotable
+-- inmediatamente, sin necesitar ningún cambio de permisos aparte.
+
+-- ============================================================
+-- 4) Nota aparte: pedidos_delivery no tiene bypass de superadmin
+-- ============================================================
+-- A diferencia de bodegas/usuarios/productos/ventas/etc., pedidos_delivery
+-- NO tiene una política "_admin_select" para es_superadmin(). Hoy el
+-- superadmin no puede leer el pedido pendiente de una bodega ajena desde
+-- el panel admin -- solo el cajero logueado de esa bodega puede. Es más
+-- restrictivo, no menos seguro; queda anotado por si en algún momento se
+-- necesita soporte/debug de un pedido de delivery de otra bodega y no se
+-- entiende por qué el admin no lo ve.
+
+-- ============================================================
+-- Consultas usadas para sacar esta foto (correr de nuevo si hace falta
+-- refrescar este archivo):
+-- ============================================================
+-- select tablename, policyname, cmd, roles, qual, with_check
+-- from pg_policies where schemaname = 'public' order by tablename, cmd;
+--
+-- select table_name, grantee, privilege_type
+-- from information_schema.role_table_grants
+-- where table_schema = 'public' and grantee in ('anon','authenticated')
+-- order by table_name, grantee, privilege_type;
