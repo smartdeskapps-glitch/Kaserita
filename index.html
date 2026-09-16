@@ -505,7 +505,9 @@
       unidades_por_pack: Number(producto.unidades_por_pack) > 1 ? String(producto.unidades_por_pack) : '',
       precio_venta_pack: producto.precio_venta_pack != null ? String(producto.precio_venta_pack) : '',
       cod_ean_pack: producto.cod_ean_pack || '',
-      foto_url: producto.foto_url || ''
+      foto_url: producto.foto_url || '',
+      fotos_extra: producto.fotos_extra || [],
+      descripcion_larga: producto.descripcion_larga || ''
     });
 
     // Exporta un arreglo de objetos a un archivo Excel (.xlsx) real descargable,
@@ -2626,6 +2628,7 @@
       const [formEditarProducto, setFormEditarProducto] = useState(null);
       const [guardandoEdicionProducto, setGuardandoEdicionProducto] = useState(false);
       const [subiendoFotoProducto, setSubiendoFotoProducto] = useState(false);
+      const [subiendoFotoExtra, setSubiendoFotoExtra] = useState(false);
 
       // Sube la foto de UN producto de la bodega (a diferencia de
       // subirFotoMaestro, que es del catálogo compartido) -- se guarda en
@@ -2661,6 +2664,40 @@
         } finally {
           setSubiendoFotoProducto(false);
         }
+      };
+
+      // Fotos adicionales para la vitrina de Kaserita Delivery (ej. ropa:
+      // varios ángulos). A diferencia de la foto principal, cada una va a
+      // una ruta propia con timestamp -- no hay un slot fijo que
+      // sobreescribir, son una lista que crece/se achica.
+      const subirFotoExtraProducto = async (file) => {
+        if (!productoEditando) return;
+        if (!esModoDemo && sesion?.bodega?.permitir_subir_fotos === false) return;
+        if ((formEditarProducto?.fotos_extra || []).length >= 4) return;
+        setSubiendoFotoExtra(true);
+        try {
+          const comprimida = await comprimirImagenJPEG(file, 20, 480);
+          if (esModoDemo) {
+            const urlLocal = URL.createObjectURL(comprimida);
+            setFormEditarProducto((prev) => ({ ...prev, fotos_extra: [...(prev.fotos_extra || []), urlLocal] }));
+            return;
+          }
+          const ruta = `${bodegaId}/${productoEditando.id}-extra-${Date.now()}.jpg`;
+          const { error } = await sbClient.storage
+            .from('Productos')
+            .upload(ruta, comprimida, { upsert: true, cacheControl: '3600', contentType: 'image/jpeg' });
+          if (error) throw error;
+          const { data } = sbClient.storage.from('Productos').getPublicUrl(ruta);
+          setFormEditarProducto((prev) => ({ ...prev, fotos_extra: [...(prev.fotos_extra || []), `${data.publicUrl}?t=${Date.now()}`] }));
+        } catch (err) {
+          notificar(`No se pudo subir la foto: ${err.message}`, 'error');
+        } finally {
+          setSubiendoFotoExtra(false);
+        }
+      };
+
+      const quitarFotoExtra = (idx) => {
+        setFormEditarProducto((prev) => ({ ...prev, fotos_extra: prev.fotos_extra.filter((_, i) => i !== idx) }));
       };
 
       // Con el modal de "Editar Producto" abierto, Ctrl+V sube directo la
@@ -5488,6 +5525,8 @@
             unidad: formEditarProducto.unidad === 'KG' ? 'KG' : 'UND',
             stock_actual: formEditarProducto.stock_actual === '' ? null : Number(formEditarProducto.stock_actual),
             foto_url: formEditarProducto.foto_url || null,
+            fotos_extra: formEditarProducto.fotos_extra && formEditarProducto.fotos_extra.length ? formEditarProducto.fotos_extra : null,
+            descripcion_larga: formEditarProducto.descripcion_larga.trim() || null,
             ...normalizarCamposPack(formEditarProducto)
           };
           if (esModoDemo) {
@@ -9827,6 +9866,56 @@
                       className="w-full bg-stone-50 border border-stone-200 rounded-lg px-3 py-1.5 text-xs text-stone-900"
                     />
                   </div>
+                  {!(sesion?.bodega?.permitir_subir_fotos === false) && (
+                    <div className="pt-1.5 border-t border-stone-200 space-y-1.5">
+                      <div>
+                        <label className="text-xs text-stone-600 block mb-1">Descripción para la vitrina (Kaserita Delivery, opcional):</label>
+                        <textarea
+                          value={formEditarProducto.descripcion_larga}
+                          onChange={(e) => setFormEditarProducto({ ...formEditarProducto, descripcion_larga: e.target.value })}
+                          rows={2}
+                          placeholder="Ej: tela, talla, colores disponibles..."
+                          className="w-full bg-stone-50 border border-stone-200 rounded-lg px-3 py-1.5 text-xs text-stone-900"
+                        />
+                      </div>
+                      <div>
+                        <label className="text-xs text-stone-600 block mb-1">Fotos adicionales para la vitrina (hasta 4):</label>
+                        <div className="flex flex-wrap gap-2">
+                          {formEditarProducto.fotos_extra.map((url, idx) => (
+                            <div key={idx} className="relative w-14 h-14 rounded-lg overflow-hidden border border-stone-200 shrink-0">
+                              <img src={url} className="w-full h-full object-cover" alt="" />
+                              <button
+                                type="button"
+                                onClick={() => quitarFotoExtra(idx)}
+                                className="absolute top-0 right-0 w-4 h-4 flex items-center justify-center bg-black/60 text-white text-[10px] rounded-bl"
+                              >
+                                <i className="fa-solid fa-xmark"></i>
+                              </button>
+                            </div>
+                          ))}
+                          {formEditarProducto.fotos_extra.length < 4 && (
+                            <label className="relative w-14 h-14 rounded-lg border border-dashed border-stone-300 flex items-center justify-center cursor-pointer text-stone-400 hover:text-stone-600 hover:border-stone-400 shrink-0">
+                              {subiendoFotoExtra ? (
+                                <div className="w-3.5 h-3.5 border-2 border-stone-400 border-t-transparent rounded-full animate-spin"></div>
+                              ) : (
+                                <i className="fa-solid fa-plus text-sm"></i>
+                              )}
+                              <input
+                                type="file"
+                                accept="image/*"
+                                className="hidden"
+                                onChange={(e) => {
+                                  const file = e.target.files && e.target.files[0];
+                                  e.target.value = '';
+                                  if (file) subirFotoExtraProducto(file);
+                                }}
+                              />
+                            </label>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  )}
                 </div>
                 <div className="flex gap-2 pt-1">
                   <button
