@@ -1221,6 +1221,22 @@
         }
       };
 
+      // Función paga aparte del plan base -- si se le quita el permiso a una
+      // bodega, también se le apaga el catálogo público (no tiene sentido
+      // dejarlo "prendido" sin el permiso que lo cubre).
+      const alternarDeliveryPermitidoBodega = async (bodega) => {
+        try {
+          const nuevoPermitido = !bodega.delivery_permitido;
+          const payload = { delivery_permitido: nuevoPermitido };
+          if (!nuevoPermitido) payload.delivery_habilitado = false;
+          const { error } = await sbClient.from('bodegas').update(payload).eq('id', bodega.id);
+          if (error) throw error;
+          cargarBodegas();
+        } catch (err) {
+          notificar(`No se pudo actualizar: ${err.message}`, 'error');
+        }
+      };
+
       const alternarSubirFotosBodega = async (bodega) => {
         try {
           const { error } = await sbClient.from('bodegas').update({ permitir_subir_fotos: !bodega.permitir_subir_fotos }).eq('id', bodega.id);
@@ -1905,6 +1921,13 @@
                           title="Permitir/bloquear que esta bodega suba fotos de sus productos"
                           icono="fa-camera"
                           etiqueta="Subir fotos"
+                        />
+                        <Interruptor
+                          activo={b.delivery_permitido}
+                          onClick={() => alternarDeliveryPermitidoBodega(b)}
+                          title="Habilitar/deshabilitar Pedidos por WhatsApp (KaseritaDelivery) para esta bodega -- función paga aparte del plan base"
+                          icono="fa-share-nodes"
+                          etiqueta="Pedidos WhatsApp"
                         />
                       </div>
 
@@ -3066,10 +3089,13 @@
         }
         setGuardandoDelivery(true);
         try {
-          const { error: errBodega } = await sbClient
-            .from('bodegas')
-            .update({ slug: slugLimpio || null, delivery_habilitado: deliveryHabilitado })
-            .eq('id', bodegaId);
+          // El dueño no puede actualizar bodegas directo (RLS solo lo permite
+          // al super-admin) -- esta función security definer es el único
+          // camino, y de paso respeta si el admin le dio delivery_permitido.
+          const { error: errBodega } = await sbClient.rpc('actualizar_mi_delivery', {
+            p_slug: slugLimpio || null,
+            p_delivery_habilitado: deliveryHabilitado,
+          });
           if (errBodega) {
             if (errBodega.code === '23505') throw new Error('Ese link ya lo está usando otra bodega, probá con otro.');
             throw errBodega;
@@ -10804,71 +10830,85 @@
                   <button onClick={() => setModalDelivery(false)} className="text-stone-600 hover:text-stone-900"><i className="fa-solid fa-xmark"></i></button>
                 </div>
 
-                <p className="text-xs text-stone-500">
-                  Tus clientes entran a este link, arman su pedido y te lo mandan por WhatsApp
-                  con un código -- vos lo cargás acá en caja para cobrar sin escribir nada a mano.
-                </p>
-
-                <Interruptor
-                  activo={deliveryHabilitado}
-                  onClick={() => setDeliveryHabilitado((v) => !v)}
-                  etiqueta="Aparecer en el catálogo público"
-                  icono="fa-store"
-                />
-
-                <div>
-                  <label className="text-xs text-stone-600 block mb-1">Tu link:</label>
-                  <div className="flex items-center gap-1 bg-stone-200/60 rounded-lg px-2.5 py-1.5">
-                    <span className="text-xs text-stone-400 shrink-0">{KASERITA_DELIVERY_URL}/</span>
-                    <input
-                      type="text"
-                      value={slugDelivery}
-                      onChange={(e) => setSlugDelivery(e.target.value)}
-                      onBlur={() => setSlugDelivery((v) => normalizarSlugDelivery(v))}
-                      placeholder="mi-bodega"
-                      className="flex-1 min-w-0 bg-transparent text-xs text-stone-900 font-semibold outline-none"
-                    />
+                {!sesion?.bodega?.delivery_permitido ? (
+                  <div className="bg-amber-50 border border-amber-200 rounded-xl p-3.5 space-y-1.5">
+                    <p className="text-sm font-semibold text-amber-800 flex items-center gap-2">
+                      <i className="fa-solid fa-lock text-xs"></i> Función no habilitada
+                    </p>
+                    <p className="text-xs text-amber-700">
+                      Los Pedidos por WhatsApp son una función paga aparte de tu plan.
+                      Contactá al administrador para habilitarla en tu bodega.
+                    </p>
                   </div>
-                </div>
+                ) : (
+                  <>
+                    <p className="text-xs text-stone-500">
+                      Tus clientes entran a este link, arman su pedido y te lo mandan por WhatsApp
+                      con un código -- vos lo cargás acá en caja para cobrar sin escribir nada a mano.
+                    </p>
 
-                {sesion?.usuario?.rol === 'dueno' && (
-                  <div>
-                    <label className="text-xs text-stone-600 block mb-1">Tu WhatsApp (ahí te van a llegar los pedidos):</label>
-                    <input
-                      type="text"
-                      value={telefonoDeliveryEditar}
-                      onChange={(e) => setTelefonoDeliveryEditar(e.target.value)}
-                      placeholder="Ej. 51987654321"
-                      className="w-full bg-stone-100 border border-stone-200 rounded-lg px-3 py-1.5 text-xs text-stone-900"
+                    <Interruptor
+                      activo={deliveryHabilitado}
+                      onClick={() => setDeliveryHabilitado((v) => !v)}
+                      etiqueta="Aparecer en el catálogo público"
+                      icono="fa-store"
                     />
-                    <p className="text-[10px] text-stone-500 mt-1">Sin espacios ni guiones, con el código de país adelante.</p>
-                  </div>
-                )}
 
-                {deliveryHabilitado && sesion?.bodega?.slug && (
-                  <div className="flex items-center gap-2 bg-emerald-50 border border-emerald-200 rounded-lg px-2.5 py-2">
-                    <i className="fa-solid fa-circle-check text-emerald-600 text-xs shrink-0"></i>
-                    <span className="text-[11px] text-emerald-700 font-medium truncate flex-1">{`${KASERITA_DELIVERY_URL}/${sesion.bodega.slug}`}</span>
+                    <div>
+                      <label className="text-xs text-stone-600 block mb-1">Tu link:</label>
+                      <div className="flex items-center gap-1 bg-stone-200/60 rounded-lg px-2.5 py-1.5">
+                        <span className="text-xs text-stone-400 shrink-0">{KASERITA_DELIVERY_URL}/</span>
+                        <input
+                          type="text"
+                          value={slugDelivery}
+                          onChange={(e) => setSlugDelivery(e.target.value)}
+                          onBlur={() => setSlugDelivery((v) => normalizarSlugDelivery(v))}
+                          placeholder="mi-bodega"
+                          className="flex-1 min-w-0 bg-transparent text-xs text-stone-900 font-semibold outline-none"
+                        />
+                      </div>
+                    </div>
+
+                    {sesion?.usuario?.rol === 'dueno' && (
+                      <div>
+                        <label className="text-xs text-stone-600 block mb-1">Tu WhatsApp (ahí te van a llegar los pedidos):</label>
+                        <input
+                          type="text"
+                          value={telefonoDeliveryEditar}
+                          onChange={(e) => setTelefonoDeliveryEditar(e.target.value)}
+                          placeholder="Ej. 51987654321"
+                          className="w-full bg-stone-100 border border-stone-200 rounded-lg px-3 py-1.5 text-xs text-stone-900"
+                        />
+                        <p className="text-[10px] text-stone-500 mt-1">Sin espacios ni guiones, con el código de país adelante.</p>
+                      </div>
+                    )}
+
+                    {deliveryHabilitado && sesion?.bodega?.slug && (
+                      <div className="flex items-center gap-2 bg-emerald-50 border border-emerald-200 rounded-lg px-2.5 py-2">
+                        <i className="fa-solid fa-circle-check text-emerald-600 text-xs shrink-0"></i>
+                        <span className="text-[11px] text-emerald-700 font-medium truncate flex-1">{`${KASERITA_DELIVERY_URL}/${sesion.bodega.slug}`}</span>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            navigator.clipboard.writeText(`${KASERITA_DELIVERY_URL}/${sesion.bodega.slug}`);
+                            notificar('Link copiado.', 'success');
+                          }}
+                          className="text-emerald-700 hover:text-emerald-900 shrink-0"
+                        >
+                          <i className="fa-solid fa-copy text-xs"></i>
+                        </button>
+                      </div>
+                    )}
+
                     <button
-                      type="button"
-                      onClick={() => {
-                        navigator.clipboard.writeText(`${KASERITA_DELIVERY_URL}/${sesion.bodega.slug}`);
-                        notificar('Link copiado.', 'success');
-                      }}
-                      className="text-emerald-700 hover:text-emerald-900 shrink-0"
+                      onClick={guardarConfigDelivery}
+                      disabled={guardandoDelivery}
+                      className="w-full py-2.5 rounded-xl bg-stone-900 hover:bg-stone-800 text-white font-bold text-sm disabled:opacity-50"
                     >
-                      <i className="fa-solid fa-copy text-xs"></i>
+                      {guardandoDelivery ? 'Guardando...' : 'Guardar'}
                     </button>
-                  </div>
+                  </>
                 )}
-
-                <button
-                  onClick={guardarConfigDelivery}
-                  disabled={guardandoDelivery}
-                  className="w-full py-2.5 rounded-xl bg-stone-900 hover:bg-stone-800 text-white font-bold text-sm disabled:opacity-50"
-                >
-                  {guardandoDelivery ? 'Guardando...' : 'Guardar'}
-                </button>
               </div>
             </div>
           )}
