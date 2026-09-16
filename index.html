@@ -2519,6 +2519,9 @@
       const [deliveryHabilitado, setDeliveryHabilitado] = useState(false);
       const [telefonoDeliveryEditar, setTelefonoDeliveryEditar] = useState('');
       const [guardandoDelivery, setGuardandoDelivery] = useState(false);
+      const [modalCargarPedidoCodigo, setModalCargarPedidoCodigo] = useState(false);
+      const [codigoPedidoInput, setCodigoPedidoInput] = useState('');
+      const [buscandoPedidoCodigo, setBuscandoPedidoCodigo] = useState(false);
 
       // --- Arqueo y Cierre de Caja ---
       const [modalCierreCaja, setModalCierreCaja] = useState(false);
@@ -3088,6 +3091,57 @@
           notificar(err.message || 'No se pudo guardar los cambios.', 'error');
         } finally {
           setGuardandoDelivery(false);
+        }
+      };
+
+      // Un cajero pega/tipea el código corto que el cliente le mostró desde su
+      // WhatsApp (generado por la vitrina de KaseritaDelivery) y esto trae el
+      // carrito armado por el cliente directo a la venta, sin transcribir nada
+      // a mano. RLS en pedidos_delivery ya scopea la lectura a la bodega del
+      // cajero autenticado, así que un código de otra bodega simplemente no
+      // aparece (no hace falta filtrar por bodega_id acá).
+      const cargarPedidoPorCodigo = async () => {
+        const codigo = codigoPedidoInput.trim().toUpperCase();
+        if (!codigo) return;
+        if (esModoDemo || !sbClient) {
+          notificar('Cargar pedidos por código no está disponible en el Modo Demo.', 'error');
+          return;
+        }
+        setBuscandoPedidoCodigo(true);
+        try {
+          const { data: pedido, error } = await sbClient
+            .from('pedidos_delivery')
+            .select('*')
+            .eq('codigo_corto', codigo)
+            .maybeSingle();
+          if (error) throw error;
+          if (!pedido) {
+            notificar('No encontramos ningún pedido con ese código.', 'error');
+            return;
+          }
+          if (pedido.usado) {
+            notificar('Ese código ya fue cargado antes.', 'error');
+            return;
+          }
+          let agregados = 0;
+          (pedido.items || []).forEach((it) => {
+            const prod = productos.find((p) => p.id === it.id);
+            if (prod) {
+              agregarAlCarrito(prod, it.cantidad);
+              agregados++;
+            } else {
+              notificar(`"${it.descripcion}" ya no está en tu inventario, no se agregó.`, 'error');
+            }
+          });
+          const { error: errUsado } = await sbClient.from('pedidos_delivery').update({ usado: true }).eq('id', pedido.id);
+          if (errUsado) console.warn('No se pudo marcar el pedido como usado:', errUsado.message);
+          if (agregados > 0) notificar(`Pedido ${codigo} agregado al carrito.`, 'success');
+          setCodigoPedidoInput('');
+          setModalCargarPedidoCodigo(false);
+        } catch (err) {
+          notificar(err.message || 'No se pudo cargar el pedido.', 'error');
+        } finally {
+          setBuscandoPedidoCodigo(false);
         }
       };
 
@@ -7742,6 +7796,13 @@
                 >
                   <i className="fa-solid fa-magnifying-glass"></i>
                 </button>
+                <button
+                  onClick={() => { setCodigoPedidoInput(''); setModalCargarPedidoCodigo(true); }}
+                  title="Cargar pedido con código de KaseritaDelivery"
+                  className="px-4 py-2.5 bg-stone-200 hover:bg-stone-300 text-stone-800 text-xs font-semibold rounded-xl border border-stone-300 transition"
+                >
+                  <i className="fa-solid fa-ticket"></i>
+                </button>
               </div>
 
               {/* Ventas en Espera como tarjetas de "pedido activo" */}
@@ -10779,6 +10840,41 @@
                   className="w-full py-2.5 rounded-xl bg-stone-900 hover:bg-stone-800 text-white font-bold text-sm disabled:opacity-50"
                 >
                   {guardandoDelivery ? 'Guardando...' : 'Guardar'}
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* Modal: cargar al carrito el pedido que un cliente armó en la vitrina */}
+          {modalCargarPedidoCodigo && (
+            <div className="fixed inset-0 bg-black/85 flex items-center justify-center z-50 p-4">
+              <div className="bg-stone-100 border border-stone-200 rounded-2xl max-w-sm w-full p-5 shadow-2xl space-y-4">
+                <div className="flex justify-between items-center">
+                  <h3 className="text-base font-bold text-stone-900 flex items-center gap-2">
+                    <i className="fa-solid fa-ticket text-orange-600"></i> Cargar Pedido
+                  </h3>
+                  <button onClick={() => setModalCargarPedidoCodigo(false)} className="text-stone-600 hover:text-stone-900"><i className="fa-solid fa-xmark"></i></button>
+                </div>
+                <p className="text-xs text-stone-500">
+                  Pedile al cliente el código de 6 letras/números que le llegó por WhatsApp
+                  y escribilo acá para traer su pedido directo al carrito.
+                </p>
+                <input
+                  type="text"
+                  value={codigoPedidoInput}
+                  onChange={(e) => setCodigoPedidoInput(e.target.value.toUpperCase())}
+                  onKeyDown={(e) => { if (e.key === 'Enter') cargarPedidoPorCodigo(); }}
+                  placeholder="Ej. LZ9NAL"
+                  maxLength={6}
+                  autoFocus
+                  className="w-full bg-stone-100 border border-stone-200 rounded-lg px-3 py-2.5 text-center text-lg font-mono font-bold tracking-widest text-stone-900"
+                />
+                <button
+                  onClick={cargarPedidoPorCodigo}
+                  disabled={buscandoPedidoCodigo || !codigoPedidoInput.trim()}
+                  className="w-full py-2.5 rounded-xl bg-stone-900 hover:bg-stone-800 text-white font-bold text-sm disabled:opacity-50"
+                >
+                  {buscandoPedidoCodigo ? 'Buscando...' : 'Cargar al carrito'}
                 </button>
               </div>
             </div>
