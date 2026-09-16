@@ -596,6 +596,11 @@
     // bodega real sin productos debe ver un catálogo vacío de verdad.
     const BODEGA_DEMO_ID = 'a0000000-0000-0000-0000-000000000001';
 
+    // Base de la vitrina pública de KaseritaDelivery (repo y deploy
+    // separados de este). El link final de cada bodega es esta URL + su
+    // slug, ej. KASERITA_DELIVERY_URL + '/san-luis'.
+    const KASERITA_DELIVERY_URL = 'https://kaserita-delivery.vercel.app';
+
     // El login sigue pidiendo DNI + PIN como siempre, pero por debajo se usa
     // Supabase Auth real (necesario para que RLS pueda proteger los datos de
     // cada bodega). Se deriva un correo y contraseña sintéticos a partir del
@@ -2508,6 +2513,13 @@
       const [pinConfirmarCajero, setPinConfirmarCajero] = useState('');
       const [verificandoPinCajero, setVerificandoPinCajero] = useState(false);
 
+      // --- Link de Pedidos (KaseritaDelivery) ---
+      const [modalDelivery, setModalDelivery] = useState(false);
+      const [slugDelivery, setSlugDelivery] = useState('');
+      const [deliveryHabilitado, setDeliveryHabilitado] = useState(false);
+      const [telefonoDeliveryEditar, setTelefonoDeliveryEditar] = useState('');
+      const [guardandoDelivery, setGuardandoDelivery] = useState(false);
+
       // --- Arqueo y Cierre de Caja ---
       const [modalCierreCaja, setModalCierreCaja] = useState(false);
       const [montoConteoEfectivo, setMontoConteoEfectivo] = useState('');
@@ -3017,6 +3029,65 @@
           return resuelto;
         } catch (err) {
           console.warn(err);
+        }
+      };
+
+      // ==========================================
+      // LINK DE PEDIDOS (KaseritaDelivery): vitrina pública de la bodega
+      // ==========================================
+      const normalizarSlugDelivery = (texto) =>
+        (texto || '')
+          .toLowerCase()
+          .normalize('NFD').replace(/[̀-ͯ]/g, '')
+          .replace(/[^a-z0-9]+/g, '-')
+          .replace(/^-+|-+$/g, '');
+
+      const abrirModalDelivery = () => {
+        setSlugDelivery(sesion?.bodega?.slug || normalizarSlugDelivery(sesion?.bodega?.nombre));
+        setDeliveryHabilitado(!!sesion?.bodega?.delivery_habilitado);
+        setTelefonoDeliveryEditar(sesion?.usuario?.rol === 'dueno' ? (sesion?.usuario?.telefono || '') : '');
+        setModalDelivery(true);
+      };
+
+      const guardarConfigDelivery = async () => {
+        if (esModoDemo || !sbClient || !bodegaId) {
+          notificar('El link de pedidos no está disponible en el Modo Demo.', 'error');
+          return;
+        }
+        const slugLimpio = normalizarSlugDelivery(slugDelivery);
+        if (deliveryHabilitado && !slugLimpio) {
+          notificar('Elegí un link antes de activar el catálogo público.', 'error');
+          return;
+        }
+        setGuardandoDelivery(true);
+        try {
+          const { error: errBodega } = await sbClient
+            .from('bodegas')
+            .update({ slug: slugLimpio || null, delivery_habilitado: deliveryHabilitado })
+            .eq('id', bodegaId);
+          if (errBodega) {
+            if (errBodega.code === '23505') throw new Error('Ese link ya lo está usando otra bodega, probá con otro.');
+            throw errBodega;
+          }
+          const telefonoLimpio = telefonoDeliveryEditar.trim();
+          if (sesion?.usuario?.rol === 'dueno' && telefonoLimpio !== (sesion?.usuario?.telefono || '')) {
+            const { error: errTelefono } = await sbClient
+              .from('usuarios')
+              .update({ telefono: telefonoLimpio || null })
+              .eq('id', sesion.usuario.id);
+            if (errTelefono) throw errTelefono;
+          }
+          setSesion((s) => ({
+            ...s,
+            bodega: { ...s.bodega, slug: slugLimpio, delivery_habilitado: deliveryHabilitado },
+            usuario: s.usuario?.rol === 'dueno' ? { ...s.usuario, telefono: telefonoLimpio || null } : s.usuario,
+          }));
+          setSlugDelivery(slugLimpio);
+          notificar('Listo, tu link de pedidos quedó actualizado.', 'success');
+        } catch (err) {
+          notificar(err.message || 'No se pudo guardar los cambios.', 'error');
+        } finally {
+          setGuardandoDelivery(false);
         }
       };
 
@@ -7569,6 +7640,7 @@
                 </div>
                 <SidebarIcon icon="fa-users" label="Clientes (editar)" onClick={abrirGestionClientes} />
                 <SidebarIcon icon="fa-user-group" label="Cajeros y Empleados" onClick={abrirGestionCajeros} />
+                <SidebarIcon icon="fa-share-nodes" label="Mi Link de Pedidos" onClick={abrirModalDelivery} />
               </>
             )}
             <div className="flex-1 min-h-2"></div>
@@ -8293,6 +8365,9 @@
                     </button>
                     <button onClick={() => { abrirGestionCajeros(); setMenuMas(false); }} className="w-full text-left px-3.5 py-3 rounded-xl hover:bg-stone-200 flex items-center gap-3 text-stone-800 font-medium text-sm">
                       <i className="fa-solid fa-user-group w-5 text-orange-600"></i> Cajeros y Empleados
+                    </button>
+                    <button onClick={() => { abrirModalDelivery(); setMenuMas(false); }} className="w-full text-left px-3.5 py-3 rounded-xl hover:bg-stone-200 flex items-center gap-3 text-stone-800 font-medium text-sm">
+                      <i className="fa-solid fa-share-nodes w-5 text-orange-600"></i> Mi Link de Pedidos
                     </button>
                   </>
                 )}
@@ -10625,6 +10700,86 @@
                     </div>
                   </>
                 )}
+              </div>
+            </div>
+          )}
+
+          {/* Modal: Mi Link de Pedidos (vitrina pública de KaseritaDelivery) */}
+          {modalDelivery && (
+            <div className="fixed inset-0 bg-black/85 flex items-center justify-center z-50 p-4">
+              <div className="bg-stone-100 border border-stone-200 rounded-2xl max-w-md w-full p-5 shadow-2xl space-y-4">
+                <div className="flex justify-between items-center">
+                  <h3 className="text-base font-bold text-stone-900 flex items-center gap-2">
+                    <i className="fa-solid fa-share-nodes text-orange-600"></i> Mi Link de Pedidos
+                  </h3>
+                  <button onClick={() => setModalDelivery(false)} className="text-stone-600 hover:text-stone-900"><i className="fa-solid fa-xmark"></i></button>
+                </div>
+
+                <p className="text-xs text-stone-500">
+                  Tus clientes entran a este link, arman su pedido y te lo mandan por WhatsApp
+                  con un código -- vos lo cargás acá en caja para cobrar sin escribir nada a mano.
+                </p>
+
+                <Interruptor
+                  activo={deliveryHabilitado}
+                  onClick={() => setDeliveryHabilitado((v) => !v)}
+                  etiqueta="Aparecer en el catálogo público"
+                  icono="fa-store"
+                />
+
+                <div>
+                  <label className="text-xs text-stone-600 block mb-1">Tu link:</label>
+                  <div className="flex items-center gap-1 bg-stone-200/60 rounded-lg px-2.5 py-1.5">
+                    <span className="text-xs text-stone-400 shrink-0">{KASERITA_DELIVERY_URL}/</span>
+                    <input
+                      type="text"
+                      value={slugDelivery}
+                      onChange={(e) => setSlugDelivery(e.target.value)}
+                      onBlur={() => setSlugDelivery((v) => normalizarSlugDelivery(v))}
+                      placeholder="mi-bodega"
+                      className="flex-1 min-w-0 bg-transparent text-xs text-stone-900 font-semibold outline-none"
+                    />
+                  </div>
+                </div>
+
+                {sesion?.usuario?.rol === 'dueno' && (
+                  <div>
+                    <label className="text-xs text-stone-600 block mb-1">Tu WhatsApp (ahí te van a llegar los pedidos):</label>
+                    <input
+                      type="text"
+                      value={telefonoDeliveryEditar}
+                      onChange={(e) => setTelefonoDeliveryEditar(e.target.value)}
+                      placeholder="Ej. 51987654321"
+                      className="w-full bg-stone-100 border border-stone-200 rounded-lg px-3 py-1.5 text-xs text-stone-900"
+                    />
+                    <p className="text-[10px] text-stone-500 mt-1">Sin espacios ni guiones, con el código de país adelante.</p>
+                  </div>
+                )}
+
+                {deliveryHabilitado && sesion?.bodega?.slug && (
+                  <div className="flex items-center gap-2 bg-emerald-50 border border-emerald-200 rounded-lg px-2.5 py-2">
+                    <i className="fa-solid fa-circle-check text-emerald-600 text-xs shrink-0"></i>
+                    <span className="text-[11px] text-emerald-700 font-medium truncate flex-1">{`${KASERITA_DELIVERY_URL}/${sesion.bodega.slug}`}</span>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        navigator.clipboard.writeText(`${KASERITA_DELIVERY_URL}/${sesion.bodega.slug}`);
+                        notificar('Link copiado.', 'success');
+                      }}
+                      className="text-emerald-700 hover:text-emerald-900 shrink-0"
+                    >
+                      <i className="fa-solid fa-copy text-xs"></i>
+                    </button>
+                  </div>
+                )}
+
+                <button
+                  onClick={guardarConfigDelivery}
+                  disabled={guardandoDelivery}
+                  className="w-full py-2.5 rounded-xl bg-stone-900 hover:bg-stone-800 text-white font-bold text-sm disabled:opacity-50"
+                >
+                  {guardandoDelivery ? 'Guardando...' : 'Guardar'}
+                </button>
               </div>
             </div>
           )}
