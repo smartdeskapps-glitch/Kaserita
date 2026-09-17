@@ -11042,12 +11042,28 @@
                 ) : (
                   <>
                     <div className="bg-white border border-stone-200 rounded-xl p-3 space-y-1.5 max-h-48 overflow-y-auto">
-                      {(pedidoEncontrado.items || []).map((it, i) => (
-                        <div key={i} className="flex justify-between text-xs text-stone-700">
-                          <span>{it.cantidad} x {it.descripcion}</span>
-                          <span className="font-semibold">S/ {(it.precio_venta * it.cantidad).toFixed(2)}</span>
-                        </div>
-                      ))}
+                      {(pedidoEncontrado.items || []).map((it, i) => {
+                        const prod = productos.find((p) => p.id === it.id);
+                        const stock = prod && prod.stock_actual != null ? Number(prod.stock_actual) : null;
+                        const aviso = !prod
+                          ? 'Ya no está en tu inventario, no se va a agregar.'
+                          : stock != null && Number(it.cantidad) > stock
+                          ? `Pidieron ${it.cantidad}, quedan ${stock}.`
+                          : null;
+                        return (
+                          <div key={i} className="text-xs text-stone-700">
+                            <div className="flex justify-between">
+                              <span>{it.cantidad} x {it.descripcion}</span>
+                              <span className="font-semibold">S/ {(it.precio_venta * it.cantidad).toFixed(2)}</span>
+                            </div>
+                            {aviso && (
+                              <div className="text-[11px] text-rose-600 font-semibold">
+                                <i className="fa-solid fa-triangle-exclamation mr-1"></i>{aviso}
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })}
                       <div className="flex justify-between text-sm font-bold text-stone-900 pt-1.5 border-t border-stone-200">
                         <span>Total</span>
                         <span>S/ {(pedidoEncontrado.items || []).reduce((a, it) => a + it.precio_venta * it.cantidad, 0).toFixed(2)}</span>
