@@ -2364,11 +2364,15 @@
     // de producción (pk_live_) recién cuando se salga de pruebas.
     const CULQI_PUBLIC_KEY = 'pk_test_sm8WLbJ2rsv9Y8ee';
 
+    // Checkout Custom (js.culqi.com/checkout-js), no el viejo Checkout v4
+    // (checkout.culqi.com/js/v4) -- Culqi lo está discontinuando y además
+    // tira errores internos random ("Cannot read properties of undefined
+    // (reading 'M_ID')") que no dependen de nuestra configuración.
     function cargarScriptCulqi() {
       return new Promise((resolve, reject) => {
-        if (window.Culqi) return resolve();
+        if (window.CulqiCheckout) return resolve();
         const script = document.createElement('script');
-        script.src = 'https://checkout.culqi.com/js/v4';
+        script.src = 'https://js.culqi.com/checkout-js';
         script.onload = () => resolve();
         script.onerror = () => reject(new Error('No se pudo cargar Culqi.'));
         document.head.appendChild(script);
@@ -2445,18 +2449,26 @@
         setCargandoAccion(true);
         try {
           await cargarScriptCulqi();
-          window.Culqi.publicKey = CULQI_PUBLIC_KEY;
-          window.Culqi.settings({
-            title: 'Kaserita',
-            currency: 'PEN',
-            amount: Math.round(Number(planActual.precio_soles_promo || planActual.precio_soles) * 100),
-          });
-          window.culqi = async () => {
-            if (!window.Culqi.token) {
-              setError(window.Culqi.error?.user_message || 'No se pudo procesar la tarjeta.');
-              setCargandoAccion(false);
+          const config = {
+            settings: {
+              title: 'Kaserita',
+              currency: 'PEN',
+              amount: Math.round(Number(planActual.precio_soles_promo || planActual.precio_soles) * 100),
+            },
+            client: { email: sesionGoogle?.user?.email || '' },
+            options: {
+              lang: 'auto',
+              modal: true,
+              paymentMethods: { tarjeta: true, yape: false, billetera: false, bancaMovil: false, agente: false, cuotealo: false },
+            },
+          };
+          const culqiCheckout = new window.CulqiCheckout(CULQI_PUBLIC_KEY, config);
+          culqiCheckout.culqi = async () => {
+            if (!culqiCheckout.token) {
+              setError(culqiCheckout.error?.user_message || 'No se pudo procesar la tarjeta.');
               return;
             }
+            setCargandoAccion(true);
             try {
               const resp = await fetch(`${supabaseUrl}/functions/v1/cobrar-plan-culqi`, {
                 method: 'POST',
@@ -2465,9 +2477,10 @@
                   apikey: supabaseKey,
                   Authorization: `Bearer ${sesionGoogle.access_token}`,
                 },
-                body: JSON.stringify({ culqi_token: window.Culqi.token.id, plan_id: planElegido }),
+                body: JSON.stringify({ culqi_token: culqiCheckout.token.id, plan_id: planElegido }),
               });
               const data = await resp.json();
+              culqiCheckout.close();
               if (!resp.ok) throw new Error(data.error || 'No se pudo procesar el pago.');
               localStorage.removeItem('kaserita_registro_plan');
               setPaso('bodega');
@@ -2477,7 +2490,8 @@
               setCargandoAccion(false);
             }
           };
-          window.Culqi.open();
+          culqiCheckout.open();
+          setCargandoAccion(false);
         } catch (err) {
           setError(err.message);
           setCargandoAccion(false);
