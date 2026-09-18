@@ -2360,8 +2360,9 @@
     // Public key de Culqi -- a diferencia de la secret key, esta SÍ va en
     // el navegador (es la que usa el SDK de Culqi para tokenizar la
     // tarjeta del lado del cliente, nunca ve el número completo el
-    // backend de Kaserita). Reemplazar por la real antes de usar en serio.
-    const CULQI_PUBLIC_KEY = 'pk_test_TU_PUBLIC_KEY_ACA';
+    // backend de Kaserita). Es de PRUEBA (pk_test_) -- reemplazar por la
+    // de producción (pk_live_) recién cuando se salga de pruebas.
+    const CULQI_PUBLIC_KEY = 'pk_test_sm8WLbJ2rsv9Y8ee';
 
     function cargarScriptCulqi() {
       return new Promise((resolve, reject) => {
