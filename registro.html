@@ -1,0 +1,523 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+<title>Kaserita - Activá tu bodega</title>
+<meta name="description" content="Punto de Venta + Catálogo Online para tu bodega. Activá tu cuenta en minutos." />
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@500;600;700;800&family=Work+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+<script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+<script src="https://unpkg.com/@babel/standalone@7/babel.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+  :root {
+    --paper: #faf8f6;
+    --card: #ffffff;
+    --ink: #1c1523;
+    --muted: #6f6779;
+    --line: #e9e3ee;
+    --violet: #7c3aed;
+    --violet-ink: #5b21b6;
+    --blue: #2563eb;
+    --emerald: #059669;
+    --emerald-bg: #ecfdf5;
+    --font-display: 'Plus Jakarta Sans', system-ui, sans-serif;
+    --font-body: 'Work Sans', system-ui, sans-serif;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    background: var(--paper); color: var(--ink); font-family: var(--font-body);
+    font-variant-numeric: tabular-nums; -webkit-font-smoothing: antialiased;
+  }
+  #root { min-height: 100vh; }
+  .wrap { max-width: 560px; margin: 0 auto; padding: 28px 20px 56px; }
+  .ic { width: 1em; height: 1em; display: inline-block; vertical-align: -0.14em; fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; flex-shrink: 0; }
+  .ic-fill { fill: currentColor; stroke: none; }
+
+  .topbar { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 22px; }
+  .brand { display: flex; align-items: center; gap: 10px; }
+  .brand-mark {
+    width: 36px; height: 36px; border-radius: 10px; flex-shrink: 0;
+    background: linear-gradient(135deg, var(--blue), var(--violet));
+    display: flex; align-items: center; justify-content: center;
+    box-shadow: 0 6px 16px -6px rgba(124,58,237,.45);
+  }
+  .brand-mark svg { width: 19px; height: 19px; }
+  .brand-name { font-family: var(--font-display); font-weight: 800; font-size: 17px; letter-spacing: -0.01em; }
+  .brand-name span { color: var(--violet); }
+  .topbar-note { font-size: 12px; color: var(--muted); display: flex; align-items: center; gap: 6px; }
+  .topbar-note i { color: var(--emerald); }
+
+  .hero { margin-bottom: 26px; }
+  .eyebrow {
+    display: inline-flex; align-items: center; gap: 6px;
+    font-size: 11.5px; font-weight: 600; letter-spacing: 0.03em; text-transform: uppercase;
+    color: var(--violet-ink); background: rgba(124,58,237,.1);
+    border: 1px solid rgba(124,58,237,.22);
+    padding: 5px 11px; border-radius: 999px; margin-bottom: 14px;
+  }
+  h1 {
+    font-family: var(--font-display); font-weight: 800; letter-spacing: -0.02em;
+    font-size: clamp(26px, 6vw, 32px); line-height: 1.1; margin: 0 0 10px;
+  }
+  h1 em { font-style: normal; color: var(--violet); }
+  .hero-sub { font-size: 14.5px; color: var(--muted); line-height: 1.55; margin: 0 0 16px; max-width: 42ch; }
+  .trust-row { display: flex; flex-wrap: wrap; gap: 14px; }
+  .trust-item { display: flex; align-items: center; gap: 6px; font-size: 12.5px; color: var(--ink); font-weight: 500; }
+  .trust-item i { color: var(--emerald); }
+
+  .stepper { display: flex; align-items: center; gap: 6px; margin-bottom: 24px; }
+  .step { display: flex; align-items: center; gap: 8px; flex: 1; }
+  .step-dot {
+    width: 25px; height: 25px; border-radius: 50%; border: 1.5px solid var(--line);
+    display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+    font-family: var(--font-display); font-weight: 700; font-size: 11.5px; color: var(--muted);
+    background: var(--card); transition: all .2s ease;
+  }
+  .step-label { font-size: 11px; font-weight: 600; color: var(--muted); white-space: nowrap; }
+  .step-line { flex: 1; height: 1.5px; background: var(--line); margin: 0 2px; transition: background .2s ease; }
+  .step.done .step-dot { background: var(--emerald); border-color: var(--emerald); color: #fff; }
+  .step.active .step-dot { background: var(--violet); border-color: var(--violet); color: #fff; }
+  .step.active .step-label, .step.done .step-label { color: var(--ink); }
+  .step-line.filled { background: var(--emerald); }
+
+  .card { background: var(--card); border: 1.5px solid var(--line); border-radius: 20px; padding: 22px; }
+  .screen { animation: rise .25s ease; }
+  @keyframes rise { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
+
+  h2 { font-family: var(--font-display); font-weight: 800; font-size: 21px; margin: 0 0 6px; letter-spacing: -0.01em; }
+  .screen-sub { font-size: 13px; color: var(--muted); margin: 0 0 18px; line-height: 1.5; }
+
+  .plans { display: flex; flex-direction: column; gap: 12px; margin-bottom: 18px; }
+  .plan {
+    background: var(--paper); border: 1.5px solid var(--line); border-radius: 15px;
+    padding: 15px 16px; cursor: pointer; text-align: left; width: 100%; font-family: var(--font-body); color: var(--ink);
+    transition: border-color .15s ease, box-shadow .15s ease, background .15s ease;
+    display: flex; align-items: center; gap: 13px;
+  }
+  .plan.selected { border-color: var(--violet); background: var(--card); box-shadow: 0 0 0 3px rgba(124,58,237,.14); }
+  .plan-check {
+    width: 20px; height: 20px; border-radius: 50%; border: 1.5px solid var(--line);
+    display: flex; align-items: center; justify-content: center; flex-shrink: 0; color: transparent; font-size: 10px;
+  }
+  .plan.selected .plan-check { background: var(--violet); border-color: var(--violet); color: #fff; }
+  .plan-body { flex: 1; min-width: 0; }
+  .plan-top-row { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; flex-wrap: wrap; }
+  .plan-name { font-family: var(--font-display); font-weight: 700; font-size: 14px; }
+  .plan-price { font-family: var(--font-display); font-weight: 800; font-size: 16px; }
+  .plan-price small { font-family: var(--font-body); font-weight: 500; font-size: 11px; color: var(--muted); }
+  .plan-desc { font-size: 11.5px; color: var(--muted); margin-top: 2px; }
+  .plan-promo { font-size: 10.5px; color: var(--violet-ink); font-weight: 600; margin-top: 4px; display: flex; align-items: center; gap: 5px; }
+  .plan-badge {
+    font-size: 9.5px; font-weight: 700; padding: 2px 7px; border-radius: 999px; margin-left: 6px;
+    background: linear-gradient(120deg, var(--blue), var(--violet)); color: #fff;
+  }
+
+  .google-btn {
+    width: 100%; display: flex; align-items: center; justify-content: center; gap: 10px;
+    background: var(--card); border: 1.5px solid var(--line); border-radius: 13px; padding: 14px;
+    font-family: var(--font-display); font-weight: 700; font-size: 14px; color: var(--ink); cursor: pointer;
+    transition: border-color .15s ease, transform .12s ease;
+  }
+  .google-btn:hover { border-color: rgba(124,58,237,.4); transform: translateY(-1px); }
+  .google-btn:disabled { opacity: .5; cursor: default; transform: none; }
+  .google-btn svg { width: 18px; height: 18px; }
+  .fine-print { font-size: 10.5px; color: var(--muted); text-align: center; margin-top: 12px; line-height: 1.5; }
+
+  .center-block { text-align: center; padding: 26px 6px; }
+  .spinner { width: 36px; height: 36px; margin: 0 auto 16px; border-radius: 50%; border: 3px solid var(--line); border-top-color: var(--violet); animation: spin .8s linear infinite; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .success-badge { width: 52px; height: 52px; margin: 0 auto 16px; border-radius: 50%; background: var(--emerald-bg); color: var(--emerald); display: flex; align-items: center; justify-content: center; }
+  .success-badge svg { width: 24px; height: 24px; }
+
+  .account-chip { display: flex; align-items: center; gap: 10px; background: var(--paper); border: 1.5px solid var(--line); border-radius: 13px; padding: 11px 13px; margin-bottom: 18px; }
+  .avatar { width: 32px; height: 32px; border-radius: 50%; flex-shrink: 0; background: linear-gradient(135deg, var(--blue), var(--violet)); color: #fff; display: flex; align-items: center; justify-content: center; font-family: var(--font-display); font-weight: 700; font-size: 12px; overflow: hidden; }
+  .avatar img { width: 100%; height: 100%; object-fit: cover; }
+  .account-chip-text strong { font-size: 13px; display: block; }
+  .account-chip-text span { font-size: 11px; color: var(--muted); word-break: break-all; }
+
+  .pay-summary { background: var(--paper); border: 1.5px solid var(--line); border-radius: 15px; padding: 15px; display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 18px; }
+  .pay-summary-left strong { font-family: var(--font-display); font-size: 13.5px; display: block; margin-bottom: 2px; }
+  .pay-summary-left span { font-size: 11px; color: var(--muted); }
+  .pay-summary-price { font-family: var(--font-display); font-weight: 800; font-size: 18px; white-space: nowrap; }
+
+  .pay-btn {
+    width: 100%; background: linear-gradient(120deg, var(--blue), var(--violet)); color: #fff;
+    font-family: var(--font-display); font-weight: 700; font-size: 14.5px; border: none; border-radius: 13px; padding: 14px; cursor: pointer;
+    display: flex; align-items: center; justify-content: center; gap: 9px;
+    box-shadow: 0 10px 24px -10px rgba(124,58,237,.5); transition: transform .12s ease;
+  }
+  .pay-btn:hover { transform: translateY(-1px); }
+  .pay-btn:disabled { opacity: .5; cursor: default; transform: none; }
+
+  .field { display: flex; flex-direction: column; gap: 6px; margin-bottom: 13px; }
+  .field label { font-size: 12px; font-weight: 600; color: var(--ink); }
+  .field .hint { font-size: 10.5px; color: var(--muted); }
+  .field input {
+    font-family: var(--font-body); font-size: 14px; color: var(--ink); background: var(--paper);
+    border: 1.5px solid var(--line); border-radius: 11px; padding: 10.5px 13px; outline: none; transition: border-color .15s ease; width: 100%;
+  }
+  .field input:focus { border-color: var(--violet); }
+  .input-prefix { position: relative; }
+  .input-prefix span { position: absolute; left: 13px; top: 50%; transform: translateY(-50%); font-size: 14px; color: var(--muted); }
+  .input-prefix input { padding-left: 30px; }
+
+  .error-box { font-size: 12px; color: #b91c1c; background: #fef2f2; border: 1px solid #fecaca; border-radius: 10px; padding: 9px 12px; margin-bottom: 14px; }
+
+  footer { margin-top: 34px; padding-top: 16px; border-top: 1px solid var(--line); font-size: 10.5px; color: var(--muted); text-align: center; }
+  footer a { color: var(--violet-ink); text-decoration: none; }
+</style>
+</head>
+<body>
+<div id="root"></div>
+
+<script type="text/babel" data-presets="react">
+const { useState, useEffect } = React;
+
+const SUPABASE_URL = "https://hzmrsbeamtbloudmxjrp.supabase.co";
+const SUPABASE_ANON_KEY = "sb_publishable_RHAkd7pZIadDnSQClFdjMQ_lrG3p-gw";
+const sbClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+// Public key de Culqi de PRUEBA -- reemplazar por la pk_live_ real al salir
+// de pruebas. La secret key nunca va acá, vive como secreto de la Edge
+// Function cobrar-plan-culqi.
+const CULQI_PUBLIC_KEY = 'pk_test_sm8WLbJ2rsv9Y8ee';
+
+function cargarScriptCulqi() {
+  return new Promise((resolve, reject) => {
+    if (window.CulqiCheckout) return resolve();
+    const script = document.createElement('script');
+    script.src = 'https://js.culqi.com/checkout-js';
+    script.onload = () => resolve();
+    script.onerror = () => reject(new Error('No se pudo cargar Culqi.'));
+    document.head.appendChild(script);
+  });
+}
+
+const IconGoogle = () => (
+  <svg viewBox="0 0 48 48">
+    <path fill="#FFC107" d="M43.6 20.5H42V20H24v8h11.3c-1.6 4.7-6.1 8-11.3 8-6.6 0-12-5.4-12-12s5.4-12 12-12c3.1 0 5.8 1.1 8 3l5.7-5.7C34.6 6.1 29.6 4 24 4 12.9 4 4 12.9 4 24s8.9 20 20 20 20-8.9 20-20c0-1.3-.1-2.7-.4-3.5z"/>
+    <path fill="#FF3D00" d="M6.3 14.7l6.6 4.8C14.6 15.9 18.9 13 24 13c3.1 0 5.8 1.1 8 3l5.7-5.7C34.6 6.1 29.6 4 24 4c-7.4 0-13.8 4.2-17 10.3l-.7.4z"/>
+    <path fill="#4CAF50" d="M24 44c5.5 0 10.4-1.9 14.2-5.1l-6.6-5.4C29.6 35.3 27 36 24 36c-5.2 0-9.6-3.3-11.2-7.9l-6.6 5.1C9.9 39.5 16.4 44 24 44z"/>
+    <path fill="#1976D2" d="M43.6 20.5H42V20H24v8h11.3c-.8 2.3-2.2 4.2-4.1 5.5l6.6 5.4C41.6 35.6 44 30.2 44 24c0-1.3-.1-2.7-.4-3.5z"/>
+  </svg>
+);
+
+function Stepper({ paso }) {
+  const n = paso === 'plan' || paso === 'google' ? 1 : paso === 'pago' || paso === 'procesando' ? 2 : 3;
+  return (
+    <div className="stepper">
+      <div className={`step ${n > 1 ? 'done' : 'active'}`}><div className="step-dot">{n > 1 ? '✓' : '1'}</div><span className="step-label">Plan</span></div>
+      <div className={`step-line ${n > 1 ? 'filled' : ''}`}></div>
+      <div className={`step ${n > 2 ? 'done' : n === 2 ? 'active' : ''}`}><div className="step-dot">{n > 2 ? '✓' : '2'}</div><span className="step-label">Pago</span></div>
+      <div className={`step-line ${n > 2 ? 'filled' : ''}`}></div>
+      <div className={`step ${n === 3 ? 'active' : ''}`}><div className="step-dot">3</div><span className="step-label">Tu bodega</span></div>
+    </div>
+  );
+}
+
+function App() {
+  const [paso, setPaso] = useState('cargando'); // cargando | plan | google | pago | procesando | bodega | listo
+  const [sesionGoogle, setSesionGoogle] = useState(null);
+  const [planes, setPlanes] = useState([]);
+  const [planElegido, setPlanElegido] = useState(null);
+  const [error, setError] = useState('');
+  const [cargandoAccion, setCargandoAccion] = useState(false);
+  const [nombreBodega, setNombreBodega] = useState('');
+  const [dni, setDni] = useState('');
+  const [celular, setCelular] = useState('');
+  const [bodegaCreada, setBodegaCreada] = useState('');
+  const [retomando, setRetomando] = useState(false);
+
+  useEffect(() => {
+    sbClient.from('planes_kaserita').select('*').eq('activo', true).order('precio_soles').then(({ data }) => {
+      setPlanes(data || []);
+      setPlanElegido((p) => p || (data && data[1]?.id) || (data && data[0]?.id) || null);
+    });
+  }, []);
+
+  useEffect(() => {
+    (async () => {
+      const { data: { session } } = await sbClient.auth.getSession();
+      if (!session) { setPaso('plan'); return; }
+      setSesionGoogle(session);
+      const { data: pendiente } = await sbClient.rpc('mi_pago_pendiente').maybeSingle();
+      if (pendiente) {
+        setRetomando(true);
+        setPlanElegido(pendiente.plan_id);
+        setPaso('bodega');
+      } else {
+        const planGuardado = localStorage.getItem('kaserita_registro_plan');
+        if (planGuardado) setPlanElegido(planGuardado);
+        setPaso('pago');
+      }
+    })();
+  }, []);
+
+  const entrarConGoogle = async () => {
+    if (!planElegido) return;
+    localStorage.setItem('kaserita_registro_plan', planElegido);
+    setPaso('google');
+    await sbClient.auth.signInWithOAuth({
+      provider: 'google',
+      options: { redirectTo: window.location.origin + '/registro' },
+    });
+  };
+
+  const planActual = planes.find((p) => p.id === planElegido);
+
+  const pagar = async () => {
+    if (!planActual) return;
+    setError('');
+    try {
+      await cargarScriptCulqi();
+      const config = {
+        settings: {
+          title: 'Kaserita',
+          currency: 'PEN',
+          amount: Math.round(Number(planActual.precio_soles_promo || planActual.precio_soles) * 100),
+        },
+        client: { email: sesionGoogle?.user?.email || '' },
+        options: {
+          lang: 'auto',
+          modal: true,
+          paymentMethods: { tarjeta: true, yape: false, billetera: false, bancaMovil: false, agente: false, cuotealo: false },
+        },
+      };
+      const culqiCheckout = new window.CulqiCheckout(CULQI_PUBLIC_KEY, config);
+      culqiCheckout.culqi = async () => {
+        if (!culqiCheckout.token) {
+          setError(culqiCheckout.error?.user_message || 'No se pudo procesar la tarjeta.');
+          return;
+        }
+        setPaso('procesando');
+        try {
+          const resp = await fetch(`${SUPABASE_URL}/functions/v1/cobrar-plan-culqi`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              apikey: SUPABASE_ANON_KEY,
+              Authorization: `Bearer ${sesionGoogle.access_token}`,
+            },
+            body: JSON.stringify({ culqi_token: culqiCheckout.token.id, plan_id: planElegido }),
+          });
+          const data = await resp.json();
+          culqiCheckout.close();
+          if (!resp.ok) throw new Error(data.error || 'No se pudo procesar el pago.');
+          localStorage.removeItem('kaserita_registro_plan');
+          setPaso('bodega');
+        } catch (err) {
+          setError(err.message);
+          setPaso('pago');
+        }
+      };
+      culqiCheckout.open();
+    } catch (err) {
+      setError(err.message);
+    }
+  };
+
+  const crearBodega = async (e) => {
+    e.preventDefault();
+    setError('');
+    if (!nombreBodega.trim()) return setError('Ingresá el nombre de tu bodega.');
+    if (!/^\d{8}$/.test(dni.trim())) return setError('El DNI debe tener 8 dígitos.');
+    if (!/^\d{9}$/.test(celular.trim())) return setError('El celular debe tener 9 dígitos.');
+    setCargandoAccion(true);
+    try {
+      const { error: errRpc } = await sbClient.rpc('crear_bodega_post_pago', {
+        p_nombre_bodega: nombreBodega.trim(),
+        p_dni: dni.trim(),
+        p_celular: celular.trim(),
+      });
+      if (errRpc) throw errRpc;
+      setBodegaCreada(nombreBodega.trim());
+      setPaso('listo');
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setCargandoAccion(false);
+    }
+  };
+
+  return (
+    <div className="wrap">
+      <div className="topbar">
+        <div className="brand">
+          <div className="brand-mark"><svg viewBox="0 0 24 24" fill="none"><path d="M4 9L12 4l8 5v9a1 1 0 01-1 1h-4v-6H9v6H5a1 1 0 01-1-1V9z" fill="#fff"/></svg></div>
+          <div className="brand-name">Kaser<span>ita</span></div>
+        </div>
+        <div className="topbar-note"><svg className="ic" viewBox="0 0 16 16"><rect x="3.5" y="7" width="9" height="6.5" rx="1.5"/><path d="M5.5 7V5a2.5 2.5 0 015 0v2"/></svg> Pago seguro con Culqi</div>
+      </div>
+
+      {(paso === 'plan' || paso === 'google') && (
+        <div className="hero">
+          <span className="eyebrow"><svg className="ic" viewBox="0 0 16 16"><path d="M2 7l6-4 6 4M3 7v6h10V7M6.5 13V9h3v4"/></svg> Para tu bodega</span>
+          <h1>Activá tu bodega en <em>Kaserita</em> hoy mismo</h1>
+          <p className="hero-sub">Elegí tu plan, pagá con tarjeta y arrancá a vender en minutos — sin contrato, sin instalar nada.</p>
+          <div className="trust-row">
+            <span className="trust-item"><svg className="ic" viewBox="0 0 16 16"><circle cx="8" cy="8" r="6.3"/><path d="M5.3 8.2l1.8 1.8 3.6-3.6"/></svg> Activación inmediata</span>
+            <span className="trust-item"><svg className="ic" viewBox="0 0 16 16"><circle cx="8" cy="8" r="6.3"/><path d="M5.3 8.2l1.8 1.8 3.6-3.6"/></svg> Cancelás cuando quieras</span>
+          </div>
+        </div>
+      )}
+
+      {paso !== 'plan' && paso !== 'google' && paso !== 'cargando' && <Stepper paso={paso} />}
+
+      <div className="card screen">
+        {paso === 'cargando' && (
+          <div className="center-block"><div className="spinner"></div></div>
+        )}
+
+        {paso === 'plan' && (
+          <>
+            <h2>Elegí tu plan</h2>
+            <p className="screen-sub">Podés sumar Catálogo Online más adelante sin perder nada de lo que ya cargaste.</p>
+            <div className="plans">
+              {planes.map((p) => (
+                <button
+                  key={p.id}
+                  type="button"
+                  className={`plan ${planElegido === p.id ? 'selected' : ''}`}
+                  onClick={() => setPlanElegido(p.id)}
+                >
+                  <div className="plan-check"><svg className="ic" viewBox="0 0 16 16"><path d="M3 8.5l3 3 7-7"/></svg></div>
+                  <div className="plan-body">
+                    <div className="plan-top-row">
+                      <span className="plan-name">
+                        {p.nombre}
+                        {p.permite_delivery && <span className="plan-badge">Más elegido</span>}
+                      </span>
+                      <span className="plan-price">
+                        S/ {Number(p.precio_soles_promo || p.precio_soles).toFixed(2)}<small> /mes</small>
+                      </span>
+                    </div>
+                    {p.precio_soles_promo != null ? (
+                      <p className="plan-promo">
+                        <svg className="ic ic-fill" viewBox="0 0 16 16"><path d="M8 1l1.2 4.8L14 7l-4.8 1.2L8 13l-1.2-4.8L2 7l4.8-1.2L8 1z"/></svg>
+                        Precio de tus primeros {p.meses_promo} pagos — después S/ {Number(p.precio_soles).toFixed(2)}
+                      </p>
+                    ) : (
+                      <p className="plan-desc">Caja, ventas, turnos, stock y clientes.</p>
+                    )}
+                  </div>
+                </button>
+              ))}
+            </div>
+            {error && <p className="error-box">{error}</p>}
+            <button type="button" className="google-btn" disabled={!planElegido} onClick={entrarConGoogle}>
+              <IconGoogle /> Continuar con Google
+            </button>
+            <p className="fine-print">Usamos tu cuenta de Google para crear tu acceso — nunca publicamos nada, ni vemos tu contraseña.</p>
+          </>
+        )}
+
+        {paso === 'google' && (
+          <div className="center-block">
+            <div className="spinner"></div>
+            <p style={{ fontSize: 13.5, color: 'var(--muted)' }}>Conectando con tu cuenta de Google…</p>
+          </div>
+        )}
+
+        {paso === 'pago' && planActual && (
+          <>
+            <h2>Confirmá tu pago</h2>
+            <p className="screen-sub">Se cobra hoy y se renueva cada mes mientras tu bodega siga activa.</p>
+            <div className="account-chip">
+              <div className="avatar">
+                {sesionGoogle?.user?.user_metadata?.avatar_url ? (
+                  <img src={sesionGoogle.user.user_metadata.avatar_url} alt="" />
+                ) : (
+                  (sesionGoogle?.user?.user_metadata?.full_name || sesionGoogle?.user?.email || '?').charAt(0).toUpperCase()
+                )}
+              </div>
+              <div className="account-chip-text">
+                <strong>{sesionGoogle?.user?.user_metadata?.full_name || 'Tu cuenta'}</strong>
+                <span>{sesionGoogle?.user?.email}</span>
+              </div>
+            </div>
+            <div className="pay-summary">
+              <div className="pay-summary-left">
+                <strong>{planActual.nombre}</strong>
+                <span>Pago mensual, cancelás cuando quieras</span>
+              </div>
+              <div className="pay-summary-price">S/ {Number(planActual.precio_soles_promo || planActual.precio_soles).toFixed(2)}</div>
+            </div>
+            {error && <p className="error-box">{error}</p>}
+            <button type="button" className="pay-btn" onClick={pagar}>
+              <svg className="ic" viewBox="0 0 16 16"><rect x="1.5" y="3.5" width="13" height="9" rx="1.5"/><path d="M1.5 6.5h13"/></svg>
+              Pagar con tarjeta
+            </button>
+            <p className="fine-print"><svg className="ic" viewBox="0 0 16 16"><path d="M8 1.5l5.5 2v4c0 4-2.5 6.3-5.5 7-3-.7-5.5-3-5.5-7v-4l5.5-2z"/></svg> Tu tarjeta se procesa directo con Culqi, nunca pasa por nuestros servidores.</p>
+          </>
+        )}
+
+        {paso === 'procesando' && (
+          <div className="center-block">
+            <div className="spinner"></div>
+            <p style={{ fontSize: 13.5, color: 'var(--muted)' }}>Procesando tu pago…</p>
+          </div>
+        )}
+
+        {paso === 'bodega' && (
+          <>
+            {retomando ? (
+              <>
+                <h2>Retomá tu registro</h2>
+                <p className="screen-sub">Ya confirmamos tu pago anterior — contanos de tu bodega para activar tu cuenta.</p>
+              </>
+            ) : (
+              <>
+                <div className="success-badge"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M3 8.5l3.5 3.5L13 5"/></svg></div>
+                <h2 style={{ textAlign: 'center' }}>¡Pago confirmado!</h2>
+                <p className="screen-sub" style={{ textAlign: 'center' }}>Ahora sí, contanos de tu bodega para activar tu cuenta.</p>
+              </>
+            )}
+            <form onSubmit={crearBodega}>
+              <div className="field">
+                <label>Nombre de tu bodega</label>
+                <input type="text" value={nombreBodega} onChange={(e) => setNombreBodega(e.target.value)} placeholder="Ej. Bodega Don Pepe" />
+              </div>
+              <div className="field">
+                <label>DNI</label>
+                <input type="text" inputMode="numeric" maxLength={8} value={dni} onChange={(e) => setDni(e.target.value.replace(/\D/g, ''))} placeholder="8 dígitos" />
+              </div>
+              <div className="field">
+                <label>Celular (WhatsApp)</label>
+                <div className="input-prefix">
+                  <span>+51</span>
+                  <input type="tel" inputMode="numeric" maxLength={9} value={celular} onChange={(e) => setCelular(e.target.value.replace(/\D/g, ''))} placeholder="987654321" />
+                </div>
+                <span className="hint">Es el número que va a recibir los pedidos por WhatsApp.</span>
+              </div>
+              {error && <p className="error-box">{error}</p>}
+              <button type="submit" className="pay-btn" disabled={cargandoAccion}>
+                {cargandoAccion ? 'Un momento...' : 'Crear mi bodega'}
+              </button>
+            </form>
+          </>
+        )}
+
+        {paso === 'listo' && (
+          <div className="center-block">
+            <div className="success-badge"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M3 8.5l3.5 3.5L13 5"/></svg></div>
+            <h2>¡{bodegaCreada} ya está activa!</h2>
+            <p className="screen-sub">Entrá a tu panel para cargar tus primeros productos.</p>
+            <a href="/" className="pay-btn" style={{ textDecoration: 'none', marginTop: 6 }}>Entrar a mi panel</a>
+          </div>
+        )}
+      </div>
+
+      <footer>Kaserita © 2026 — hecho para bodegas peruanas</footer>
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+</script>
+</body>
+</html>

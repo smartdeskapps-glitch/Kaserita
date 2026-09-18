@@ -3,6 +3,7 @@
   "installCommand": null,
   "outputDirectory": ".",
   "rewrites": [
+    { "source": "/registro", "destination": "/registro.html" },
     { "source": "/(.*)", "destination": "/index.html" }
   ]
 }
