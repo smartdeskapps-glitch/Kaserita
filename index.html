@@ -3163,7 +3163,11 @@
         setSubiendoLogoDelivery(true);
         try {
           const comprimida = await comprimirImagenJPEG(file, 25, 320);
-          const ruta = `delivery/${bodegaId}/logo.jpg`;
+          // La política RLS de storage.objects exige que el primer segmento
+          // de la ruta sea el bodega_id (mismo esquema que las fotos de
+          // producto) -- de paso, así el borrado de bodega (que barre todo
+          // "{bodega_id}/*") también se lleva estas dos imágenes.
+          const ruta = `${bodegaId}/delivery-logo.jpg`;
           const { error } = await sbClient.storage
             .from('Productos')
             .upload(ruta, comprimida, { upsert: true, cacheControl: '3600', contentType: 'image/jpeg' });
@@ -3181,7 +3185,7 @@
         setSubiendoBannerDelivery(true);
         try {
           const comprimida = await comprimirImagenJPEG(file, 60, 1080);
-          const ruta = `delivery/${bodegaId}/banner.jpg`;
+          const ruta = `${bodegaId}/delivery-banner.jpg`;
           const { error } = await sbClient.storage
             .from('Productos')
             .upload(ruta, comprimida, { upsert: true, cacheControl: '3600', contentType: 'image/jpeg' });
