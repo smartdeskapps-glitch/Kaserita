@@ -2568,6 +2568,10 @@
       const [modalDelivery, setModalDelivery] = useState(false);
       const [slugDelivery, setSlugDelivery] = useState('');
       const [deliveryHabilitado, setDeliveryHabilitado] = useState(false);
+      const [logoUrlDelivery, setLogoUrlDelivery] = useState('');
+      const [bannerUrlDelivery, setBannerUrlDelivery] = useState('');
+      const [subiendoLogoDelivery, setSubiendoLogoDelivery] = useState(false);
+      const [subiendoBannerDelivery, setSubiendoBannerDelivery] = useState(false);
       const [telefonoDeliveryEditar, setTelefonoDeliveryEditar] = useState('');
       const [guardandoDelivery, setGuardandoDelivery] = useState(false);
       const [modalCargarPedidoCodigo, setModalCargarPedidoCodigo] = useState(false);
@@ -3144,8 +3148,51 @@
       const abrirModalDelivery = () => {
         setSlugDelivery(sesion?.bodega?.slug || normalizarSlugDelivery(sesion?.bodega?.nombre));
         setDeliveryHabilitado(!!sesion?.bodega?.delivery_habilitado);
+        setLogoUrlDelivery(sesion?.bodega?.logo_url || '');
+        setBannerUrlDelivery(sesion?.bodega?.banner_url || '');
         setTelefonoDeliveryEditar(sesion?.usuario?.rol === 'dueno' ? (sesion?.usuario?.telefono || '') : '');
         setModalDelivery(true);
+      };
+
+      // Logo (cuadrado, chico) y portada (rectangular, más grande) de la
+      // vitrina pública -- van en el mismo bucket "Productos" que ya se usa
+      // para fotos de producto, en su propia carpeta por bodega, con
+      // upsert para que "cambiar la foto" sea simplemente subir de nuevo
+      // sobre el mismo archivo.
+      const subirLogoDelivery = async (file) => {
+        setSubiendoLogoDelivery(true);
+        try {
+          const comprimida = await comprimirImagenJPEG(file, 25, 320);
+          const ruta = `delivery/${bodegaId}/logo.jpg`;
+          const { error } = await sbClient.storage
+            .from('Productos')
+            .upload(ruta, comprimida, { upsert: true, cacheControl: '3600', contentType: 'image/jpeg' });
+          if (error) throw error;
+          const { data } = sbClient.storage.from('Productos').getPublicUrl(ruta);
+          setLogoUrlDelivery(`${data.publicUrl}?t=${Date.now()}`);
+        } catch (err) {
+          notificar(`No se pudo subir el logo: ${err.message}`, 'error');
+        } finally {
+          setSubiendoLogoDelivery(false);
+        }
+      };
+
+      const subirBannerDelivery = async (file) => {
+        setSubiendoBannerDelivery(true);
+        try {
+          const comprimida = await comprimirImagenJPEG(file, 60, 1080);
+          const ruta = `delivery/${bodegaId}/banner.jpg`;
+          const { error } = await sbClient.storage
+            .from('Productos')
+            .upload(ruta, comprimida, { upsert: true, cacheControl: '3600', contentType: 'image/jpeg' });
+          if (error) throw error;
+          const { data } = sbClient.storage.from('Productos').getPublicUrl(ruta);
+          setBannerUrlDelivery(`${data.publicUrl}?t=${Date.now()}`);
+        } catch (err) {
+          notificar(`No se pudo subir la portada: ${err.message}`, 'error');
+        } finally {
+          setSubiendoBannerDelivery(false);
+        }
       };
 
       const guardarConfigDelivery = async () => {
@@ -3166,6 +3213,8 @@
           const { error: errBodega } = await sbClient.rpc('actualizar_mi_delivery', {
             p_slug: slugLimpio || null,
             p_delivery_habilitado: deliveryHabilitado,
+            p_logo_url: logoUrlDelivery || null,
+            p_banner_url: bannerUrlDelivery || null,
           });
           if (errBodega) {
             if (errBodega.code === '23505') throw new Error('Ese link ya lo está usando otra bodega, probá con otro.');
@@ -3181,7 +3230,13 @@
           }
           setSesion((s) => ({
             ...s,
-            bodega: { ...s.bodega, slug: slugLimpio, delivery_habilitado: deliveryHabilitado },
+            bodega: {
+              ...s.bodega,
+              slug: slugLimpio,
+              delivery_habilitado: deliveryHabilitado,
+              logo_url: logoUrlDelivery || null,
+              banner_url: bannerUrlDelivery || null,
+            },
             usuario: s.usuario?.rol === 'dueno' ? { ...s.usuario, telefono: telefonoLimpio || null } : s.usuario,
           }));
           setSlugDelivery(slugLimpio);
@@ -11114,6 +11169,65 @@
                       etiqueta="Aparecer en el catálogo público"
                       icono="fa-store"
                     />
+
+                    <div className="space-y-2">
+                      <label className="text-xs text-stone-600 block">Portada y logo de tu vitrina:</label>
+                      <div className="relative">
+                        <label className="relative block w-full aspect-[3/1] rounded-xl overflow-hidden cursor-pointer group border border-stone-200 bg-gradient-to-br from-orange-100 to-amber-50">
+                          {bannerUrlDelivery ? (
+                            <img src={bannerUrlDelivery} alt="Portada" className="w-full h-full object-cover" />
+                          ) : (
+                            <div className="w-full h-full flex items-center justify-center text-stone-400 text-xs gap-2">
+                              <i className="fa-solid fa-image"></i> Foto de portada (opcional)
+                            </div>
+                          )}
+                          <div className="absolute inset-0 flex items-center justify-center bg-black/0 group-hover:bg-black/40 transition">
+                            {subiendoBannerDelivery ? (
+                              <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                            ) : (
+                              <i className="fa-solid fa-camera text-white text-sm opacity-0 group-hover:opacity-100 transition"></i>
+                            )}
+                          </div>
+                          <input
+                            type="file"
+                            accept="image/*"
+                            className="hidden"
+                            onChange={(e) => {
+                              const file = e.target.files && e.target.files[0];
+                              e.target.value = '';
+                              if (file) subirBannerDelivery(file);
+                            }}
+                          />
+                        </label>
+                        <label className="absolute left-3 -bottom-6 w-14 h-14 rounded-full overflow-hidden cursor-pointer group border-4 border-white shadow bg-stone-100">
+                          {logoUrlDelivery ? (
+                            <img src={logoUrlDelivery} alt="Logo" className="w-full h-full object-cover" />
+                          ) : (
+                            <div className="w-full h-full flex items-center justify-center text-stone-400">
+                              <i className="fa-solid fa-store text-lg"></i>
+                            </div>
+                          )}
+                          <div className="absolute inset-0 flex items-center justify-center bg-black/0 group-hover:bg-black/40 transition">
+                            {subiendoLogoDelivery ? (
+                              <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                            ) : (
+                              <i className="fa-solid fa-camera text-white text-xs opacity-0 group-hover:opacity-100 transition"></i>
+                            )}
+                          </div>
+                          <input
+                            type="file"
+                            accept="image/*"
+                            className="hidden"
+                            onChange={(e) => {
+                              const file = e.target.files && e.target.files[0];
+                              e.target.value = '';
+                              if (file) subirLogoDelivery(file);
+                            }}
+                          />
+                        </label>
+                      </div>
+                      <p className="text-[10px] text-stone-500 pt-6">Toca la portada o el círculo del logo para subir/cambiar tus fotos.</p>
+                    </div>
 
                     <div>
                       <label className="text-xs text-stone-600 block mb-1">Tu link:</label>
