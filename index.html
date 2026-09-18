@@ -2573,6 +2573,7 @@
       const [subiendoLogoDelivery, setSubiendoLogoDelivery] = useState(false);
       const [subiendoBannerDelivery, setSubiendoBannerDelivery] = useState(false);
       const [telefonoDeliveryEditar, setTelefonoDeliveryEditar] = useState('');
+      const [direccionDelivery, setDireccionDelivery] = useState('');
       const [guardandoDelivery, setGuardandoDelivery] = useState(false);
       const [modalCargarPedidoCodigo, setModalCargarPedidoCodigo] = useState(false);
       const [codigoPedidoInput, setCodigoPedidoInput] = useState('');
@@ -3150,6 +3151,7 @@
         setDeliveryHabilitado(!!sesion?.bodega?.delivery_habilitado);
         setLogoUrlDelivery(sesion?.bodega?.logo_url || '');
         setBannerUrlDelivery(sesion?.bodega?.banner_url || '');
+        setDireccionDelivery(sesion?.bodega?.direccion || '');
         setTelefonoDeliveryEditar(sesion?.usuario?.rol === 'dueno' ? (sesion?.usuario?.telefono || '') : '');
         setModalDelivery(true);
       };
@@ -3219,6 +3221,7 @@
             p_delivery_habilitado: deliveryHabilitado,
             p_logo_url: logoUrlDelivery || null,
             p_banner_url: bannerUrlDelivery || null,
+            p_direccion: direccionDelivery.trim() || null,
           });
           if (errBodega) {
             if (errBodega.code === '23505') throw new Error('Ese link ya lo está usando otra bodega, probá con otro.');
@@ -3240,6 +3243,7 @@
               delivery_habilitado: deliveryHabilitado,
               logo_url: logoUrlDelivery || null,
               banner_url: bannerUrlDelivery || null,
+              direccion: direccionDelivery.trim() || null,
             },
             usuario: s.usuario?.rol === 'dueno' ? { ...s.usuario, telefono: telefonoLimpio || null } : s.usuario,
           }));
@@ -11246,6 +11250,18 @@
                           className="flex-1 min-w-0 bg-transparent text-xs text-stone-900 font-semibold outline-none"
                         />
                       </div>
+                    </div>
+
+                    <div>
+                      <label className="text-xs text-stone-600 block mb-1">Dirección de tu bodega:</label>
+                      <input
+                        type="text"
+                        value={direccionDelivery}
+                        onChange={(e) => setDireccionDelivery(e.target.value)}
+                        placeholder="Ej. Av. Larco 450, Miraflores"
+                        className="w-full bg-stone-100 border border-stone-200 rounded-lg px-3 py-1.5 text-xs text-stone-900"
+                      />
+                      <p className="text-[10px] text-stone-500 mt-1">Así tus clientes saben de dónde les vas a mandar el pedido.</p>
                     </div>
 
                     {sesion?.usuario?.rol === 'dueno' && (
