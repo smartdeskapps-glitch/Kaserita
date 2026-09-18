@@ -2569,9 +2569,7 @@
       const [slugDelivery, setSlugDelivery] = useState('');
       const [deliveryHabilitado, setDeliveryHabilitado] = useState(false);
       const [logoUrlDelivery, setLogoUrlDelivery] = useState('');
-      const [bannerUrlDelivery, setBannerUrlDelivery] = useState('');
       const [subiendoLogoDelivery, setSubiendoLogoDelivery] = useState(false);
-      const [subiendoBannerDelivery, setSubiendoBannerDelivery] = useState(false);
       const [telefonoDeliveryEditar, setTelefonoDeliveryEditar] = useState('');
       const [direccionDelivery, setDireccionDelivery] = useState('');
       const [guardandoDelivery, setGuardandoDelivery] = useState(false);
@@ -3150,7 +3148,6 @@
         setSlugDelivery(sesion?.bodega?.slug || normalizarSlugDelivery(sesion?.bodega?.nombre));
         setDeliveryHabilitado(!!sesion?.bodega?.delivery_habilitado);
         setLogoUrlDelivery(sesion?.bodega?.logo_url || '');
-        setBannerUrlDelivery(sesion?.bodega?.banner_url || '');
         setDireccionDelivery(sesion?.bodega?.direccion || '');
         setTelefonoDeliveryEditar(sesion?.usuario?.rol === 'dueno' ? (sesion?.usuario?.telefono || '') : '');
         setModalDelivery(true);
@@ -3183,24 +3180,6 @@
         }
       };
 
-      const subirBannerDelivery = async (file) => {
-        setSubiendoBannerDelivery(true);
-        try {
-          const comprimida = await comprimirImagenJPEG(file, 60, 1080);
-          const ruta = `${bodegaId}/delivery-banner.jpg`;
-          const { error } = await sbClient.storage
-            .from('Productos')
-            .upload(ruta, comprimida, { upsert: true, cacheControl: '3600', contentType: 'image/jpeg' });
-          if (error) throw error;
-          const { data } = sbClient.storage.from('Productos').getPublicUrl(ruta);
-          setBannerUrlDelivery(`${data.publicUrl}?t=${Date.now()}`);
-        } catch (err) {
-          notificar(`No se pudo subir la portada: ${err.message}`, 'error');
-        } finally {
-          setSubiendoBannerDelivery(false);
-        }
-      };
-
       const guardarConfigDelivery = async () => {
         if (esModoDemo || !sbClient || !bodegaId) {
           notificar('El link de pedidos no está disponible en el Modo Demo.', 'error');
@@ -3220,7 +3199,6 @@
             p_slug: slugLimpio || null,
             p_delivery_habilitado: deliveryHabilitado,
             p_logo_url: logoUrlDelivery || null,
-            p_banner_url: bannerUrlDelivery || null,
             p_direccion: direccionDelivery.trim() || null,
           });
           if (errBodega) {
@@ -3242,7 +3220,7 @@
               slug: slugLimpio,
               delivery_habilitado: deliveryHabilitado,
               logo_url: logoUrlDelivery || null,
-              banner_url: bannerUrlDelivery || null,
+              banner_url: null,
               direccion: direccionDelivery.trim() || null,
             },
             usuario: s.usuario?.rol === 'dueno' ? { ...s.usuario, telefono: telefonoLimpio || null } : s.usuario,
@@ -11191,35 +11169,9 @@
                     />
 
                     <div className="space-y-2">
-                      <label className="text-xs text-stone-600 block">Portada y logo de tu vitrina:</label>
-                      <div className="relative">
-                        <label className="relative block w-full aspect-[3/1] rounded-xl overflow-hidden cursor-pointer group border border-stone-200 bg-gradient-to-br from-orange-100 to-amber-50">
-                          {bannerUrlDelivery ? (
-                            <img src={bannerUrlDelivery} alt="Portada" className="w-full h-full object-cover" />
-                          ) : (
-                            <div className="w-full h-full flex items-center justify-center text-stone-400 text-xs gap-2">
-                              <i className="fa-solid fa-image"></i> Foto de portada (opcional)
-                            </div>
-                          )}
-                          <div className="absolute inset-0 flex items-center justify-center bg-black/0 group-hover:bg-black/40 transition">
-                            {subiendoBannerDelivery ? (
-                              <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                            ) : (
-                              <i className="fa-solid fa-camera text-white text-sm opacity-0 group-hover:opacity-100 transition"></i>
-                            )}
-                          </div>
-                          <input
-                            type="file"
-                            accept="image/*"
-                            className="hidden"
-                            onChange={(e) => {
-                              const file = e.target.files && e.target.files[0];
-                              e.target.value = '';
-                              if (file) subirBannerDelivery(file);
-                            }}
-                          />
-                        </label>
-                        <label className="absolute left-3 -bottom-6 w-14 h-14 rounded-full overflow-hidden cursor-pointer group border-4 border-white shadow bg-stone-100">
+                      <label className="text-xs text-stone-600 block">Logo de tu vitrina:</label>
+                      <div className="flex items-center gap-3">
+                        <label className="relative w-16 h-16 rounded-full overflow-hidden cursor-pointer group border border-stone-200 bg-stone-100 shrink-0">
                           {logoUrlDelivery ? (
                             <img src={logoUrlDelivery} alt="Logo" className="w-full h-full object-cover" />
                           ) : (
@@ -11245,8 +11197,8 @@
                             }}
                           />
                         </label>
+                        <p className="text-[10px] text-stone-500 flex-1">Toca el círculo para subir/cambiar el logo que ven tus clientes.</p>
                       </div>
-                      <p className="text-[10px] text-stone-500 pt-6">Toca la portada o el círculo del logo para subir/cambiar tus fotos.</p>
                     </div>
 
                     <div>
