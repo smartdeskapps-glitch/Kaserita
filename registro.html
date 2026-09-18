@@ -168,6 +168,38 @@
 
   .error-box { font-size: 12px; color: #b91c1c; background: #fef2f2; border: 1px solid #fecaca; border-radius: 10px; padding: 9px 12px; margin-bottom: 14px; }
 
+  .section { margin: 38px 0; }
+  .section-title { font-family: var(--font-display); font-weight: 800; font-size: 19px; margin: 0 0 4px; letter-spacing: -0.01em; }
+  .section-sub { font-size: 12.5px; color: var(--muted); margin: 0 0 18px; line-height: 1.5; }
+
+  .benefits { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .benefit { background: var(--card); border: 1.5px solid var(--line); border-radius: 16px; padding: 16px; }
+  .benefit-icon { width: 34px; height: 34px; border-radius: 10px; background: rgba(124,58,237,.1); color: var(--violet); display: flex; align-items: center; justify-content: center; margin-bottom: 10px; }
+  .benefit-icon svg { width: 17px; height: 17px; }
+  .benefit h3 { font-family: var(--font-display); font-weight: 700; font-size: 13px; margin: 0 0 4px; }
+  .benefit p { font-size: 11.5px; color: var(--muted); margin: 0; line-height: 1.45; }
+
+  .how-steps { display: flex; flex-direction: column; gap: 16px; }
+  .how-step { display: flex; gap: 14px; align-items: flex-start; }
+  .how-num { width: 29px; height: 29px; border-radius: 50%; background: linear-gradient(135deg, var(--blue), var(--violet)); color: #fff; font-family: var(--font-display); font-weight: 800; font-size: 12.5px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+  .how-text strong { font-family: var(--font-display); font-weight: 700; font-size: 13.5px; display: block; margin-bottom: 2px; }
+  .how-text span { font-size: 12px; color: var(--muted); line-height: 1.45; }
+
+  .faq { display: flex; flex-direction: column; gap: 10px; }
+  .faq-item { background: var(--card); border: 1.5px solid var(--line); border-radius: 14px; overflow: hidden; }
+  .faq-q { width: 100%; background: none; border: none; padding: 14px 15px; display: flex; align-items: center; justify-content: space-between; gap: 10px; text-align: left; font-family: var(--font-display); font-weight: 700; font-size: 12.5px; color: var(--ink); cursor: pointer; }
+  .faq-q svg { width: 15px; height: 15px; color: var(--muted); flex-shrink: 0; transition: transform .2s ease; }
+  .faq-item.open .faq-q svg { transform: rotate(180deg); }
+  .faq-a { max-height: 0; overflow: hidden; transition: max-height .2s ease; }
+  .faq-item.open .faq-a { max-height: 220px; }
+  .faq-a p { margin: 0; padding: 0 15px 14px; font-size: 12px; color: var(--muted); line-height: 1.55; }
+
+  .cta-banner { background: linear-gradient(135deg, var(--violet), var(--blue)); border-radius: 20px; padding: 26px 22px; text-align: center; color: #fff; }
+  .cta-banner h3 { font-family: var(--font-display); font-weight: 800; font-size: 18px; margin: 0 0 6px; }
+  .cta-banner p { font-size: 12.5px; margin: 0 0 16px; opacity: .9; }
+  .cta-banner .google-btn { background: #fff; }
+  .cta-banner .google-btn:disabled { opacity: .6; }
+
   footer { margin-top: 34px; padding-top: 16px; border-top: 1px solid var(--line); font-size: 10.5px; color: var(--muted); text-align: center; }
   footer a { color: var(--violet-ink); text-decoration: none; }
 </style>
@@ -216,6 +248,30 @@ function Stepper({ paso }) {
       <div className={`step ${n > 2 ? 'done' : n === 2 ? 'active' : ''}`}><div className="step-dot">{n > 2 ? '✓' : '2'}</div><span className="step-label">Pago</span></div>
       <div className={`step-line ${n > 2 ? 'filled' : ''}`}></div>
       <div className={`step ${n === 3 ? 'active' : ''}`}><div className="step-dot">3</div><span className="step-label">Tu bodega</span></div>
+    </div>
+  );
+}
+
+function Faq() {
+  const [abierto, setAbierto] = useState(0);
+  const preguntas = [
+    { q: '¿Necesito instalar algo?', a: 'No. Kaserita funciona desde el navegador, en tu celular, tablet o PC. No hay nada que descargar ni instalar.' },
+    { q: '¿Puedo cancelar cuando quiera?', a: 'Sí. Es un pago por mes, sin contrato ni permanencia. Si no querés seguir, simplemente no volvés a pagar el mes siguiente.' },
+    { q: '¿Mis datos de tarjeta quedan guardados en Kaserita?', a: 'No. El pago se procesa directo con Culqi, una pasarela de pago certificada -- tu número de tarjeta nunca pasa por nuestros servidores.' },
+    { q: '¿Puedo empezar con Punto de Venta y sumar el catálogo después?', a: 'Sí, podés arrancar con el plan que necesites hoy y ampliarlo más adelante sin perder tus productos ni tu historial de ventas.' },
+    { q: '¿Qué necesito para activar mi cuenta?', a: 'Solo tu cuenta de Google, una tarjeta para el pago, y los datos básicos de tu bodega (nombre, DNI y celular). Todo el proceso toma un par de minutos.' },
+  ];
+  return (
+    <div className="faq">
+      {preguntas.map((p, i) => (
+        <div key={i} className={`faq-item ${abierto === i ? 'open' : ''}`}>
+          <button type="button" className="faq-q" onClick={() => setAbierto(abierto === i ? -1 : i)}>
+            {p.q}
+            <svg className="ic" viewBox="0 0 16 16"><path d="M4 6l4 4 4-4"/></svg>
+          </button>
+          <div className="faq-a"><p>{p.a}</p></div>
+        </div>
+      ))}
     </div>
   );
 }
@@ -522,6 +578,72 @@ function App() {
           </div>
         )}
       </div>
+
+      {paso === 'plan' && (
+        <>
+          <div className="section">
+            <h2 className="section-title">Todo lo que tu bodega necesita</h2>
+            <p className="section-sub">Pensado para el día a día de una bodega peruana, sin vueltas.</p>
+            <div className="benefits">
+              <div className="benefit">
+                <div className="benefit-icon"><svg className="ic" viewBox="0 0 16 16"><rect x="2" y="6" width="12" height="8" rx="1.5"/><path d="M5 6V4a3 3 0 016 0v2"/></svg></div>
+                <h3>Caja en segundos</h3>
+                <p>Cobrá e imprimí o compartí el ticket sin vueltas ni papeleo.</p>
+              </div>
+              <div className="benefit">
+                <div className="benefit-icon"><svg className="ic" viewBox="0 0 16 16"><circle cx="8" cy="8" r="6.3"/><path d="M2 8h12M8 1.7c1.6 1.8 2.5 4 2.5 6.3s-.9 4.5-2.5 6.3c-1.6-1.8-2.5-4-2.5-6.3S6.4 3.5 8 1.7z"/></svg></div>
+                <h3>Catálogo online</h3>
+                <p>Tu propia vitrina para recibir pedidos por WhatsApp.</p>
+              </div>
+              <div className="benefit">
+                <div className="benefit-icon"><svg className="ic" viewBox="0 0 16 16"><path d="M2 13V9M6 13V5M10 13V7M14 13V3"/></svg></div>
+                <h3>Reportes claros</h3>
+                <p>Mirá cuánto vendiste hoy y qué productos se mueven más.</p>
+              </div>
+              <div className="benefit">
+                <div className="benefit-icon"><svg className="ic" viewBox="0 0 16 16"><circle cx="6" cy="5.5" r="2.3"/><path d="M1.5 14c0-2.5 2-4 4.5-4s4.5 1.5 4.5 4"/><circle cx="12" cy="6" r="1.8"/><path d="M10.8 10.3c1.8.3 3.2 1.6 3.2 3.7"/></svg></div>
+                <h3>Varios cajeros</h3>
+                <p>Sumá cajeros con su propio PIN y controlá cada turno.</p>
+              </div>
+            </div>
+          </div>
+
+          <div className="section">
+            <h2 className="section-title">Cómo funciona</h2>
+            <p className="section-sub">Tres pasos y ya estás vendiendo.</p>
+            <div className="how-steps">
+              <div className="how-step">
+                <div className="how-num">1</div>
+                <div className="how-text"><strong>Elegís tu plan y pagás</strong><span>Pago único por mes con tarjeta, procesado seguro por Culqi.</span></div>
+              </div>
+              <div className="how-step">
+                <div className="how-num">2</div>
+                <div className="how-text"><strong>Entrás con tu cuenta de Google</strong><span>Sin contraseñas nuevas que recordar -- tu acceso queda listo al toque.</span></div>
+              </div>
+              <div className="how-step">
+                <div className="how-num">3</div>
+                <div className="how-text"><strong>Cargás tu bodega</strong><span>Nombre, DNI y celular -- y tu cuenta queda activa para empezar a vender.</span></div>
+              </div>
+            </div>
+          </div>
+
+          <div className="section">
+            <h2 className="section-title">Preguntas frecuentes</h2>
+            <p className="section-sub">Lo que más preguntan las bodegas antes de empezar.</p>
+            <Faq />
+          </div>
+
+          <div className="section">
+            <div className="cta-banner">
+              <h3>¿List@ para activar tu bodega?</h3>
+              <p>Elegí tu plan arriba y arrancá hoy mismo.</p>
+              <button type="button" className="google-btn" disabled={!planElegido} onClick={entrarConGoogle}>
+                <IconGoogle /> Continuar con Google
+              </button>
+            </div>
+          </div>
+        </>
+      )}
 
       <footer>Kaserita © 2026 — hecho para bodegas peruanas</footer>
     </div>
