@@ -3513,15 +3513,24 @@
             setListaCajeros((prev) => [...prev, nuevo].sort((a, b) => a.nombre.localeCompare(b.nombre)));
             setCajerosGestion((prev) => [...prev, nuevo].sort((a, b) => a.nombre.localeCompare(b.nombre)));
           } else if (sbClient) {
-            const { error: errCajero } = await sbClient.from('cajeros').insert([{
-              bodega_id: bodegaId,
-              nombre: nombre.trim(),
-              dni: dni.trim(),
-              rol: rol,
-              activo: true,
-              pin_seguridad: rol === 'administrador' ? pin.trim() : null
-            }]);
+            // pin_seguridad se hashea del lado del servidor (establecer_pin_cajero,
+            // ver hashear_pin_cajero.sql) -- nunca se manda el texto plano en un
+            // insert/update directo a la tabla.
+            // "id" nada más -- pedir "*" fallaría porque pin_seguridad no
+            // se puede leer desde el cliente (ver cargarCajeros más arriba).
+            const { data: cajeroCreado, error: errCajero } = await sbClient
+              .from('cajeros')
+              .insert([{ bodega_id: bodegaId, nombre: nombre.trim(), dni: dni.trim(), rol: rol, activo: true }])
+              .select('id')
+              .single();
             if (errCajero) throw errCajero;
+            if (rol === 'administrador') {
+              const { error: errPin } = await sbClient.rpc('establecer_pin_cajero', {
+                p_cajero_id: cajeroCreado.id,
+                p_pin: pin.trim(),
+              });
+              if (errPin) throw errPin;
+            }
             abrirGestionCajeros();
             cargarCajeros();
           }
@@ -3654,7 +3663,10 @@
             setListaCajeros((prev) => prev.map((c) => (c.id === cajero.id ? { ...c, pin_seguridad: nuevoPinCajero.trim() } : c)));
             setCajerosGestion((prev) => prev.map((c) => (c.id === cajero.id ? { ...c, pin_seguridad: nuevoPinCajero.trim() } : c)));
           } else {
-            const { error } = await sbClient.from('cajeros').update({ pin_seguridad: nuevoPinCajero.trim() }).eq('id', cajero.id);
+            const { error } = await sbClient.rpc('establecer_pin_cajero', {
+              p_cajero_id: cajero.id,
+              p_pin: nuevoPinCajero.trim(),
+            });
             if (error) throw error;
           }
           notificar(`PIN de ${cajero.nombre} actualizado.`, 'success');
