@@ -221,7 +221,7 @@ function Stepper({ paso }) {
 }
 
 function App() {
-  const [paso, setPaso] = useState('cargando'); // cargando | plan | google | pago | procesando | bodega | listo
+  const [paso, setPaso] = useState('cargando'); // cargando | plan | google | pago | procesando | bodega | listo | ya-tiene
   const [sesionGoogle, setSesionGoogle] = useState(null);
   const [planes, setPlanes] = useState([]);
   const [planElegido, setPlanElegido] = useState(null);
@@ -245,6 +245,8 @@ function App() {
       const { data: { session } } = await sbClient.auth.getSession();
       if (!session) { setPaso('plan'); return; }
       setSesionGoogle(session);
+      const { data: yaTiene } = await sbClient.rpc('tengo_bodega');
+      if (yaTiene) { setPaso('ya-tiene'); return; }
       const { data: pendiente } = await sbClient.rpc('mi_pago_pendiente').maybeSingle();
       if (pendiente) {
         setRetomando(true);
@@ -366,7 +368,7 @@ function App() {
         </div>
       )}
 
-      {paso !== 'plan' && paso !== 'google' && paso !== 'cargando' && <Stepper paso={paso} />}
+      {paso !== 'plan' && paso !== 'google' && paso !== 'cargando' && paso !== 'ya-tiene' && <Stepper paso={paso} />}
 
       <div className="card screen">
         {paso === 'cargando' && (
@@ -507,6 +509,15 @@ function App() {
             <div className="success-badge"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M3 8.5l3.5 3.5L13 5"/></svg></div>
             <h2>¡{bodegaCreada} ya está activa!</h2>
             <p className="screen-sub">Entrá a tu panel para cargar tus primeros productos.</p>
+            <a href="/" className="pay-btn" style={{ textDecoration: 'none', marginTop: 6 }}>Entrar a mi panel</a>
+          </div>
+        )}
+
+        {paso === 'ya-tiene' && (
+          <div className="center-block">
+            <div className="success-badge"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M3 8.5l3.5 3.5L13 5"/></svg></div>
+            <h2>Ya tenés una bodega activa</h2>
+            <p className="screen-sub">Esta cuenta de Google ya tiene una bodega creada en Kaserita -- no hace falta registrarte de nuevo.</p>
             <a href="/" className="pay-btn" style={{ textDecoration: 'none', marginTop: 6 }}>Entrar a mi panel</a>
           </div>
         )}
