@@ -183,7 +183,7 @@
       align-items: center;
       justify-content: center;
       overflow: hidden;
-      color: #fff;
+      color: #2d1b4e;
       font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
       transition: opacity 0.4s ease, visibility 0.4s ease, right 0.7s cubic-bezier(0.65, 0, 0.35, 1);
     }
@@ -239,7 +239,7 @@
       width: 160px;
       height: 3px;
       border-radius: 999px;
-      background: rgba(255, 255, 255, 0.15);
+      background: rgba(124, 58, 237, 0.15);
       overflow: hidden;
       position: relative;
     }
@@ -251,7 +251,7 @@
       height: 100%;
       width: 40%;
       border-radius: 999px;
-      background: rgba(255, 255, 255, 0.9);
+      background: rgba(124, 58, 237, 0.85);
       animation: splash-progress-slide 1.4s ease-in-out infinite;
     }
     @keyframes splash-progress-slide {
@@ -260,7 +260,7 @@
     }
     #splash-kaserita .splash-status {
       font-size: 0.75rem;
-      color: rgba(255, 255, 255, 0.65);
+      color: rgba(45, 27, 78, 0.55);
       min-height: 1.2em;
       transition: opacity 0.3s ease;
     }
@@ -293,10 +293,9 @@
          mitad de camino y se ve como un círculo con borde marcado en vez
          de un aura difuminada. */
       background:
-        radial-gradient(120% 120% at 6% 4%, rgba(255,255,255,0.10) 0%, transparent 60%),
-        radial-gradient(85% 85% at var(--kg-blob1-x) var(--kg-blob1-y), rgba(59,92,246,0.9) 0%, rgba(59,92,246,0.5) 28%, rgba(59,92,246,0.15) 52%, transparent 75%),
-        radial-gradient(85% 85% at var(--kg-blob2-x) var(--kg-blob2-y), rgba(139,61,240,0.9) 0%, rgba(139,61,240,0.5) 28%, rgba(139,61,240,0.15) 52%, transparent 75%),
-        #150f36;
+        radial-gradient(85% 85% at var(--kg-blob1-x) var(--kg-blob1-y), rgba(59,92,246,0.16) 0%, rgba(59,92,246,0.08) 28%, rgba(59,92,246,0.03) 52%, transparent 75%),
+        radial-gradient(85% 85% at var(--kg-blob2-x) var(--kg-blob2-y), rgba(139,61,240,0.16) 0%, rgba(139,61,240,0.08) 28%, rgba(139,61,240,0.03) 52%, transparent 75%),
+        #ffffff;
       /* Cada mancha tiene su propia animación con distinta duración (15s y
          21s, sin múltiplo común corto) -- así nunca suben y bajan a la vez
          como un solo bloque; se cruzan en momentos distintos cada vuelta y
@@ -330,7 +329,6 @@
 <body class="bg-stone-50 text-stone-900 h-screen overflow-hidden font-sans">
   <div id="splash-kaserita" class="login-brand-mesh">
     <img class="splash-logo-img w-52 md:w-64 h-auto mb-6" src="/logo-blanco.png" alt="Kaserita - Punto de Venta">
-    <p class="text-sm text-indigo-100/80 -mt-3 text-center max-w-[240px] md:max-w-none">Para tu bodega o negocio</p>
     <div class="splash-loading">
       <div class="splash-progress"></div>
       <p class="splash-status" id="splash-status">Preparando tu catálogo...</p>
@@ -7651,7 +7649,7 @@
 
             {/* Panel de marca */}
             <div
-              className="login-brand-mesh relative overflow-hidden md:w-1/2 md:min-h-screen flex flex-col items-center justify-center px-6 pt-14 pb-10 md:py-16 text-white shrink-0"
+              className="login-brand-mesh relative overflow-hidden md:w-1/2 md:min-h-screen flex flex-col items-center justify-center px-6 pt-14 pb-10 md:py-16 shrink-0"
               style={{ animationDelay: `${kgSyncDelayRef.current}s, ${kgSyncDelayRef.current}s` }}
             >
 
@@ -7661,7 +7659,6 @@
                 className="relative w-52 md:w-64 h-auto mb-6"
                 style={{ animation: 'auth-panel-in 0.5s ease' }}
               />
-              <p className="relative text-sm text-indigo-100/80 -mt-3 text-center max-w-[240px] md:max-w-none">Para tu bodega o negocio</p>
 
             </div>
 
