@@ -514,7 +514,8 @@
       cod_ean_pack: producto.cod_ean_pack || '',
       foto_url: producto.foto_url || '',
       fotos_extra: producto.fotos_extra || [],
-      descripcion_larga: producto.descripcion_larga || ''
+      descripcion_larga: producto.descripcion_larga || '',
+      es_destacado: !!producto.es_destacado
     });
 
     // Exporta un arreglo de objetos a un archivo Excel (.xlsx) real descargable,
@@ -1128,16 +1129,23 @@
               className="w-full aspect-square"
               iconClassName="text-2xl md:text-3xl opacity-90"
             />
-            {prod.unidad === 'KG' && (
-              <span className="absolute top-2 right-2 text-xs font-bold text-stone-100 bg-white/90 px-1.5 py-0.5 rounded-md">
-                KG
-              </span>
-            )}
-            {Number(prod.unidades_por_pack) > 1 && (
-              <span className="absolute top-2 right-2 text-[10px] font-bold text-white bg-stone-900/85 px-1.5 py-0.5 rounded-md flex items-center gap-1">
-                <i className="fa-solid fa-boxes-packing"></i> x{prod.unidades_por_pack}
-              </span>
-            )}
+            <div className="absolute top-2 right-2 z-10 flex flex-col items-end gap-1">
+              {prod.es_destacado && (
+                <span className="text-[10px] font-bold text-white bg-amber-500 w-5 h-5 flex items-center justify-center rounded-md shadow-sm" title="Destacado en Delivery">
+                  <i className="fa-solid fa-star"></i>
+                </span>
+              )}
+              {prod.unidad === 'KG' && (
+                <span className="text-xs font-bold text-stone-100 bg-white/90 px-1.5 py-0.5 rounded-md">
+                  KG
+                </span>
+              )}
+              {Number(prod.unidades_por_pack) > 1 && (
+                <span className="text-[10px] font-bold text-white bg-stone-900/85 px-1.5 py-0.5 rounded-md flex items-center gap-1">
+                  <i className="fa-solid fa-boxes-packing"></i> x{prod.unidades_por_pack}
+                </span>
+              )}
+            </div>
             {enCarrito > 0 && (
               <span className="absolute top-2 left-1/2 -translate-x-1/2 text-[10px] font-bold text-white bg-violet-600 px-2.5 py-1 rounded-full shadow flex items-center gap-1 whitespace-nowrap">
                 <i className="fa-solid fa-check"></i> En carrito · {enCarrito}
@@ -5813,13 +5821,29 @@
             foto_url: formEditarProducto.foto_url || null,
             fotos_extra: formEditarProducto.fotos_extra && formEditarProducto.fotos_extra.length ? formEditarProducto.fotos_extra : null,
             descripcion_larga: formEditarProducto.descripcion_larga.trim() || null,
+            es_destacado: !!formEditarProducto.es_destacado,
             ...normalizarCamposPack(formEditarProducto)
           };
           if (esModoDemo) {
             if (catalogoDemoRef.current) {
-              catalogoDemoRef.current = catalogoDemoRef.current.map((p) => (p.id === productoEditando.id ? { ...p, ...payload } : p));
+              catalogoDemoRef.current = catalogoDemoRef.current.map((p) => {
+                // Solo puede haber un producto destacado por bodega -- al marcar
+                // uno se desmarca cualquier otro que lo tuviera activado.
+                if (payload.es_destacado && p.id !== productoEditando.id && p.es_destacado) {
+                  return { ...p, es_destacado: false };
+                }
+                return p.id === productoEditando.id ? { ...p, ...payload } : p;
+              });
             }
           } else if (sbClient) {
+            if (payload.es_destacado) {
+              const { error: errDesmarcar } = await sbClient
+                .from('productos')
+                .update({ es_destacado: false })
+                .eq('bodega_id', bodegaId)
+                .neq('id', productoEditando.id);
+              if (errDesmarcar) throw errDesmarcar;
+            }
             const { error } = await sbClient.from('productos').update(payload).eq('id', productoEditando.id);
             if (error) throw error;
           }
@@ -10139,6 +10163,21 @@
                     </>
                   )}
                 </div>
+                <label className={`flex items-start gap-2.5 p-2.5 rounded-xl border cursor-pointer transition ${formEditarProducto.es_destacado ? 'bg-amber-50 border-amber-300' : 'bg-white border-stone-200'}`}>
+                  <input
+                    type="checkbox"
+                    checked={formEditarProducto.es_destacado}
+                    onChange={(e) => setFormEditarProducto({ ...formEditarProducto, es_destacado: e.target.checked })}
+                    className="w-3.5 h-3.5 mt-0.5 shrink-0"
+                  />
+                  <span className={`shrink-0 w-7 h-7 rounded-lg flex items-center justify-center ${formEditarProducto.es_destacado ? 'bg-amber-500 text-white' : 'bg-stone-100 text-stone-500'}`}>
+                    <i className="fa-solid fa-star text-xs"></i>
+                  </span>
+                  <span>
+                    <span className="block text-xs font-bold text-stone-800">Destacar en Kaserita Delivery</span>
+                    <span className="block text-[10px] text-stone-500">Aparece en la tarjeta principal de tu tienda online. Solo puede haber uno -- al marcar este se desmarca cualquier otro.</span>
+                  </span>
+                </label>
                 <div className="space-y-2.5">
                   <div>
                     <label className="text-xs text-stone-600 block mb-1">Descripción / Nombre:</label>
