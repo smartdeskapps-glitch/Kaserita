@@ -3039,33 +3039,13 @@
         setSesion(datos);
       };
 
-      // Modo Demo Local: entra sin Supabase, sin cuenta y sin pasar por el
-      // formulario de login -- lo usa tanto el botón "Modo Demo Local" como
-      // el link público /demo (ver efecto de abajo), para poder mandarle a
-      // alguien un link que lo deje mirando la app funcionando de una.
-      const entrarModoDemo = () => {
-        const demoU = { id: 'c0000000-0000-0000-0000-000000000001', bodega_id: BODEGA_DEMO_ID, nombre: 'Dueño Demo', dni: '12345678', rol: 'dueno', activo: true, telefono: '51987654321' };
-        setListaCajeros([demoU]);
-        setCajeroSeleccionado(demoU);
-        guardarSesion({
-          usuario: demoU,
-          bodega: {
-            id: BODEGA_DEMO_ID,
-            nombre: 'Bodega Demo',
-            // Catálogo Online ya viene activado y con link -- así se ve la
-            // función funcionando de una, sin tener que configurarla en la demo.
-            delivery_permitido: true,
-            delivery_habilitado: true,
-            slug: 'bodega-prueba',
-            logo_url: null,
-            direccion: 'Av. Los Álamos 245, San Miguel',
-          },
-        });
-      };
-
-      useEffect(() => {
-        if (window.location.pathname === '/demo') entrarModoDemo();
-      }, []);
+      // El botón "Modo Demo Local" y el link /demo se sacaron de la pantalla
+      // de login (ver commit correspondiente) -- para mostrar la app ahora
+      // se usa una bodega real ("Bodega Demo", DNI+PIN, ver el SQL que la
+      // crea) que sí soporta el ciclo completo (catálogo online, pedidos
+      // por WhatsApp, etc.). El resto del código que revisa "esModoDemo"
+      // queda sin usar pero no se tocó -- borrarlo es un cambio grande y
+      // separado, no hace falta para esto.
 
       const cerrarSesion = async () => {
         if (sbClient) {
@@ -7929,14 +7909,9 @@
 
               <div className="pt-2 border-t border-stone-100 flex items-center justify-center gap-2.5 text-xs">
                 {authTab === 'login' ? (
-                  <>
-                    <button type="button" onClick={entrarModoDemo} className="px-3 py-1.5 rounded-full bg-orange-50 hover:bg-orange-100 text-orange-700 font-semibold transition">
-                      <i className="fa-solid fa-bolt mr-1"></i> Modo Demo Local
-                    </button>
-                    <button type="button" onClick={() => setAuthTab('admin')} className="px-3 py-1.5 rounded-full bg-stone-100 hover:bg-stone-200 text-stone-500 font-semibold transition">
-                      <i className="fa-solid fa-shield-halved mr-1"></i> Panel Administrador
-                    </button>
-                  </>
+                  <button type="button" onClick={() => setAuthTab('admin')} className="px-3 py-1.5 rounded-full bg-stone-100 hover:bg-stone-200 text-stone-500 font-semibold transition">
+                    <i className="fa-solid fa-shield-halved mr-1"></i> Panel Administrador
+                  </button>
                 ) : (
                   <button type="button" onClick={() => setAuthTab('login')} className="text-stone-500 hover:text-orange-600 font-semibold">
                     <i className="fa-solid fa-arrow-left mr-1"></i> Volver
