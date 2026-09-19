@@ -366,7 +366,7 @@ function App() {
         options: {
           lang: 'auto',
           modal: true,
-          paymentMethods: { tarjeta: true, yape: false, billetera: false, bancaMovil: false, agente: false, cuotealo: false },
+          paymentMethods: { tarjeta: true, yape: true, billetera: false, bancaMovil: false, agente: false, cuotealo: false },
         },
       };
       const culqiCheckout = new window.CulqiCheckout(CULQI_PUBLIC_KEY, config);
