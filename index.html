@@ -111,6 +111,8 @@
       background: #d6d3d1;
       border-radius: 4px;
     }
+    .hide-scrollbar::-webkit-scrollbar { display: none; }
+    .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
 
     /* El navegador pinta los campos autocompletados (usuario/contraseña
        guardados) con un fondo celeste propio que no se puede tapar con
@@ -9143,19 +9145,27 @@
 
           {/* Modal: Inventario Inicial (carga de varios productos a la vez) */}
           {modalInventarioInicial && (
-            <div className="fixed inset-0 bg-black/85 flex items-center justify-center z-50 p-4">
-              <div className="bg-stone-100 border border-stone-200 rounded-2xl max-w-2xl w-full p-5 shadow-2xl space-y-3 max-h-[90vh] flex flex-col">
-                <div className="flex justify-between items-start shrink-0">
-                  <div>
-                    <h3 className="text-base font-bold text-stone-900 flex items-center gap-2">
-                      <i className="fa-solid fa-boxes-stacked text-orange-600"></i> Registrar Productos
-                    </h3>
-                    <p className="text-xs text-stone-600 mt-0.5">Crea o actualiza la ficha de tus productos (precio, categoría, EAN/SKU). La cantidad se carga después desde "Entrada de Mercadería".</p>
+            <div className="fixed inset-0 bg-black/85 flex items-center justify-center z-50 p-2 sm:p-4">
+              <div className="bg-stone-50 border border-stone-200 rounded-2xl max-w-2xl w-full shadow-2xl max-h-[95vh] flex flex-col overflow-hidden">
+                <div className="bg-white border-b border-stone-100 px-4 sm:px-5 pt-4 pb-3.5 shrink-0">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2.5 min-w-0">
+                      <span className="w-9 h-9 rounded-xl bg-orange-100 text-orange-600 flex items-center justify-center shadow-xs shrink-0">
+                        <i className="fa-solid fa-boxes-stacked text-sm"></i>
+                      </span>
+                      <div className="min-w-0">
+                        <h3 className="text-base font-bold text-stone-900 tracking-tight">Registrar Productos</h3>
+                        <span className="inline-block text-[11px] font-semibold text-orange-600 bg-orange-50 px-2 py-0.5 rounded-full border border-orange-100">
+                          Producto {filaInventarioExpandidaIdx + 1}{filasInventario.length > 1 ? ` de ${filasInventario.length}` : ''}
+                        </span>
+                      </div>
+                    </div>
+                    <button onClick={() => setModalInventarioInicial(false)} aria-label="Cerrar" className="w-8 h-8 flex items-center justify-center rounded-full text-stone-400 hover:text-stone-600 hover:bg-stone-100 transition-colors shrink-0"><i className="fa-solid fa-xmark"></i></button>
                   </div>
-                  <button onClick={() => setModalInventarioInicial(false)} className="text-stone-600 hover:text-stone-900 shrink-0"><i className="fa-solid fa-xmark"></i></button>
+                  <p className="mt-2 text-xs text-stone-500 leading-snug">Crea o actualiza la ficha de tus productos (precio, categoría, EAN/SKU). La cantidad se carga después desde "Entrada de Mercadería".</p>
                 </div>
 
-                <div className="flex-1 overflow-y-auto space-y-2 pr-1">
+                <div className="flex-1 overflow-y-auto space-y-2.5 p-4 sm:p-5">
                   {/* El producto activo (el que se está llenando) siempre va
                       primero, para no tener que bajar entre el historial
                       colapsado cada vez que se agrega uno nuevo. */}
@@ -9169,8 +9179,8 @@
                     const sugerenciasPack = sugerenciasParaFilaPack(fila);
                     const sugerencias = sugerenciasParaFila(fila);
                     const sugerenciasMaestro = sugerenciasMaestroParaFila(fila);
-                    const claseCampoVinculado = 'bg-stone-100/40 border border-stone-200 rounded-lg px-3 py-1.5 text-xs text-stone-600 cursor-not-allowed';
-                    const claseCampoNormal = 'bg-stone-100 border border-stone-200 rounded-lg px-3 py-1.5 text-xs text-stone-900 focus:outline-none focus:border-orange-500';
+                    const claseCampoVinculado = 'bg-stone-100/60 border border-stone-200 rounded-xl px-3.5 py-2 text-xs text-stone-500 cursor-not-allowed';
+                    const claseCampoNormal = 'bg-stone-50/60 border border-stone-200 rounded-xl px-3.5 py-2 text-xs text-stone-900 placeholder:text-stone-400 focus:border-orange-500 focus:bg-white focus:ring-2 focus:ring-orange-500/20 transition-all';
 
                     // Fila ya completada y no es la que se está editando ahora --
                     // se muestra colapsada como un renglón de "historial" en vez
@@ -9178,13 +9188,13 @@
                     // seguidos no vuelva la pantalla eterna.
                     if (idx !== filaInventarioExpandidaIdx) {
                       return (
-                        <div key={idx} className="p-2 rounded-xl border bg-white border-stone-200 flex items-center gap-2">
+                        <div key={idx} className="p-2.5 rounded-2xl border bg-white border-stone-200/80 shadow-sm flex items-center gap-2.5">
                           <button
                             type="button"
                             onClick={() => setFilaInventarioExpandidaIdx(idx)}
-                            className="flex-1 min-w-0 flex items-center gap-2 text-left"
+                            className="flex-1 min-w-0 flex items-center gap-2.5 text-left"
                           >
-                            <span className="shrink-0 w-5 h-5 rounded-full bg-stone-200 text-stone-600 text-[10px] font-bold flex items-center justify-center">{idx + 1}</span>
+                            <FotoProducto fotoUrl={fila.foto_url} categoria={fila.categoria} className="w-9 h-9 rounded-lg shrink-0 border border-stone-200" iconClassName="text-xs" />
                             <span className="min-w-0 flex-1">
                               <span className="block text-xs font-semibold text-stone-800 truncate">
                                 {fila.descripcion || `(sin nombre todavía)`}
@@ -9199,7 +9209,7 @@
                           <button
                             type="button"
                             onClick={() => setFilaInventarioExpandidaIdx(idx)}
-                            className="shrink-0 w-7 h-7 flex items-center justify-center text-stone-500 hover:text-orange-600"
+                            className="shrink-0 w-7 h-7 flex items-center justify-center text-stone-400 hover:text-orange-600 hover:bg-orange-50 rounded-lg transition"
                             title="Editar este producto"
                           >
                             <i className="fa-solid fa-pen text-xs"></i>
@@ -9208,7 +9218,7 @@
                             <button
                               type="button"
                               onClick={() => eliminarFilaInventario(idx)}
-                              className="shrink-0 w-7 h-7 flex items-center justify-center text-stone-500 hover:text-rose-600"
+                              className="shrink-0 w-7 h-7 flex items-center justify-center text-stone-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition"
                               title="Quitar producto"
                             >
                               <i className="fa-solid fa-xmark text-xs"></i>
@@ -9219,21 +9229,11 @@
                     }
 
                     return (
-                    <div key={idx} className={`p-3 rounded-xl space-y-3 relative border ${esExistente ? 'bg-orange-950/20 border-orange-700/40' : 'bg-stone-50 border-stone-200'}`}>
-                      <div className="flex items-center justify-between pr-6">
-                        <span className="text-[11px] font-bold text-stone-500 uppercase tracking-wide">
-                          Producto {idx + 1}{filasInventario.length > 1 ? ` de ${filasInventario.length}` : ''}
-                        </span>
-                        {esExistente && (
-                          <span className="text-xs font-semibold text-orange-600">
-                            <i className="fa-solid fa-check-circle mr-1"></i> Existente — se sumará al stock
-                          </span>
-                        )}
-                      </div>
+                    <div key={idx} className={`rounded-2xl relative border shadow-sm ${esExistente ? 'bg-orange-50/60 border-orange-200' : 'bg-white border-stone-200/80'}`}>
                       {filasInventario.length > 1 && (
                         <button
                           onClick={() => eliminarFilaInventario(idx)}
-                          className="absolute top-2 right-2 w-6 h-6 flex items-center justify-center text-stone-500 hover:text-rose-600 hover:bg-stone-100 rounded-lg transition"
+                          className="absolute top-3 right-3 w-7 h-7 flex items-center justify-center text-stone-400 hover:text-rose-600 hover:bg-stone-100 rounded-full transition z-10"
                           title="Quitar producto"
                         >
                           <i className="fa-solid fa-xmark text-xs"></i>
@@ -9241,21 +9241,30 @@
                       )}
 
                       {esExistente && (
-                        <div className="flex items-center justify-end text-xs pr-6 -mt-2">
-                          <button type="button" onClick={() => desvincularFilaInventario(idx)} className="underline text-stone-600 hover:text-stone-800">
+                        <div className="flex items-center justify-between gap-2 px-4 pt-3 text-xs">
+                          <span className="font-semibold text-orange-700">
+                            <i className="fa-solid fa-check-circle mr-1"></i> Existente — se sumará al stock
+                          </span>
+                          <button type="button" onClick={() => desvincularFilaInventario(idx)} className="underline text-stone-500 hover:text-stone-700 shrink-0">
                             Quitar vínculo
                           </button>
                         </div>
                       )}
 
                       {/* --- Sección 1: identificación del producto --- */}
-                      <div className="space-y-1.5">
-                        <p className="text-[10px] font-bold text-stone-400 uppercase tracking-wide">1. Identificación</p>
+                      <div className="p-4 space-y-3.5">
+                        <div className="flex items-center justify-between pb-1 border-b border-stone-100 pr-6">
+                          <div className="flex items-center gap-2">
+                            <span className="w-5 h-5 rounded-full bg-orange-600 text-white font-bold text-[11px] flex items-center justify-center shrink-0">1</span>
+                            <h4 className="text-xs font-bold uppercase tracking-wider text-stone-700">Identificación</h4>
+                          </div>
+                          <span className="text-[11px] text-stone-400 font-medium">Básico</span>
+                        </div>
 
                         {/* Escanear y escribir van en el mismo campo -- si el
                             código ya existe, la fila se autocompleta sola. */}
-                        <div className="pr-6">
-                          <label className="text-[10px] font-semibold text-stone-500 block mb-0.5">Código EAN / Código de barras (opcional)</label>
+                        <div className="space-y-1.5">
+                          <label className="block text-xs font-semibold text-stone-700">Código EAN / Código de barras <span className="text-stone-400 font-normal">(opcional)</span></label>
                           <div className="relative">
                             <input
                               type="text"
@@ -9263,13 +9272,13 @@
                               value={fila.cod_ean}
                               disabled={esExistente}
                               onChange={(e) => actualizarCodigoEanFila(idx, e.target.value)}
-                              className={`w-full pr-9 ${esExistente ? claseCampoVinculado : claseCampoNormal}`}
+                              className={`w-full pr-24 ${esExistente ? claseCampoVinculado : claseCampoNormal}`}
                             />
                             <button
                               type="button"
                               onClick={() => abrirEscanerParaFilaInventario(idx)}
                               disabled={esExistente}
-                              className="absolute right-1.5 top-1/2 -translate-y-1/2 h-7 px-2.5 flex items-center gap-1 bg-orange-100 hover:bg-orange-200 text-orange-700 disabled:opacity-40 rounded-lg text-[11px] font-bold transition"
+                              className="absolute inset-y-1 right-1 px-2.5 bg-orange-50 hover:bg-orange-100 text-orange-700 disabled:opacity-40 rounded-lg text-[11px] font-bold flex items-center gap-1.5 border border-orange-200/70 transition-all active:scale-95"
                               title="Escanear código de barras"
                             >
                               <i className="fa-solid fa-camera text-xs"></i> Escanear
@@ -9278,25 +9287,25 @@
                         </div>
 
                         {!esExistente && (
-                          <div className="pr-6">
-                            <label className="text-[10px] font-semibold text-stone-500 block mb-0.5">Foto del producto (opcional)</label>
+                          <div className="space-y-1.5">
+                            <label className="block text-xs font-semibold text-stone-700">Foto del producto <span className="text-stone-400 font-normal">(opcional)</span></label>
                             {sesion?.bodega?.permitir_subir_fotos === false ? (
                               <div className="flex items-center gap-2.5">
-                                <FotoProducto fotoUrl={fila.foto_url} categoria={fila.categoria} className="w-12 h-12 rounded-lg shrink-0 border border-stone-200" iconClassName="text-base" />
-                                <p className="text-[10px] text-stone-500">La subida de fotos está desactivada para tu bodega.</p>
+                                <FotoProducto fotoUrl={fila.foto_url} categoria={fila.categoria} className="w-16 h-16 rounded-xl shrink-0 border border-stone-200" iconClassName="text-xl" />
+                                <p className="text-[10.5px] text-stone-500">La subida de fotos está desactivada para tu bodega.</p>
                               </div>
                             ) : (
-                              <div className="flex items-center gap-2.5">
-                                <FotoProducto fotoUrl={fila.foto_url} categoria={fila.categoria} className="w-12 h-12 rounded-lg shrink-0 border border-stone-200" iconClassName="text-base" />
-                                <div className="flex-1 space-y-1">
-                                  <div className="flex flex-wrap gap-1.5">
-                                    <label className="cursor-pointer text-[11px] font-semibold px-2.5 py-1.5 rounded-lg bg-stone-200 hover:bg-stone-300 text-stone-700 flex items-center gap-1.5">
+                              <div className="flex items-center gap-3">
+                                <FotoProducto fotoUrl={fila.foto_url} categoria={fila.categoria} className="w-16 h-16 rounded-xl shrink-0 border-2 border-dashed border-stone-200" iconClassName="text-xl" />
+                                <div className="flex-1 flex flex-col gap-1.5">
+                                  <div className="flex items-center gap-2">
+                                    <label className="flex-1 cursor-pointer py-1.5 px-2.5 rounded-lg border border-stone-200 bg-white hover:bg-stone-50 text-stone-700 text-xs font-medium flex items-center justify-center gap-1.5 shadow-sm active:scale-95 transition">
                                       {subiendoFotoFilaIdx === idx ? (
-                                        <i className="fa-solid fa-spinner fa-spin text-[10px]"></i>
+                                        <i className="fa-solid fa-spinner fa-spin text-stone-500 text-xs"></i>
                                       ) : (
-                                        <i className="fa-solid fa-camera text-[10px]"></i>
+                                        <i className="fa-solid fa-camera text-stone-500 text-xs"></i>
                                       )}
-                                      Tomar foto
+                                      <span>Cámara</span>
                                       <input
                                         type="file"
                                         accept="image/*"
@@ -9309,8 +9318,9 @@
                                         }}
                                       />
                                     </label>
-                                    <label className="cursor-pointer text-[11px] font-semibold px-2.5 py-1.5 rounded-lg bg-stone-200 hover:bg-stone-300 text-stone-700 flex items-center gap-1.5">
-                                      <i className="fa-solid fa-image text-[10px]"></i> Galería / Archivo
+                                    <label className="flex-1 cursor-pointer py-1.5 px-2.5 rounded-lg border border-stone-200 bg-white hover:bg-stone-50 text-stone-700 text-xs font-medium flex items-center justify-center gap-1.5 shadow-sm active:scale-95 transition">
+                                      <i className="fa-solid fa-image text-stone-500 text-xs"></i>
+                                      <span>Galería</span>
                                       <input
                                         type="file"
                                         accept="image/*"
@@ -9323,79 +9333,78 @@
                                       />
                                     </label>
                                   </div>
-                                  <p className="text-[10px] text-stone-400">O copia una imagen y pégala con Ctrl+V.</p>
+                                  <p className="text-[10.5px] text-stone-400 leading-none">O pega una imagen directamente desde el portapapeles</p>
                                 </div>
                               </div>
                             )}
                           </div>
                         )}
 
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pr-6">
-                        <div className="sm:col-span-2 relative">
-                          <div className="flex items-center justify-between mb-0.5">
-                            <label className="text-[10px] font-semibold text-stone-500">Descripción del producto *</label>
-                            <span className="text-[10px] font-semibold text-orange-600 flex items-center gap-1">
-                              <i className="fa-solid fa-wand-magic-sparkles"></i> Catálogo sugerido
-                            </span>
-                          </div>
-                          <input
-                            type="text"
-                            placeholder="Escribe para buscar uno existente..."
-                            value={fila.descripcion}
-                            disabled={esExistente}
-                            onChange={(e) => actualizarFilaInventario(idx, 'descripcion', e.target.value)}
-                            className={`w-full ${esExistente ? claseCampoVinculado : claseCampoNormal}`}
-                          />
-                          {(sugerencias.length > 0 || sugerenciasMaestro.length > 0) && (
-                            <div className="absolute z-10 top-full left-0 right-0 mt-1 bg-stone-200 border border-stone-300 rounded-lg shadow-xl overflow-hidden max-h-56 overflow-y-auto">
-                              {sugerencias.map((s) => (
-                                <button
-                                  type="button"
-                                  key={`propio-${s.id}`}
-                                  onClick={() => vincularProductoExistenteEnFila(idx, s)}
-                                  className="w-full text-left px-3 py-2 text-xs text-stone-800 hover:bg-stone-300 flex items-center justify-between gap-2"
-                                >
-                                  <span className="truncate">{s.descripcion}</span>
-                                  <span className="text-stone-500 shrink-0">S/ {Number(s.precio_venta).toFixed(2)}</span>
-                                </button>
-                              ))}
-                              {sugerenciasMaestro.length > 0 && (
-                                <div className="px-3 pt-1.5 pb-0.5 text-[10px] font-bold text-stone-500 uppercase tracking-wide bg-stone-100/60">
-                                  Del catálogo maestro
-                                </div>
-                              )}
-                              {sugerenciasMaestro.map((s) => (
-                                <button
-                                  type="button"
-                                  key={`maestro-${s.id}`}
-                                  onClick={() => usarSugerenciaMaestraEnFila(idx, s)}
-                                  className="w-full text-left px-3 py-2 text-xs text-stone-800 hover:bg-stone-300 flex items-center gap-2"
-                                >
-                                  <FotoProducto fotoUrl={s.foto_url} categoria={s.categoria} className="w-7 h-7 rounded-md shrink-0" iconClassName="text-[10px]" />
-                                  <span className="truncate flex-1">{s.descripcion}</span>
-                                  <span className="text-stone-500 shrink-0 text-[10px]">{s.categoria}</span>
-                                </button>
-                              ))}
-                            </div>
-                          )}
+                      <div className="space-y-1.5 relative">
+                        <div className="flex items-center justify-between">
+                          <label className="block text-xs font-semibold text-stone-700">Descripción del producto <span className="text-rose-500 font-bold">*</span></label>
+                          <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-orange-600">
+                            <i className="fa-solid fa-wand-magic-sparkles text-orange-500"></i> Catálogo sugerido
+                          </span>
                         </div>
-                        <div className="sm:col-span-2 flex gap-1.5">
-                          <div className="flex-1 min-w-0">
-                            <label className="text-[10px] font-semibold text-stone-500 block mb-0.5">Categoría</label>
-                            <div className="relative">
-                              <i className={`fa-solid ${estiloCategoria(fila.categoria).icono} ${estiloCategoria(fila.categoria).color} absolute left-2.5 top-1/2 -translate-y-1/2 text-xs pointer-events-none`}></i>
-                              <select
-                                value={fila.categoria}
-                                disabled={esExistente}
-                                onChange={(e) => actualizarFilaInventario(idx, 'categoria', e.target.value)}
-                                className={`w-full pl-7 ${esExistente ? claseCampoVinculado : claseCampoNormal}`}
+                        <input
+                          type="text"
+                          placeholder="Ej: Leche Gloria Entera 400g..."
+                          value={fila.descripcion}
+                          disabled={esExistente}
+                          onChange={(e) => actualizarFilaInventario(idx, 'descripcion', e.target.value)}
+                          className={`w-full ${esExistente ? claseCampoVinculado : claseCampoNormal}`}
+                        />
+                        {(sugerencias.length > 0 || sugerenciasMaestro.length > 0) && (
+                          <div className="absolute z-10 top-full left-0 right-0 mt-1 bg-stone-200 border border-stone-300 rounded-lg shadow-xl overflow-hidden max-h-56 overflow-y-auto">
+                            {sugerencias.map((s) => (
+                              <button
+                                type="button"
+                                key={`propio-${s.id}`}
+                                onClick={() => vincularProductoExistenteEnFila(idx, s)}
+                                className="w-full text-left px-3 py-2 text-xs text-stone-800 hover:bg-stone-300 flex items-center justify-between gap-2"
                               >
-                                {!categoriasDB.includes(fila.categoria) && fila.categoria && (
-                                  <option value={fila.categoria}>{fila.categoria}</option>
-                                )}
-                                {categoriasDB.map(c => <option key={c} value={c}>{c}</option>)}
-                              </select>
-                            </div>
+                                <span className="truncate">{s.descripcion}</span>
+                                <span className="text-stone-500 shrink-0">S/ {Number(s.precio_venta).toFixed(2)}</span>
+                              </button>
+                            ))}
+                            {sugerenciasMaestro.length > 0 && (
+                              <div className="px-3 pt-1.5 pb-0.5 text-[10px] font-bold text-stone-500 uppercase tracking-wide bg-stone-100/60">
+                                Del catálogo maestro
+                              </div>
+                            )}
+                            {sugerenciasMaestro.map((s) => (
+                              <button
+                                type="button"
+                                key={`maestro-${s.id}`}
+                                onClick={() => usarSugerenciaMaestraEnFila(idx, s)}
+                                className="w-full text-left px-3 py-2 text-xs text-stone-800 hover:bg-stone-300 flex items-center gap-2"
+                              >
+                                <FotoProducto fotoUrl={s.foto_url} categoria={s.categoria} className="w-7 h-7 rounded-md shrink-0" iconClassName="text-[10px]" />
+                                <span className="truncate flex-1">{s.descripcion}</span>
+                                <span className="text-stone-500 shrink-0 text-[10px]">{s.categoria}</span>
+                              </button>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+
+                      <div className="space-y-2">
+                        <label className="block text-xs font-semibold text-stone-700">Categoría</label>
+                        <div className="flex items-center gap-2">
+                          <div className="relative flex-1 min-w-0">
+                            <i className={`fa-solid ${estiloCategoria(fila.categoria).icono} ${estiloCategoria(fila.categoria).color} absolute left-3 top-1/2 -translate-y-1/2 text-xs pointer-events-none`}></i>
+                            <select
+                              value={fila.categoria}
+                              disabled={esExistente}
+                              onChange={(e) => actualizarFilaInventario(idx, 'categoria', e.target.value)}
+                              className={`w-full pl-8 ${esExistente ? claseCampoVinculado : claseCampoNormal}`}
+                            >
+                              {!categoriasDB.includes(fila.categoria) && fila.categoria && (
+                                <option value={fila.categoria}>{fila.categoria}</option>
+                              )}
+                              {categoriasDB.map(c => <option key={c} value={c}>{c}</option>)}
+                            </select>
                           </div>
                           {!esExistente && (
                             <button
@@ -9408,29 +9417,51 @@
                             </button>
                           )}
                         </div>
+                        {!esExistente && categoriasDB.length > 0 && (
+                          <div className="flex items-center gap-1.5 overflow-x-auto pb-0.5 hide-scrollbar text-[11px]">
+                            {categoriasDB.slice(0, 6).map((c) => (
+                              <button
+                                key={c}
+                                type="button"
+                                onClick={() => actualizarFilaInventario(idx, 'categoria', c)}
+                                className={`px-2.5 py-1 rounded-full font-semibold shrink-0 border transition ${fila.categoria === c ? 'bg-orange-50 text-orange-700 border-orange-200' : 'bg-stone-100 hover:bg-stone-200 text-stone-600 border-transparent'}`}
+                              >
+                                <i className={`fa-solid ${estiloCategoria(c).icono} mr-1`}></i>{c}
+                              </button>
+                            ))}
+                          </div>
+                        )}
                       </div>
                       </div>
 
                       {/* --- Sección 2: precio y forma de venta --- */}
-                      <div className="space-y-1.5">
-                        <p className="text-[10px] font-bold text-stone-400 uppercase tracking-wide">2. Precio y forma de venta</p>
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pr-6">
-                        <div className="sm:col-span-2">
-                          <label className="text-[10px] font-semibold text-stone-500 block mb-0.5">Precio venta POR UNIDAD *</label>
-                          <div className="relative">
-                            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm font-bold text-stone-500 pointer-events-none">S/</span>
+                      <div className="p-4 border-t border-stone-100 space-y-3.5">
+                        <div className="flex items-center justify-between pb-1 border-b border-stone-100">
+                          <div className="flex items-center gap-2">
+                            <span className="w-5 h-5 rounded-full bg-orange-600 text-white font-bold text-[11px] flex items-center justify-center shrink-0">2</span>
+                            <h4 className="text-xs font-bold uppercase tracking-wider text-stone-700">Precio y Forma de Venta</h4>
+                          </div>
+                          <span className="text-[11px] text-emerald-600 font-medium bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-100">S/ (PEN)</span>
+                        </div>
+
+                        <div className="space-y-1.5">
+                          <label className="block text-xs font-semibold text-stone-700">Precio de venta POR UNIDAD <span className="text-rose-500 font-bold">*</span></label>
+                          <div className="relative rounded-2xl bg-stone-50 border-2 border-stone-200 focus-within:border-orange-500 focus-within:bg-white focus-within:ring-4 focus-within:ring-orange-500/10 transition-all p-3 flex items-baseline">
+                            <span className="text-lg font-bold text-stone-400 mr-2 select-none">S/</span>
                             <input
                               type="number"
                               step="0.10"
                               placeholder="0.00"
                               value={fila.precio_venta}
                               onChange={(e) => actualizarFilaInventario(idx, 'precio_venta', e.target.value)}
-                              className="w-full pl-8 pr-3 py-2.5 rounded-xl border border-stone-200 bg-stone-100 text-base font-bold text-stone-900 focus:outline-none focus:border-orange-500"
+                              className="w-full bg-transparent border-0 p-0 text-2xl font-black text-stone-900 placeholder:text-stone-300 focus:ring-0 focus:outline-none"
                             />
+                            <span className="text-xs font-semibold text-stone-400 uppercase tracking-wider">PEN</span>
                           </div>
                         </div>
-                        <div className="sm:col-span-2">
-                          <label className="text-[10px] font-semibold text-stone-500 block mb-0.5">Se vende por</label>
+
+                        <div className="space-y-1.5">
+                          <label className="block text-xs font-semibold text-stone-700">Se vende por</label>
                           <select
                             value={fila.unidad}
                             disabled={esExistente}
@@ -9441,27 +9472,30 @@
                             <option value="KG">Peso (KG) — balanza</option>
                           </select>
                         </div>
-                        </div>
 
                       {/* Venta por pack: la misma bolsa de stock sirve para vender el
                           pack cerrado o unidades sueltas si se abre -- se descuenta en
                           unidades base sin llevar dos contadores separados. */}
                       {fila.unidad !== 'KG' && (
-                        <div className="pr-6">
-                          <label className={`flex items-start gap-2.5 p-2.5 rounded-xl border cursor-pointer transition ${fila.vendeEnPack ? 'bg-orange-50 border-orange-300' : 'bg-white border-stone-200'}`}>
-                            <input
-                              type="checkbox"
-                              checked={fila.vendeEnPack}
-                              onChange={(e) => actualizarFilaInventario(idx, 'vendeEnPack', e.target.checked)}
-                              className="w-3.5 h-3.5 mt-0.5 shrink-0"
-                            />
-                            <span className={`shrink-0 w-7 h-7 rounded-lg flex items-center justify-center ${fila.vendeEnPack ? 'bg-orange-500 text-white' : 'bg-stone-100 text-stone-500'}`}>
-                              <i className="fa-solid fa-box text-xs"></i>
-                            </span>
-                            <span>
-                              <span className="block text-xs font-bold text-stone-800">Vender también en pack o caja cerrada</span>
-                              <span className="block text-[10px] text-stone-500">Ideal para six-packs de cerveza, displays x12 o cajas cerradas x24.</span>
-                            </span>
+                        <div>
+                          <label className={`flex items-start gap-3 p-3 rounded-xl border border-dashed cursor-pointer transition ${fila.vendeEnPack ? 'bg-orange-50/70 border-orange-300' : 'bg-stone-50/70 hover:bg-stone-50 border-stone-300'}`}>
+                            <div className="flex items-center h-5 mt-0.5">
+                              <input
+                                type="checkbox"
+                                checked={fila.vendeEnPack}
+                                onChange={(e) => actualizarFilaInventario(idx, 'vendeEnPack', e.target.checked)}
+                                className="w-4 h-4 rounded text-orange-600 border-stone-300 focus:ring-orange-500"
+                              />
+                            </div>
+                            <div className="flex-1">
+                              <div className="flex items-center gap-1.5">
+                                <span className={`w-5 h-5 rounded-md flex items-center justify-center text-[10px] ${fila.vendeEnPack ? 'bg-orange-500 text-white' : 'bg-stone-200 text-stone-600'}`}>
+                                  <i className="fa-solid fa-box"></i>
+                                </span>
+                                <span className="text-xs font-bold text-stone-800">Vender también en pack o caja cerrada</span>
+                              </div>
+                              <p className="text-[11px] text-stone-500 mt-1 leading-normal">Ideal para six-packs de cerveza, displays x12 o cajas cerradas x24 con precio especial.</p>
+                            </div>
                           </label>
                           {esExistente && fila.vendeEnPackOriginal && !fila.vendeEnPack && (
                             <p className="text-[11px] text-rose-600 font-semibold mt-1">
@@ -9542,8 +9576,14 @@
                       </div>
 
                       {/* --- Sección 3: dato interno opcional --- */}
-                      <div className="pr-6">
-                        <label className="text-[10px] font-semibold text-stone-500 block mb-0.5">3. SKU (código interno, opcional)</label>
+                      <div className="p-4 border-t border-stone-100 space-y-1.5">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                            <span className="w-5 h-5 rounded-full bg-orange-600 text-white font-bold text-[11px] flex items-center justify-center shrink-0">3</span>
+                            <label className="text-xs font-semibold text-stone-700">SKU <span className="text-stone-400 font-normal">(código interno, opcional)</span></label>
+                          </div>
+                          <span className="text-[10px] text-orange-600 bg-orange-50 font-medium px-2 py-0.5 rounded-md border border-orange-100">Auto-generado</span>
+                        </div>
                         <input
                           type="text"
                           placeholder="Se genera solo si lo dejas vacío"
@@ -9557,22 +9597,22 @@
                   })}
                 </div>
 
-                <div className="shrink-0 space-y-2 pt-1">
+                <div className="shrink-0 bg-white border-t border-stone-200 p-4 space-y-2.5 shadow-[0_-4px_18px_rgba(15,23,42,0.06)]">
                   <button
                     onClick={agregarFilaInventario}
-                    className="w-full py-2 bg-stone-200 hover:bg-stone-300 text-stone-800 text-xs font-semibold rounded-xl border border-stone-300 border-dashed flex items-center justify-center gap-1.5"
+                    className="w-full py-2.5 px-4 rounded-xl border border-stone-200 bg-stone-100/80 hover:bg-stone-200/70 text-stone-700 font-semibold text-xs flex items-center justify-center gap-1.5 transition active:scale-[0.99]"
                   >
-                    <i className="fa-solid fa-plus"></i> Agregar otro producto
+                    <span className="text-base font-medium leading-none">+</span> Agregar otro producto
                   </button>
                   <button
                     onClick={guardarInventarioInicial}
                     disabled={guardandoInventario}
-                    className="w-full py-2.5 bg-stone-900 hover:bg-stone-800 disabled:opacity-60 text-white font-bold text-xs rounded-xl shadow flex items-center justify-center gap-1.5"
+                    className="w-full py-3.5 px-4 rounded-xl bg-stone-900 hover:bg-black active:scale-[0.99] disabled:opacity-60 text-white font-bold text-xs tracking-wide shadow-md flex items-center justify-center gap-2 transition"
                   >
                     {guardandoInventario ? (
                       <><i className="fa-solid fa-spinner fa-spin"></i> Guardando...</>
                     ) : (
-                      <><i className="fa-solid fa-check"></i> Guardar Inventario</>
+                      <><i className="fa-solid fa-check text-emerald-400"></i> Guardar Inventario</>
                     )}
                   </button>
                 </div>
