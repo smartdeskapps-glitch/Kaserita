@@ -2534,6 +2534,19 @@
       const [productos, setProductos] = useState([]);
       const [categoriaFiltro, setCategoriaFiltro] = useState('TODOS');
 
+      // --- Combos: paquetes de varios productos existentes a un precio
+      // especial -- ver migration_25_combos.sql en el repo de Delivery. No
+      // llevan stock propio: al venderse, descuentan el stock real de cada
+      // producto que los compone (ver expandirLineaCarrito).
+      const [combos, setCombos] = useState([]);
+      const [cargandoCombos, setCargandoCombos] = useState(false);
+      const [modalCombos, setModalCombos] = useState(false);
+      const [comboEditando, setComboEditando] = useState(null);
+      const comboVacio = () => ({ id: null, nombre: '', descripcion: '', precio_venta: '', activo: true, items: [] });
+      const [formCombo, setFormCombo] = useState(null);
+      const [guardandoCombo, setGuardandoCombo] = useState(false);
+      const [busquedaProductoCombo, setBusquedaProductoCombo] = useState('');
+
       // --- Categorías (vienen de Supabase: globales para todas las bodegas +
       // las propias que cada bodega haya agregado, visibles solo para ella) ---
       const [categoriasDB, setCategoriasDB] = useState(CATEGORIAS_FALLBACK);
@@ -3356,6 +3369,16 @@
         try {
           let agregados = 0;
           (pedidoEncontrado.items || []).forEach((it) => {
+            if (it.combo_id) {
+              const combo = combos.find((c) => c.id === it.combo_id);
+              if (combo) {
+                agregarComboAlCarrito(combo, it.cantidad);
+                agregados++;
+              } else {
+                notificar(`"${it.descripcion}" ya no está disponible, no se agregó.`, 'error');
+              }
+              return;
+            }
             const prod = productos.find((p) => p.id === it.id);
             if (prod) {
               agregarAlCarrito(prod, it.cantidad);
@@ -3422,6 +3445,16 @@
         try {
           let agregados = 0;
           (pedido.items || []).forEach((it) => {
+            if (it.combo_id) {
+              const combo = combos.find((c) => c.id === it.combo_id);
+              if (combo) {
+                agregarComboAlCarrito(combo, it.cantidad);
+                agregados++;
+              } else {
+                notificar(`"${it.descripcion}" ya no está disponible, no se agregó.`, 'error');
+              }
+              return;
+            }
             const prod = productos.find((p) => p.id === it.id);
             if (prod) {
               agregarAlCarrito(prod, it.cantidad);
@@ -3810,11 +3843,191 @@
         }
       };
 
+      // ==========================================
+      // COMBOS (paquetes de varios productos a precio especial)
+      // ==========================================
+      // No disponibles en Modo Demo -- la bodega demo no existe de verdad en
+      // Supabase, y combos vive ahí (no en catalogoDemoRef como productos).
+      const cargarCombos = async () => {
+        if (!bodegaId || esModoDemo || !sbClient) { setCombos([]); return; }
+        setCargandoCombos(true);
+        try {
+          const { data, error } = await sbClient
+            .from('combos')
+            .select('*, combos_items(*, productos(descripcion, cod_ean, precio_venta, precio_costo, foto_url, categoria, stock_actual))')
+            .eq('bodega_id', bodegaId)
+            .order('nombre', { ascending: true });
+          if (error) throw error;
+          setCombos(data || []);
+        } catch (err) {
+          setCombos([]);
+          notificar(`No se pudieron cargar los combos: ${err.message}`, 'error');
+        } finally {
+          setCargandoCombos(false);
+        }
+      };
+
+      const abrirModalCombos = () => {
+        setModalCombos(true);
+        setComboEditando(null);
+        setFormCombo(null);
+        setBusquedaProductoCombo('');
+        cargarCombos();
+      };
+
+      const nuevoCombo = () => {
+        setComboEditando(null);
+        setFormCombo(comboVacio());
+        setBusquedaProductoCombo('');
+      };
+
+      const editarCombo = (combo) => {
+        setComboEditando(combo);
+        setFormCombo({
+          id: combo.id,
+          nombre: combo.nombre,
+          descripcion: combo.descripcion || '',
+          precio_venta: String(combo.precio_venta),
+          activo: combo.activo,
+          items: (combo.combos_items || []).map((ci) => ({
+            producto_id: ci.producto_id,
+            descripcion: ci.productos?.descripcion || '(producto eliminado)',
+            cod_ean: ci.productos?.cod_ean || '',
+            precio_venta: Number(ci.productos?.precio_venta) || 0,
+            precio_costo: Number(ci.productos?.precio_costo) || 0,
+            cantidad: Number(ci.cantidad)
+          }))
+        });
+        setBusquedaProductoCombo('');
+      };
+
+      const agregarProductoAFormCombo = (producto) => {
+        setFormCombo((prev) => {
+          const idx = prev.items.findIndex((it) => it.producto_id === producto.id);
+          if (idx >= 0) {
+            const items = [...prev.items];
+            items[idx] = { ...items[idx], cantidad: items[idx].cantidad + 1 };
+            return { ...prev, items };
+          }
+          return {
+            ...prev,
+            items: [...prev.items, {
+              producto_id: producto.id,
+              descripcion: producto.descripcion,
+              cod_ean: producto.cod_ean || '',
+              precio_venta: Number(producto.precio_venta) || 0,
+              precio_costo: Number(producto.precio_costo) || 0,
+              cantidad: 1
+            }]
+          };
+        });
+        setBusquedaProductoCombo('');
+      };
+
+      const actualizarCantidadItemCombo = (producto_id, cantidad) => {
+        setFormCombo((prev) => ({
+          ...prev,
+          items: prev.items.map((it) => (it.producto_id === producto_id ? { ...it, cantidad: Math.max(1, Number(cantidad) || 1) } : it))
+        }));
+      };
+
+      const quitarItemCombo = (producto_id) => {
+        setFormCombo((prev) => ({ ...prev, items: prev.items.filter((it) => it.producto_id !== producto_id) }));
+      };
+
+      // Suma de los precios de venta normales de cada producto del combo
+      // (según su cantidad) -- referencia para que el dueño vea cuánto está
+      // descontando al ponerle precio de bolsa al combo.
+      const precioNormalCombo = (form) => (form?.items || []).reduce((acc, it) => acc + it.precio_venta * it.cantidad, 0);
+
+      const guardarCombo = async () => {
+        if (!formCombo) return;
+        if (!formCombo.nombre.trim()) {
+          notificar('Ponle un nombre al combo.', 'error');
+          return;
+        }
+        if (!(Number(formCombo.precio_venta) > 0)) {
+          notificar('El precio del combo debe ser mayor a 0.', 'error');
+          return;
+        }
+        if (formCombo.items.length === 0) {
+          notificar('Agrega al menos un producto al combo.', 'error');
+          return;
+        }
+        setGuardandoCombo(true);
+        try {
+          const payloadCombo = {
+            bodega_id: bodegaId,
+            nombre: formCombo.nombre.trim(),
+            descripcion: formCombo.descripcion.trim() || null,
+            precio_venta: Number(formCombo.precio_venta),
+            activo: !!formCombo.activo
+          };
+          let comboId = formCombo.id;
+          if (comboId) {
+            const { error } = await sbClient.from('combos').update(payloadCombo).eq('id', comboId);
+            if (error) throw error;
+            const { error: errDel } = await sbClient.from('combos_items').delete().eq('combo_id', comboId);
+            if (errDel) throw errDel;
+          } else {
+            const { data, error } = await sbClient.from('combos').insert(payloadCombo).select().single();
+            if (error) throw error;
+            comboId = data.id;
+          }
+          const payloadItems = formCombo.items.map((it) => ({
+            bodega_id: bodegaId,
+            combo_id: comboId,
+            producto_id: it.producto_id,
+            cantidad: it.cantidad
+          }));
+          const { error: errItems } = await sbClient.from('combos_items').insert(payloadItems);
+          if (errItems) throw errItems;
+
+          notificar(`Combo "${payloadCombo.nombre}" guardado.`, 'success');
+          setFormCombo(null);
+          setComboEditando(null);
+          cargarCombos();
+        } catch (err) {
+          notificar(`No se pudo guardar el combo: ${err.message}`, 'error');
+        } finally {
+          setGuardandoCombo(false);
+        }
+      };
+
+      const alternarActivoCombo = async (combo) => {
+        try {
+          const { error } = await sbClient.from('combos').update({ activo: !combo.activo }).eq('id', combo.id);
+          if (error) throw error;
+          setCombos((prev) => prev.map((c) => (c.id === combo.id ? { ...c, activo: !combo.activo } : c)));
+        } catch (err) {
+          notificar(`No se pudo actualizar el combo: ${err.message}`, 'error');
+        }
+      };
+
+      const eliminarCombo = async (combo) => {
+        const ok = await pedirConfirmacion({
+          titulo: 'Eliminar combo',
+          mensaje: `¿Eliminar el combo "${combo.nombre}"? Esto no afecta el stock ni las ventas ya hechas con él.`,
+          textoBoton: 'Sí, eliminar',
+          peligroso: true
+        });
+        if (!ok) return;
+        try {
+          const { error } = await sbClient.from('combos').delete().eq('id', combo.id);
+          if (error) throw error;
+          setCombos((prev) => prev.filter((c) => c.id !== combo.id));
+          notificar('Combo eliminado.', 'info');
+        } catch (err) {
+          notificar(`No se pudo eliminar el combo: ${err.message}`, 'error');
+        }
+      };
+
       const avisoCarritoRecuperadoRef = useRef(false);
       useEffect(() => {
         if (sesion && bodegaId) {
           cargarProductos(busqueda);
           cargarCategorias();
+          cargarCombos();
           obtenerOCrearCliente('99999999');
           // Encadenado (no en paralelo): verificarTurno necesita saber ya
           // resuelto qué cajero es "el mío" en este dispositivo (por DNI)
@@ -4040,6 +4253,15 @@
         return mapa;
       }, [carrito]);
 
+      const cantidadEnCarritoPorCombo = useMemo(() => {
+        const mapa = new Map();
+        carrito.forEach((item) => {
+          if (!item.esCombo) return;
+          mapa.set(item.comboId, (mapa.get(item.comboId) || 0) + Number(item.cantidad || 0));
+        });
+        return mapa;
+      }, [carrito]);
+
       // Versión del catálogo con los campos de texto ya en minúscula, para
       // no repetir toLowerCase() sobre cada producto en cada tecla que se
       // escribe en los buscadores de "Registrar Inventario" (se recalcula
@@ -4232,6 +4454,90 @@
         }
         notificar(`Añadido: ${descripcionMostrada}`, 'success');
       }, [notificar]);
+
+      // Agrega un combo al carrito como UNA sola línea (precio de bolsa,
+      // "itemsCombo" con la receta) -- recién al cobrar (ver
+      // expandirLineaCarrito) se reparte en líneas reales por producto, que
+      // es lo que de verdad descuenta stock. Igual que agregarAlCarrito,
+      // suma cantidad si el mismo combo ya estaba en el carrito.
+      const agregarComboAlCarrito = useCallback((combo, cantidad = 1) => {
+        const cantNum = parseFloat(cantidad) || 1;
+        const claveCarrito = `combo::${combo.id}`;
+        const itemsCombo = (combo.combos_items || combo.items || []).map((ci) => ({
+          productoId: ci.producto_id,
+          descripcion: ci.productos?.descripcion || ci.descripcion || '(producto eliminado)',
+          cod_ean: ci.productos?.cod_ean || ci.cod_ean || '',
+          precioVenta: Number(ci.productos?.precio_venta ?? ci.precio_venta) || 0,
+          precioCosto: Number(ci.productos?.precio_costo ?? ci.precio_costo) || 0,
+          cantidadBase: Number(ci.cantidad)
+        }));
+        const precioUnit = Number(combo.precio_venta) || 0;
+        const costoUnit = itemsCombo.reduce((acc, it) => acc + it.precioCosto * it.cantidadBase, 0);
+
+        setCarrito((prev) => {
+          const idx = prev.findIndex((item) => (item.claveCarrito || item.productoId) === claveCarrito);
+          if (idx >= 0) {
+            const actual = prev[idx];
+            const nuevaCant = +(actual.cantidad + cantNum).toFixed(3);
+            const nuevo = [...prev];
+            nuevo[idx] = { ...actual, cantidad: nuevaCant, subtotal: +(nuevaCant * actual.precioUnitario).toFixed(2) };
+            return nuevo;
+          }
+          return [
+            ...prev,
+            {
+              esCombo: true,
+              comboId: combo.id,
+              productoId: null,
+              claveCarrito,
+              descripcion: `Combo: ${combo.nombre}`,
+              precioUnitario: precioUnit,
+              precioCosto: costoUnit,
+              cantidad: cantNum,
+              subtotal: +(cantNum * precioUnit).toFixed(2),
+              unidad: 'COMBO',
+              itemsCombo
+            }
+          ];
+        });
+        notificar(`Añadido: Combo ${combo.nombre}`, 'success');
+      }, [notificar]);
+
+      // Convierte el carrito (donde un combo es UNA línea) en las líneas
+      // "reales" que se guardan en ventas_detalle y descuentan stock -- una
+      // por cada producto, incluidos los que vienen de dentro de un combo.
+      // Así anularVentaHoy, el reporte de "Productos Más Vendidos" y el
+      // ajuste de stock (ajustar_stock por producto) no necesitan saber que
+      // los combos existen: para ellos es una venta de varios productos,
+      // como cualquier otra.
+      const expandirLineaCarrito = (item) => {
+        if (!item.esCombo) return [item];
+        const pesoTotal = item.itemsCombo.reduce((acc, c) => acc + c.precioVenta * c.cantidadBase, 0);
+        let subtotalAsignado = 0;
+        return item.itemsCombo.map((comp, i) => {
+          const cantidadComponente = +(comp.cantidadBase * item.cantidad).toFixed(3);
+          const esUltimo = i === item.itemsCombo.length - 1;
+          let subtotalComponente;
+          if (esUltimo) {
+            subtotalComponente = +(item.subtotal - subtotalAsignado).toFixed(2);
+          } else {
+            const fraccion = pesoTotal > 0 ? (comp.precioVenta * comp.cantidadBase) / pesoTotal : 1 / item.itemsCombo.length;
+            subtotalComponente = +(item.subtotal * fraccion).toFixed(2);
+            subtotalAsignado = +(subtotalAsignado + subtotalComponente).toFixed(2);
+          }
+          return {
+            productoId: comp.productoId,
+            cod_ean: comp.cod_ean,
+            descripcion: `${comp.descripcion} (${item.descripcion})`,
+            cantidad: cantidadComponente,
+            precioUnitario: cantidadComponente > 0 ? +(subtotalComponente / cantidadComponente).toFixed(2) : 0,
+            precioCosto: comp.precioCosto,
+            subtotal: subtotalComponente,
+            unidadesStock: cantidadComponente,
+            comboId: item.comboId
+          };
+        });
+      };
 
       const handleClicProducto = useCallback((prod, tipoVentaForzado = null) => {
         const esKG = prod.unidad === 'KG';
@@ -7342,11 +7648,19 @@
               monto_otro: medioPago === 'MIXTO' ? montoOtroMixto : 0
             };
 
-            const payloadDetallesSinVentaId = carrito.map(item => {
+            // Un combo es UNA línea en el carrito pero se cobra/descuenta como
+            // varias -- lineasCheckout ya viene "aplanada" a líneas reales
+            // por producto (ver expandirLineaCarrito), así que todo lo de
+            // abajo (detalle de venta, ajuste de stock) no necesita saber
+            // que los combos existen.
+            const lineasCheckout = carrito.flatMap(expandirLineaCarrito);
+
+            const payloadDetallesSinVentaId = lineasCheckout.map(item => {
               const costoTotal = (Number(item.precioCosto) || 0) * Number(item.cantidad);
               return {
                 bodega_id: bodegaId,
                 producto_id: typeof item.productoId === 'string' && item.productoId.length > 10 ? item.productoId : null,
+                combo_id: item.comboId || null,
                 cod_ean: item.cod_ean || '',
                 descripcion: item.descripcion || '',
                 cantidad: Number(item.cantidad),
@@ -7362,7 +7676,7 @@
               };
             });
 
-            const ajustesStock = carrito
+            const ajustesStock = lineasCheckout
               .filter(item => typeof item.productoId === 'string' && item.productoId.length > 10)
               .map(item => ({ productoId: item.productoId, delta: -Number(item.unidadesStock || item.cantidad) }));
 
@@ -7392,7 +7706,7 @@
                 // caracteres), acá se conserva el id del catálogo demo tal
                 // cual -- si no, anular la boleta después no podría ubicar
                 // qué producto reponer en catalogoDemoRef.
-                ventas_detalle: carrito.map((item) => ({
+                ventas_detalle: lineasCheckout.map((item) => ({
                   producto_id: item.productoId,
                   descripcion: item.descripcion || '',
                   cantidad: Number(item.cantidad),
@@ -7405,7 +7719,11 @@
               }];
 
               if (catalogoDemoRef.current) {
-                const cantidadesPorId = new Map(carrito.map((it) => [it.productoId, Number(it.unidadesStock || it.cantidad)]));
+                // Acumula por producto en vez de un Map 1:1 -- una misma línea
+                // aplanada puede repetir productoId si, por ejemplo, un
+                // producto está suelto en el carrito Y dentro de un combo.
+                const cantidadesPorId = new Map();
+                ajustesStock.forEach((a) => cantidadesPorId.set(a.productoId, (cantidadesPorId.get(a.productoId) || 0) + (-a.delta)));
                 catalogoDemoRef.current = catalogoDemoRef.current.map((p) => (cantidadesPorId.has(p.id)
                   ? { ...p, stock_actual: Math.max(0, (Number(p.stock_actual) || 0) - cantidadesPorId.get(p.id)) }
                   : p));
@@ -7438,10 +7756,13 @@
 
               // Refleja el descuento de stock en el catálogo ya mismo (la
               // cifra real de la base de datos se corrige sola al sincronizar).
+              // Usa ajustesStock (ya aplanado por producto, combos incluidos)
+              // en vez de buscar en carrito directo -- ahí una línea de combo
+              // no tiene productoId propio.
               setProductos(prev => prev.map(p => {
-                const item = carrito.find(it => it.productoId === p.id);
-                if (!item || p.stock_actual === null || p.stock_actual === undefined) return p;
-                return { ...p, stock_actual: Math.max(0, Number(p.stock_actual) - Number(item.unidadesStock || item.cantidad)) };
+                const adj = ajustesStock.find(a => a.productoId === p.id);
+                if (!adj || p.stock_actual === null || p.stock_actual === undefined) return p;
+                return { ...p, stock_actual: Math.max(0, Number(p.stock_actual) + adj.delta) };
               }));
 
               if (medioPago === 'CREDITO' && idClienteReal) {
@@ -8169,6 +8490,7 @@
                       <SidebarIcon icon="fa-boxes-stacked" label="Registrar Productos" onClick={() => setModalInventarioInicial(true)} />
                       <SidebarIcon icon="fa-truck-ramp-box" label="Entrada de Mercadería" onClick={() => setModalEntradaMercaderia(true)} />
                       <SidebarIcon icon="fa-clipboard-list" label="Levantamiento de Inventario" onClick={() => setModalLevantamiento(true)} />
+                      <SidebarIcon icon="fa-gift" label="Combos" onClick={abrirModalCombos} />
                       {sesion?.bodega?.mostrar_catalogo_maestro !== false && (
                         <SidebarIcon icon="fa-book" label="Importar del Catálogo Maestro" onClick={abrirImportarMaestro} />
                       )}
@@ -8323,8 +8645,19 @@
                 </div>
               )}
 
-              {/* Categorías */}
+              {/* Categorías (+ pestaña de Combos, si hay alguno activo) */}
               <div className="flex gap-1.5 overflow-x-auto pb-1 text-xs">
+                {combos.some(c => c.activo) && (
+                  <button
+                    onClick={() => setCategoriaFiltro('__COMBOS__')}
+                    className={`shrink-0 flex flex-col items-start px-3.5 py-1.5 rounded-xl transition ${categoriaFiltro === '__COMBOS__' ? 'bg-amber-500 text-white shadow' : 'bg-amber-50 text-amber-700 hover:bg-amber-100 border border-amber-200'}`}
+                  >
+                    <span className="font-bold whitespace-nowrap"><i className="fa-solid fa-gift mr-1"></i>Combos</span>
+                    <span className={`text-[10px] font-medium ${categoriaFiltro === '__COMBOS__' ? 'text-white/70' : 'text-amber-600/70'}`}>
+                      {combos.filter(c => c.activo).length} activo{combos.filter(c => c.activo).length === 1 ? '' : 's'}
+                    </span>
+                  </button>
+                )}
                 {categorias.map(cat => {
                   const cantidad = cat === 'TODOS' ? productos.length : (conteoPorCategoria.get(cat) || 0);
                   const activo = categoriaFiltro === cat;
@@ -8348,7 +8681,42 @@
                   quede tapada por la barra flotante del carrito (fixed
                   bottom-3) ni pegada contra el borde de la pantalla. */}
               <div className="flex-1 overflow-y-auto pr-1 pb-24 md:pb-3">
-                {cargandoProductos ? (
+                {categoriaFiltro === '__COMBOS__' ? (
+                  combos.filter(c => c.activo).length === 0 ? (
+                    <div className="flex flex-col items-center justify-center h-48 text-stone-500 text-center">
+                      <p className="text-base font-semibold">No hay combos activos</p>
+                      <p className="text-xs text-stone-400 mt-1">Créalos desde "Entradas → Combos".</p>
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
+                      {combos.filter(c => c.activo).map((combo) => (
+                        <button
+                          key={combo.id}
+                          onClick={() => agregarComboAlCarrito(combo)}
+                          className={`text-left bg-white border rounded-2xl overflow-hidden shadow-sm hover:-translate-y-0.5 hover:shadow-lg transition-all duration-200 active:scale-[0.98] relative p-3 flex flex-col gap-1.5 ${
+                            (cantidadEnCarritoPorCombo.get(combo.id) || 0) > 0 ? 'border-amber-500 ring-2 ring-amber-500/40' : 'border-amber-200 hover:border-amber-400'
+                          }`}
+                        >
+                          <div className="flex items-center gap-2">
+                            <span className="w-9 h-9 rounded-xl bg-amber-100 text-amber-600 flex items-center justify-center shrink-0">
+                              <i className="fa-solid fa-gift"></i>
+                            </span>
+                            <h3 className="text-[13px] font-bold text-stone-900 line-clamp-2 leading-snug flex-1">{combo.nombre}</h3>
+                          </div>
+                          <p className="text-[10px] text-stone-500 line-clamp-2">
+                            Incluye: {(combo.combos_items || []).map((ci) => `${ci.productos?.descripcion || '?'} x${ci.cantidad}`).join(', ')}
+                          </p>
+                          <div className="flex items-center justify-between mt-auto pt-1">
+                            <span className="text-base font-black text-amber-700 tabular-nums">S/ {Number(combo.precio_venta).toFixed(2)}</span>
+                            {(cantidadEnCarritoPorCombo.get(combo.id) || 0) > 0 && (
+                              <span className="text-[10px] font-bold text-white bg-amber-600 px-2 py-0.5 rounded-full">x{cantidadEnCarritoPorCombo.get(combo.id)}</span>
+                            )}
+                          </div>
+                        </button>
+                      ))}
+                    </div>
+                  )
+                ) : cargandoProductos ? (
                   <div className="flex flex-col items-center justify-center h-48 text-stone-600 gap-2">
                     <div className="w-8 h-8 border-4 border-orange-500 border-t-transparent rounded-full animate-spin"></div>
                     <p className="text-xs">Cargando productos...</p>
@@ -8910,6 +9278,9 @@
                         </button>
                         <button onClick={() => { setModalLevantamiento(true); setMenuMas(false); }} className="w-full text-left px-3.5 py-2.5 rounded-xl hover:bg-stone-200 flex items-center gap-3 text-stone-800 font-medium text-sm">
                           <i className="fa-solid fa-clipboard-list w-5 text-orange-600"></i> Levantamiento de Inventario
+                        </button>
+                        <button onClick={() => { abrirModalCombos(); setMenuMas(false); }} className="w-full text-left px-3.5 py-2.5 rounded-xl hover:bg-stone-200 flex items-center gap-3 text-stone-800 font-medium text-sm">
+                          <i className="fa-solid fa-gift w-5 text-orange-600"></i> Combos
                         </button>
                         <button onClick={() => { abrirImportarMaestro(); setMenuMas(false); }} className="w-full text-left px-3.5 py-2.5 rounded-xl hover:bg-stone-200 flex items-center gap-3 text-stone-800 font-medium text-sm">
                           <i className="fa-solid fa-book w-5 text-orange-600"></i> Importar del Catálogo Maestro
@@ -9668,6 +10039,179 @@
                     )}
                   </button>
                 </div>
+              </div>
+            </div>
+          )}
+
+          {/* Modal: Combos */}
+          {modalCombos && (
+            <div className="fixed inset-0 bg-black/85 flex items-center justify-center z-50 p-4">
+              <div className="bg-stone-100 border border-stone-200 rounded-2xl max-w-lg w-full p-5 shadow-2xl space-y-3 max-h-[90vh] flex flex-col">
+                <div className="flex justify-between items-start shrink-0">
+                  <div>
+                    <h3 className="text-base font-bold text-stone-900 flex items-center gap-2">
+                      <i className="fa-solid fa-gift text-amber-500"></i> Combos
+                    </h3>
+                    <p className="text-xs text-stone-600 mt-0.5">Paquetes de varios productos a un precio especial. Al venderse, descuentan el stock real de cada producto que los compone.</p>
+                  </div>
+                  <button onClick={() => { setModalCombos(false); setFormCombo(null); }} className="text-stone-600 hover:text-stone-900 shrink-0"><i className="fa-solid fa-xmark"></i></button>
+                </div>
+
+                {!formCombo ? (
+                  <>
+                    <button
+                      onClick={nuevoCombo}
+                      className="w-full py-2.5 bg-amber-500 hover:bg-amber-600 text-white text-sm font-bold rounded-xl shadow flex items-center justify-center gap-1.5 shrink-0"
+                    >
+                      <i className="fa-solid fa-plus"></i> Nuevo Combo
+                    </button>
+                    <div className="flex-1 overflow-y-auto space-y-2 pr-1">
+                      {cargandoCombos ? (
+                        <p className="text-xs text-center py-8 text-stone-500">Cargando combos...</p>
+                      ) : combos.length === 0 ? (
+                        <p className="text-xs text-center py-8 text-stone-500">Todavía no tienes combos. Crea el primero arriba.</p>
+                      ) : (
+                        combos.map((combo) => (
+                          <div key={combo.id} className={`p-3 rounded-xl border ${combo.activo ? 'bg-white border-stone-200' : 'bg-stone-100 border-stone-200 opacity-70'}`}>
+                            <div className="flex items-start justify-between gap-2">
+                              <div className="min-w-0">
+                                <p className="text-sm font-bold text-stone-900 truncate">{combo.nombre}</p>
+                                <p className="text-[11px] text-stone-500 truncate">
+                                  {(combo.combos_items || []).length} producto{(combo.combos_items || []).length === 1 ? '' : 's'} · S/ {Number(combo.precio_venta).toFixed(2)}
+                                </p>
+                              </div>
+                              <div className="flex items-center gap-2 shrink-0">
+                                <Interruptor activo={combo.activo} onClick={() => alternarActivoCombo(combo)} etiqueta="" title={combo.activo ? 'Activo (visible para vender)' : 'Inactivo'} />
+                                <button onClick={() => editarCombo(combo)} className="w-7 h-7 flex items-center justify-center text-stone-500 hover:text-orange-600" title="Editar">
+                                  <i className="fa-solid fa-pen text-xs"></i>
+                                </button>
+                                <button onClick={() => eliminarCombo(combo)} className="w-7 h-7 flex items-center justify-center text-stone-500 hover:text-rose-600" title="Eliminar">
+                                  <i className="fa-solid fa-trash-can text-xs"></i>
+                                </button>
+                              </div>
+                            </div>
+                          </div>
+                        ))
+                      )}
+                    </div>
+                  </>
+                ) : (
+                  <div className="flex-1 overflow-y-auto space-y-3 pr-1">
+                    <div>
+                      <label className="text-xs font-semibold text-stone-600 block mb-1">Nombre del combo *</label>
+                      <input
+                        type="text"
+                        placeholder="Ej: Combo Desayuno"
+                        value={formCombo.nombre}
+                        onChange={(e) => setFormCombo({ ...formCombo, nombre: e.target.value })}
+                        className="w-full bg-white border border-stone-200 rounded-lg px-3 py-1.5 text-sm text-stone-900"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-xs font-semibold text-stone-600 block mb-1">Descripción (opcional)</label>
+                      <input
+                        type="text"
+                        placeholder="Ej: Pan, leche y huevos para empezar el día"
+                        value={formCombo.descripcion}
+                        onChange={(e) => setFormCombo({ ...formCombo, descripcion: e.target.value })}
+                        className="w-full bg-white border border-stone-200 rounded-lg px-3 py-1.5 text-sm text-stone-900"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="text-xs font-semibold text-stone-600 block mb-1">Productos del combo *</label>
+                      <div className="relative">
+                        <input
+                          type="text"
+                          placeholder="Buscar producto para agregar..."
+                          value={busquedaProductoCombo}
+                          onChange={(e) => setBusquedaProductoCombo(e.target.value)}
+                          className="w-full bg-white border border-stone-200 rounded-lg px-3 py-1.5 text-sm text-stone-900"
+                        />
+                        {busquedaProductoCombo.trim() && (
+                          <div className="absolute z-10 top-full left-0 right-0 mt-1 bg-white border border-stone-300 rounded-lg shadow-xl overflow-hidden max-h-48 overflow-y-auto">
+                            {productos
+                              .filter((p) => p.descripcion.toLowerCase().includes(busquedaProductoCombo.trim().toLowerCase()) || (p.cod_ean || '').includes(busquedaProductoCombo.trim()))
+                              .slice(0, 8)
+                              .map((p) => (
+                                <button
+                                  type="button"
+                                  key={p.id}
+                                  onClick={() => agregarProductoAFormCombo(p)}
+                                  className="w-full text-left px-3 py-2 text-xs text-stone-800 hover:bg-stone-100 flex items-center justify-between gap-2"
+                                >
+                                  <span className="truncate">{p.descripcion}</span>
+                                  <span className="text-stone-500 shrink-0">S/ {Number(p.precio_venta).toFixed(2)}</span>
+                                </button>
+                              ))}
+                            {productos.filter((p) => p.descripcion.toLowerCase().includes(busquedaProductoCombo.trim().toLowerCase())).length === 0 && (
+                              <p className="px-3 py-2 text-xs text-stone-400">Sin resultados.</p>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+
+                    {formCombo.items.length > 0 && (
+                      <div className="space-y-1.5">
+                        {formCombo.items.map((it) => (
+                          <div key={it.producto_id} className="flex items-center gap-2 bg-white border border-stone-200 rounded-lg p-2">
+                            <span className="flex-1 min-w-0 text-xs font-medium text-stone-800 truncate">{it.descripcion}</span>
+                            <input
+                              type="number"
+                              min="1"
+                              step="1"
+                              value={it.cantidad}
+                              onChange={(e) => actualizarCantidadItemCombo(it.producto_id, e.target.value)}
+                              className="w-14 bg-stone-100 border border-stone-200 rounded px-2 py-1 text-xs text-stone-900 text-center"
+                            />
+                            <span className="text-[11px] text-stone-400 w-16 shrink-0 text-right">S/ {(it.precio_venta * it.cantidad).toFixed(2)}</span>
+                            <button onClick={() => quitarItemCombo(it.producto_id)} className="w-6 h-6 flex items-center justify-center text-stone-400 hover:text-rose-600 shrink-0">
+                              <i className="fa-solid fa-xmark text-xs"></i>
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+
+                    <div className="grid grid-cols-2 gap-2">
+                      <div>
+                        <label className="text-xs font-semibold text-stone-600 block mb-1">Precio del combo (S/) *</label>
+                        <input
+                          type="number"
+                          step="0.10"
+                          placeholder="0.00"
+                          value={formCombo.precio_venta}
+                          onChange={(e) => setFormCombo({ ...formCombo, precio_venta: e.target.value })}
+                          className="w-full bg-white border border-stone-200 rounded-lg px-3 py-1.5 text-sm font-bold text-stone-900"
+                        />
+                      </div>
+                      <div className="flex flex-col justify-end">
+                        <span className="text-[11px] text-stone-500">Precio sumado: S/ {precioNormalCombo(formCombo).toFixed(2)}</span>
+                        {precioNormalCombo(formCombo) > 0 && Number(formCombo.precio_venta) > 0 && (
+                          <span className="text-[11px] font-semibold text-emerald-600">
+                            Ahorro: {(100 - (Number(formCombo.precio_venta) / precioNormalCombo(formCombo)) * 100).toFixed(0)}%
+                          </span>
+                        )}
+                      </div>
+                    </div>
+
+                    <Interruptor activo={formCombo.activo} onClick={() => setFormCombo({ ...formCombo, activo: !formCombo.activo })} etiqueta="Combo activo (visible para vender)" />
+
+                    <div className="flex gap-2 pt-1 shrink-0">
+                      <button onClick={() => setFormCombo(null)} className="flex-1 py-2.5 bg-stone-200 hover:bg-stone-300 text-stone-800 text-sm font-semibold rounded-xl">
+                        Cancelar
+                      </button>
+                      <button
+                        onClick={guardarCombo}
+                        disabled={guardandoCombo}
+                        className="flex-1 py-2.5 bg-stone-900 hover:bg-stone-800 disabled:opacity-60 text-white font-bold text-sm rounded-xl shadow"
+                      >
+                        {guardandoCombo ? 'Guardando...' : 'Guardar Combo'}
+                      </button>
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
           )}
