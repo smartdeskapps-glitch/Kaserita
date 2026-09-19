@@ -4,6 +4,8 @@
   "outputDirectory": ".",
   "rewrites": [
     { "source": "/registro", "destination": "/registro.html" },
+    { "source": "/privacidad", "destination": "/privacidad.html" },
+    { "source": "/terminos", "destination": "/terminos.html" },
     { "source": "/(.*)", "destination": "/index.html" }
   ]
 }
