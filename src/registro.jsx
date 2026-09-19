@@ -119,6 +119,15 @@ function App() {
     })();
   }, []);
 
+  // Vía de salida para el caso "entré con Google pero no quiero pagar
+  // ahora": sin esto, la sesión de Google queda guardada y cada vez que se
+  // vuelve a abrir la app (index.html) se repite el mismo aviso de "no
+  // tenés suscripción" y termina de nuevo acá, en un loop sin salida.
+  const cerrarSesionYVolver = async () => {
+    await sbClient.auth.signOut();
+    window.location.href = '/';
+  };
+
   const entrarConGoogle = async () => {
     if (!planElegido) return;
     localStorage.setItem('kaserita_registro_plan', planElegido);
@@ -227,6 +236,13 @@ function App() {
         </div>
         <div className="topbar-note"><svg className="ic" viewBox="0 0 16 16"><rect x="3.5" y="7" width="9" height="6.5" rx="1.5"/><path d="M5.5 7V5a2.5 2.5 0 015 0v2"/></svg> Pago seguro con Culqi</div>
       </div>
+
+      {sesionGoogle && paso !== 'listo' && paso !== 'cargando' && (
+        <div className="session-note">
+          Conectado como {sesionGoogle.user?.email} ·{' '}
+          <button type="button" onClick={cerrarSesionYVolver}>Cerrar sesión</button>
+        </div>
+      )}
 
       {(paso === 'plan' || paso === 'google') && (
         <div className="hero">
