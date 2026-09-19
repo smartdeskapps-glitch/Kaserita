@@ -960,6 +960,29 @@
       );
     }
 
+    // Tarjeta de indicador del Dashboard de Ventas: ícono en una insignia con
+    // degradado suave (mismo lenguaje visual que las categorías del catálogo,
+    // ver CATEGORIA_ESTILO más abajo) + valor grande + variación opcional.
+    function TarjetaKPI({ icono, color, fondo, etiqueta, valor, delta }) {
+      return (
+        <div className="bg-white p-3.5 rounded-2xl border border-stone-200 flex items-start gap-3">
+          <div className={`w-9 h-9 rounded-xl bg-gradient-to-br ${fondo} flex items-center justify-center shrink-0`}>
+            <i className={`fa-solid ${icono} ${color} text-sm`}></i>
+          </div>
+          <div className="min-w-0 flex-1">
+            <span className="text-[11px] text-stone-500 block leading-tight">{etiqueta}</span>
+            <span className={`font-black text-lg ${color} block leading-tight truncate`}>{valor}</span>
+            {delta != null && (
+              <div className={`text-[10px] font-semibold mt-0.5 flex items-center gap-1 ${delta >= 0 ? 'text-emerald-600' : 'text-rose-600'}`}>
+                <i className={`fa-solid ${delta >= 0 ? 'fa-arrow-up' : 'fa-arrow-down'}`}></i>
+                {Math.abs(delta).toFixed(0)}% vs período anterior
+              </div>
+            )}
+          </div>
+        </div>
+      );
+    }
+
     // Cada categoría tiene su ícono de línea y un color de acento propio, para que
     // el catálogo se lea de un vistazo sin depender de fotos de producto.
     const CATEGORIA_ESTILO = {
@@ -2954,6 +2977,10 @@
       const [clientesDeuda, setClientesDeuda] = useState([]);
       const [ventasDashboardAnterior, setVentasDashboardAnterior] = useState([]);
       const [proveedoresDeudaDash, setProveedoresDeudaDash] = useState([]);
+      // Tooltips de los gráficos del dashboard -- índice del punto/hora bajo
+      // el mouse (o foco de teclado), null cuando no hay nada resaltado.
+      const [horaResaltada, setHoraResaltada] = useState(null);
+      const [diaResaltado, setDiaResaltado] = useState(null);
 
       // --- Cobro / Pagos ---
       // Los métodos de pago y el descuento se mantienen ocultos hasta tocar
@@ -11858,45 +11885,22 @@
                   <>
                     {/* Tarjetas de resumen */}
                     <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2.5">
-                      <div className="bg-white p-3 rounded-xl border border-stone-200">
-                        <span className="text-[11px] text-stone-500 block">Venta Total</span>
-                        <span className="font-black text-lg text-orange-600">S/ {dashStats.totalVenta.toFixed(2)}</span>
-                        <div className={`text-[10px] font-semibold mt-0.5 flex items-center gap-1 ${dashStats.cambioVentaPct >= 0 ? 'text-emerald-600' : 'text-rose-600'}`}>
-                          <i className={`fa-solid ${dashStats.cambioVentaPct >= 0 ? 'fa-arrow-up' : 'fa-arrow-down'}`}></i>
-                          {Math.abs(dashStats.cambioVentaPct).toFixed(0)}% vs período anterior
-                        </div>
-                      </div>
-                      <div className="bg-white p-3 rounded-xl border border-stone-200">
-                        <span className="text-[11px] text-stone-500 block">Utilidad</span>
-                        <span className="font-black text-lg text-emerald-600">S/ {dashStats.totalUtilidad.toFixed(2)}</span>
-                        <div className={`text-[10px] font-semibold mt-0.5 flex items-center gap-1 ${dashStats.cambioUtilidadPct >= 0 ? 'text-emerald-600' : 'text-rose-600'}`}>
-                          <i className={`fa-solid ${dashStats.cambioUtilidadPct >= 0 ? 'fa-arrow-up' : 'fa-arrow-down'}`}></i>
-                          {Math.abs(dashStats.cambioUtilidadPct).toFixed(0)}% vs período anterior
-                        </div>
-                      </div>
-                      <div className="bg-white p-3 rounded-xl border border-stone-200">
-                        <span className="text-[11px] text-stone-500 block">Costo</span>
-                        <span className="font-black text-lg text-stone-700">S/ {dashStats.totalCosto.toFixed(2)}</span>
-                      </div>
-                      <div className="bg-white p-3 rounded-xl border border-stone-200">
-                        <span className="text-[11px] text-stone-500 block">Margen</span>
-                        <span className="font-black text-lg text-purple-600">{dashStats.margenPct.toFixed(1)}%</span>
-                      </div>
-                      <div className="bg-white p-3 rounded-xl border border-stone-200">
-                        <span className="text-[11px] text-stone-500 block">Ticket Promedio</span>
-                        <span className="font-black text-lg text-sky-600">S/ {dashStats.ticketPromedio.toFixed(2)}</span>
-                      </div>
-                      <div className="bg-white p-3 rounded-xl border border-stone-200">
-                        <span className="text-[11px] text-stone-500 block">N° de Ventas</span>
-                        <span className="font-black text-lg text-stone-900">{dashStats.numVentas}</span>
-                      </div>
+                      <TarjetaKPI icono="fa-sack-dollar" color="text-violet-600" fondo="from-violet-500/20 to-violet-500/5" etiqueta="Venta Total" valor={`S/ ${dashStats.totalVenta.toFixed(2)}`} delta={dashStats.cambioVentaPct} />
+                      <TarjetaKPI icono="fa-chart-line" color="text-emerald-600" fondo="from-emerald-500/20 to-emerald-500/5" etiqueta="Utilidad" valor={`S/ ${dashStats.totalUtilidad.toFixed(2)}`} delta={dashStats.cambioUtilidadPct} />
+                      <TarjetaKPI icono="fa-coins" color="text-stone-600" fondo="from-stone-400/20 to-stone-400/5" etiqueta="Costo" valor={`S/ ${dashStats.totalCosto.toFixed(2)}`} />
+                      <TarjetaKPI icono="fa-percent" color="text-sky-600" fondo="from-sky-500/20 to-sky-500/5" etiqueta="Margen" valor={`${dashStats.margenPct.toFixed(1)}%`} />
+                      <TarjetaKPI icono="fa-receipt" color="text-orange-600" fondo="from-orange-500/20 to-orange-500/5" etiqueta="Ticket Promedio" valor={`S/ ${dashStats.ticketPromedio.toFixed(2)}`} />
+                      <TarjetaKPI icono="fa-basket-shopping" color="text-indigo-600" fondo="from-indigo-500/20 to-indigo-500/5" etiqueta="N° de Ventas" valor={dashStats.numVentas} />
                     </div>
 
                     {/* Cuentas por Cobrar: dinero retenido en crédito, no depende del rango de fechas */}
-                    <div className="bg-rose-50 p-4 rounded-xl border border-rose-200">
+                    <div className="bg-rose-50 p-4 rounded-2xl border border-rose-200">
                       <div className="flex flex-wrap justify-between items-center gap-2 mb-3">
                         <h4 className="text-sm font-bold text-rose-900 flex items-center gap-2">
-                          <i className="fa-solid fa-hand-holding-dollar"></i> Cuentas por Cobrar (dinero retenido)
+                          <span className="w-7 h-7 rounded-lg bg-rose-500/15 flex items-center justify-center shrink-0">
+                            <i className="fa-solid fa-hand-holding-dollar text-rose-600 text-xs"></i>
+                          </span>
+                          Cuentas por Cobrar (dinero retenido)
                         </h4>
                         <div className="flex gap-4 text-right">
                           <div>
@@ -11929,10 +11933,13 @@
                     </div>
 
                     {/* Cuentas por Pagar: dinero que la bodega debe a proveedores */}
-                    <div className="bg-amber-50 p-4 rounded-xl border border-amber-200">
+                    <div className="bg-amber-50 p-4 rounded-2xl border border-amber-200">
                       <div className="flex flex-wrap justify-between items-center gap-2 mb-3">
                         <h4 className="text-sm font-bold text-amber-900 flex items-center gap-2">
-                          <i className="fa-solid fa-file-invoice"></i> Cuentas por Pagar (a proveedores)
+                          <span className="w-7 h-7 rounded-lg bg-amber-500/15 flex items-center justify-center shrink-0">
+                            <i className="fa-solid fa-file-invoice text-amber-600 text-xs"></i>
+                          </span>
+                          Cuentas por Pagar (a proveedores)
                         </h4>
                         <div className="flex gap-4 text-right">
                           <div>
@@ -11966,46 +11973,79 @@
 
                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
                       {/* Ventas por horario */}
-                      <div className="bg-white p-4 rounded-xl border border-stone-200">
-                        <div className="flex justify-between items-center mb-3">
-                          <h4 className="text-sm font-bold text-stone-900">Ventas por Horario</h4>
+                      <div className="bg-white p-4 rounded-2xl border border-stone-200">
+                        <div className="flex justify-between items-center mb-4">
+                          <h4 className="text-sm font-bold text-stone-900 flex items-center gap-2">
+                            <span className="w-7 h-7 rounded-lg bg-gradient-to-br from-orange-500/20 to-orange-500/5 flex items-center justify-center shrink-0">
+                              <i className="fa-solid fa-clock text-orange-600 text-xs"></i>
+                            </span>
+                            Ventas por Horario
+                          </h4>
                           {dashStats.horaPico.total > 0 && (
                             <span className="text-[11px] text-stone-500">
                               Pico: <span className="font-bold text-orange-600">{String(dashStats.horaPico.hora).padStart(2, '0')}:00</span>
                             </span>
                           )}
                         </div>
-                        <div className="flex items-end gap-[3px] h-32 overflow-x-auto pb-1">
-                          {dashStats.porHora.map(h => (
-                            <div key={h.hora} className="flex flex-col items-center justify-end h-full shrink-0" style={{ width: '18px' }} title={`${String(h.hora).padStart(2, '0')}:00 — S/ ${h.total.toFixed(2)} (${h.cantidad} venta${h.cantidad === 1 ? '' : 's'})`}>
-                              <div
-                                className={`w-full rounded-t ${h.total > 0 ? 'bg-orange-500' : 'bg-stone-100'}`}
-                                style={{ height: `${Math.max(2, (h.total / dashStats.maxHora) * 100)}%` }}
-                              ></div>
-                              {h.hora % 3 === 0 && (
-                                <span className="text-[9px] text-stone-500 mt-1">{h.hora}h</span>
-                              )}
+                        <div className="relative">
+                          {horaResaltada != null && dashStats.porHora[horaResaltada] && (
+                            <div
+                              className="absolute -translate-x-1/2 -translate-y-full bg-stone-900 text-white text-[11px] rounded-lg px-2.5 py-1.5 whitespace-nowrap pointer-events-none z-10 shadow-lg"
+                              style={{ left: horaResaltada * 21 + 9, top: -6 }}
+                            >
+                              <div className="font-bold">{String(dashStats.porHora[horaResaltada].hora).padStart(2, '0')}:00</div>
+                              <div className="text-stone-300">S/ {dashStats.porHora[horaResaltada].total.toFixed(2)} · {dashStats.porHora[horaResaltada].cantidad} venta{dashStats.porHora[horaResaltada].cantidad === 1 ? '' : 's'}</div>
                             </div>
-                          ))}
+                          )}
+                          <div className="flex items-end gap-[3px] h-32 overflow-x-auto pb-1">
+                            {dashStats.porHora.map((h, i) => {
+                              let claseBarra = 'bg-stone-100';
+                              if (h.total > 0) {
+                                claseBarra = horaResaltada === i ? 'bg-orange-600' : h.hora === dashStats.horaPico.hora ? 'bg-orange-500' : 'bg-orange-300';
+                              }
+                              return (
+                                <div
+                                  key={h.hora}
+                                  className="flex flex-col items-center justify-end h-full shrink-0"
+                                  style={{ width: '18px' }}
+                                  onMouseEnter={() => setHoraResaltada(i)}
+                                  onMouseLeave={() => setHoraResaltada((cur) => (cur === i ? null : cur))}
+                                  onFocus={() => setHoraResaltada(i)}
+                                  onBlur={() => setHoraResaltada((cur) => (cur === i ? null : cur))}
+                                  tabIndex={h.total > 0 ? 0 : -1}
+                                >
+                                  <div className={`w-full rounded-t transition-colors ${claseBarra}`} style={{ height: `${Math.max(2, (h.total / dashStats.maxHora) * 100)}%` }}></div>
+                                  {h.hora % 3 === 0 && (
+                                    <span className="text-[9px] text-stone-500 mt-1">{h.hora}h</span>
+                                  )}
+                                </div>
+                              );
+                            })}
+                          </div>
                         </div>
                       </div>
 
                       {/* Métodos de pago */}
-                      <div className="bg-white p-4 rounded-xl border border-stone-200">
-                        <h4 className="text-sm font-bold text-stone-900 mb-3">Métodos de Pago</h4>
-                        <div className="flex flex-col items-center gap-4">
+                      <div className="bg-white p-4 rounded-2xl border border-stone-200">
+                        <h4 className="text-sm font-bold text-stone-900 flex items-center gap-2 mb-4">
+                          <span className="w-7 h-7 rounded-lg bg-gradient-to-br from-sky-500/20 to-sky-500/5 flex items-center justify-center shrink-0">
+                            <i className="fa-solid fa-credit-card text-sky-600 text-xs"></i>
+                          </span>
+                          Métodos de Pago
+                        </h4>
+                        <div className="flex flex-col items-center gap-5">
                           <div
-                            className="relative w-28 h-28 rounded-full shrink-0"
+                            className="relative w-32 h-32 rounded-full shrink-0 shadow-sm"
                             style={{ background: construirGradienteDona(dashStats.porMedio) }}
                           >
-                            <div className="absolute inset-[10px] bg-white rounded-full flex flex-col items-center justify-center">
+                            <div className="absolute inset-[12px] bg-white rounded-full flex flex-col items-center justify-center">
                               <span className="text-[10px] text-stone-500">Total</span>
-                              <span className="text-sm font-black text-stone-900">S/ {dashStats.totalVenta.toFixed(0)}</span>
+                              <span className="text-base font-black text-stone-900">S/ {dashStats.totalVenta.toFixed(0)}</span>
                             </div>
                           </div>
-                          <div className="w-full grid grid-cols-2 gap-x-3 gap-y-2.5">
+                          <div className="w-full grid grid-cols-2 gap-x-3 gap-y-3">
                             {dashStats.porMedio.map(m => (
-                              <div key={m.medio} className="flex items-start gap-1.5 min-w-0">
+                              <div key={m.medio} className="flex items-start gap-2 min-w-0">
                                 <span className="w-2.5 h-2.5 rounded-full shrink-0 mt-1" style={{ background: COLOR_MEDIO_PAGO[m.medio] || '#94a3b8' }}></span>
                                 <div className="min-w-0">
                                   <div className="text-xs font-semibold text-stone-800 truncate">{m.medio}</div>
@@ -12020,20 +12060,63 @@
 
                     {/* Tendencia diaria */}
                     {dashStats.porDia.length > 1 && (
-                      <div className="bg-white p-4 rounded-xl border border-stone-200">
-                        <h4 className="text-sm font-bold text-stone-900 mb-3">Tendencia de Ventas por Día</h4>
-                        <svg viewBox="0 0 300 100" preserveAspectRatio="none" className="w-full h-28">
-                          <polygon
-                            fill="#d6c2fa"
-                            points={`0,100 ${dashStats.porDia.map((d, i) => `${(i / (dashStats.porDia.length - 1)) * 300},${100 - (d.total / dashStats.maxDia) * 85}`).join(' ')} 300,100`}
-                          />
-                          <polyline
-                            fill="none"
-                            stroke="#7c3aed"
-                            strokeWidth="2"
-                            points={dashStats.porDia.map((d, i) => `${(i / (dashStats.porDia.length - 1)) * 300},${100 - (d.total / dashStats.maxDia) * 85}`).join(' ')}
-                          />
-                        </svg>
+                      <div className="bg-white p-4 rounded-2xl border border-stone-200">
+                        <h4 className="text-sm font-bold text-stone-900 flex items-center gap-2 mb-4">
+                          <span className="w-7 h-7 rounded-lg bg-gradient-to-br from-violet-500/20 to-violet-500/5 flex items-center justify-center shrink-0">
+                            <i className="fa-solid fa-chart-area text-violet-600 text-xs"></i>
+                          </span>
+                          Tendencia de Ventas por Día
+                        </h4>
+                        <div
+                          className="relative"
+                          onMouseMove={(e) => {
+                            const rect = e.currentTarget.getBoundingClientRect();
+                            if (!rect.width) return;
+                            const relX = ((e.clientX - rect.left) / rect.width) * 300;
+                            const idx = Math.round((relX / 300) * (dashStats.porDia.length - 1));
+                            setDiaResaltado(Math.max(0, Math.min(dashStats.porDia.length - 1, idx)));
+                          }}
+                          onMouseLeave={() => setDiaResaltado(null)}
+                        >
+                          <svg viewBox="0 0 300 100" preserveAspectRatio="none" className="w-full h-28">
+                            <polygon
+                              fill="rgba(124,58,237,0.12)"
+                              points={`0,100 ${dashStats.porDia.map((d, i) => `${(i / (dashStats.porDia.length - 1)) * 300},${100 - (d.total / dashStats.maxDia) * 85}`).join(' ')} 300,100`}
+                            />
+                            <polyline
+                              fill="none"
+                              stroke="#7c3aed"
+                              strokeWidth="2"
+                              strokeLinejoin="round"
+                              strokeLinecap="round"
+                              vectorEffect="non-scaling-stroke"
+                              points={dashStats.porDia.map((d, i) => `${(i / (dashStats.porDia.length - 1)) * 300},${100 - (d.total / dashStats.maxDia) * 85}`).join(' ')}
+                            />
+                            {diaResaltado != null && (() => {
+                              const x = (diaResaltado / (dashStats.porDia.length - 1)) * 300;
+                              const y = 100 - (dashStats.porDia[diaResaltado].total / dashStats.maxDia) * 85;
+                              return (
+                                <g>
+                                  <line x1={x} y1="0" x2={x} y2="100" stroke="#c3c2b7" strokeWidth="1" vectorEffect="non-scaling-stroke" />
+                                  <circle cx={x} cy={y} r="4" fill="#7c3aed" stroke="#fff" strokeWidth="2" vectorEffect="non-scaling-stroke" />
+                                </g>
+                              );
+                            })()}
+                          </svg>
+                          {diaResaltado != null && (() => {
+                            const d = dashStats.porDia[diaResaltado];
+                            const pctX = (diaResaltado / (dashStats.porDia.length - 1)) * 100;
+                            return (
+                              <div
+                                className="absolute bg-stone-900 text-white text-[11px] rounded-lg px-2.5 py-1.5 whitespace-nowrap pointer-events-none z-10 shadow-lg"
+                                style={{ left: `${pctX}%`, top: -6, transform: `translate(${pctX < 8 ? '0%' : pctX > 92 ? '-100%' : '-50%'}, -100%)` }}
+                              >
+                                <div className="font-bold">{new Date(`${d.fecha}T00:00:00`).toLocaleDateString('es-PE', { weekday: 'short', day: '2-digit', month: '2-digit' })}</div>
+                                <div className="text-stone-300">S/ {d.total.toFixed(2)}</div>
+                              </div>
+                            );
+                          })()}
+                        </div>
                         <div className="flex justify-between text-[10px] text-stone-500 mt-1">
                           <span>{new Date(`${dashStats.porDia[0].fecha}T00:00:00`).toLocaleDateString('es-PE', { day: '2-digit', month: '2-digit' })}</span>
                           <span>{new Date(`${dashStats.porDia[dashStats.porDia.length - 1].fecha}T00:00:00`).toLocaleDateString('es-PE', { day: '2-digit', month: '2-digit' })}</span>
@@ -12042,17 +12125,25 @@
                     )}
 
                     {/* Top productos */}
-                    <div className="bg-white p-4 rounded-xl border border-stone-200">
-                      <h4 className="text-sm font-bold text-stone-900 mb-3">Productos Más Vendidos</h4>
-                      <div className="space-y-2.5">
+                    <div className="bg-white p-4 rounded-2xl border border-stone-200">
+                      <h4 className="text-sm font-bold text-stone-900 flex items-center gap-2 mb-4">
+                        <span className="w-7 h-7 rounded-lg bg-gradient-to-br from-emerald-500/20 to-emerald-500/5 flex items-center justify-center shrink-0">
+                          <i className="fa-solid fa-trophy text-emerald-600 text-xs"></i>
+                        </span>
+                        Productos Más Vendidos
+                      </h4>
+                      <div className="space-y-3">
                         {dashStats.topProductos.map((p, i) => (
-                          <div key={p.descripcion + i}>
-                            <div className="flex justify-between items-center text-xs mb-1">
-                              <span className="text-stone-800 font-medium truncate pr-2">{i + 1}. {p.descripcion}</span>
-                              <span className="text-stone-500 shrink-0">{p.cantidad} und · S/ {p.monto.toFixed(2)} · <span className="text-emerald-600 font-semibold">+S/ {p.utilidad.toFixed(2)}</span></span>
-                            </div>
-                            <div className="w-full h-1.5 bg-stone-100 rounded-full overflow-hidden">
-                              <div className="h-full bg-orange-500 rounded-full" style={{ width: `${(p.monto / dashStats.maxProducto) * 100}%` }}></div>
+                          <div key={p.descripcion + i} className="flex items-center gap-3">
+                            <span className={`w-6 h-6 rounded-full flex items-center justify-center text-[11px] font-black shrink-0 ${i === 0 ? 'bg-orange-500 text-white' : i === 1 ? 'bg-orange-200 text-orange-800' : i === 2 ? 'bg-orange-100 text-orange-700' : 'bg-stone-100 text-stone-500'}`}>{i + 1}</span>
+                            <div className="flex-1 min-w-0">
+                              <div className="flex justify-between items-center text-xs mb-1 gap-2">
+                                <span className="text-stone-800 font-medium truncate">{p.descripcion}</span>
+                                <span className="text-stone-500 shrink-0">{p.cantidad} und · S/ {p.monto.toFixed(2)} · <span className="text-emerald-600 font-semibold">+S/ {p.utilidad.toFixed(2)}</span></span>
+                              </div>
+                              <div className="w-full h-1.5 bg-stone-100 rounded-full overflow-hidden">
+                                <div className="h-full bg-orange-500 rounded-full" style={{ width: `${(p.monto / dashStats.maxProducto) * 100}%` }}></div>
+                              </div>
                             </div>
                           </div>
                         ))}
