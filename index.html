@@ -636,17 +636,34 @@
       }
     };
 
+    // Catálogo semilla del Modo Demo Local -- productos reales del catálogo
+    // maestro (con foto de verdad, no genéricas) para que la demo se vea
+    // como una bodega ya en marcha en vez de un inventario vacío.
     const PRODUCTOS_SEMILLA = [
-      { cod_ean: '775012300001', descripcion: 'Leche Gloria Entera 400g (Azul)', precio_costo: 3.50, precio_venta: 4.20, categoria: 'Lácteos', unidad: 'UND' },
-      { cod_ean: '775012300002', descripcion: 'Arroz Extra Costeño 1kg', precio_costo: 4.10, precio_venta: 5.00, categoria: 'Abarrotes', unidad: 'UND' },
-      { cod_ean: '775012300003', descripcion: 'Aceite Vegetal Primor Clásico 900ml', precio_costo: 7.80, precio_venta: 9.50, categoria: 'Abarrotes', unidad: 'UND' },
-      { cod_ean: '775012300004', descripcion: 'Gaseosa Inca Kola 500ml', precio_costo: 2.20, precio_venta: 3.00, categoria: 'Bebidas', unidad: 'UND' },
-      { cod_ean: '775012300005', descripcion: 'Gaseosa Coca Cola 500ml', precio_costo: 2.80, precio_venta: 3.50, categoria: 'Bebidas', unidad: 'UND' },
-      { cod_ean: '775012300006', descripcion: 'Galletas Margarita Field Paquete x 6', precio_costo: 2.50, precio_venta: 3.20, categoria: 'Golosinas', unidad: 'UND' },
-      { cod_ean: '775012300007', descripcion: 'Pollo Fresco Entero (por KG)', precio_costo: 7.50, precio_venta: 9.80, categoria: 'Carnes', unidad: 'KG' },
-      { cod_ean: '775012300008', descripcion: 'Papa Amarilla Seleccionada (por KG)', precio_costo: 2.20, precio_venta: 3.50, categoria: 'Verduras', unidad: 'KG' },
-      { cod_ean: '775012300009', descripcion: 'Huevos Pardos Granja (Docena)', precio_costo: 7.00, precio_venta: 8.50, categoria: 'Frescos', unidad: 'UND' },
-      { cod_ean: '775012300010', descripcion: 'Detergente Opal Ultra 800g', precio_costo: 6.20, precio_venta: 7.80, categoria: 'Limpieza', unidad: 'UND' }
+      { cod_ean: '7750001000001', descripcion: 'Aceite Primor 1L', precio_costo: 9.20, precio_venta: 11.50, categoria: 'Abarrotes', unidad: 'UND', stock_actual: 24, foto_url: 'https://hzmrsbeamtbloudmxjrp.supabase.co/storage/v1/object/public/Productos/maestro/99ab61f2-dcb3-4878-9a02-c3737d204d70.jpg' },
+      { cod_ean: '7750001000002', descripcion: 'Arroz Costeño 5kg', precio_costo: 19.00, precio_venta: 23.50, categoria: 'Abarrotes', unidad: 'UND', stock_actual: 15, foto_url: 'https://hzmrsbeamtbloudmxjrp.supabase.co/storage/v1/object/public/Productos/maestro/f80070c8-36d6-46da-b968-91d16bb784ed.jpg' },
+      { cod_ean: '7750001000003', descripcion: 'Azúcar Rubia Casa Grande 1kg', precio_costo: 3.80, precio_venta: 4.80, categoria: 'Abarrotes', unidad: 'UND', stock_actual: 30, foto_url: 'https://hzmrsbeamtbloudmxjrp.supabase.co/storage/v1/object/public/Productos/maestro/4011d569-f566-4331-bd79-c91c887e4d6e.jpg' },
+      { cod_ean: '7750001000004', descripcion: 'Fideos Don Vittorio Spaghetti 500g', precio_costo: 3.20, precio_venta: 4.20, categoria: 'Abarrotes', unidad: 'UND', stock_actual: 40, foto_url: 'https://hzmrsbeamtbloudmxjrp.supabase.co/storage/v1/object/public/Productos/maestro/7237ff57-0b6d-4ace-8d86-a75da41bbcfd.jpg' },
+      { cod_ean: '7750001000005', descripcion: 'Leche Gloria Evaporada 400g', precio_costo: 3.30, precio_venta: 4.20, categoria: 'Lácteos', unidad: 'UND', stock_actual: 36, foto_url: 'https://hzmrsbeamtbloudmxjrp.supabase.co/storage/v1/object/public/Productos/maestro/efca5f0a-cfd5-4c4d-8d77-a23462f28024.jpg' },
+      { cod_ean: '7750001000006', descripcion: 'Queso Fresco Paria 500g', precio_costo: 9.50, precio_venta: 13.00, categoria: 'Lácteos', unidad: 'UND', stock_actual: 12, foto_url: 'https://hzmrsbeamtbloudmxjrp.supabase.co/storage/v1/object/public/Productos/maestro/0b26ad18-29d2-459d-9bcd-0754cc382f3f.jpg' },
+      { cod_ean: '7750001000007', descripcion: 'Yogurt Gloria Fresa 1L', precio_costo: 7.80, precio_venta: 10.50, categoria: 'Lácteos', unidad: 'UND', stock_actual: 18, foto_url: 'https://hzmrsbeamtbloudmxjrp.supabase.co/storage/v1/object/public/Productos/maestro/bbf0f933-327e-4a71-a7da-cfa129ea9f0c.jpg' },
+      { cod_ean: '7750001000008', descripcion: 'Coca Cola 500ml', precio_costo: 2.80, precio_venta: 3.50, categoria: 'Gaseosas', unidad: 'UND', stock_actual: 48, foto_url: 'https://hzmrsbeamtbloudmxjrp.supabase.co/storage/v1/object/public/Productos/maestro/76ac2d57-7f90-43aa-83c5-1e314de6728b.jpg' },
+      { cod_ean: '7750001000009', descripcion: 'Inca Kola 1.5L', precio_costo: 5.80, precio_venta: 7.50, categoria: 'Gaseosas', unidad: 'UND', stock_actual: 24, foto_url: 'https://hzmrsbeamtbloudmxjrp.supabase.co/storage/v1/object/public/Productos/maestro/0a2d8a9c-033b-4e31-8456-918046b7c51f.jpg' },
+      { cod_ean: '7750001000010', descripcion: 'Agua San Luis 625ml', precio_costo: 1.20, precio_venta: 2.00, categoria: 'Aguas', unidad: 'UND', stock_actual: 60, foto_url: 'https://hzmrsbeamtbloudmxjrp.supabase.co/storage/v1/object/public/Productos/maestro/00132cc3-2a79-4c6f-9f53-a27fcf515a92.jpg' },
+      { cod_ean: '7750001000011', descripcion: 'Agua Cristalina Sin Gas 500ml', precio_costo: 1.00, precio_venta: 1.50, categoria: 'Bebidas Y Snacks', unidad: 'UND', stock_actual: 60, foto_url: 'https://hzmrsbeamtbloudmxjrp.supabase.co/storage/v1/object/public/Productos/maestro/15021016-537d-4cb3-bcb9-30d2bb8b02a0.jpg' },
+      { cod_ean: '7750001000012', descripcion: 'Jugo Frugos Durazno 1L', precio_costo: 5.50, precio_venta: 7.00, categoria: 'Jugos y Néctares', unidad: 'UND', stock_actual: 20, foto_url: 'https://hzmrsbeamtbloudmxjrp.supabase.co/storage/v1/object/public/Productos/maestro/64096189-19b6-4ac1-af2e-689af26bfae0.jpg' },
+      { cod_ean: '7750001000013', descripcion: 'Galletas Casino Menta 6 pack', precio_costo: 6.50, precio_venta: 8.50, categoria: 'Golosinas y Snacks', unidad: 'UND', stock_actual: 22, foto_url: 'https://hzmrsbeamtbloudmxjrp.supabase.co/storage/v1/object/public/Productos/maestro/fabd393f-1c90-45e4-93cf-408924072768.jpg' },
+      { cod_ean: '7750001000014', descripcion: 'Detergente Ariel 850g', precio_costo: 12.00, precio_venta: 15.50, categoria: 'Limpieza del Hogar', unidad: 'UND', stock_actual: 14, foto_url: 'https://hzmrsbeamtbloudmxjrp.supabase.co/storage/v1/object/public/Productos/maestro/494c3c7c-52e1-4f0d-938f-4ba4fbb0a78d.jpg' },
+      { cod_ean: '7750001000015', descripcion: 'Huevos San Fernando x30', precio_costo: 15.50, precio_venta: 19.00, categoria: 'Huevos y Frescos', unidad: 'UND', stock_actual: 8, foto_url: 'https://hzmrsbeamtbloudmxjrp.supabase.co/storage/v1/object/public/Productos/maestro/3c79f2a7-5c73-475e-a5d3-b9985e9e33b5.jpg' },
+      { cod_ean: '7750001000016', descripcion: 'Pollo Entero (kg)', precio_costo: 8.50, precio_venta: 10.90, categoria: 'Carnes y Embutidos', unidad: 'KG', stock_actual: 10, foto_url: 'https://hzmrsbeamtbloudmxjrp.supabase.co/storage/v1/object/public/Productos/maestro/c9722adb-16e3-4534-bfd8-a996c1303124.jpg' },
+      { cod_ean: '7750001000017', descripcion: 'Jamón Otto Kunz 200g', precio_costo: 6.80, precio_venta: 9.00, categoria: 'Carnes y Embutidos', unidad: 'UND', stock_actual: 16, foto_url: 'https://hzmrsbeamtbloudmxjrp.supabase.co/storage/v1/object/public/Productos/maestro/00b15e59-2165-4805-827f-48d4761da0c2.jpg' },
+      { cod_ean: '7750001000018', descripcion: 'Palta Fuerte (kg)', precio_costo: 4.50, precio_venta: 6.50, categoria: 'Verduras y Frutas', unidad: 'KG', stock_actual: 15, foto_url: 'https://hzmrsbeamtbloudmxjrp.supabase.co/storage/v1/object/public/Productos/maestro/f1a3ceb1-54bd-4035-97f7-bde1542fc858.jpg' },
+      { cod_ean: '7750001000019', descripcion: 'Plátano de Seda (kg)', precio_costo: 2.00, precio_venta: 3.00, categoria: 'Verduras y Frutas', unidad: 'KG', stock_actual: 20, foto_url: 'https://hzmrsbeamtbloudmxjrp.supabase.co/storage/v1/object/public/Productos/maestro/d931149b-2023-4c78-b867-3daff159fc05.jpg' },
+      { cod_ean: '7750001000020', descripcion: 'Pan Francés (unidad)', precio_costo: 0.25, precio_venta: 0.40, categoria: 'Panadería', unidad: 'UND', stock_actual: 80, foto_url: 'https://hzmrsbeamtbloudmxjrp.supabase.co/storage/v1/object/public/Productos/maestro/8667de0b-3082-40a9-98ac-8ba03a6a2b5a.jpg' },
+      { cod_ean: '7750001000021', descripcion: 'Cerveza Pilsen Callao 620ml', precio_costo: 6.50, precio_venta: 8.50, categoria: 'Cervezas', unidad: 'UND', stock_actual: 24, foto_url: 'https://hzmrsbeamtbloudmxjrp.supabase.co/storage/v1/object/public/Productos/maestro/c9c6d9c1-31a2-4ab0-92ef-ab07eba8066c.jpg' },
+      { cod_ean: '7750001000022', descripcion: 'Cusqueña Dorada Lata 355ml', precio_costo: 4.20, precio_venta: 5.50, categoria: 'Cervezas', unidad: 'UND', stock_actual: 24, foto_url: 'https://hzmrsbeamtbloudmxjrp.supabase.co/storage/v1/object/public/Productos/maestro/d0f4a6b7-90fc-4033-bfea-50e63ad77093.jpg' },
+      { cod_ean: '7750001000023', descripcion: 'Corona Botella (330ml) Pack x6', precio_costo: 28.00, precio_venta: 35.00, categoria: 'Cervezas', unidad: 'UND', stock_actual: 10, foto_url: 'https://hzmrsbeamtbloudmxjrp.supabase.co/storage/v1/object/public/Productos/maestro/35dc543d-0c00-4f49-a386-79e0523d5d2d.jpg' },
+      { cod_ean: '7750001000024', descripcion: 'Pisco Finca Rotondo Quebranta 750ml', precio_costo: 32.00, precio_venta: 42.00, categoria: 'Licores Y Vinos', unidad: 'UND', stock_actual: 6, foto_url: 'https://hzmrsbeamtbloudmxjrp.supabase.co/storage/v1/object/public/Productos/maestro/dc7e0b2e-034b-4a1e-bc67-c773a23e4dc2.jpg' }
     ];
 
     // Teclado numérico en pantalla, reutilizable para efectivo y pagos mixtos.
@@ -3021,6 +3038,21 @@
       const guardarSesion = (datos) => {
         setSesion(datos);
       };
+
+      // Modo Demo Local: entra sin Supabase, sin cuenta y sin pasar por el
+      // formulario de login -- lo usa tanto el botón "Modo Demo Local" como
+      // el link público /demo (ver efecto de abajo), para poder mandarle a
+      // alguien un link que lo deje mirando la app funcionando de una.
+      const entrarModoDemo = () => {
+        const demoU = { id: 'c0000000-0000-0000-0000-000000000001', bodega_id: BODEGA_DEMO_ID, nombre: 'Dueño Demo', dni: '12345678', rol: 'dueno', activo: true };
+        setListaCajeros([demoU]);
+        setCajeroSeleccionado(demoU);
+        guardarSesion({ usuario: demoU, bodega: { id: BODEGA_DEMO_ID, nombre: 'Bodega Demo' } });
+      };
+
+      useEffect(() => {
+        if (window.location.pathname === '/demo') entrarModoDemo();
+      }, []);
 
       const cerrarSesion = async () => {
         if (sbClient) {
@@ -7880,12 +7912,7 @@
               <div className="pt-2 border-t border-stone-100 flex items-center justify-center gap-2.5 text-xs">
                 {authTab === 'login' ? (
                   <>
-                    <button type="button" onClick={() => {
-                      const demoU = { id: 'c0000000-0000-0000-0000-000000000001', bodega_id: BODEGA_DEMO_ID, nombre: 'Dueño Demo', dni: '12345678', rol: 'dueno', activo: true };
-                      setListaCajeros([demoU]);
-                      setCajeroSeleccionado(demoU);
-                      guardarSesion({ usuario: demoU, bodega: { id: BODEGA_DEMO_ID, nombre: 'Bodega Demo' } });
-                    }} className="px-3 py-1.5 rounded-full bg-orange-50 hover:bg-orange-100 text-orange-700 font-semibold transition">
+                    <button type="button" onClick={entrarModoDemo} className="px-3 py-1.5 rounded-full bg-orange-50 hover:bg-orange-100 text-orange-700 font-semibold transition">
                       <i className="fa-solid fa-bolt mr-1"></i> Modo Demo Local
                     </button>
                     <button type="button" onClick={() => setAuthTab('admin')} className="px-3 py-1.5 rounded-full bg-stone-100 hover:bg-stone-200 text-stone-500 font-semibold transition">
