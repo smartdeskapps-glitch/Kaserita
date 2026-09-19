@@ -8068,13 +8068,20 @@ import './index.css';
             <SidebarIcon icon="fa-clipboard-check" label="Toma de Inventario" onClick={abrirTomaInventario} />
             <SidebarIcon icon="fa-scale-balanced" label="Historial de Inventario" onClick={abrirHistorialInventario} />
             <SidebarIcon icon="fa-box" label="Registrar Merma" onClick={() => setModalMerma(true)} />
+            {/* Combos se vende a través del Catálogo Online -- no tiene
+                sentido para una bodega que no tiene ese plan, así que se
+                condiciona a eso (delivery_permitido) y no al rol del
+                usuario: cualquiera en una bodega con Catálogo Online puede
+                armar/vender combos, no solo el administrador. */}
+            {sesion?.bodega?.delivery_permitido && (
+              <SidebarIcon icon="fa-gift" label="Combos" onClick={abrirModalCombos} />
+            )}
             {esAdmin && (
               <>
                 <div className="w-10 h-px bg-stone-200 my-2 shrink-0"></div>
                 <SidebarIcon icon="fa-chart-pie" label="Dashboard de Ventas" onClick={abrirDashboard} />
                 <SidebarIcon icon="fa-file-invoice" label="Cuentas por Pagar" onClick={abrirCuentasPorPagar} />
                 <SidebarIcon icon="fa-cash-register" label="Historial de Cierres de Caja" onClick={abrirHistorialCierres} />
-                <SidebarIcon icon="fa-gift" label="Combos" onClick={abrirModalCombos} />
                 <div className="flex flex-col items-center">
                   <button
                     type="button"
