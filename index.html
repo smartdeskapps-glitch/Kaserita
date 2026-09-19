@@ -3044,10 +3044,23 @@
       // el link público /demo (ver efecto de abajo), para poder mandarle a
       // alguien un link que lo deje mirando la app funcionando de una.
       const entrarModoDemo = () => {
-        const demoU = { id: 'c0000000-0000-0000-0000-000000000001', bodega_id: BODEGA_DEMO_ID, nombre: 'Dueño Demo', dni: '12345678', rol: 'dueno', activo: true };
+        const demoU = { id: 'c0000000-0000-0000-0000-000000000001', bodega_id: BODEGA_DEMO_ID, nombre: 'Dueño Demo', dni: '12345678', rol: 'dueno', activo: true, telefono: '51987654321' };
         setListaCajeros([demoU]);
         setCajeroSeleccionado(demoU);
-        guardarSesion({ usuario: demoU, bodega: { id: BODEGA_DEMO_ID, nombre: 'Bodega Demo' } });
+        guardarSesion({
+          usuario: demoU,
+          bodega: {
+            id: BODEGA_DEMO_ID,
+            nombre: 'Bodega Demo',
+            // Catálogo Online ya viene activado y con link -- así se ve la
+            // función funcionando de una, sin tener que configurarla en la demo.
+            delivery_permitido: true,
+            delivery_habilitado: true,
+            slug: 'bodega-demo',
+            logo_url: null,
+            direccion: 'Av. Los Álamos 245, San Miguel',
+          },
+        });
       };
 
       useEffect(() => {
@@ -3213,8 +3226,8 @@
       };
 
       const guardarConfigDelivery = async () => {
-        if (esModoDemo || !sbClient || !bodegaId) {
-          notificar('El link de pedidos no está disponible en el Modo Demo.', 'error');
+        if (!esModoDemo && (!sbClient || !bodegaId)) {
+          notificar('No se pudo guardar los cambios.', 'error');
           return;
         }
         const slugLimpio = normalizarSlugDelivery(slugDelivery);
@@ -3224,26 +3237,31 @@
         }
         setGuardandoDelivery(true);
         try {
-          // El dueño no puede actualizar bodegas directo (RLS solo lo permite
-          // al super-admin) -- esta función security definer es el único
-          // camino, y de paso respeta si el admin le dio delivery_permitido.
-          const { error: errBodega } = await sbClient.rpc('actualizar_mi_delivery', {
-            p_slug: slugLimpio || null,
-            p_delivery_habilitado: deliveryHabilitado,
-            p_logo_url: logoUrlDelivery || null,
-            p_direccion: direccionDelivery.trim() || null,
-          });
-          if (errBodega) {
-            if (errBodega.code === '23505') throw new Error('Ese link ya lo está usando otra bodega, probá con otro.');
-            throw errBodega;
-          }
           const telefonoLimpio = telefonoDeliveryEditar.trim();
-          if (sesion?.usuario?.rol === 'dueno' && telefonoLimpio !== (sesion?.usuario?.telefono || '')) {
-            const { error: errTelefono } = await sbClient
-              .from('usuarios')
-              .update({ telefono: telefonoLimpio || null })
-              .eq('id', sesion.usuario.id);
-            if (errTelefono) throw errTelefono;
+          if (esModoDemo) {
+            // Modo Demo Local: no hay bodega real en Supabase -- se aplica
+            // directo en memoria, igual que el resto de la demo.
+          } else {
+            // El dueño no puede actualizar bodegas directo (RLS solo lo permite
+            // al super-admin) -- esta función security definer es el único
+            // camino, y de paso respeta si el admin le dio delivery_permitido.
+            const { error: errBodega } = await sbClient.rpc('actualizar_mi_delivery', {
+              p_slug: slugLimpio || null,
+              p_delivery_habilitado: deliveryHabilitado,
+              p_logo_url: logoUrlDelivery || null,
+              p_direccion: direccionDelivery.trim() || null,
+            });
+            if (errBodega) {
+              if (errBodega.code === '23505') throw new Error('Ese link ya lo está usando otra bodega, probá con otro.');
+              throw errBodega;
+            }
+            if (sesion?.usuario?.rol === 'dueno' && telefonoLimpio !== (sesion?.usuario?.telefono || '')) {
+              const { error: errTelefono } = await sbClient
+                .from('usuarios')
+                .update({ telefono: telefonoLimpio || null })
+                .eq('id', sesion.usuario.id);
+              if (errTelefono) throw errTelefono;
+            }
           }
           setSesion((s) => ({
             ...s,
