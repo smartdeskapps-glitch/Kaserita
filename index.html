@@ -610,27 +610,19 @@
     const emailAuthDesdeDni = (dni) => `bodega_${(dni || '').trim()}@kaserita.app`;
     const passwordAuthDesdePin = (pin) => `kst-${(pin || '').trim()}`;
 
-    // Aviso sonoro cuando llega un pedido nuevo de KaseritaDelivery -- dos
-    // tonos cortos generados con Web Audio API, sin archivo de audio
-    // aparte que cargar. Los navegadores no dejan reproducir sonido antes
-    // de que haya habido algún clic/interacción en la página; por eso
-    // puede no sonar el primer pedido si se acaba de abrir la pestaña.
+    // Aviso sonoro cuando llega un pedido nuevo de KaseritaDelivery. Se crea
+    // una sola vez (no un Audio nuevo por pedido) para no repetir la descarga
+    // cada vez -- currentTime se resetea para que suene entero aunque llegue
+    // otro pedido mientras el anterior todavía está sonando. Los navegadores
+    // no dejan reproducir sonido antes de que haya habido algún clic/
+    // interacción en la página; por eso puede no sonar el primer pedido si
+    // se acaba de abrir la pestaña.
+    const audioAvisoPedidoNuevo = new Audio('https://cdn.pixabay.com/audio/2025/01/11/audio_5e34842448.mp3');
+    audioAvisoPedidoNuevo.preload = 'auto';
     const sonarAvisoPedidoNuevo = () => {
       try {
-        const ctx = new (window.AudioContext || window.webkitAudioContext)();
-        [880, 1108].forEach((frecuencia, i) => {
-          const osc = ctx.createOscillator();
-          const gain = ctx.createGain();
-          osc.type = 'sine';
-          osc.frequency.value = frecuencia;
-          const inicio = ctx.currentTime + i * 0.18;
-          gain.gain.setValueAtTime(0.0001, inicio);
-          gain.gain.exponentialRampToValueAtTime(0.3, inicio + 0.02);
-          gain.gain.exponentialRampToValueAtTime(0.0001, inicio + 0.16);
-          osc.connect(gain).connect(ctx.destination);
-          osc.start(inicio);
-          osc.stop(inicio + 0.18);
-        });
+        audioAvisoPedidoNuevo.currentTime = 0;
+        audioAvisoPedidoNuevo.play().catch((err) => console.warn('No se pudo reproducir el aviso sonoro:', err.message));
       } catch (err) {
         console.warn('No se pudo reproducir el aviso sonoro:', err.message);
       }
