@@ -309,9 +309,19 @@ function App() {
         setPlanElegido(pendiente.plan_id);
         setPaso('bodega');
       } else {
+        // Si ya eligió un plan antes de ir a Google (el flujo normal:
+        // plan -> Google -> pago), retoma directo en "pago". Pero si llegó
+        // acá ya autenticado sin haber pasado por "Elegí tu plan" (ej.
+        // redirigido desde el login normal de la POS por no tener bodega),
+        // no hay que saltarse esa elección -- se le muestra el plan igual,
+        // ya sin pedirle Google de nuevo (ver continuarDesdePlan).
         const planGuardado = localStorage.getItem('kaserita_registro_plan');
-        if (planGuardado) setPlanElegido(planGuardado);
-        setPaso('pago');
+        if (planGuardado) {
+          setPlanElegido(planGuardado);
+          setPaso('pago');
+        } else {
+          setPaso('plan');
+        }
       }
     })();
   }, []);
@@ -324,6 +334,19 @@ function App() {
       provider: 'google',
       options: { redirectTo: window.location.origin + '/registro' },
     });
+  };
+
+  // Botón del paso "Elegí tu plan": si ya está autenticado (llegó con
+  // sesión de Google ya abierta), no hace falta mandarlo a Google de
+  // nuevo -- pasa directo a pago con el plan que acaba de elegir.
+  const continuarDesdePlan = () => {
+    if (!planElegido) return;
+    localStorage.setItem('kaserita_registro_plan', planElegido);
+    if (sesionGoogle) {
+      setPaso('pago');
+    } else {
+      entrarConGoogle();
+    }
   };
 
   const planActual = planes.find((p) => p.id === planElegido);
@@ -467,8 +490,8 @@ function App() {
               ))}
             </div>
             {error && <p className="error-box">{error}</p>}
-            <button type="button" className="google-btn" disabled={!planElegido} onClick={entrarConGoogle}>
-              <IconGoogle /> Continuar con Google
+            <button type="button" className="google-btn" disabled={!planElegido} onClick={continuarDesdePlan}>
+              {sesionGoogle ? 'Continuar' : (<><IconGoogle /> Continuar con Google</>)}
             </button>
             <p className="fine-print">Usamos tu cuenta de Google para crear tu acceso — nunca publicamos nada, ni vemos tu contraseña.</p>
           </>
@@ -637,8 +660,8 @@ function App() {
             <div className="cta-banner">
               <h3>¿List@ para activar tu bodega?</h3>
               <p>Elegí tu plan arriba y arrancá hoy mismo.</p>
-              <button type="button" className="google-btn" disabled={!planElegido} onClick={entrarConGoogle}>
-                <IconGoogle /> Continuar con Google
+              <button type="button" className="google-btn" disabled={!planElegido} onClick={continuarDesdePlan}>
+                {sesionGoogle ? 'Continuar' : (<><IconGoogle /> Continuar con Google</>)}
               </button>
             </div>
           </div>
