@@ -3082,6 +3082,19 @@
               if (usuarioConBodega) {
                 const { bodegas: bodega, ...usuario } = usuarioConBodega;
                 setSesion({ usuario, bodega: bodega || { id: usuario.bodega_id, nombre: 'Mi Bodega' } });
+              } else {
+                // Sin fila en "usuarios" -- puede ser el super-admin (cuenta
+                // aparte, sin bodega, ver más abajo) o una cuenta de Google
+                // que nunca compró ninguna bodega. Si es lo segundo, no la
+                // dejamos en un login que no explica nada: la mandamos a
+                // activar su bodega, ya autenticada.
+                const { data: esAdmin } = await sbClient.from('super_admins').select('auth_id').eq('auth_id', session.user.id).maybeSingle();
+                if (!esAdmin) {
+                  setVerificandoSesion(false);
+                  notificar('Esta cuenta no tiene ninguna suscripción activa. Te llevamos a activar tu bodega...', 'error');
+                  setTimeout(() => { window.location.href = '/registro'; }, 1800);
+                  return;
+                }
               }
             }
           } catch (err) {
