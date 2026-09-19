@@ -2977,10 +2977,14 @@
       const [clientesDeuda, setClientesDeuda] = useState([]);
       const [ventasDashboardAnterior, setVentasDashboardAnterior] = useState([]);
       const [proveedoresDeudaDash, setProveedoresDeudaDash] = useState([]);
-      // Tooltips de los gráficos del dashboard -- índice del punto/hora bajo
+      // Ventas del año calendario en curso, para "Ventas por Mes" -- no
+      // depende del rango de fechas elegido en el filtro rápido.
+      const [ventasAnioDash, setVentasAnioDash] = useState([]);
+      // Tooltips de los gráficos del dashboard -- índice del punto/hora/mes bajo
       // el mouse (o foco de teclado), null cuando no hay nada resaltado.
       const [horaResaltada, setHoraResaltada] = useState(null);
       const [diaResaltado, setDiaResaltado] = useState(null);
+      const [mesResaltado, setMesResaltado] = useState(null);
 
       // --- Cobro / Pagos ---
       // Los métodos de pago y el descuento se mantienen ocultos hasta tocar
@@ -6493,6 +6497,15 @@
 
           setClientesDeuda(clientesLista.filter((c) => (Number(c.saldo_actual) || 0) > 0).sort((a, b) => (Number(b.saldo_actual) || 0) - (Number(a.saldo_actual) || 0)));
           setProveedoresDeudaDash([]);
+
+          const anioActual = new Date().getFullYear();
+          const inicioAnio = new Date(anioActual, 0, 1);
+          const finAnio = new Date(anioActual, 11, 31, 23, 59, 59, 999);
+          setVentasAnioDash(ventasDemoRef.current.filter((v) => {
+            const f = new Date(v.fecha_hora);
+            return f >= inicioAnio && f <= finAnio;
+          }));
+
           setCargandoDashboard(false);
           return;
         }
@@ -6544,6 +6557,20 @@
               .order('saldo_actual', { ascending: false });
             if (errProveedores) console.warn(errProveedores);
             setProveedoresDeudaDash(proveedoresConDeuda || []);
+
+            // Ventas del año calendario en curso, para "Ventas por Mes" --
+            // independiente del rango de fechas elegido en el filtro rápido.
+            const anioActual = new Date().getFullYear();
+            const inicioAnio = new Date(anioActual, 0, 1).toISOString();
+            const finAnio = new Date(anioActual, 11, 31, 23, 59, 59, 999).toISOString();
+            const { data: ventasAnio, error: errAnio } = await sbClient
+              .from('ventas')
+              .select('fecha_hora, total_venta, anulada')
+              .eq('bodega_id', bodegaId)
+              .gte('fecha_hora', inicioAnio)
+              .lte('fecha_hora', finAnio);
+            if (errAnio) console.warn(errAnio);
+            setVentasAnioDash(ventasAnio || []);
           } catch (err) {
             console.warn(err);
             notificar(`No se pudo cargar el dashboard: ${err.message}`, 'error');
@@ -6575,6 +6602,29 @@
         CREDITO: '#a855f7',
         MIXTO: '#eab308',
         OTRO: '#64748b'
+      };
+
+      const MESES_CORTOS = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Set', 'Oct', 'Nov', 'Dic'];
+
+      // Convierte una serie de puntos {x,y} en un path SVG suavizado (spline de
+      // Catmull-Rom a Bézier) -- usado para la "ola" de Ventas por Horario, que
+      // se ve mejor como curva continua que como quiebres rectos punto a punto.
+      const curvaSuave = (puntos) => {
+        if (puntos.length < 2) return '';
+        if (puntos.length === 2) return `M ${puntos[0].x},${puntos[0].y} L ${puntos[1].x},${puntos[1].y}`;
+        let d = `M ${puntos[0].x},${puntos[0].y}`;
+        for (let i = 0; i < puntos.length - 1; i++) {
+          const p0 = puntos[i - 1] || puntos[i];
+          const p1 = puntos[i];
+          const p2 = puntos[i + 1];
+          const p3 = puntos[i + 2] || p2;
+          const cp1x = p1.x + (p2.x - p0.x) / 6;
+          const cp1y = p1.y + (p2.y - p0.y) / 6;
+          const cp2x = p2.x - (p3.x - p1.x) / 6;
+          const cp2y = p2.y - (p3.y - p1.y) / 6;
+          d += ` C ${cp1x},${cp1y} ${cp2x},${cp2y} ${p2.x},${p2.y}`;
+        }
+        return d;
       };
 
       const construirGradienteDona = (porMedio) => {
@@ -6662,14 +6712,36 @@
         const cambioVentaPct = calcularCambioPct(totalVenta, totalVentaAnterior);
         const cambioUtilidadPct = calcularCambioPct(totalUtilidad, totalUtilidadAnterior);
 
+        // Ventas por mes del año en curso -- para la sección "Ventas por Mes",
+        // independiente del rango de fechas del filtro rápido.
+        const anioActual = new Date().getFullYear();
+        const porMes = Array.from({ length: 12 }, (_, m) => ({ mes: m, total: 0, cantidad: 0 }));
+        ventasAnioDash.filter(v => !v.anulada).forEach(v => {
+          const m = new Date(v.fecha_hora).getMonth();
+          porMes[m].total += Number(v.total_venta);
+          porMes[m].cantidad += 1;
+        });
+        const maxMes = Math.max(1, ...porMes.map(m => m.total));
+        const mesPico = porMes.reduce((mejor, m) => (m.total > mejor.total ? m : mejor), porMes[0]);
+        const mesActualIdx = new Date().getMonth();
+        // Promedio sobre los meses ya transcurridos del año (incluye el actual),
+        // no sobre los 12 -- si no, diluiría el promedio con meses futuros vacíos.
+        const mesesTranscurridos = porMes.slice(0, mesActualIdx + 1);
+        const totalAnio = mesesTranscurridos.reduce((a, m) => a + m.total, 0);
+        const promedioMensual = mesesTranscurridos.length ? totalAnio / mesesTranscurridos.length : 0;
+        const mesAnteriorIdx = mesActualIdx - 1;
+        const totalMesAnterior = mesAnteriorIdx >= 0 ? porMes[mesAnteriorIdx].total : 0;
+        const cambioMesPct = calcularCambioPct(porMes[mesActualIdx].total, totalMesAnterior);
+
         return {
           totalVenta, totalUtilidad, totalCosto, numVentas, ticketPromedio, margenPct,
           porHora, maxHora, horaPico, porDia, maxDia, porMedio, topProductos, maxProducto,
           numDeudores, totalDeuda, maxDeuda,
           numProveedoresDeuda, totalPorPagar, maxPorPagar,
-          cambioVentaPct, cambioUtilidadPct
+          cambioVentaPct, cambioUtilidadPct,
+          anioActual, porMes, maxMes, mesPico, mesActualIdx, totalAnio, promedioMensual, cambioMesPct
         };
-      }, [ventasDashboard, clientesDeuda, ventasDashboardAnterior, proveedoresDeudaDash]);
+      }, [ventasDashboard, clientesDeuda, ventasDashboardAnterior, proveedoresDeudaDash, ventasAnioDash]);
 
       // Exporta todo el Dashboard a un Excel real (.xlsx, varias hojas),
       // no un CSV -- cada sección del dashboard es su propia hoja.
@@ -11973,87 +12045,178 @@
 
                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
                       {/* Ventas por horario */}
-                      <div className="bg-white p-4 rounded-2xl border border-stone-200">
-                        <div className="flex justify-between items-center mb-4">
-                          <h4 className="text-sm font-bold text-stone-900 flex items-center gap-2">
-                            <span className="w-7 h-7 rounded-lg bg-gradient-to-br from-orange-500/20 to-orange-500/5 flex items-center justify-center shrink-0">
-                              <i className="fa-solid fa-clock text-orange-600 text-xs"></i>
-                            </span>
-                            Ventas por Horario
-                          </h4>
-                          {dashStats.horaPico.total > 0 && (
-                            <span className="text-[11px] text-stone-500">
-                              Pico: <span className="font-bold text-orange-600">{String(dashStats.horaPico.hora).padStart(2, '0')}:00</span>
-                            </span>
-                          )}
-                        </div>
-                        <div className="relative">
-                          {horaResaltada != null && dashStats.porHora[horaResaltada] && (
-                            <div
-                              className="absolute -translate-x-1/2 -translate-y-full bg-stone-900 text-white text-[11px] rounded-lg px-2.5 py-1.5 whitespace-nowrap pointer-events-none z-10 shadow-lg"
-                              style={{ left: horaResaltada * 21 + 9, top: -6 }}
-                            >
-                              <div className="font-bold">{String(dashStats.porHora[horaResaltada].hora).padStart(2, '0')}:00</div>
-                              <div className="text-stone-300">S/ {dashStats.porHora[horaResaltada].total.toFixed(2)} · {dashStats.porHora[horaResaltada].cantidad} venta{dashStats.porHora[horaResaltada].cantidad === 1 ? '' : 's'}</div>
-                            </div>
-                          )}
-                          <div className="flex items-end gap-[3px] h-32 overflow-x-auto pb-1">
-                            {dashStats.porHora.map((h, i) => {
-                              let claseBarra = 'bg-stone-100';
-                              if (h.total > 0) {
-                                claseBarra = horaResaltada === i ? 'bg-orange-600' : h.hora === dashStats.horaPico.hora ? 'bg-orange-500' : 'bg-orange-300';
-                              }
-                              return (
-                                <div
-                                  key={h.hora}
-                                  className="flex flex-col items-center justify-end h-full shrink-0"
-                                  style={{ width: '18px' }}
-                                  onMouseEnter={() => setHoraResaltada(i)}
-                                  onMouseLeave={() => setHoraResaltada((cur) => (cur === i ? null : cur))}
-                                  onFocus={() => setHoraResaltada(i)}
-                                  onBlur={() => setHoraResaltada((cur) => (cur === i ? null : cur))}
-                                  tabIndex={h.total > 0 ? 0 : -1}
-                                >
-                                  <div className={`w-full rounded-t transition-colors ${claseBarra}`} style={{ height: `${Math.max(2, (h.total / dashStats.maxHora) * 100)}%` }}></div>
-                                  {h.hora % 3 === 0 && (
-                                    <span className="text-[9px] text-stone-500 mt-1">{h.hora}h</span>
-                                  )}
+                      <div className="bg-gradient-to-br from-[#0a0524] via-[#140b3c] to-[#1f0f56] rounded-2xl border border-violet-500/30 shadow-xl shadow-violet-950/40 p-4 sm:p-5 relative overflow-hidden text-white">
+                        <div className="absolute -top-20 -left-20 w-64 h-64 bg-violet-600/20 rounded-full blur-3xl pointer-events-none"></div>
+                        <div className="absolute top-1/2 -right-16 w-64 h-64 bg-indigo-600/15 rounded-full blur-3xl pointer-events-none"></div>
+                        <div className="relative z-10">
+                          <div className="flex flex-wrap items-center justify-between gap-2">
+                            <div className="flex items-center gap-2.5">
+                              <span className="w-9 h-9 rounded-xl bg-violet-500/20 border border-violet-400/30 text-violet-300 flex items-center justify-center shrink-0">
+                                <i className="fa-solid fa-clock text-sm"></i>
+                              </span>
+                              <div>
+                                <div className="flex items-center gap-2">
+                                  <h4 className="text-sm font-bold text-white">Ventas por Horario</h4>
+                                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] font-semibold bg-violet-500/20 text-violet-200 border border-violet-400/30">
+                                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span> En vivo
+                                  </span>
                                 </div>
+                                <p className="text-[10px] text-violet-200/60 mt-0.5">Distribución de ventas a lo largo del día</p>
+                              </div>
+                            </div>
+                            {dashStats.horaPico.total > 0 && (
+                              <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-white/10 backdrop-blur-md border border-violet-400/30 text-[11px] shadow-lg shadow-violet-900/30">
+                                <span className="text-violet-300 font-medium">Pico:</span>
+                                <span className="font-extrabold text-white bg-violet-600/60 px-1.5 py-0.5 rounded-lg border border-violet-400/40">{String(dashStats.horaPico.hora).padStart(2, '0')}:00</span>
+                              </div>
+                            )}
+                          </div>
+
+                          <div
+                            className="relative w-full pt-7 pb-1 mt-2"
+                            onMouseMove={(e) => {
+                              const rect = e.currentTarget.getBoundingClientRect();
+                              if (!rect.width) return;
+                              const relX = ((e.clientX - rect.left) / rect.width) * 300;
+                              const idx = Math.round((relX / 300) * (dashStats.porHora.length - 1));
+                              setHoraResaltada(Math.max(0, Math.min(dashStats.porHora.length - 1, idx)));
+                            }}
+                            onMouseLeave={() => setHoraResaltada(null)}
+                          >
+                            {(() => {
+                              const puntos = dashStats.porHora.map((h, i) => ({
+                                x: (i / (dashStats.porHora.length - 1)) * 300,
+                                y: 100 - (h.total / dashStats.maxHora) * 85,
+                              }));
+                              const lineaPath = curvaSuave(puntos);
+                              const areaPath = `${lineaPath} L 300,100 L 0,100 Z`;
+                              const activo = horaResaltada != null ? puntos[horaResaltada] : null;
+                              return (
+                                <>
+                                  {activo && dashStats.porHora[horaResaltada] && (
+                                    <div
+                                      className="absolute bg-white/10 backdrop-blur-xl border border-white/25 rounded-xl px-3 py-2 text-center shadow-2xl shadow-violet-950/70 pointer-events-none z-20 whitespace-nowrap min-w-[110px]"
+                                      style={{
+                                        left: `${(activo.x / 300) * 100}%`,
+                                        top: 0,
+                                        transform: `translate(${horaResaltada < 2 ? '0%' : horaResaltada > dashStats.porHora.length - 3 ? '-100%' : '-50%'}, 0)`
+                                      }}
+                                    >
+                                      <p className="text-[9px] text-violet-200/80 font-semibold uppercase tracking-wider">{String(dashStats.porHora[horaResaltada].hora).padStart(2, '0')}:00</p>
+                                      <p className="text-sm font-black text-white leading-tight">S/ {dashStats.porHora[horaResaltada].total.toFixed(2)}</p>
+                                      <p className="text-[10px] font-semibold text-emerald-300">{dashStats.porHora[horaResaltada].cantidad} venta{dashStats.porHora[horaResaltada].cantidad === 1 ? '' : 's'}</p>
+                                    </div>
+                                  )}
+                                  <svg className="w-full h-40 sm:h-48 overflow-visible" preserveAspectRatio="none" viewBox="0 0 300 100">
+                                    <defs>
+                                      <linearGradient id="olaFill" x1="0%" y1="0%" x2="0%" y2="100%">
+                                        <stop offset="0%" stopColor="#9333ea" stopOpacity="0.55" />
+                                        <stop offset="60%" stopColor="#6366f1" stopOpacity="0.18" />
+                                        <stop offset="100%" stopColor="#3b0764" stopOpacity="0.02" />
+                                      </linearGradient>
+                                      <linearGradient id="olaStroke" x1="0%" y1="0%" x2="100%" y2="0%">
+                                        <stop offset="0%" stopColor="#a855f7" />
+                                        <stop offset="50%" stopColor="#c084fc" />
+                                        <stop offset="100%" stopColor="#f0abfc" />
+                                      </linearGradient>
+                                    </defs>
+                                    <line x1="0" y1="15" x2="300" y2="15" stroke="#ffffff" strokeOpacity="0.08" strokeDasharray="4 6" />
+                                    <line x1="0" y1="50" x2="300" y2="50" stroke="#ffffff" strokeOpacity="0.08" strokeDasharray="4 6" />
+                                    <line x1="0" y1="85" x2="300" y2="85" stroke="#ffffff" strokeOpacity="0.08" strokeDasharray="4 6" />
+                                    <path d={areaPath} fill="url(#olaFill)" />
+                                    <path d={lineaPath} fill="none" stroke="url(#olaStroke)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" vectorEffect="non-scaling-stroke" />
+                                    {puntos.map((p, i) => dashStats.porHora[i].total > 0 && (
+                                      <circle
+                                        key={i} cx={p.x} cy={p.y}
+                                        r={i === horaResaltada ? 4 : dashStats.porHora[i].hora === dashStats.horaPico.hora ? 3.5 : 2.5}
+                                        fill={dashStats.porHora[i].hora === dashStats.horaPico.hora ? '#f0abfc' : '#1e1b4b'}
+                                        stroke="#ffffff" strokeWidth="1.5" vectorEffect="non-scaling-stroke"
+                                      />
+                                    ))}
+                                    {activo && (
+                                      <line x1={activo.x} y1="0" x2={activo.x} y2="100" stroke="#e879f9" strokeOpacity="0.6" strokeDasharray="3 3" strokeWidth="1.2" vectorEffect="non-scaling-stroke" />
+                                    )}
+                                  </svg>
+                                </>
                               );
-                            })}
+                            })()}
+                            <div className="flex items-center justify-between text-[10px] font-medium text-violet-200/50 pt-2 border-t border-white/10 px-0.5 mt-1">
+                              {[0, 3, 6, 9, 12, 15, 18, 21, 24].map(h => (
+                                <span key={h} className={dashStats.horaPico.hora === h ? 'font-bold text-fuchsia-300 bg-violet-500/20 px-1.5 py-0.5 rounded border border-violet-400/40' : ''}>{h}h</span>
+                              ))}
+                            </div>
+                          </div>
+
+                          <div className="mt-3 pt-3 border-t border-violet-500/20 flex flex-wrap items-center justify-between gap-2 text-xs">
+                            <div className="flex items-center gap-2 text-violet-200/90 font-medium">
+                              <span className="relative flex h-2.5 w-2.5">
+                                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-violet-400 opacity-75"></span>
+                                <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-violet-400"></span>
+                              </span>
+                              Hora de mayor afluencia comercial
+                            </div>
+                            {dashStats.horaPico.total > 0 && (
+                              <span className="font-semibold text-violet-100 bg-white/10 px-2.5 py-1 rounded-lg border border-violet-400/20">
+                                {((dashStats.horaPico.total / dashStats.totalVenta) * 100).toFixed(0)}% de las ventas en esa hora
+                              </span>
+                            )}
                           </div>
                         </div>
                       </div>
 
                       {/* Métodos de pago */}
-                      <div className="bg-white p-4 rounded-2xl border border-stone-200">
-                        <h4 className="text-sm font-bold text-stone-900 flex items-center gap-2 mb-4">
-                          <span className="w-7 h-7 rounded-lg bg-gradient-to-br from-sky-500/20 to-sky-500/5 flex items-center justify-center shrink-0">
-                            <i className="fa-solid fa-credit-card text-sky-600 text-xs"></i>
+                      <div className="bg-white p-4 sm:p-5 rounded-2xl border border-stone-200">
+                        <div className="flex items-center justify-between mb-1">
+                          <h4 className="text-sm font-bold text-stone-900 flex items-center gap-2.5">
+                            <span className="w-9 h-9 rounded-xl bg-violet-50 text-violet-600 flex items-center justify-center shrink-0 shadow-xs">
+                              <i className="fa-solid fa-credit-card text-sm"></i>
+                            </span>
+                            Métodos de Pago
+                          </h4>
+                          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold bg-violet-50 text-violet-700 border border-violet-100">
+                            <span className="w-1.5 h-1.5 rounded-full bg-violet-600"></span>
+                            {dashStats.numVentas} Transacci{dashStats.numVentas === 1 ? 'ón' : 'ones'}
                           </span>
-                          Métodos de Pago
-                        </h4>
-                        <div className="flex flex-col items-center gap-5">
+                        </div>
+                        <p className="text-xs text-stone-500 mb-3">Distribución de la recaudación por canal de cobro</p>
+
+                        <div className="flex justify-center mb-4">
                           <div
                             className="relative w-32 h-32 rounded-full shrink-0 shadow-sm"
                             style={{ background: construirGradienteDona(dashStats.porMedio) }}
                           >
-                            <div className="absolute inset-[12px] bg-white rounded-full flex flex-col items-center justify-center">
-                              <span className="text-[10px] text-stone-500">Total</span>
-                              <span className="text-base font-black text-stone-900">S/ {dashStats.totalVenta.toFixed(0)}</span>
+                            <div className="absolute inset-3 bg-white rounded-full flex flex-col items-center justify-center">
+                              <span className="text-[10px] font-semibold tracking-wider text-stone-400 uppercase">Total</span>
+                              <span className="text-lg font-black text-stone-900 tracking-tight">S/ {dashStats.totalVenta.toFixed(0)}</span>
                             </div>
                           </div>
-                          <div className="w-full grid grid-cols-2 gap-x-3 gap-y-3">
-                            {dashStats.porMedio.map(m => (
-                              <div key={m.medio} className="flex items-start gap-2 min-w-0">
-                                <span className="w-2.5 h-2.5 rounded-full shrink-0 mt-1" style={{ background: COLOR_MEDIO_PAGO[m.medio] || '#94a3b8' }}></span>
-                                <div className="min-w-0">
-                                  <div className="text-xs font-semibold text-stone-800 truncate">{m.medio}</div>
-                                  <div className="text-[11px] text-stone-500">{m.pct.toFixed(0)}% · S/ {m.total.toFixed(2)}</div>
+                        </div>
+
+                        <div className="space-y-2.5 pt-3 border-t border-stone-100">
+                          {dashStats.porMedio.map(m => {
+                            const color = COLOR_MEDIO_PAGO[m.medio] || '#94a3b8';
+                            return (
+                              <div key={m.medio} className="p-2.5 rounded-xl bg-stone-50/70 hover:bg-stone-100/90 border border-stone-200/50 transition">
+                                <div className="flex items-center justify-between gap-3 mb-1.5">
+                                  <div className="flex items-center gap-2.5 min-w-0">
+                                    <span className="w-7 h-7 rounded-lg flex items-center justify-center shrink-0" style={{ background: `${color}20`, color }}>
+                                      <i className="fa-solid fa-circle-dollar-to-slot text-xs"></i>
+                                    </span>
+                                    <h5 className="text-xs font-bold text-stone-900 truncate">{m.medio}</h5>
+                                  </div>
+                                  <div className="text-right flex items-center gap-2 shrink-0">
+                                    <div>
+                                      <span className="text-xs font-black text-stone-900 block leading-tight">S/ {m.total.toFixed(2)}</span>
+                                    </div>
+                                    <span className="px-2 py-0.5 rounded-md text-[11px] font-bold" style={{ background: `${color}18`, color, border: `1px solid ${color}40` }}>{m.pct.toFixed(0)}%</span>
+                                  </div>
+                                </div>
+                                <div className="w-full bg-stone-200/70 rounded-full h-1.5 overflow-hidden">
+                                  <div className="h-1.5 rounded-full transition-all duration-500" style={{ width: `${m.pct}%`, background: color }}></div>
                                 </div>
                               </div>
-                            ))}
-                          </div>
+                            );
+                          })}
                         </div>
                       </div>
                     </div>
@@ -12149,6 +12312,82 @@
                         ))}
                       </div>
                     </div>
+
+                    {/* Ventas por Mes */}
+                    {dashStats.totalAnio > 0 && (
+                      <div className="bg-white p-4 sm:p-6 rounded-2xl border border-stone-200">
+                        <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between pb-4 mb-4 border-b border-stone-100 gap-3">
+                          <div className="flex items-center gap-3">
+                            <span className="w-10 h-10 rounded-xl bg-violet-50 text-violet-600 flex items-center justify-center shadow-xs shrink-0">
+                              <i className="fa-solid fa-calendar-days text-sm"></i>
+                            </span>
+                            <div>
+                              <div className="flex items-center gap-2.5">
+                                <h4 className="text-base font-bold text-stone-900">Ventas por Mes</h4>
+                                <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-violet-50 text-violet-700 border border-violet-100">
+                                  <span className="w-1.5 h-1.5 rounded-full bg-violet-600"></span> {dashStats.anioActual}
+                                </span>
+                              </div>
+                              <p className="text-xs text-stone-500 mt-0.5">Comparativa intermensual del año en curso</p>
+                            </div>
+                          </div>
+                          <div className="inline-flex items-center bg-violet-50 border border-violet-100 px-3 py-1.5 rounded-xl text-xs font-semibold text-violet-700 shadow-xs">
+                            <span className="text-violet-400 font-normal mr-1.5">Total acumulado:</span>
+                            <strong className="font-black text-stone-900">S/ {dashStats.totalAnio.toFixed(2)}</strong>
+                          </div>
+                        </div>
+
+                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-5">
+                          <div className="p-3.5 rounded-xl bg-violet-50/50 border border-violet-100/80 flex items-center justify-between gap-2">
+                            <div className="min-w-0">
+                              <span className="text-[11px] font-semibold text-violet-600 uppercase tracking-wider block">Mes con mayor venta</span>
+                              <p className="text-sm font-bold text-stone-900 mt-0.5 truncate">{MESES_CORTOS[dashStats.mesPico.mes]} <span className="text-xs font-semibold text-violet-700">(S/ {dashStats.mesPico.total.toFixed(2)})</span></p>
+                            </div>
+                            {dashStats.mesPico.total > 0 && <span className="px-2 py-0.5 text-[10px] font-bold bg-violet-600 text-white rounded-md shadow-xs uppercase tracking-wider shrink-0">Pico</span>}
+                          </div>
+                          <div className="p-3.5 rounded-xl bg-stone-50/70 border border-stone-200/60">
+                            <span className="text-[11px] font-semibold text-stone-400 uppercase tracking-wider block">Promedio Mensual</span>
+                            <p className="text-sm font-bold text-stone-900 mt-0.5">S/ {dashStats.promedioMensual.toFixed(2)}</p>
+                          </div>
+                          <div className="p-3.5 rounded-xl bg-stone-50/70 border border-stone-200/60">
+                            <span className="text-[11px] font-semibold text-stone-400 uppercase tracking-wider block">Crecimiento vs mes ant.</span>
+                            <p className={`text-sm font-bold mt-0.5 flex items-center gap-1 ${dashStats.cambioMesPct >= 0 ? 'text-emerald-600' : 'text-rose-600'}`}>
+                              <i className={`fa-solid ${dashStats.cambioMesPct >= 0 ? 'fa-arrow-up' : 'fa-arrow-down'} text-xs`}></i>
+                              {Math.abs(dashStats.cambioMesPct).toFixed(0)}%
+                            </p>
+                          </div>
+                        </div>
+
+                        <div className="relative bg-stone-50/40 rounded-xl p-3 sm:p-4 border border-stone-100">
+                          <div className="grid grid-cols-12 gap-1 sm:gap-2 items-end h-44 pt-6 pb-1">
+                            {dashStats.porMes.map((m, i) => {
+                              const esPico = m.total > 0 && m.mes === dashStats.mesPico.mes;
+                              const esActual = m.mes === dashStats.mesActualIdx;
+                              return (
+                                <div
+                                  key={m.mes}
+                                  className="flex flex-col items-center h-full justify-end group"
+                                  onMouseEnter={() => setMesResaltado(i)}
+                                  onMouseLeave={() => setMesResaltado((cur) => (cur === i ? null : cur))}
+                                  onFocus={() => setMesResaltado(i)}
+                                  onBlur={() => setMesResaltado((cur) => (cur === i ? null : cur))}
+                                  tabIndex={m.total > 0 ? 0 : -1}
+                                >
+                                  <span className={`text-[9px] sm:text-[10px] font-semibold mb-1 transition-opacity ${mesResaltado === i || esPico ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'} ${esPico ? 'text-violet-700 bg-violet-100 px-1 rounded' : 'text-stone-400'}`}>
+                                    {m.total >= 1000 ? `${(m.total / 1000).toFixed(1)}k` : m.total.toFixed(0)}
+                                  </span>
+                                  <div
+                                    className={`w-full max-w-[26px] rounded-t-md transition-all duration-300 ${esPico ? 'bg-gradient-to-t from-violet-600 to-indigo-500 shadow-md shadow-violet-500/30' : mesResaltado === i ? 'bg-violet-500' : 'bg-violet-300/70 group-hover:bg-violet-400'}`}
+                                    style={{ height: `${Math.max(2, (m.total / dashStats.maxMes) * 100)}%` }}
+                                  ></div>
+                                  <span className={`text-[10px] sm:text-[11px] font-medium mt-2 ${esPico ? 'font-bold text-violet-700' : esActual ? 'font-bold text-stone-700' : 'text-stone-500'}`}>{MESES_CORTOS[m.mes]}</span>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      </div>
+                    )}
                   </>
                 )}
               </div>
