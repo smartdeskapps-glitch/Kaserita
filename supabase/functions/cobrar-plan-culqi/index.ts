@@ -122,14 +122,38 @@ Deno.serve(async (req) => {
       );
     }
 
-    const { error: errInsert } = await admin.from("pagos_registro").insert({
-      auth_id: authId,
-      plan_id,
-      monto_cobrado: monto,
-      culqi_charge_id: culqiData.id,
-      estado: "pagado",
-    });
-    if (errInsert) throw errInsert;
+    // A esta altura Culqi YA cobró la tarjeta -- si este insert falla por
+    // algo pasajero (una hipeada de red, por ejemplo) y devolvemos error
+    // sin más, el frontend le muestra "no se pudo procesar" y el cliente
+    // reintenta con una tarjeta ya cobrada, generando un segundo cargo real
+    // sin que quede registro del primero. Por eso reintenta unas veces
+    // antes de rendirse -- más barato que arriesgar un cobro duplicado.
+    let errInsert = null;
+    for (let intento = 1; intento <= 3; intento++) {
+      const resultado = await admin.from("pagos_registro").insert({
+        auth_id: authId,
+        plan_id,
+        monto_cobrado: monto,
+        culqi_charge_id: culqiData.id,
+        estado: "pagado",
+      });
+      errInsert = resultado.error;
+      if (!errInsert) break;
+      console.error(`Intento ${intento} de guardar el pago falló:`, errInsert);
+      if (intento < 3) await new Promise((r) => setTimeout(r, 500 * intento));
+    }
+    if (errInsert) {
+      // Los 3 intentos fallaron: el cobro en Culqi quedó hecho pero sin
+      // registrar acá. No es un error genérico -- se marca aparte en los
+      // logs (culqiData.id queda en el mensaje de Culqi) para poder
+      // reconciliarlo a mano, y el aviso al cliente es distinto para que
+      // no piense que puede simplemente reintentar el pago.
+      console.error(`PAGO COBRADO SIN REGISTRAR -- culqi_charge_id: ${culqiData.id}, auth_id: ${authId}, monto: ${monto}`);
+      return respuesta(
+        { error: `Tu pago se procesó pero hubo un problema al registrarlo. Escribinos con este código: ${culqiData.id}` },
+        500
+      );
+    }
 
     return respuesta({ ok: true, monto });
   } catch (err) {
