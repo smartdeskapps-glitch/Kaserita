@@ -8074,6 +8074,7 @@ import './index.css';
                 <SidebarIcon icon="fa-chart-pie" label="Dashboard de Ventas" onClick={abrirDashboard} />
                 <SidebarIcon icon="fa-file-invoice" label="Cuentas por Pagar" onClick={abrirCuentasPorPagar} />
                 <SidebarIcon icon="fa-cash-register" label="Historial de Cierres de Caja" onClick={abrirHistorialCierres} />
+                <SidebarIcon icon="fa-gift" label="Combos" onClick={abrirModalCombos} />
                 <div className="flex flex-col items-center">
                   <button
                     type="button"
@@ -8090,7 +8091,6 @@ import './index.css';
                       <SidebarIcon icon="fa-boxes-stacked" label="Registrar Productos" onClick={() => setModalInventarioInicial(true)} />
                       <SidebarIcon icon="fa-truck-ramp-box" label="Entrada de Mercadería" onClick={() => setModalEntradaMercaderia(true)} />
                       <SidebarIcon icon="fa-clipboard-list" label="Levantamiento de Inventario" onClick={() => setModalLevantamiento(true)} />
-                      <SidebarIcon icon="fa-gift" label="Combos" onClick={abrirModalCombos} />
                       {sesion?.bodega?.mostrar_catalogo_maestro !== false && (
                         <SidebarIcon icon="fa-book" label="Importar del Catálogo Maestro" onClick={abrirImportarMaestro} />
                       )}
