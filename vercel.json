@@ -1,7 +1,7 @@
 {
-  "buildCommand": null,
-  "installCommand": null,
-  "outputDirectory": ".",
+  "buildCommand": "npm run build",
+  "installCommand": "npm install",
+  "outputDirectory": "dist",
   "rewrites": [
     { "source": "/registro", "destination": "/registro.html" },
     { "source": "/privacidad", "destination": "/privacidad.html" },
