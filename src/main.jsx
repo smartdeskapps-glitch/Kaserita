@@ -2161,7 +2161,12 @@ import './index.css';
       const [cargandoCombos, setCargandoCombos] = useState(false);
       const [modalCombos, setModalCombos] = useState(false);
       const [comboEditando, setComboEditando] = useState(null);
-      const comboVacio = () => ({ id: null, nombre: '', descripcion: '', precio_venta: '', activo: true, items: [] });
+      // precioTocado: false mientras el precio todavía sigue a la suma de
+      // productos en automático (ver agregarProductoAFormCombo /
+      // actualizarCantidadItemCombo / quitarItemCombo) -- se pone en true en
+      // cuanto el usuario toca el campo de precio a mano o usa un botón de
+      // descuento rápido, para dejar de pisarle lo que eligió.
+      const comboVacio = () => ({ id: null, nombre: '', descripcion: '', precio_venta: '', activo: true, items: [], precioTocado: false });
       const [formCombo, setFormCombo] = useState(null);
       const [guardandoCombo, setGuardandoCombo] = useState(false);
       const [busquedaProductoCombo, setBusquedaProductoCombo] = useState('');
@@ -3506,49 +3511,76 @@ import './index.css';
             precio_venta: Number(ci.productos?.precio_venta) || 0,
             precio_costo: Number(ci.productos?.precio_costo) || 0,
             cantidad: Number(ci.cantidad)
-          }))
+          })),
+          precioTocado: true
         });
         setBusquedaProductoCombo('');
-      };
-
-      const agregarProductoAFormCombo = (producto) => {
-        setFormCombo((prev) => {
-          const idx = prev.items.findIndex((it) => it.producto_id === producto.id);
-          if (idx >= 0) {
-            const items = [...prev.items];
-            items[idx] = { ...items[idx], cantidad: items[idx].cantidad + 1 };
-            return { ...prev, items };
-          }
-          return {
-            ...prev,
-            items: [...prev.items, {
-              producto_id: producto.id,
-              descripcion: producto.descripcion,
-              cod_ean: producto.cod_ean || '',
-              precio_venta: Number(producto.precio_venta) || 0,
-              precio_costo: Number(producto.precio_costo) || 0,
-              cantidad: 1
-            }]
-          };
-        });
-        setBusquedaProductoCombo('');
-      };
-
-      const actualizarCantidadItemCombo = (producto_id, cantidad) => {
-        setFormCombo((prev) => ({
-          ...prev,
-          items: prev.items.map((it) => (it.producto_id === producto_id ? { ...it, cantidad: Math.max(1, Number(cantidad) || 1) } : it))
-        }));
-      };
-
-      const quitarItemCombo = (producto_id) => {
-        setFormCombo((prev) => ({ ...prev, items: prev.items.filter((it) => it.producto_id !== producto_id) }));
       };
 
       // Suma de los precios de venta normales de cada producto del combo
       // (según su cantidad) -- referencia para que el dueño vea cuánto está
       // descontando al ponerle precio de bolsa al combo.
       const precioNormalCombo = (form) => (form?.items || []).reduce((acc, it) => acc + it.precio_venta * it.cantidad, 0);
+
+      // Suma de los COSTOS de cada producto del combo -- referencia para
+      // avisar si el precio de bolsa quedó por debajo de lo que cuesta
+      // armarlo (ver aviso de "precio bajo costo" en el formulario).
+      const costoNormalCombo = (form) => (form?.items || []).reduce((acc, it) => acc + it.precio_costo * it.cantidad, 0);
+
+      // Mientras el precio no se haya tocado a mano (precioTocado false),
+      // sigue en automático a la suma de precios normales de los productos
+      // -- así el formulario arranca en el precio "sin descuento" en vez de
+      // en 0, y el dueño ajusta hacia abajo desde ahí.
+      const actualizarItemsYPrecio = (prev, nuevosItems) => {
+        if (prev.precioTocado) return { ...prev, items: nuevosItems };
+        const suma = nuevosItems.reduce((acc, it) => acc + it.precio_venta * it.cantidad, 0);
+        return { ...prev, items: nuevosItems, precio_venta: suma > 0 ? suma.toFixed(2) : '' };
+      };
+
+      const agregarProductoAFormCombo = (producto) => {
+        setFormCombo((prev) => {
+          const idx = prev.items.findIndex((it) => it.producto_id === producto.id);
+          let nuevosItems;
+          if (idx >= 0) {
+            nuevosItems = [...prev.items];
+            nuevosItems[idx] = { ...nuevosItems[idx], cantidad: nuevosItems[idx].cantidad + 1 };
+          } else {
+            nuevosItems = [...prev.items, {
+              producto_id: producto.id,
+              descripcion: producto.descripcion,
+              cod_ean: producto.cod_ean || '',
+              precio_venta: Number(producto.precio_venta) || 0,
+              precio_costo: Number(producto.precio_costo) || 0,
+              cantidad: 1
+            }];
+          }
+          return actualizarItemsYPrecio(prev, nuevosItems);
+        });
+        setBusquedaProductoCombo('');
+      };
+
+      const actualizarCantidadItemCombo = (producto_id, cantidad) => {
+        setFormCombo((prev) => {
+          const nuevosItems = prev.items.map((it) => (it.producto_id === producto_id ? { ...it, cantidad: Math.max(1, Number(cantidad) || 1) } : it));
+          return actualizarItemsYPrecio(prev, nuevosItems);
+        });
+      };
+
+      const quitarItemCombo = (producto_id) => {
+        setFormCombo((prev) => actualizarItemsYPrecio(prev, prev.items.filter((it) => it.producto_id !== producto_id)));
+      };
+
+      // Botones de descuento rápido: calculan el precio de bolsa a partir
+      // de la suma de productos menos un % (5/10/15), y lo dejan como si el
+      // usuario lo hubiera tocado a mano (no lo vuelve a pisar el
+      // autocompletado si después agrega otro producto).
+      const aplicarDescuentoRapidoCombo = (pct) => {
+        setFormCombo((prev) => {
+          const suma = precioNormalCombo(prev);
+          if (suma <= 0) return prev;
+          return { ...prev, precioTocado: true, precio_venta: (suma * (1 - pct / 100)).toFixed(2) };
+        });
+      };
 
       const guardarCombo = async () => {
         if (!formCombo) return;
@@ -9809,7 +9841,7 @@ import './index.css';
                           step="0.10"
                           placeholder="0.00"
                           value={formCombo.precio_venta}
-                          onChange={(e) => setFormCombo({ ...formCombo, precio_venta: e.target.value })}
+                          onChange={(e) => setFormCombo({ ...formCombo, precioTocado: true, precio_venta: e.target.value })}
                           className="w-full bg-white border border-stone-200 rounded-lg px-3 py-1.5 text-sm font-bold text-stone-900"
                         />
                       </div>
@@ -9822,6 +9854,29 @@ import './index.css';
                         )}
                       </div>
                     </div>
+
+                    {precioNormalCombo(formCombo) > 0 && (
+                      <div className="flex items-center gap-1.5">
+                        <span className="text-[11px] text-stone-500 shrink-0">Descuento rápido:</span>
+                        {[5, 10, 15].map((pct) => (
+                          <button
+                            key={pct}
+                            type="button"
+                            onClick={() => aplicarDescuentoRapidoCombo(pct)}
+                            className="px-2.5 py-1 text-[11px] font-semibold bg-stone-200 hover:bg-amber-100 hover:text-amber-700 text-stone-700 rounded-lg transition"
+                          >
+                            -{pct}%
+                          </button>
+                        ))}
+                      </div>
+                    )}
+
+                    {costoNormalCombo(formCombo) > 0 && Number(formCombo.precio_venta) > 0 && Number(formCombo.precio_venta) < costoNormalCombo(formCombo) && (
+                      <p className="text-xs font-semibold text-rose-600 bg-rose-50 border border-rose-200 rounded-lg px-3 py-2 flex items-center gap-1.5">
+                        <i className="fa-solid fa-triangle-exclamation"></i>
+                        El precio (S/ {Number(formCombo.precio_venta).toFixed(2)}) es menor al costo de estos productos (S/ {costoNormalCombo(formCombo).toFixed(2)}) -- estarías vendiendo a pérdida.
+                      </p>
+                    )}
 
                     <Interruptor activo={formCombo.activo} onClick={() => setFormCombo({ ...formCombo, activo: !formCombo.activo })} etiqueta="Combo activo (visible para vender)" />
 
