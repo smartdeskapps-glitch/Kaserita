@@ -701,28 +701,35 @@ import './index.css';
           tabIndex={0}
           onClick={() => onSelect(prod)}
           onKeyDown={(e) => { if (e.key === 'Enter') onSelect(prod); }}
-          className={`text-left bg-white border rounded-2xl overflow-hidden shadow-sm hover:-translate-y-0.5 hover:shadow-lg hover:shadow-stone-900/10 transition-all duration-200 active:scale-[0.98] group cursor-pointer relative ${
-            enCarrito > 0 ? 'border-orange-500 ring-2 ring-orange-500/40' : 'border-stone-200/70 hover:border-orange-500/40'
+          className={`text-left bg-white rounded-[22px] border shadow-sm hover:shadow-md transition-all duration-200 active:scale-[0.98] group cursor-pointer p-2 flex flex-col ${
+            enCarrito > 0 ? 'border-orange-500 ring-2 ring-orange-500/30' : 'border-stone-100 hover:border-orange-300'
           }`}
         >
-          {esAdmin && (
-            <button
-              type="button"
-              onClick={(e) => { e.stopPropagation(); onEdit(prod); }}
-              className="absolute top-2 left-2 z-10 w-6 h-6 flex items-center justify-center bg-stone-50/80 hover:bg-stone-100 text-stone-700 hover:text-orange-600 rounded-lg transition"
-              title="Editar producto"
-            >
-              <i className="fa-solid fa-pen text-xs"></i>
-            </button>
-          )}
-          <div className="relative">
+          {/* Foto contenida dentro de su propio recuadro redondeado, con
+              margen respecto al borde de la tarjeta -- antes la foto llegaba
+              hasta el borde y el nombre/precio iban superpuestos encima con
+              un degradado, así que una foto oscura o muy cargada (la mayoría
+              son fotos de celular, no product shots prolijos) ensuciaba toda
+              la tarjeta. Separando foto y texto en sus propios bloques, el
+              texto siempre vive sobre blanco liso sin importar la foto. */}
+          <div className="relative aspect-square rounded-2xl overflow-hidden bg-stone-100">
             <FotoProducto
               fotoUrl={prod.foto_url}
               categoria={prod.categoria}
-              className="w-full aspect-square"
+              className="w-full h-full"
               iconClassName="text-2xl md:text-3xl opacity-90"
             />
-            <div className="absolute top-2 right-2 z-10 flex flex-col items-end gap-1">
+            {esAdmin && (
+              <button
+                type="button"
+                onClick={(e) => { e.stopPropagation(); onEdit(prod); }}
+                className="absolute top-1.5 left-1.5 z-10 w-6 h-6 flex items-center justify-center bg-white/90 hover:bg-white text-stone-700 hover:text-orange-600 rounded-lg shadow-sm transition"
+                title="Editar producto"
+              >
+                <i className="fa-solid fa-pen text-xs"></i>
+              </button>
+            )}
+            <div className="absolute top-1.5 right-1.5 z-10 flex flex-col items-end gap-1">
               {tieneCombo && (
                 <button
                   type="button"
@@ -739,55 +746,47 @@ import './index.css';
                 </span>
               )}
               {prod.unidad === 'KG' && (
-                <span className="text-xs font-bold text-stone-100 bg-white/90 px-1.5 py-0.5 rounded-md">
+                <span className="text-[10px] font-bold text-stone-700 bg-white/90 px-1.5 py-0.5 rounded-md shadow-sm">
                   KG
                 </span>
               )}
               {Number(prod.unidades_por_pack) > 1 && (
-                <span className="text-[10px] font-bold text-white bg-stone-900/85 px-1.5 py-0.5 rounded-md flex items-center gap-1">
+                <span className="text-[10px] font-bold text-white bg-stone-900/85 px-1.5 py-0.5 rounded-md shadow-sm flex items-center gap-1">
                   <i className="fa-solid fa-boxes-packing"></i> x{prod.unidades_por_pack}
                 </span>
               )}
             </div>
             {enCarrito > 0 && (
-              <span className="absolute top-2 left-1/2 -translate-x-1/2 text-[10px] font-bold text-white bg-violet-600 px-2.5 py-1 rounded-full shadow flex items-center gap-1 whitespace-nowrap">
+              <span className="absolute bottom-1.5 left-1/2 -translate-x-1/2 text-[10px] font-bold text-white bg-violet-600 px-2.5 py-1 rounded-full shadow flex items-center gap-1 whitespace-nowrap">
                 <i className="fa-solid fa-check"></i> En carrito · {enCarrito}
               </span>
             )}
-            {/* Nombre/precio superpuestos sobre la foto, con un degradado
-                blanco hacia transparente detrás -- se probó con
-                backdrop-blur (desenfocar la foto de verdad) pero combinado
-                con la elevación de la tarjeta al pasar el mouse (más abajo)
-                algunos navegadores desenfocaban la tarjeta entera; un
-                degradado con varios tonos intermedios se ve igual de suave
-                sin ese problema. */}
-            {/* Categoría + stock viven acá adentro, sobre el mismo degradado
-                -- antes eran una franja blanca aparte debajo de la foto,
-                separada de todo lo demás en vez de integrada a la tarjeta. */}
-            <div className="absolute inset-x-0 bottom-0 pt-12 px-2.5 pb-2 bg-gradient-to-t from-white from-15% via-white/70 via-45% to-transparent">
-              <h3 className="text-[13px] font-bold text-stone-900 line-clamp-2 leading-snug">
-                {prod.descripcion}
-              </h3>
-              <span className="text-base font-black text-stone-900 tabular-nums">
+          </div>
+
+          <div className="px-1 pt-2.5 pb-0.5 flex flex-col gap-0.5 flex-1">
+            <h3 className="text-[13px] font-bold text-stone-900 line-clamp-2 leading-snug min-h-[2.4em]">
+              {prod.descripcion}
+            </h3>
+            <p className="text-[10px] font-bold text-stone-400 tracking-wide uppercase truncate">
+              {prod.categoria || 'General'}
+            </p>
+
+            <div className="mt-auto pt-2 border-t border-stone-100 flex items-center justify-between gap-2">
+              <span className="text-[15px] font-black text-stone-900 tabular-nums">
                 S/ {Number(prod.precio_venta).toFixed(2)}
               </span>
-              <div className="flex items-center justify-between gap-2 mt-1">
-                <span className="text-[10px] font-bold text-stone-400 tracking-wide uppercase truncate">
-                  {prod.categoria || 'General'}
-                </span>
-                {prod.stock_actual !== null && prod.stock_actual !== undefined && (
-                  <div className={`text-[11px] font-semibold flex items-center gap-1 shrink-0 ${
-                    Number(prod.stock_actual) <= 0
-                      ? 'text-rose-600'
-                      : Number(prod.stock_actual) <= Number(prod.stock_min || 5)
-                      ? 'text-amber-600'
-                      : 'text-stone-500'
-                  }`}>
-                    <i className="fa-solid fa-boxes-stacked text-[8px]"></i>
-                    {Number(prod.stock_actual) <= 0 ? 'Sin stock' : `Stock: ${prod.stock_actual}`}
-                  </div>
-                )}
-              </div>
+              {prod.stock_actual !== null && prod.stock_actual !== undefined && (
+                <div className={`text-[11px] font-semibold flex items-center gap-1 shrink-0 ${
+                  Number(prod.stock_actual) <= 0
+                    ? 'text-rose-600'
+                    : Number(prod.stock_actual) <= Number(prod.stock_min || 5)
+                    ? 'text-amber-600'
+                    : 'text-stone-400'
+                }`}>
+                  <i className="fa-solid fa-boxes-stacked text-[8px]"></i>
+                  {Number(prod.stock_actual) <= 0 ? 'Sin stock' : prod.stock_actual}
+                </div>
+              )}
             </div>
           </div>
         </div>
