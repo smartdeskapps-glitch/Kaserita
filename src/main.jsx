@@ -694,7 +694,7 @@ import './index.css';
     // volvía a renderizar TODAS las tarjetas aunque no tuvieran nada que ver.
     // Con React.memo, una tarjeta solo se vuelve a renderizar si cambian sus
     // propias props (su producto, o si cambia esAdmin/onSelect/onEdit).
-    const ProductoCard = React.memo(function ProductoCard({ prod, esAdmin, enCarrito = 0, onSelect, onEdit }) {
+    const ProductoCard = React.memo(function ProductoCard({ prod, esAdmin, enCarrito = 0, onSelect, onEdit, tieneCombo = false, onVerCombo }) {
       return (
         <div
           role="button"
@@ -723,6 +723,16 @@ import './index.css';
               iconClassName="text-2xl md:text-3xl opacity-90"
             />
             <div className="absolute top-2 right-2 z-10 flex flex-col items-end gap-1">
+              {tieneCombo && (
+                <button
+                  type="button"
+                  onClick={(e) => { e.stopPropagation(); onVerCombo?.(prod); }}
+                  className="text-[10px] font-bold text-white bg-amber-500 hover:bg-amber-600 px-1.5 py-0.5 rounded-md shadow-sm flex items-center gap-1"
+                  title="Este producto es parte de un combo -- toca para verlo"
+                >
+                  <i className="fa-solid fa-gift"></i> Combo
+                </button>
+              )}
               {prod.es_destacado && (
                 <span className="text-[10px] font-bold text-white bg-amber-500 w-5 h-5 flex items-center justify-center rounded-md shadow-sm" title="Destacado en Delivery">
                   <i className="fa-solid fa-star"></i>
@@ -3861,6 +3871,19 @@ import './index.css';
         });
         return mapa;
       }, [carrito]);
+
+      // Qué productos son parte de algún combo activo -- para poder
+      // avisarlo en su propia tarjeta del catálogo normal (ver ProductoCard
+      // más abajo), no solo dentro de la pestaña "Combos". Así un cajero que
+      // busca/agrega producto por producto igual se entera de que existe un
+      // combo con ese producto.
+      const productosEnCombo = useMemo(() => {
+        const set = new Set();
+        combos.filter((c) => c.activo).forEach((c) => {
+          (c.combos_items || []).forEach((ci) => set.add(ci.producto_id));
+        });
+        return set;
+      }, [combos]);
 
       // Versión del catálogo con los campos de texto ya en minúscula, para
       // no repetir toLowerCase() sobre cada producto en cada tecla que se
@@ -8068,14 +8091,9 @@ import './index.css';
             <SidebarIcon icon="fa-clipboard-check" label="Toma de Inventario" onClick={abrirTomaInventario} />
             <SidebarIcon icon="fa-scale-balanced" label="Historial de Inventario" onClick={abrirHistorialInventario} />
             <SidebarIcon icon="fa-box" label="Registrar Merma" onClick={() => setModalMerma(true)} />
-            {/* Combos se vende a través del Catálogo Online -- no tiene
-                sentido para una bodega que no tiene ese plan, así que se
-                condiciona a eso (delivery_permitido) y no al rol del
-                usuario: cualquiera en una bodega con Catálogo Online puede
-                armar/vender combos, no solo el administrador. */}
-            {sesion?.bodega?.delivery_permitido && (
-              <SidebarIcon icon="fa-gift" label="Combos" onClick={abrirModalCombos} />
-            )}
+            {/* Combos también se venden en el POS, no solo por el Catálogo
+                Online -- disponible para cualquier bodega y cualquier rol. */}
+            <SidebarIcon icon="fa-gift" label="Combos" onClick={abrirModalCombos} />
             {esAdmin && (
               <>
                 <div className="w-10 h-px bg-stone-200 my-2 shrink-0"></div>
@@ -8359,6 +8377,8 @@ import './index.css';
                         enCarrito={cantidadEnCarritoPorProducto.get(prod.id) || 0}
                         onSelect={handleClicProducto}
                         onEdit={abrirEdicionProducto}
+                        tieneCombo={productosEnCombo.has(prod.id)}
+                        onVerCombo={() => setCategoriaFiltro('__COMBOS__')}
                       />
                     ))}
                   </div>
