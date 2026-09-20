@@ -4171,16 +4171,16 @@ import './index.css';
       // líneas de productos sueltos, todo lo que ese combo necesita -- para
       // que escanear/seleccionar producto por producto (sin pasar por la
       // pestaña "Combos") igual aplique el precio de combo. Usa justo las
-      // unidades que pide el combo y deja el resto suelto a precio normal;
-      // si alcanza para varios combos completos, arma solo uno por pasada
-      // (no se vuelve a disparar para el mismo combo mientras su línea siga
-      // en el carrito).
+      // unidades que pide el combo y deja el resto suelto a precio normal.
+      // Si ya hay una línea de este combo, le suma 1 en vez de crear otra --
+      // así, si el carrito junta productos sueltos para varios combos
+      // completos (de a uno, en pasadas sucesivas de este mismo efecto),
+      // se van sumando todos los que alcancen, no solo el primero.
       const convertirProductosEnCombo = useCallback((combo) => {
         let aplicado = false;
         setCarrito((prev) => {
           const requeridos = combo.combos_items || [];
           if (requeridos.length === 0) return prev;
-          if (prev.some((item) => item.esCombo && item.comboId === combo.id)) return prev;
 
           const disponible = new Map();
           prev.forEach((item) => {
@@ -4193,10 +4193,17 @@ import './index.css';
           // Descuenta las unidades del combo de las líneas sueltas (puede
           // haber más de una línea del mismo producto -- ej. vendido suelto
           // y por pack -- así que consume de a una hasta cubrir lo pedido).
+          // La línea de este combo (si ya existe) se saca acá y se vuelve a
+          // agregar al final, ya con la cantidad sumada.
           const porConsumir = new Map(requeridos.map((ci) => [ci.producto_id, Number(ci.cantidad)]));
+          let comboExistente = null;
           const nuevo = [];
           prev.forEach((item) => {
-            if (item.esCombo) { nuevo.push(item); return; }
+            if (item.esCombo) {
+              if (item.comboId === combo.id) { comboExistente = item; return; }
+              nuevo.push(item);
+              return;
+            }
             const falta = porConsumir.get(item.productoId);
             if (!falta || falta <= 0) { nuevo.push(item); return; }
             const consumido = Math.min(falta, item.cantidad);
@@ -4207,30 +4214,36 @@ import './index.css';
             }
           });
 
-          const itemsCombo = requeridos.map((ci) => ({
-            productoId: ci.producto_id,
-            descripcion: ci.productos?.descripcion || '(producto eliminado)',
-            cod_ean: ci.productos?.cod_ean || '',
-            precioVenta: Number(ci.productos?.precio_venta) || 0,
-            precioCosto: Number(ci.productos?.precio_costo) || 0,
-            cantidadBase: Number(ci.cantidad)
-          }));
           const precioUnit = Number(combo.precio_venta) || 0;
-          const costoUnit = itemsCombo.reduce((acc, it) => acc + it.precioCosto * it.cantidadBase, 0);
-
-          nuevo.push({
-            esCombo: true,
-            comboId: combo.id,
-            productoId: null,
-            claveCarrito: `combo::${combo.id}`,
-            descripcion: `Combo: ${combo.nombre}`,
-            precioUnitario: precioUnit,
-            precioCosto: costoUnit,
-            cantidad: 1,
-            subtotal: +precioUnit.toFixed(2),
-            unidad: 'COMBO',
-            itemsCombo
-          });
+          let lineaCombo;
+          if (comboExistente) {
+            const nuevaCant = +(comboExistente.cantidad + 1).toFixed(3);
+            lineaCombo = { ...comboExistente, cantidad: nuevaCant, subtotal: +(nuevaCant * precioUnit).toFixed(2) };
+          } else {
+            const itemsCombo = requeridos.map((ci) => ({
+              productoId: ci.producto_id,
+              descripcion: ci.productos?.descripcion || '(producto eliminado)',
+              cod_ean: ci.productos?.cod_ean || '',
+              precioVenta: Number(ci.productos?.precio_venta) || 0,
+              precioCosto: Number(ci.productos?.precio_costo) || 0,
+              cantidadBase: Number(ci.cantidad)
+            }));
+            const costoUnit = itemsCombo.reduce((acc, it) => acc + it.precioCosto * it.cantidadBase, 0);
+            lineaCombo = {
+              esCombo: true,
+              comboId: combo.id,
+              productoId: null,
+              claveCarrito: `combo::${combo.id}`,
+              descripcion: `Combo: ${combo.nombre}`,
+              precioUnitario: precioUnit,
+              precioCosto: costoUnit,
+              cantidad: 1,
+              subtotal: +precioUnit.toFixed(2),
+              unidad: 'COMBO',
+              itemsCombo
+            };
+          }
+          nuevo.push(lineaCombo);
           aplicado = true;
           return nuevo;
         });
@@ -4239,15 +4252,13 @@ import './index.css';
 
       useEffect(() => {
         if (!combos.some((c) => c.activo)) return;
-        const comboIdsEnCarrito = new Set(carrito.filter((i) => i.esCombo).map((i) => i.comboId));
         const disponible = new Map();
         carrito.forEach((item) => {
           if (item.esCombo) return;
           disponible.set(item.productoId, (disponible.get(item.productoId) || 0) + item.cantidad);
         });
         const comboListo = combos.find((c) => {
-          if (!c.activo) return false;
-          if (comboIdsEnCarrito.has(c.id) || combosRechazadosRef.current.has(c.id)) return false;
+          if (!c.activo || combosRechazadosRef.current.has(c.id)) return false;
           const items = c.combos_items || [];
           if (items.length === 0) return false;
           return items.every((ci) => (disponible.get(ci.producto_id) || 0) >= Number(ci.cantidad));
