@@ -1,0 +1,8 @@
+[{
+      "relation": ["delegate_permission/common.handle_all_urls"],
+      "target": {
+        "namespace": "android_app",
+        "package_name": "app.vercel.kaserita.twa",
+        "sha256_cert_fingerprints": ["DA:44:9A:15:3A:F8:48:15:71:C7:4E:69:6C:E1:51:2C:70:C7:68:C8:45:FA:C7:7E:4B:95:CD:61:1E:A7:24:C3"]
+      }
+    }]
