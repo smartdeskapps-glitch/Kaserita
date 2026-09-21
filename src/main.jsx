@@ -757,7 +757,7 @@ import './index.css';
               )}
             </div>
             {enCarrito > 0 && (
-              <span className="absolute bottom-1.5 left-1/2 -translate-x-1/2 text-[10px] font-bold text-white bg-violet-600 px-2.5 py-1 rounded-full shadow flex items-center gap-1 whitespace-nowrap">
+              <span className="absolute bottom-1.5 left-1/2 -translate-x-1/2 text-[10px] font-bold text-white bg-stone-900 px-2.5 py-1 rounded-full shadow flex items-center gap-1 whitespace-nowrap">
                 <i className="fa-solid fa-check"></i> En carrito · {enCarrito}
               </span>
             )}
@@ -8299,7 +8299,7 @@ import './index.css';
 
           {/* Columna Central: Catálogo (Order Line) */}
           <div className="flex-1 flex flex-col overflow-hidden">
-            <header className="flex items-center justify-between mx-3 mt-3 px-4 md:px-6 py-3.5 bg-white border border-stone-200 rounded-3xl shadow-sm gap-3">
+            <header className="flex items-center justify-between mx-3 mt-3 px-4 md:px-6 py-3.5 bg-white border border-stone-200 rounded-2xl shadow-sm gap-3">
               <div className="flex items-center gap-3 min-w-0">
                 <div className="h-8 px-2.5 bg-gradient-to-br from-blue-600 to-violet-600 rounded-lg flex items-center justify-center shadow-lg shadow-violet-600/25 shrink-0">
                   <img src="/logo-blanco-wordmark.png" alt="Kaserita" className="h-3.5 w-auto" />
@@ -8356,7 +8356,7 @@ import './index.css';
                     onChange={(e) => setBusqueda(e.target.value)}
                     onKeyDown={handleKeyDownBusqueda}
                     placeholder="Escanear código o buscar producto..."
-                    className="w-full bg-white border border-stone-200 text-stone-900 placeholder-stone-500 text-sm rounded-2xl pl-11 pr-9 py-3 shadow-sm focus:outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500 transition"
+                    className="w-full bg-white border border-stone-200 text-stone-900 placeholder-stone-500 text-sm rounded-2xl pl-11 pr-9 py-3 focus:outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500 transition"
                     autoFocus
                   />
                   {busqueda && (
@@ -8371,21 +8371,21 @@ import './index.css';
                 </div>
                 <button
                   onClick={() => cargarProductos(busqueda)}
-                  className="hidden md:flex items-center justify-center w-11 h-11 shrink-0 bg-white hover:bg-stone-50 text-stone-700 text-xs font-semibold rounded-2xl border border-stone-200 shadow-sm transition"
+                  className="hidden md:flex items-center justify-center w-11 h-11 shrink-0 bg-white hover:bg-stone-50 text-stone-700 text-xs font-semibold rounded-2xl border border-stone-200 transition"
                 >
                   <i className="fa-solid fa-magnifying-glass"></i>
                 </button>
                 <button
                   onClick={() => { setCodigoPedidoInput(''); setPedidoEncontrado(null); setModalCargarPedidoCodigo(true); }}
                   title="Cargar pedido con código de KaseritaDelivery"
-                  className="flex items-center justify-center w-11 h-11 shrink-0 bg-white hover:bg-stone-50 text-stone-700 text-xs font-semibold rounded-2xl border border-stone-200 shadow-sm transition"
+                  className="flex items-center justify-center w-11 h-11 shrink-0 bg-white hover:bg-stone-50 text-stone-700 text-xs font-semibold rounded-2xl border border-stone-200 transition"
                 >
                   <i className="fa-solid fa-ticket"></i>
                 </button>
                 <button
                   onClick={() => { setModalPedidosRetirar(true); setAvisosPedidosNuevos(0); cargarPedidosRetirar(); }}
                   title="Pedidos por retirar (clientes con cuenta)"
-                  className="relative flex items-center justify-center w-11 h-11 shrink-0 bg-white hover:bg-stone-50 text-stone-700 text-xs font-semibold rounded-2xl border border-stone-200 shadow-sm transition"
+                  className="relative flex items-center justify-center w-11 h-11 shrink-0 bg-white hover:bg-stone-50 text-stone-700 text-xs font-semibold rounded-2xl border border-stone-200 transition"
                 >
                   <i className="fa-solid fa-bell-concierge"></i>
                   {avisosPedidosNuevos > 0 && (
@@ -8424,7 +8424,7 @@ import './index.css';
                 {combos.some(c => c.activo) && (
                   <button
                     onClick={() => setCategoriaFiltro('__COMBOS__')}
-                    className={`shrink-0 flex flex-col items-start px-4 py-2 rounded-full transition ${categoriaFiltro === '__COMBOS__' ? 'bg-amber-500 text-white shadow-sm' : 'bg-white text-amber-700 hover:bg-amber-50 border border-amber-200 shadow-sm'}`}
+                    className={`shrink-0 flex flex-col items-start px-4 py-2 rounded-full transition ${categoriaFiltro === '__COMBOS__' ? 'bg-amber-500 text-white shadow-sm' : 'bg-white text-amber-700 hover:bg-amber-50 border border-amber-200'}`}
                   >
                     <span className="font-bold whitespace-nowrap"><i className="fa-solid fa-gift mr-1"></i>Combos</span>
                     <span className={`text-[10px] font-medium ${categoriaFiltro === '__COMBOS__' ? 'text-white/70' : 'text-amber-600/70'}`}>
@@ -8439,7 +8439,7 @@ import './index.css';
                     <button
                       key={cat}
                       onClick={() => setCategoriaFiltro(cat)}
-                      className={`shrink-0 flex flex-col items-start px-4 py-2 rounded-full transition ${activo ? 'bg-stone-900 text-white shadow-sm' : 'bg-white text-stone-700 hover:bg-stone-50 border border-stone-200 shadow-sm'}`}
+                      className={`shrink-0 flex flex-col items-start px-4 py-2 rounded-full transition ${activo ? 'bg-stone-900 text-white shadow-sm' : 'bg-white text-stone-700 hover:bg-stone-50 border border-stone-200'}`}
                     >
                       <span className="font-bold whitespace-nowrap">{cat}</span>
                       <span className={`text-[10px] font-medium ${activo ? 'text-white/70' : 'text-stone-400'}`}>
@@ -8567,7 +8567,7 @@ import './index.css';
           )}
 
           <section
-            className={`${mostrarResumenMobile ? 'flex' : 'hidden'} md:flex flex-col w-full md:w-[400px] lg:w-[440px] bg-white border border-stone-200 fixed inset-x-0 bottom-0 top-auto md:static md:inset-auto rounded-t-3xl md:rounded-3xl max-h-[88vh] md:max-h-none md:my-3 md:mr-3 shadow-2xl md:shadow-lg overflow-hidden z-50 md:z-auto`}
+            className={`${mostrarResumenMobile ? 'flex' : 'hidden'} md:flex flex-col w-full md:w-[400px] lg:w-[440px] bg-white border border-stone-200 fixed inset-x-0 bottom-0 top-auto md:static md:inset-auto rounded-t-2xl md:rounded-2xl max-h-[88vh] md:max-h-none md:my-3 md:mr-3 shadow-2xl md:shadow-lg overflow-hidden z-50 md:z-auto`}
           >
             {/* Manija de arrastre (solo mobile) */}
             <div className="md:hidden w-10 h-1.5 bg-stone-300 rounded-full mx-auto mt-2.5 mb-1 shrink-0"></div>
@@ -8579,9 +8579,9 @@ import './index.css';
             </div>
 
             {/* Encabezado Carrito */}
-            <div className="flex items-center justify-between px-3 py-2 bg-stone-100 border-b border-stone-200">
-              <span className="text-xs font-bold text-stone-700 uppercase tracking-wider">
-                Carrito ({carrito.reduce((a, c) => a + c.cantidad, 0)} ítems)
+            <div className="flex items-center justify-between px-4 py-3 bg-white border-b border-stone-100">
+              <span className="text-sm font-extrabold text-stone-900">
+                Carrito <span className="text-stone-400 font-semibold">· {carrito.reduce((a, c) => a + c.cantidad, 0)} ítems</span>
               </span>
               <div className="flex gap-2">
                 {carrito.length > 0 && (
@@ -8669,10 +8669,10 @@ import './index.css';
             </div>
 
             {/* Panel Cobro */}
-            <div className="p-4 bg-stone-100 border-t border-stone-200 space-y-3">
+            <div className="p-4 bg-white border-t border-stone-100 space-y-3">
               {!mostrarPago ? (
                 <>
-                  <div className="bg-white border border-stone-200 rounded-2xl px-3.5 py-3 space-y-1.5">
+                  <div className="bg-stone-50 border border-stone-100 rounded-2xl px-3.5 py-3 space-y-1.5">
                     <div className="flex items-center justify-between text-xs text-stone-600">
                       <span>Subtotal</span>
                       <span className="tabular-nums">S/ {totalVenta.toFixed(2)}</span>
