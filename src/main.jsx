@@ -8328,20 +8328,6 @@ import './index.css';
                     Abrir Turno <span aria-hidden="true">→</span>
                   </button>
                 )}
-                {/* Divisor + tarjeta del cajero, como el bloque de
-                    notificación/avatar de la referencia. */}
-                <div className="hidden lg:block h-8 w-px bg-stone-200"></div>
-                <div className="hidden lg:flex items-center gap-2.5 pl-0.5">
-                  <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-stone-700 to-stone-900 text-white flex items-center justify-center font-bold text-sm shrink-0">
-                    {(cajeroSeleccionado?.nombre || usuarioActivo?.nombre || '?').charAt(0).toUpperCase()}
-                  </div>
-                  <div className="text-left min-w-0">
-                    <h3 className="text-xs font-bold text-stone-900 leading-tight truncate max-w-[110px]">
-                      {cajeroSeleccionado?.nombre || usuarioActivo?.nombre}
-                    </h3>
-                    <p className="text-[11px] text-stone-400 font-medium">{esAdmin ? 'Administrador' : 'Cajero'}</p>
-                  </div>
-                </div>
                 <button
                   onClick={() => setMenuMas(true)}
                   className="md:hidden w-10 h-10 flex items-center justify-center bg-stone-200 border border-stone-300 rounded-xl text-stone-700 hover:text-stone-900 transition"
