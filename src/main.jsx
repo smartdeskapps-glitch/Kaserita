@@ -8320,7 +8320,7 @@ import './index.css';
                 ) : (
                   <button
                     onClick={() => setModalTurno(true)}
-                    className="btn-noise hidden sm:inline-flex items-center gap-2 px-4 py-2 rounded-full text-xs font-semibold bg-white text-stone-800 border border-stone-200 hover:bg-stone-50 transition shadow-sm"
+                    className="btn-noise hidden sm:inline-flex items-center gap-2 px-4 py-2 text-xs font-semibold text-stone-800 transition"
                   >
                     Abrir Turno <span aria-hidden="true">→</span>
                   </button>

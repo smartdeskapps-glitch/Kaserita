@@ -2,37 +2,48 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Botón "Abrir Turno": borde con degradado animado (tipo Aceternity
-   "moving border"), un anillo de colores que gira alrededor del botón.
-   Es puro CSS (conic-gradient + @property para poder animar el ángulo)
-   porque este proyecto es un solo main.jsx sin toolchain de shadcn/TS. */
+/* Botón "Abrir Turno": el borde en sí es un degradado pastel que gira
+   lentamente (no un halo que se escapa del botón), igual al botón de
+   referencia "Start publishing". Técnica de doble fondo (padding-box +
+   border-box) con @property para poder animar el ángulo -- puro CSS,
+   sin shadcn/TS, porque este proyecto es un solo main.jsx. */
 @property --btn-glow-angle {
   syntax: '<angle>';
   initial-value: 0deg;
   inherits: false;
 }
 .btn-noise {
-  position: relative;
-  isolation: isolate;
+  border: 3px solid transparent;
+  border-radius: 9999px;
+  background:
+    linear-gradient(#ffffff, #ffffff) padding-box,
+    conic-gradient(
+      from var(--btn-glow-angle),
+      #f1f5f9 0deg,
+      #fbe0e4 70deg,
+      #f1f5f9 140deg,
+      #f1f5f9 200deg,
+      #dbeafe 260deg,
+      #f1f5f9 330deg,
+      #f1f5f9 360deg
+    ) border-box;
+  box-shadow: 0 1px 2px rgba(41, 37, 36, 0.06);
+  animation: btn-glow-spin 6s linear infinite;
+  transition: background-color 0.15s ease;
 }
-.btn-noise::before {
-  content: "";
-  position: absolute;
-  inset: -8px;
-  z-index: -1;
-  border-radius: inherit;
-  background: conic-gradient(
-    from var(--btn-glow-angle),
-    transparent 0deg,
-    rgba(253, 224, 71, 0.55) 70deg,
-    rgba(251, 146, 60, 0.55) 150deg,
-    rgba(124, 58, 237, 0.55) 230deg,
-    rgba(56, 189, 248, 0.55) 300deg,
-    transparent 360deg
-  );
-  filter: blur(9px);
-  opacity: 0.7;
-  animation: btn-glow-spin 5s linear infinite;
+.btn-noise:hover {
+  background:
+    linear-gradient(#fafaf9, #fafaf9) padding-box,
+    conic-gradient(
+      from var(--btn-glow-angle),
+      #f1f5f9 0deg,
+      #fbe0e4 70deg,
+      #f1f5f9 140deg,
+      #f1f5f9 200deg,
+      #dbeafe 260deg,
+      #f1f5f9 330deg,
+      #f1f5f9 360deg
+    ) border-box;
 }
 @keyframes btn-glow-spin {
   to { --btn-glow-angle: 360deg; }
