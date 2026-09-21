@@ -18,21 +18,21 @@
 .btn-noise::before {
   content: "";
   position: absolute;
-  inset: -3px;
+  inset: -8px;
   z-index: -1;
   border-radius: inherit;
   background: conic-gradient(
     from var(--btn-glow-angle),
     transparent 0deg,
-    #fde047 45deg,
-    #fb923c 100deg,
-    #7c3aed 180deg,
-    #38bdf8 260deg,
-    transparent 320deg,
+    rgba(253, 224, 71, 0.55) 70deg,
+    rgba(251, 146, 60, 0.55) 150deg,
+    rgba(124, 58, 237, 0.55) 230deg,
+    rgba(56, 189, 248, 0.55) 300deg,
     transparent 360deg
   );
-  filter: blur(3px);
-  animation: btn-glow-spin 3.5s linear infinite;
+  filter: blur(9px);
+  opacity: 0.7;
+  animation: btn-glow-spin 5s linear infinite;
 }
 @keyframes btn-glow-spin {
   to { --btn-glow-angle: 360deg; }
