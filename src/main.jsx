@@ -9866,9 +9866,12 @@ import './index.css';
                     </div>
 
                     {formCombo.items.length > 0 && (
-                      <div className="space-y-1.5">
+                      <div className="bg-white border border-stone-200 rounded-xl p-1.5 divide-y divide-stone-100">
                         {formCombo.items.map((it) => (
-                          <div key={it.producto_id} className="flex items-center gap-2 bg-white border border-stone-200 rounded-lg p-2">
+                          <div key={it.producto_id} className="flex items-center gap-2.5 py-2 px-1">
+                            <span className="w-7 h-7 rounded-full bg-[#f4eefe] flex items-center justify-center shrink-0">
+                              <i className="fa-solid fa-box text-xs text-[#6105dc]"></i>
+                            </span>
                             <span className="flex-1 min-w-0 text-xs font-medium text-stone-800 truncate">{it.descripcion}</span>
                             <input
                               type="number"
@@ -9878,7 +9881,7 @@ import './index.css';
                               onChange={(e) => actualizarCantidadItemCombo(it.producto_id, e.target.value)}
                               className="w-14 bg-stone-100 border border-stone-200 rounded px-2 py-1 text-xs text-stone-900 text-center"
                             />
-                            <span className="text-[11px] text-stone-400 w-16 shrink-0 text-right">S/ {(it.precio_venta * it.cantidad).toFixed(2)}</span>
+                            <span className="text-[11px] font-semibold text-stone-600 w-16 shrink-0 text-right">S/ {(it.precio_venta * it.cantidad).toFixed(2)}</span>
                             <button onClick={() => quitarItemCombo(it.producto_id)} className="w-6 h-6 flex items-center justify-center text-stone-400 hover:text-rose-600 shrink-0">
                               <i className="fa-solid fa-xmark text-xs"></i>
                             </button>
@@ -9899,10 +9902,10 @@ import './index.css';
                           className="w-full bg-white border border-stone-200 rounded-lg px-3 py-1.5 text-sm font-bold text-stone-900"
                         />
                       </div>
-                      <div className="flex flex-col justify-end">
+                      <div className={`flex flex-col justify-center rounded-lg px-3 py-1.5 ${precioNormalCombo(formCombo) > 0 && Number(formCombo.precio_venta) > 0 ? 'bg-emerald-50' : 'bg-stone-100'}`}>
                         <span className="text-[11px] text-stone-500">Precio sumado: S/ {precioNormalCombo(formCombo).toFixed(2)}</span>
                         {precioNormalCombo(formCombo) > 0 && Number(formCombo.precio_venta) > 0 && (
-                          <span className="text-[11px] font-semibold text-emerald-600">
+                          <span className="text-sm font-bold text-emerald-700">
                             Ahorro: {(100 - (Number(formCombo.precio_venta) / precioNormalCombo(formCombo)) * 100).toFixed(0)}%
                           </span>
                         )}
