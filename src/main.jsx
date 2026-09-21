@@ -8928,89 +8928,92 @@ import './index.css';
                 <div className="w-10 h-1 bg-stone-300 rounded-full mx-auto mb-2 sticky top-0"></div>
                 {turnoActivo ? (
                   <button onClick={() => { abrirCierreCaja(); setMenuMas(false); }} className="w-full text-left px-3.5 py-3 rounded-xl bg-rose-50 hover:bg-rose-100 flex items-center gap-3 text-rose-600 font-bold text-sm">
-                    <i className="fa-solid fa-lock w-5"></i> Cerrar Caja
+                    <span className="w-7 h-7 rounded-lg bg-rose-100 flex items-center justify-center shrink-0"><i className="fa-solid fa-lock text-xs"></i></span> Cerrar Caja
                   </button>
                 ) : (
-                  <button onClick={() => { setModalTurno(true); setMenuMas(false); }} className="w-full text-left px-3.5 py-3 rounded-xl bg-amber-50 hover:bg-amber-100 flex items-center gap-3 text-amber-700 font-bold text-sm">
-                    <i className="fa-solid fa-bolt w-5"></i> Abrir Turno
+                  <button onClick={() => { setModalTurno(true); setMenuMas(false); }} className="w-full text-left px-3.5 py-3 rounded-xl bg-[#f4eefe] hover:bg-[#ece0fd] flex items-center gap-3 text-[#4d04b0] font-bold text-sm">
+                    <span className="w-7 h-7 rounded-lg bg-[#6105dc] flex items-center justify-center shrink-0"><i className="fa-solid fa-bolt text-xs text-white"></i></span> Abrir Turno
                   </button>
                 )}
-                <div className="border-t border-stone-200 my-1"></div>
-                <button onClick={() => { abrirModuloCobroDeudas(); setMenuMas(false); }} className="w-full text-left px-3.5 py-3 rounded-xl hover:bg-stone-200 flex items-center gap-3 text-stone-800 font-medium text-sm">
-                  <i className="fa-solid fa-hand-holding-dollar w-5 text-amber-600"></i> Cuentas por Cobrar
+
+                <p className="px-3.5 pt-3 pb-1 text-[10px] font-bold text-stone-400 uppercase tracking-wide">Ventas y caja</p>
+                <button onClick={() => { abrirModuloCobroDeudas(); setMenuMas(false); }} className="w-full text-left px-3.5 py-2.5 rounded-xl hover:bg-stone-200 flex items-center gap-3 text-stone-800 font-medium text-sm">
+                  <span className="w-7 h-7 rounded-lg bg-[#f4eefe] flex items-center justify-center shrink-0"><i className="fa-solid fa-hand-holding-dollar text-xs text-[#6105dc]"></i></span> Cuentas por Cobrar
                 </button>
-                <button onClick={() => { abrirHistorialDelDia(); setMenuMas(false); }} className="w-full text-left px-3.5 py-3 rounded-xl hover:bg-stone-200 flex items-center gap-3 text-stone-800 font-medium text-sm">
-                  <i className="fa-solid fa-receipt w-5 text-amber-600"></i> Historial de Ventas Hoy
+                <button onClick={() => { abrirHistorialDelDia(); setMenuMas(false); }} className="w-full text-left px-3.5 py-2.5 rounded-xl hover:bg-stone-200 flex items-center gap-3 text-stone-800 font-medium text-sm">
+                  <span className="w-7 h-7 rounded-lg bg-[#f4eefe] flex items-center justify-center shrink-0"><i className="fa-solid fa-receipt text-xs text-[#6105dc]"></i></span> Historial de Ventas Hoy
                 </button>
                 {!esAdmin && (
-                  <button onClick={() => { setModalNuevoCliente(true); setMenuMas(false); }} className="w-full text-left px-3.5 py-3 rounded-xl hover:bg-stone-200 flex items-center gap-3 text-stone-800 font-medium text-sm">
-                    <i className="fa-solid fa-user-plus w-5 text-amber-600"></i> Registrar Cliente
+                  <button onClick={() => { setModalNuevoCliente(true); setMenuMas(false); }} className="w-full text-left px-3.5 py-2.5 rounded-xl hover:bg-stone-200 flex items-center gap-3 text-stone-800 font-medium text-sm">
+                    <span className="w-7 h-7 rounded-lg bg-[#f4eefe] flex items-center justify-center shrink-0"><i className="fa-solid fa-user-plus text-xs text-[#6105dc]"></i></span> Registrar Cliente
                   </button>
                 )}
-                <button onClick={() => { setModalStockBajo(true); setMenuMas(false); }} className="w-full text-left px-3.5 py-3 rounded-xl hover:bg-stone-200 flex items-center gap-3 text-stone-800 font-medium text-sm">
-                  <i className="fa-solid fa-triangle-exclamation w-5 text-amber-600"></i> Stock Bajo {cantidadStockBajo > 0 && `(${cantidadStockBajo})`}
+
+                <p className="px-3.5 pt-3 pb-1 text-[10px] font-bold text-stone-400 uppercase tracking-wide">Inventario</p>
+                <button onClick={() => { setModalStockBajo(true); setMenuMas(false); }} className="w-full text-left px-3.5 py-2.5 rounded-xl hover:bg-stone-200 flex items-center gap-3 text-stone-800 font-medium text-sm">
+                  <span className="w-7 h-7 rounded-lg bg-amber-50 flex items-center justify-center shrink-0"><i className="fa-solid fa-triangle-exclamation text-xs text-amber-600"></i></span> Stock Bajo {cantidadStockBajo > 0 && `(${cantidadStockBajo})`}
                 </button>
-                <button onClick={() => { setModalVerStock(true); setMenuMas(false); }} className="w-full text-left px-3.5 py-3 rounded-xl hover:bg-stone-200 flex items-center gap-3 text-stone-800 font-medium text-sm">
-                  <i className="fa-solid fa-table-list w-5 text-amber-600"></i> Ver Stock
+                <button onClick={() => { setModalVerStock(true); setMenuMas(false); }} className="w-full text-left px-3.5 py-2.5 rounded-xl hover:bg-stone-200 flex items-center gap-3 text-stone-800 font-medium text-sm">
+                  <span className="w-7 h-7 rounded-lg bg-[#f4eefe] flex items-center justify-center shrink-0"><i className="fa-solid fa-table-list text-xs text-[#6105dc]"></i></span> Ver Stock
                 </button>
-                <button onClick={() => { abrirTomaInventario(); setMenuMas(false); }} className="w-full text-left px-3.5 py-3 rounded-xl hover:bg-stone-200 flex items-center gap-3 text-stone-800 font-medium text-sm">
-                  <i className="fa-solid fa-clipboard-check w-5 text-amber-600"></i> Toma de Inventario
+                <button onClick={() => { abrirTomaInventario(); setMenuMas(false); }} className="w-full text-left px-3.5 py-2.5 rounded-xl hover:bg-stone-200 flex items-center gap-3 text-stone-800 font-medium text-sm">
+                  <span className="w-7 h-7 rounded-lg bg-[#f4eefe] flex items-center justify-center shrink-0"><i className="fa-solid fa-clipboard-check text-xs text-[#6105dc]"></i></span> Toma de Inventario
                 </button>
-                <button onClick={() => { abrirHistorialInventario(); setMenuMas(false); }} className="w-full text-left px-3.5 py-3 rounded-xl hover:bg-stone-200 flex items-center gap-3 text-stone-800 font-medium text-sm">
-                  <i className="fa-solid fa-scale-balanced w-5 text-amber-600"></i> Historial de Inventario
+                <button onClick={() => { abrirHistorialInventario(); setMenuMas(false); }} className="w-full text-left px-3.5 py-2.5 rounded-xl hover:bg-stone-200 flex items-center gap-3 text-stone-800 font-medium text-sm">
+                  <span className="w-7 h-7 rounded-lg bg-[#f4eefe] flex items-center justify-center shrink-0"><i className="fa-solid fa-scale-balanced text-xs text-[#6105dc]"></i></span> Historial de Inventario
                 </button>
-                <button onClick={() => { setModalMerma(true); setMenuMas(false); }} className="w-full text-left px-3.5 py-3 rounded-xl hover:bg-stone-200 flex items-center gap-3 text-stone-800 font-medium text-sm">
-                  <i className="fa-solid fa-box w-5 text-amber-600"></i> Registrar Merma
+                <button onClick={() => { setModalMerma(true); setMenuMas(false); }} className="w-full text-left px-3.5 py-2.5 rounded-xl hover:bg-stone-200 flex items-center gap-3 text-stone-800 font-medium text-sm">
+                  <span className="w-7 h-7 rounded-lg bg-[#f4eefe] flex items-center justify-center shrink-0"><i className="fa-solid fa-box text-xs text-[#6105dc]"></i></span> Registrar Merma
                 </button>
                 {esAdmin && (
                   <>
-                    <div className="border-t border-stone-200 my-1"></div>
-                    <button onClick={() => { abrirDashboard(); setMenuMas(false); }} className="w-full text-left px-3.5 py-3 rounded-xl hover:bg-stone-200 flex items-center gap-3 text-stone-800 font-medium text-sm">
-                      <i className="fa-solid fa-chart-pie w-5 text-orange-600"></i> Dashboard de Ventas
+                    <p className="px-3.5 pt-3 pb-1 text-[10px] font-bold text-stone-400 uppercase tracking-wide">Administración</p>
+                    <button onClick={() => { abrirDashboard(); setMenuMas(false); }} className="w-full text-left px-3.5 py-2.5 rounded-xl hover:bg-stone-200 flex items-center gap-3 text-stone-800 font-medium text-sm">
+                      <span className="w-7 h-7 rounded-lg bg-[#f4eefe] flex items-center justify-center shrink-0"><i className="fa-solid fa-chart-pie text-xs text-[#6105dc]"></i></span> Dashboard de Ventas
                     </button>
-                    <button onClick={() => { abrirCuentasPorPagar(); setMenuMas(false); }} className="w-full text-left px-3.5 py-3 rounded-xl hover:bg-stone-200 flex items-center gap-3 text-stone-800 font-medium text-sm">
-                      <i className="fa-solid fa-file-invoice w-5 text-orange-600"></i> Cuentas por Pagar
+                    <button onClick={() => { abrirCuentasPorPagar(); setMenuMas(false); }} className="w-full text-left px-3.5 py-2.5 rounded-xl hover:bg-stone-200 flex items-center gap-3 text-stone-800 font-medium text-sm">
+                      <span className="w-7 h-7 rounded-lg bg-[#f4eefe] flex items-center justify-center shrink-0"><i className="fa-solid fa-file-invoice text-xs text-[#6105dc]"></i></span> Cuentas por Pagar
                     </button>
-                    <button onClick={() => { abrirHistorialCierres(); setMenuMas(false); }} className="w-full text-left px-3.5 py-3 rounded-xl hover:bg-stone-200 flex items-center gap-3 text-stone-800 font-medium text-sm">
-                      <i className="fa-solid fa-cash-register w-5 text-orange-600"></i> Historial de Cierres de Caja
+                    <button onClick={() => { abrirHistorialCierres(); setMenuMas(false); }} className="w-full text-left px-3.5 py-2.5 rounded-xl hover:bg-stone-200 flex items-center gap-3 text-stone-800 font-medium text-sm">
+                      <span className="w-7 h-7 rounded-lg bg-[#f4eefe] flex items-center justify-center shrink-0"><i className="fa-solid fa-cash-register text-xs text-[#6105dc]"></i></span> Historial de Cierres de Caja
                     </button>
-                    <button onClick={() => setMenuEntradasAbierto((v) => !v)} className="w-full text-left px-3.5 py-3 rounded-xl hover:bg-stone-200 flex items-center gap-3 text-stone-800 font-medium text-sm">
-                      <i className="fa-solid fa-dolly w-5 text-orange-600"></i> Entradas
+                    <button onClick={() => setMenuEntradasAbierto((v) => !v)} className="w-full text-left px-3.5 py-2.5 rounded-xl hover:bg-stone-200 flex items-center gap-3 text-stone-800 font-medium text-sm">
+                      <span className="w-7 h-7 rounded-lg bg-[#f4eefe] flex items-center justify-center shrink-0"><i className="fa-solid fa-dolly text-xs text-[#6105dc]"></i></span> Entradas
                       <i className={`fa-solid fa-chevron-down text-[10px] ml-auto transition-transform ${menuEntradasAbierto ? 'rotate-180' : ''}`}></i>
                     </button>
                     {menuEntradasAbierto && (
-                      <div className="pl-4 border-l-2 border-orange-500/30 ml-5 space-y-0.5">
-                        <button onClick={() => { setModalInventarioInicial(true); setMenuMas(false); }} className="w-full text-left px-3.5 py-2.5 rounded-xl hover:bg-stone-200 flex items-center gap-3 text-stone-800 font-medium text-sm">
-                          <i className="fa-solid fa-boxes-stacked w-5 text-orange-600"></i> Registrar Productos
+                      <div className="pl-4 border-l-2 border-[#d6bdfa] ml-5 space-y-0.5">
+                        <button onClick={() => { setModalInventarioInicial(true); setMenuMas(false); }} className="w-full text-left px-3.5 py-2 rounded-xl hover:bg-stone-200 flex items-center gap-3 text-stone-800 font-medium text-sm">
+                          <span className="w-6 h-6 rounded-md bg-[#f4eefe] flex items-center justify-center shrink-0"><i className="fa-solid fa-boxes-stacked text-[11px] text-[#6105dc]"></i></span> Registrar Productos
                         </button>
-                        <button onClick={() => { setModalEntradaMercaderia(true); setMenuMas(false); }} className="w-full text-left px-3.5 py-2.5 rounded-xl hover:bg-stone-200 flex items-center gap-3 text-stone-800 font-medium text-sm">
-                          <i className="fa-solid fa-truck-ramp-box w-5 text-orange-600"></i> Entrada de Mercadería
+                        <button onClick={() => { setModalEntradaMercaderia(true); setMenuMas(false); }} className="w-full text-left px-3.5 py-2 rounded-xl hover:bg-stone-200 flex items-center gap-3 text-stone-800 font-medium text-sm">
+                          <span className="w-6 h-6 rounded-md bg-[#f4eefe] flex items-center justify-center shrink-0"><i className="fa-solid fa-truck-ramp-box text-[11px] text-[#6105dc]"></i></span> Entrada de Mercadería
                         </button>
-                        <button onClick={() => { setModalLevantamiento(true); setMenuMas(false); }} className="w-full text-left px-3.5 py-2.5 rounded-xl hover:bg-stone-200 flex items-center gap-3 text-stone-800 font-medium text-sm">
-                          <i className="fa-solid fa-clipboard-list w-5 text-orange-600"></i> Levantamiento de Inventario
+                        <button onClick={() => { setModalLevantamiento(true); setMenuMas(false); }} className="w-full text-left px-3.5 py-2 rounded-xl hover:bg-stone-200 flex items-center gap-3 text-stone-800 font-medium text-sm">
+                          <span className="w-6 h-6 rounded-md bg-[#f4eefe] flex items-center justify-center shrink-0"><i className="fa-solid fa-clipboard-list text-[11px] text-[#6105dc]"></i></span> Levantamiento de Inventario
                         </button>
-                        <button onClick={() => { abrirModalCombos(); setMenuMas(false); }} className="w-full text-left px-3.5 py-2.5 rounded-xl hover:bg-stone-200 flex items-center gap-3 text-stone-800 font-medium text-sm">
-                          <i className="fa-solid fa-gift w-5 text-orange-600"></i> Combos
+                        <button onClick={() => { abrirModalCombos(); setMenuMas(false); }} className="w-full text-left px-3.5 py-2 rounded-xl hover:bg-stone-200 flex items-center gap-3 text-stone-800 font-medium text-sm">
+                          <span className="w-6 h-6 rounded-md bg-[#f4eefe] flex items-center justify-center shrink-0"><i className="fa-solid fa-gift text-[11px] text-[#6105dc]"></i></span> Combos
                         </button>
-                        <button onClick={() => { abrirImportarMaestro(); setMenuMas(false); }} className="w-full text-left px-3.5 py-2.5 rounded-xl hover:bg-stone-200 flex items-center gap-3 text-stone-800 font-medium text-sm">
-                          <i className="fa-solid fa-book w-5 text-orange-600"></i> Importar del Catálogo Maestro
+                        <button onClick={() => { abrirImportarMaestro(); setMenuMas(false); }} className="w-full text-left px-3.5 py-2 rounded-xl hover:bg-stone-200 flex items-center gap-3 text-stone-800 font-medium text-sm">
+                          <span className="w-6 h-6 rounded-md bg-[#f4eefe] flex items-center justify-center shrink-0"><i className="fa-solid fa-book text-[11px] text-[#6105dc]"></i></span> Importar del Catálogo Maestro
                         </button>
                       </div>
                     )}
-                    <button onClick={() => { abrirGestionClientes(); setMenuMas(false); }} className="w-full text-left px-3.5 py-3 rounded-xl hover:bg-stone-200 flex items-center gap-3 text-stone-800 font-medium text-sm">
-                      <i className="fa-solid fa-users w-5 text-orange-600"></i> Clientes (editar)
+                    <button onClick={() => { abrirGestionClientes(); setMenuMas(false); }} className="w-full text-left px-3.5 py-2.5 rounded-xl hover:bg-stone-200 flex items-center gap-3 text-stone-800 font-medium text-sm">
+                      <span className="w-7 h-7 rounded-lg bg-[#f4eefe] flex items-center justify-center shrink-0"><i className="fa-solid fa-users text-xs text-[#6105dc]"></i></span> Clientes (editar)
                     </button>
-                    <button onClick={() => { abrirGestionCajeros(); setMenuMas(false); }} className="w-full text-left px-3.5 py-3 rounded-xl hover:bg-stone-200 flex items-center gap-3 text-stone-800 font-medium text-sm">
-                      <i className="fa-solid fa-user-group w-5 text-orange-600"></i> Cajeros y Empleados
+                    <button onClick={() => { abrirGestionCajeros(); setMenuMas(false); }} className="w-full text-left px-3.5 py-2.5 rounded-xl hover:bg-stone-200 flex items-center gap-3 text-stone-800 font-medium text-sm">
+                      <span className="w-7 h-7 rounded-lg bg-[#f4eefe] flex items-center justify-center shrink-0"><i className="fa-solid fa-user-group text-xs text-[#6105dc]"></i></span> Cajeros y Empleados
                     </button>
-                    <button onClick={() => { abrirModalDelivery(); setMenuMas(false); }} className="w-full text-left px-3.5 py-3 rounded-xl hover:bg-stone-200 flex items-center gap-3 text-stone-800 font-medium text-sm">
-                      <i className="fa-solid fa-share-nodes w-5 text-orange-600"></i> Mi Link de Pedidos
+                    <button onClick={() => { abrirModalDelivery(); setMenuMas(false); }} className="w-full text-left px-3.5 py-2.5 rounded-xl hover:bg-stone-200 flex items-center gap-3 text-stone-800 font-medium text-sm">
+                      <span className="w-7 h-7 rounded-lg bg-[#f4eefe] flex items-center justify-center shrink-0"><i className="fa-solid fa-share-nodes text-xs text-[#6105dc]"></i></span> Mi Link de Pedidos
                     </button>
                   </>
                 )}
                 <div className="border-t border-stone-200 my-1"></div>
                 <button onClick={() => { cerrarSesion(); setMenuMas(false); }} className="w-full text-left px-3.5 py-3 rounded-xl hover:bg-stone-200 flex items-center gap-3 text-rose-600 font-semibold text-sm">
-                  <i className="fa-solid fa-right-from-bracket w-5"></i> Cerrar Sesión
+                  <span className="w-7 h-7 rounded-lg bg-rose-50 flex items-center justify-center shrink-0"><i className="fa-solid fa-right-from-bracket text-xs"></i></span> Cerrar Sesión
                 </button>
               </div>
             </div>
