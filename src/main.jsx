@@ -8449,7 +8449,7 @@ import './index.css';
               </span>
               <span className="flex items-center gap-2.5 font-black text-sm">
                 S/ {totalConDescuento.toFixed(2)}
-                <span className="flex items-center justify-center w-9 h-9 rounded-full bg-amber-500 shrink-0">
+                <span className="flex items-center justify-center w-9 h-9 rounded-full bg-[#7c1fe0] shrink-0">
                   <i className="fa-solid fa-basket-shopping text-sm"></i>
                 </span>
               </span>
