@@ -701,8 +701,8 @@ import './index.css';
           tabIndex={0}
           onClick={() => onSelect(prod)}
           onKeyDown={(e) => { if (e.key === 'Enter') onSelect(prod); }}
-          className={`text-left bg-white rounded-[22px] border shadow-sm hover:shadow-md transition-all duration-200 active:scale-[0.98] group cursor-pointer p-2.5 flex flex-col ${
-            enCarrito > 0 ? 'border-orange-500 ring-2 ring-orange-500/30' : 'border-stone-200 hover:border-orange-300'
+          className={`text-left rounded-[22px] border shadow-sm hover:shadow-md transition-all duration-200 active:scale-[0.98] group cursor-pointer p-3 flex flex-col ${
+            enCarrito > 0 ? 'bg-amber-50 border-amber-300' : 'bg-white border-stone-200 hover:border-stone-300'
           }`}
         >
           {/* Foto contenida dentro de su propio recuadro redondeado, con
@@ -763,16 +763,16 @@ import './index.css';
             )}
           </div>
 
-          <div className="px-1 pt-2.5 pb-0.5 flex flex-col gap-0.5 flex-1">
-            <h3 className="text-[13px] font-bold text-stone-900 line-clamp-2 leading-snug min-h-[2.4em]">
+          <div className="px-1 pt-3 pb-0.5 flex flex-col gap-1 flex-1">
+            <h3 className="text-sm font-bold text-stone-900 line-clamp-2 leading-snug min-h-[2.4em]">
               {prod.descripcion}
             </h3>
-            <p className="text-[10px] font-bold text-stone-400 tracking-wide uppercase truncate">
+            <p className="text-[11px] font-bold text-stone-400 tracking-wide uppercase truncate">
               {prod.categoria || 'General'}
             </p>
 
-            <div className="mt-auto pt-2.5 border-t border-stone-100 flex items-center justify-between gap-2">
-              <span className="text-base font-black text-stone-900 tabular-nums">
+            <div className="mt-auto pt-3 border-t border-stone-100 flex items-center justify-between gap-2">
+              <span className="text-lg font-black text-stone-900 tabular-nums">
                 S/ {Number(prod.precio_venta).toFixed(2)}
               </span>
               {prod.stock_actual !== null && prod.stock_actual !== undefined && (
@@ -8462,7 +8462,7 @@ import './index.css';
                       <p className="text-xs text-stone-400 mt-1">Créalos desde "Entradas → Combos".</p>
                     </div>
                   ) : (
-                    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
+                    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
                       {combos.filter(c => c.activo).map((combo) => (
                         <button
                           key={combo.id}
@@ -8517,7 +8517,7 @@ import './index.css';
                     <p className="text-xs text-stone-400 mt-1">Prueba con otra búsqueda o categoría.</p>
                   </div>
                 ) : (
-                  <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
+                  <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
                     {productosFiltrados.map((prod) => (
                       <ProductoCard
                         key={prod.id}
