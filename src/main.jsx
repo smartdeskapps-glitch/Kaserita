@@ -8192,7 +8192,7 @@ import './index.css';
       // VISTA 2: POS INTERFACE COMPLETO
       // =========================================================================
       return (
-        <div className={`flex h-screen bg-stone-50 text-stone-900 font-sans select-none overflow-hidden ${(!enLinea || ventasPendientesSync.length > 0) ? 'pt-7' : ''}`}>
+        <div className={`flex h-screen bg-stone-200 text-stone-900 font-sans select-none overflow-hidden ${(!enLinea || ventasPendientesSync.length > 0) ? 'pt-7' : ''}`}>
           {/* Toast */}
           {toast.visible && (
             <div className={`fixed top-[4.75rem] inset-x-4 md:top-4 md:inset-x-auto md:right-4 md:max-w-xs z-[100] pointer-events-none flex items-center gap-2.5 px-4 py-3 rounded-xl shadow-xl border-l-4 bg-white text-xs font-semibold ${toast.tipo === 'error' ? 'border-rose-500 text-rose-700' : 'border-emerald-500 text-emerald-700'}`}>
@@ -8296,7 +8296,7 @@ import './index.css';
 
           {/* Columna Central: Catálogo (Order Line) */}
           <div className="flex-1 flex flex-col overflow-hidden">
-            <header className="flex items-center justify-between px-4 md:px-6 py-3.5 bg-stone-100 border-b border-stone-200/80 gap-3">
+            <header className="flex items-center justify-between mx-3 mt-3 px-4 md:px-6 py-3.5 bg-white border border-stone-200 rounded-3xl shadow-sm gap-3">
               <div className="flex items-center gap-3 min-w-0">
                 <div className="h-8 px-2.5 bg-gradient-to-br from-blue-600 to-violet-600 rounded-lg flex items-center justify-center shadow-lg shadow-violet-600/25 shrink-0">
                   <img src="/logo-blanco-wordmark.png" alt="Kaserita" className="h-3.5 w-auto" />
@@ -8564,7 +8564,7 @@ import './index.css';
           )}
 
           <section
-            className={`${mostrarResumenMobile ? 'flex' : 'hidden'} md:flex flex-col w-full md:w-[400px] lg:w-[440px] bg-stone-100 border border-stone-200 fixed inset-x-0 bottom-0 top-auto md:static md:inset-auto rounded-t-3xl md:rounded-3xl max-h-[88vh] md:max-h-none md:my-3 md:mr-3 shadow-2xl md:shadow-lg overflow-hidden z-50 md:z-auto`}
+            className={`${mostrarResumenMobile ? 'flex' : 'hidden'} md:flex flex-col w-full md:w-[400px] lg:w-[440px] bg-white border border-stone-200 fixed inset-x-0 bottom-0 top-auto md:static md:inset-auto rounded-t-3xl md:rounded-3xl max-h-[88vh] md:max-h-none md:my-3 md:mr-3 shadow-2xl md:shadow-lg overflow-hidden z-50 md:z-auto`}
           >
             {/* Manija de arrastre (solo mobile) */}
             <div className="md:hidden w-10 h-1.5 bg-stone-300 rounded-full mx-auto mt-2.5 mb-1 shrink-0"></div>
