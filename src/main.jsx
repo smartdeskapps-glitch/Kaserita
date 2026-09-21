@@ -8396,29 +8396,6 @@ import './index.css';
                 </button>
               </div>
 
-              {/* Ventas en Espera como tarjetas de "pedido activo" */}
-              {ventasEnEspera.length > 0 && (
-                <div className="flex gap-2 overflow-x-auto pb-1">
-                  {ventasEnEspera.map((v, i) => (
-                    <button
-                      key={v.id}
-                      onClick={() => recuperarVentaEspera(i)}
-                      className="shrink-0 w-44 text-left p-2.5 bg-amber-50 border border-amber-200 rounded-xl hover:border-amber-300 transition"
-                    >
-                      <div className="flex justify-between items-center text-xs font-bold text-amber-700 mb-1">
-                        <span><i className="fa-solid fa-pause text-[8px]"></i> En espera</span>
-                        <span>{v.hora}</span>
-                      </div>
-                      <p className="text-xs font-semibold text-stone-900 truncate">{v.cliente?.nombre_completo || 'Cliente'}</p>
-                      <div className="flex justify-between items-center mt-1">
-                        <span className="text-xs text-stone-600">{v.items.length} ítems</span>
-                        <span className="text-xs font-black text-amber-700">S/ {v.total.toFixed(2)}</span>
-                      </div>
-                    </button>
-                  ))}
-                </div>
-              )}
-
               {/* Categorías (+ pestaña de Combos, si hay alguno activo) */}
               <div className="flex gap-1.5 overflow-x-auto pb-1 text-xs">
                 {combos.some(c => c.activo) && (
@@ -8583,7 +8560,18 @@ import './index.css';
               <span className="text-sm font-extrabold text-stone-900">
                 Carrito <span className="text-stone-400 font-semibold">· {carrito.reduce((a, c) => a + c.cantidad, 0)} ítems</span>
               </span>
-              <div className="flex gap-2">
+              <div className="flex items-center gap-2">
+                {ventasEnEspera.length > 0 && (
+                  <button
+                    onClick={() => setModalVentasEspera(true)}
+                    className="flex items-center gap-1.5 pl-2.5 pr-1.5 py-1 rounded-full border border-amber-200 bg-amber-50 hover:bg-amber-100 text-xs font-semibold text-amber-700 transition"
+                  >
+                    En espera
+                    <span className="w-4 h-4 rounded-full bg-amber-500 text-white text-[10px] font-extrabold flex items-center justify-center">
+                      {ventasEnEspera.length}
+                    </span>
+                  </button>
+                )}
                 {carrito.length > 0 && (
                   <button
                     onClick={aparcarVentaActual}
@@ -13042,23 +13030,23 @@ import './index.css';
           {/* Modal: Ventas en Espera */}
           {modalVentasEspera && (
             <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4">
-              <div className="bg-stone-100 border border-stone-200 rounded-2xl max-w-sm w-full p-5 shadow-2xl space-y-3">
+              <div className="bg-white border border-stone-200 rounded-2xl max-w-sm w-full p-5 shadow-2xl space-y-3">
                 <div className="flex justify-between items-center">
-                  <h3 className="text-sm font-bold text-stone-900"><i className="fa-solid fa-pause mr-1.5"></i> Ventas en Espera</h3>
-                  <button onClick={() => setModalVentasEspera(false)} className="text-stone-600"><i className="fa-solid fa-xmark"></i></button>
+                  <h3 className="text-sm font-bold text-stone-900"><i className="fa-solid fa-pause mr-1.5 text-amber-600"></i> Ventas en Espera</h3>
+                  <button onClick={() => setModalVentasEspera(false)} className="text-stone-500 hover:text-stone-900"><i className="fa-solid fa-xmark"></i></button>
                 </div>
                 <div className="space-y-2 max-h-56 overflow-y-auto">
                   {ventasEnEspera.length === 0 ? (
                     <p className="text-xs text-stone-500 text-center py-6">No hay ventas en espera.</p>
                   ) : ventasEnEspera.map((v, i) => (
-                    <div key={v.id} className="flex justify-between items-center p-2 bg-stone-50 rounded-lg border border-stone-200 text-xs">
+                    <div key={v.id} className="flex justify-between items-center p-2.5 bg-amber-50 rounded-xl border border-amber-200 text-xs">
                       <div>
-                        <p className="font-bold text-stone-900"><i className="fa-solid fa-clock mr-1"></i> {v.hora} · S/ {v.total.toFixed(2)}</p>
+                        <p className="font-bold text-stone-900"><i className="fa-solid fa-clock mr-1 text-amber-600"></i> {v.hora} · S/ {v.total.toFixed(2)}</p>
                         <p className="text-xs text-stone-600">{v.items.length} ítems</p>
                       </div>
                       <div className="flex gap-1.5">
-                        <button onClick={() => recuperarVentaEspera(i)} className="px-2 py-1 bg-stone-900 text-white text-xs font-bold rounded">Recuperar</button>
-                        <button onClick={() => borrarVentaEspera(i)} className="px-1.5 py-1 bg-rose-900 text-rose-200 text-xs rounded"><i className="fa-solid fa-xmark"></i></button>
+                        <button onClick={() => recuperarVentaEspera(i)} className="px-2.5 py-1 bg-stone-900 text-white text-xs font-bold rounded-lg">Recuperar</button>
+                        <button onClick={() => borrarVentaEspera(i)} className="px-1.5 py-1 bg-rose-100 text-rose-600 text-xs rounded-lg"><i className="fa-solid fa-xmark"></i></button>
                       </div>
                     </div>
                   ))}
