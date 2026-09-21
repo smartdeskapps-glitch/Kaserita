@@ -50,3 +50,18 @@
 @keyframes btn-glow-spin {
   to { --btn-glow-angle: 360deg; }
 }
+
+/* "Pestaña" de categoría/carrito activa: se funde sin costura con el
+   panel blanco de abajo (bg blanco, sin radio inferior, sin sombra
+   propia) mientras las pestañas inactivas flotan como píldoras un poco
+   más arriba (alineadas con items-end + padding-bottom). Igual a la
+   técnica "folder tab" de la referencia, adaptada para funcionar con
+   cualquier pestaña activa (no solo la primera). */
+.folder-tab-active {
+  background-color: #ffffff;
+  border-top-left-radius: 1rem;
+  border-top-right-radius: 1rem;
+  border-bottom-left-radius: 0;
+  border-bottom-right-radius: 0;
+  position: relative;
+}

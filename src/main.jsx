@@ -8312,7 +8312,7 @@ import './index.css';
                   </p>
                 </div>
               </div>
-              <div className="flex items-center gap-2 shrink-0">
+              <div className="flex items-center gap-3 shrink-0">
                 {turnoActivo ? (
                   <button
                     onClick={abrirCierreCaja}
@@ -8328,6 +8328,20 @@ import './index.css';
                     Abrir Turno <span aria-hidden="true">→</span>
                   </button>
                 )}
+                {/* Divisor + tarjeta del cajero, como el bloque de
+                    notificación/avatar de la referencia. */}
+                <div className="hidden lg:block h-8 w-px bg-stone-200"></div>
+                <div className="hidden lg:flex items-center gap-2.5 pl-0.5">
+                  <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-stone-700 to-stone-900 text-white flex items-center justify-center font-bold text-sm shrink-0">
+                    {(cajeroSeleccionado?.nombre || usuarioActivo?.nombre || '?').charAt(0).toUpperCase()}
+                  </div>
+                  <div className="text-left min-w-0">
+                    <h3 className="text-xs font-bold text-stone-900 leading-tight truncate max-w-[110px]">
+                      {cajeroSeleccionado?.nombre || usuarioActivo?.nombre}
+                    </h3>
+                    <p className="text-[11px] text-stone-400 font-medium">{esAdmin ? 'Administrador' : 'Cajero'}</p>
+                  </div>
+                </div>
                 <button
                   onClick={() => setMenuMas(true)}
                   className="md:hidden w-10 h-10 flex items-center justify-center bg-stone-200 border border-stone-300 rounded-xl text-stone-700 hover:text-stone-900 transition"
@@ -8338,16 +8352,20 @@ import './index.css';
               </div>
             </header>
 
-            <div className="flex-1 flex flex-col overflow-hidden p-3 md:p-4 gap-3">
-              {/* Categorías (+ pestaña de Combos, si hay alguno activo) */}
-              <div className="flex gap-1.5 overflow-x-auto pb-1 text-xs shrink-0">
+            <div className="flex-1 flex flex-col overflow-hidden p-3 md:p-4">
+              {/* Categorías como "pestañas de carpeta": la activa se funde
+                  sin costura con el panel blanco de abajo (folder-tab-active,
+                  ver index.css); las inactivas flotan como píldoras
+                  traslúcidas un poco más arriba (items-end + mb en cada una),
+                  igual a la referencia. */}
+              <div className="flex items-end gap-1.5 overflow-x-auto text-xs shrink-0 relative z-10">
                 {combos.some(c => c.activo) && (
                   <button
                     onClick={() => setCategoriaFiltro('__COMBOS__')}
-                    className={`shrink-0 flex flex-col items-start px-4 py-2 rounded-full transition ${categoriaFiltro === '__COMBOS__' ? 'bg-amber-500 text-white shadow-sm' : 'bg-white text-amber-700 hover:bg-amber-50 border border-amber-200'}`}
+                    className={`shrink-0 flex flex-col items-start px-4 py-2.5 transition ${categoriaFiltro === '__COMBOS__' ? 'folder-tab-active text-amber-700' : 'mb-2 rounded-full bg-white/50 text-amber-700 hover:bg-white/80 border border-amber-200'}`}
                   >
                     <span className="font-bold whitespace-nowrap"><i className="fa-solid fa-gift mr-1"></i>Combos</span>
-                    <span className={`text-[10px] font-medium ${categoriaFiltro === '__COMBOS__' ? 'text-white/70' : 'text-amber-600/70'}`}>
+                    <span className="text-[10px] font-medium text-amber-600/70">
                       {combos.filter(c => c.activo).length} activo{combos.filter(c => c.activo).length === 1 ? '' : 's'}
                     </span>
                   </button>
@@ -8359,10 +8377,10 @@ import './index.css';
                     <button
                       key={cat}
                       onClick={() => setCategoriaFiltro(cat)}
-                      className={`shrink-0 flex flex-col items-start px-4 py-2 rounded-full transition ${activo ? 'bg-stone-900 text-white shadow-sm' : 'bg-white text-stone-700 hover:bg-stone-50 border border-stone-200'}`}
+                      className={`shrink-0 flex flex-col items-start px-4 py-2.5 transition ${activo ? 'folder-tab-active text-stone-900' : 'mb-2 rounded-full bg-white/50 text-stone-600 hover:bg-white/80 border border-stone-200'}`}
                     >
                       <span className="font-bold whitespace-nowrap">{cat}</span>
-                      <span className={`text-[10px] font-medium ${activo ? 'text-white/70' : 'text-stone-400'}`}>
+                      <span className={`text-[10px] font-medium ${activo ? 'text-stone-400' : 'text-stone-400'}`}>
                         {cantidad} {cantidad === 1 ? 'item' : 'items'}
                       </span>
                     </button>
@@ -8371,9 +8389,9 @@ import './index.css';
               </div>
 
               {/* Panel blanco del catálogo: contador + buscador + grilla,
-                  como el "catalogue-container" de la referencia -- separa
-                  visualmente el catálogo del resto del fondo cálido. */}
-              <div className="flex-1 flex flex-col overflow-hidden bg-white border border-stone-200 rounded-2xl shadow-sm p-3 md:p-4 gap-3">
+                  como el "catalogue-container" de la referencia -- conectado
+                  sin costura a la pestaña activa de arriba. */}
+              <div className="flex-1 flex flex-col overflow-hidden bg-white border border-stone-200 rounded-b-2xl rounded-tr-2xl shadow-sm p-3 md:p-4 gap-3 -mt-px relative z-10">
                 {/* Contador + Buscador */}
                 <div className="flex items-center gap-3 shrink-0">
                   <div className="hidden lg:flex items-baseline gap-1.5 shrink-0">
@@ -8554,9 +8572,18 @@ import './index.css';
             ></div>
           )}
 
-          <section
-            className={`${mostrarResumenMobile ? 'flex' : 'hidden'} md:flex flex-col w-full md:w-[400px] lg:w-[440px] bg-white border border-stone-200 fixed inset-x-0 bottom-0 top-auto md:static md:inset-auto rounded-t-2xl md:rounded-2xl max-h-[88vh] md:max-h-none md:my-3 md:mr-3 shadow-2xl md:shadow-lg overflow-hidden z-50 md:z-auto`}
-          >
+          <div className="flex flex-col md:mt-3 md:mr-3 md:w-[400px] lg:w-[440px]">
+            {/* Pestaña "Carrito" (solo desktop), fundida sin costura con el
+                panel de abajo -- mismo lenguaje visual que las pestañas de
+                categoría del catálogo. */}
+            <div className="hidden md:flex items-end px-1 relative z-10">
+              <div className="folder-tab-active px-6 py-3 text-sm font-bold text-stone-900">
+                Carrito
+              </div>
+            </div>
+            <section
+              className={`${mostrarResumenMobile ? 'flex' : 'hidden'} md:flex flex-col w-full bg-white border border-stone-200 fixed inset-x-0 bottom-0 top-auto md:static md:inset-auto rounded-t-2xl md:rounded-b-2xl md:rounded-tr-2xl max-h-[88vh] md:max-h-none md:-mt-px shadow-2xl md:shadow-lg overflow-hidden z-50 md:z-auto`}
+            >
             {/* Manija de arrastre (solo mobile) */}
             <div className="md:hidden w-10 h-1.5 bg-stone-300 rounded-full mx-auto mt-2.5 mb-1 shrink-0"></div>
 
@@ -8569,7 +8596,8 @@ import './index.css';
             {/* Encabezado Carrito */}
             <div className="flex items-center justify-between px-4 py-3 bg-white border-b border-stone-100">
               <span className="text-sm font-extrabold text-stone-900">
-                Carrito <span className="text-stone-400 font-semibold">· {carrito.reduce((a, c) => a + c.cantidad, 0)} ítems</span>
+                <span className="md:hidden">Carrito · </span>
+                <span className="text-stone-400 font-semibold">{carrito.reduce((a, c) => a + c.cantidad, 0)} ítems</span>
               </span>
               <div className="flex items-center gap-2">
                 {ventasEnEspera.length > 0 && (
@@ -8985,6 +9013,7 @@ import './index.css';
               )}
             </div>
           </section>
+          </div>
 
           {/* Hoja de "Más módulos" (solo mobile) */}
           {menuMas && (
