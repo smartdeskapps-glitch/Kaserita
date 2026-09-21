@@ -8299,7 +8299,7 @@ import './index.css';
 
           {/* Columna Central: Catálogo (Order Line) */}
           <div className="flex-1 flex flex-col overflow-hidden">
-            <header className="flex items-center justify-between mx-3 mt-3 px-4 md:px-6 py-3.5 bg-white border border-stone-200 rounded-2xl gap-3">
+            <header className="flex items-center justify-between mx-3 mt-3 px-4 md:px-6 py-3.5 bg-white rounded-2xl gap-3">
               <div className="flex items-center gap-3 min-w-0">
                 <div className="h-8 px-2.5 bg-gradient-to-br from-amber-700 to-stone-800 rounded-lg flex items-center justify-center shadow-lg shadow-stone-800/25 shrink-0">
                   <img src="/logo-blanco-wordmark.png" alt="Kaserita" className="h-3.5 w-auto" />
@@ -8391,7 +8391,7 @@ import './index.css';
               {/* Panel blanco del catálogo: contador + buscador + grilla,
                   como el "catalogue-container" de la referencia -- conectado
                   sin costura a la pestaña activa de arriba. */}
-              <div className="flex-1 flex flex-col overflow-hidden bg-white border border-stone-200 rounded-b-2xl rounded-tr-2xl p-3 md:p-4 gap-3 -mt-px relative z-10">
+              <div className="flex-1 flex flex-col overflow-hidden bg-white rounded-b-2xl rounded-tr-2xl p-3 md:p-4 gap-3 -mt-px relative z-10">
                 {/* Contador + Buscador */}
                 <div className="flex items-center gap-3 shrink-0">
                   <div className="hidden lg:flex items-baseline gap-1.5 shrink-0">
@@ -8593,7 +8593,7 @@ import './index.css';
               </button>
             </div>
             <section
-              className={`${mostrarResumenMobile ? 'flex' : 'hidden'} md:flex flex-col w-full md:flex-1 bg-white border border-stone-200 fixed inset-x-0 bottom-0 top-auto md:static md:inset-auto rounded-t-2xl md:rounded-tl-none md:rounded-tr-2xl md:rounded-bl-2xl md:rounded-br-2xl max-h-[88vh] md:max-h-none md:min-h-0 md:-mt-px shadow-2xl md:shadow-none overflow-hidden z-50 md:z-auto`}
+              className={`${mostrarResumenMobile ? 'flex' : 'hidden'} md:flex flex-col w-full md:flex-1 bg-white border border-stone-200 md:border-none fixed inset-x-0 bottom-0 top-auto md:static md:inset-auto rounded-t-2xl md:rounded-tl-none md:rounded-tr-2xl md:rounded-bl-2xl md:rounded-br-2xl max-h-[88vh] md:max-h-none md:min-h-0 md:-mt-px shadow-2xl md:shadow-none overflow-hidden z-50 md:z-auto`}
             >
             {/* Manija de arrastre (solo mobile) */}
             <div className="md:hidden w-10 h-1.5 bg-stone-300 rounded-full mx-auto mt-2.5 mb-1 shrink-0"></div>
