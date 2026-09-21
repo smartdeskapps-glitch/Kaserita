@@ -9763,7 +9763,7 @@ import './index.css';
                 <div className="flex justify-between items-start shrink-0">
                   <div>
                     <h3 className="text-base font-bold text-stone-900 flex items-center gap-2">
-                      <i className="fa-solid fa-gift text-[#6105dc]"></i> Combos
+                      <span className="w-7 h-7 rounded-[9px] bg-[#f4eefe] flex items-center justify-center shrink-0"><i className="fa-solid fa-gift text-sm text-[#6105dc]"></i></span> Combos
                     </h3>
                     <p className="text-xs text-stone-600 mt-0.5">Paquetes de varios productos a un precio especial. Al venderse, descuentan el stock real de cada producto que los compone.</p>
                   </div>
@@ -9941,7 +9941,7 @@ import './index.css';
                       <button
                         onClick={guardarCombo}
                         disabled={guardandoCombo}
-                        className="flex-1 py-2.5 bg-stone-900 hover:bg-stone-800 disabled:opacity-60 text-white font-bold text-sm rounded-xl shadow"
+                        className="flex-1 py-2.5 bg-[#6105dc] hover:bg-[#4d04b0] disabled:opacity-60 text-white font-bold text-sm rounded-xl shadow"
                       >
                         {guardandoCombo ? 'Guardando...' : 'Guardar Combo'}
                       </button>
