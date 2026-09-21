@@ -65,3 +65,14 @@
   border-bottom-right-radius: 0;
   position: relative;
 }
+
+/* Oculta la barra de scroll nativa (gruesa, gris) en paneles internos
+   que ya se distinguen por su propio borde/fondo -- el scroll sigue
+   funcionando igual, solo sin el indicador visual del sistema. */
+.hide-scrollbar {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+.hide-scrollbar::-webkit-scrollbar {
+  display: none;
+}

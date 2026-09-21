@@ -8352,7 +8352,7 @@ import './index.css';
               {/* pb-24 en mobile: dejar espacio para que la última fila no
                   quede tapada por la barra flotante del carrito (fixed
                   bottom-3) ni pegada contra el borde de la pantalla. */}
-              <div className="flex-1 overflow-y-auto pr-1 pb-24 md:pb-3">
+              <div className="flex-1 overflow-y-auto pr-1 pb-24 md:pb-3 hide-scrollbar">
                 {categoriaFiltro === '__COMBOS__' ? (
                   combos.filter(c => c.activo).length === 0 ? (
                     <div className="flex flex-col items-center justify-center h-48 text-stone-500 text-center">
@@ -8533,7 +8533,7 @@ import './index.css';
             </div>
 
             {/* Lista Ítems */}
-            <div className="flex-1 overflow-y-auto p-2.5 space-y-1.5">
+            <div className="flex-1 overflow-y-auto p-2.5 space-y-1.5 hide-scrollbar">
               {carrito.length === 0 ? (
                 <div className="flex flex-col items-center justify-center h-full text-stone-500 text-center p-4">
                   <i className="fa-solid fa-basket-shopping text-3xl mb-2 text-stone-300"></i>
