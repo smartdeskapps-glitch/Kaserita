@@ -8614,7 +8614,7 @@ import './index.css';
                 carrito.map((item) => (
                   <div
                     key={item.claveCarrito || item.productoId}
-                    className="flex items-center gap-2.5 p-2.5 bg-stone-200/40 border border-stone-200 rounded-xl hover:border-stone-300 transition"
+                    className="flex items-center gap-2.5 p-2.5 bg-white shadow-sm border border-stone-200 rounded-2xl hover:border-stone-300 transition"
                   >
                     <FotoProducto
                       fotoUrl={item.foto_url}
@@ -8631,19 +8631,19 @@ import './index.css';
                       </p>
                     </div>
 
-                    <div className="flex items-center gap-1 bg-stone-100 p-1 rounded-lg border border-stone-300 shrink-0">
+                    <div className="flex items-center gap-1.5 shrink-0">
                       <button
                         onClick={() => cambiarCantidadCarrito(item.claveCarrito || item.productoId, -1)}
-                        className="w-6 h-6 flex items-center justify-center text-xs text-stone-600 hover:bg-stone-300 hover:text-stone-900 rounded-md transition"
+                        className="w-6 h-6 flex items-center justify-center text-stone-500 hover:bg-stone-200 rounded-full transition"
                       >
                         <i className="fa-solid fa-minus text-xs"></i>
                       </button>
-                      <span className="w-9 text-center text-xs font-bold text-orange-600 tabular-nums">
+                      <span className="w-6 text-center text-xs font-bold text-stone-900 tabular-nums">
                         {item.cantidad}
                       </span>
                       <button
                         onClick={() => cambiarCantidadCarrito(item.claveCarrito || item.productoId, 1)}
-                        className="w-6 h-6 flex items-center justify-center text-xs text-stone-600 hover:bg-stone-300 hover:text-stone-900 rounded-md transition"
+                        className="w-6 h-6 flex items-center justify-center bg-green-500 text-white hover:bg-green-600 rounded-full transition shadow-sm"
                       >
                         <i className="fa-solid fa-plus text-xs"></i>
                       </button>
@@ -8655,7 +8655,7 @@ import './index.css';
                       </span>
                       <button
                         onClick={() => eliminarItemCarrito(item.claveCarrito || item.productoId)}
-                        className="text-xs text-stone-500 hover:text-rose-600 transition"
+                        className="text-xs text-stone-400 hover:text-rose-600 transition"
                       >
                         <i className="fa-solid fa-trash-can text-xs"></i> Quitar
                       </button>
