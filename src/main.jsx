@@ -676,7 +676,7 @@ import './index.css';
           onClick={() => onSelect(prod)}
           onKeyDown={(e) => { if (e.key === 'Enter') onSelect(prod); }}
           className={`text-left rounded-2xl border p-3.5 flex flex-col gap-3 shadow-sm hover:shadow-md transition-all duration-200 active:scale-[0.98] group cursor-pointer ${
-            enCarrito > 0 ? 'bg-amber-50 border-amber-300' : 'bg-white border-stone-200 hover:border-stone-300'
+            enCarrito > 0 ? 'bg-emerald-50 border-emerald-300' : 'bg-white border-stone-200 hover:border-stone-300'
           }`}
         >
           {/* Foto circular + nombre/categoría a la derecha, como en la
