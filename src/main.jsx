@@ -2125,6 +2125,10 @@ import './index.css';
       // --- Productos & Búsqueda ---
       const [productos, setProductos] = useState([]);
       const [categoriaFiltro, setCategoriaFiltro] = useState('TODOS');
+      // Con muchas categorías, mostrarlas todas como píldoras saturaba la
+      // fila -- ahora "Todos" es un único botón que abre un desplegable con
+      // la lista completa; "Combos" queda como pestaña aparte, sin tocar.
+      const [menuCategoriasAbierto, setMenuCategoriasAbierto] = useState(false);
 
       // --- Combos: paquetes de varios productos existentes a un precio
       // especial -- ver migration_25_combos.sql en el repo de Delivery. No
@@ -8224,12 +8228,13 @@ import './index.css';
             </header>
 
             <div className="flex-1 flex flex-col overflow-hidden p-3 md:p-4">
-              {/* Categorías como "pestañas de carpeta": la activa se funde
-                  sin costura con el panel blanco de abajo (folder-tab-active,
-                  ver index.css); las inactivas flotan como píldoras
-                  traslúcidas un poco más arriba (items-end + mb en cada una),
-                  igual a la referencia. */}
-              <div className="flex items-end gap-1.5 overflow-x-auto text-xs shrink-0 relative z-10">
+              {/* Categorías: "Todos" es un único botón que abre un
+                  desplegable con la lista completa (antes cada categoría era
+                  su propia píldora y con 15 saturaba la fila); "Combos"
+                  queda como pestaña aparte, tal cual estaba. La que
+                  corresponde según el filtro activo se funde sin costura
+                  con el panel de abajo (folder-tab-active, ver index.css). */}
+              <div className="flex items-end gap-1.5 text-xs shrink-0 relative z-10">
                 {combos.some(c => c.activo) && (
                   <button
                     onClick={() => setCategoriaFiltro('__COMBOS__')}
@@ -8241,22 +8246,38 @@ import './index.css';
                     </span>
                   </button>
                 )}
-                {categorias.map(cat => {
-                  const cantidad = cat === 'TODOS' ? productos.length : (conteoPorCategoria.get(cat) || 0);
-                  const activo = categoriaFiltro === cat;
-                  return (
-                    <button
-                      key={cat}
-                      onClick={() => setCategoriaFiltro(cat)}
-                      className={`shrink-0 flex flex-col items-start px-4 py-2.5 transition ${activo ? 'folder-tab-active text-stone-900' : 'mb-2 rounded-full bg-white/50 text-stone-600 hover:bg-white/80 border border-stone-200'}`}
-                    >
-                      <span className="font-bold whitespace-nowrap">{cat}</span>
-                      <span className={`text-[10px] font-medium ${activo ? 'text-stone-400' : 'text-stone-400'}`}>
-                        {cantidad} {cantidad === 1 ? 'item' : 'items'}
-                      </span>
-                    </button>
-                  );
-                })}
+                <div className="relative shrink-0">
+                  <button
+                    onClick={() => setMenuCategoriasAbierto((v) => !v)}
+                    className={`flex items-center gap-2 px-5 py-2.5 transition ${categoriaFiltro !== '__COMBOS__' ? 'folder-tab-active text-stone-900' : 'mb-2 rounded-full bg-white/50 text-stone-600 hover:bg-white/80 border border-stone-200'}`}
+                  >
+                    <span className="font-bold whitespace-nowrap">
+                      {categoriaFiltro === '__COMBOS__' ? 'Todos' : categoriaFiltro}
+                    </span>
+                    <i className={`fa-solid fa-chevron-down text-[10px] transition-transform ${menuCategoriasAbierto ? 'rotate-180' : ''}`}></i>
+                  </button>
+                  {menuCategoriasAbierto && (
+                    <>
+                      <div className="fixed inset-0 z-20" onClick={() => setMenuCategoriasAbierto(false)}></div>
+                      <div className="absolute top-full left-0 mt-1 w-56 max-h-80 overflow-y-auto bg-white border border-stone-200 rounded-2xl shadow-lg p-1.5 z-30">
+                        {categorias.map(cat => {
+                          const cantidad = cat === 'TODOS' ? productos.length : (conteoPorCategoria.get(cat) || 0);
+                          const activo = categoriaFiltro === cat;
+                          return (
+                            <button
+                              key={cat}
+                              onClick={() => { setCategoriaFiltro(cat); setMenuCategoriasAbierto(false); }}
+                              className={`w-full flex items-center justify-between gap-2 px-3 py-2 rounded-xl text-left text-sm font-semibold transition ${activo ? 'bg-stone-900 text-white' : 'text-stone-700 hover:bg-stone-100'}`}
+                            >
+                              <span className="truncate">{cat}</span>
+                              <span className={`text-xs font-medium shrink-0 ${activo ? 'text-white/70' : 'text-stone-400'}`}>{cantidad}</span>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </>
+                  )}
+                </div>
               </div>
 
               {/* Panel blanco del catálogo: contador + buscador + grilla,
