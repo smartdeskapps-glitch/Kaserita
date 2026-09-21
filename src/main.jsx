@@ -8235,17 +8235,6 @@ import './index.css';
                   corresponde según el filtro activo se funde sin costura
                   con el panel de abajo (folder-tab-active, ver index.css). */}
               <div className="flex items-end gap-1.5 text-xs shrink-0 relative z-20">
-                {combos.some(c => c.activo) && (
-                  <button
-                    onClick={() => setCategoriaFiltro('__COMBOS__')}
-                    className={`shrink-0 flex flex-col items-start px-4 py-2.5 transition ${categoriaFiltro === '__COMBOS__' ? 'folder-tab-active text-amber-700' : 'mb-2 rounded-full bg-white/50 text-amber-700 hover:bg-white/80 border border-amber-200'}`}
-                  >
-                    <span className="font-bold whitespace-nowrap"><i className="fa-solid fa-gift mr-1"></i>Combos</span>
-                    <span className="text-[10px] font-medium text-amber-600/70">
-                      {combos.filter(c => c.activo).length} activo{combos.filter(c => c.activo).length === 1 ? '' : 's'}
-                    </span>
-                  </button>
-                )}
                 <div className="relative shrink-0">
                   <button
                     onClick={() => setMenuCategoriasAbierto((v) => !v)}
@@ -8278,6 +8267,17 @@ import './index.css';
                     </>
                   )}
                 </div>
+                {combos.some(c => c.activo) && (
+                  <button
+                    onClick={() => setCategoriaFiltro('__COMBOS__')}
+                    className={`shrink-0 flex flex-col items-start px-4 py-2.5 transition ${categoriaFiltro === '__COMBOS__' ? 'folder-tab-active text-amber-700' : 'mb-2 rounded-full bg-white/50 text-amber-700 hover:bg-white/80 border border-amber-200'}`}
+                  >
+                    <span className="font-bold whitespace-nowrap"><i className="fa-solid fa-gift mr-1"></i>Combos</span>
+                    <span className="text-[10px] font-medium text-amber-600/70">
+                      {combos.filter(c => c.activo).length} activo{combos.filter(c => c.activo).length === 1 ? '' : 's'}
+                    </span>
+                  </button>
+                )}
               </div>
 
               {/* Panel blanco del catálogo: contador + buscador + grilla,
