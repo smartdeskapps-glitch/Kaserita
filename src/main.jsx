@@ -8573,13 +8573,24 @@ import './index.css';
           )}
 
           <div className="flex flex-col md:mt-3 md:mr-3 md:w-[400px] lg:w-[440px]">
-            {/* Pestaña "Carrito" (solo desktop), fundida sin costura con el
-                panel de abajo -- mismo lenguaje visual que las pestañas de
-                categoría del catálogo. */}
-            <div className="hidden md:flex items-end px-1 relative z-10">
+            {/* Pestaña "Carrito" + pill "En espera" (solo desktop), igual a
+                "Order Detail" + "Order Saved" de la referencia: ambas en la
+                misma fila, alineadas abajo, la pestaña fundida sin costura
+                con el panel y el pill de en-espera siempre visible (con 0
+                cuando no hay ninguna) en vez de aparecer/desaparecer. */}
+            <div className="hidden md:flex items-end justify-between px-1 relative z-10">
               <div className="folder-tab-active px-6 py-3 text-sm font-bold text-stone-900">
                 Carrito
               </div>
+              <button
+                onClick={() => setModalVentasEspera(true)}
+                className="mb-2 flex items-center gap-2 pl-3 pr-1.5 py-1.5 rounded-full border border-amber-200 bg-white/70 hover:bg-white text-xs font-semibold text-amber-700 transition shadow-sm"
+              >
+                En espera
+                <span className="w-5 h-5 rounded-full bg-amber-500 text-white text-[11px] font-extrabold flex items-center justify-center">
+                  {ventasEnEspera.length}
+                </span>
+              </button>
             </div>
             <section
               className={`${mostrarResumenMobile ? 'flex' : 'hidden'} md:flex flex-col w-full bg-white border border-stone-200 fixed inset-x-0 bottom-0 top-auto md:static md:inset-auto rounded-t-2xl md:rounded-b-2xl md:rounded-tr-2xl max-h-[88vh] md:max-h-none md:-mt-px shadow-2xl md:shadow-lg overflow-hidden z-50 md:z-auto`}
@@ -8600,17 +8611,15 @@ import './index.css';
                 <span className="text-stone-400 font-semibold">{carrito.reduce((a, c) => a + c.cantidad, 0)} ítems</span>
               </span>
               <div className="flex items-center gap-2">
-                {ventasEnEspera.length > 0 && (
-                  <button
-                    onClick={() => setModalVentasEspera(true)}
-                    className="flex items-center gap-1.5 pl-2.5 pr-1.5 py-1 rounded-full border border-amber-200 bg-amber-50 hover:bg-amber-100 text-xs font-semibold text-amber-700 transition"
-                  >
-                    En espera
-                    <span className="w-4 h-4 rounded-full bg-amber-500 text-white text-[10px] font-extrabold flex items-center justify-center">
-                      {ventasEnEspera.length}
-                    </span>
-                  </button>
-                )}
+                <button
+                  onClick={() => setModalVentasEspera(true)}
+                  className="md:hidden flex items-center gap-1.5 pl-2.5 pr-1.5 py-1 rounded-full border border-amber-200 bg-amber-50 hover:bg-amber-100 text-xs font-semibold text-amber-700 transition"
+                >
+                  En espera
+                  <span className="w-4 h-4 rounded-full bg-amber-500 text-white text-[10px] font-extrabold flex items-center justify-center">
+                    {ventasEnEspera.length}
+                  </span>
+                </button>
                 {carrito.length > 0 && (
                   <button
                     onClick={aparcarVentaActual}
