@@ -8270,11 +8270,12 @@ import './index.css';
                 {combos.some(c => c.activo) && (
                   <button
                     onClick={() => setCategoriaFiltro('__COMBOS__')}
-                    className={`shrink-0 flex flex-col items-start px-4 py-2.5 transition ${categoriaFiltro === '__COMBOS__' ? 'folder-tab-active text-amber-700' : 'mb-2 rounded-full bg-white/50 text-amber-700 hover:bg-white/80 border border-amber-200'}`}
+                    className={`shrink-0 flex items-center gap-1.5 px-4 py-2.5 transition ${categoriaFiltro === '__COMBOS__' ? 'folder-tab-active text-amber-700' : 'mb-2 rounded-full bg-white/50 text-amber-700 hover:bg-white/80 border border-amber-200'}`}
                   >
-                    <span className="font-bold whitespace-nowrap"><i className="fa-solid fa-gift mr-1"></i>Combos</span>
-                    <span className="text-[10px] font-medium text-amber-600/70">
-                      {combos.filter(c => c.activo).length} activo{combos.filter(c => c.activo).length === 1 ? '' : 's'}
+                    <i className="fa-solid fa-gift text-xs"></i>
+                    <span className="font-bold whitespace-nowrap">Combos</span>
+                    <span className="text-xs font-semibold text-amber-600/70">
+                      {combos.filter(c => c.activo).length}
                     </span>
                   </button>
                 )}
