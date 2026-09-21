@@ -723,7 +723,7 @@ import './index.css';
               <button
                 type="button"
                 onClick={(e) => { e.stopPropagation(); onEdit(prod); }}
-                className="absolute top-1.5 left-1.5 z-10 w-6 h-6 flex items-center justify-center bg-white/90 hover:bg-white text-stone-700 hover:text-orange-600 rounded-lg shadow-sm transition"
+                className="absolute top-1.5 left-1.5 z-10 w-6 h-6 flex items-center justify-center bg-white/90 hover:bg-white text-stone-700 hover:text-amber-700 rounded-lg shadow-sm transition"
                 title="Editar producto"
               >
                 <i className="fa-solid fa-pen text-xs"></i>
@@ -8345,7 +8345,7 @@ import './index.css';
                   <button
                     onClick={abrirEscanerParaVenta}
                     title="Escanear código de barras con la cámara"
-                    className="absolute left-2 top-1/2 -translate-y-1/2 w-7 h-7 flex items-center justify-center text-stone-500 hover:text-orange-600 hover:bg-orange-50 rounded-lg transition"
+                    className="absolute left-2 top-1/2 -translate-y-1/2 w-7 h-7 flex items-center justify-center text-stone-500 hover:text-amber-700 hover:bg-amber-50 rounded-lg transition"
                   >
                     <i className="fa-solid fa-barcode text-sm"></i>
                   </button>
@@ -8356,7 +8356,7 @@ import './index.css';
                     onChange={(e) => setBusqueda(e.target.value)}
                     onKeyDown={handleKeyDownBusqueda}
                     placeholder="Escanear código o buscar producto..."
-                    className="w-full bg-white border border-stone-200 text-stone-900 placeholder-stone-500 text-sm rounded-2xl pl-11 pr-9 py-3 focus:outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500 transition"
+                    className="w-full bg-white border border-stone-200 text-stone-900 placeholder-stone-500 text-sm rounded-2xl pl-11 pr-9 py-3 focus:outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-500 transition"
                     autoFocus
                   />
                   {busqueda && (
@@ -8403,16 +8403,16 @@ import './index.css';
                     <button
                       key={v.id}
                       onClick={() => recuperarVentaEspera(i)}
-                      className="shrink-0 w-44 text-left p-2.5 bg-stone-100 border border-stone-200 rounded-xl hover:border-orange-500/60 transition"
+                      className="shrink-0 w-44 text-left p-2.5 bg-amber-50 border border-amber-200 rounded-xl hover:border-amber-300 transition"
                     >
-                      <div className="flex justify-between items-center text-xs font-bold text-orange-600 mb-1">
+                      <div className="flex justify-between items-center text-xs font-bold text-amber-700 mb-1">
                         <span><i className="fa-solid fa-pause text-[8px]"></i> En espera</span>
                         <span>{v.hora}</span>
                       </div>
                       <p className="text-xs font-semibold text-stone-900 truncate">{v.cliente?.nombre_completo || 'Cliente'}</p>
                       <div className="flex justify-between items-center mt-1">
                         <span className="text-xs text-stone-600">{v.items.length} ítems</span>
-                        <span className="text-xs font-black text-orange-600">S/ {v.total.toFixed(2)}</span>
+                        <span className="text-xs font-black text-amber-700">S/ {v.total.toFixed(2)}</span>
                       </div>
                     </button>
                   ))}
@@ -8492,13 +8492,13 @@ import './index.css';
                   )
                 ) : cargandoProductos ? (
                   <div className="flex flex-col items-center justify-center h-48 text-stone-600 gap-2">
-                    <div className="w-8 h-8 border-4 border-orange-500 border-t-transparent rounded-full animate-spin"></div>
+                    <div className="w-8 h-8 border-4 border-amber-500 border-t-transparent rounded-full animate-spin"></div>
                     <p className="text-xs">Cargando productos...</p>
                   </div>
                 ) : productos.length === 0 ? (
                   <div className="flex flex-col items-center justify-center h-full text-center px-4">
-                    <div className="w-16 h-16 rounded-2xl bg-orange-500/10 flex items-center justify-center mb-3">
-                      <i className="fa-solid fa-boxes-stacked text-2xl text-orange-600"></i>
+                    <div className="w-16 h-16 rounded-2xl bg-amber-500/10 flex items-center justify-center mb-3">
+                      <i className="fa-solid fa-boxes-stacked text-2xl text-amber-600"></i>
                     </div>
                     <p className="text-base font-bold text-stone-900">Aún no tienes productos registrados</p>
                     <p className="text-xs text-stone-500 mt-1 max-w-xs">
@@ -8550,7 +8550,7 @@ import './index.css';
               </span>
               <span className="flex items-center gap-2.5 font-black text-sm">
                 S/ {totalConDescuento.toFixed(2)}
-                <span className="flex items-center justify-center w-9 h-9 rounded-full bg-orange-500 shrink-0">
+                <span className="flex items-center justify-center w-9 h-9 rounded-full bg-amber-500 shrink-0">
                   <i className="fa-solid fa-basket-shopping text-sm"></i>
                 </span>
               </span>
@@ -8587,7 +8587,7 @@ import './index.css';
                 {carrito.length > 0 && (
                   <button
                     onClick={aparcarVentaActual}
-                    className="text-xs text-orange-600 hover:text-orange-600 font-bold transition"
+                    className="text-xs text-amber-700 hover:text-amber-800 font-bold transition"
                   >
                     <i className="fa-solid fa-pause text-xs"></i> Pausar
                   </button>
@@ -8761,7 +8761,7 @@ import './index.css';
                         value={montoRecibido}
                         onChange={(e) => setMontoRecibido(e.target.value)}
                         placeholder="0.00"
-                        className="w-full bg-white border border-stone-300 rounded-lg px-3 py-2 text-2xl font-black text-stone-900 tabular-nums focus:outline-none focus:border-orange-500"
+                        className="w-full bg-white border border-stone-300 rounded-lg px-3 py-2 text-2xl font-black text-stone-900 tabular-nums focus:outline-none focus:border-amber-500"
                       />
                       <button
                         type="button"
@@ -8775,7 +8775,7 @@ import './index.css';
                   </div>
                   <div className="flex items-center justify-between px-0.5">
                     <span className="text-xs font-semibold text-stone-600 uppercase tracking-wider">Vuelto</span>
-                    <span className={`text-2xl font-black tabular-nums ${vuelto < 0 ? 'text-rose-600' : 'text-orange-600'}`}>
+                    <span className={`text-2xl font-black tabular-nums ${vuelto < 0 ? 'text-rose-600' : 'text-amber-700'}`}>
                       S/ {vuelto > 0 ? vuelto.toFixed(2) : '0.00'}
                     </span>
                   </div>
@@ -8802,14 +8802,14 @@ import './index.css';
                       <i className="fa-solid fa-user text-stone-500"></i>
                       {(!clienteActual || clienteActual.dni === '99999999') ? 'Sin cliente asignado' : clienteActual.nombre_completo}
                     </span>
-                    <button type="button" onClick={abrirBuscarClientePOS} className="text-orange-600 font-semibold hover:underline shrink-0 ml-2">
+                    <button type="button" onClick={abrirBuscarClientePOS} className="text-amber-700 font-semibold hover:underline shrink-0 ml-2">
                       Cambiar
                     </button>
                   </div>
                   <div className={`p-2 rounded-lg border text-xs ${
                     (!clienteActual || clienteActual.dni === '99999999')
                       ? 'bg-rose-950/40 border-rose-800/50 text-rose-600'
-                      : 'bg-orange-950/30 border-orange-800/50 text-orange-600'
+                      : 'bg-amber-950/30 border-amber-800/50 text-amber-700'
                   }`}>
                     {(!clienteActual || clienteActual.dni === '99999999') ? (
                       'Asigna un cliente registrado para vender a crédito.'
@@ -8831,7 +8831,7 @@ import './index.css';
                         value={montoMixtoOtro}
                         onChange={(e) => setMontoMixtoOtro(e.target.value)}
                         placeholder="0.00"
-                        className="w-full bg-stone-100 border border-stone-300 rounded px-2 py-1 text-sm font-bold text-stone-900 focus:outline-none focus:border-orange-500"
+                        className="w-full bg-stone-100 border border-stone-300 rounded px-2 py-1 text-sm font-bold text-stone-900 focus:outline-none focus:border-amber-500"
                       />
                       <button
                         type="button"
@@ -8851,7 +8851,7 @@ import './index.css';
                     </div>
                     <div className="text-right">
                       <label className="text-xs text-stone-600 block">Vuelto:</label>
-                      <span className={`text-sm font-black ${vueltoMixto < 0 ? 'text-rose-600' : 'text-orange-600'}`}>
+                      <span className={`text-sm font-black ${vueltoMixto < 0 ? 'text-rose-600' : 'text-amber-700'}`}>
                         S/ {vueltoMixto > 0 ? vueltoMixto.toFixed(2) : '0.00'}
                       </span>
                     </div>
@@ -8867,7 +8867,7 @@ import './index.css';
                           value={montoMixtoRecibido}
                           onChange={(e) => setMontoMixtoRecibido(e.target.value)}
                           placeholder="0.00"
-                          className="w-full bg-stone-100 border border-stone-300 rounded px-2 py-1 text-sm font-bold text-stone-900 focus:outline-none focus:border-orange-500"
+                          className="w-full bg-stone-100 border border-stone-300 rounded px-2 py-1 text-sm font-bold text-stone-900 focus:outline-none focus:border-amber-500"
                         />
                         <button
                           type="button"
@@ -8893,7 +8893,7 @@ import './index.css';
                     <button
                       type="button"
                       onClick={() => { setDescuentoTipo('PORCENTAJE'); setDescuentoValor(''); }}
-                      className="text-xs text-orange-600 hover:underline font-semibold"
+                      className="text-xs text-amber-700 hover:underline font-semibold"
                     >
                       <i className="fa-solid fa-tag text-xs"></i> Aplicar descuento
                     </button>
@@ -8934,7 +8934,7 @@ import './index.css';
                         value={descuentoValor}
                         onChange={(e) => setDescuentoValor(e.target.value)}
                         placeholder={descuentoTipo === 'PORCENTAJE' ? '0-100' : '0.00'}
-                        className="w-full bg-white border border-stone-300 rounded-lg px-3 py-1.5 text-sm font-bold text-stone-900 focus:outline-none focus:border-orange-500"
+                        className="w-full bg-white border border-stone-300 rounded-lg px-3 py-1.5 text-sm font-bold text-stone-900 focus:outline-none focus:border-amber-500"
                       />
                     </div>
                   </div>
@@ -8997,20 +8997,20 @@ import './index.css';
                     <i className="fa-solid fa-lock w-5"></i> Cerrar Caja
                   </button>
                 ) : (
-                  <button onClick={() => { setModalTurno(true); setMenuMas(false); }} className="w-full text-left px-3.5 py-3 rounded-xl bg-orange-50 hover:bg-orange-100 flex items-center gap-3 text-orange-600 font-bold text-sm">
+                  <button onClick={() => { setModalTurno(true); setMenuMas(false); }} className="w-full text-left px-3.5 py-3 rounded-xl bg-amber-50 hover:bg-amber-100 flex items-center gap-3 text-amber-700 font-bold text-sm">
                     <i className="fa-solid fa-bolt w-5"></i> Abrir Turno
                   </button>
                 )}
                 <div className="border-t border-stone-200 my-1"></div>
                 <button onClick={() => { abrirModuloCobroDeudas(); setMenuMas(false); }} className="w-full text-left px-3.5 py-3 rounded-xl hover:bg-stone-200 flex items-center gap-3 text-stone-800 font-medium text-sm">
-                  <i className="fa-solid fa-hand-holding-dollar w-5 text-orange-600"></i> Cuentas por Cobrar
+                  <i className="fa-solid fa-hand-holding-dollar w-5 text-amber-600"></i> Cuentas por Cobrar
                 </button>
                 <button onClick={() => { abrirHistorialDelDia(); setMenuMas(false); }} className="w-full text-left px-3.5 py-3 rounded-xl hover:bg-stone-200 flex items-center gap-3 text-stone-800 font-medium text-sm">
-                  <i className="fa-solid fa-receipt w-5 text-orange-600"></i> Historial de Ventas Hoy
+                  <i className="fa-solid fa-receipt w-5 text-amber-600"></i> Historial de Ventas Hoy
                 </button>
                 {!esAdmin && (
                   <button onClick={() => { setModalNuevoCliente(true); setMenuMas(false); }} className="w-full text-left px-3.5 py-3 rounded-xl hover:bg-stone-200 flex items-center gap-3 text-stone-800 font-medium text-sm">
-                    <i className="fa-solid fa-user-plus w-5 text-orange-600"></i> Registrar Cliente
+                    <i className="fa-solid fa-user-plus w-5 text-amber-600"></i> Registrar Cliente
                   </button>
                 )}
                 <button onClick={() => { setModalStockBajo(true); setMenuMas(false); }} className="w-full text-left px-3.5 py-3 rounded-xl hover:bg-stone-200 flex items-center gap-3 text-stone-800 font-medium text-sm">
