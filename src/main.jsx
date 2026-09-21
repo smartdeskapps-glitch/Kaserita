@@ -8578,7 +8578,7 @@ import './index.css';
                 misma fila, alineadas abajo, la pestaña fundida sin costura
                 con el panel y el pill de en-espera siempre visible (con 0
                 cuando no hay ninguna) en vez de aparecer/desaparecer. */}
-            <div className="hidden md:flex items-end justify-between px-1 relative z-10">
+            <div className="hidden md:flex items-end justify-between relative z-10">
               <div className="folder-tab-active px-6 py-3 text-sm font-bold text-stone-900">
                 Carrito
               </div>
