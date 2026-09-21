@@ -8234,7 +8234,7 @@ import './index.css';
                   queda como pestaña aparte, tal cual estaba. La que
                   corresponde según el filtro activo se funde sin costura
                   con el panel de abajo (folder-tab-active, ver index.css). */}
-              <div className="flex items-end gap-1.5 text-xs shrink-0 relative z-10">
+              <div className="flex items-end gap-1.5 text-xs shrink-0 relative z-20">
                 {combos.some(c => c.activo) && (
                   <button
                     onClick={() => setCategoriaFiltro('__COMBOS__')}
