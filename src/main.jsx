@@ -443,32 +443,6 @@ import './index.css';
     }
 
     // Ícono de la barra lateral de navegación (desktop) / barra inferior (mobile).
-    function SidebarIcon({ icon, label, badge, tone = 'default', active = false, onClick }) {
-      const toneClasses = tone === 'rose'
-        ? 'text-rose-600 hover:bg-rose-500/10 hover:text-rose-600'
-        : tone === 'orange'
-        ? 'text-orange-600 hover:bg-orange-500/10 hover:text-orange-600'
-        : active
-        ? 'bg-stone-900 text-white shadow-lg shadow-stone-900/25'
-        : 'text-stone-600 hover:bg-stone-200 hover:text-stone-800';
-      return (
-        <button
-          type="button"
-          onClick={onClick}
-          data-tip={label}
-          aria-label={label}
-          className={`relative w-11 h-11 flex items-center justify-center rounded-xl transition-all duration-200 shrink-0 ${toneClasses}`}
-        >
-          <i className={`fa-solid ${icon} text-base`}></i>
-          {badge > 0 && (
-            <span className="absolute -top-1 -right-1 bg-orange-500 text-white text-[10px] font-bold rounded-full min-w-[16px] h-4 px-1 flex items-center justify-center ring-2 ring-stone-100">
-              {badge}
-            </span>
-          )}
-        </button>
-      );
-    }
-
     // Barra de "Desde / Hasta" + atajos rápidos (Hoy / Últimos N días / Este
     // mes), usada en Historial de Cierres y en el Dashboard de Ventas -- antes
     // este bloque estaba copiado en los dos lugares, con solo el nombre de los
@@ -2592,19 +2566,6 @@ import './index.css';
       // Agrupa "Registrar Productos" / "Entrada de Mercadería" bajo un solo
       // desplegable "Entradas" en el menú lateral, en vez de íconos sueltos.
       const [menuEntradasAbierto, setMenuEntradasAbierto] = useState(false);
-      // Tooltip flotante del riel de íconos del menú lateral (desktop): con
-      // position:fixed y coordenadas calculadas al vuelo en vez de CSS puro,
-      // para que nunca se recorte por el overflow-y-auto del <aside>.
-      const [tooltipRail, setTooltipRail] = useState(null);
-      const manejarHoverRail = (e) => {
-        const btn = e.target.closest('[data-tip]');
-        if (btn) {
-          const rect = btn.getBoundingClientRect();
-          setTooltipRail({ top: rect.top + rect.height / 2, left: rect.right + 8, label: btn.getAttribute('data-tip') });
-        } else {
-          setTooltipRail(null);
-        }
-      };
       // Ficha rápida para crear un producto sin salir de "Entrada de
       // Mercadería" -- null cuando el mini-formulario está cerrado.
       const [nuevoProductoInlineCompra, setNuevoProductoInlineCompra] = useState(null);
@@ -8220,82 +8181,6 @@ import './index.css';
             </div>
           )}
 
-          {/* Sidebar de navegación (solo desktop) */}
-          <aside
-            onMouseOver={manejarHoverRail}
-            onMouseLeave={() => setTooltipRail(null)}
-            className="hidden md:flex flex-col items-center w-16 bg-stone-100 border-r border-stone-200/80 py-3 gap-1.5 shrink-0 overflow-y-auto"
-          >
-            <SidebarIcon icon="fa-grip" label="Catálogo" active onClick={() => setMostrarResumenMobile(false)} />
-            <SidebarIcon icon="fa-clock-rotate-left" label="Ventas en Espera" badge={ventasEnEspera.length} onClick={() => setModalVentasEspera(true)} />
-            <SidebarIcon icon="fa-receipt" label="Historial de Ventas" onClick={abrirHistorialDelDia} />
-            <SidebarIcon icon="fa-hand-holding-dollar" label="Cuentas por Cobrar" onClick={abrirModuloCobroDeudas} />
-            {/* Los admins ya tienen "Agregar Cliente" dentro de "Clientes" --
-                este acceso directo queda solo para cajeros sin ese menú. */}
-            {!esAdmin && (
-              <SidebarIcon icon="fa-user-plus" label="Nuevo Cliente" onClick={() => setModalNuevoCliente(true)} />
-            )}
-            <SidebarIcon icon="fa-triangle-exclamation" label="Stock Bajo" badge={cantidadStockBajo} tone={cantidadStockBajo > 0 ? 'orange' : 'default'} onClick={() => setModalStockBajo(true)} />
-            <SidebarIcon icon="fa-table-list" label="Ver Stock" onClick={() => setModalVerStock(true)} />
-            <SidebarIcon icon="fa-clipboard-check" label="Toma de Inventario" onClick={abrirTomaInventario} />
-            <SidebarIcon icon="fa-scale-balanced" label="Historial de Inventario" onClick={abrirHistorialInventario} />
-            <SidebarIcon icon="fa-box" label="Registrar Merma" onClick={() => setModalMerma(true)} />
-            {/* Combos también se venden en el POS, no solo por el Catálogo
-                Online -- disponible para cualquier bodega y cualquier rol. */}
-            <SidebarIcon icon="fa-gift" label="Combos" onClick={abrirModalCombos} />
-            {esAdmin && (
-              <>
-                <div className="w-10 h-px bg-stone-200 my-2 shrink-0"></div>
-                <SidebarIcon icon="fa-chart-pie" label="Dashboard de Ventas" onClick={abrirDashboard} />
-                <SidebarIcon icon="fa-file-invoice" label="Cuentas por Pagar" onClick={abrirCuentasPorPagar} />
-                <SidebarIcon icon="fa-cash-register" label="Historial de Cierres de Caja" onClick={abrirHistorialCierres} />
-                <div className="flex flex-col items-center">
-                  <button
-                    type="button"
-                    onClick={() => setMenuEntradasAbierto((v) => !v)}
-                    data-tip="Entradas"
-                    aria-label="Entradas"
-                    className={`relative w-11 h-11 flex items-center justify-center rounded-xl transition-all duration-200 shrink-0 ${menuEntradasAbierto ? 'bg-stone-900 text-white shadow-lg shadow-stone-900/25' : 'text-stone-600 hover:bg-stone-200 hover:text-stone-800'}`}
-                  >
-                    <i className="fa-solid fa-dolly text-base"></i>
-                    <i className={`fa-solid fa-chevron-down text-[7px] absolute -bottom-0.5 right-1.5 transition-transform ${menuEntradasAbierto ? 'rotate-180' : ''}`}></i>
-                  </button>
-                  {menuEntradasAbierto && (
-                    <div className="flex flex-col items-center gap-1 mt-1.5 py-1.5 px-1 bg-stone-200/60 rounded-xl">
-                      <SidebarIcon icon="fa-boxes-stacked" label="Registrar Productos" onClick={() => setModalInventarioInicial(true)} />
-                      <SidebarIcon icon="fa-truck-ramp-box" label="Entrada de Mercadería" onClick={() => setModalEntradaMercaderia(true)} />
-                      <SidebarIcon icon="fa-clipboard-list" label="Levantamiento de Inventario" onClick={() => setModalLevantamiento(true)} />
-                      {sesion?.bodega?.mostrar_catalogo_maestro !== false && (
-                        <SidebarIcon icon="fa-book" label="Importar del Catálogo Maestro" onClick={abrirImportarMaestro} />
-                      )}
-                    </div>
-                  )}
-                </div>
-                <SidebarIcon icon="fa-users" label="Clientes (editar)" onClick={abrirGestionClientes} />
-                <SidebarIcon icon="fa-user-group" label="Cajeros y Empleados" onClick={abrirGestionCajeros} />
-                <SidebarIcon icon="fa-share-nodes" label="Mi Link de Pedidos" onClick={abrirModalDelivery} />
-              </>
-            )}
-            <div className="flex-1 min-h-2"></div>
-            {turnoActivo ? (
-              <SidebarIcon icon="fa-lock" label="Cerrar Caja" tone="rose" onClick={abrirCierreCaja} />
-            ) : (
-              <SidebarIcon icon="fa-lock-open" label="Abrir Turno" tone="orange" onClick={() => setModalTurno(true)} />
-            )}
-            <SidebarIcon icon="fa-right-from-bracket" label="Cerrar Sesión" onClick={cerrarSesion} />
-          </aside>
-
-          {/* Tooltip flotante del riel de íconos -- position:fixed con
-              coordenadas calculadas en manejarHoverRail, así que nunca lo
-              recorta el overflow-y-auto del <aside>. */}
-          {tooltipRail && (
-            <div
-              className="hidden md:block fixed z-[70] pointer-events-none bg-stone-900 text-white text-xs font-semibold px-2.5 py-1.5 rounded-lg shadow-xl whitespace-nowrap animate-[tooltip-rail-in_0.12s_ease-out]"
-              style={{ top: tooltipRail.top, left: tooltipRail.left, transform: 'translateY(-50%)' }}
-            >
-              {tooltipRail.label}
-            </div>
-          )}
 
           {/* Columna Central: Catálogo (Order Line) */}
           <div className="flex-1 flex flex-col overflow-hidden">
@@ -8330,10 +8215,10 @@ import './index.css';
                 )}
                 <button
                   onClick={() => setMenuMas(true)}
-                  className="md:hidden w-10 h-10 flex items-center justify-center bg-stone-200 border border-stone-300 rounded-xl text-stone-700 hover:text-stone-900 transition"
+                  className="w-10 h-10 flex items-center justify-center bg-stone-200 border border-stone-300 rounded-xl text-stone-700 hover:text-stone-900 transition"
                   title="Más opciones"
                 >
-                  <i className="fa-solid fa-ellipsis"></i>
+                  <i className="fa-solid fa-bars"></i>
                 </button>
               </div>
             </header>
@@ -9010,10 +8895,14 @@ import './index.css';
           </section>
           </div>
 
-          {/* Hoja de "Más módulos" (solo mobile) */}
+          {/* Hoja de "Más módulos": antes solo vivía en mobile (duplicando el
+              riel de íconos de desktop); ahora que el riel lateral se quitó,
+              este mismo menú es el único punto de entrada a estas funciones
+              en cualquier tamaño de pantalla -- en mobile sigue siendo una
+              hoja que sube desde abajo, en desktop se centra como un menú. */}
           {menuMas && (
-            <div className="md:hidden fixed inset-0 bg-black/70 z-[60] flex items-end" onClick={() => setMenuMas(false)}>
-              <div className="w-full max-h-[85vh] overflow-y-auto bg-stone-100 border-t border-stone-200 rounded-t-3xl p-4 pb-6 space-y-1" onClick={(e) => e.stopPropagation()}>
+            <div className="fixed inset-0 bg-black/70 z-[60] flex items-end md:items-center md:justify-center" onClick={() => setMenuMas(false)}>
+              <div className="w-full md:max-w-sm max-h-[85vh] overflow-y-auto bg-stone-100 border-t border-stone-200 md:border md:rounded-3xl rounded-t-3xl p-4 pb-6 space-y-1" onClick={(e) => e.stopPropagation()}>
                 <div className="w-10 h-1 bg-stone-300 rounded-full mx-auto mb-2 sticky top-0"></div>
                 {turnoActivo ? (
                   <button onClick={() => { abrirCierreCaja(); setMenuMas(false); }} className="w-full text-left px-3.5 py-3 rounded-xl bg-rose-50 hover:bg-rose-100 flex items-center gap-3 text-rose-600 font-bold text-sm">
