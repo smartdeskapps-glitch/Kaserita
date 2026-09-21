@@ -8564,7 +8564,7 @@ import './index.css';
           )}
 
           <section
-            className={`${mostrarResumenMobile ? 'flex' : 'hidden'} md:flex flex-col w-full md:w-[400px] lg:w-[440px] bg-stone-100 border-l border-stone-200 fixed inset-x-0 bottom-0 top-auto md:static md:inset-auto rounded-t-3xl md:rounded-none max-h-[88vh] md:max-h-none shadow-2xl md:shadow-none z-50 md:z-auto`}
+            className={`${mostrarResumenMobile ? 'flex' : 'hidden'} md:flex flex-col w-full md:w-[400px] lg:w-[440px] bg-stone-100 border border-stone-200 fixed inset-x-0 bottom-0 top-auto md:static md:inset-auto rounded-t-3xl md:rounded-3xl max-h-[88vh] md:max-h-none md:my-3 md:mr-3 shadow-2xl md:shadow-lg overflow-hidden z-50 md:z-auto`}
           >
             {/* Manija de arrastre (solo mobile) */}
             <div className="md:hidden w-10 h-1.5 bg-stone-300 rounded-full mx-auto mt-2.5 mb-1 shrink-0"></div>
