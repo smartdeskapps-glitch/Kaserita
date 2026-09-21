@@ -13,10 +13,12 @@
   inherits: false;
 }
 .btn-noise {
-  border: 3px solid transparent;
+  --btn-noise-bg: #ffffff;
+  --btn-noise-bg-hover: #fafaf9;
+  border: 5px solid transparent;
   border-radius: 9999px;
   background:
-    linear-gradient(#ffffff, #ffffff) padding-box,
+    linear-gradient(var(--btn-noise-bg), var(--btn-noise-bg)) padding-box,
     conic-gradient(
       from var(--btn-glow-angle),
       #f1f5f9 0deg,
@@ -33,7 +35,7 @@
 }
 .btn-noise:hover {
   background:
-    linear-gradient(#fafaf9, #fafaf9) padding-box,
+    linear-gradient(var(--btn-noise-bg-hover), var(--btn-noise-bg-hover)) padding-box,
     conic-gradient(
       from var(--btn-glow-angle),
       #f1f5f9 0deg,

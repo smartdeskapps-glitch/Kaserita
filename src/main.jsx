@@ -8313,7 +8313,8 @@ import './index.css';
                 {turnoActivo ? (
                   <button
                     onClick={abrirCierreCaja}
-                    className="hidden sm:inline-flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-semibold bg-orange-500/10 text-orange-600 border border-orange-500/25 hover:bg-orange-500/20 transition"
+                    className="btn-noise hidden sm:inline-flex items-center gap-2 px-3.5 py-2 text-xs font-semibold text-orange-600 transition"
+                    style={{ '--btn-noise-bg': 'rgba(249,115,22,0.1)', '--btn-noise-bg-hover': 'rgba(249,115,22,0.18)' }}
                   >
                     <span className="w-1.5 h-1.5 rounded-full bg-orange-400 animate-pulse"></span> Turno Abierto
                   </button>
