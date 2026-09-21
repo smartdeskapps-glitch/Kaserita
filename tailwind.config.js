@@ -4,7 +4,7 @@ export default {
   theme: {
     extend: {
       fontFamily: {
-        sans: ['"Plus Jakarta Sans"', 'system-ui', 'sans-serif'],
+        sans: ['"Inter"', 'system-ui', 'sans-serif'],
       },
       // Pisa la escala "orange" de Tailwind con un violeta anclado
       // exactamente en el mismo #7c3aed (violet-600) que ya se usa en
