@@ -1,3 +1,33 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+/* Botón "Abrir Turno": grano animado tipo Aceternity sobre el degradado
+   naranja, para que la acción principal del turno se sienta más premium.
+   Es puro CSS (SVG feTurbulence como textura + @keyframes) porque este
+   proyecto es un solo main.jsx sin toolchain de shadcn/TS. */
+.btn-noise {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+}
+.btn-noise::before {
+  content: "";
+  position: absolute;
+  inset: -60%;
+  z-index: 0;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/></filter><rect width='100%25' height='100%25' filter='url(%23n)'/></svg>");
+  background-size: 180px 180px;
+  opacity: 0.18;
+  mix-blend-mode: overlay;
+  animation: btn-noise-shift 8s steps(8) infinite;
+  pointer-events: none;
+}
+.btn-noise > * {
+  position: relative;
+  z-index: 1;
+}
+@keyframes btn-noise-shift {
+  0% { transform: translate3d(0, 0, 0); }
+  100% { transform: translate3d(-120px, -90px, 0); }
+}
