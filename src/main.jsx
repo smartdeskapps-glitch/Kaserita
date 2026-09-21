@@ -728,7 +728,7 @@ import './index.css';
               )}
             </div>
             <div className="min-w-0 flex-1">
-              <h3 className="text-sm font-bold text-stone-900 line-clamp-2 leading-snug min-h-[2.2em]">
+              <h3 className="text-sm font-bold text-stone-900 line-clamp-2 leading-snug min-h-[2.2em] break-words">
                 {prod.descripcion}
               </h3>
               <p className="text-[11px] font-semibold text-stone-400 truncate">
