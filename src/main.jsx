@@ -8924,7 +8924,7 @@ import './index.css';
               hoja que sube desde abajo, en desktop se centra como un menú. */}
           {menuMas && (
             <div className="fixed inset-0 bg-black/70 z-[60] flex items-end md:items-center md:justify-center" onClick={() => setMenuMas(false)}>
-              <div className="w-full md:max-w-sm max-h-[85vh] overflow-y-auto bg-stone-100 border-t border-stone-200 md:border md:rounded-3xl rounded-t-3xl p-4 pb-6 space-y-1" onClick={(e) => e.stopPropagation()}>
+              <div className="w-full md:max-w-sm max-h-[85vh] overflow-y-auto hide-scrollbar bg-stone-100 border-t border-stone-200 md:border md:rounded-3xl rounded-t-3xl p-4 pb-6 space-y-1" onClick={(e) => e.stopPropagation()}>
                 <div className="w-10 h-1 bg-stone-300 rounded-full mx-auto mb-2 sticky top-0"></div>
                 {turnoActivo ? (
                   <button onClick={() => { abrirCierreCaja(); setMenuMas(false); }} className="w-full text-left px-3.5 py-3 rounded-xl bg-rose-50 hover:bg-rose-100 flex items-center gap-3 text-rose-600 font-bold text-sm">
