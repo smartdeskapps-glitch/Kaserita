@@ -701,93 +701,93 @@ import './index.css';
           tabIndex={0}
           onClick={() => onSelect(prod)}
           onKeyDown={(e) => { if (e.key === 'Enter') onSelect(prod); }}
-          className={`text-left rounded-[22px] border shadow-sm hover:shadow-md transition-all duration-200 active:scale-[0.98] group cursor-pointer p-3 flex flex-col ${
+          className={`text-left rounded-2xl border p-3.5 flex flex-col gap-3 shadow-sm hover:shadow-md transition-all duration-200 active:scale-[0.98] group cursor-pointer ${
             enCarrito > 0 ? 'bg-amber-50 border-amber-300' : 'bg-white border-stone-200 hover:border-stone-300'
           }`}
         >
-          {/* Foto contenida dentro de su propio recuadro redondeado, con
-              margen respecto al borde de la tarjeta -- antes la foto llegaba
-              hasta el borde y el nombre/precio iban superpuestos encima con
-              un degradado, así que una foto oscura o muy cargada (la mayoría
-              son fotos de celular, no product shots prolijos) ensuciaba toda
-              la tarjeta. Separando foto y texto en sus propios bloques, el
-              texto siempre vive sobre blanco liso sin importar la foto. */}
-          <div className="relative aspect-square rounded-2xl overflow-hidden bg-stone-100">
-            <FotoProducto
-              fotoUrl={prod.foto_url}
-              categoria={prod.categoria}
-              className="w-full h-full"
-              iconClassName="text-2xl md:text-3xl opacity-90"
-            />
-            {esAdmin && (
-              <button
-                type="button"
-                onClick={(e) => { e.stopPropagation(); onEdit(prod); }}
-                className="absolute top-1.5 left-1.5 z-10 w-6 h-6 flex items-center justify-center bg-white/90 hover:bg-white text-stone-700 hover:text-amber-700 rounded-lg shadow-sm transition"
-                title="Editar producto"
-              >
-                <i className="fa-solid fa-pen text-xs"></i>
-              </button>
-            )}
-            <div className="absolute top-1.5 right-1.5 z-10 flex flex-col items-end gap-1">
-              {tieneCombo && (
+          {/* Foto circular + nombre/categoría a la derecha, como en la
+              referencia -- en vez de una foto grande arriba de toda la
+              tarjeta, va pequeña y redonda junto al texto. */}
+          <div className="flex items-center gap-3">
+            <div className="relative w-12 h-12 shrink-0">
+              <FotoProducto
+                fotoUrl={prod.foto_url}
+                categoria={prod.categoria}
+                className="w-12 h-12 rounded-full ring-1 ring-stone-100"
+                iconClassName="text-base opacity-90"
+              />
+              {esAdmin && (
                 <button
                   type="button"
-                  onClick={(e) => { e.stopPropagation(); onVerCombo?.(prod); }}
-                  className="text-[10px] font-bold text-white bg-amber-500 hover:bg-amber-600 px-1.5 py-0.5 rounded-md shadow-sm flex items-center gap-1"
-                  title="Este producto es parte de un combo -- toca para verlo"
+                  onClick={(e) => { e.stopPropagation(); onEdit(prod); }}
+                  className="absolute -bottom-1 -right-1 w-5 h-5 flex items-center justify-center bg-white hover:bg-stone-50 text-stone-600 hover:text-amber-700 rounded-full shadow-sm border border-stone-200 transition"
+                  title="Editar producto"
                 >
-                  <i className="fa-solid fa-gift"></i> Combo
+                  <i className="fa-solid fa-pen text-[9px]"></i>
                 </button>
               )}
-              {prod.es_destacado && (
-                <span className="text-[10px] font-bold text-white bg-amber-500 w-5 h-5 flex items-center justify-center rounded-md shadow-sm" title="Destacado en Delivery">
-                  <i className="fa-solid fa-star"></i>
-                </span>
-              )}
-              {prod.unidad === 'KG' && (
-                <span className="text-[10px] font-bold text-stone-700 bg-white/90 px-1.5 py-0.5 rounded-md shadow-sm">
-                  KG
-                </span>
-              )}
-              {Number(prod.unidades_por_pack) > 1 && (
-                <span className="text-[10px] font-bold text-white bg-stone-900/85 px-1.5 py-0.5 rounded-md shadow-sm flex items-center gap-1">
-                  <i className="fa-solid fa-boxes-packing"></i> x{prod.unidades_por_pack}
-                </span>
-              )}
             </div>
-            {enCarrito > 0 && (
-              <span className="absolute bottom-1.5 left-1/2 -translate-x-1/2 text-[10px] font-bold text-white bg-stone-900 px-2.5 py-1 rounded-full shadow flex items-center gap-1 whitespace-nowrap">
-                <i className="fa-solid fa-check"></i> En carrito · {enCarrito}
+            <div className="min-w-0 flex-1">
+              <h3 className="text-sm font-bold text-stone-900 line-clamp-2 leading-snug min-h-[2.2em]">
+                {prod.descripcion}
+              </h3>
+              <p className="text-[11px] font-semibold text-stone-400 truncate">
+                {prod.categoria || 'General'}
+              </p>
+            </div>
+            {tieneCombo && (
+              <button
+                type="button"
+                onClick={(e) => { e.stopPropagation(); onVerCombo?.(prod); }}
+                className="shrink-0 w-6 h-6 flex items-center justify-center text-[10px] text-white bg-amber-500 hover:bg-amber-600 rounded-lg shadow-sm"
+                title="Este producto es parte de un combo -- toca para verlo"
+              >
+                <i className="fa-solid fa-gift"></i>
+              </button>
+            )}
+          </div>
+
+          {/* Precio + etiquetas (destacado / KG / pack) */}
+          <div className="flex items-center gap-1.5 flex-wrap">
+            <span className="text-lg font-extrabold text-stone-900 tabular-nums">
+              S/ {Number(prod.precio_venta).toFixed(2)}
+            </span>
+            {prod.es_destacado && (
+              <span className="text-[10px] font-bold text-white bg-amber-500 w-5 h-5 flex items-center justify-center rounded-md" title="Destacado en Delivery">
+                <i className="fa-solid fa-star"></i>
+              </span>
+            )}
+            {prod.unidad === 'KG' && (
+              <span className="text-[10px] font-bold text-stone-600 bg-stone-100 px-1.5 py-0.5 rounded-md">
+                KG
+              </span>
+            )}
+            {Number(prod.unidades_por_pack) > 1 && (
+              <span className="text-[10px] font-bold text-stone-600 bg-stone-100 px-1.5 py-0.5 rounded-md flex items-center gap-1">
+                <i className="fa-solid fa-boxes-packing"></i> x{prod.unidades_por_pack}
               </span>
             )}
           </div>
 
-          <div className="px-1 pt-3 pb-0.5 flex flex-col gap-1 flex-1">
-            <h3 className="text-sm font-bold text-stone-900 line-clamp-2 leading-snug min-h-[2.4em]">
-              {prod.descripcion}
-            </h3>
-            <p className="text-[11px] font-bold text-stone-400 tracking-wide uppercase truncate">
-              {prod.categoria || 'General'}
-            </p>
-
-            <div className="mt-auto pt-3 border-t border-stone-100 flex items-center justify-between gap-2">
-              <span className="text-lg font-black text-stone-900 tabular-nums">
-                S/ {Number(prod.precio_venta).toFixed(2)}
+          {/* Stock + estado en carrito */}
+          <div className="mt-auto pt-2.5 border-t border-stone-100 flex items-center gap-2 text-[11px] min-h-[1.25rem]">
+            {prod.stock_actual !== null && prod.stock_actual !== undefined && (
+              <span className={`font-semibold flex items-center gap-1 shrink-0 ${
+                Number(prod.stock_actual) <= 0
+                  ? 'text-rose-600'
+                  : Number(prod.stock_actual) <= Number(prod.stock_min || 5)
+                  ? 'text-amber-600'
+                  : 'text-stone-400'
+              }`}>
+                <i className="fa-solid fa-boxes-stacked text-[8px]"></i>
+                {Number(prod.stock_actual) <= 0 ? 'Sin stock' : `Stock ${prod.stock_actual}`}
               </span>
-              {prod.stock_actual !== null && prod.stock_actual !== undefined && (
-                <div className={`text-[11px] font-semibold flex items-center gap-1 shrink-0 ${
-                  Number(prod.stock_actual) <= 0
-                    ? 'text-rose-600'
-                    : Number(prod.stock_actual) <= Number(prod.stock_min || 5)
-                    ? 'text-amber-600'
-                    : 'text-stone-400'
-                }`}>
-                  <i className="fa-solid fa-boxes-stacked text-[8px]"></i>
-                  {Number(prod.stock_actual) <= 0 ? 'Sin stock' : prod.stock_actual}
-                </div>
-              )}
-            </div>
+            )}
+            {enCarrito > 0 && (
+              <span className="ml-auto text-[10px] font-bold text-white bg-stone-900 px-2 py-0.5 rounded-full flex items-center gap-1 whitespace-nowrap shrink-0">
+                <i className="fa-solid fa-check"></i> {enCarrito}
+              </span>
+            )}
           </div>
         </div>
       );
@@ -8194,7 +8194,7 @@ import './index.css';
       return (
         <div
           className={`flex h-screen text-stone-900 font-sans select-none overflow-hidden ${(!enLinea || ventasPendientesSync.length > 0) ? 'pt-7' : ''}`}
-          style={{ background: 'linear-gradient(135deg, #fdf1e7 0%, #f6f1fa 45%, #eef1fb 100%)' }}
+          style={{ background: 'radial-gradient(circle at 12% 8%, #FAF2E8 0%, transparent 42%), radial-gradient(circle at 48% 6%, #EAF2EC 0%, transparent 45%), radial-gradient(circle at 88% 10%, #FDEEE4 0%, transparent 45%), #F7F4EF' }}
         >
           {/* Toast */}
           {toast.visible && (
@@ -8301,7 +8301,7 @@ import './index.css';
           <div className="flex-1 flex flex-col overflow-hidden">
             <header className="flex items-center justify-between mx-3 mt-3 px-4 md:px-6 py-3.5 bg-white border border-stone-200 rounded-2xl shadow-sm gap-3">
               <div className="flex items-center gap-3 min-w-0">
-                <div className="h-8 px-2.5 bg-gradient-to-br from-blue-600 to-violet-600 rounded-lg flex items-center justify-center shadow-lg shadow-violet-600/25 shrink-0">
+                <div className="h-8 px-2.5 bg-gradient-to-br from-amber-700 to-stone-800 rounded-lg flex items-center justify-center shadow-lg shadow-stone-800/25 shrink-0">
                   <img src="/logo-blanco-wordmark.png" alt="Kaserita" className="h-3.5 w-auto" />
                 </div>
                 <div className="min-w-0">
@@ -8339,65 +8339,8 @@ import './index.css';
             </header>
 
             <div className="flex-1 flex flex-col overflow-hidden p-3 md:p-4 gap-3">
-              {/* Buscador */}
-              <div className="flex gap-2">
-                <div className="relative flex-1">
-                  <button
-                    onClick={abrirEscanerParaVenta}
-                    title="Escanear código de barras con la cámara"
-                    className="absolute left-2 top-1/2 -translate-y-1/2 w-7 h-7 flex items-center justify-center text-stone-500 hover:text-amber-700 hover:bg-amber-50 rounded-lg transition"
-                  >
-                    <i className="fa-solid fa-barcode text-sm"></i>
-                  </button>
-                  <input
-                    ref={inputBusquedaRef}
-                    type="text"
-                    value={busqueda}
-                    onChange={(e) => setBusqueda(e.target.value)}
-                    onKeyDown={handleKeyDownBusqueda}
-                    placeholder="Escanear código o buscar producto..."
-                    className="w-full bg-white border border-stone-200 text-stone-900 placeholder-stone-500 text-sm rounded-2xl pl-11 pr-9 py-3 focus:outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-500 transition"
-                    autoFocus
-                  />
-                  {busqueda && (
-                    <button
-                      onClick={() => {
-                        setBusqueda('');
-                        cargarProductos('');
-                      }}
-                      className="absolute right-2 top-1/2 -translate-y-1/2 w-7 h-7 flex items-center justify-center text-stone-500 hover:text-stone-800 rounded-lg transition"
-                    ><i className="fa-solid fa-xmark"></i></button>
-                  )}
-                </div>
-                <button
-                  onClick={() => cargarProductos(busqueda)}
-                  className="hidden md:flex items-center justify-center w-11 h-11 shrink-0 bg-white hover:bg-stone-50 text-stone-700 text-xs font-semibold rounded-2xl border border-stone-200 transition"
-                >
-                  <i className="fa-solid fa-magnifying-glass"></i>
-                </button>
-                <button
-                  onClick={() => { setCodigoPedidoInput(''); setPedidoEncontrado(null); setModalCargarPedidoCodigo(true); }}
-                  title="Cargar pedido con código de KaseritaDelivery"
-                  className="flex items-center justify-center w-11 h-11 shrink-0 bg-white hover:bg-stone-50 text-stone-700 text-xs font-semibold rounded-2xl border border-stone-200 transition"
-                >
-                  <i className="fa-solid fa-ticket"></i>
-                </button>
-                <button
-                  onClick={() => { setModalPedidosRetirar(true); setAvisosPedidosNuevos(0); cargarPedidosRetirar(); }}
-                  title="Pedidos por retirar (clientes con cuenta)"
-                  className="relative flex items-center justify-center w-11 h-11 shrink-0 bg-white hover:bg-stone-50 text-stone-700 text-xs font-semibold rounded-2xl border border-stone-200 transition"
-                >
-                  <i className="fa-solid fa-bell-concierge"></i>
-                  {avisosPedidosNuevos > 0 && (
-                    <span className="absolute -top-1.5 -right-1.5 w-4 h-4 flex items-center justify-center bg-rose-600 text-white text-[9px] font-bold rounded-full">
-                      {avisosPedidosNuevos > 9 ? '9+' : avisosPedidosNuevos}
-                    </span>
-                  )}
-                </button>
-              </div>
-
               {/* Categorías (+ pestaña de Combos, si hay alguno activo) */}
-              <div className="flex gap-1.5 overflow-x-auto pb-1 text-xs">
+              <div className="flex gap-1.5 overflow-x-auto pb-1 text-xs shrink-0">
                 {combos.some(c => c.activo) && (
                   <button
                     onClick={() => setCategoriaFiltro('__COMBOS__')}
@@ -8426,6 +8369,73 @@ import './index.css';
                   );
                 })}
               </div>
+
+              {/* Panel blanco del catálogo: contador + buscador + grilla,
+                  como el "catalogue-container" de la referencia -- separa
+                  visualmente el catálogo del resto del fondo cálido. */}
+              <div className="flex-1 flex flex-col overflow-hidden bg-white border border-stone-200 rounded-2xl shadow-sm p-3 md:p-4 gap-3">
+                {/* Contador + Buscador */}
+                <div className="flex items-center gap-3 shrink-0">
+                  <div className="hidden lg:flex items-baseline gap-1.5 shrink-0">
+                    <span className="text-2xl font-black text-stone-900 tabular-nums">{productosFiltrados.length}</span>
+                    <span className="text-xs font-semibold text-stone-400">Productos</span>
+                  </div>
+                  <div className="flex gap-2 flex-1 min-w-0">
+                    <div className="relative flex-1">
+                      <button
+                        onClick={abrirEscanerParaVenta}
+                        title="Escanear código de barras con la cámara"
+                        className="absolute left-2 top-1/2 -translate-y-1/2 w-7 h-7 flex items-center justify-center text-stone-500 hover:text-amber-700 hover:bg-amber-50 rounded-lg transition"
+                      >
+                        <i className="fa-solid fa-barcode text-sm"></i>
+                      </button>
+                      <input
+                        ref={inputBusquedaRef}
+                        type="text"
+                        value={busqueda}
+                        onChange={(e) => setBusqueda(e.target.value)}
+                        onKeyDown={handleKeyDownBusqueda}
+                        placeholder="Escanear código o buscar producto..."
+                        className="w-full bg-white border border-stone-200 text-stone-900 placeholder-stone-500 text-sm rounded-xl pl-11 pr-9 py-2.5 focus:outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-500 transition"
+                        autoFocus
+                      />
+                      {busqueda && (
+                        <button
+                          onClick={() => {
+                            setBusqueda('');
+                            cargarProductos('');
+                          }}
+                          className="absolute right-2 top-1/2 -translate-y-1/2 w-7 h-7 flex items-center justify-center text-stone-500 hover:text-stone-800 rounded-lg transition"
+                        ><i className="fa-solid fa-xmark"></i></button>
+                      )}
+                    </div>
+                    <button
+                      onClick={() => cargarProductos(busqueda)}
+                      className="hidden md:flex items-center justify-center w-10 h-10 shrink-0 bg-white hover:bg-stone-50 text-stone-700 text-xs font-semibold rounded-xl border border-stone-200 transition"
+                    >
+                      <i className="fa-solid fa-magnifying-glass"></i>
+                    </button>
+                    <button
+                      onClick={() => { setCodigoPedidoInput(''); setPedidoEncontrado(null); setModalCargarPedidoCodigo(true); }}
+                      title="Cargar pedido con código de KaseritaDelivery"
+                      className="flex items-center justify-center w-10 h-10 shrink-0 bg-white hover:bg-stone-50 text-stone-700 text-xs font-semibold rounded-xl border border-stone-200 transition"
+                    >
+                      <i className="fa-solid fa-ticket"></i>
+                    </button>
+                    <button
+                      onClick={() => { setModalPedidosRetirar(true); setAvisosPedidosNuevos(0); cargarPedidosRetirar(); }}
+                      title="Pedidos por retirar (clientes con cuenta)"
+                      className="relative flex items-center justify-center w-10 h-10 shrink-0 bg-white hover:bg-stone-50 text-stone-700 text-xs font-semibold rounded-xl border border-stone-200 transition"
+                    >
+                      <i className="fa-solid fa-bell-concierge"></i>
+                      {avisosPedidosNuevos > 0 && (
+                        <span className="absolute -top-1.5 -right-1.5 w-4 h-4 flex items-center justify-center bg-rose-600 text-white text-[9px] font-bold rounded-full">
+                          {avisosPedidosNuevos > 9 ? '9+' : avisosPedidosNuevos}
+                        </span>
+                      )}
+                    </button>
+                  </div>
+                </div>
 
               {/* Grilla de Productos */}
               {/* pb-24 en mobile: dejar espacio para que la última fila no
@@ -8509,6 +8519,7 @@ import './index.css';
                     ))}
                   </div>
                 )}
+                </div>
               </div>
             </div>
           </div>
@@ -8610,7 +8621,7 @@ import './index.css';
                     <FotoProducto
                       fotoUrl={item.foto_url}
                       categoria={item.categoria}
-                      className="w-10 h-10 rounded-lg shrink-0"
+                      className="w-10 h-10 rounded-full shrink-0"
                       iconClassName="text-sm"
                     />
                     <div className="flex-1 min-w-0">
