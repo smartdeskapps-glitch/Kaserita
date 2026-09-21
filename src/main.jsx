@@ -8572,7 +8572,7 @@ import './index.css';
             ></div>
           )}
 
-          <div className="flex flex-col md:mt-3 md:mr-3 md:w-[400px] lg:w-[440px]">
+          <div className="flex flex-col md:mt-3 md:mb-3 md:mr-3 md:w-[400px] lg:w-[440px] min-h-0">
             {/* Pestaña "Carrito" + pill "En espera" (solo desktop), igual a
                 "Order Detail" + "Order Saved" de la referencia: ambas en la
                 misma fila, alineadas abajo, la pestaña fundida sin costura
@@ -8593,7 +8593,7 @@ import './index.css';
               </button>
             </div>
             <section
-              className={`${mostrarResumenMobile ? 'flex' : 'hidden'} md:flex flex-col w-full bg-white border border-stone-200 fixed inset-x-0 bottom-0 top-auto md:static md:inset-auto rounded-t-2xl md:rounded-b-2xl md:rounded-tr-2xl max-h-[88vh] md:max-h-none md:-mt-px shadow-2xl md:shadow-lg overflow-hidden z-50 md:z-auto`}
+              className={`${mostrarResumenMobile ? 'flex' : 'hidden'} md:flex flex-col w-full md:flex-1 bg-white border border-stone-200 fixed inset-x-0 bottom-0 top-auto md:static md:inset-auto rounded-t-2xl md:rounded-b-2xl md:rounded-tr-2xl max-h-[88vh] md:max-h-none md:min-h-0 md:-mt-px shadow-2xl md:shadow-lg overflow-hidden z-50 md:z-auto`}
             >
             {/* Manija de arrastre (solo mobile) */}
             <div className="md:hidden w-10 h-1.5 bg-stone-300 rounded-full mx-auto mt-2.5 mb-1 shrink-0"></div>
