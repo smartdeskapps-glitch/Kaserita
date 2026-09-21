@@ -8192,7 +8192,10 @@ import './index.css';
       // VISTA 2: POS INTERFACE COMPLETO
       // =========================================================================
       return (
-        <div className={`flex h-screen bg-stone-200 text-stone-900 font-sans select-none overflow-hidden ${(!enLinea || ventasPendientesSync.length > 0) ? 'pt-7' : ''}`}>
+        <div
+          className={`flex h-screen text-stone-900 font-sans select-none overflow-hidden ${(!enLinea || ventasPendientesSync.length > 0) ? 'pt-7' : ''}`}
+          style={{ background: 'linear-gradient(135deg, #fdf1e7 0%, #f6f1fa 45%, #eef1fb 100%)' }}
+        >
           {/* Toast */}
           {toast.visible && (
             <div className={`fixed top-[4.75rem] inset-x-4 md:top-4 md:inset-x-auto md:right-4 md:max-w-xs z-[100] pointer-events-none flex items-center gap-2.5 px-4 py-3 rounded-xl shadow-xl border-l-4 bg-white text-xs font-semibold ${toast.tipo === 'error' ? 'border-rose-500 text-rose-700' : 'border-emerald-500 text-emerald-700'}`}>
