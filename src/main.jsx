@@ -713,7 +713,7 @@ import './index.css';
               <button
                 type="button"
                 onClick={(e) => { e.stopPropagation(); onVerCombo?.(prod); }}
-                className="shrink-0 w-6 h-6 flex items-center justify-center text-[10px] text-white bg-amber-500 hover:bg-amber-600 rounded-lg shadow-sm"
+                className="shrink-0 w-6 h-6 flex items-center justify-center text-[10px] text-white bg-[#6105dc] hover:bg-[#4d04b0] rounded-lg shadow-sm"
                 title="Este producto es parte de un combo -- toca para verlo"
               >
                 <i className="fa-solid fa-gift"></i>
@@ -727,7 +727,7 @@ import './index.css';
               S/ {Number(prod.precio_venta).toFixed(2)}
             </span>
             {prod.es_destacado && (
-              <span className="text-[10px] font-bold text-white bg-amber-500 w-5 h-5 flex items-center justify-center rounded-md" title="Destacado en Delivery">
+              <span className="text-[10px] font-bold text-white bg-[#6105dc] w-5 h-5 flex items-center justify-center rounded-md" title="Destacado en Delivery">
                 <i className="fa-solid fa-star"></i>
               </span>
             )}
@@ -8190,7 +8190,7 @@ import './index.css';
           <div className="flex-1 flex flex-col overflow-hidden">
             <header className="flex items-center justify-between mx-3 mt-3 px-2 md:px-3 py-2 gap-3">
               <div className="flex items-center gap-3 min-w-0">
-                <div className="h-8 px-2.5 bg-gradient-to-br from-amber-700 to-stone-800 rounded-lg flex items-center justify-center shadow-lg shadow-stone-800/25 shrink-0">
+                <div className="h-8 px-2.5 bg-gradient-to-br from-[#6105dc] to-stone-900 rounded-lg flex items-center justify-center shadow-lg shadow-stone-800/25 shrink-0">
                   <img src="/logo-blanco-wordmark.png" alt="Kaserita" className="h-3.5 w-auto" />
                 </div>
                 <div className="min-w-0">
@@ -8270,11 +8270,11 @@ import './index.css';
                 {combos.some(c => c.activo) && (
                   <button
                     onClick={() => setCategoriaFiltro('__COMBOS__')}
-                    className={`shrink-0 flex items-center gap-1.5 px-4 py-2.5 transition ${categoriaFiltro === '__COMBOS__' ? 'folder-tab-active text-amber-700' : 'mb-2 rounded-full bg-white/50 text-amber-700 hover:bg-white/80 border border-amber-200'}`}
+                    className={`shrink-0 flex items-center gap-1.5 px-4 py-2.5 transition ${categoriaFiltro === '__COMBOS__' ? 'folder-tab-active text-[#6105dc]' : 'mb-2 rounded-full bg-white/50 text-[#6105dc] hover:bg-white/80 border border-[#d6bdfa]'}`}
                   >
                     <i className="fa-solid fa-gift text-xs"></i>
                     <span className="font-bold whitespace-nowrap">Combos</span>
-                    <span className="text-xs font-semibold text-amber-600/70">
+                    <span className="text-xs font-semibold text-[#6105dc]/70">
                       {combos.filter(c => c.activo).length}
                     </span>
                   </button>
@@ -8366,11 +8366,11 @@ import './index.css';
                           key={combo.id}
                           onClick={() => agregarComboAlCarrito(combo)}
                           className={`text-left bg-white border rounded-2xl overflow-hidden shadow-sm hover:-translate-y-0.5 hover:shadow-lg transition-all duration-200 active:scale-[0.98] relative p-3 flex flex-col gap-1.5 ${
-                            (cantidadEnCarritoPorCombo.get(combo.id) || 0) > 0 ? 'border-amber-500 ring-2 ring-amber-500/40' : 'border-amber-200 hover:border-amber-400'
+                            (cantidadEnCarritoPorCombo.get(combo.id) || 0) > 0 ? 'border-[#6105dc] ring-2 ring-[#6105dc]/40' : 'border-[#d6bdfa] hover:border-[#7c1fe0]'
                           }`}
                         >
                           <div className="flex items-center gap-2">
-                            <span className="w-9 h-9 rounded-xl bg-amber-100 text-amber-600 flex items-center justify-center shrink-0">
+                            <span className="w-9 h-9 rounded-xl bg-[#f4eefe] text-[#6105dc] flex items-center justify-center shrink-0">
                               <i className="fa-solid fa-gift"></i>
                             </span>
                             <h3 className="text-[13px] font-bold text-stone-900 line-clamp-2 leading-snug flex-1">{combo.nombre}</h3>
@@ -8379,9 +8379,9 @@ import './index.css';
                             Incluye: {(combo.combos_items || []).map((ci) => `${ci.productos?.descripcion || '?'} x${ci.cantidad}`).join(', ')}
                           </p>
                           <div className="flex items-center justify-between mt-auto pt-1">
-                            <span className="text-base font-black text-amber-700 tabular-nums">S/ {Number(combo.precio_venta).toFixed(2)}</span>
+                            <span className="text-base font-black text-[#4d04b0] tabular-nums">S/ {Number(combo.precio_venta).toFixed(2)}</span>
                             {(cantidadEnCarritoPorCombo.get(combo.id) || 0) > 0 && (
-                              <span className="text-[10px] font-bold text-white bg-amber-600 px-2 py-0.5 rounded-full">x{cantidadEnCarritoPorCombo.get(combo.id)}</span>
+                              <span className="text-[10px] font-bold text-white bg-[#6105dc] px-2 py-0.5 rounded-full">x{cantidadEnCarritoPorCombo.get(combo.id)}</span>
                             )}
                           </div>
                         </button>
@@ -9760,7 +9760,7 @@ import './index.css';
                 <div className="flex justify-between items-start shrink-0">
                   <div>
                     <h3 className="text-base font-bold text-stone-900 flex items-center gap-2">
-                      <i className="fa-solid fa-gift text-amber-500"></i> Combos
+                      <i className="fa-solid fa-gift text-[#6105dc]"></i> Combos
                     </h3>
                     <p className="text-xs text-stone-600 mt-0.5">Paquetes de varios productos a un precio especial. Al venderse, descuentan el stock real de cada producto que los compone.</p>
                   </div>
@@ -9771,7 +9771,7 @@ import './index.css';
                   <>
                     <button
                       onClick={nuevoCombo}
-                      className="w-full py-2.5 bg-amber-500 hover:bg-amber-600 text-white text-sm font-bold rounded-xl shadow flex items-center justify-center gap-1.5 shrink-0"
+                      className="w-full py-2.5 bg-[#6105dc] hover:bg-[#4d04b0] text-white text-sm font-bold rounded-xl shadow flex items-center justify-center gap-1.5 shrink-0"
                     >
                       <i className="fa-solid fa-plus"></i> Nuevo Combo
                     </button>
@@ -9914,7 +9914,7 @@ import './index.css';
                             key={pct}
                             type="button"
                             onClick={() => aplicarDescuentoRapidoCombo(pct)}
-                            className="px-2.5 py-1 text-[11px] font-semibold bg-stone-200 hover:bg-amber-100 hover:text-amber-700 text-stone-700 rounded-lg transition"
+                            className="px-2.5 py-1 text-[11px] font-semibold bg-stone-200 hover:bg-[#f4eefe] hover:text-[#6105dc] text-stone-700 rounded-lg transition"
                           >
                             -{pct}%
                           </button>
@@ -10440,14 +10440,14 @@ import './index.css';
                     </>
                   )}
                 </div>
-                <label className={`flex items-start gap-2.5 p-2.5 rounded-xl border cursor-pointer transition ${formEditarProducto.es_destacado ? 'bg-amber-50 border-amber-300' : 'bg-white border-stone-200'}`}>
+                <label className={`flex items-start gap-2.5 p-2.5 rounded-xl border cursor-pointer transition ${formEditarProducto.es_destacado ? 'bg-[#f4eefe] border-[#d6bdfa]' : 'bg-white border-stone-200'}`}>
                   <input
                     type="checkbox"
                     checked={formEditarProducto.es_destacado}
                     onChange={(e) => setFormEditarProducto({ ...formEditarProducto, es_destacado: e.target.checked })}
                     className="w-3.5 h-3.5 mt-0.5 shrink-0"
                   />
-                  <span className={`shrink-0 w-7 h-7 rounded-lg flex items-center justify-center ${formEditarProducto.es_destacado ? 'bg-amber-500 text-white' : 'bg-stone-100 text-stone-500'}`}>
+                  <span className={`shrink-0 w-7 h-7 rounded-lg flex items-center justify-center ${formEditarProducto.es_destacado ? 'bg-[#6105dc] text-white' : 'bg-stone-100 text-stone-500'}`}>
                     <i className="fa-solid fa-star text-xs"></i>
                   </span>
                   <span>
