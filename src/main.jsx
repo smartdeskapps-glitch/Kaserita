@@ -8159,7 +8159,7 @@ import './index.css';
       return (
         <div
           className={`flex h-screen text-stone-900 font-sans select-none overflow-hidden ${(!enLinea || ventasPendientesSync.length > 0) ? 'pt-7' : ''}`}
-          style={{ background: 'radial-gradient(circle at 12% 8%, #FAF2E8 0%, transparent 42%), radial-gradient(circle at 48% 6%, #EAF2EC 0%, transparent 45%), radial-gradient(circle at 88% 10%, #FDEEE4 0%, transparent 45%), #F7F4EF' }}
+          style={{ background: 'radial-gradient(circle at 12% 8%, #F3E9FC 0%, transparent 42%), radial-gradient(circle at 48% 6%, #EEEAF9 0%, transparent 45%), radial-gradient(circle at 88% 10%, #F6E9FA 0%, transparent 45%), #F7F5FA' }}
         >
           {/* Toast */}
           {toast.visible && (
