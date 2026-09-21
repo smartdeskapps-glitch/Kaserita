@@ -701,8 +701,8 @@ import './index.css';
           tabIndex={0}
           onClick={() => onSelect(prod)}
           onKeyDown={(e) => { if (e.key === 'Enter') onSelect(prod); }}
-          className={`text-left bg-white rounded-[22px] border shadow-sm hover:shadow-md transition-all duration-200 active:scale-[0.98] group cursor-pointer p-2 flex flex-col ${
-            enCarrito > 0 ? 'border-orange-500 ring-2 ring-orange-500/30' : 'border-stone-100 hover:border-orange-300'
+          className={`text-left bg-white rounded-[22px] border shadow-sm hover:shadow-md transition-all duration-200 active:scale-[0.98] group cursor-pointer p-2.5 flex flex-col ${
+            enCarrito > 0 ? 'border-orange-500 ring-2 ring-orange-500/30' : 'border-stone-200 hover:border-orange-300'
           }`}
         >
           {/* Foto contenida dentro de su propio recuadro redondeado, con
@@ -771,8 +771,8 @@ import './index.css';
               {prod.categoria || 'General'}
             </p>
 
-            <div className="mt-auto pt-2 border-t border-stone-100 flex items-center justify-between gap-2">
-              <span className="text-[15px] font-black text-stone-900 tabular-nums">
+            <div className="mt-auto pt-2.5 border-t border-stone-100 flex items-center justify-between gap-2">
+              <span className="text-base font-black text-stone-900 tabular-nums">
                 S/ {Number(prod.precio_venta).toFixed(2)}
               </span>
               {prod.stock_actual !== null && prod.stock_actual !== undefined && (
@@ -8353,7 +8353,7 @@ import './index.css';
                     onChange={(e) => setBusqueda(e.target.value)}
                     onKeyDown={handleKeyDownBusqueda}
                     placeholder="Escanear código o buscar producto..."
-                    className="w-full bg-stone-100 border border-stone-200 text-stone-900 placeholder-stone-500 text-sm rounded-xl pl-11 pr-9 py-2.5 focus:outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500 transition"
+                    className="w-full bg-white border border-stone-200 text-stone-900 placeholder-stone-500 text-sm rounded-2xl pl-11 pr-9 py-3 shadow-sm focus:outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500 transition"
                     autoFocus
                   />
                   {busqueda && (
@@ -8368,21 +8368,21 @@ import './index.css';
                 </div>
                 <button
                   onClick={() => cargarProductos(busqueda)}
-                  className="hidden md:inline-flex px-4 py-2.5 bg-stone-200 hover:bg-stone-300 text-stone-800 text-xs font-semibold rounded-xl border border-stone-300 transition"
+                  className="hidden md:flex items-center justify-center w-11 h-11 shrink-0 bg-white hover:bg-stone-50 text-stone-700 text-xs font-semibold rounded-2xl border border-stone-200 shadow-sm transition"
                 >
                   <i className="fa-solid fa-magnifying-glass"></i>
                 </button>
                 <button
                   onClick={() => { setCodigoPedidoInput(''); setPedidoEncontrado(null); setModalCargarPedidoCodigo(true); }}
                   title="Cargar pedido con código de KaseritaDelivery"
-                  className="px-4 py-2.5 bg-stone-200 hover:bg-stone-300 text-stone-800 text-xs font-semibold rounded-xl border border-stone-300 transition"
+                  className="flex items-center justify-center w-11 h-11 shrink-0 bg-white hover:bg-stone-50 text-stone-700 text-xs font-semibold rounded-2xl border border-stone-200 shadow-sm transition"
                 >
                   <i className="fa-solid fa-ticket"></i>
                 </button>
                 <button
                   onClick={() => { setModalPedidosRetirar(true); setAvisosPedidosNuevos(0); cargarPedidosRetirar(); }}
                   title="Pedidos por retirar (clientes con cuenta)"
-                  className="relative px-4 py-2.5 bg-stone-200 hover:bg-stone-300 text-stone-800 text-xs font-semibold rounded-xl border border-stone-300 transition"
+                  className="relative flex items-center justify-center w-11 h-11 shrink-0 bg-white hover:bg-stone-50 text-stone-700 text-xs font-semibold rounded-2xl border border-stone-200 shadow-sm transition"
                 >
                   <i className="fa-solid fa-bell-concierge"></i>
                   {avisosPedidosNuevos > 0 && (
@@ -8421,7 +8421,7 @@ import './index.css';
                 {combos.some(c => c.activo) && (
                   <button
                     onClick={() => setCategoriaFiltro('__COMBOS__')}
-                    className={`shrink-0 flex flex-col items-start px-3.5 py-1.5 rounded-xl transition ${categoriaFiltro === '__COMBOS__' ? 'bg-amber-500 text-white shadow' : 'bg-amber-50 text-amber-700 hover:bg-amber-100 border border-amber-200'}`}
+                    className={`shrink-0 flex flex-col items-start px-4 py-2 rounded-full transition ${categoriaFiltro === '__COMBOS__' ? 'bg-amber-500 text-white shadow-sm' : 'bg-white text-amber-700 hover:bg-amber-50 border border-amber-200 shadow-sm'}`}
                   >
                     <span className="font-bold whitespace-nowrap"><i className="fa-solid fa-gift mr-1"></i>Combos</span>
                     <span className={`text-[10px] font-medium ${categoriaFiltro === '__COMBOS__' ? 'text-white/70' : 'text-amber-600/70'}`}>
@@ -8436,7 +8436,7 @@ import './index.css';
                     <button
                       key={cat}
                       onClick={() => setCategoriaFiltro(cat)}
-                      className={`shrink-0 flex flex-col items-start px-3.5 py-1.5 rounded-xl transition ${activo ? 'bg-stone-900 text-white shadow' : 'bg-stone-100 text-stone-700 hover:bg-stone-200 border border-stone-200'}`}
+                      className={`shrink-0 flex flex-col items-start px-4 py-2 rounded-full transition ${activo ? 'bg-stone-900 text-white shadow-sm' : 'bg-white text-stone-700 hover:bg-stone-50 border border-stone-200 shadow-sm'}`}
                     >
                       <span className="font-bold whitespace-nowrap">{cat}</span>
                       <span className={`text-[10px] font-medium ${activo ? 'text-white/70' : 'text-stone-400'}`}>
@@ -8669,7 +8669,7 @@ import './index.css';
             <div className="p-4 bg-stone-100 border-t border-stone-200 space-y-3">
               {!mostrarPago ? (
                 <>
-                  <div className="bg-white border border-stone-200 rounded-xl px-3.5 py-3 space-y-1.5">
+                  <div className="bg-white border border-stone-200 rounded-2xl px-3.5 py-3 space-y-1.5">
                     <div className="flex items-center justify-between text-xs text-stone-600">
                       <span>Subtotal</span>
                       <span className="tabular-nums">S/ {totalVenta.toFixed(2)}</span>
@@ -8692,7 +8692,7 @@ import './index.css';
                   <button
                     onClick={() => setMostrarPago(true)}
                     disabled={carrito.length === 0 || !turnoActivo}
-                    className={`w-full py-3.5 rounded-xl font-bold text-sm transition-all flex items-center justify-center gap-2 ${
+                    className={`w-full py-3.5 rounded-2xl font-bold text-sm transition-all flex items-center justify-center gap-2 ${
                       !turnoActivo || carrito.length === 0
                         ? 'bg-stone-200 text-stone-400 cursor-not-allowed'
                         : 'bg-stone-900 hover:bg-stone-800 text-white shadow-lg shadow-stone-900/25 active:scale-[0.98]'
@@ -8734,10 +8734,10 @@ import './index.css';
                           abrirBuscarClientePOS();
                         }
                       }}
-                      className={`flex flex-col items-center gap-1 py-2.5 text-xs font-semibold rounded-xl border transition ${
+                      className={`flex flex-col items-center gap-1 py-2.5 text-xs font-semibold rounded-2xl border transition ${
                         medioPago === m.id
                           ? 'bg-stone-900 border-stone-900 text-white shadow-lg shadow-stone-900/20'
-                          : 'bg-stone-200/60 border-stone-300 text-stone-600 hover:bg-stone-200 hover:text-stone-800'
+                          : 'bg-white border-stone-200 text-stone-600 hover:bg-stone-50 hover:text-stone-800 shadow-sm'
                       }`}
                     >
                       <i className={`fa-solid ${m.icono} text-sm`}></i>
