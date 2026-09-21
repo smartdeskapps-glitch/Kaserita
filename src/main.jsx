@@ -8248,7 +8248,7 @@ import './index.css';
                   {menuCategoriasAbierto && (
                     <>
                       <div className="fixed inset-0 z-20" onClick={() => setMenuCategoriasAbierto(false)}></div>
-                      <div className="absolute top-full left-0 mt-1 w-56 max-h-80 overflow-y-auto bg-white border border-stone-200 rounded-2xl shadow-lg p-1.5 z-30">
+                      <div className="absolute top-full left-0 mt-1 w-56 max-h-80 overflow-y-auto hide-scrollbar bg-white border border-stone-200 rounded-2xl shadow-lg p-1.5 z-30">
                         {categorias.map(cat => {
                           const cantidad = cat === 'TODOS' ? productos.length : (conteoPorCategoria.get(cat) || 0);
                           const activo = categoriaFiltro === cat;
