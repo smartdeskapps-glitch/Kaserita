@@ -5,6 +5,18 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>Kaserita - Punto de Venta para tu bodega</title>
 <meta name="description" content="Kaserita: punto de venta (caja, inventario, clientes, reportes) para bodegas y negocios pequeños, con catálogo online opcional para recibir pedidos por WhatsApp." />
+<meta property="og:type" content="website" />
+<meta property="og:site_name" content="Kaserita" />
+<meta property="og:title" content="Kaserita — Tu bodega, bajo control, desde el celular" />
+<meta property="og:description" content="Punto de venta para bodegas y negocios pequeños, con catálogo online opcional para recibir pedidos por WhatsApp. Desde S/30/mes." />
+<meta property="og:image" content="https://kaserita.vercel.app/og-image.jpg" />
+<meta property="og:image:width" content="1200" />
+<meta property="og:image:height" content="630" />
+<meta property="og:url" content="https://kaserita.vercel.app/" />
+<meta name="twitter:card" content="summary_large_image" />
+<meta name="twitter:title" content="Kaserita — Tu bodega, bajo control, desde el celular" />
+<meta name="twitter:description" content="Punto de venta para bodegas y negocios pequeños, con catálogo online opcional para recibir pedidos por WhatsApp." />
+<meta name="twitter:image" content="https://kaserita.vercel.app/og-image.jpg" />
 <link rel="icon" href="/icon-192.png" type="image/png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -23,7 +35,13 @@
   a { color: inherit; }
   .wrap { max-width: 900px; margin: 0 auto; padding: 20px 20px 0; }
 
-  header { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 6px 0 30px; }
+  header {
+    display: flex; align-items: center; justify-content: space-between; gap: 12px;
+    padding: 14px 20px; margin: 0 -20px 30px; position: sticky; top: 0; z-index: 40;
+    background: rgba(250,248,246,.85); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
+    border-bottom: 1px solid transparent; transition: border-color .2s ease, box-shadow .2s ease;
+  }
+  header.is-scrolled { border-bottom-color: var(--line); box-shadow: 0 6px 20px -14px rgba(28,21,35,.25); }
   .brand { display: flex; align-items: center; gap: 10px; text-decoration: none; }
   .brand-mark { width: 36px; height: 36px; border-radius: 10px; flex-shrink: 0; background: linear-gradient(135deg, var(--blue), var(--violet)); display: flex; align-items: center; justify-content: center; box-shadow: 0 6px 16px -6px rgba(124,58,237,.45); }
   .brand-mark svg { width: 19px; height: 19px; }
@@ -130,6 +148,17 @@
   footer .foot-brand span { color: var(--violet); }
   footer p { font-size: 11px; color: var(--muted); margin: 4px 0; }
   footer .foot-ruc { font-size: 10.5px; color: var(--muted); }
+
+  .whatsapp-float {
+    position: fixed; right: 18px; bottom: 18px; z-index: 50;
+    width: 56px; height: 56px; border-radius: 50%; background: #25D366; color: #fff;
+    display: flex; align-items: center; justify-content: center; font-size: 26px; text-decoration: none;
+    box-shadow: 0 10px 24px -8px rgba(37,211,102,.6); transition: transform .15s ease, box-shadow .15s ease;
+  }
+  .whatsapp-float:hover { transform: translateY(-2px) scale(1.04); box-shadow: 0 14px 28px -8px rgba(37,211,102,.7); }
+  @media (max-width: 480px) {
+    .whatsapp-float { right: 14px; bottom: 14px; width: 50px; height: 50px; font-size: 23px; }
+  }
 
 </style>
 </head>
@@ -252,5 +281,21 @@
     <p class="foot-ruc">Kaserita © 2026 — hecho para bodegas peruanas</p>
   </footer>
 </div>
+
+<a class="whatsapp-float" href="https://wa.me/51900376462?text=Hola%2C%20quiero%20saber%20m%C3%A1s%20sobre%20Kaserita" target="_blank" rel="noopener" aria-label="Escribinos por WhatsApp">
+  <i class="fa-brands fa-whatsapp"></i>
+</a>
+
+<script>
+  (function () {
+    var header = document.querySelector('header');
+    if (!header) return;
+    function onScroll() {
+      header.classList.toggle('is-scrolled', window.scrollY > 4);
+    }
+    window.addEventListener('scroll', onScroll, { passive: true });
+    onScroll();
+  })();
+</script>
 </body>
 </html>
