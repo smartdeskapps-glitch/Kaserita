@@ -211,6 +211,16 @@ import './index.css';
     const emailAuthDesdeDni = (dni) => `bodega_${(dni || '').trim()}@kaserita.app`;
     const passwordAuthDesdePin = (pin) => `kst-${(pin || '').trim()}`;
 
+    // El PIN puede llevar letras, números y símbolos. El tope de 32 deja
+    // margen bajo el límite de 72 caracteres de la contraseña de Auth
+    // ("kst-" + PIN); tiene que coincidir con establecer_pin_cajero en SQL.
+    const PIN_MIN = 4;
+    const PIN_MAX = 32;
+    const pinValido = (pin) => {
+      const p = (pin || '').trim();
+      return p.length >= PIN_MIN && p.length <= PIN_MAX;
+    };
+
     // Aviso sonoro cuando llega un pedido nuevo de KaseritaDelivery. Se crea
     // una sola vez (no un Audio nuevo por pedido) para no repetir la descarga
     // cada vez -- currentTime se resetea para que suene entero aunque llegue
@@ -794,6 +804,10 @@ import './index.css';
 
       const crearBodega = async (e) => {
         e.preventDefault();
+        if (!pinValido(formNuevaBodega.pin)) {
+          notificar(`El PIN debe tener entre ${PIN_MIN} y ${PIN_MAX} caracteres.`, 'error');
+          return;
+        }
         setGuardandoNuevaBodega(true);
         try {
           // admin_crear_bodega crea la bodega y la fila del dueño (sin
@@ -1048,7 +1062,7 @@ import './index.css';
       const resetearPinConfirmado = async () => {
         if (!modalResetearPin) return;
         const pin = nuevoPinReset.trim();
-        if (pin.length < 4) { notificar('El PIN debe tener al menos 4 dígitos.', 'error'); return; }
+        if (!pinValido(pin)) { notificar(`El PIN debe tener entre ${PIN_MIN} y ${PIN_MAX} caracteres.`, 'error'); return; }
         setReseteandoPin(true);
         try {
           const { error } = await sbClient.rpc('admin_resetear_pin_bodega', { p_bodega_id: modalResetearPin.id, p_pin: pin });
@@ -1432,7 +1446,7 @@ import './index.css';
                 <div>
                   <label className="text-xs text-stone-600 block mb-1">PIN inicial:</label>
                   <input
-                    type="text" required maxLength={6} placeholder="4-6 dígitos"
+                    type="text" required minLength={PIN_MIN} maxLength={PIN_MAX} placeholder="4 a 32 caracteres (letras, números o símbolos)"
                     value={formNuevaBodega.pin}
                     onChange={(e) => setFormNuevaBodega({ ...formNuevaBodega, pin: e.target.value })}
                     className="w-full bg-stone-50 border border-stone-200 rounded-lg px-3 py-2 text-sm text-stone-900"
@@ -1903,10 +1917,11 @@ import './index.css';
                   Se cerrará la sesión actual de {modalResetearPin.dueno?.nombre} y deberá volver a ingresar con su DNI y el PIN nuevo la próxima vez.
                 </p>
                 <div>
-                  <label className="text-[11px] font-bold text-stone-400 uppercase tracking-wide">PIN nuevo (mínimo 4 dígitos)</label>
+                  <label className="text-[11px] font-bold text-stone-400 uppercase tracking-wide">PIN nuevo (4 a 32 caracteres)</label>
                   <input
                     type="text"
                     autoFocus
+                    maxLength={PIN_MAX}
                     value={nuevoPinReset}
                     onChange={(e) => setNuevoPinReset(e.target.value)}
                     className="w-full bg-stone-50 border border-stone-200 rounded-lg px-3 py-2 text-sm text-stone-900 mt-1"
@@ -1921,7 +1936,7 @@ import './index.css';
                   </button>
                   <button
                     onClick={resetearPinConfirmado}
-                    disabled={reseteandoPin || nuevoPinReset.trim().length < 4}
+                    disabled={reseteandoPin || !pinValido(nuevoPinReset)}
                     className="flex-1 py-2.5 bg-violet-600 hover:bg-violet-700 disabled:opacity-40 disabled:cursor-not-allowed text-white font-bold text-sm rounded-xl"
                   >
                     {reseteandoPin ? 'Reseteando...' : 'Resetear PIN'}
@@ -3136,8 +3151,8 @@ import './index.css';
         // "Abrir Turno" -- por eso necesita su propio PIN desde que se
         // crea (ver cajeros_pin_administrador.sql). Un Cajero normal no
         // desbloquea nada, así que no lo necesita.
-        if (rol === 'administrador' && !/^\d{4,6}$/.test(pin.trim())) {
-          notificar('El PIN del Administrador debe tener entre 4 y 6 dígitos.', 'error');
+        if (rol === 'administrador' && !pinValido(pin)) {
+          notificar(`El PIN del Administrador debe tener entre ${PIN_MIN} y ${PIN_MAX} caracteres.`, 'error');
           return;
         }
         setGuardandoNuevoCajero(true);
@@ -3287,8 +3302,8 @@ import './index.css';
       const guardarPinCajero = async () => {
         const cajero = modalPinCajero;
         if (!cajero) return;
-        if (!/^\d{4,6}$/.test(nuevoPinCajero.trim())) {
-          notificar('El PIN debe tener entre 4 y 6 dígitos.', 'error');
+        if (!pinValido(nuevoPinCajero)) {
+          notificar(`El PIN debe tener entre ${PIN_MIN} y ${PIN_MAX} caracteres.`, 'error');
           return;
         }
         setGuardandoPinCajero(true);
@@ -8011,7 +8026,7 @@ import './index.css';
                       <input
                         type={mostrarPin ? 'text' : 'password'}
                         required
-                        maxLength={6}
+                        maxLength={PIN_MAX}
                         placeholder="••••"
                         value={formLogin.pin}
                         onChange={(e) => setFormLogin({ ...formLogin, pin: e.target.value })}
@@ -11847,13 +11862,13 @@ import './index.css';
                     </div>
                     {formNuevoCajero.rol === 'administrador' && (
                       <div>
-                        <label className="text-xs text-stone-600 block mb-1">PIN de seguridad (4-6 dígitos):</label>
+                        <label className="text-xs text-stone-600 block mb-1">PIN de seguridad (4 a 32 caracteres, con letras, números o símbolos):</label>
                         <input
                           type="text"
-                          inputMode="numeric"
-                          maxLength={6}
+                          maxLength={PIN_MAX}
+                          autoComplete="off"
                           value={formNuevoCajero.pin}
-                          onChange={(e) => setFormNuevoCajero({ ...formNuevoCajero, pin: e.target.value.replace(/\D/g, '') })}
+                          onChange={(e) => setFormNuevoCajero({ ...formNuevoCajero, pin: e.target.value })}
                           className="w-full bg-stone-100 border border-stone-200 rounded-lg px-3 py-1.5 text-xs text-stone-900"
                         />
                         <p className="text-[10px] text-stone-500 mt-1">Se le va a pedir cada vez que alguien más lo elija al abrir turno.</p>
@@ -12202,12 +12217,12 @@ import './index.css';
                 <p className="text-xs text-stone-600">Se le va a pedir a cualquiera que elija a "{modalPinCajero.nombre}" al abrir turno.</p>
                 <input
                   type="text"
-                  inputMode="numeric"
-                  maxLength={6}
+                  maxLength={PIN_MAX}
+                  autoComplete="off"
                   autoFocus
                   value={nuevoPinCajero}
-                  onChange={(e) => setNuevoPinCajero(e.target.value.replace(/\D/g, ''))}
-                  placeholder="4-6 dígitos"
+                  onChange={(e) => setNuevoPinCajero(e.target.value)}
+                  placeholder="4 a 32 caracteres"
                   className="w-full bg-white border border-stone-200 rounded-xl px-3 py-2.5 text-center text-lg tracking-widest text-stone-900 focus:outline-none focus:border-orange-500"
                 />
                 <div className="flex gap-2">
@@ -13245,7 +13260,7 @@ import './index.css';
                 <p className="text-xs text-stone-600">Esta cuenta tiene acceso de Administrador -- ingresa su PIN para continuar.</p>
                 <input
                   type="password"
-                  maxLength={6}
+                  maxLength={PIN_MAX}
                   autoFocus
                   value={pinConfirmarCajero}
                   onChange={(e) => setPinConfirmarCajero(e.target.value)}
