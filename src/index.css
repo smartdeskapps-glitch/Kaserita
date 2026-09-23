@@ -21,13 +21,13 @@
     linear-gradient(var(--btn-noise-bg), var(--btn-noise-bg)) padding-box,
     conic-gradient(
       from var(--btn-glow-angle),
-      #f1f5f9 0deg,
-      #fbe0e4 70deg,
-      #f1f5f9 140deg,
-      #f1f5f9 200deg,
-      #dbeafe 260deg,
-      #f1f5f9 330deg,
-      #f1f5f9 360deg
+      #f5f3ff 0deg,
+      #c4b5fd 70deg,
+      #f5f3ff 140deg,
+      #f5f3ff 200deg,
+      #a78bfa 260deg,
+      #f5f3ff 330deg,
+      #f5f3ff 360deg
     ) border-box;
   box-shadow: 0 1px 2px rgba(41, 37, 36, 0.06);
   animation: btn-glow-spin 6s linear infinite;
@@ -38,13 +38,13 @@
     linear-gradient(var(--btn-noise-bg-hover), var(--btn-noise-bg-hover)) padding-box,
     conic-gradient(
       from var(--btn-glow-angle),
-      #f1f5f9 0deg,
-      #fbe0e4 70deg,
-      #f1f5f9 140deg,
-      #f1f5f9 200deg,
-      #dbeafe 260deg,
-      #f1f5f9 330deg,
-      #f1f5f9 360deg
+      #f5f3ff 0deg,
+      #c4b5fd 70deg,
+      #f5f3ff 140deg,
+      #f5f3ff 200deg,
+      #a78bfa 260deg,
+      #f5f3ff 330deg,
+      #f5f3ff 360deg
     ) border-box;
 }
 @keyframes btn-glow-spin {
