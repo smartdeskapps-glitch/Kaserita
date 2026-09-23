@@ -2244,6 +2244,7 @@ import './index.css';
       const [modalPedidosRetirar, setModalPedidosRetirar] = useState(false);
       const [pedidosRetirar, setPedidosRetirar] = useState([]);
       const [cargandoPedidosRetirar, setCargandoPedidosRetirar] = useState(false);
+      const [tabPedidosRetirar, setTabPedidosRetirar] = useState('pendiente'); // 'pendiente' | 'listo' | 'historial'
       const [marcandoListoId, setMarcandoListoId] = useState(null);
       const [procesandoPedidoRetirarId, setProcesandoPedidoRetirarId] = useState(null);
 
@@ -2984,11 +2985,14 @@ import './index.css';
         if (esModoDemo || !sbClient) return;
         setCargandoPedidosRetirar(true);
         try {
+          // Trae también "retirado"/"cancelado" (no solo la cola activa) para
+          // poder mostrar la pestaña "Historial" -- limitado a lo reciente,
+          // no hace falta el histórico completo acá.
           const { data, error } = await sbClient
             .from('pedidos_seguimiento')
             .select('*')
-            .in('estado', ['pendiente', 'listo'])
-            .order('creado_en', { ascending: true });
+            .order('creado_en', { ascending: false })
+            .limit(60);
           if (error) throw error;
           setPedidosRetirar(data || []);
         } catch (err) {
@@ -3043,7 +3047,7 @@ import './index.css';
           });
           await sbClient.from('pedidos_delivery').delete().eq('codigo_corto', pedido.codigo_corto);
           await sbClient.rpc('marcar_pedido_retirado', { p_codigo_corto: pedido.codigo_corto });
-          setPedidosRetirar((prev) => prev.filter((p) => p.id !== pedido.id));
+          setPedidosRetirar((prev) => prev.map((p) => (p.id === pedido.id ? { ...p, estado: 'retirado' } : p)));
           if (agregados > 0) notificar(`Pedido ${pedido.codigo_corto} agregado al carrito.`, 'success');
         } finally {
           setProcesandoPedidoRetirarId(null);
@@ -3057,7 +3061,7 @@ import './index.css';
         try {
           const { error } = await sbClient.rpc('marcar_pedido_retirado', { p_codigo_corto: pedido.codigo_corto });
           if (error) throw error;
-          setPedidosRetirar((prev) => prev.filter((p) => p.id !== pedido.id));
+          setPedidosRetirar((prev) => prev.map((p) => (p.id === pedido.id ? { ...p, estado: 'retirado' } : p)));
           notificar(`Pedido ${pedido.codigo_corto} marcado como retirado.`, 'success');
         } catch (err) {
           notificar(err.message || 'No se pudo marcar el pedido.', 'error');
@@ -3081,7 +3085,7 @@ import './index.css';
         try {
           const { error } = await sbClient.rpc('cancelar_seguimiento_pedido', { p_id: pedido.id });
           if (error) throw error;
-          setPedidosRetirar((prev) => prev.filter((p) => p.id !== pedido.id));
+          setPedidosRetirar((prev) => prev.map((p) => (p.id === pedido.id ? { ...p, estado: 'cancelado' } : p)));
           notificar(`Pedido ${pedido.codigo_corto} eliminado.`, 'success');
         } catch (err) {
           notificar(err.message || 'No se pudo eliminar el pedido.', 'error');
@@ -3881,6 +3885,21 @@ import './index.css';
         () => pedidosRetirar.filter((p) => p.estado === 'pendiente').length,
         [pedidosRetirar]
       );
+
+      // Las tres colas de "Pedidos por retirar": pendiente/listo se ven más
+      // viejo primero (FIFO, el cajero atiende en orden de llegada);
+      // historial se ve más nuevo primero (lo último que pasó es lo más
+      // relevante para revisar).
+      const pedidosRetirarPorTab = useMemo(() => {
+        const porFecha = (a, b) => new Date(a.creado_en) - new Date(b.creado_en);
+        return {
+          pendiente: pedidosRetirar.filter((p) => p.estado === 'pendiente').sort(porFecha),
+          listo: pedidosRetirar.filter((p) => p.estado === 'listo').sort(porFecha),
+          historial: pedidosRetirar
+            .filter((p) => p.estado === 'retirado' || p.estado === 'cancelado')
+            .sort((a, b) => -porFecha(a, b)),
+        };
+      }, [pedidosRetirar]);
 
       // Qué productos son parte de algún combo activo -- para poder
       // avisarlo en su propia tarjeta del catálogo normal (ver ProductoCard
@@ -8524,46 +8543,73 @@ import './index.css';
               <button onClick={() => setModalPedidosRetirar(false)} className="text-stone-600 hover:text-stone-900 text-lg"><i className="fa-solid fa-xmark"></i></button>
             </div>
 
-            <p className="hidden md:block text-xs text-stone-500 px-4 pt-3 shrink-0">
-              Pedidos de clientes con cuenta en KaseritaDelivery. Marcá "Listo" cuando lo tengas armado --
-              el cliente lo ve al instante y le llega una notificación si la activó.
-            </p>
+            {/* Pestañas: pendiente -> listo -> historial, el mismo recorrido
+                de un pedido de principio a fin. */}
+            <div className="px-4 pt-3 shrink-0">
+              <div className="flex p-1 bg-stone-100 rounded-xl text-[11px] font-medium text-stone-500">
+                {[
+                  { key: 'pendiente', label: 'Pendientes', count: pedidosRetirarPorTab.pendiente.length },
+                  { key: 'listo', label: 'Listos para entrega', count: pedidosRetirarPorTab.listo.length },
+                  { key: 'historial', label: 'Historial', count: 0 },
+                ].map((tab) => (
+                  <button
+                    key={tab.key}
+                    onClick={() => setTabPedidosRetirar(tab.key)}
+                    className={`flex-1 py-1.5 rounded-lg transition ${
+                      tabPedidosRetirar === tab.key ? 'bg-white text-stone-900 shadow-sm font-semibold' : 'hover:text-stone-800'
+                    }`}
+                  >
+                    {tab.label}{tab.count > 0 && ` (${tab.count})`}
+                  </button>
+                ))}
+              </div>
+            </div>
 
-            <div className="flex-1 overflow-y-auto p-2.5 space-y-2.5 hide-scrollbar">
+            <div className="flex-1 overflow-y-auto p-3 space-y-2.5 hide-scrollbar">
               {cargandoPedidosRetirar ? (
                 <p className="text-center text-stone-400 text-sm py-6">Cargando...</p>
-              ) : pedidosRetirar.length === 0 ? (
-                <p className="text-center text-stone-400 text-sm py-6">No hay pedidos pendientes de retiro.</p>
+              ) : pedidosRetirarPorTab[tabPedidosRetirar].length === 0 ? (
+                <p className="text-center text-stone-400 text-sm py-6">
+                  {tabPedidosRetirar === 'pendiente' && 'No hay pedidos pendientes de armar.'}
+                  {tabPedidosRetirar === 'listo' && 'No hay pedidos listos esperando que los retiren.'}
+                  {tabPedidosRetirar === 'historial' && 'Todavía no hay pedidos entregados o cancelados.'}
+                </p>
               ) : (
-                pedidosRetirar.map((p) => {
+                pedidosRetirarPorTab[tabPedidosRetirar].map((p) => {
                   const minutos = Math.max(0, Math.floor((Date.now() - new Date(p.creado_en).getTime()) / 60000));
                   const tiempoTexto = minutos < 60 ? `hace ${minutos} min` : `hace ${Math.floor(minutos / 60)} h`;
-                  const colgado = minutos >= 120; // más de 2 horas: probablemente el cliente ya no viene.
+                  const colgado = p.estado === 'pendiente' && minutos >= 120; // más de 2 horas: probablemente el cliente ya no viene.
                   const procesando = procesandoPedidoRetirarId === p.id;
                   const nombreCliente = p.cliente_nombre || p.codigo_corto;
                   const totalPedido = (p.items || []).reduce(
                     (acc, it) => acc + Number(it.cantidad || 0) * Number(it.precio_venta || 0),
                     0
                   );
+                  const esHistorial = p.estado === 'retirado' || p.estado === 'cancelado';
+                  const estadoInfo = {
+                    pendiente: { texto: 'Pendiente', color: 'text-amber-600', dot: 'bg-amber-500' },
+                    listo: { texto: 'Listo', color: 'text-emerald-600', dot: 'bg-emerald-500' },
+                    retirado: { texto: 'Entregado', color: 'text-stone-400', dot: 'bg-stone-300' },
+                    cancelado: { texto: 'Cancelado', color: 'text-rose-400', dot: 'bg-rose-300' },
+                  }[p.estado];
                   return (
                     <div
                       key={p.id}
-                      className="bg-white border border-stone-200 rounded-xl p-4 space-y-3"
+                      className={`bg-white border border-stone-200 rounded-xl p-4 space-y-3 ${esHistorial ? 'opacity-70' : ''}`}
                     >
                       <div className="flex items-start justify-between gap-3">
                         <div className="min-w-0">
-                          <p className="text-[13.5px] font-semibold text-stone-900 truncate">{nombreCliente}</p>
-                          <p className="text-[11px] text-stone-400 mt-0.5">
-                            {p.codigo_corto} · {tiempoTexto}
+                          <div className="flex items-center gap-1.5">
+                            <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${estadoInfo.dot}`}></span>
+                            <p className="text-[13.5px] font-semibold text-stone-900 truncate">{nombreCliente}</p>
+                          </div>
+                          <p className="text-[11px] text-stone-400 mt-0.5 pl-3">
+                            <span className="font-mono">{p.codigo_corto}</span> · {tiempoTexto}
                             {colgado && <span className="text-rose-500"> · sin retirar</span>}
                           </p>
                         </div>
-                        <span
-                          className={`shrink-0 text-[10px] font-semibold uppercase tracking-wide pt-0.5 ${
-                            colgado ? 'text-rose-500' : p.estado === 'listo' ? 'text-emerald-600' : 'text-amber-600'
-                          }`}
-                        >
-                          {p.estado === 'listo' ? 'Listo' : 'Pendiente'}
+                        <span className={`shrink-0 text-[10px] font-semibold uppercase tracking-wide pt-0.5 ${estadoInfo.color}`}>
+                          {estadoInfo.texto}
                         </span>
                       </div>
 
@@ -8594,33 +8640,50 @@ import './index.css';
                           {marcandoListoId === p.id ? 'Un momento...' : 'Marcar listo'}
                         </button>
                       )}
-                      <div className="flex items-center gap-3 pt-0.5">
+                      {p.estado === 'listo' && (
                         <button
                           onClick={() => cargarPedidoDesdeRetirar(p)}
                           disabled={procesando}
                           title="Agregar los productos al carrito y marcar retirado"
-                          className="text-[11px] font-medium text-stone-600 hover:text-stone-900 transition"
+                          className="w-full py-2 rounded-lg bg-stone-900 hover:bg-stone-800 text-white text-xs font-semibold disabled:opacity-50 transition"
                         >
-                          Al carrito
+                          {procesando ? 'Un momento...' : 'Cargar al carrito'}
                         </button>
-                        <span className="text-stone-200">·</span>
-                        <button
-                          onClick={() => marcarRetiradoDirecto(p)}
-                          disabled={procesando}
-                          title="El cliente ya lo retiró (no toca el carrito)"
-                          className="text-[11px] font-medium text-stone-600 hover:text-stone-900 transition"
-                        >
-                          Ya retiró
-                        </button>
-                        <button
-                          onClick={() => eliminarPedidoRetirar(p)}
-                          disabled={procesando}
-                          title="Eliminar de la cola"
-                          className="ml-auto text-[11px] font-medium text-stone-300 hover:text-rose-500 transition"
-                        >
-                          Eliminar
-                        </button>
-                      </div>
+                      )}
+
+                      {!esHistorial && (
+                        <div className="flex items-center gap-3 pt-0.5">
+                          {p.estado === 'pendiente' && (
+                            <>
+                              <button
+                                onClick={() => cargarPedidoDesdeRetirar(p)}
+                                disabled={procesando}
+                                title="Agregar los productos al carrito y marcar retirado"
+                                className="text-[11px] font-medium text-stone-600 hover:text-stone-900 transition"
+                              >
+                                Al carrito
+                              </button>
+                              <span className="text-stone-200">·</span>
+                            </>
+                          )}
+                          <button
+                            onClick={() => marcarRetiradoDirecto(p)}
+                            disabled={procesando}
+                            title="El cliente ya lo retiró (no toca el carrito)"
+                            className="text-[11px] font-medium text-stone-600 hover:text-stone-900 transition"
+                          >
+                            Ya retiró
+                          </button>
+                          <button
+                            onClick={() => eliminarPedidoRetirar(p)}
+                            disabled={procesando}
+                            title="Eliminar de la cola"
+                            className="ml-auto text-[11px] font-medium text-stone-300 hover:text-rose-500 transition"
+                          >
+                            Eliminar
+                          </button>
+                        </div>
+                      )}
                     </div>
                   );
                 })
