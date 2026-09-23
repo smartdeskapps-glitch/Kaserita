@@ -53,11 +53,27 @@
   .section-title { font-family: var(--font-display); font-weight: 800; font-size: 21px; margin: 0 0 4px; letter-spacing: -0.01em; text-align: center; }
   .section-sub { font-size: 13px; color: var(--muted); margin: 0 auto 22px; line-height: 1.5; text-align: center; max-width: 50ch; }
 
-  .benefits { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 12px; }
-  .benefit { background: var(--card); border: 1.5px solid var(--line); border-radius: 16px; padding: 18px; }
-  .benefit-icon { width: 34px; height: 34px; border-radius: 10px; background: rgba(124,58,237,.1); color: var(--violet); display: flex; align-items: center; justify-content: center; margin-bottom: 10px; font-size: 15px; }
-  .benefit h3 { font-family: var(--font-display); font-weight: 700; font-size: 13.5px; margin: 0 0 4px; }
-  .benefit p { font-size: 12px; color: var(--muted); margin: 0; line-height: 1.5; }
+  .benefits { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
+  .benefit {
+    background: var(--card); border: 1.5px solid var(--line); border-radius: 18px; padding: 20px;
+    transition: transform .18s ease, box-shadow .18s ease, border-color .18s ease;
+  }
+  .benefit:hover { transform: translateY(-3px); box-shadow: 0 16px 32px -20px rgba(28,21,35,.22); border-color: rgba(124,58,237,.3); }
+  .benefit-icon {
+    width: 40px; height: 40px; border-radius: 12px; display: flex; align-items: center; justify-content: center;
+    margin-bottom: 14px; font-size: 16px; background: var(--tint-bg, rgba(124,58,237,.1)); color: var(--tint, var(--violet));
+  }
+  .benefit h3 { font-family: var(--font-display); font-weight: 700; font-size: 14px; margin: 0 0 5px; }
+  .benefit p { font-size: 12.5px; color: var(--muted); margin: 0; line-height: 1.55; }
+  .benefit.c-violet { --tint: #7c3aed; --tint-bg: rgba(124,58,237,.1); }
+  .benefit.c-blue { --tint: #2563eb; --tint-bg: rgba(37,99,235,.1); }
+  .benefit.c-emerald { --tint: #059669; --tint-bg: rgba(5,150,105,.1); }
+  .benefit.c-amber { --tint: #d97706; --tint-bg: rgba(217,119,6,.12); }
+  .benefit.c-green { --tint: #16a34a; --tint-bg: rgba(22,163,74,.1); }
+  .benefit.c-rose { --tint: #e11d48; --tint-bg: rgba(225,29,72,.1); }
+
+  @media (max-width: 720px) { .benefits { grid-template-columns: repeat(2, 1fr); } }
+  @media (max-width: 480px) { .benefits { grid-template-columns: 1fr; } }
 
   .plans { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 14px; }
   .plan-card { background: var(--card); border: 1.5px solid var(--line); border-radius: 18px; padding: 20px; }
@@ -127,12 +143,12 @@
     <h2 class="section-title">Qué ofrece Kaserita</h2>
     <p class="section-sub">Todo lo que una bodega necesita para vender rápido y saber en qué está parada.</p>
     <div class="benefits">
-      <div class="benefit"><div class="benefit-icon"><i class="fa-solid fa-cash-register"></i></div><h3>Caja y ventas</h3><p>Cobra en segundos, con boleta/ticket y control de turnos por cajero.</p></div>
-      <div class="benefit"><div class="benefit-icon"><i class="fa-solid fa-boxes-stacked"></i></div><h3>Inventario</h3><p>Stock actualizado en cada venta, alertas de productos por agotarse.</p></div>
-      <div class="benefit"><div class="benefit-icon"><i class="fa-solid fa-users"></i></div><h3>Clientes y fiado</h3><p>Registra cuentas por cobrar y el historial de cada cliente.</p></div>
-      <div class="benefit"><div class="benefit-icon"><i class="fa-solid fa-chart-line"></i></div><h3>Reportes</h3><p>Ventas del día, del mes y por cajero, sin hacer cuentas a mano.</p></div>
-      <div class="benefit"><div class="benefit-icon"><i class="fa-brands fa-whatsapp"></i></div><h3>Pedidos por WhatsApp</h3><p>Catálogo público opcional (KaseritaDelivery) para que tus clientes pidan y pasen a recoger.</p></div>
-      <div class="benefit"><div class="benefit-icon"><i class="fa-solid fa-mobile-screen"></i></div><h3>100% desde el celular</h3><p>Se instala como app, sin comprar equipos ni instalar programas.</p></div>
+      <div class="benefit c-violet"><div class="benefit-icon"><i class="fa-solid fa-cash-register"></i></div><h3>Caja y ventas</h3><p>Cobra en segundos, con boleta/ticket y control de turnos por cajero.</p></div>
+      <div class="benefit c-blue"><div class="benefit-icon"><i class="fa-solid fa-boxes-stacked"></i></div><h3>Inventario</h3><p>Stock actualizado en cada venta, alertas de productos por agotarse.</p></div>
+      <div class="benefit c-rose"><div class="benefit-icon"><i class="fa-solid fa-users"></i></div><h3>Clientes y fiado</h3><p>Registra cuentas por cobrar y el historial de cada cliente.</p></div>
+      <div class="benefit c-amber"><div class="benefit-icon"><i class="fa-solid fa-chart-line"></i></div><h3>Reportes</h3><p>Ventas del día, del mes y por cajero, sin hacer cuentas a mano.</p></div>
+      <div class="benefit c-green"><div class="benefit-icon"><i class="fa-brands fa-whatsapp"></i></div><h3>Pedidos por WhatsApp</h3><p>Catálogo público opcional (KaseritaDelivery) para que tus clientes pidan y pasen a recoger.</p></div>
+      <div class="benefit c-emerald"><div class="benefit-icon"><i class="fa-solid fa-mobile-screen"></i></div><h3>100% desde el celular</h3><p>Se instala como app, sin comprar equipos ni instalar programas.</p></div>
     </div>
   </section>
 
