@@ -2245,6 +2245,7 @@ import './index.css';
       const [pedidosRetirar, setPedidosRetirar] = useState([]);
       const [cargandoPedidosRetirar, setCargandoPedidosRetirar] = useState(false);
       const [tabPedidosRetirar, setTabPedidosRetirar] = useState('pendiente'); // 'pendiente' | 'listo' | 'historial'
+      const [filtroFechaHistorial, setFiltroFechaHistorial] = useState('todos'); // 'hoy' | '7dias' | '30dias' | 'todos'
       const [marcandoListoId, setMarcandoListoId] = useState(null);
       const [procesandoPedidoRetirarId, setProcesandoPedidoRetirarId] = useState(null);
       // Pedidos de "Pedidos por retirar" cuyos items ya están en el carrito
@@ -2993,13 +2994,14 @@ import './index.css';
         setCargandoPedidosRetirar(true);
         try {
           // Trae también "retirado"/"cancelado" (no solo la cola activa) para
-          // poder mostrar la pestaña "Historial" -- limitado a lo reciente,
+          // poder mostrar la pestaña "Historial" con su filtro de fecha --
+          // 200 alcanza de sobra para "últimos 30 días" en una bodega chica,
           // no hace falta el histórico completo acá.
           const { data, error } = await sbClient
             .from('pedidos_seguimiento')
             .select('*')
             .order('creado_en', { ascending: false })
-            .limit(60);
+            .limit(200);
           if (error) throw error;
           setPedidosRetirar(data || []);
         } catch (err) {
@@ -3914,6 +3916,24 @@ import './index.css';
             .sort((a, b) => -porFecha(a, b)),
         };
       }, [pedidosRetirar]);
+
+      // Filtro de fecha del historial de "Pedidos por retirar" -- ordenado
+      // más nuevo primero, así que "hoy" siempre queda arriba de por sí; el
+      // filtro solo recorta cuánto atrás se muestra.
+      const historialPedidosFiltrado = useMemo(() => {
+        if (filtroFechaHistorial === 'todos') return pedidosRetirarPorTab.historial;
+        const ahora = Date.now();
+        let desde;
+        if (filtroFechaHistorial === 'hoy') {
+          const inicioHoy = new Date();
+          inicioHoy.setHours(0, 0, 0, 0);
+          desde = inicioHoy.getTime();
+        } else {
+          const dias = filtroFechaHistorial === '7dias' ? 7 : 30;
+          desde = ahora - dias * 24 * 60 * 60 * 1000;
+        }
+        return pedidosRetirarPorTab.historial.filter((p) => new Date(p.creado_en).getTime() >= desde);
+      }, [pedidosRetirarPorTab.historial, filtroFechaHistorial]);
 
       // Qué productos son parte de algún combo activo -- para poder
       // avisarlo en su propia tarjeta del catálogo normal (ver ProductoCard
@@ -8607,17 +8627,53 @@ import './index.css';
               </div>
             </div>
 
+            {/* Filtro de fecha, solo en Historial -- pendientes/listos son
+                siempre "lo de ahora", no hace falta filtrarlos por fecha. */}
+            {tabPedidosRetirar === 'historial' && (
+              <div className="px-4 pt-2 shrink-0 flex gap-1.5 overflow-x-auto hide-scrollbar">
+                {[
+                  { key: 'hoy', label: 'Hoy' },
+                  { key: '7dias', label: '7 días' },
+                  { key: '30dias', label: '30 días' },
+                  { key: 'todos', label: 'Todos' },
+                ].map((f) => (
+                  <button
+                    key={f.key}
+                    onClick={() => setFiltroFechaHistorial(f.key)}
+                    className={`shrink-0 px-2.5 py-1 rounded-full text-[11px] font-medium border transition ${
+                      filtroFechaHistorial === f.key
+                        ? 'bg-stone-900 border-stone-900 text-white'
+                        : 'bg-white border-stone-200 text-stone-500 hover:border-stone-300'
+                    }`}
+                  >
+                    {f.label}
+                  </button>
+                ))}
+              </div>
+            )}
+
             <div className="flex-1 overflow-y-auto p-3 space-y-2.5 hide-scrollbar">
               {cargandoPedidosRetirar ? (
                 <p className="text-center text-stone-400 text-sm py-6">Cargando...</p>
-              ) : pedidosRetirarPorTab[tabPedidosRetirar].length === 0 ? (
+              ) : (tabPedidosRetirar === 'historial' ? historialPedidosFiltrado : pedidosRetirarPorTab[tabPedidosRetirar]).length === 0 ? (
                 <p className="text-center text-stone-400 text-sm py-6">
                   {tabPedidosRetirar === 'pendiente' && 'No hay pedidos pendientes de armar.'}
                   {tabPedidosRetirar === 'listo' && 'No hay pedidos listos esperando que los retiren.'}
-                  {tabPedidosRetirar === 'historial' && 'Todavía no hay pedidos entregados o cancelados.'}
+                  {tabPedidosRetirar === 'historial' && 'No hay pedidos entregados o cancelados en este rango.'}
                 </p>
               ) : (
-                pedidosRetirarPorTab[tabPedidosRetirar].map((p) => {
+                (tabPedidosRetirar === 'historial' ? historialPedidosFiltrado : pedidosRetirarPorTab[tabPedidosRetirar]).map((p, idx, lista) => {
+                  const esHoyPedido = (() => {
+                    const d = new Date(p.creado_en);
+                    const hoy = new Date();
+                    return d.getFullYear() === hoy.getFullYear() && d.getMonth() === hoy.getMonth() && d.getDate() === hoy.getDate();
+                  })();
+                  const grupoAnterior = idx > 0 ? (() => {
+                    const d = new Date(lista[idx - 1].creado_en);
+                    const hoy = new Date();
+                    return d.getFullYear() === hoy.getFullYear() && d.getMonth() === hoy.getMonth() && d.getDate() === hoy.getDate();
+                  })() : null;
+                  const mostrarEncabezadoGrupo = tabPedidosRetirar === 'historial' && (idx === 0 || esHoyPedido !== grupoAnterior);
                   const minutos = Math.max(0, Math.floor((Date.now() - new Date(p.creado_en).getTime()) / 60000));
                   const tiempoTexto = minutos < 60 ? `hace ${minutos} min` : `hace ${Math.floor(minutos / 60)} h`;
                   const colgado = p.estado === 'pendiente' && minutos >= 120; // más de 2 horas: probablemente el cliente ya no viene.
@@ -8635,8 +8691,13 @@ import './index.css';
                     cancelado: { texto: 'Cancelado', color: 'text-rose-400', dot: 'bg-rose-300' },
                   }[p.estado];
                   return (
+                    <React.Fragment key={p.id}>
+                    {mostrarEncabezadoGrupo && (
+                      <p className={`text-[11px] font-semibold uppercase tracking-wide px-1 ${idx === 0 ? '' : 'pt-2'} ${esHoyPedido ? 'text-stone-600' : 'text-stone-400'}`}>
+                        {esHoyPedido ? 'Hoy' : 'Anteriores'}
+                      </p>
+                    )}
                     <div
-                      key={p.id}
                       className={`bg-white border border-stone-200 rounded-xl p-4 space-y-3 ${esHistorial ? 'opacity-70' : ''}`}
                     >
                       <div className="flex items-start justify-between gap-3">
@@ -8727,6 +8788,7 @@ import './index.css';
                         </div>
                       )}
                     </div>
+                    </React.Fragment>
                   );
                 })
               )}
