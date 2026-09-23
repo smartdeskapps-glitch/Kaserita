@@ -12031,50 +12031,61 @@ import './index.css';
 
                     <div>
                       <label className="text-xs text-stone-600 block mb-1.5">Horario de atención:</label>
-                      <div className="space-y-1.5">
-                        {[[1, 'Lun'], [2, 'Mar'], [3, 'Mié'], [4, 'Jue'], [5, 'Vie'], [6, 'Sáb'], [0, 'Dom']].map(([dia, etiqueta]) => {
-                          const cfg = horarioDelivery[dia];
-                          const abierto = !!cfg?.abierto;
+                      <div className="flex items-center gap-1.5">
+                        {[[1, 'L'], [2, 'M'], [3, 'X'], [4, 'J'], [5, 'V'], [6, 'S'], [0, 'D']].map(([dia, letra]) => {
+                          const abierto = !!horarioDelivery[dia]?.abierto;
                           return (
-                            <div key={dia} className="flex items-center gap-2 bg-stone-100 border border-stone-200 rounded-lg px-2.5 py-1.5">
-                              <button
-                                type="button"
-                                onClick={() => setHorarioDelivery((h) => ({
+                            <button
+                              key={dia}
+                              type="button"
+                              onClick={() => setHorarioDelivery((h) => {
+                                if (abierto) return { ...h, [dia]: { ...h[dia], abierto: false } };
+                                // Toma el horario que ya tengan los otros días abiertos, para
+                                // que todos los días activos compartan el mismo rango -- si
+                                // ninguno está abierto todavía, cae al horario típico de bodega.
+                                const otroAbierto = Object.values(h).find((v) => v?.abierto);
+                                return {
                                   ...h,
-                                  [dia]: abierto
-                                    ? { ...cfg, abierto: false }
-                                    : { abierto: true, desde: cfg?.desde || '08:00', hasta: cfg?.hasta || '21:00' },
-                                }))}
-                                className={`shrink-0 w-9 text-[11px] font-bold text-center py-0.5 rounded-md transition ${
-                                  abierto ? 'bg-[#6105dc] text-white' : 'bg-stone-200 text-stone-500'
-                                }`}
-                              >
-                                {etiqueta}
-                              </button>
-                              {abierto ? (
-                                <div className="flex items-center gap-1.5 flex-1">
-                                  <input
-                                    type="time"
-                                    value={cfg.desde}
-                                    onChange={(e) => setHorarioDelivery((h) => ({ ...h, [dia]: { ...h[dia], desde: e.target.value } }))}
-                                    className="flex-1 min-w-0 bg-white border border-stone-200 rounded-md px-1.5 py-1 text-xs text-stone-800"
-                                  />
-                                  <span className="text-stone-400 text-xs shrink-0">a</span>
-                                  <input
-                                    type="time"
-                                    value={cfg.hasta}
-                                    onChange={(e) => setHorarioDelivery((h) => ({ ...h, [dia]: { ...h[dia], hasta: e.target.value } }))}
-                                    className="flex-1 min-w-0 bg-white border border-stone-200 rounded-md px-1.5 py-1 text-xs text-stone-800"
-                                  />
-                                </div>
-                              ) : (
-                                <span className="text-xs text-stone-400 flex-1">Cerrado</span>
-                              )}
-                            </div>
+                                  [dia]: { abierto: true, desde: otroAbierto?.desde || '08:00', hasta: otroAbierto?.hasta || '21:00' },
+                                };
+                              })}
+                              className={`w-8 h-8 shrink-0 rounded-full text-xs font-bold flex items-center justify-center transition ${
+                                abierto ? 'bg-[#6105dc] text-white' : 'bg-stone-100 text-stone-400'
+                              }`}
+                            >
+                              {letra}
+                            </button>
                           );
                         })}
                       </div>
-                      <p className="text-[10px] text-stone-500 mt-1">
+                      {Object.values(horarioDelivery).some((v) => v?.abierto) ? (
+                        <div className="flex items-center gap-1.5 mt-2">
+                          <input
+                            type="time"
+                            value={Object.values(horarioDelivery).find((v) => v?.abierto)?.desde || '08:00'}
+                            onChange={(e) => setHorarioDelivery((h) => {
+                              const nuevo = { ...h };
+                              Object.keys(nuevo).forEach((d) => { if (nuevo[d]?.abierto) nuevo[d] = { ...nuevo[d], desde: e.target.value }; });
+                              return nuevo;
+                            })}
+                            className="flex-1 min-w-0 bg-stone-100 border border-stone-200 rounded-lg px-2 py-1.5 text-xs text-stone-900"
+                          />
+                          <span className="text-stone-400 text-xs shrink-0">a</span>
+                          <input
+                            type="time"
+                            value={Object.values(horarioDelivery).find((v) => v?.abierto)?.hasta || '21:00'}
+                            onChange={(e) => setHorarioDelivery((h) => {
+                              const nuevo = { ...h };
+                              Object.keys(nuevo).forEach((d) => { if (nuevo[d]?.abierto) nuevo[d] = { ...nuevo[d], hasta: e.target.value }; });
+                              return nuevo;
+                            })}
+                            className="flex-1 min-w-0 bg-stone-100 border border-stone-200 rounded-lg px-2 py-1.5 text-xs text-stone-900"
+                          />
+                        </div>
+                      ) : (
+                        <p className="text-xs text-stone-400 mt-1.5">Marcá los días en que atendés.</p>
+                      )}
+                      <p className="text-[10px] text-stone-500 mt-1.5">
                         Así la vitrina muestra "Abierto" o "Cerrado" en tiempo real. Si no lo configurás, no se muestra ningún aviso.
                       </p>
                     </div>
