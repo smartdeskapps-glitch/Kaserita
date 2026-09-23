@@ -2,7 +2,7 @@
   "name": "Kaserita - Punto de Venta",
   "short_name": "Kaserita",
   "description": "Punto de venta para tu bodega o negocio",
-  "start_url": "/",
+  "start_url": "/pos",
   "scope": "/",
   "display": "standalone",
   "orientation": "any",

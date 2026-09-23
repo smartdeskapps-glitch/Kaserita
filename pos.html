@@ -1,0 +1,364 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Kaserita - Punto de Venta</title>
+
+  <!-- PWA: instalable como app en el celular ("Agregar a pantalla de inicio") -->
+  <link rel="manifest" href="/manifest.json">
+  <link rel="icon" href="/icon-192.png" type="image/png">
+  <link rel="apple-touch-icon" href="/icon-192.png">
+  <meta name="theme-color" content="#7c3aed">
+  <!-- Sin esto, Chrome en Android con modo oscuro del sistema "fuerza"
+       su propio oscurecimiento sobre fondos sin color explícito -- se ve
+       como franjas negras en las esquinas redondeadas del login. -->
+  <meta name="color-scheme" content="light">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Kaserita">
+
+  <link rel="stylesheet" href="/src/index.css">
+
+  <!-- Tipografía -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
+  <!-- Íconos de línea (Font Awesome) -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+
+  <!-- React, Supabase y el bundle de la app: compilados por Vite (ver src/main.jsx) -->
+
+  <!-- Canvas Confetti, jsPDF, zxing-wasm y XLSX (SheetJS) NO se cargan acá.
+       Son pesadas y cada bodega usa una sola de ellas de vez en cuando (una
+       imprime boletas por Bluetooth, otra nunca exporta a Excel, etc.) --
+       cargarlas siempre de entrada demoraba el arranque en celulares de gama
+       baja para funciones que la mayoría de las veces no se van a tocar en
+       esa sesión. Se cargan solas, bajo demanda, la primera vez que hacen
+       falta -- ver cargarScriptExterno() más abajo. -->
+
+  <!-- Logo: se precarga para que el splash de abajo lo muestre al instante -->
+  <link rel="preload" as="image" href="/logo-blanco.png">
+
+  <style>
+    html {
+      background: #fff;
+    }
+    body {
+      user-select: none;
+      -webkit-user-select: none;
+      font-family: 'Inter', system-ui, sans-serif;
+      -webkit-font-smoothing: antialiased;
+    }
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: #f5f5f4;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #d6d3d1;
+      border-radius: 4px;
+    }
+    .hide-scrollbar::-webkit-scrollbar { display: none; }
+    .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+
+    /* El navegador pinta los campos autocompletados (usuario/contraseña
+       guardados) con un fondo celeste propio que no se puede tapar con
+       background-color normal -- solo con este truco del box-shadow
+       "inset" gigante, del mismo color que el fondo real del input. */
+    input:-webkit-autofill,
+    input:-webkit-autofill:hover,
+    input:-webkit-autofill:focus {
+      -webkit-text-fill-color: #1c1917;
+      -webkit-box-shadow: 0 0 0px 1000px #fff inset;
+      box-shadow: 0 0 0px 1000px #fff inset;
+      transition: background-color 9999s ease-in-out 0s;
+    }
+
+    /* Entrada suave de la pantalla de login/panel de marca. */
+    @keyframes auth-panel-in {
+      from { opacity: 0; transform: translateY(14px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    /* Oculta las flechitas de subir/bajar de los inputs numéricos: le
+       restan ancho útil al campo (recortando placeholders como "Contado")
+       y no aportan nada en campos de precio/cantidad que se escriben
+       directo o tienen sus propios botones +/-. */
+    input[type="number"] {
+      -moz-appearance: textfield;
+      appearance: textfield;
+    }
+    input[type="number"]::-webkit-inner-spin-button,
+    input[type="number"]::-webkit-outer-spin-button {
+      -webkit-appearance: none;
+      margin: 0;
+    }
+
+    /* Entrada suave del tooltip del riel de íconos del menú lateral. */
+    @keyframes tooltip-rail-in {
+      from { opacity: 0; transform: translateY(-50%) translateX(-4px); }
+      to { opacity: 1; transform: translateY(-50%) translateX(0); }
+    }
+
+    /* Formato de ticket angosto (impresora térmica 80mm) al imprimir.
+       Se oculta todo menos el recibo marcado con #recibo-imprimible. */
+    @media print {
+      body * { visibility: hidden; }
+      #recibo-imprimible, #recibo-imprimible * { visibility: visible; }
+      #recibo-imprimible {
+        position: absolute !important;
+        top: 0 !important;
+        left: 0 !important;
+        width: 100% !important;
+        height: auto !important;
+        margin: 0 !important;
+        padding: 4px !important;
+        overflow: visible !important;
+        clip: auto !important;
+        clip-path: none !important;
+        white-space: normal !important;
+        color: #000;
+        background: #fff;
+        font-family: 'Courier New', monospace;
+      }
+      @page { size: 80mm auto; margin: 2mm; }
+    }
+
+    /* Splash screen: puro HTML/CSS, visible desde el primer instante (antes
+       de que React, Babel y Supabase terminen de descargarse), para que
+       nunca se vea una pantalla en blanco mientras carga. */
+    #splash-kaserita {
+      position: fixed;
+      top: 0;
+      left: 0;
+      bottom: 0;
+      right: 0;
+      z-index: 9999;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+      color: #2d1b4e;
+      font-family: 'Inter', system-ui, sans-serif;
+      transition: opacity 0.4s ease, visibility 0.4s ease, right 0.7s cubic-bezier(0.65, 0, 0.35, 1);
+    }
+    #splash-kaserita.splash-oculto {
+      opacity: 0;
+      visibility: hidden;
+      pointer-events: none;
+    }
+    /* En pantallas de escritorio, al terminar de cargar el splash no se
+       desvanece de una: primero se encoge hacia la izquierda (mismo ancho
+       final que el panel de marca del login, "right: 50%") para que
+       parezca que se transforma en él, mientras a la derecha va quedando a
+       la vista el formulario. En mobile el login no se divide en columnas,
+       así que esto no aplica y pasa directo al desvanecido de siempre. */
+    @media (min-width: 768px) {
+      #splash-kaserita.splash-encogiendo { right: 50%; }
+    }
+    /* El tamaño y espaciado del logo/subtítulo NO se define acá -- usa las
+       mismas clases de Tailwind que el panel de marca real (w-52 md:w-64,
+       mb-6, -mt-3, etc., puestas directo en el HTML de abajo) para que
+       ambos bloques midan exactamente lo mismo. Si no coinciden al pixel,
+       durante el encogido/desvanecido se alcanzan a ver los dos logos
+       superpuestos a distinta escala (efecto fantasma). */
+    #splash-kaserita .splash-logo-img {
+      animation: splash-pulso 1.8s infinite ease-in-out;
+    }
+    @keyframes splash-pulso {
+      0%, 100% { transform: scale(1); opacity: 0.85; }
+      50% { transform: scale(1.04); opacity: 1; }
+    }
+    /* Indicador de carga: barra indeterminada + frase que va cambiando.
+       Va con position:absolute (no dentro del grupo centrado del logo) a
+       propósito -- si fuera un hijo más del flex centrado, sumaría alto al
+       bloque y correría el logo hacia arriba, desalineándolo del logo real
+       del panel (el mismo efecto fantasma que ya se corrigió una vez). */
+    #splash-kaserita .splash-loading {
+      position: absolute;
+      left: 0;
+      right: 0;
+      bottom: clamp(2rem, 9vh, 4rem);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 0.75rem;
+      transition: opacity 0.25s ease;
+    }
+    /* Al empezar a encogerse ya sabemos que la carga terminó -- se apaga de
+       una vez para no mezclar "cargando" con la pantalla final apareciendo. */
+    #splash-kaserita.splash-encogiendo .splash-loading {
+      opacity: 0;
+    }
+    #splash-kaserita .splash-progress {
+      width: 160px;
+      height: 3px;
+      border-radius: 999px;
+      background: rgba(124, 58, 237, 0.15);
+      overflow: hidden;
+      position: relative;
+    }
+    #splash-kaserita .splash-progress::after {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: -40%;
+      height: 100%;
+      width: 40%;
+      border-radius: 999px;
+      background: rgba(124, 58, 237, 0.85);
+      animation: splash-progress-slide 1.4s ease-in-out infinite;
+    }
+    @keyframes splash-progress-slide {
+      0% { left: -40%; }
+      100% { left: 100%; }
+    }
+    #splash-kaserita .splash-status {
+      font-size: 0.75rem;
+      color: rgba(45, 27, 78, 0.55);
+      min-height: 1.2em;
+      transition: opacity 0.3s ease;
+    }
+    #splash-kaserita .splash-status.splash-status-oculto {
+      opacity: 0;
+    }
+    /* Si el sistema pide menos movimiento, se queda quieto en vez de verse
+       trabado a medio camino. */
+    @media (prefers-reduced-motion: reduce) {
+      #splash-kaserita .splash-logo-img { animation: none; }
+      #splash-kaserita .splash-progress::after { animation: none; left: 0; width: 100%; }
+    }
+
+    /* Panel de marca del login: fondo con 2 manchas de color que se
+       desplazan solas (mismo truco que un "mesh gradient" animado --
+       animar la posición de cada radial-gradient vía @property, que
+       permite interpolar porcentajes en vez de saltar de golpe). */
+    @property --kg-blob1-x { syntax: '<percentage>'; inherits: false; initial-value: 88%; }
+    @property --kg-blob1-y { syntax: '<percentage>'; inherits: false; initial-value: 86%; }
+    @property --kg-blob2-x { syntax: '<percentage>'; inherits: false; initial-value: 12%; }
+    @property --kg-blob2-y { syntax: '<percentage>'; inherits: false; initial-value: 82%; }
+    .login-brand-mesh {
+      --kg-blob1-x: 88%;
+      --kg-blob1-y: 86%;
+      --kg-blob2-x: 12%;
+      --kg-blob2-y: 82%;
+      /* Varias paradas del mismo color (en vez de solo "color 0%,
+         transparent 65%") para que se apague de a poco -- con solo 2
+         paradas, el degradado hacia transparente pasa por un gris turbio a
+         mitad de camino y se ve como un círculo con borde marcado en vez
+         de un aura difuminada. */
+      background:
+        radial-gradient(85% 85% at var(--kg-blob1-x) var(--kg-blob1-y), rgba(59,92,246,0.16) 0%, rgba(59,92,246,0.08) 28%, rgba(59,92,246,0.03) 52%, transparent 75%),
+        radial-gradient(85% 85% at var(--kg-blob2-x) var(--kg-blob2-y), rgba(139,61,240,0.16) 0%, rgba(139,61,240,0.08) 28%, rgba(139,61,240,0.03) 52%, transparent 75%),
+        #ffffff;
+      /* Cada mancha tiene su propia animación con distinta duración (15s y
+         21s, sin múltiplo común corto) -- así nunca suben y bajan a la vez
+         como un solo bloque; se cruzan en momentos distintos cada vuelta y
+         el movimiento se ve orgánico en vez de mecánico. */
+      animation: login-mesh-drift-1 15s ease-in-out infinite, login-mesh-drift-2 21s ease-in-out infinite;
+    }
+    /* La mancha azul se mueve solo por la mitad derecha y la violeta solo
+       por la mitad izquierda -- si cruzaran el centro al mismo tiempo se
+       funden un instante en una sola bola grande y plana (justo lo que no
+       se veía bien). Cada una recorre un pequeño lazo (4 puntos) en vez de
+       solo subir y bajar en línea recta. */
+    @keyframes login-mesh-drift-1 {
+      0%   { --kg-blob1-x: 88%; --kg-blob1-y: 84%; }
+      25%  { --kg-blob1-x: 68%; --kg-blob1-y: 58%; }
+      50%  { --kg-blob1-x: 82%; --kg-blob1-y: 20%; }
+      75%  { --kg-blob1-x: 65%; --kg-blob1-y: 46%; }
+      100% { --kg-blob1-x: 88%; --kg-blob1-y: 84%; }
+    }
+    @keyframes login-mesh-drift-2 {
+      0%   { --kg-blob2-x: 12%; --kg-blob2-y: 80%; }
+      25%  { --kg-blob2-x: 30%; --kg-blob2-y: 50%; }
+      50%  { --kg-blob2-x: 16%; --kg-blob2-y: 18%; }
+      75%  { --kg-blob2-x: 28%; --kg-blob2-y: 60%; }
+      100% { --kg-blob2-x: 12%; --kg-blob2-y: 80%; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      .login-brand-mesh { animation: none; }
+    }
+  </style>
+</head>
+<body class="bg-stone-50 text-stone-900 h-screen overflow-hidden font-sans">
+  <div id="splash-kaserita" class="login-brand-mesh">
+    <img class="splash-logo-img w-52 md:w-64 h-auto mb-6" src="/logo-blanco.png" alt="Kaserita - Punto de Venta">
+    <div class="splash-loading">
+      <div class="splash-progress"></div>
+      <p class="splash-status" id="splash-status">Preparando tu catálogo...</p>
+    </div>
+  </div>
+  <div id="root"></div>
+
+  <script>
+    // Momento en que arrancó el splash -- el panel de marca del login toma
+    // este dato para "adelantar" su propia animación de fondo (ver
+    // kgSyncDelayRef más abajo en el componente) y que las manchas de color
+    // no den un salto de posición justo cuando el splash desaparece.
+    window.__kgSplashT0 = performance.now();
+
+    // Frases cortas que se van turnando en el splash mientras carga --  no
+    // reflejan un progreso real (no hay forma de medirlo acá), solo dan la
+    // sensación de que algo sigue pasando en vez de una pantalla estática.
+    const FRASES_SPLASH = [
+      'Preparando tu catálogo...',
+      'Cargando tus productos...',
+      'Afinando el punto de venta...',
+      'Ya casi está listo...'
+    ];
+    let fraseSplashIdx = 0;
+    let fraseSplashIntervalo = setInterval(() => {
+      const elFrase = document.getElementById('splash-status');
+      if (!elFrase) return;
+      elFrase.classList.add('splash-status-oculto');
+      setTimeout(() => {
+        fraseSplashIdx = (fraseSplashIdx + 1) % FRASES_SPLASH.length;
+        elFrase.textContent = FRASES_SPLASH[fraseSplashIdx];
+        elFrase.classList.remove('splash-status-oculto');
+      }, 250);
+    }, 1800);
+
+    window.ocultarSplashKaserita = function () {
+      const el = document.getElementById('splash-kaserita');
+      if (!el) return;
+      clearInterval(fraseSplashIntervalo);
+      // En escritorio primero se encoge hacia la izquierda (mismo ancho
+      // final que el panel de marca real) y recién después se desvanece --
+      // así se ve como si el splash se transformara en el panel en vez de
+      // simplemente taparlo y desaparecer. En mobile el login no se divide
+      // en columnas, así que se salta directo al desvanecido de siempre.
+      const esEscritorio = window.matchMedia('(min-width: 768px)').matches;
+      const desvanecer = () => {
+        el.classList.add('splash-oculto');
+        setTimeout(() => el.remove(), 450);
+      };
+      if (esEscritorio) {
+        el.classList.add('splash-encogiendo');
+        setTimeout(desvanecer, 700);
+      } else {
+        desvanecer();
+      }
+    };
+    // Salvavidas: si algo tarda demasiado en cargar, el splash no se queda
+    // pegado para siempre.
+    setTimeout(() => window.ocultarSplashKaserita(), 8000);
+  </script>
+
+  <script>
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('/sw.js').catch(() => {});
+      });
+    }
+  </script>
+
+  <!-- Aplicación React + Supabase con Todos los Módulos -->
+  <script type="module" src="/src/main.jsx"></script>
+</body>
+</html>

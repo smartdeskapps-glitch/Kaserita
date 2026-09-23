@@ -7,10 +7,12 @@ export default defineConfig({
   build: {
     rollupOptions: {
       input: {
-        main: resolve(__dirname, 'index.html'),
+        inicio: resolve(__dirname, 'index.html'),
+        pos: resolve(__dirname, 'pos.html'),
         registro: resolve(__dirname, 'registro.html'),
         privacidad: resolve(__dirname, 'privacidad.html'),
         terminos: resolve(__dirname, 'terminos.html'),
+        reclamos: resolve(__dirname, 'reclamos.html'),
       },
     },
   },

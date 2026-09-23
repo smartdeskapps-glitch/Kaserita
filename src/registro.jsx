@@ -397,7 +397,7 @@ function App() {
             <div className="success-badge"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M3 8.5l3.5 3.5L13 5"/></svg></div>
             <h2>¡{bodegaCreada} ya está activa!</h2>
             <p className="screen-sub">Entrá a tu panel para cargar tus primeros productos.</p>
-            <a href="/" className="pay-btn" style={{ textDecoration: 'none', marginTop: 6 }}>Entrar a mi panel</a>
+            <a href="/pos" className="pay-btn" style={{ textDecoration: 'none', marginTop: 6 }}>Entrar a mi panel</a>
           </div>
         )}
 
@@ -406,7 +406,7 @@ function App() {
             <div className="success-badge"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M3 8.5l3.5 3.5L13 5"/></svg></div>
             <h2>Ya tenés una bodega activa</h2>
             <p className="screen-sub">Esta cuenta de Google ya tiene una bodega creada en Kaserita -- no hace falta registrarte de nuevo.</p>
-            <a href="/" className="pay-btn" style={{ textDecoration: 'none', marginTop: 6 }}>Entrar a mi panel</a>
+            <a href="/pos" className="pay-btn" style={{ textDecoration: 'none', marginTop: 6 }}>Entrar a mi panel</a>
           </div>
         )}
       </div>

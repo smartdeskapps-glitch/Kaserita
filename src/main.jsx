@@ -8022,7 +8022,7 @@ import './index.css';
                   </div>
                   <button
                     type="button"
-                    onClick={() => sbClient.auth.signInWithOAuth({ provider: 'google', options: { redirectTo: window.location.origin + '/' } })}
+                    onClick={() => sbClient.auth.signInWithOAuth({ provider: 'google', options: { redirectTo: window.location.origin + '/pos' } })}
                     className="w-full py-3 border-2 border-stone-200 hover:border-stone-300 text-stone-700 font-bold text-sm rounded-full transition flex items-center justify-center gap-2.5"
                   >
                     <svg viewBox="0 0 48 48" style={{ width: 16, height: 16 }}>

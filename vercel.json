@@ -3,9 +3,11 @@
   "installCommand": "npm install",
   "outputDirectory": "dist",
   "rewrites": [
+    { "source": "/pos", "destination": "/pos.html" },
     { "source": "/registro", "destination": "/registro.html" },
     { "source": "/privacidad", "destination": "/privacidad.html" },
     { "source": "/terminos", "destination": "/terminos.html" },
+    { "source": "/reclamos", "destination": "/reclamos.html" },
     { "source": "/(.*)", "destination": "/index.html" }
   ]
 }

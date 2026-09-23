@@ -1,364 +1,185 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Kaserita - Punto de Venta</title>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Kaserita - Punto de Venta para tu bodega</title>
+<meta name="description" content="Kaserita: punto de venta (caja, inventario, clientes, reportes) para bodegas y negocios pequeños, con catálogo online opcional para recibir pedidos por WhatsApp." />
+<link rel="icon" href="/icon-192.png" type="image/png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@600;700;800&family=Work+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+<style>
+  :root {
+    --paper: #faf8f6; --card: #ffffff; --ink: #1c1523; --muted: #6f6779; --line: #e9e3ee;
+    --violet: #7c3aed; --violet-ink: #5b21b6; --blue: #2563eb; --emerald: #059669; --emerald-bg: #ecfdf5;
+    --font-display: 'Plus Jakarta Sans', system-ui, sans-serif;
+    --font-body: 'Work Sans', system-ui, sans-serif;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body { background: var(--paper); color: var(--ink); font-family: var(--font-body); line-height: 1.6; -webkit-font-smoothing: antialiased; }
+  a { color: inherit; }
+  .wrap { max-width: 900px; margin: 0 auto; padding: 20px 20px 0; }
 
-  <!-- PWA: instalable como app en el celular ("Agregar a pantalla de inicio") -->
-  <link rel="manifest" href="/manifest.json">
-  <link rel="icon" href="/icon-192.png" type="image/png">
-  <link rel="apple-touch-icon" href="/icon-192.png">
-  <meta name="theme-color" content="#7c3aed">
-  <!-- Sin esto, Chrome en Android con modo oscuro del sistema "fuerza"
-       su propio oscurecimiento sobre fondos sin color explícito -- se ve
-       como franjas negras en las esquinas redondeadas del login. -->
-  <meta name="color-scheme" content="light">
-  <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <meta name="apple-mobile-web-app-title" content="Kaserita">
+  header { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 6px 0 30px; }
+  .brand { display: flex; align-items: center; gap: 10px; text-decoration: none; }
+  .brand-mark { width: 36px; height: 36px; border-radius: 10px; flex-shrink: 0; background: linear-gradient(135deg, var(--blue), var(--violet)); display: flex; align-items: center; justify-content: center; box-shadow: 0 6px 16px -6px rgba(124,58,237,.45); }
+  .brand-mark svg { width: 19px; height: 19px; }
+  .brand-name { font-family: var(--font-display); font-weight: 800; font-size: 17px; letter-spacing: -0.01em; }
+  .brand-name span { color: var(--violet); }
+  .btn-ingresar { font-family: var(--font-display); font-weight: 700; font-size: 13.5px; color: #fff; background: var(--ink); border-radius: 999px; padding: 10px 20px; text-decoration: none; display: inline-flex; align-items: center; gap: 8px; transition: transform .12s ease; }
+  .btn-ingresar:hover { transform: translateY(-1px); }
 
-  <link rel="stylesheet" href="/src/index.css">
+  .hero { padding: 10px 0 44px; text-align: center; }
+  .eyebrow { display: inline-flex; align-items: center; gap: 6px; font-size: 11.5px; font-weight: 600; letter-spacing: 0.03em; text-transform: uppercase; color: var(--violet-ink); background: rgba(124,58,237,.1); border: 1px solid rgba(124,58,237,.22); padding: 5px 11px; border-radius: 999px; margin-bottom: 16px; }
+  h1 { font-family: var(--font-display); font-weight: 800; letter-spacing: -0.02em; font-size: clamp(28px, 6vw, 42px); line-height: 1.12; margin: 0 0 14px; }
+  h1 em { font-style: normal; color: var(--violet); }
+  .hero-sub { font-size: 15.5px; color: var(--muted); line-height: 1.6; max-width: 46ch; margin: 0 auto 26px; }
+  .hero-ctas { display: flex; flex-wrap: wrap; gap: 12px; justify-content: center; }
+  .cta-primary { font-family: var(--font-display); font-weight: 700; font-size: 14.5px; color: #fff; background: linear-gradient(120deg, var(--blue), var(--violet)); border-radius: 13px; padding: 14px 26px; text-decoration: none; box-shadow: 0 10px 24px -10px rgba(124,58,237,.5); display: inline-flex; align-items: center; gap: 9px; transition: transform .12s ease; }
+  .cta-primary:hover { transform: translateY(-1px); }
+  .cta-secondary { font-family: var(--font-display); font-weight: 700; font-size: 14.5px; color: var(--ink); background: var(--card); border: 1.5px solid var(--line); border-radius: 13px; padding: 14px 26px; text-decoration: none; display: inline-flex; align-items: center; gap: 9px; }
 
-  <!-- Tipografía -->
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  .section { margin: 46px 0; }
+  .section-title { font-family: var(--font-display); font-weight: 800; font-size: 21px; margin: 0 0 4px; letter-spacing: -0.01em; text-align: center; }
+  .section-sub { font-size: 13px; color: var(--muted); margin: 0 auto 22px; line-height: 1.5; text-align: center; max-width: 50ch; }
 
-  <!-- Íconos de línea (Font Awesome) -->
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  .benefits { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 12px; }
+  .benefit { background: var(--card); border: 1.5px solid var(--line); border-radius: 16px; padding: 18px; }
+  .benefit-icon { width: 34px; height: 34px; border-radius: 10px; background: rgba(124,58,237,.1); color: var(--violet); display: flex; align-items: center; justify-content: center; margin-bottom: 10px; font-size: 15px; }
+  .benefit h3 { font-family: var(--font-display); font-weight: 700; font-size: 13.5px; margin: 0 0 4px; }
+  .benefit p { font-size: 12px; color: var(--muted); margin: 0; line-height: 1.5; }
 
-  <!-- React, Supabase y el bundle de la app: compilados por Vite (ver src/main.jsx) -->
+  .plans { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 14px; }
+  .plan-card { background: var(--card); border: 1.5px solid var(--line); border-radius: 18px; padding: 20px; }
+  .plan-card.destacado { border-color: var(--violet); box-shadow: 0 0 0 3px rgba(124,58,237,.12); }
+  .plan-card h3 { font-family: var(--font-display); font-weight: 700; font-size: 15px; margin: 0 0 8px; display: flex; align-items: center; gap: 8px; }
+  .plan-badge { font-size: 9.5px; font-weight: 700; padding: 2px 7px; border-radius: 999px; background: linear-gradient(120deg, var(--blue), var(--violet)); color: #fff; }
+  .plan-card ul { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 7px; }
+  .plan-card li { font-size: 12.5px; color: var(--ink); display: flex; align-items: flex-start; gap: 8px; }
+  .plan-card li i { color: var(--emerald); font-size: 11px; margin-top: 3px; flex-shrink: 0; }
+  .plan-note { text-align: center; font-size: 12px; color: var(--muted); margin-top: 18px; }
+  .plan-note a { color: var(--violet-ink); font-weight: 600; text-decoration: none; }
 
-  <!-- Canvas Confetti, jsPDF, zxing-wasm y XLSX (SheetJS) NO se cargan acá.
-       Son pesadas y cada bodega usa una sola de ellas de vez en cuando (una
-       imprime boletas por Bluetooth, otra nunca exporta a Excel, etc.) --
-       cargarlas siempre de entrada demoraba el arranque en celulares de gama
-       baja para funciones que la mayoría de las veces no se van a tocar en
-       esa sesión. Se cargan solas, bajo demanda, la primera vez que hacen
-       falta -- ver cargarScriptExterno() más abajo. -->
+  .how-steps { display: flex; flex-direction: column; gap: 16px; max-width: 520px; margin: 0 auto; }
+  .how-step { display: flex; gap: 14px; align-items: flex-start; }
+  .how-num { width: 29px; height: 29px; border-radius: 50%; background: linear-gradient(135deg, var(--blue), var(--violet)); color: #fff; font-family: var(--font-display); font-weight: 800; font-size: 12.5px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+  .how-text strong { font-family: var(--font-display); font-weight: 700; font-size: 13.5px; display: block; margin-bottom: 2px; }
+  .how-text span { font-size: 12px; color: var(--muted); line-height: 1.5; }
 
-  <!-- Logo: se precarga para que el splash de abajo lo muestre al instante -->
-  <link rel="preload" as="image" href="/logo-blanco.png">
+  .contact-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 12px; }
+  .contact-card { background: var(--card); border: 1.5px solid var(--line); border-radius: 16px; padding: 16px; display: flex; gap: 12px; align-items: flex-start; text-decoration: none; }
+  .contact-card i { color: var(--violet); font-size: 15px; margin-top: 2px; flex-shrink: 0; width: 18px; }
+  .contact-card strong { font-family: var(--font-display); font-weight: 700; font-size: 12.5px; display: block; margin-bottom: 2px; color: var(--ink); }
+  .contact-card span { font-size: 12.5px; color: var(--muted); word-break: break-word; }
 
-  <style>
-    html {
-      background: #fff;
-    }
-    body {
-      user-select: none;
-      -webkit-user-select: none;
-      font-family: 'Inter', system-ui, sans-serif;
-      -webkit-font-smoothing: antialiased;
-    }
-    ::-webkit-scrollbar {
-      width: 6px;
-      height: 6px;
-    }
-    ::-webkit-scrollbar-track {
-      background: #f5f5f4;
-    }
-    ::-webkit-scrollbar-thumb {
-      background: #d6d3d1;
-      border-radius: 4px;
-    }
-    .hide-scrollbar::-webkit-scrollbar { display: none; }
-    .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+  .legal-links { display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; }
+  .legal-links a { font-size: 12.5px; font-weight: 600; color: var(--violet-ink); text-decoration: none; background: var(--card); border: 1.5px solid var(--line); border-radius: 999px; padding: 9px 16px; display: inline-flex; align-items: center; gap: 7px; }
 
-    /* El navegador pinta los campos autocompletados (usuario/contraseña
-       guardados) con un fondo celeste propio que no se puede tapar con
-       background-color normal -- solo con este truco del box-shadow
-       "inset" gigante, del mismo color que el fondo real del input. */
-    input:-webkit-autofill,
-    input:-webkit-autofill:hover,
-    input:-webkit-autofill:focus {
-      -webkit-text-fill-color: #1c1917;
-      -webkit-box-shadow: 0 0 0px 1000px #fff inset;
-      box-shadow: 0 0 0px 1000px #fff inset;
-      transition: background-color 9999s ease-in-out 0s;
-    }
+  footer { margin-top: 50px; padding: 24px 20px 40px; border-top: 1px solid var(--line); text-align: center; }
+  footer .foot-brand { font-family: var(--font-display); font-weight: 800; font-size: 13px; margin-bottom: 4px; }
+  footer .foot-brand span { color: var(--violet); }
+  footer p { font-size: 11px; color: var(--muted); margin: 4px 0; }
+  footer .foot-ruc { font-size: 10.5px; color: var(--muted); }
 
-    /* Entrada suave de la pantalla de login/panel de marca. */
-    @keyframes auth-panel-in {
-      from { opacity: 0; transform: translateY(14px); }
-      to { opacity: 1; transform: translateY(0); }
-    }
-
-    /* Oculta las flechitas de subir/bajar de los inputs numéricos: le
-       restan ancho útil al campo (recortando placeholders como "Contado")
-       y no aportan nada en campos de precio/cantidad que se escriben
-       directo o tienen sus propios botones +/-. */
-    input[type="number"] {
-      -moz-appearance: textfield;
-      appearance: textfield;
-    }
-    input[type="number"]::-webkit-inner-spin-button,
-    input[type="number"]::-webkit-outer-spin-button {
-      -webkit-appearance: none;
-      margin: 0;
-    }
-
-    /* Entrada suave del tooltip del riel de íconos del menú lateral. */
-    @keyframes tooltip-rail-in {
-      from { opacity: 0; transform: translateY(-50%) translateX(-4px); }
-      to { opacity: 1; transform: translateY(-50%) translateX(0); }
-    }
-
-    /* Formato de ticket angosto (impresora térmica 80mm) al imprimir.
-       Se oculta todo menos el recibo marcado con #recibo-imprimible. */
-    @media print {
-      body * { visibility: hidden; }
-      #recibo-imprimible, #recibo-imprimible * { visibility: visible; }
-      #recibo-imprimible {
-        position: absolute !important;
-        top: 0 !important;
-        left: 0 !important;
-        width: 100% !important;
-        height: auto !important;
-        margin: 0 !important;
-        padding: 4px !important;
-        overflow: visible !important;
-        clip: auto !important;
-        clip-path: none !important;
-        white-space: normal !important;
-        color: #000;
-        background: #fff;
-        font-family: 'Courier New', monospace;
-      }
-      @page { size: 80mm auto; margin: 2mm; }
-    }
-
-    /* Splash screen: puro HTML/CSS, visible desde el primer instante (antes
-       de que React, Babel y Supabase terminen de descargarse), para que
-       nunca se vea una pantalla en blanco mientras carga. */
-    #splash-kaserita {
-      position: fixed;
-      top: 0;
-      left: 0;
-      bottom: 0;
-      right: 0;
-      z-index: 9999;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      overflow: hidden;
-      color: #2d1b4e;
-      font-family: 'Inter', system-ui, sans-serif;
-      transition: opacity 0.4s ease, visibility 0.4s ease, right 0.7s cubic-bezier(0.65, 0, 0.35, 1);
-    }
-    #splash-kaserita.splash-oculto {
-      opacity: 0;
-      visibility: hidden;
-      pointer-events: none;
-    }
-    /* En pantallas de escritorio, al terminar de cargar el splash no se
-       desvanece de una: primero se encoge hacia la izquierda (mismo ancho
-       final que el panel de marca del login, "right: 50%") para que
-       parezca que se transforma en él, mientras a la derecha va quedando a
-       la vista el formulario. En mobile el login no se divide en columnas,
-       así que esto no aplica y pasa directo al desvanecido de siempre. */
-    @media (min-width: 768px) {
-      #splash-kaserita.splash-encogiendo { right: 50%; }
-    }
-    /* El tamaño y espaciado del logo/subtítulo NO se define acá -- usa las
-       mismas clases de Tailwind que el panel de marca real (w-52 md:w-64,
-       mb-6, -mt-3, etc., puestas directo en el HTML de abajo) para que
-       ambos bloques midan exactamente lo mismo. Si no coinciden al pixel,
-       durante el encogido/desvanecido se alcanzan a ver los dos logos
-       superpuestos a distinta escala (efecto fantasma). */
-    #splash-kaserita .splash-logo-img {
-      animation: splash-pulso 1.8s infinite ease-in-out;
-    }
-    @keyframes splash-pulso {
-      0%, 100% { transform: scale(1); opacity: 0.85; }
-      50% { transform: scale(1.04); opacity: 1; }
-    }
-    /* Indicador de carga: barra indeterminada + frase que va cambiando.
-       Va con position:absolute (no dentro del grupo centrado del logo) a
-       propósito -- si fuera un hijo más del flex centrado, sumaría alto al
-       bloque y correría el logo hacia arriba, desalineándolo del logo real
-       del panel (el mismo efecto fantasma que ya se corrigió una vez). */
-    #splash-kaserita .splash-loading {
-      position: absolute;
-      left: 0;
-      right: 0;
-      bottom: clamp(2rem, 9vh, 4rem);
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 0.75rem;
-      transition: opacity 0.25s ease;
-    }
-    /* Al empezar a encogerse ya sabemos que la carga terminó -- se apaga de
-       una vez para no mezclar "cargando" con la pantalla final apareciendo. */
-    #splash-kaserita.splash-encogiendo .splash-loading {
-      opacity: 0;
-    }
-    #splash-kaserita .splash-progress {
-      width: 160px;
-      height: 3px;
-      border-radius: 999px;
-      background: rgba(124, 58, 237, 0.15);
-      overflow: hidden;
-      position: relative;
-    }
-    #splash-kaserita .splash-progress::after {
-      content: '';
-      position: absolute;
-      top: 0;
-      left: -40%;
-      height: 100%;
-      width: 40%;
-      border-radius: 999px;
-      background: rgba(124, 58, 237, 0.85);
-      animation: splash-progress-slide 1.4s ease-in-out infinite;
-    }
-    @keyframes splash-progress-slide {
-      0% { left: -40%; }
-      100% { left: 100%; }
-    }
-    #splash-kaserita .splash-status {
-      font-size: 0.75rem;
-      color: rgba(45, 27, 78, 0.55);
-      min-height: 1.2em;
-      transition: opacity 0.3s ease;
-    }
-    #splash-kaserita .splash-status.splash-status-oculto {
-      opacity: 0;
-    }
-    /* Si el sistema pide menos movimiento, se queda quieto en vez de verse
-       trabado a medio camino. */
-    @media (prefers-reduced-motion: reduce) {
-      #splash-kaserita .splash-logo-img { animation: none; }
-      #splash-kaserita .splash-progress::after { animation: none; left: 0; width: 100%; }
-    }
-
-    /* Panel de marca del login: fondo con 2 manchas de color que se
-       desplazan solas (mismo truco que un "mesh gradient" animado --
-       animar la posición de cada radial-gradient vía @property, que
-       permite interpolar porcentajes en vez de saltar de golpe). */
-    @property --kg-blob1-x { syntax: '<percentage>'; inherits: false; initial-value: 88%; }
-    @property --kg-blob1-y { syntax: '<percentage>'; inherits: false; initial-value: 86%; }
-    @property --kg-blob2-x { syntax: '<percentage>'; inherits: false; initial-value: 12%; }
-    @property --kg-blob2-y { syntax: '<percentage>'; inherits: false; initial-value: 82%; }
-    .login-brand-mesh {
-      --kg-blob1-x: 88%;
-      --kg-blob1-y: 86%;
-      --kg-blob2-x: 12%;
-      --kg-blob2-y: 82%;
-      /* Varias paradas del mismo color (en vez de solo "color 0%,
-         transparent 65%") para que se apague de a poco -- con solo 2
-         paradas, el degradado hacia transparente pasa por un gris turbio a
-         mitad de camino y se ve como un círculo con borde marcado en vez
-         de un aura difuminada. */
-      background:
-        radial-gradient(85% 85% at var(--kg-blob1-x) var(--kg-blob1-y), rgba(59,92,246,0.16) 0%, rgba(59,92,246,0.08) 28%, rgba(59,92,246,0.03) 52%, transparent 75%),
-        radial-gradient(85% 85% at var(--kg-blob2-x) var(--kg-blob2-y), rgba(139,61,240,0.16) 0%, rgba(139,61,240,0.08) 28%, rgba(139,61,240,0.03) 52%, transparent 75%),
-        #ffffff;
-      /* Cada mancha tiene su propia animación con distinta duración (15s y
-         21s, sin múltiplo común corto) -- así nunca suben y bajan a la vez
-         como un solo bloque; se cruzan en momentos distintos cada vuelta y
-         el movimiento se ve orgánico en vez de mecánico. */
-      animation: login-mesh-drift-1 15s ease-in-out infinite, login-mesh-drift-2 21s ease-in-out infinite;
-    }
-    /* La mancha azul se mueve solo por la mitad derecha y la violeta solo
-       por la mitad izquierda -- si cruzaran el centro al mismo tiempo se
-       funden un instante en una sola bola grande y plana (justo lo que no
-       se veía bien). Cada una recorre un pequeño lazo (4 puntos) en vez de
-       solo subir y bajar en línea recta. */
-    @keyframes login-mesh-drift-1 {
-      0%   { --kg-blob1-x: 88%; --kg-blob1-y: 84%; }
-      25%  { --kg-blob1-x: 68%; --kg-blob1-y: 58%; }
-      50%  { --kg-blob1-x: 82%; --kg-blob1-y: 20%; }
-      75%  { --kg-blob1-x: 65%; --kg-blob1-y: 46%; }
-      100% { --kg-blob1-x: 88%; --kg-blob1-y: 84%; }
-    }
-    @keyframes login-mesh-drift-2 {
-      0%   { --kg-blob2-x: 12%; --kg-blob2-y: 80%; }
-      25%  { --kg-blob2-x: 30%; --kg-blob2-y: 50%; }
-      50%  { --kg-blob2-x: 16%; --kg-blob2-y: 18%; }
-      75%  { --kg-blob2-x: 28%; --kg-blob2-y: 60%; }
-      100% { --kg-blob2-x: 12%; --kg-blob2-y: 80%; }
-    }
-    @media (prefers-reduced-motion: reduce) {
-      .login-brand-mesh { animation: none; }
-    }
-  </style>
+  @media (max-width: 520px) {
+    .hero-ctas { flex-direction: column; }
+    .cta-primary, .cta-secondary { justify-content: center; }
+  }
+</style>
 </head>
-<body class="bg-stone-50 text-stone-900 h-screen overflow-hidden font-sans">
-  <div id="splash-kaserita" class="login-brand-mesh">
-    <img class="splash-logo-img w-52 md:w-64 h-auto mb-6" src="/logo-blanco.png" alt="Kaserita - Punto de Venta">
-    <div class="splash-loading">
-      <div class="splash-progress"></div>
-      <p class="splash-status" id="splash-status">Preparando tu catálogo...</p>
+<body>
+<div class="wrap">
+  <header>
+    <a class="brand" href="/">
+      <div class="brand-mark"><svg viewBox="0 0 24 24" fill="none"><path d="M4 9L12 4l8 5v9a1 1 0 01-1 1h-4v-6H9v6H5a1 1 0 01-1-1V9z" fill="#fff"/></svg></div>
+      <div class="brand-name">Kaser<span>ita</span></div>
+    </a>
+    <a class="btn-ingresar" href="/pos">Ingresar <i class="fa-solid fa-arrow-right"></i></a>
+  </header>
+
+  <section class="hero">
+    <span class="eyebrow"><i class="fa-solid fa-store"></i> Para bodegas y negocios pequeños</span>
+    <h1>Tu bodega, <em>bajo control</em>, desde el celular</h1>
+    <p class="hero-sub">Kaserita es un sistema de punto de venta: caja, inventario, clientes y reportes — con la opción de sumar un catálogo online para recibir pedidos por WhatsApp, sin depender de papel ni de cuadernos.</p>
+    <div class="hero-ctas">
+      <a class="cta-primary" href="/registro">Crear mi cuenta <i class="fa-solid fa-arrow-right"></i></a>
+      <a class="cta-secondary" href="/pos">Ya tengo cuenta <i class="fa-solid fa-right-to-bracket"></i></a>
     </div>
-  </div>
-  <div id="root"></div>
+  </section>
 
-  <script>
-    // Momento en que arrancó el splash -- el panel de marca del login toma
-    // este dato para "adelantar" su propia animación de fondo (ver
-    // kgSyncDelayRef más abajo en el componente) y que las manchas de color
-    // no den un salto de posición justo cuando el splash desaparece.
-    window.__kgSplashT0 = performance.now();
+  <section class="section">
+    <h2 class="section-title">Qué ofrece Kaserita</h2>
+    <p class="section-sub">Todo lo que una bodega necesita para vender rápido y saber en qué está parada.</p>
+    <div class="benefits">
+      <div class="benefit"><div class="benefit-icon"><i class="fa-solid fa-cash-register"></i></div><h3>Caja y ventas</h3><p>Cobra en segundos, con boleta/ticket y control de turnos por cajero.</p></div>
+      <div class="benefit"><div class="benefit-icon"><i class="fa-solid fa-boxes-stacked"></i></div><h3>Inventario</h3><p>Stock actualizado en cada venta, alertas de productos por agotarse.</p></div>
+      <div class="benefit"><div class="benefit-icon"><i class="fa-solid fa-users"></i></div><h3>Clientes y fiado</h3><p>Registra cuentas por cobrar y el historial de cada cliente.</p></div>
+      <div class="benefit"><div class="benefit-icon"><i class="fa-solid fa-chart-line"></i></div><h3>Reportes</h3><p>Ventas del día, del mes y por cajero, sin hacer cuentas a mano.</p></div>
+      <div class="benefit"><div class="benefit-icon"><i class="fa-brands fa-whatsapp"></i></div><h3>Pedidos por WhatsApp</h3><p>Catálogo público opcional (KaseritaDelivery) para que tus clientes pidan y pasen a recoger.</p></div>
+      <div class="benefit"><div class="benefit-icon"><i class="fa-solid fa-mobile-screen"></i></div><h3>100% desde el celular</h3><p>Se instala como app, sin comprar equipos ni instalar programas.</p></div>
+    </div>
+  </section>
 
-    // Frases cortas que se van turnando en el splash mientras carga --  no
-    // reflejan un progreso real (no hay forma de medirlo acá), solo dan la
-    // sensación de que algo sigue pasando en vez de una pantalla estática.
-    const FRASES_SPLASH = [
-      'Preparando tu catálogo...',
-      'Cargando tus productos...',
-      'Afinando el punto de venta...',
-      'Ya casi está listo...'
-    ];
-    let fraseSplashIdx = 0;
-    let fraseSplashIntervalo = setInterval(() => {
-      const elFrase = document.getElementById('splash-status');
-      if (!elFrase) return;
-      elFrase.classList.add('splash-status-oculto');
-      setTimeout(() => {
-        fraseSplashIdx = (fraseSplashIdx + 1) % FRASES_SPLASH.length;
-        elFrase.textContent = FRASES_SPLASH[fraseSplashIdx];
-        elFrase.classList.remove('splash-status-oculto');
-      }, 250);
-    }, 1800);
+  <section class="section">
+    <h2 class="section-title">Cómo funciona</h2>
+    <div class="how-steps">
+      <div class="how-step"><div class="how-num">1</div><div class="how-text"><strong>Creás tu cuenta</strong><span>Con Google o con tu DNI, en un par de minutos.</span></div></div>
+      <div class="how-step"><div class="how-num">2</div><div class="how-text"><strong>Cargas tu catálogo</strong><span>Tus productos, precios y stock inicial — a mano o importando una lista.</span></div></div>
+      <div class="how-step"><div class="how-num">3</div><div class="how-text"><strong>Empiezas a vender</strong><span>Abres turno de caja y cobras, todo desde el mismo celular.</span></div></div>
+    </div>
+  </section>
 
-    window.ocultarSplashKaserita = function () {
-      const el = document.getElementById('splash-kaserita');
-      if (!el) return;
-      clearInterval(fraseSplashIntervalo);
-      // En escritorio primero se encoge hacia la izquierda (mismo ancho
-      // final que el panel de marca real) y recién después se desvanece --
-      // así se ve como si el splash se transformara en el panel en vez de
-      // simplemente taparlo y desaparecer. En mobile el login no se divide
-      // en columnas, así que se salta directo al desvanecido de siempre.
-      const esEscritorio = window.matchMedia('(min-width: 768px)').matches;
-      const desvanecer = () => {
-        el.classList.add('splash-oculto');
-        setTimeout(() => el.remove(), 450);
-      };
-      if (esEscritorio) {
-        el.classList.add('splash-encogiendo');
-        setTimeout(desvanecer, 700);
-      } else {
-        desvanecer();
-      }
-    };
-    // Salvavidas: si algo tarda demasiado en cargar, el splash no se queda
-    // pegado para siempre.
-    setTimeout(() => window.ocultarSplashKaserita(), 8000);
-  </script>
+  <section class="section">
+    <h2 class="section-title">Planes</h2>
+    <p class="section-sub">Pago mensual, sin contrato de permanencia. Los precios vigentes y el detalle de cada plan se muestran al crear tu cuenta.</p>
+    <div class="plans">
+      <div class="plan-card">
+        <h3>Punto de Venta</h3>
+        <ul>
+          <li><i class="fa-solid fa-check"></i> Caja, turnos y boletas</li>
+          <li><i class="fa-solid fa-check"></i> Inventario y stock</li>
+          <li><i class="fa-solid fa-check"></i> Clientes y cuentas por cobrar</li>
+          <li><i class="fa-solid fa-check"></i> Reportes de ventas</li>
+        </ul>
+      </div>
+      <div class="plan-card destacado">
+        <h3>Punto de Venta + Catálogo Online <span class="plan-badge">Más elegido</span></h3>
+        <ul>
+          <li><i class="fa-solid fa-check"></i> Todo lo del plan Punto de Venta</li>
+          <li><i class="fa-solid fa-check"></i> Vitrina pública con tu link propio</li>
+          <li><i class="fa-solid fa-check"></i> Pedidos por WhatsApp con código de referencia</li>
+        </ul>
+      </div>
+    </div>
+    <p class="plan-note">Ver precios y <a href="/registro">crear tu cuenta →</a></p>
+  </section>
 
-  <script>
-    if ('serviceWorker' in navigator) {
-      window.addEventListener('load', () => {
-        navigator.serviceWorker.register('/sw.js').catch(() => {});
-      });
-    }
-  </script>
+  <section class="section">
+    <h2 class="section-title">Contacto</h2>
+    <div class="contact-grid">
+      <a class="contact-card" href="tel:+51900376462"><i class="fa-solid fa-phone"></i><div><strong>Teléfono / WhatsApp</strong><span>+51 900 376 462</span></div></a>
+      <a class="contact-card" href="mailto:smartdeskapps@smartdeskapps.com"><i class="fa-solid fa-envelope"></i><div><strong>Correo</strong><span>smartdeskapps@smartdeskapps.com</span></div></a>
+      <a class="contact-card" href="https://www.facebook.com/profile.php?id=61594577277594" target="_blank" rel="noopener"><i class="fa-brands fa-facebook"></i><div><strong>Facebook</strong><span>Kaserita</span></div></a>
+      <div class="contact-card"><i class="fa-solid fa-building"></i><div><strong>Operación</strong><span>100% virtual — sin local de atención al público</span></div></div>
+    </div>
+  </section>
 
-  <!-- Aplicación React + Supabase con Todos los Módulos -->
-  <script type="module" src="/src/main.jsx"></script>
+  <section class="section">
+    <div class="legal-links">
+      <a href="/terminos"><i class="fa-solid fa-file-contract"></i> Términos y condiciones</a>
+      <a href="/privacidad"><i class="fa-solid fa-shield-halved"></i> Política de privacidad</a>
+      <a href="/reclamos"><i class="fa-solid fa-book"></i> Libro de Reclamaciones</a>
+    </div>
+  </section>
+
+  <footer>
+    <div class="foot-brand">Kaser<span>ita</span></div>
+    <p>RUC 10490217644 · Operación 100% virtual</p>
+    <p class="foot-ruc">Kaserita © 2026 — hecho para bodegas peruanas</p>
+  </footer>
+</div>
 </body>
 </html>
