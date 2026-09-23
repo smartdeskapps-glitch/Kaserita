@@ -5864,24 +5864,11 @@ import './index.css';
           };
           if (esModoDemo) {
             if (catalogoDemoRef.current) {
-              catalogoDemoRef.current = catalogoDemoRef.current.map((p) => {
-                // Solo puede haber un producto destacado por bodega -- al marcar
-                // uno se desmarca cualquier otro que lo tuviera activado.
-                if (payload.es_destacado && p.id !== productoEditando.id && p.es_destacado) {
-                  return { ...p, es_destacado: false };
-                }
-                return p.id === productoEditando.id ? { ...p, ...payload } : p;
-              });
+              catalogoDemoRef.current = catalogoDemoRef.current.map((p) =>
+                p.id === productoEditando.id ? { ...p, ...payload } : p
+              );
             }
           } else if (sbClient) {
-            if (payload.es_destacado) {
-              const { error: errDesmarcar } = await sbClient
-                .from('productos')
-                .update({ es_destacado: false })
-                .eq('bodega_id', bodegaId)
-                .neq('id', productoEditando.id);
-              if (errDesmarcar) throw errDesmarcar;
-            }
             const { error } = await sbClient.from('productos').update(payload).eq('id', productoEditando.id);
             if (error) throw error;
           }
@@ -10720,7 +10707,7 @@ import './index.css';
                   </span>
                   <span>
                     <span className="block text-xs font-bold text-stone-800">Destacar en Kaserita Delivery</span>
-                    <span className="block text-[10px] text-stone-500">Aparece en la tarjeta principal de tu tienda online. Solo puede haber uno -- al marcar este se desmarca cualquier otro.</span>
+                    <span className="block text-[10px] text-stone-500">Aparece en el carrusel de destacados de tu tienda online. Podés marcar varios productos.</span>
                   </span>
                 </label>
                 <div className="space-y-2.5">
