@@ -11944,7 +11944,7 @@ import './index.css';
                   <h3 className="text-base font-bold text-stone-900 flex items-center gap-2">
                     <i className="fa-solid fa-share-nodes text-orange-600"></i> Mi Link de Pedidos
                   </h3>
-                  <button onClick={() => setModalDelivery(false)} className="text-stone-600 hover:text-stone-900"><i className="fa-solid fa-xmark"></i></button>
+                  <button onClick={() => { setModalDelivery(false); setMostrarQRDelivery(false); }} className="text-stone-600 hover:text-stone-900"><i className="fa-solid fa-xmark"></i></button>
                 </div>
 
                 {!sesion?.bodega?.delivery_permitido ? (
@@ -12065,10 +12065,10 @@ import './index.css';
                         <div className="flex gap-2">
                           <button
                             type="button"
-                            onClick={() => setMostrarQRDelivery((v) => !v)}
+                            onClick={() => setMostrarQRDelivery(true)}
                             className="flex-1 py-2 bg-stone-200 hover:bg-stone-300 text-stone-800 text-xs font-bold rounded-lg flex items-center justify-center gap-1.5"
                           >
-                            <i className="fa-solid fa-qrcode"></i> {mostrarQRDelivery ? 'Ocultar QR' : 'Ver QR'}
+                            <i className="fa-solid fa-qrcode"></i> Ver QR
                           </button>
                           {typeof navigator !== 'undefined' && navigator.share && (
                             <button
@@ -12081,32 +12081,12 @@ import './index.css';
                                   if (err?.name !== 'AbortError') notificar('No se pudo abrir el menú de compartir.', 'error');
                                 }
                               }}
-                              className="flex-1 py-2 bg-stone-200 hover:bg-stone-300 text-stone-800 text-xs font-bold rounded-lg flex items-center justify-center gap-1.5"
+                              className="flex-1 py-2 bg-stone-900 hover:bg-stone-800 text-white text-xs font-bold rounded-lg flex items-center justify-center gap-1.5"
                             >
                               <i className="fa-solid fa-share-nodes"></i> Compartir
                             </button>
                           )}
                         </div>
-
-                        {mostrarQRDelivery && (
-                          <div className="flex flex-col items-center gap-2 bg-white border border-stone-200 rounded-xl p-4">
-                            <img
-                              src={`https://api.qrserver.com/v1/create-qr-code/?size=220x220&data=${encodeURIComponent(`${KASERITA_DELIVERY_URL}/${sesion.bodega.slug}`)}`}
-                              alt="QR del link de pedidos"
-                              width={220}
-                              height={220}
-                              className="rounded-lg"
-                            />
-                            <p className="text-[10px] text-stone-500 text-center">
-                              Tus clientes escanean este código con la cámara de su celular para entrar directo a tu vitrina.
-                            </p>
-                          </div>
-                        )}
-
-                        <p className="text-[10px] text-stone-500 flex items-start gap-1.5">
-                          <i className="fa-solid fa-circle-info mt-0.5 shrink-0"></i>
-                          Para pasar el link por NFC (acercando los celulares), usá "Compartir" arriba y elegí la opción de cercanía de tu celular (Nearby Share / Compartir con Google Play en Android, AirDrop en iPhone) -- la mayoría de celulares ya no soporta el NFC directo de link a link, pero esa opción hace lo mismo acercando los teléfonos.
-                        </p>
                       </div>
                     )}
 
@@ -12119,6 +12099,36 @@ import './index.css';
                     </button>
                   </>
                 )}
+              </div>
+            </div>
+          )}
+
+          {/* Modal: QR del link de pedidos en grande, para que el cliente lo escanee desde lejos */}
+          {mostrarQRDelivery && sesion?.bodega?.slug && (
+            <div
+              className="fixed inset-0 bg-black/90 flex items-center justify-center z-[70] p-4"
+              onClick={() => setMostrarQRDelivery(false)}
+            >
+              <div
+                className="bg-white rounded-2xl p-6 w-full max-w-sm flex flex-col items-center gap-4 shadow-2xl"
+                onClick={(e) => e.stopPropagation()}
+              >
+                <div className="flex items-center justify-between w-full">
+                  <h3 className="text-sm font-bold text-stone-900">Escaneá para pedir</h3>
+                  <button onClick={() => setMostrarQRDelivery(false)} className="text-stone-500 hover:text-stone-900">
+                    <i className="fa-solid fa-xmark text-lg"></i>
+                  </button>
+                </div>
+                <img
+                  src={`https://api.qrserver.com/v1/create-qr-code/?size=400x400&data=${encodeURIComponent(`${KASERITA_DELIVERY_URL}/${sesion.bodega.slug}`)}`}
+                  alt="QR del link de pedidos"
+                  width={320}
+                  height={320}
+                  className="rounded-lg w-full max-w-[320px] h-auto"
+                />
+                <p className="text-xs text-stone-500 text-center">
+                  Tus clientes escanean este código con la cámara de su celular para entrar directo a tu vitrina.
+                </p>
               </div>
             </div>
           )}
