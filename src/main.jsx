@@ -2247,6 +2247,13 @@ import './index.css';
       const [tabPedidosRetirar, setTabPedidosRetirar] = useState('pendiente'); // 'pendiente' | 'listo' | 'historial'
       const [marcandoListoId, setMarcandoListoId] = useState(null);
       const [procesandoPedidoRetirarId, setProcesandoPedidoRetirarId] = useState(null);
+      // Pedidos de "Pedidos por retirar" cuyos items ya están en el carrito
+      // actual pero todavía no se cobraron -- se cierran de verdad (borrado
+      // de pedidos_delivery + marcar_pedido_retirado) recién cuando la venta
+      // se cobra con éxito (ver handleCobrar), no al tocar "Al carrito". Si
+      // se vacía o se aparca el carrito sin cobrar, se desvinculan para que
+      // el pedido siga disponible en su cola.
+      const [pedidosCargadosAlCarrito, setPedidosCargadosAlCarrito] = useState([]);
 
       // --- Arqueo y Cierre de Caja ---
       const [modalCierreCaja, setModalCierreCaja] = useState(false);
@@ -3019,10 +3026,17 @@ import './index.css';
       // Carga directo al carrito del POS un pedido de "Pedidos por retirar",
       // sin tener que ir a buscarlo de nuevo por código en "Cargar Pedido".
       // Items ya vienen validados (los reconstruyó el trigger al crearse el
-      // pedido), así que se agregan tal cual. Marca "retirado" al final,
-      // igual que hace cargarPedidoPorCodigo -- es el mismo paso, solo que
-      // arrancando desde esta lista en vez de tipear el código.
+      // pedido), así que se agregan tal cual. El seguimiento NO se cierra
+      // acá -- si se cerrara al cargar al carrito, un cajero que carga el
+      // pedido y después no llega a cobrar (se distrae, el cliente se
+      // arrepiente, se vacía el carrito) lo pierde igual, ya marcado como
+      // entregado sin haberlo cobrado. Se queda "vinculado" y se cierra de
+      // verdad recién cuando handleCobrar termina la venta con éxito.
       const cargarPedidoDesdeRetirar = async (pedido) => {
+        if (pedidosCargadosAlCarrito.some((p) => p.id === pedido.id)) {
+          notificar('Ese pedido ya está en el carrito -- cóbralo para completarlo.', 'info');
+          return;
+        }
         setProcesandoPedidoRetirarId(pedido.id);
         try {
           let agregados = 0;
@@ -3045,10 +3059,10 @@ import './index.css';
               notificar(`"${it.descripcion}" ya no está en tu inventario, no se agregó.`, 'error');
             }
           });
-          await sbClient.from('pedidos_delivery').delete().eq('codigo_corto', pedido.codigo_corto);
-          await sbClient.rpc('marcar_pedido_retirado', { p_codigo_corto: pedido.codigo_corto });
-          setPedidosRetirar((prev) => prev.map((p) => (p.id === pedido.id ? { ...p, estado: 'retirado' } : p)));
-          if (agregados > 0) notificar(`Pedido ${pedido.codigo_corto} agregado al carrito.`, 'success');
+          if (agregados > 0) {
+            setPedidosCargadosAlCarrito((prev) => [...prev, { id: pedido.id, codigoCorto: pedido.codigo_corto }]);
+            notificar(`Pedido ${pedido.codigo_corto} agregado al carrito. Se cierra solo cuando cobres.`, 'success');
+          }
         } finally {
           setProcesandoPedidoRetirarId(null);
         }
@@ -4801,6 +4815,11 @@ import './index.css';
         setCarrito([]);
         setMostrarPago(false);
         reiniciarClienteYMedioPago();
+        // Al pausar se desvincula cualquier pedido de "Pedidos por retirar"
+        // que estuviera cargado -- sigue disponible en su cola por si esta
+        // venta en espera nunca se retoma; si se retoma y cobra más tarde,
+        // el pedido se cierra a mano con "Ya retiró".
+        setPedidosCargadosAlCarrito([]);
         notificar('Venta puesta en espera', 'info');
       };
 
@@ -7584,6 +7603,29 @@ import './index.css';
             }
           }
 
+          // Recién acá se cierran de verdad los pedidos de "Pedidos por
+          // retirar" que se habían cargado a este carrito (ver
+          // cargarPedidoDesdeRetirar): la venta ya se cobró y no tiene
+          // vuelta atrás, así que ahora sí corresponde borrar el pedido de
+          // pedidos_delivery y marcar su seguimiento como retirado. Es
+          // best-effort -- si falla, no debe tumbar la boleta ya cobrada.
+          if (sbClient && !esModoDemo && pedidosCargadosAlCarrito.length > 0) {
+            const vinculados = pedidosCargadosAlCarrito;
+            Promise.all(vinculados.map(async (p) => {
+              try {
+                await sbClient.from('pedidos_delivery').delete().eq('codigo_corto', p.codigoCorto);
+                await sbClient.rpc('marcar_pedido_retirado', { p_codigo_corto: p.codigoCorto });
+              } catch (err) {
+                console.warn('No se pudo cerrar el seguimiento del pedido', p.codigoCorto, err);
+              }
+            })).then(() => {
+              setPedidosRetirar((prev) =>
+                prev.map((x) => (vinculados.some((v) => v.id === x.id) ? { ...x, estado: 'retirado' } : x))
+              );
+            });
+            setPedidosCargadosAlCarrito([]);
+          }
+
           const resultado = {
             nro_boleta: correlativo,
             medio_pago: medioPago,
@@ -8724,7 +8766,7 @@ import './index.css';
                 )}
                 {carrito.length > 0 && (
                   <button
-                    onClick={() => { setCarrito([]); setDescuentoTipo(null); setDescuentoValor(''); setMostrarPago(false); reiniciarClienteYMedioPago(); }}
+                    onClick={() => { setCarrito([]); setDescuentoTipo(null); setDescuentoValor(''); setMostrarPago(false); reiniciarClienteYMedioPago(); setPedidosCargadosAlCarrito([]); }}
                     className="text-xs text-rose-600 hover:text-rose-600 transition"
                   >
                     Vaciar
