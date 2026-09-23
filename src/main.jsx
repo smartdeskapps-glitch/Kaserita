@@ -8705,6 +8705,7 @@ import './index.css';
                     0
                   );
                   const esHistorial = p.estado === 'retirado' || p.estado === 'cancelado';
+                  const yaEnCarrito = pedidosCargadosAlCarrito.some((c) => c.id === p.id);
                   const estadoInfo = {
                     pendiente: { texto: 'Pendiente', color: 'text-amber-600', dot: 'bg-amber-500' },
                     listo: { texto: 'Listo', color: 'text-emerald-600', dot: 'bg-emerald-500' },
@@ -8755,63 +8756,71 @@ import './index.css';
                         <span className="text-sm font-semibold text-stone-900 tabular-nums">S/ {totalPedido.toFixed(2)}</span>
                       </div>
 
-                      {p.estado === 'pendiente' && (
+                      {/* "Ya retiró" ya no es un atajo disponible desde el
+                          arranque -- confundía con "Marcar listo"/"Al
+                          carrito" y cerraba el pedido sin pasar por el
+                          carrito. Ahora solo existe (como "Confirmar
+                          retiro") una vez que el pedido ya está cargado en
+                          el carrito y pendiente de cobro: en ese punto ya
+                          no tiene sentido ofrecer "Marcar listo" ni volver a
+                          "Cargar al carrito", así que el botón principal
+                          cambia de rol. */}
+                      {yaEnCarrito ? (
                         <button
-                          onClick={() => marcarPedidoListo(p.id)}
-                          disabled={marcandoListoId === p.id || procesando}
-                          className="w-full py-2 rounded-lg bg-stone-900 hover:bg-stone-800 text-white text-xs font-semibold disabled:opacity-50 transition"
-                        >
-                          {marcandoListoId === p.id ? 'Un momento...' : 'Marcar listo'}
-                        </button>
-                      )}
-                      {p.estado === 'listo' && (
-                        <button
-                          onClick={() => cargarPedidoDesdeRetirar(p)}
+                          onClick={() => marcarRetiradoDirecto(p)}
                           disabled={procesando}
-                          title="Agregar los productos al carrito y marcar retirado"
+                          title="Confirmar que el cliente ya se llevó lo que está en el carrito"
                           className="w-full py-2 rounded-lg bg-stone-900 hover:bg-stone-800 text-white text-xs font-semibold disabled:opacity-50 transition"
                         >
-                          {procesando ? 'Un momento...' : 'Cargar al carrito'}
+                          Confirmar retiro
                         </button>
-                      )}
-
-                      {!esHistorial && (
-                        // Orden a propósito: "Al carrito" primero (el paso
-                        // normal), "Eliminar" después, y "Ya retiró" al
-                        // final -- es el atajo que cierra el pedido de una
-                        // sin pasar por el carrito, así que va último para
-                        // no clickearlo por error en vez de "Al carrito".
-                        <div className="flex items-center gap-3 pt-0.5">
+                      ) : (
+                        <>
                           {p.estado === 'pendiente' && (
-                            <>
-                              <button
-                                onClick={() => cargarPedidoDesdeRetirar(p)}
-                                disabled={procesando}
-                                title="Agregar los productos al carrito y marcar retirado"
-                                className="text-[11px] font-medium text-stone-600 hover:text-stone-900 transition"
-                              >
-                                Al carrito
-                              </button>
-                              <span className="text-stone-200">·</span>
-                            </>
+                            <button
+                              onClick={() => marcarPedidoListo(p.id)}
+                              disabled={marcandoListoId === p.id || procesando}
+                              className="w-full py-2 rounded-lg bg-stone-900 hover:bg-stone-800 text-white text-xs font-semibold disabled:opacity-50 transition"
+                            >
+                              {marcandoListoId === p.id ? 'Un momento...' : 'Marcar listo'}
+                            </button>
                           )}
-                          <button
-                            onClick={() => eliminarPedidoRetirar(p)}
-                            disabled={procesando}
-                            title="Eliminar de la cola"
-                            className="text-[11px] font-medium text-stone-400 hover:text-rose-500 transition"
-                          >
-                            Eliminar
-                          </button>
-                          <button
-                            onClick={() => marcarRetiradoDirecto(p)}
-                            disabled={procesando}
-                            title="El cliente ya lo retiró (no toca el carrito)"
-                            className="ml-auto text-[11px] font-medium text-stone-300 hover:text-stone-600 transition"
-                          >
-                            Ya retiró
-                          </button>
-                        </div>
+                          {p.estado === 'listo' && (
+                            <button
+                              onClick={() => cargarPedidoDesdeRetirar(p)}
+                              disabled={procesando}
+                              title="Agregar los productos al carrito"
+                              className="w-full py-2 rounded-lg bg-stone-900 hover:bg-stone-800 text-white text-xs font-semibold disabled:opacity-50 transition"
+                            >
+                              {procesando ? 'Un momento...' : 'Cargar al carrito'}
+                            </button>
+                          )}
+                          {!esHistorial && (
+                            <div className="flex items-center gap-3 pt-0.5">
+                              {p.estado === 'pendiente' && (
+                                <>
+                                  <button
+                                    onClick={() => cargarPedidoDesdeRetirar(p)}
+                                    disabled={procesando}
+                                    title="Agregar los productos al carrito"
+                                    className="text-[11px] font-medium text-stone-600 hover:text-stone-900 transition"
+                                  >
+                                    Al carrito
+                                  </button>
+                                  <span className="text-stone-200">·</span>
+                                </>
+                              )}
+                              <button
+                                onClick={() => eliminarPedidoRetirar(p)}
+                                disabled={procesando}
+                                title="Eliminar de la cola"
+                                className="ml-auto text-[11px] font-medium text-stone-400 hover:text-rose-500 transition"
+                              >
+                                Eliminar
+                              </button>
+                            </div>
+                          )}
+                        </>
                       )}
                     </div>
                     </React.Fragment>
