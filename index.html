@@ -59,11 +59,28 @@
   .cta-primary:hover { transform: translateY(-1px); }
   .hero-shot { margin: 34px 0 0; }
   .hero-shot img { width: 100%; height: auto; display: block; border-radius: 20px; box-shadow: 0 30px 60px -30px rgba(28,21,35,.3); }
+  /* En celular la imagen se achica tanto que el texto de precios queda
+     ilegible -- se recorta a la parte de arriba (logo, título, persona,
+     celular) con object-fit, y se esconde la fila de planes: esa misma
+     información ya está como texto real y grande más abajo, en la
+     sección "Planes". */
+  @media (max-width: 640px) {
+    .hero-shot img { aspect-ratio: 1600 / 860; object-fit: cover; object-position: top; }
+  }
 
   .section-wide { margin-left: calc(50% - 50vw); margin-right: calc(50% - 50vw); padding: 0 20px; }
   .eyebrow-center { display: flex; width: fit-content; margin: 0 auto 16px; }
-  .wide-shot { max-width: 1240px; margin: 0 auto; overflow-x: auto; border-radius: 18px; }
+  .wide-shot { max-width: 1240px; margin: 0 auto; overflow-x: auto; border-radius: 18px; position: relative; }
   .wide-shot img { display: block; width: 100%; min-width: 780px; height: auto; border-radius: 18px; }
+  .wide-shot-hint {
+    display: none; position: absolute; top: 0; right: 0; bottom: 0; width: 56px; border-radius: 0 18px 18px 0;
+    background: linear-gradient(90deg, transparent, rgba(28,21,35,.35));
+    align-items: center; justify-content: center; color: #fff; font-size: 15px; pointer-events: none;
+  }
+  @media (max-width: 780px) { .wide-shot-hint { display: flex; } }
+  @keyframes wide-shot-nudge { 0%, 100% { transform: translateX(0); } 50% { transform: translateX(-4px); } }
+  .wide-shot-hint i { animation: wide-shot-nudge 1.3s ease-in-out infinite; }
+  .wide-shot.scrolled .wide-shot-hint { display: none; }
 
   .section { margin: 46px 0; }
   .section-title { font-family: var(--font-display); font-weight: 800; font-size: 21px; margin: 0 0 4px; letter-spacing: -0.01em; text-align: center; }
@@ -196,8 +213,9 @@
 
   <section class="section section-wide">
     <span class="eyebrow eyebrow-center"><i class="fa-brands fa-whatsapp"></i> KaseritaDelivery</span>
-    <div class="wide-shot">
+    <div class="wide-shot" id="wideShot">
       <img src="/como-funciona-delivery.jpg" alt="Tus clientes hacen sus pedidos desde donde estén con KaseritaDelivery, y tú eliges retiro en tienda o delivery." loading="lazy">
+      <div class="wide-shot-hint"><i class="fa-solid fa-chevron-right"></i></div>
     </div>
   </section>
 
@@ -295,6 +313,14 @@
     }
     window.addEventListener('scroll', onScroll, { passive: true });
     onScroll();
+  })();
+
+  (function () {
+    var wideShot = document.getElementById('wideShot');
+    if (!wideShot) return;
+    wideShot.addEventListener('scroll', function () {
+      if (wideShot.scrollLeft > 12) wideShot.classList.add('scrolled');
+    }, { passive: true });
   })();
 </script>
 </body>
