@@ -8545,108 +8545,80 @@ import './index.css';
                     (acc, it) => acc + Number(it.cantidad || 0) * Number(it.precio_venta || 0),
                     0
                   );
-                  const esNuevo = !colgado && minutos < 5 && p.estado === 'pendiente';
                   return (
                     <div
                       key={p.id}
-                      className={`relative overflow-hidden bg-white shadow-sm border rounded-2xl pl-4 pr-3.5 py-3.5 space-y-3 ${colgado ? 'border-rose-300 bg-rose-50/40' : 'border-stone-200'}`}
+                      className="bg-white border border-stone-200 rounded-xl p-4 space-y-3"
                     >
-                      <span
-                        className={`absolute inset-y-0 left-0 w-1.5 ${
-                          colgado ? 'bg-rose-400' : p.estado === 'listo' ? 'bg-emerald-400' : 'bg-amber-400'
-                        }`}
-                      ></span>
-
-                      <div className="flex items-center justify-between gap-2">
-                        <div className="flex items-center gap-2.5 min-w-0">
-                          <span className="relative w-10 h-10 rounded-full bg-gradient-to-br from-[#7c1fe0] to-[#6105dc] text-white text-sm font-bold flex items-center justify-center shrink-0 shadow-sm">
-                            {nombreCliente.trim().charAt(0).toUpperCase()}
-                            {esNuevo && (
-                              <span className="absolute -top-0.5 -right-0.5 w-3 h-3 rounded-full bg-rose-500 border-2 border-white animate-pulse"></span>
-                            )}
-                          </span>
-                          <div className="min-w-0">
-                            <p className="text-sm font-bold text-stone-900 truncate">{nombreCliente}</p>
-                            <p className="text-[11px] text-stone-400 flex items-center gap-1">
-                              <span className="font-mono">{p.codigo_corto}</span>
-                              <span>· {tiempoTexto}</span>
-                            </p>
-                          </div>
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="min-w-0">
+                          <p className="text-[13.5px] font-semibold text-stone-900 truncate">{nombreCliente}</p>
+                          <p className="text-[11px] text-stone-400 mt-0.5">
+                            {p.codigo_corto} · {tiempoTexto}
+                            {colgado && <span className="text-rose-500"> · sin retirar</span>}
+                          </p>
                         </div>
-                        <div className="flex flex-col items-end gap-1 shrink-0">
-                          {colgado && (
-                            <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-rose-100 text-rose-700 whitespace-nowrap">
-                              <i className="fa-solid fa-triangle-exclamation mr-1"></i>Colgado
-                            </span>
-                          )}
-                          <span
-                            className={`text-[10px] font-semibold px-2 py-0.5 rounded-full whitespace-nowrap ${
-                              p.estado === 'listo' ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'
-                            }`}
-                          >
-                            {p.estado === 'listo' ? 'Listo' : 'Pendiente'}
-                          </span>
-                        </div>
+                        <span
+                          className={`shrink-0 text-[10px] font-semibold uppercase tracking-wide pt-0.5 ${
+                            colgado ? 'text-rose-500' : p.estado === 'listo' ? 'text-emerald-600' : 'text-amber-600'
+                          }`}
+                        >
+                          {p.estado === 'listo' ? 'Listo' : 'Pendiente'}
+                        </span>
                       </div>
 
-                      <span className="inline-flex items-center gap-1.5 text-[10px] font-semibold text-violet-700 bg-violet-50 px-2 py-1 rounded-lg">
-                        <i className="fa-solid fa-store"></i> Retiro en tienda
-                      </span>
-
-                      <div className="border-t border-dashed border-stone-200 pt-2.5 space-y-1.5">
+                      <div className="divide-y divide-stone-100 border-y border-stone-100">
                         {(p.items || []).map((it, i) => (
-                          <div key={i} className="flex items-center justify-between gap-2 text-xs">
-                            <span className="flex items-center gap-1.5 min-w-0">
-                              <span className="shrink-0 text-[10px] font-bold text-stone-500 bg-stone-100 rounded px-1.5 py-0.5">
-                                {it.cantidad}x
-                              </span>
-                              <span className="text-stone-600 truncate">{it.descripcion}</span>
+                          <div key={i} className="flex items-baseline justify-between gap-3 py-1.5 text-xs">
+                            <span className="text-stone-500 truncate">
+                              <span className="text-stone-400">{it.cantidad} ×</span> {it.descripcion}
                             </span>
                             <span className="text-stone-500 tabular-nums shrink-0">
-                              S/ {(Number(it.cantidad || 0) * Number(it.precio_venta || 0)).toFixed(2)}
+                              {(Number(it.cantidad || 0) * Number(it.precio_venta || 0)).toFixed(2)}
                             </span>
                           </div>
                         ))}
                       </div>
 
-                      <div className="flex items-center justify-between px-2.5 py-2 rounded-lg bg-stone-50">
-                        <span className="text-[11px] font-semibold text-stone-400 uppercase tracking-wide">Total</span>
-                        <span className="text-base font-extrabold text-stone-900 tabular-nums">S/ {totalPedido.toFixed(2)}</span>
+                      <div className="flex items-baseline justify-between">
+                        <span className="text-[11px] text-stone-400">Total</span>
+                        <span className="text-sm font-semibold text-stone-900 tabular-nums">S/ {totalPedido.toFixed(2)}</span>
                       </div>
 
                       {p.estado === 'pendiente' && (
                         <button
                           onClick={() => marcarPedidoListo(p.id)}
                           disabled={marcandoListoId === p.id || procesando}
-                          className="w-full py-2 rounded-lg bg-stone-900 hover:bg-stone-800 text-white text-xs font-bold disabled:opacity-50"
+                          className="w-full py-2 rounded-lg bg-stone-900 hover:bg-stone-800 text-white text-xs font-semibold disabled:opacity-50 transition"
                         >
-                          {marcandoListoId === p.id ? 'Un momento...' : 'Marcar Listo'}
+                          {marcandoListoId === p.id ? 'Un momento...' : 'Marcar listo'}
                         </button>
                       )}
-                      <div className="flex gap-1.5">
+                      <div className="flex items-center gap-3 pt-0.5">
                         <button
                           onClick={() => cargarPedidoDesdeRetirar(p)}
                           disabled={procesando}
                           title="Agregar los productos al carrito y marcar retirado"
-                          className="flex-1 py-1.5 rounded-lg bg-emerald-100 hover:bg-emerald-200 text-emerald-700 text-[11px] font-bold disabled:opacity-50"
+                          className="text-[11px] font-medium text-stone-600 hover:text-stone-900 transition"
                         >
-                          <i className="fa-solid fa-cart-shopping mr-1"></i>Al carrito
+                          Al carrito
                         </button>
+                        <span className="text-stone-200">·</span>
                         <button
                           onClick={() => marcarRetiradoDirecto(p)}
                           disabled={procesando}
                           title="El cliente ya lo retiró (no toca el carrito)"
-                          className="flex-1 py-1.5 rounded-lg bg-stone-200 hover:bg-stone-300 text-stone-700 text-[11px] font-bold disabled:opacity-50"
+                          className="text-[11px] font-medium text-stone-600 hover:text-stone-900 transition"
                         >
-                          <i className="fa-solid fa-check mr-1"></i>Ya retiró
+                          Ya retiró
                         </button>
                         <button
                           onClick={() => eliminarPedidoRetirar(p)}
                           disabled={procesando}
                           title="Eliminar de la cola"
-                          className="shrink-0 w-8 rounded-lg bg-rose-100 hover:bg-rose-200 text-rose-700 text-xs disabled:opacity-50"
+                          className="ml-auto text-[11px] font-medium text-stone-300 hover:text-rose-500 transition"
                         >
-                          <i className="fa-solid fa-trash-can"></i>
+                          Eliminar
                         </button>
                       </div>
                     </div>
