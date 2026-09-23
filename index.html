@@ -41,6 +41,8 @@
   .cta-primary { font-family: var(--font-display); font-weight: 700; font-size: 14.5px; color: #fff; background: linear-gradient(120deg, var(--blue), var(--violet)); border-radius: 13px; padding: 14px 26px; text-decoration: none; box-shadow: 0 10px 24px -10px rgba(124,58,237,.5); display: inline-flex; align-items: center; gap: 9px; transition: transform .12s ease; }
   .cta-primary:hover { transform: translateY(-1px); }
   .cta-secondary { font-family: var(--font-display); font-weight: 700; font-size: 14.5px; color: var(--ink); background: var(--card); border: 1.5px solid var(--line); border-radius: 13px; padding: 14px 26px; text-decoration: none; display: inline-flex; align-items: center; gap: 9px; }
+  .hero-shot { margin: 34px 0 0; }
+  .hero-shot img { width: 100%; height: auto; display: block; border-radius: 20px; box-shadow: 0 30px 60px -30px rgba(28,21,35,.25); }
 
   .section { margin: 46px 0; }
   .section-title { font-family: var(--font-display); font-weight: 800; font-size: 21px; margin: 0 0 4px; letter-spacing: -0.01em; text-align: center; }
@@ -55,8 +57,11 @@
   .plans { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 14px; }
   .plan-card { background: var(--card); border: 1.5px solid var(--line); border-radius: 18px; padding: 20px; }
   .plan-card.destacado { border-color: var(--violet); box-shadow: 0 0 0 3px rgba(124,58,237,.12); }
-  .plan-card h3 { font-family: var(--font-display); font-weight: 700; font-size: 15px; margin: 0 0 8px; display: flex; align-items: center; gap: 8px; }
+  .plan-card h3 { font-family: var(--font-display); font-weight: 700; font-size: 15px; margin: 0 0 8px; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
   .plan-badge { font-size: 9.5px; font-weight: 700; padding: 2px 7px; border-radius: 999px; background: linear-gradient(120deg, var(--blue), var(--violet)); color: #fff; }
+  .plan-price-tag { font-family: var(--font-display); font-weight: 800; font-size: 22px; margin: 0 0 4px; }
+  .plan-price-tag small { font-family: var(--font-body); font-weight: 500; font-size: 11.5px; color: var(--muted); }
+  .plan-desc-tag { font-size: 12px; color: var(--muted); margin: 0 0 14px; line-height: 1.5; }
   .plan-card ul { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 7px; }
   .plan-card li { font-size: 12.5px; color: var(--ink); display: flex; align-items: flex-start; gap: 8px; }
   .plan-card li i { color: var(--emerald); font-size: 11px; margin-top: 3px; flex-shrink: 0; }
@@ -108,6 +113,9 @@
       <a class="cta-primary" href="/registro">Crear mi cuenta <i class="fa-solid fa-arrow-right"></i></a>
       <a class="cta-secondary" href="/pos">Ya tengo cuenta <i class="fa-solid fa-right-to-bracket"></i></a>
     </div>
+    <div class="hero-shot">
+      <img src="/publicidad-planes.jpg" alt="Kaserita: punto de venta en la laptop y catálogo KaseritaDelivery en el celular, con los planes y precios" loading="eager">
+    </div>
   </section>
 
   <section class="section">
@@ -134,27 +142,32 @@
 
   <section class="section">
     <h2 class="section-title">Planes</h2>
-    <p class="section-sub">Pago mensual, sin contrato de permanencia. Los precios vigentes y el detalle de cada plan se muestran al crear tu cuenta.</p>
+    <p class="section-sub">Pago mensual, sin contrato de permanencia.</p>
     <div class="plans">
       <div class="plan-card">
-        <h3>Punto de Venta</h3>
+        <h3>POS</h3>
+        <p class="plan-price-tag">S/ 30 <small>/mes</small></p>
+        <p class="plan-desc-tag">Gestiona tu tienda de forma rápida y sencilla.</p>
         <ul>
-          <li><i class="fa-solid fa-check"></i> Caja, turnos y boletas</li>
-          <li><i class="fa-solid fa-check"></i> Inventario y stock</li>
-          <li><i class="fa-solid fa-check"></i> Clientes y cuentas por cobrar</li>
-          <li><i class="fa-solid fa-check"></i> Reportes de ventas</li>
+          <li><i class="fa-solid fa-check"></i> Ventas</li>
+          <li><i class="fa-solid fa-check"></i> Inventario</li>
+          <li><i class="fa-solid fa-check"></i> Reportes básicos</li>
+          <li><i class="fa-solid fa-check"></i> Control de caja</li>
         </ul>
       </div>
       <div class="plan-card destacado">
-        <h3>Punto de Venta + Catálogo Online <span class="plan-badge">Más elegido</span></h3>
+        <h3>POS + Catálogo Virtual <span class="plan-badge">Más completo</span></h3>
+        <p class="plan-price-tag">S/ 39.90 <small>los primeros 3 meses</small></p>
+        <p class="plan-desc-tag">Después S/ 54.90/mes. Permite recibir pedidos desde tu tienda y online.</p>
         <ul>
-          <li><i class="fa-solid fa-check"></i> Todo lo del plan Punto de Venta</li>
-          <li><i class="fa-solid fa-check"></i> Vitrina pública con tu link propio</li>
-          <li><i class="fa-solid fa-check"></i> Pedidos por WhatsApp con código de referencia</li>
+          <li><i class="fa-solid fa-check"></i> Todo lo del plan POS</li>
+          <li><i class="fa-solid fa-check"></i> Catálogo virtual para tus clientes</li>
+          <li><i class="fa-solid fa-check"></i> Pedidos por delivery y WhatsApp</li>
+          <li><i class="fa-solid fa-check"></i> Mayor alcance y ventas</li>
         </ul>
       </div>
     </div>
-    <p class="plan-note">Ver precios y <a href="/registro">crear tu cuenta →</a></p>
+    <p class="plan-note">Precios sujetos a promociones vigentes. <a href="/registro">Crear tu cuenta →</a></p>
   </section>
 
   <section class="section">
