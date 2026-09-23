@@ -2246,7 +2246,6 @@ import './index.css';
       const [cargandoPedidosRetirar, setCargandoPedidosRetirar] = useState(false);
       const [marcandoListoId, setMarcandoListoId] = useState(null);
       const [procesandoPedidoRetirarId, setProcesandoPedidoRetirarId] = useState(null);
-      const [avisosPedidosNuevos, setAvisosPedidosNuevos] = useState(0);
 
       // --- Arqueo y Cierre de Caja ---
       const [modalCierreCaja, setModalCierreCaja] = useState(false);
@@ -3105,12 +3104,19 @@ import './index.css';
             (payload) => {
               sonarAvisoPedidoNuevo();
               notificar(`Nuevo pedido: ${payload.new.codigo_corto}`, 'success');
-              setAvisosPedidosNuevos((n) => n + 1);
               setPedidosRetirar((prev) => (prev.some((p) => p.id === payload.new.id) ? prev : [...prev, payload.new]));
             }
           )
           .subscribe();
         return () => { sbClient.removeChannel(canal); };
+      }, [esModoDemo, sesion?.bodega?.id]);
+
+      // Carga inicial de "Pedidos por retirar" al abrir sesión -- así el
+      // aviso de pendientes ya sale correcto desde el arranque, sin
+      // depender de que el cajero abra esa pantalla al menos una vez.
+      useEffect(() => {
+        if (esModoDemo || !sbClient || !sesion?.bodega?.id) return;
+        cargarPedidosRetirar();
       }, [esModoDemo, sesion?.bodega?.id]);
 
       const eliminarPedidoEncontrado = async () => {
@@ -3867,6 +3873,14 @@ import './index.css';
         });
         return mapa;
       }, [carrito]);
+
+      // Cuántos pedidos siguen esperando ser armados -- persiste mientras el
+      // pedido siga "pendiente", sin resetearse solo por haber entrado a
+      // mirar la pantalla una vez (a diferencia del viejo contador de avisos).
+      const pedidosPorRetirarPendientes = useMemo(
+        () => pedidosRetirar.filter((p) => p.estado === 'pendiente').length,
+        [pedidosRetirar]
+      );
 
       // Qué productos son parte de algún combo activo -- para poder
       // avisarlo en su propia tarjeta del catálogo normal (ver ProductoCard
@@ -8334,14 +8348,14 @@ import './index.css';
                       <i className="fa-solid fa-ticket"></i>
                     </button>
                     <button
-                      onClick={() => { setModalPedidosRetirar(true); setAvisosPedidosNuevos(0); cargarPedidosRetirar(); setMostrarResumenMobile(true); }}
+                      onClick={() => { setModalPedidosRetirar(true); cargarPedidosRetirar(); setMostrarResumenMobile(true); }}
                       title="Pedidos por retirar (clientes con cuenta)"
                       className="relative flex items-center justify-center w-10 h-10 shrink-0 bg-white hover:bg-stone-50 text-stone-700 text-xs font-semibold rounded-xl border border-stone-200 transition"
                     >
                       <i className="fa-solid fa-bell-concierge"></i>
-                      {avisosPedidosNuevos > 0 && (
-                        <span className="absolute -top-1.5 -right-1.5 w-4 h-4 flex items-center justify-center bg-rose-600 text-white text-[9px] font-bold rounded-full">
-                          {avisosPedidosNuevos > 9 ? '9+' : avisosPedidosNuevos}
+                      {pedidosPorRetirarPendientes > 0 && (
+                        <span className="absolute -top-1.5 -right-1.5 w-4 h-4 flex items-center justify-center bg-rose-600 text-white text-[9px] font-bold rounded-full animate-pulse">
+                          {pedidosPorRetirarPendientes > 9 ? '9+' : pedidosPorRetirarPendientes}
                         </span>
                       )}
                     </button>
@@ -8637,6 +8651,28 @@ import './index.css';
                 )}
               </div>
             </div>
+
+            {/* Recordatorio fijo de pedidos por retirar -- vive pegado arriba
+                de la lista de ítems, no solo como badge en un botón, para que
+                no se pierda de vista mientras el cajero sigue atendiendo el
+                carrito normal. */}
+            {pedidosPorRetirarPendientes > 0 && (
+              <button
+                onClick={() => { setModalPedidosRetirar(true); cargarPedidosRetirar(); setMostrarResumenMobile(true); }}
+                className="shrink-0 mx-3 mt-2.5 flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl bg-amber-50 border border-amber-200 hover:bg-amber-100 transition text-left"
+              >
+                <span className="relative flex items-center justify-center w-7 h-7 rounded-full bg-amber-500 text-white shrink-0">
+                  <i className="fa-solid fa-bell-concierge text-xs"></i>
+                  <span className="absolute inset-0 rounded-full bg-amber-500 animate-ping opacity-60"></span>
+                </span>
+                <span className="flex-1 text-xs font-bold text-amber-800">
+                  {pedidosPorRetirarPendientes === 1
+                    ? '1 pedido esperando que lo armes'
+                    : `${pedidosPorRetirarPendientes} pedidos esperando que los armes`}
+                </span>
+                <i className="fa-solid fa-chevron-right text-xs text-amber-600"></i>
+              </button>
+            )}
 
             {/* Lista Ítems */}
             <div className="flex-1 overflow-y-auto p-2.5 space-y-1.5 hide-scrollbar">
