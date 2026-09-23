@@ -8540,21 +8540,38 @@ import './index.css';
                   const tiempoTexto = minutos < 60 ? `hace ${minutos} min` : `hace ${Math.floor(minutos / 60)} h`;
                   const colgado = minutos >= 120; // más de 2 horas: probablemente el cliente ya no viene.
                   const procesando = procesandoPedidoRetirarId === p.id;
+                  const nombreCliente = p.cliente_nombre || p.codigo_corto;
+                  const totalPedido = (p.items || []).reduce(
+                    (acc, it) => acc + Number(it.cantidad || 0) * Number(it.precio_venta || 0),
+                    0
+                  );
                   return (
                     <div
                       key={p.id}
-                      className={`bg-white shadow-sm border rounded-2xl p-3 space-y-1.5 ${colgado ? 'border-rose-300' : 'border-stone-200'}`}
+                      className={`bg-white shadow-sm border rounded-2xl p-3.5 space-y-3 ${colgado ? 'border-rose-300' : 'border-stone-200'}`}
                     >
-                      <div className="flex items-center justify-between">
-                        <span className="font-mono font-bold text-sm text-stone-900">{p.codigo_corto}</span>
-                        <div className="flex items-center gap-1.5">
+                      <div className="flex items-center justify-between gap-2">
+                        <div className="flex items-center gap-2.5 min-w-0">
+                          <span className="w-9 h-9 rounded-full bg-gradient-to-br from-[#7c1fe0] to-[#6105dc] text-white text-sm font-bold flex items-center justify-center shrink-0">
+                            {nombreCliente.trim().charAt(0).toUpperCase()}
+                          </span>
+                          <div className="min-w-0">
+                            <p className="text-sm font-bold text-stone-900 truncate">{nombreCliente}</p>
+                            <p className="text-[11px] text-stone-400 flex items-center gap-1">
+                              <i className="fa-solid fa-bag-shopping"></i>
+                              <span className="font-mono">{p.codigo_corto}</span>
+                              <span>· {tiempoTexto}</span>
+                            </p>
+                          </div>
+                        </div>
+                        <div className="flex flex-col items-end gap-1 shrink-0">
                           {colgado && (
-                            <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-rose-100 text-rose-700">
+                            <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-rose-100 text-rose-700 whitespace-nowrap">
                               <i className="fa-solid fa-triangle-exclamation mr-1"></i>Colgado
                             </span>
                           )}
                           <span
-                            className={`text-[11px] font-semibold px-2 py-0.5 rounded-full ${
+                            className={`text-[10px] font-semibold px-2 py-0.5 rounded-full whitespace-nowrap ${
                               p.estado === 'listo' ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'
                             }`}
                           >
@@ -8562,12 +8579,25 @@ import './index.css';
                           </span>
                         </div>
                       </div>
-                      <p className="text-[11px] text-stone-400">{tiempoTexto}</p>
-                      <div className="text-xs text-stone-600 space-y-0.5">
+
+                      <div className="border-t border-dashed border-stone-200 pt-2.5 space-y-1">
                         {(p.items || []).map((it, i) => (
-                          <div key={i}>{it.cantidad} x {it.descripcion}</div>
+                          <div key={i} className="flex items-baseline justify-between gap-2 text-xs">
+                            <span className="text-stone-600 truncate">
+                              <span className="font-semibold text-stone-900">{it.cantidad}x</span> {it.descripcion}
+                            </span>
+                            <span className="text-stone-500 tabular-nums shrink-0">
+                              S/ {(Number(it.cantidad || 0) * Number(it.precio_venta || 0)).toFixed(2)}
+                            </span>
+                          </div>
                         ))}
                       </div>
+
+                      <div className="flex items-center justify-between pt-2 border-t border-stone-100">
+                        <span className="text-[11px] font-semibold text-stone-400 uppercase tracking-wide">Total</span>
+                        <span className="text-base font-extrabold text-stone-900 tabular-nums">S/ {totalPedido.toFixed(2)}</span>
+                      </div>
+
                       {p.estado === 'pendiente' && (
                         <button
                           onClick={() => marcarPedidoListo(p.id)}
@@ -8577,7 +8607,7 @@ import './index.css';
                           {marcandoListoId === p.id ? 'Un momento...' : 'Marcar Listo'}
                         </button>
                       )}
-                      <div className="grid grid-cols-3 gap-1.5 pt-0.5">
+                      <div className="grid grid-cols-3 gap-1.5">
                         <button
                           onClick={() => cargarPedidoDesdeRetirar(p)}
                           disabled={procesando}
