@@ -19,7 +19,7 @@
   }
   * { box-sizing: border-box; }
   html, body { margin: 0; padding: 0; }
-  body { background: var(--paper); color: var(--ink); font-family: var(--font-body); line-height: 1.6; -webkit-font-smoothing: antialiased; }
+  body { background: var(--paper); color: var(--ink); font-family: var(--font-body); line-height: 1.6; -webkit-font-smoothing: antialiased; overflow-x: hidden; }
   a { color: inherit; }
   .wrap { max-width: 900px; margin: 0 auto; padding: 20px 20px 0; }
 
@@ -44,7 +44,7 @@
   .hero-shot { margin: 34px 0 0; }
   .hero-shot img { width: 100%; height: auto; display: block; }
 
-  .section-wide { width: 100vw; margin-left: calc(50% - 50vw); margin-right: calc(50% - 50vw); padding: 0 20px; }
+  .section-wide { margin-left: calc(50% - 50vw); margin-right: calc(50% - 50vw); padding: 0 20px; }
   .eyebrow-center { display: flex; width: fit-content; margin: 0 auto 16px; }
   .wide-shot { max-width: 1240px; margin: 0 auto; overflow-x: auto; border-radius: 18px; }
   .wide-shot img { display: block; width: 100%; min-width: 780px; height: auto; border-radius: 18px; }
