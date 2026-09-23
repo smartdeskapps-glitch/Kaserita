@@ -3041,6 +3041,12 @@ import './index.css';
         }
         setProcesandoPedidoRetirarId(pedido.id);
         try {
+          // Si ya había una venta en curso en el carrito, se aparca primero
+          // (igual que el botón "Pausar") -- el pedido de delivery pasa
+          // adelante en vez de mezclarse con lo que se estaba cobrando.
+          if (carrito.length > 0) {
+            aparcarVentaActual();
+          }
           let agregados = 0;
           (pedido.items || []).forEach((it) => {
             if (it.combo_id) {
@@ -3064,6 +3070,11 @@ import './index.css';
           if (agregados > 0) {
             setPedidosCargadosAlCarrito((prev) => [...prev, { id: pedido.id, codigoCorto: pedido.codigo_corto }]);
             notificar(`Pedido ${pedido.codigo_corto} agregado al carrito. Se cierra solo cuando cobres.`, 'success');
+            // Vuelve a la vista normal del carrito para que se vea de una
+            // vez lo que se acaba de cargar, en vez de dejar al cajero
+            // todavía parado en la pantalla de "Pedidos por retirar".
+            setModalPedidosRetirar(false);
+            setMostrarResumenMobile(true);
           }
         } finally {
           setProcesandoPedidoRetirarId(null);
@@ -3072,7 +3083,17 @@ import './index.css';
 
       // Para cuando el cliente ya pasó y pagó por otra vía (no por
       // "Cargar Pedido") -- solo cierra el seguimiento, no toca el carrito.
+      // Cierra el pedido de una, sin poder volver a "Marcar listo" ni
+      // "Al carrito" después -- por eso pide confirmación, igual que
+      // eliminarPedidoRetirar, para que no se marque por error un pedido
+      // que en realidad no se cobró.
       const marcarRetiradoDirecto = async (pedido) => {
+        const ok = await pedirConfirmacion({
+          titulo: 'Confirmar retiro',
+          mensaje: `¿El pedido ${pedido.codigo_corto} ya se cobró y el cliente ya se lo llevó? Esto lo cierra sin pasar por el carrito.`,
+          textoBoton: 'Sí, ya retiró',
+        });
+        if (!ok) return;
         setProcesandoPedidoRetirarId(pedido.id);
         try {
           const { error } = await sbClient.rpc('marcar_pedido_retirado', { p_codigo_corto: pedido.codigo_corto });
@@ -8755,6 +8776,11 @@ import './index.css';
                       )}
 
                       {!esHistorial && (
+                        // Orden a propósito: "Al carrito" primero (el paso
+                        // normal), "Eliminar" después, y "Ya retiró" al
+                        // final -- es el atajo que cierra el pedido de una
+                        // sin pasar por el carrito, así que va último para
+                        // no clickearlo por error en vez de "Al carrito".
                         <div className="flex items-center gap-3 pt-0.5">
                           {p.estado === 'pendiente' && (
                             <>
@@ -8770,20 +8796,20 @@ import './index.css';
                             </>
                           )}
                           <button
-                            onClick={() => marcarRetiradoDirecto(p)}
-                            disabled={procesando}
-                            title="El cliente ya lo retiró (no toca el carrito)"
-                            className="text-[11px] font-medium text-stone-600 hover:text-stone-900 transition"
-                          >
-                            Ya retiró
-                          </button>
-                          <button
                             onClick={() => eliminarPedidoRetirar(p)}
                             disabled={procesando}
                             title="Eliminar de la cola"
-                            className="ml-auto text-[11px] font-medium text-stone-300 hover:text-rose-500 transition"
+                            className="text-[11px] font-medium text-stone-400 hover:text-rose-500 transition"
                           >
                             Eliminar
+                          </button>
+                          <button
+                            onClick={() => marcarRetiradoDirecto(p)}
+                            disabled={procesando}
+                            title="El cliente ya lo retiró (no toca el carrito)"
+                            className="ml-auto text-[11px] font-medium text-stone-300 hover:text-stone-600 transition"
+                          >
+                            Ya retiró
                           </button>
                         </div>
                       )}
