@@ -8334,7 +8334,7 @@ import './index.css';
                       <i className="fa-solid fa-ticket"></i>
                     </button>
                     <button
-                      onClick={() => { setModalPedidosRetirar(true); setAvisosPedidosNuevos(0); cargarPedidosRetirar(); }}
+                      onClick={() => { setModalPedidosRetirar(true); setAvisosPedidosNuevos(0); cargarPedidosRetirar(); setMostrarResumenMobile(true); }}
                       title="Pedidos por retirar (clientes con cuenta)"
                       className="relative flex items-center justify-center w-10 h-10 shrink-0 bg-white hover:bg-stone-50 text-stone-700 text-xs font-semibold rounded-xl border border-stone-200 transition"
                     >
@@ -8472,8 +8472,17 @@ import './index.css';
                 con el panel y el pill de en-espera siempre visible (con 0
                 cuando no hay ninguna) en vez de aparecer/desaparecer. */}
             <div className="hidden md:flex items-end justify-between relative z-10">
-              <div className="folder-tab-active px-6 py-3 text-sm font-bold text-stone-900">
-                Carrito
+              <div className="folder-tab-active px-6 py-3 text-sm font-bold text-stone-900 flex items-center gap-2">
+                {modalPedidosRetirar && (
+                  <button
+                    onClick={() => setModalPedidosRetirar(false)}
+                    className="text-stone-500 hover:text-stone-800 -ml-1"
+                    title="Volver al carrito"
+                  >
+                    <i className="fa-solid fa-chevron-left text-xs"></i>
+                  </button>
+                )}
+                {modalPedidosRetirar ? 'Pedidos por retirar' : 'Carrito'}
               </div>
               <button
                 onClick={() => setModalVentasEspera(true)}
@@ -8491,6 +8500,103 @@ import './index.css';
             {/* Manija de arrastre (solo mobile) */}
             <div className="md:hidden w-10 h-1.5 bg-stone-300 rounded-full mx-auto mt-2.5 mb-1 shrink-0"></div>
 
+            {modalPedidosRetirar ? (
+            <>
+            {/* Encabezado Pedidos por retirar (solo mobile trae botón de volver) */}
+            <div className="flex items-center justify-between px-4 py-3 border-b border-stone-200 md:hidden shrink-0">
+              <h2 className="text-sm font-black text-stone-900 flex items-center gap-2">
+                <i className="fa-solid fa-bell-concierge text-orange-600"></i> Pedidos por retirar
+              </h2>
+              <button onClick={() => setModalPedidosRetirar(false)} className="text-stone-600 hover:text-stone-900 text-lg"><i className="fa-solid fa-xmark"></i></button>
+            </div>
+
+            <p className="hidden md:block text-xs text-stone-500 px-4 pt-3 shrink-0">
+              Pedidos de clientes con cuenta en KaseritaDelivery. Marcá "Listo" cuando lo tengas armado --
+              el cliente lo ve al instante y le llega una notificación si la activó.
+            </p>
+
+            <div className="flex-1 overflow-y-auto p-2.5 space-y-2.5 hide-scrollbar">
+              {cargandoPedidosRetirar ? (
+                <p className="text-center text-stone-400 text-sm py-6">Cargando...</p>
+              ) : pedidosRetirar.length === 0 ? (
+                <p className="text-center text-stone-400 text-sm py-6">No hay pedidos pendientes de retiro.</p>
+              ) : (
+                pedidosRetirar.map((p) => {
+                  const minutos = Math.max(0, Math.floor((Date.now() - new Date(p.creado_en).getTime()) / 60000));
+                  const tiempoTexto = minutos < 60 ? `hace ${minutos} min` : `hace ${Math.floor(minutos / 60)} h`;
+                  const colgado = minutos >= 120; // más de 2 horas: probablemente el cliente ya no viene.
+                  const procesando = procesandoPedidoRetirarId === p.id;
+                  return (
+                    <div
+                      key={p.id}
+                      className={`bg-white shadow-sm border rounded-2xl p-3 space-y-1.5 ${colgado ? 'border-rose-300' : 'border-stone-200'}`}
+                    >
+                      <div className="flex items-center justify-between">
+                        <span className="font-mono font-bold text-sm text-stone-900">{p.codigo_corto}</span>
+                        <div className="flex items-center gap-1.5">
+                          {colgado && (
+                            <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-rose-100 text-rose-700">
+                              <i className="fa-solid fa-triangle-exclamation mr-1"></i>Colgado
+                            </span>
+                          )}
+                          <span
+                            className={`text-[11px] font-semibold px-2 py-0.5 rounded-full ${
+                              p.estado === 'listo' ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'
+                            }`}
+                          >
+                            {p.estado === 'listo' ? 'Listo' : 'Pendiente'}
+                          </span>
+                        </div>
+                      </div>
+                      <p className="text-[11px] text-stone-400">{tiempoTexto}</p>
+                      <div className="text-xs text-stone-600 space-y-0.5">
+                        {(p.items || []).map((it, i) => (
+                          <div key={i}>{it.cantidad} x {it.descripcion}</div>
+                        ))}
+                      </div>
+                      {p.estado === 'pendiente' && (
+                        <button
+                          onClick={() => marcarPedidoListo(p.id)}
+                          disabled={marcandoListoId === p.id || procesando}
+                          className="w-full py-2 rounded-lg bg-stone-900 hover:bg-stone-800 text-white text-xs font-bold disabled:opacity-50"
+                        >
+                          {marcandoListoId === p.id ? 'Un momento...' : 'Marcar Listo'}
+                        </button>
+                      )}
+                      <div className="grid grid-cols-3 gap-1.5 pt-0.5">
+                        <button
+                          onClick={() => cargarPedidoDesdeRetirar(p)}
+                          disabled={procesando}
+                          title="Agregar los productos al carrito y marcar retirado"
+                          className="py-1.5 rounded-lg bg-emerald-100 hover:bg-emerald-200 text-emerald-700 text-[11px] font-bold disabled:opacity-50"
+                        >
+                          <i className="fa-solid fa-cart-shopping mr-1"></i>Al carrito
+                        </button>
+                        <button
+                          onClick={() => marcarRetiradoDirecto(p)}
+                          disabled={procesando}
+                          title="El cliente ya lo retiró (no toca el carrito)"
+                          className="py-1.5 rounded-lg bg-stone-200 hover:bg-stone-300 text-stone-700 text-[11px] font-bold disabled:opacity-50"
+                        >
+                          <i className="fa-solid fa-check mr-1"></i>Ya retiró
+                        </button>
+                        <button
+                          onClick={() => eliminarPedidoRetirar(p)}
+                          disabled={procesando}
+                          title="Eliminar de la cola (pedido colgado)"
+                          className="py-1.5 rounded-lg bg-rose-100 hover:bg-rose-200 text-rose-700 text-[11px] font-bold disabled:opacity-50"
+                        >
+                          <i className="fa-solid fa-trash-can mr-1"></i>Eliminar
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })
+              )}
+            </div>
+            </>
+            ) : (
+            <>
             {/* Encabezado del resumen (solo mobile trae botón de cerrar) */}
             <div className="flex items-center justify-between px-4 py-3 border-b border-stone-200 md:hidden shrink-0">
               <h2 className="text-sm font-black text-stone-900">Resumen de Venta</h2>
@@ -8914,6 +9020,8 @@ import './index.css';
               </>
               )}
             </div>
+            </>
+            )}
           </section>
           </div>
 
@@ -11904,109 +12012,6 @@ import './index.css';
                     </button>
                   </>
                 )}
-              </div>
-            </div>
-          )}
-
-          {/* Modal: pedidos de clientes con cuenta en KaseritaDelivery, para
-              preparar con anticipación y marcar "listo" -- distinto de
-              "Cargar Pedido", que carga el código al carrito y cobra al
-              toque. Acá el cajero solo avisa que ya está armado; "retirado"
-              se marca solo cuando el cliente vuelve y se carga su código. */}
-          {modalPedidosRetirar && (
-            <div className="fixed inset-0 bg-black/85 flex items-center justify-center z-50 p-4">
-              <div className="bg-stone-100 border border-stone-200 rounded-2xl max-w-md w-full p-5 shadow-2xl space-y-3 max-h-[85vh] flex flex-col">
-                <div className="flex justify-between items-center shrink-0">
-                  <h3 className="text-base font-bold text-stone-900 flex items-center gap-2">
-                    <i className="fa-solid fa-bell-concierge text-orange-600"></i> Pedidos por retirar
-                  </h3>
-                  <button onClick={() => setModalPedidosRetirar(false)} className="text-stone-600 hover:text-stone-900">
-                    <i className="fa-solid fa-xmark"></i>
-                  </button>
-                </div>
-                <p className="text-xs text-stone-500 shrink-0">
-                  Pedidos de clientes con cuenta en KaseritaDelivery. Marcá "Listo" cuando lo tengas armado --
-                  el cliente lo ve al instante y le llega una notificación si la activó.
-                </p>
-                <div className="overflow-y-auto space-y-2.5 flex-1">
-                  {cargandoPedidosRetirar ? (
-                    <p className="text-center text-stone-400 text-sm py-6">Cargando...</p>
-                  ) : pedidosRetirar.length === 0 ? (
-                    <p className="text-center text-stone-400 text-sm py-6">No hay pedidos pendientes de retiro.</p>
-                  ) : (
-                    pedidosRetirar.map((p) => {
-                      const minutos = Math.max(0, Math.floor((Date.now() - new Date(p.creado_en).getTime()) / 60000));
-                      const tiempoTexto = minutos < 60 ? `hace ${minutos} min` : `hace ${Math.floor(minutos / 60)} h`;
-                      const colgado = minutos >= 120; // más de 2 horas: probablemente el cliente ya no viene.
-                      const procesando = procesandoPedidoRetirarId === p.id;
-                      return (
-                        <div
-                          key={p.id}
-                          className={`bg-white border rounded-xl p-3 space-y-1.5 ${colgado ? 'border-rose-300' : 'border-stone-200'}`}
-                        >
-                          <div className="flex items-center justify-between">
-                            <span className="font-mono font-bold text-sm text-stone-900">{p.codigo_corto}</span>
-                            <div className="flex items-center gap-1.5">
-                              {colgado && (
-                                <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-rose-100 text-rose-700">
-                                  <i className="fa-solid fa-triangle-exclamation mr-1"></i>Colgado
-                                </span>
-                              )}
-                              <span
-                                className={`text-[11px] font-semibold px-2 py-0.5 rounded-full ${
-                                  p.estado === 'listo' ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'
-                                }`}
-                              >
-                                {p.estado === 'listo' ? 'Listo' : 'Pendiente'}
-                              </span>
-                            </div>
-                          </div>
-                          <p className="text-[11px] text-stone-400">{tiempoTexto}</p>
-                          <div className="text-xs text-stone-600 space-y-0.5">
-                            {(p.items || []).map((it, i) => (
-                              <div key={i}>{it.cantidad} x {it.descripcion}</div>
-                            ))}
-                          </div>
-                          {p.estado === 'pendiente' && (
-                            <button
-                              onClick={() => marcarPedidoListo(p.id)}
-                              disabled={marcandoListoId === p.id || procesando}
-                              className="w-full py-2 rounded-lg bg-stone-900 hover:bg-stone-800 text-white text-xs font-bold disabled:opacity-50"
-                            >
-                              {marcandoListoId === p.id ? 'Un momento...' : 'Marcar Listo'}
-                            </button>
-                          )}
-                          <div className="grid grid-cols-3 gap-1.5 pt-0.5">
-                            <button
-                              onClick={() => cargarPedidoDesdeRetirar(p)}
-                              disabled={procesando}
-                              title="Agregar los productos al carrito y marcar retirado"
-                              className="py-1.5 rounded-lg bg-emerald-100 hover:bg-emerald-200 text-emerald-700 text-[11px] font-bold disabled:opacity-50"
-                            >
-                              <i className="fa-solid fa-cart-shopping mr-1"></i>Al carrito
-                            </button>
-                            <button
-                              onClick={() => marcarRetiradoDirecto(p)}
-                              disabled={procesando}
-                              title="El cliente ya lo retiró (no toca el carrito)"
-                              className="py-1.5 rounded-lg bg-stone-200 hover:bg-stone-300 text-stone-700 text-[11px] font-bold disabled:opacity-50"
-                            >
-                              <i className="fa-solid fa-check mr-1"></i>Ya retiró
-                            </button>
-                            <button
-                              onClick={() => eliminarPedidoRetirar(p)}
-                              disabled={procesando}
-                              title="Eliminar de la cola (pedido colgado)"
-                              className="py-1.5 rounded-lg bg-rose-100 hover:bg-rose-200 text-rose-700 text-[11px] font-bold disabled:opacity-50"
-                            >
-                              <i className="fa-solid fa-trash-can mr-1"></i>Eliminar
-                            </button>
-                          </div>
-                        </div>
-                      );
-                    })
-                  )}
-                </div>
               </div>
             </div>
           )}
