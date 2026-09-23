@@ -12032,7 +12032,7 @@ import './index.css';
                     <div>
                       <label className="text-xs text-stone-600 block mb-1.5">Horario de atención:</label>
                       <div className="flex items-center gap-1.5">
-                        {[[1, 'L'], [2, 'M'], [3, 'X'], [4, 'J'], [5, 'V'], [6, 'S'], [0, 'D']].map(([dia, letra]) => {
+                        {[[1, 'Lu'], [2, 'Ma'], [3, 'Mi'], [4, 'Ju'], [5, 'Vi'], [6, 'Sá'], [0, 'Do']].map(([dia, letra]) => {
                           const abierto = !!horarioDelivery[dia]?.abierto;
                           return (
                             <button
@@ -12049,7 +12049,7 @@ import './index.css';
                                   [dia]: { abierto: true, desde: otroAbierto?.desde || '08:00', hasta: otroAbierto?.hasta || '21:00' },
                                 };
                               })}
-                              className={`w-8 h-8 shrink-0 rounded-full text-xs font-bold flex items-center justify-center transition ${
+                              className={`flex-1 h-8 shrink-0 rounded-full text-[11px] font-bold flex items-center justify-center transition ${
                                 abierto ? 'bg-[#6105dc] text-white' : 'bg-stone-100 text-stone-400'
                               }`}
                             >
