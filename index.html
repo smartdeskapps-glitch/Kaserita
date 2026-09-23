@@ -95,11 +95,21 @@
   .how-text strong { font-family: var(--font-display); font-weight: 700; font-size: 13.5px; display: block; margin-bottom: 2px; }
   .how-text span { font-size: 12px; color: var(--muted); line-height: 1.5; }
 
-  .contact-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 12px; }
-  .contact-card { background: var(--card); border: 1.5px solid var(--line); border-radius: 16px; padding: 16px; display: flex; gap: 12px; align-items: flex-start; text-decoration: none; }
-  .contact-card i { color: var(--violet); font-size: 15px; margin-top: 2px; flex-shrink: 0; width: 18px; }
+  .contact-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 14px; }
+  .contact-card {
+    background: var(--card); border: 1.5px solid var(--line); border-radius: 16px; padding: 18px;
+    display: flex; gap: 13px; align-items: center; text-decoration: none;
+    transition: transform .18s ease, box-shadow .18s ease, border-color .18s ease;
+  }
+  a.contact-card:hover { transform: translateY(-3px); box-shadow: 0 16px 32px -20px rgba(28,21,35,.22); border-color: rgba(124,58,237,.3); }
+  .contact-card-icon {
+    width: 38px; height: 38px; border-radius: 11px; background: rgba(124,58,237,.1); color: var(--violet);
+    display: flex; align-items: center; justify-content: center; font-size: 15px; flex-shrink: 0;
+  }
   .contact-card strong { font-family: var(--font-display); font-weight: 700; font-size: 12.5px; display: block; margin-bottom: 2px; color: var(--ink); }
-  .contact-card span { font-size: 12.5px; color: var(--muted); word-break: break-word; }
+  .contact-card span { font-size: 12.5px; color: var(--muted); overflow-wrap: anywhere; }
+
+  @media (max-width: 560px) { .contact-grid { grid-template-columns: 1fr; } }
 
   .legal-links { display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; }
   .legal-links a { font-size: 12.5px; font-weight: 600; color: var(--violet-ink); text-decoration: none; background: var(--card); border: 1.5px solid var(--line); border-radius: 999px; padding: 9px 16px; display: inline-flex; align-items: center; gap: 7px; }
@@ -201,10 +211,10 @@
   <section class="section">
     <h2 class="section-title">Contacto</h2>
     <div class="contact-grid">
-      <a class="contact-card" href="tel:+51900376462"><i class="fa-solid fa-phone"></i><div><strong>Teléfono / WhatsApp</strong><span>+51 900 376 462</span></div></a>
-      <a class="contact-card" href="mailto:smartdeskapps@smartdeskapps.com"><i class="fa-solid fa-envelope"></i><div><strong>Correo</strong><span>smartdeskapps@smartdeskapps.com</span></div></a>
-      <a class="contact-card" href="https://www.facebook.com/profile.php?id=61594577277594" target="_blank" rel="noopener"><i class="fa-brands fa-facebook"></i><div><strong>Facebook</strong><span>Kaserita</span></div></a>
-      <div class="contact-card"><i class="fa-solid fa-building"></i><div><strong>Operación</strong><span>100% virtual — sin local de atención al público</span></div></div>
+      <a class="contact-card" href="tel:+51900376462"><div class="contact-card-icon"><i class="fa-solid fa-phone"></i></div><div><strong>Teléfono / WhatsApp</strong><span>+51 900 376 462</span></div></a>
+      <a class="contact-card" href="mailto:smartdeskapps@smartdeskapps.com"><div class="contact-card-icon"><i class="fa-solid fa-envelope"></i></div><div><strong>Correo</strong><span>smartdeskapps@smartdeskapps.com</span></div></a>
+      <a class="contact-card" href="https://www.facebook.com/profile.php?id=61594577277594" target="_blank" rel="noopener"><div class="contact-card-icon"><i class="fa-brands fa-facebook"></i></div><div><strong>Facebook</strong><span>Kaserita</span></div></a>
+      <div class="contact-card"><div class="contact-card-icon"><i class="fa-solid fa-building"></i></div><div><strong>Operación</strong><span>100% virtual — sin local de atención al público</span></div></div>
     </div>
   </section>
 
