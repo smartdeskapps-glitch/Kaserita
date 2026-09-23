@@ -2234,11 +2234,6 @@ import './index.css';
       const [telefonoDeliveryEditar, setTelefonoDeliveryEditar] = useState('');
       const [direccionDelivery, setDireccionDelivery] = useState('');
       const [guardandoDelivery, setGuardandoDelivery] = useState(false);
-      const [modalCargarPedidoCodigo, setModalCargarPedidoCodigo] = useState(false);
-      const [codigoPedidoInput, setCodigoPedidoInput] = useState('');
-      const [buscandoPedidoCodigo, setBuscandoPedidoCodigo] = useState(false);
-      const [pedidoEncontrado, setPedidoEncontrado] = useState(null);
-      const [procesandoPedidoEncontrado, setProcesandoPedidoEncontrado] = useState(false);
 
       // --- Pedidos por retirar (clientes con cuenta en KaseritaDelivery) ---
       const [modalPedidosRetirar, setModalPedidosRetirar] = useState(false);
@@ -2915,80 +2910,6 @@ import './index.css';
         }
       };
 
-      // Un cajero pega/tipea el código corto que el cliente le mostró desde su
-      // WhatsApp (generado por la vitrina de KaseritaDelivery). Primero se
-      // busca y se muestra qué trae (por si el cliente ya no lo quiere y hay
-      // que rechazarlo en vez de cargarlo), y recién después de confirmar se
-      // agrega al carrito o se borra. RLS en pedidos_delivery ya scopea la
-      // lectura/borrado a la bodega del cajero autenticado, así que un código
-      // de otra bodega simplemente no aparece.
-      const buscarPedidoPorCodigo = async () => {
-        const codigo = codigoPedidoInput.trim().toUpperCase();
-        if (!codigo) return;
-        if (esModoDemo || !sbClient) {
-          notificar('Cargar pedidos por código no está disponible en el Modo Demo.', 'error');
-          return;
-        }
-        setBuscandoPedidoCodigo(true);
-        setPedidoEncontrado(null);
-        try {
-          const { data: pedido, error } = await sbClient
-            .from('pedidos_delivery')
-            .select('*')
-            .eq('codigo_corto', codigo)
-            .maybeSingle();
-          if (error) throw error;
-          if (!pedido) {
-            notificar('No encontramos ningún pedido con ese código.', 'error');
-            return;
-          }
-          setPedidoEncontrado(pedido);
-        } catch (err) {
-          notificar(err.message || 'No se pudo buscar el pedido.', 'error');
-        } finally {
-          setBuscandoPedidoCodigo(false);
-        }
-      };
-
-      const confirmarCargaPedidoEncontrado = async () => {
-        if (!pedidoEncontrado) return;
-        setProcesandoPedidoEncontrado(true);
-        try {
-          let agregados = 0;
-          (pedidoEncontrado.items || []).forEach((it) => {
-            if (it.combo_id) {
-              const combo = combos.find((c) => c.id === it.combo_id);
-              if (combo) {
-                agregarComboAlCarrito(combo, it.cantidad);
-                agregados++;
-              } else {
-                notificar(`"${it.descripcion}" ya no está disponible, no se agregó.`, 'error');
-              }
-              return;
-            }
-            const prod = productos.find((p) => p.id === it.id);
-            if (prod) {
-              agregarAlCarrito(prod, it.cantidad);
-              agregados++;
-            } else {
-              notificar(`"${it.descripcion}" ya no está en tu inventario, no se agregó.`, 'error');
-            }
-          });
-          const { error } = await sbClient.from('pedidos_delivery').delete().eq('id', pedidoEncontrado.id);
-          if (error) console.warn('No se pudo borrar el pedido ya cargado:', error.message);
-          // Best-effort: si el pedido venía de un cliente con cuenta, esto
-          // marca "retirado" su seguimiento -- no falla nada si el pedido
-          // no tenía cuenta asociada (rpc simplemente no encuentra fila).
-          sbClient.rpc('marcar_pedido_retirado', { p_codigo_corto: pedidoEncontrado.codigo_corto }).then(() => {});
-          if (agregados > 0) notificar(`Pedido ${pedidoEncontrado.codigo_corto} agregado al carrito.`, 'success');
-          setCodigoPedidoInput('');
-          setPedidoEncontrado(null);
-          setModalCargarPedidoCodigo(false);
-        } finally {
-          setProcesandoPedidoEncontrado(false);
-        }
-      };
-
       const cargarPedidosRetirar = async () => {
         if (esModoDemo || !sbClient) return;
         setCargandoPedidosRetirar(true);
@@ -3159,23 +3080,6 @@ import './index.css';
         if (esModoDemo || !sbClient || !sesion?.bodega?.id) return;
         cargarPedidosRetirar();
       }, [esModoDemo, sesion?.bodega?.id]);
-
-      const eliminarPedidoEncontrado = async () => {
-        if (!pedidoEncontrado) return;
-        setProcesandoPedidoEncontrado(true);
-        try {
-          const { error } = await sbClient.from('pedidos_delivery').delete().eq('id', pedidoEncontrado.id);
-          if (error) throw error;
-          notificar(`Pedido ${pedidoEncontrado.codigo_corto} eliminado.`, 'success');
-          setCodigoPedidoInput('');
-          setPedidoEncontrado(null);
-          setModalCargarPedidoCodigo(false);
-        } catch (err) {
-          notificar(err.message || 'No se pudo eliminar el pedido.', 'error');
-        } finally {
-          setProcesandoPedidoEncontrado(false);
-        }
-      };
 
       // ==========================================
       // GESTIÓN DE CAJEROS (agregar empleados, activar/desactivar acceso)
@@ -8443,13 +8347,6 @@ import './index.css';
                       <i className="fa-solid fa-magnifying-glass"></i>
                     </button>
                     <button
-                      onClick={() => { setCodigoPedidoInput(''); setPedidoEncontrado(null); setModalCargarPedidoCodigo(true); }}
-                      title="Cargar pedido con código de KaseritaDelivery"
-                      className="flex items-center justify-center w-10 h-10 shrink-0 bg-white hover:bg-stone-50 text-stone-700 text-xs font-semibold rounded-xl border border-stone-200 transition"
-                    >
-                      <i className="fa-solid fa-ticket"></i>
-                    </button>
-                    <button
                       onClick={() => { setModalPedidosRetirar(true); cargarPedidosRetirar(); setMostrarResumenMobile(true); }}
                       title="Pedidos por retirar (clientes con cuenta)"
                       className="relative flex items-center justify-center w-10 h-10 shrink-0 bg-white hover:bg-stone-50 text-stone-700 text-xs font-semibold rounded-xl border border-stone-200 transition"
@@ -12170,101 +12067,6 @@ import './index.css';
                       className="w-full py-2.5 rounded-xl bg-stone-900 hover:bg-stone-800 text-white font-bold text-sm disabled:opacity-50"
                     >
                       {guardandoDelivery ? 'Guardando...' : 'Guardar'}
-                    </button>
-                  </>
-                )}
-              </div>
-            </div>
-          )}
-
-          {/* Modal: cargar al carrito el pedido que un cliente armó en la vitrina */}
-          {modalCargarPedidoCodigo && (
-            <div className="fixed inset-0 bg-black/85 flex items-center justify-center z-50 p-4">
-              <div className="bg-stone-100 border border-stone-200 rounded-2xl max-w-sm w-full p-5 shadow-2xl space-y-4">
-                <div className="flex justify-between items-center">
-                  <h3 className="text-base font-bold text-stone-900 flex items-center gap-2">
-                    <i className="fa-solid fa-ticket text-orange-600"></i> Cargar Pedido
-                  </h3>
-                  <button
-                    onClick={() => { setModalCargarPedidoCodigo(false); setPedidoEncontrado(null); }}
-                    className="text-stone-600 hover:text-stone-900"
-                  ><i className="fa-solid fa-xmark"></i></button>
-                </div>
-
-                {!pedidoEncontrado ? (
-                  <>
-                    <p className="text-xs text-stone-500">
-                      Pedile al cliente el código de 6 letras/números que le llegó por WhatsApp.
-                    </p>
-                    <input
-                      type="text"
-                      value={codigoPedidoInput}
-                      onChange={(e) => setCodigoPedidoInput(e.target.value.toUpperCase())}
-                      onKeyDown={(e) => { if (e.key === 'Enter') buscarPedidoPorCodigo(); }}
-                      placeholder="Ej. LZ9NAL"
-                      maxLength={6}
-                      autoFocus
-                      className="w-full bg-stone-100 border border-stone-200 rounded-lg px-3 py-2.5 text-center text-lg font-mono font-bold tracking-widest text-stone-900"
-                    />
-                    <button
-                      onClick={buscarPedidoPorCodigo}
-                      disabled={buscandoPedidoCodigo || !codigoPedidoInput.trim()}
-                      className="w-full py-2.5 rounded-xl bg-stone-900 hover:bg-stone-800 text-white font-bold text-sm disabled:opacity-50"
-                    >
-                      {buscandoPedidoCodigo ? 'Buscando...' : 'Buscar'}
-                    </button>
-                  </>
-                ) : (
-                  <>
-                    <div className="bg-white border border-stone-200 rounded-xl p-3 space-y-1.5 max-h-48 overflow-y-auto">
-                      {(pedidoEncontrado.items || []).map((it, i) => {
-                        const prod = productos.find((p) => p.id === it.id);
-                        const stock = prod && prod.stock_actual != null ? Number(prod.stock_actual) : null;
-                        const aviso = !prod
-                          ? 'Ya no está en tu inventario, no se va a agregar.'
-                          : stock != null && Number(it.cantidad) > stock
-                          ? `Pidieron ${it.cantidad}, quedan ${stock}.`
-                          : null;
-                        return (
-                          <div key={i} className="text-xs text-stone-700">
-                            <div className="flex justify-between">
-                              <span>{it.cantidad} x {it.descripcion}</span>
-                              <span className="font-semibold">S/ {(it.precio_venta * it.cantidad).toFixed(2)}</span>
-                            </div>
-                            {aviso && (
-                              <div className="text-[11px] text-rose-600 font-semibold">
-                                <i className="fa-solid fa-triangle-exclamation mr-1"></i>{aviso}
-                              </div>
-                            )}
-                          </div>
-                        );
-                      })}
-                      <div className="flex justify-between text-sm font-bold text-stone-900 pt-1.5 border-t border-stone-200">
-                        <span>Total</span>
-                        <span>S/ {(pedidoEncontrado.items || []).reduce((a, it) => a + it.precio_venta * it.cantidad, 0).toFixed(2)}</span>
-                      </div>
-                    </div>
-                    <div className="flex gap-2">
-                      <button
-                        onClick={eliminarPedidoEncontrado}
-                        disabled={procesandoPedidoEncontrado}
-                        className="flex-1 py-2.5 rounded-xl bg-rose-100 hover:bg-rose-200 text-rose-700 font-bold text-sm disabled:opacity-50"
-                      >
-                        Eliminar
-                      </button>
-                      <button
-                        onClick={confirmarCargaPedidoEncontrado}
-                        disabled={procesandoPedidoEncontrado}
-                        className="flex-1 py-2.5 rounded-xl bg-stone-900 hover:bg-stone-800 text-white font-bold text-sm disabled:opacity-50"
-                      >
-                        {procesandoPedidoEncontrado ? 'Un momento...' : 'Cargar al carrito'}
-                      </button>
-                    </div>
-                    <button
-                      onClick={() => { setPedidoEncontrado(null); setCodigoPedidoInput(''); }}
-                      className="w-full text-xs text-stone-500 underline"
-                    >
-                      Buscar otro código
                     </button>
                   </>
                 )}
