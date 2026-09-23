@@ -39,6 +39,56 @@
   .hero-sub { font-size: 15.5px; color: var(--muted); line-height: 1.6; max-width: 46ch; margin: 0 auto 26px; }
   .cta-primary { font-family: var(--font-display); font-weight: 700; font-size: 14.5px; color: #fff; background: linear-gradient(120deg, var(--blue), var(--violet)); border-radius: 13px; padding: 14px 26px; text-decoration: none; box-shadow: 0 10px 24px -10px rgba(124,58,237,.5); display: inline-flex; align-items: center; gap: 9px; transition: transform .12s ease; }
   .cta-primary:hover { transform: translateY(-1px); }
+  /* Vitrina 3D: laptop que se abre + celular que flota, sincronizados al
+     scroll. El contenido de las pantallas son capturas reales (no un
+     mockup dibujado) -- object-fit:cover sobre el bisel para que se vea
+     como una foto de producto, no como una ventana recortada. */
+  .showcase-wrap { margin: 40px 0 0; perspective: 1800px; perspective-origin: 50% 30%; }
+  .showcase-stage { position: relative; min-height: 420px; display: flex; align-items: center; justify-content: center; }
+  .showcase-laptop {
+    position: relative; width: 100%; max-width: 640px; margin: 0 auto;
+    transform-style: preserve-3d; transform: rotateX(10deg) scale(0.97);
+    transition: transform 0.15s ease-out;
+  }
+  .showcase-lid {
+    position: relative; transform-style: preserve-3d; transform-origin: bottom center;
+    background: #16151b; border: 7px solid #16151b; border-radius: 14px 14px 0 0;
+    box-shadow: 0 35px 60px -20px rgba(28,21,35,.4), 0 0 0 1px rgba(255,255,255,.06);
+    overflow: hidden; transform: rotateX(-60deg); will-change: transform;
+  }
+  .showcase-lid-bar { background: #0c0c10; padding: 6px 12px; display: flex; align-items: center; gap: 6px; }
+  .showcase-lid-bar span { width: 6px; height: 6px; border-radius: 50%; background: #3a3942; display: block; }
+  .showcase-lid-cam { width: 5px; height: 5px; border-radius: 50%; background: #3a3942; margin: 0 auto; }
+  .showcase-screen { width: 100%; aspect-ratio: 1280 / 719; background: #000; }
+  .showcase-screen img { width: 100%; height: 100%; object-fit: cover; object-position: top; display: block; }
+  .showcase-base {
+    position: relative; height: 26px; border-radius: 0 0 12px 12px;
+    background: linear-gradient(180deg, #232228, #121116);
+    transform: rotateX(62deg); transform-origin: top center;
+    box-shadow: 0 45px 60px -15px rgba(0,0,0,.5), 0 0 0 1px rgba(255,255,255,.05);
+  }
+  .showcase-base::before {
+    content: ''; position: absolute; top: 4px; left: 50%; transform: translateX(-50%);
+    width: 60px; height: 4px; border-radius: 999px; background: rgba(255,255,255,.08);
+  }
+  .showcase-phone {
+    position: absolute; right: -6px; bottom: -18px; width: 150px; z-index: 5;
+    transform-style: preserve-3d; will-change: transform, opacity;
+    transform: translateY(90px) rotateY(-8deg) scale(0.9); opacity: 0.15;
+  }
+  .showcase-phone-shell {
+    background: #16151b; border: 5px solid #16151b; border-radius: 26px; position: relative; overflow: hidden;
+    box-shadow: 0 25px 45px -15px rgba(28,21,35,.45);
+  }
+  .showcase-phone-notch { position: absolute; top: 7px; left: 50%; transform: translateX(-50%); width: 46px; height: 12px; background: #0c0c10; border-radius: 999px; z-index: 2; }
+  .showcase-phone-screen { aspect-ratio: 480 / 1071; background: #000; }
+  .showcase-phone-screen img { width: 100%; height: 100%; object-fit: cover; object-position: top; display: block; }
+
+  @media (max-width: 640px) {
+    .showcase-phone { width: 110px; right: 4px; bottom: -10px; }
+    .showcase-stage { min-height: 300px; }
+  }
+
   .hero-shot { margin: 34px 0 0; }
   .hero-shot img { width: 100%; height: auto; display: block; }
 
@@ -147,8 +197,26 @@
     <span class="eyebrow"><i class="fa-solid fa-store"></i> Para bodegas y negocios pequeños</span>
     <h1>Tu bodega, <em>bajo control</em>, desde el celular</h1>
     <p class="hero-sub">Kaserita es un sistema de punto de venta: caja, inventario, clientes y reportes — con la opción de sumar un catálogo online para recibir pedidos por WhatsApp, sin depender de papel ni de cuadernos.</p>
-    <div class="hero-shot">
-      <img src="/publicidad-planes.png" alt="Kaserita: punto de venta en la laptop y catálogo KaseritaDelivery en el celular, con los planes y precios" loading="eager">
+    <div class="showcase-wrap">
+      <div class="showcase-stage">
+        <div class="showcase-laptop" id="showcaseLaptop">
+          <div class="showcase-lid" id="showcaseLid">
+            <div class="showcase-lid-bar"><span></span><span></span><span></span><div class="showcase-lid-cam"></div></div>
+            <div class="showcase-screen">
+              <img src="/showcase-pos.jpg" alt="Punto de venta de Kaserita: catálogo de productos y carrito de una bodega real" loading="eager">
+            </div>
+          </div>
+          <div class="showcase-base"></div>
+        </div>
+        <div class="showcase-phone" id="showcasePhone">
+          <div class="showcase-phone-shell">
+            <div class="showcase-phone-notch"></div>
+            <div class="showcase-phone-screen">
+              <img src="/showcase-delivery.jpg" alt="Catálogo de KaseritaDelivery visto desde el celular de un cliente" loading="eager">
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
   </section>
 
@@ -252,5 +320,52 @@
     <p class="foot-ruc">Kaserita © 2026 — hecho para bodegas peruanas</p>
   </footer>
 </div>
+<script>
+  (function () {
+    var laptop = document.getElementById('showcaseLaptop');
+    var lid = document.getElementById('showcaseLid');
+    var phone = document.getElementById('showcasePhone');
+    if (!laptop || !lid || !phone) return;
+
+    function clamp(v, min, max) { return Math.min(Math.max(v, min), max); }
+
+    function apply(p) {
+      lid.style.transform = 'rotateX(' + (-60 + p * 60) + 'deg)';
+      laptop.style.transform = 'rotateX(' + (10 - p * 8) + 'deg) scale(' + (0.97 + p * 0.03) + ')';
+      var phoneY = 90 - p * 100;
+      var phoneRotY = -8 + p * 8;
+      var phoneScale = 0.9 + p * 0.1;
+      phone.style.transform = 'translateY(' + phoneY + 'px) rotateY(' + phoneRotY + 'deg) scale(' + phoneScale + ')';
+      phone.style.opacity = clamp(0.15 + p * 0.85, 0, 1).toFixed(2);
+    }
+
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      apply(1);
+      return;
+    }
+
+    var target = 0;
+    var current = 0;
+
+    function computeTarget() {
+      var rect = laptop.getBoundingClientRect();
+      var vh = window.innerHeight;
+      var start = vh * 0.85;
+      var end = vh * 0.35;
+      target = clamp((start - rect.top) / (start - end), 0, 1);
+    }
+
+    window.addEventListener('scroll', computeTarget, { passive: true });
+    window.addEventListener('resize', computeTarget);
+    computeTarget();
+
+    function loop() {
+      current += (target - current) * 0.12;
+      apply(current);
+      requestAnimationFrame(loop);
+    }
+    requestAnimationFrame(loop);
+  })();
+</script>
 </body>
 </html>
