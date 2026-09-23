@@ -2233,6 +2233,7 @@ import './index.css';
       const [subiendoLogoDelivery, setSubiendoLogoDelivery] = useState(false);
       const [telefonoDeliveryEditar, setTelefonoDeliveryEditar] = useState('');
       const [direccionDelivery, setDireccionDelivery] = useState('');
+      const [mostrarQRDelivery, setMostrarQRDelivery] = useState(false);
       const [guardandoDelivery, setGuardandoDelivery] = useState(false);
 
       // --- Pedidos por retirar (clientes con cuenta en KaseritaDelivery) ---
@@ -12045,19 +12046,67 @@ import './index.css';
                     )}
 
                     {deliveryHabilitado && sesion?.bodega?.slug && (
-                      <div className="flex items-center gap-2 bg-emerald-50 border border-emerald-200 rounded-lg px-2.5 py-2">
-                        <i className="fa-solid fa-circle-check text-emerald-600 text-xs shrink-0"></i>
-                        <span className="text-[11px] text-emerald-700 font-medium truncate flex-1">{`${KASERITA_DELIVERY_URL}/${sesion.bodega.slug}`}</span>
-                        <button
-                          type="button"
-                          onClick={() => {
-                            navigator.clipboard.writeText(`${KASERITA_DELIVERY_URL}/${sesion.bodega.slug}`);
-                            notificar('Link copiado.', 'success');
-                          }}
-                          className="text-emerald-700 hover:text-emerald-900 shrink-0"
-                        >
-                          <i className="fa-solid fa-copy text-xs"></i>
-                        </button>
+                      <div className="space-y-2">
+                        <div className="flex items-center gap-2 bg-emerald-50 border border-emerald-200 rounded-lg px-2.5 py-2">
+                          <i className="fa-solid fa-circle-check text-emerald-600 text-xs shrink-0"></i>
+                          <span className="text-[11px] text-emerald-700 font-medium truncate flex-1">{`${KASERITA_DELIVERY_URL}/${sesion.bodega.slug}`}</span>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              navigator.clipboard.writeText(`${KASERITA_DELIVERY_URL}/${sesion.bodega.slug}`);
+                              notificar('Link copiado.', 'success');
+                            }}
+                            className="text-emerald-700 hover:text-emerald-900 shrink-0"
+                          >
+                            <i className="fa-solid fa-copy text-xs"></i>
+                          </button>
+                        </div>
+
+                        <div className="flex gap-2">
+                          <button
+                            type="button"
+                            onClick={() => setMostrarQRDelivery((v) => !v)}
+                            className="flex-1 py-2 bg-stone-200 hover:bg-stone-300 text-stone-800 text-xs font-bold rounded-lg flex items-center justify-center gap-1.5"
+                          >
+                            <i className="fa-solid fa-qrcode"></i> {mostrarQRDelivery ? 'Ocultar QR' : 'Ver QR'}
+                          </button>
+                          {typeof navigator !== 'undefined' && navigator.share && (
+                            <button
+                              type="button"
+                              onClick={async () => {
+                                const url = `${KASERITA_DELIVERY_URL}/${sesion.bodega.slug}`;
+                                try {
+                                  await navigator.share({ title: 'Mi Link de Pedidos', text: 'Hacé tu pedido acá:', url });
+                                } catch (err) {
+                                  if (err?.name !== 'AbortError') notificar('No se pudo abrir el menú de compartir.', 'error');
+                                }
+                              }}
+                              className="flex-1 py-2 bg-stone-200 hover:bg-stone-300 text-stone-800 text-xs font-bold rounded-lg flex items-center justify-center gap-1.5"
+                            >
+                              <i className="fa-solid fa-share-nodes"></i> Compartir
+                            </button>
+                          )}
+                        </div>
+
+                        {mostrarQRDelivery && (
+                          <div className="flex flex-col items-center gap-2 bg-white border border-stone-200 rounded-xl p-4">
+                            <img
+                              src={`https://api.qrserver.com/v1/create-qr-code/?size=220x220&data=${encodeURIComponent(`${KASERITA_DELIVERY_URL}/${sesion.bodega.slug}`)}`}
+                              alt="QR del link de pedidos"
+                              width={220}
+                              height={220}
+                              className="rounded-lg"
+                            />
+                            <p className="text-[10px] text-stone-500 text-center">
+                              Tus clientes escanean este código con la cámara de su celular para entrar directo a tu vitrina.
+                            </p>
+                          </div>
+                        )}
+
+                        <p className="text-[10px] text-stone-500 flex items-start gap-1.5">
+                          <i className="fa-solid fa-circle-info mt-0.5 shrink-0"></i>
+                          Para pasar el link por NFC (acercando los celulares), usá "Compartir" arriba y elegí la opción de cercanía de tu celular (Nearby Share / Compartir con Google Play en Android, AirDrop en iPhone) -- la mayoría de celulares ya no soporta el NFC directo de link a link, pero esa opción hace lo mismo acercando los teléfonos.
+                        </p>
                       </div>
                     )}
 
