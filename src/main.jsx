@@ -2103,6 +2103,10 @@ import './index.css';
 
       // --- Auth Form ---
       const [authTab, setAuthTab] = useState('login');
+      // El ingreso con DNI + PIN solo existe para las cuentas de demostración:
+      // se muestra únicamente con ?demo en la dirección (/pos?demo). Los
+      // dueños entran con Google.
+      const mostrarAccesoPin = typeof window !== 'undefined' && new URLSearchParams(window.location.search).has('demo');
       const [formLogin, setFormLogin] = useState({ dni: '', pin: '' });
       const [cargandoAuth, setCargandoAuth] = useState(false);
       const [mostrarPin, setMostrarPin] = useState(false);
@@ -7965,7 +7969,7 @@ import './index.css';
               >
                 <div className="text-center space-y-1">
                   <h2 className="text-xl font-black text-stone-900">{authTab === 'admin' ? 'Panel de Administrador' : '¡Bienvenido de nuevo!'}</h2>
-                  <p className="text-xs text-stone-500">{authTab === 'admin' ? 'Ingresa con tu cuenta de administrador' : 'Ingresa tus datos para continuar'}</p>
+                  <p className="text-xs text-stone-500">{authTab === 'admin' ? 'Ingresa con tu cuenta de administrador' : (mostrarAccesoPin ? 'Ingresa tus datos para continuar' : 'Ingresa con tu cuenta de Google para continuar')}</p>
                 </div>
 
                 {authTab === 'login' && (
@@ -8056,6 +8060,7 @@ import './index.css';
                     setCargandoAuth(false);
                   }
                 }} className="space-y-5">
+                  {mostrarAccesoPin && (<>
                   <div>
                     <label className="text-[11px] font-bold text-stone-400 uppercase tracking-wide">DNI del Usuario</label>
                     <div className="relative mt-1">
@@ -8116,6 +8121,7 @@ import './index.css';
                     <span className="text-[10px] font-bold text-stone-400 uppercase">o</span>
                     <div className="flex-1 h-px bg-stone-200"></div>
                   </div>
+                  </>)}
                   <button
                     type="button"
                     onClick={() => sbClient.auth.signInWithOAuth({ provider: 'google', options: { redirectTo: window.location.origin + '/pos' } })}
