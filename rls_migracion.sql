@@ -17,6 +17,15 @@
 -- rls_estado_actual.sql en la raíz de este repo. No asumir que lo que
 -- sigue abajo es lo que corre en producción.
 -- ============================================================
+-- La primera sentencia de abajo aborta todo el script a propósito: se pegó
+-- completo y se corrió de nuevo sin querer el 2026-09-23, lo que desactivó
+-- el control de bodegas vencidas (mi_bodega_id()).
+
+do $$
+begin
+  raise exception 'SCRIPT HISTORICO BLOQUEADO: no correr rls_migracion.sql. Pisa mi_bodega_id() (vuelve a permitir acceso a bodegas vencidas) y reabre politicas de bodegas/usuarios. Estado correcto: seguridad_ronda3_restaurar_y_blindar.sql. Para usarlo en una base nueva, borra este bloque a mano.';
+end $$;
+
 
 -- 1) Vincular cada fila de "usuarios" con su cuenta real de Supabase Auth.
 alter table usuarios add column if not exists auth_id uuid references auth.users(id);
