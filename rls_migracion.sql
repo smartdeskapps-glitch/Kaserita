@@ -2,6 +2,14 @@
 -- Kaserita: RLS real por bodega usando Supabase Auth
 -- Ejecutar todo este script de una sola vez en el SQL Editor de Supabase.
 -- ============================================================
+-- ¡NO VOLVER A CORRER! Es un script histórico. Recrea las políticas
+-- "bodegas_insert" (cualquier usuario con sesión puede crear bodegas) y
+-- "bodegas_update" (el dueño puede editar su propia fila: activa_hasta,
+-- delivery_permitido...) y la rama "bodega sin usuarios" de
+-- "usuarios_insert". Ya se cerraron con
+-- seguridad_ronda2_politicas_y_funciones.sql (2026-09-23) y una
+-- nueva ejecución de este archivo las reabre.
+-- ============================================================
 -- NOTA (2026-09-16): este archivo describe cómo se armó RLS originalmente,
 -- pero la base ya divergió (por ejemplo, bodegas_update ya no existe, se
 -- reemplazó por bodegas_admin_todo + bodegas_select_propia +

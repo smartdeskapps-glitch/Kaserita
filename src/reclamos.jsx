@@ -99,24 +99,24 @@ export default function App() {
           <h2 className="seccion">1. Identificación del consumidor reclamante</h2>
           <div className="field">
             <label>Nombre completo *</label>
-            <input value={form.nombre_completo} onChange={set('nombre_completo')} required />
+            <input maxLength={200} value={form.nombre_completo} onChange={set('nombre_completo')} required />
           </div>
           <div className="field">
             <label>DNI / Carné de extranjería *</label>
-            <input value={form.documento_identidad} onChange={set('documento_identidad')} required />
+            <input maxLength={30} value={form.documento_identidad} onChange={set('documento_identidad')} required />
           </div>
           <div className="field">
             <label>Domicilio</label>
-            <input value={form.domicilio} onChange={set('domicilio')} />
+            <input maxLength={300} value={form.domicilio} onChange={set('domicilio')} />
           </div>
           <div className="row2">
             <div className="field">
               <label>Teléfono</label>
-              <input value={form.telefono} onChange={set('telefono')} />
+              <input maxLength={30} value={form.telefono} onChange={set('telefono')} />
             </div>
             <div className="field">
               <label>Correo electrónico *</label>
-              <input type="email" value={form.email} onChange={set('email')} required />
+              <input type="email" maxLength={200} value={form.email} onChange={set('email')} required />
             </div>
           </div>
           <label className="checkbox-line">
@@ -127,7 +127,7 @@ export default function App() {
           <h2 className="seccion">2. Identificación del bien contratado</h2>
           <div className="field">
             <label>Producto o servicio (ej. plan mensual, catálogo online)</label>
-            <input value={form.bien_contratado} onChange={set('bien_contratado')} />
+            <input maxLength={300} value={form.bien_contratado} onChange={set('bien_contratado')} />
           </div>
           <div className="field">
             <label>Monto reclamado (S/)</label>
@@ -150,11 +150,11 @@ export default function App() {
           </div>
           <div className="field">
             <label>Detalle *</label>
-            <textarea rows="4" value={form.detalle} onChange={set('detalle')} required />
+            <textarea rows="4" maxLength={5000} value={form.detalle} onChange={set('detalle')} required />
           </div>
           <div className="field">
             <label>Pedido del consumidor *</label>
-            <textarea rows="3" value={form.pedido} onChange={set('pedido')} required placeholder="¿Qué solución esperas?" />
+            <textarea rows="3" maxLength={5000} value={form.pedido} onChange={set('pedido')} required placeholder="¿Qué solución esperas?" />
           </div>
 
           {error && <div className="error-box">{error}</div>}
