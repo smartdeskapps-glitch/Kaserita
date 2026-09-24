@@ -2657,9 +2657,15 @@ import './index.css';
       const [formPinDueno, setFormPinDueno] = useState({ actual: '', nuevo: '', repetir: '' });
       const [cambiandoPinDueno, setCambiandoPinDueno] = useState(false);
       const [pinDuenoReforzado, setPinDuenoReforzado] = useState(true);
+      // Solo las cuentas creadas con DNI+PIN tienen PIN que cambiar; quien
+      // entra con Google no tiene contraseña propia en Kaserita.
+      const [cuentaConPinDueno, setCuentaConPinDueno] = useState(false);
       useEffect(() => {
         if (!sbClient || esModoDemo || sesion?.usuario?.rol !== 'dueno') return;
-        sbClient.auth.getUser().then(({ data }) => setPinDuenoReforzado(!!data?.user?.user_metadata?.pin_fuerte));
+        sbClient.auth.getUser().then(({ data }) => {
+          setCuentaConPinDueno(data?.user?.app_metadata?.provider === 'email');
+          setPinDuenoReforzado(!!data?.user?.user_metadata?.pin_fuerte);
+        });
       }, [sbClient, esModoDemo, sesion?.usuario?.rol]);
       const cambiarPinDueno = async () => {
         const actual = formPinDueno.actual.trim();
@@ -9342,7 +9348,7 @@ import './index.css';
                     </button>
                   </>
                 )}
-                {sesion?.usuario?.rol === 'dueno' && esAdmin && !esModoDemo && (
+                {sesion?.usuario?.rol === 'dueno' && esAdmin && !esModoDemo && cuentaConPinDueno && (
                   <button onClick={() => { setFormPinDueno({ actual: '', nuevo: '', repetir: '' }); setModalPinDueno(true); setMenuMas(false); }} className="w-full text-left px-3.5 py-2.5 rounded-xl hover:bg-stone-200 flex items-center gap-3 text-stone-800 font-medium text-sm">
                     <span className="w-7 h-7 rounded-lg bg-[#f4eefe] flex items-center justify-center shrink-0"><i className="fa-solid fa-key text-xs text-[#6105dc]"></i></span> Cambiar mi PIN
                     {!pinDuenoReforzado && <span className="ml-auto text-[10px] font-bold bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full">Recomendado</span>}
