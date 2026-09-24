@@ -2712,6 +2712,29 @@ import './index.css';
         }
       };
 
+      // Registro de actividad: lo llenan triggers de la base (ver
+      // auditoria_acciones_sensibles.sql); acá solo se lee.
+      const [modalAuditoria, setModalAuditoria] = useState(false);
+      const [filasAuditoria, setFilasAuditoria] = useState([]);
+      const [cargandoAuditoria, setCargandoAuditoria] = useState(false);
+      const [errorAuditoria, setErrorAuditoria] = useState('');
+      const [filtroAuditoria, setFiltroAuditoria] = useState('todo');
+      const abrirAuditoria = async () => {
+        setModalAuditoria(true);
+        setErrorAuditoria('');
+        if (esModoDemo || !sbClient) { setFilasAuditoria([]); return; }
+        setCargandoAuditoria(true);
+        const { data, error } = await sbClient
+          .from('auditoria')
+          .select('*')
+          .eq('bodega_id', bodegaId)
+          .order('creado_en', { ascending: false })
+          .limit(300);
+        if (error) setErrorAuditoria('No se pudo cargar el registro. ¿Ya se ejecutó auditoria_acciones_sensibles.sql?');
+        setFilasAuditoria(data || []);
+        setCargandoAuditoria(false);
+      };
+
       const [mostrarResumenMobile, setMostrarResumenMobile] = useState(false);
       const inputBusquedaRef = useRef(null);
 
@@ -9458,6 +9481,9 @@ import './index.css';
                     <button onClick={() => { abrirGestionCajeros(); setMenuMas(false); }} className="w-full text-left px-3.5 py-2.5 rounded-xl hover:bg-stone-200 flex items-center gap-3 text-stone-800 font-medium text-sm">
                       <span className="w-7 h-7 rounded-lg bg-[#f4eefe] flex items-center justify-center shrink-0"><i className="fa-solid fa-user-group text-xs text-[#6105dc]"></i></span> Cajeros y Empleados
                     </button>
+                    <button onClick={() => { abrirAuditoria(); setMenuMas(false); }} className="w-full text-left px-3.5 py-2.5 rounded-xl hover:bg-stone-200 flex items-center gap-3 text-stone-800 font-medium text-sm">
+                      <span className="w-7 h-7 rounded-lg bg-[#f4eefe] flex items-center justify-center shrink-0"><i className="fa-solid fa-clipboard-check text-xs text-[#6105dc]"></i></span> Registro de actividad
+                    </button>
                     <button onClick={() => { abrirModalDelivery(); setMenuMas(false); }} className="w-full text-left px-3.5 py-2.5 rounded-xl hover:bg-stone-200 flex items-center gap-3 text-stone-800 font-medium text-sm">
                       <span className="w-7 h-7 rounded-lg bg-[#f4eefe] flex items-center justify-center shrink-0"><i className="fa-solid fa-share-nodes text-xs text-[#6105dc]"></i></span> Mi Link de Pedidos
                     </button>
@@ -12386,6 +12412,49 @@ import './index.css';
                 <p className="text-xs text-stone-500 text-center">
                   Tus clientes escanean este código con la cámara de su celular para entrar directo a tu vitrina.
                 </p>
+              </div>
+            </div>
+          )}
+
+          {/* Modal: registro de actividad (cambios de precio, anulaciones, turnos, empleados, mermas) */}
+          {modalAuditoria && (
+            <div className="fixed inset-0 bg-black/85 flex items-center justify-center z-[60] p-4" onClick={() => setModalAuditoria(false)}>
+              <div className="bg-stone-100 border border-stone-200 rounded-2xl max-w-2xl w-full max-h-[85vh] flex flex-col shadow-2xl" onClick={(e) => e.stopPropagation()}>
+                <div className="p-4 border-b border-stone-200 flex items-center justify-between gap-3">
+                  <h3 className="text-sm font-bold text-stone-900 flex items-center gap-2">
+                    <i className="fa-solid fa-clipboard-check text-orange-600"></i> Registro de actividad
+                  </h3>
+                  <button onClick={() => setModalAuditoria(false)} className="text-stone-500 hover:text-stone-800"><i className="fa-solid fa-xmark"></i></button>
+                </div>
+                <div className="px-4 pt-3 flex gap-1.5 flex-wrap">
+                  {[['todo', 'Todo'], ['productos', 'Precios y productos'], ['ventas', 'Ventas'], ['turnos_caja', 'Turnos'], ['cajeros', 'Empleados'], ['mermas', 'Mermas']].map(([valor, etiqueta]) => (
+                    <button
+                      key={valor}
+                      onClick={() => setFiltroAuditoria(valor)}
+                      className={`text-[11px] font-semibold px-2.5 py-1 rounded-full ${filtroAuditoria === valor ? 'bg-stone-900 text-white' : 'bg-stone-200 text-stone-700 hover:bg-stone-300'}`}
+                    >
+                      {etiqueta}
+                    </button>
+                  ))}
+                </div>
+                <div className="p-4 overflow-y-auto space-y-2">
+                  {esModoDemo && <p className="text-xs text-stone-500">El registro de actividad no está disponible en el modo demostración local.</p>}
+                  {errorAuditoria && <p className="text-xs text-rose-600">{errorAuditoria}</p>}
+                  {cargandoAuditoria && <p className="text-xs text-stone-500">Cargando...</p>}
+                  {!cargandoAuditoria && !errorAuditoria && !esModoDemo && filasAuditoria.filter((f) => filtroAuditoria === 'todo' || f.tabla === filtroAuditoria).length === 0 && (
+                    <p className="text-xs text-stone-500">Todavía no hay actividad registrada en esta categoría.</p>
+                  )}
+                  {filasAuditoria.filter((f) => filtroAuditoria === 'todo' || f.tabla === filtroAuditoria).map((f) => (
+                    <div key={f.id} className="bg-white border border-stone-200 rounded-xl px-3 py-2">
+                      <p className="text-xs font-semibold text-stone-800 break-words">{f.resumen}</p>
+                      <p className="text-[10px] text-stone-500 mt-0.5">
+                        {new Date(f.creado_en).toLocaleString('es-PE')}
+                        {f.turnos_abiertos && f.turnos_abiertos.length > 0 ? ` · Turno abierto de: ${f.turnos_abiertos.join(', ')}` : ' · Sin turnos abiertos'}
+                      </p>
+                    </div>
+                  ))}
+                  {!cargandoAuditoria && filasAuditoria.length >= 300 && <p className="text-[10px] text-stone-400 text-center">Se muestran los últimos 300 movimientos.</p>}
+                </div>
               </div>
             </div>
           )}
