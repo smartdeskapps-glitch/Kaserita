@@ -216,6 +216,9 @@ import './index.css';
     // ("kst-" + PIN); tiene que coincidir con establecer_pin_cajero en SQL.
     const PIN_MIN = 4;
     const PIN_MAX = 32;
+    // La cuenta del dueño es la única que entra por Internet con este PIN
+    // (los empleados no tienen login propio), así que exige más largo.
+    const PIN_MIN_DUENO = 8;
     const pinValido = (pin) => {
       const p = (pin || '').trim();
       return p.length >= PIN_MIN && p.length <= PIN_MAX;
@@ -804,8 +807,8 @@ import './index.css';
 
       const crearBodega = async (e) => {
         e.preventDefault();
-        if (!pinValido(formNuevaBodega.pin)) {
-          notificar(`El PIN debe tener entre ${PIN_MIN} y ${PIN_MAX} caracteres.`, 'error');
+        if (!pinValido(formNuevaBodega.pin) || formNuevaBodega.pin.trim().length < PIN_MIN_DUENO) {
+          notificar(`El PIN del dueño debe tener entre ${PIN_MIN_DUENO} y ${PIN_MAX} caracteres.`, 'error');
           return;
         }
         setGuardandoNuevaBodega(true);
@@ -1062,7 +1065,7 @@ import './index.css';
       const resetearPinConfirmado = async () => {
         if (!modalResetearPin) return;
         const pin = nuevoPinReset.trim();
-        if (!pinValido(pin)) { notificar(`El PIN debe tener entre ${PIN_MIN} y ${PIN_MAX} caracteres.`, 'error'); return; }
+        if (!pinValido(pin) || pin.length < PIN_MIN_DUENO) { notificar(`El PIN del dueño debe tener entre ${PIN_MIN_DUENO} y ${PIN_MAX} caracteres.`, 'error'); return; }
         setReseteandoPin(true);
         try {
           const { error } = await sbClient.rpc('admin_resetear_pin_bodega', { p_bodega_id: modalResetearPin.id, p_pin: pin });
@@ -1446,7 +1449,7 @@ import './index.css';
                 <div>
                   <label className="text-xs text-stone-600 block mb-1">PIN inicial:</label>
                   <input
-                    type="text" required minLength={PIN_MIN} maxLength={PIN_MAX} placeholder="4 a 32 caracteres (letras, números o símbolos)"
+                    type="text" required minLength={PIN_MIN_DUENO} maxLength={PIN_MAX} placeholder="8 a 32 caracteres (letras y números)"
                     value={formNuevaBodega.pin}
                     onChange={(e) => setFormNuevaBodega({ ...formNuevaBodega, pin: e.target.value })}
                     className="w-full bg-stone-50 border border-stone-200 rounded-lg px-3 py-2 text-sm text-stone-900"
@@ -1917,7 +1920,7 @@ import './index.css';
                   Se cerrará la sesión actual de {modalResetearPin.dueno?.nombre} y deberá volver a ingresar con su DNI y el PIN nuevo la próxima vez.
                 </p>
                 <div>
-                  <label className="text-[11px] font-bold text-stone-400 uppercase tracking-wide">PIN nuevo (4 a 32 caracteres)</label>
+                  <label className="text-[11px] font-bold text-stone-400 uppercase tracking-wide">PIN nuevo (8 a 32 caracteres)</label>
                   <input
                     type="text"
                     autoFocus
@@ -1936,7 +1939,7 @@ import './index.css';
                   </button>
                   <button
                     onClick={resetearPinConfirmado}
-                    disabled={reseteandoPin || !pinValido(nuevoPinReset)}
+                    disabled={reseteandoPin || !pinValido(nuevoPinReset) || nuevoPinReset.trim().length < PIN_MIN_DUENO}
                     className="flex-1 py-2.5 bg-violet-600 hover:bg-violet-700 disabled:opacity-40 disabled:cursor-not-allowed text-white font-bold text-sm rounded-xl"
                   >
                     {reseteandoPin ? 'Reseteando...' : 'Resetear PIN'}
@@ -2646,6 +2649,59 @@ import './index.css';
       const [errorDetalle, setErrorDetalle] = useState(null);
       const [toast, setToast] = useState({ visible: false, texto: '', tipo: 'info' });
       const [menuMas, setMenuMas] = useState(false);
+
+      // Cambio del PIN de la cuenta del dueño (es la contraseña real de
+      // Supabase Auth, "kst-" + PIN). Pide el PIN actual para que un
+      // empleado con el dispositivo en la mano no pueda cambiarlo.
+      const [modalPinDueno, setModalPinDueno] = useState(false);
+      const [formPinDueno, setFormPinDueno] = useState({ actual: '', nuevo: '', repetir: '' });
+      const [cambiandoPinDueno, setCambiandoPinDueno] = useState(false);
+      const [pinDuenoReforzado, setPinDuenoReforzado] = useState(true);
+      useEffect(() => {
+        if (!sbClient || esModoDemo || sesion?.usuario?.rol !== 'dueno') return;
+        sbClient.auth.getUser().then(({ data }) => setPinDuenoReforzado(!!data?.user?.user_metadata?.pin_fuerte));
+      }, [sbClient, esModoDemo, sesion?.usuario?.rol]);
+      const cambiarPinDueno = async () => {
+        const actual = formPinDueno.actual.trim();
+        const nuevo = formPinDueno.nuevo.trim();
+        if (nuevo.length < PIN_MIN_DUENO || nuevo.length > PIN_MAX) {
+          notificar(`El PIN nuevo debe tener entre ${PIN_MIN_DUENO} y ${PIN_MAX} caracteres.`, 'error');
+          return;
+        }
+        if (nuevo !== formPinDueno.repetir.trim()) {
+          notificar('Los dos PIN nuevos no coinciden.', 'error');
+          return;
+        }
+        if (nuevo === actual) {
+          notificar('El PIN nuevo tiene que ser distinto al actual.', 'error');
+          return;
+        }
+        setCambiandoPinDueno(true);
+        try {
+          const { error: errActual } = await sbClient.auth.signInWithPassword({
+            email: emailAuthDesdeDni(sesion?.usuario?.dni),
+            password: passwordAuthDesdePin(actual),
+          });
+          if (errActual) {
+            notificar('El PIN actual no es correcto.', 'error');
+            return;
+          }
+          const { error } = await sbClient.auth.updateUser({
+            password: passwordAuthDesdePin(nuevo),
+            data: { pin_fuerte: true },
+          });
+          if (error) throw error;
+          setPinDuenoReforzado(true);
+          setModalPinDueno(false);
+          setFormPinDueno({ actual: '', nuevo: '', repetir: '' });
+          notificar('PIN actualizado. Usalo la próxima vez que inicies sesión.', 'success');
+        } catch (err) {
+          notificar(`No se pudo cambiar el PIN: ${err.message}`, 'error');
+        } finally {
+          setCambiandoPinDueno(false);
+        }
+      };
+
       const [mostrarResumenMobile, setMostrarResumenMobile] = useState(false);
       const inputBusquedaRef = useRef(null);
 
@@ -9286,6 +9342,12 @@ import './index.css';
                     </button>
                   </>
                 )}
+                {sesion?.usuario?.rol === 'dueno' && esAdmin && !esModoDemo && (
+                  <button onClick={() => { setFormPinDueno({ actual: '', nuevo: '', repetir: '' }); setModalPinDueno(true); setMenuMas(false); }} className="w-full text-left px-3.5 py-2.5 rounded-xl hover:bg-stone-200 flex items-center gap-3 text-stone-800 font-medium text-sm">
+                    <span className="w-7 h-7 rounded-lg bg-[#f4eefe] flex items-center justify-center shrink-0"><i className="fa-solid fa-key text-xs text-[#6105dc]"></i></span> Cambiar mi PIN
+                    {!pinDuenoReforzado && <span className="ml-auto text-[10px] font-bold bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full">Recomendado</span>}
+                  </button>
+                )}
                 <div className="border-t border-stone-200 my-1"></div>
                 <button onClick={() => { cerrarSesion(); setMenuMas(false); }} className="w-full text-left px-3.5 py-3 rounded-xl hover:bg-stone-200 flex items-center gap-3 text-rose-600 font-semibold text-sm">
                   <span className="w-7 h-7 rounded-lg bg-rose-50 flex items-center justify-center shrink-0"><i className="fa-solid fa-right-from-bracket text-xs"></i></span> Cerrar Sesión
@@ -12203,6 +12265,47 @@ import './index.css';
                 <p className="text-xs text-stone-500 text-center">
                   Tus clientes escanean este código con la cámara de su celular para entrar directo a tu vitrina.
                 </p>
+              </div>
+            </div>
+          )}
+
+          {/* Modal: cambiar el PIN de acceso de la cuenta del dueño */}
+          {modalPinDueno && (
+            <div className="fixed inset-0 bg-black/85 flex items-center justify-center z-[60] p-4">
+              <div className="bg-stone-100 border border-stone-200 rounded-2xl max-w-xs w-full p-5 shadow-2xl space-y-3">
+                <h3 className="text-sm font-bold text-stone-900 flex items-center gap-2">
+                  <i className="fa-solid fa-key text-orange-600"></i> Cambiar mi PIN de acceso
+                </h3>
+                <p className="text-xs text-stone-600">
+                  Es el PIN con el que entrás a Kaserita. Usá {PIN_MIN_DUENO} caracteres o más, mezclando letras y números.
+                </p>
+                {[['actual', 'PIN actual'], ['nuevo', 'PIN nuevo'], ['repetir', 'Repetí el PIN nuevo']].map(([campo, etiqueta]) => (
+                  <input
+                    key={campo}
+                    type="password"
+                    maxLength={PIN_MAX}
+                    autoComplete="off"
+                    value={formPinDueno[campo]}
+                    onChange={(e) => setFormPinDueno((f) => ({ ...f, [campo]: e.target.value }))}
+                    placeholder={etiqueta}
+                    className="w-full bg-white border border-stone-200 rounded-xl px-3 py-2.5 text-sm text-stone-900 focus:outline-none focus:border-orange-500"
+                  />
+                ))}
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => { setModalPinDueno(false); setFormPinDueno({ actual: '', nuevo: '', repetir: '' }); }}
+                    className="flex-1 py-2 bg-stone-200 text-stone-800 text-xs font-semibold rounded-xl"
+                  >
+                    Cancelar
+                  </button>
+                  <button
+                    onClick={cambiarPinDueno}
+                    disabled={cambiandoPinDueno || !formPinDueno.actual.trim() || !formPinDueno.nuevo.trim()}
+                    className="flex-1 py-2 bg-orange-500 hover:bg-orange-400 disabled:opacity-50 text-white text-xs font-bold rounded-xl"
+                  >
+                    {cambiandoPinDueno ? 'Guardando...' : 'Guardar'}
+                  </button>
+                </div>
               </div>
             </div>
           )}
