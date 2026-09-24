@@ -2598,9 +2598,6 @@ import './index.css';
       const [compraCabecera, setCompraCabecera] = useState({ proveedor: '', ruc: '', nroComprobante: '' });
       const [compraItems, setCompraItems] = useState([]);
       const [compraItemTemp, setCompraItemTemp] = useState({ productoId: '', cantidad: '', costoUnitario: '', tipo: 'UNIDAD' });
-      // Agrupa "Registrar Productos" / "Entrada de Mercadería" bajo un solo
-      // desplegable "Entradas" en el menú lateral, en vez de íconos sueltos.
-      const [menuEntradasAbierto, setMenuEntradasAbierto] = useState(false);
       // Ficha rápida para crear un producto sin salir de "Entrada de
       // Mercadería" -- null cuando el mini-formulario está cerrado.
       const [nuevoProductoInlineCompra, setNuevoProductoInlineCompra] = useState(null);
@@ -2653,6 +2650,9 @@ import './index.css';
       const [errorDetalle, setErrorDetalle] = useState(null);
       const [toast, setToast] = useState({ visible: false, texto: '', tipo: 'info' });
       const [menuMas, setMenuMas] = useState(false);
+      // Buscador y opción resaltada del menú "Más módulos" (estilo paleta de comandos).
+      const [busquedaMenu, setBusquedaMenu] = useState('');
+      const [indiceMenu, setIndiceMenu] = useState(0);
 
       // Cambio del PIN de la cuenta del dueño (es la contraseña real de
       // Supabase Auth, "kst-" + PIN). Pide el PIN actual para que un
@@ -8448,7 +8448,7 @@ import './index.css';
                   </button>
                 )}
                 <button
-                  onClick={() => setMenuMas(true)}
+                  onClick={() => { setBusquedaMenu(''); setIndiceMenu(0); setMenuMas(true); }}
                   className="w-10 h-10 flex items-center justify-center bg-white border border-stone-200 rounded-xl text-stone-700 hover:text-stone-900 shadow-sm transition"
                   title="Más opciones"
                 >
@@ -9390,116 +9390,126 @@ import './index.css';
           </section>
           </div>
 
-          {/* Hoja de "Más módulos": antes solo vivía en mobile (duplicando el
-              riel de íconos de desktop); ahora que el riel lateral se quitó,
-              este mismo menú es el único punto de entrada a estas funciones
-              en cualquier tamaño de pantalla -- en mobile sigue siendo una
-              hoja que sube desde abajo, en desktop se centra como un menú. */}
-          {menuMas && (
-            <div className="fixed inset-0 bg-black/70 z-[60] flex items-end md:items-center md:justify-center" onClick={() => setMenuMas(false)}>
-              <div className="w-full md:max-w-sm max-h-[85vh] overflow-y-auto hide-scrollbar bg-stone-100 border-t border-stone-200 md:border md:rounded-3xl rounded-t-3xl p-4 pb-6 space-y-1" onClick={(e) => e.stopPropagation()}>
-                <div className="w-10 h-1 bg-stone-300 rounded-full mx-auto mb-2 sticky top-0"></div>
-                {turnoActivo ? (
-                  <button onClick={() => { abrirCierreCaja(); setMenuMas(false); }} className="w-full text-left px-3.5 py-3 rounded-xl bg-rose-50 hover:bg-rose-100 flex items-center gap-3 text-rose-600 font-bold text-sm">
-                    <span className="w-7 h-7 rounded-lg bg-rose-100 flex items-center justify-center shrink-0"><i className="fa-solid fa-lock text-xs"></i></span> Cerrar Caja
-                  </button>
-                ) : (
-                  <button onClick={() => { setModalTurno(true); setMenuMas(false); }} className="w-full text-left px-3.5 py-3 rounded-xl bg-[#f4eefe] hover:bg-[#ece0fd] flex items-center gap-3 text-[#4d04b0] font-bold text-sm">
-                    <span className="w-7 h-7 rounded-lg bg-[#6105dc] flex items-center justify-center shrink-0"><i className="fa-solid fa-bolt text-xs text-white"></i></span> Abrir Turno
-                  </button>
-                )}
+          {/* Menú "Más módulos" estilo paleta de comandos: buscador arriba,
+              opciones agrupadas y navegación con teclado (↑ ↓ Enter Esc).
+              Es el único punto de entrada a estas funciones en cualquier
+              tamaño de pantalla -- en mobile sigue siendo una hoja que sube
+              desde abajo, en desktop es un panel centrado cerca del borde
+              superior. Las opciones son datos (no botones sueltos) para que
+              el buscador y el teclado funcionen sobre la misma lista. */}
+          {menuMas && (() => {
+            const opciones = [
+              turnoActivo
+                ? { grupo: '', etiqueta: 'Cerrar Caja', icono: 'fa-lock', tono: 'rose', accion: abrirCierreCaja }
+                : { grupo: '', etiqueta: 'Abrir Turno', icono: 'fa-bolt', tono: 'primario', accion: () => setModalTurno(true) },
+              { grupo: 'Ventas y caja', etiqueta: 'Cuentas por Cobrar', icono: 'fa-hand-holding-dollar', accion: abrirModuloCobroDeudas },
+              { grupo: 'Ventas y caja', etiqueta: 'Historial de Ventas Hoy', icono: 'fa-receipt', accion: abrirHistorialDelDia },
+              !esAdmin && { grupo: 'Ventas y caja', etiqueta: 'Registrar Cliente', icono: 'fa-user-plus', accion: () => setModalNuevoCliente(true) },
+              { grupo: 'Inventario', etiqueta: 'Stock Bajo', icono: 'fa-triangle-exclamation', tono: 'amber', insignia: cantidadStockBajo > 0 ? String(cantidadStockBajo) : '', accion: () => setModalStockBajo(true) },
+              { grupo: 'Inventario', etiqueta: 'Ver Stock', icono: 'fa-table-list', accion: () => setModalVerStock(true) },
+              { grupo: 'Inventario', etiqueta: 'Toma de Inventario', icono: 'fa-clipboard-check', accion: abrirTomaInventario },
+              { grupo: 'Inventario', etiqueta: 'Historial de Inventario', icono: 'fa-scale-balanced', accion: abrirHistorialInventario },
+              { grupo: 'Inventario', etiqueta: 'Registrar Merma', icono: 'fa-box', accion: () => setModalMerma(true) },
+              ...(esAdmin ? [
+                { grupo: 'Administración', etiqueta: 'Dashboard de Ventas', icono: 'fa-chart-pie', accion: abrirDashboard },
+                { grupo: 'Administración', etiqueta: 'Cuentas por Pagar', icono: 'fa-file-invoice', accion: abrirCuentasPorPagar },
+                { grupo: 'Administración', etiqueta: 'Historial de Cierres de Caja', icono: 'fa-cash-register', accion: abrirHistorialCierres },
+                { grupo: 'Administración', etiqueta: 'Clientes (editar)', icono: 'fa-users', accion: abrirGestionClientes },
+                { grupo: 'Administración', etiqueta: 'Cajeros y Empleados', icono: 'fa-user-group', accion: abrirGestionCajeros },
+                { grupo: 'Administración', etiqueta: 'Registro de actividad', icono: 'fa-clipboard-check', accion: abrirAuditoria },
+                { grupo: 'Administración', etiqueta: 'Mi Link de Pedidos', icono: 'fa-share-nodes', accion: abrirModalDelivery },
+                { grupo: 'Entradas', etiqueta: 'Registrar Productos', icono: 'fa-boxes-stacked', accion: () => setModalInventarioInicial(true) },
+                { grupo: 'Entradas', etiqueta: 'Entrada de Mercadería', icono: 'fa-truck-ramp-box', accion: () => setModalEntradaMercaderia(true) },
+                { grupo: 'Entradas', etiqueta: 'Levantamiento de Inventario', icono: 'fa-clipboard-list', accion: () => setModalLevantamiento(true) },
+                { grupo: 'Entradas', etiqueta: 'Combos', icono: 'fa-gift', accion: abrirModalCombos },
+                { grupo: 'Entradas', etiqueta: 'Importar del Catálogo Maestro', icono: 'fa-book', accion: abrirImportarMaestro },
+              ] : []),
+              (sesion?.usuario?.rol === 'dueno' && esAdmin && !esModoDemo && cuentaConPinDueno) && {
+                grupo: 'Cuenta', etiqueta: 'Cambiar mi PIN', icono: 'fa-key',
+                insignia: !pinDuenoReforzado ? 'Recomendado' : '', tono: 'amber',
+                accion: () => { setFormPinDueno({ actual: '', nuevo: '', repetir: '' }); setModalPinDueno(true); }
+              },
+              { grupo: 'Cuenta', etiqueta: 'Cerrar Sesión', icono: 'fa-right-from-bracket', tono: 'rose', accion: cerrarSesion },
+            ].filter(Boolean);
 
-                <p className="px-3.5 pt-3 pb-1 text-[10px] font-bold text-stone-400 uppercase tracking-wide">Ventas y caja</p>
-                <button onClick={() => { abrirModuloCobroDeudas(); setMenuMas(false); }} className="w-full text-left px-3.5 py-2.5 rounded-xl hover:bg-stone-200 flex items-center gap-3 text-stone-800 font-medium text-sm">
-                  <span className="w-7 h-7 rounded-lg bg-[#f4eefe] flex items-center justify-center shrink-0"><i className="fa-solid fa-hand-holding-dollar text-xs text-[#6105dc]"></i></span> Cuentas por Cobrar
-                </button>
-                <button onClick={() => { abrirHistorialDelDia(); setMenuMas(false); }} className="w-full text-left px-3.5 py-2.5 rounded-xl hover:bg-stone-200 flex items-center gap-3 text-stone-800 font-medium text-sm">
-                  <span className="w-7 h-7 rounded-lg bg-[#f4eefe] flex items-center justify-center shrink-0"><i className="fa-solid fa-receipt text-xs text-[#6105dc]"></i></span> Historial de Ventas Hoy
-                </button>
-                {!esAdmin && (
-                  <button onClick={() => { setModalNuevoCliente(true); setMenuMas(false); }} className="w-full text-left px-3.5 py-2.5 rounded-xl hover:bg-stone-200 flex items-center gap-3 text-stone-800 font-medium text-sm">
-                    <span className="w-7 h-7 rounded-lg bg-[#f4eefe] flex items-center justify-center shrink-0"><i className="fa-solid fa-user-plus text-xs text-[#6105dc]"></i></span> Registrar Cliente
-                  </button>
-                )}
+            // Sin tildes ni mayúsculas para que "inventario" encuentre "Mercadería", etc.
+            const normalizar = (t) => String(t || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
+            const q = normalizar(busquedaMenu).trim();
+            const visibles = q ? opciones.filter((o) => normalizar(`${o.etiqueta} ${o.grupo}`).includes(q)) : opciones;
+            const activo = Math.min(indiceMenu, Math.max(visibles.length - 1, 0));
+            const cerrarMenu = () => setMenuMas(false);
+            const ejecutar = (o) => { if (!o) return; o.accion(); cerrarMenu(); };
+            const tonos = {
+              primario: 'bg-[#6105dc] text-white',
+              rose: 'bg-rose-100 text-rose-600',
+              amber: 'bg-amber-50 text-amber-600',
+            };
 
-                <p className="px-3.5 pt-3 pb-1 text-[10px] font-bold text-stone-400 uppercase tracking-wide">Inventario</p>
-                <button onClick={() => { setModalStockBajo(true); setMenuMas(false); }} className="w-full text-left px-3.5 py-2.5 rounded-xl hover:bg-stone-200 flex items-center gap-3 text-stone-800 font-medium text-sm">
-                  <span className="w-7 h-7 rounded-lg bg-amber-50 flex items-center justify-center shrink-0"><i className="fa-solid fa-triangle-exclamation text-xs text-amber-600"></i></span> Stock Bajo {cantidadStockBajo > 0 && `(${cantidadStockBajo})`}
-                </button>
-                <button onClick={() => { setModalVerStock(true); setMenuMas(false); }} className="w-full text-left px-3.5 py-2.5 rounded-xl hover:bg-stone-200 flex items-center gap-3 text-stone-800 font-medium text-sm">
-                  <span className="w-7 h-7 rounded-lg bg-[#f4eefe] flex items-center justify-center shrink-0"><i className="fa-solid fa-table-list text-xs text-[#6105dc]"></i></span> Ver Stock
-                </button>
-                <button onClick={() => { abrirTomaInventario(); setMenuMas(false); }} className="w-full text-left px-3.5 py-2.5 rounded-xl hover:bg-stone-200 flex items-center gap-3 text-stone-800 font-medium text-sm">
-                  <span className="w-7 h-7 rounded-lg bg-[#f4eefe] flex items-center justify-center shrink-0"><i className="fa-solid fa-clipboard-check text-xs text-[#6105dc]"></i></span> Toma de Inventario
-                </button>
-                <button onClick={() => { abrirHistorialInventario(); setMenuMas(false); }} className="w-full text-left px-3.5 py-2.5 rounded-xl hover:bg-stone-200 flex items-center gap-3 text-stone-800 font-medium text-sm">
-                  <span className="w-7 h-7 rounded-lg bg-[#f4eefe] flex items-center justify-center shrink-0"><i className="fa-solid fa-scale-balanced text-xs text-[#6105dc]"></i></span> Historial de Inventario
-                </button>
-                <button onClick={() => { setModalMerma(true); setMenuMas(false); }} className="w-full text-left px-3.5 py-2.5 rounded-xl hover:bg-stone-200 flex items-center gap-3 text-stone-800 font-medium text-sm">
-                  <span className="w-7 h-7 rounded-lg bg-[#f4eefe] flex items-center justify-center shrink-0"><i className="fa-solid fa-box text-xs text-[#6105dc]"></i></span> Registrar Merma
-                </button>
-                {esAdmin && (
-                  <>
-                    <p className="px-3.5 pt-3 pb-1 text-[10px] font-bold text-stone-400 uppercase tracking-wide">Administración</p>
-                    <button onClick={() => { abrirDashboard(); setMenuMas(false); }} className="w-full text-left px-3.5 py-2.5 rounded-xl hover:bg-stone-200 flex items-center gap-3 text-stone-800 font-medium text-sm">
-                      <span className="w-7 h-7 rounded-lg bg-[#f4eefe] flex items-center justify-center shrink-0"><i className="fa-solid fa-chart-pie text-xs text-[#6105dc]"></i></span> Dashboard de Ventas
-                    </button>
-                    <button onClick={() => { abrirCuentasPorPagar(); setMenuMas(false); }} className="w-full text-left px-3.5 py-2.5 rounded-xl hover:bg-stone-200 flex items-center gap-3 text-stone-800 font-medium text-sm">
-                      <span className="w-7 h-7 rounded-lg bg-[#f4eefe] flex items-center justify-center shrink-0"><i className="fa-solid fa-file-invoice text-xs text-[#6105dc]"></i></span> Cuentas por Pagar
-                    </button>
-                    <button onClick={() => { abrirHistorialCierres(); setMenuMas(false); }} className="w-full text-left px-3.5 py-2.5 rounded-xl hover:bg-stone-200 flex items-center gap-3 text-stone-800 font-medium text-sm">
-                      <span className="w-7 h-7 rounded-lg bg-[#f4eefe] flex items-center justify-center shrink-0"><i className="fa-solid fa-cash-register text-xs text-[#6105dc]"></i></span> Historial de Cierres de Caja
-                    </button>
-                    <button onClick={() => setMenuEntradasAbierto((v) => !v)} className="w-full text-left px-3.5 py-2.5 rounded-xl hover:bg-stone-200 flex items-center gap-3 text-stone-800 font-medium text-sm">
-                      <span className="w-7 h-7 rounded-lg bg-[#f4eefe] flex items-center justify-center shrink-0"><i className="fa-solid fa-dolly text-xs text-[#6105dc]"></i></span> Entradas
-                      <i className={`fa-solid fa-chevron-down text-[10px] ml-auto transition-transform ${menuEntradasAbierto ? 'rotate-180' : ''}`}></i>
-                    </button>
-                    {menuEntradasAbierto && (
-                      <div className="pl-4 border-l-2 border-[#d6bdfa] ml-5 space-y-0.5">
-                        <button onClick={() => { setModalInventarioInicial(true); setMenuMas(false); }} className="w-full text-left px-3.5 py-2 rounded-xl hover:bg-stone-200 flex items-center gap-3 text-stone-800 font-medium text-sm">
-                          <span className="w-6 h-6 rounded-md bg-[#f4eefe] flex items-center justify-center shrink-0"><i className="fa-solid fa-boxes-stacked text-[11px] text-[#6105dc]"></i></span> Registrar Productos
-                        </button>
-                        <button onClick={() => { setModalEntradaMercaderia(true); setMenuMas(false); }} className="w-full text-left px-3.5 py-2 rounded-xl hover:bg-stone-200 flex items-center gap-3 text-stone-800 font-medium text-sm">
-                          <span className="w-6 h-6 rounded-md bg-[#f4eefe] flex items-center justify-center shrink-0"><i className="fa-solid fa-truck-ramp-box text-[11px] text-[#6105dc]"></i></span> Entrada de Mercadería
-                        </button>
-                        <button onClick={() => { setModalLevantamiento(true); setMenuMas(false); }} className="w-full text-left px-3.5 py-2 rounded-xl hover:bg-stone-200 flex items-center gap-3 text-stone-800 font-medium text-sm">
-                          <span className="w-6 h-6 rounded-md bg-[#f4eefe] flex items-center justify-center shrink-0"><i className="fa-solid fa-clipboard-list text-[11px] text-[#6105dc]"></i></span> Levantamiento de Inventario
-                        </button>
-                        <button onClick={() => { abrirModalCombos(); setMenuMas(false); }} className="w-full text-left px-3.5 py-2 rounded-xl hover:bg-stone-200 flex items-center gap-3 text-stone-800 font-medium text-sm">
-                          <span className="w-6 h-6 rounded-md bg-[#f4eefe] flex items-center justify-center shrink-0"><i className="fa-solid fa-gift text-[11px] text-[#6105dc]"></i></span> Combos
-                        </button>
-                        <button onClick={() => { abrirImportarMaestro(); setMenuMas(false); }} className="w-full text-left px-3.5 py-2 rounded-xl hover:bg-stone-200 flex items-center gap-3 text-stone-800 font-medium text-sm">
-                          <span className="w-6 h-6 rounded-md bg-[#f4eefe] flex items-center justify-center shrink-0"><i className="fa-solid fa-book text-[11px] text-[#6105dc]"></i></span> Importar del Catálogo Maestro
-                        </button>
-                      </div>
+            const alTeclear = (e) => {
+              if (e.key === 'ArrowDown') { e.preventDefault(); setIndiceMenu(Math.min(activo + 1, visibles.length - 1)); }
+              else if (e.key === 'ArrowUp') { e.preventDefault(); setIndiceMenu(Math.max(activo - 1, 0)); }
+              else if (e.key === 'Enter') { e.preventDefault(); ejecutar(visibles[activo]); }
+              else if (e.key === 'Escape') { e.preventDefault(); cerrarMenu(); }
+            };
+
+            return (
+              <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[60] flex items-end md:items-start md:justify-center md:pt-[10vh]" onClick={cerrarMenu}>
+                <div
+                  className="w-full md:max-w-xl max-h-[85vh] md:max-h-[72vh] flex flex-col bg-white border-t border-stone-200 md:border md:rounded-2xl rounded-t-3xl shadow-2xl overflow-hidden"
+                  onClick={(e) => e.stopPropagation()}
+                  onKeyDown={alTeclear}
+                >
+                  <div className="md:hidden w-10 h-1 bg-stone-300 rounded-full mx-auto mt-2.5"></div>
+                  <div className="flex items-center gap-3 px-4 py-3 border-b border-stone-200">
+                    <i className="fa-solid fa-magnifying-glass text-stone-400 text-sm"></i>
+                    <input
+                      type="text"
+                      value={busquedaMenu}
+                      onChange={(e) => { setBusquedaMenu(e.target.value); setIndiceMenu(0); }}
+                      placeholder="Buscar una opción..."
+                      autoFocus={typeof window !== 'undefined' && window.matchMedia('(min-width: 768px)').matches}
+                      className="flex-1 bg-transparent text-sm text-stone-900 placeholder:text-stone-400 focus:outline-none"
+                    />
+                    <kbd className="hidden md:inline text-[10px] font-semibold text-stone-500 bg-stone-100 border border-stone-200 rounded px-1.5 py-0.5">Esc</kbd>
+                  </div>
+
+                  <div className="flex-1 overflow-y-auto hide-scrollbar p-2 pb-4 md:pb-2">
+                    {visibles.length === 0 && (
+                      <p className="text-center text-sm text-stone-500 py-10">Sin resultados para "{busquedaMenu}"</p>
                     )}
-                    <button onClick={() => { abrirGestionClientes(); setMenuMas(false); }} className="w-full text-left px-3.5 py-2.5 rounded-xl hover:bg-stone-200 flex items-center gap-3 text-stone-800 font-medium text-sm">
-                      <span className="w-7 h-7 rounded-lg bg-[#f4eefe] flex items-center justify-center shrink-0"><i className="fa-solid fa-users text-xs text-[#6105dc]"></i></span> Clientes (editar)
-                    </button>
-                    <button onClick={() => { abrirGestionCajeros(); setMenuMas(false); }} className="w-full text-left px-3.5 py-2.5 rounded-xl hover:bg-stone-200 flex items-center gap-3 text-stone-800 font-medium text-sm">
-                      <span className="w-7 h-7 rounded-lg bg-[#f4eefe] flex items-center justify-center shrink-0"><i className="fa-solid fa-user-group text-xs text-[#6105dc]"></i></span> Cajeros y Empleados
-                    </button>
-                    <button onClick={() => { abrirAuditoria(); setMenuMas(false); }} className="w-full text-left px-3.5 py-2.5 rounded-xl hover:bg-stone-200 flex items-center gap-3 text-stone-800 font-medium text-sm">
-                      <span className="w-7 h-7 rounded-lg bg-[#f4eefe] flex items-center justify-center shrink-0"><i className="fa-solid fa-clipboard-check text-xs text-[#6105dc]"></i></span> Registro de actividad
-                    </button>
-                    <button onClick={() => { abrirModalDelivery(); setMenuMas(false); }} className="w-full text-left px-3.5 py-2.5 rounded-xl hover:bg-stone-200 flex items-center gap-3 text-stone-800 font-medium text-sm">
-                      <span className="w-7 h-7 rounded-lg bg-[#f4eefe] flex items-center justify-center shrink-0"><i className="fa-solid fa-share-nodes text-xs text-[#6105dc]"></i></span> Mi Link de Pedidos
-                    </button>
-                  </>
-                )}
-                {sesion?.usuario?.rol === 'dueno' && esAdmin && !esModoDemo && cuentaConPinDueno && (
-                  <button onClick={() => { setFormPinDueno({ actual: '', nuevo: '', repetir: '' }); setModalPinDueno(true); setMenuMas(false); }} className="w-full text-left px-3.5 py-2.5 rounded-xl hover:bg-stone-200 flex items-center gap-3 text-stone-800 font-medium text-sm">
-                    <span className="w-7 h-7 rounded-lg bg-[#f4eefe] flex items-center justify-center shrink-0"><i className="fa-solid fa-key text-xs text-[#6105dc]"></i></span> Cambiar mi PIN
-                    {!pinDuenoReforzado && <span className="ml-auto text-[10px] font-bold bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full">Recomendado</span>}
-                  </button>
-                )}
-                <div className="border-t border-stone-200 my-1"></div>
-                <button onClick={() => { cerrarSesion(); setMenuMas(false); }} className="w-full text-left px-3.5 py-3 rounded-xl hover:bg-stone-200 flex items-center gap-3 text-rose-600 font-semibold text-sm">
-                  <span className="w-7 h-7 rounded-lg bg-rose-50 flex items-center justify-center shrink-0"><i className="fa-solid fa-right-from-bracket text-xs"></i></span> Cerrar Sesión
-                </button>
+                    {visibles.map((o, i) => (
+                      <React.Fragment key={`${o.grupo}-${o.etiqueta}`}>
+                        {o.grupo && o.grupo !== visibles[i - 1]?.grupo && (
+                          <p className="px-3 pt-3 pb-1 text-[10px] font-bold text-stone-400 uppercase tracking-wide">{o.grupo}</p>
+                        )}
+                        <button
+                          ref={(el) => { if (el && i === activo) el.scrollIntoView({ block: 'nearest' }); }}
+                          onClick={() => ejecutar(o)}
+                          onMouseEnter={() => setIndiceMenu(i)}
+                          className={`w-full text-left px-3 py-2.5 rounded-xl flex items-center gap-3 text-sm ${
+                            i === activo ? 'bg-[#f4eefe]' : ''
+                          } ${o.tono === 'rose' ? 'text-rose-600 font-semibold' : o.tono === 'primario' ? 'text-[#4d04b0] font-bold' : 'text-stone-800 font-medium'}`}
+                        >
+                          <span className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 ${tonos[o.tono] || 'bg-[#f4eefe] text-[#6105dc]'}`}>
+                            <i className={`fa-solid ${o.icono} text-xs`}></i>
+                          </span>
+                          <span className="flex-1 min-w-0 truncate">{o.etiqueta}</span>
+                          {o.insignia && <span className="text-[10px] font-bold bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full">{o.insignia}</span>}
+                          {i === activo && <kbd className="hidden md:inline text-[10px] font-semibold text-stone-500 bg-white border border-stone-200 rounded px-1.5 py-0.5">↵</kbd>}
+                        </button>
+                      </React.Fragment>
+                    ))}
+                  </div>
+
+                  <div className="hidden md:flex items-center gap-4 px-4 py-2.5 border-t border-stone-200 bg-stone-50 text-[11px] text-stone-500">
+                    <span className="flex items-center gap-1.5"><kbd className="bg-white border border-stone-200 rounded px-1.5 py-0.5 font-semibold">↑↓</kbd> Navegar</span>
+                    <span className="flex items-center gap-1.5"><kbd className="bg-white border border-stone-200 rounded px-1.5 py-0.5 font-semibold">↵</kbd> Abrir</span>
+                    <span className="flex items-center gap-1.5"><kbd className="bg-white border border-stone-200 rounded px-1.5 py-0.5 font-semibold">Esc</kbd> Cerrar</span>
+                  </div>
+                </div>
               </div>
-            </div>
-          )}
+            );
+          })()}
 
           {/* ========================================================================= */}
           {/* MODALES ADICIONALES */}
