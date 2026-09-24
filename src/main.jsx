@@ -4712,7 +4712,6 @@ import './index.css';
                 formats: ['EAN13', 'EAN8', 'UPCA', 'UPCE', 'Code128', 'Code39', 'QRCode']
               });
               if (activo && resultados && resultados.length > 0 && resultados[0].text) {
-                console.log('[escaner] zxing-wasm detectó:', resultados[0].text);
                 handleCodigoEscaneado(resultados[0].text);
               }
             } catch (e) {
@@ -4723,7 +4722,6 @@ import './index.css';
             if (activo) detectorLoopRef.current = setTimeout(intentar, 200);
           };
 
-          console.log('[escaner] zxing-wasm listo, esperando código...');
           intentar();
         };
 
@@ -4753,7 +4751,6 @@ import './index.css';
               .then((resultados) => {
                 detectando = false;
                 if (activo && resultados && resultados.length > 0) {
-                  console.log('[escaner] nativo detectó:', resultados[0].rawValue);
                   handleCodigoEscaneado(resultados[0].rawValue);
                 }
               })
@@ -4832,7 +4829,6 @@ import './index.css';
 
             const usarNativo = metodoForzado === 'wasm' ? false : ('BarcodeDetector' in window);
             setUsandoDetectorNativo(usarNativo);
-            console.log('[escaner] método elegido:', usarNativo ? 'nativo (BarcodeDetector)' : 'zxing-wasm', '| metodoForzado:', metodoForzado);
 
             if (usarNativo) {
               correrNativo(video);
