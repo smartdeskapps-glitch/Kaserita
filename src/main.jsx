@@ -4372,6 +4372,115 @@ import './index.css';
       }, [agregarAlCarrito]);
 
       // ==========================================
+      // LECTOR BLUETOOTH / USB (se comporta como un teclado)
+      // ==========================================
+      // Estos lectores "escriben" el código a toda velocidad y cierran con
+      // Enter. Si el cursor está en el buscador, ya funciona con
+      // handleKeyDownBusqueda; esto cubre el resto: se escucha el teclado en
+      // toda la pantalla y, cuando llega una ráfaga rápida de teclas
+      // (imposible de tipear a mano) y no hay ningún campo de texto ni
+      // ventana abierta, se toma como un escaneo y se agrega el producto.
+      const escanearCodigoRef = useRef(null);
+      const pitidoCtxRef = useRef(null);
+      const pitido = (ok) => {
+        try {
+          const AC = window.AudioContext || window.webkitAudioContext;
+          if (!AC) return;
+          const ctx = pitidoCtxRef.current || (pitidoCtxRef.current = new AC());
+          const osc = ctx.createOscillator();
+          const ganancia = ctx.createGain();
+          osc.frequency.value = ok ? 1200 : 300;
+          ganancia.gain.value = 0.08;
+          osc.connect(ganancia);
+          ganancia.connect(ctx.destination);
+          osc.start();
+          osc.stop(ctx.currentTime + (ok ? 0.08 : 0.25));
+        } catch {
+          // sin sonido, no pasa nada
+        }
+      };
+      escanearCodigoRef.current = async (codigo) => {
+        if (!sesion || cuentaVencida) return;
+        if (!turnoActivo) {
+          notificar('Abrí un turno para poder escanear productos.', 'info');
+          return;
+        }
+        let hallado = buscarProductoPorCodigo(codigo);
+        // La lista en pantalla puede estar filtrada por una búsqueda: si no
+        // está ahí, se busca el código exacto en toda la bodega.
+        if (!hallado && sbClient && !esModoDemo && /^[A-Za-z0-9_-]+$/.test(codigo)) {
+          try {
+            const { data } = await sbClient
+              .from('productos')
+              .select('*')
+              .eq('bodega_id', bodegaId)
+              .or(`cod_ean.eq.${codigo},cod_ean_pack.eq.${codigo}`)
+              .limit(1);
+            const p = (data || []).find((x) => x.activo !== false);
+            if (p) {
+              const esPack = (p.cod_ean_pack || '').toLowerCase() === codigo.toLowerCase()
+                && (p.cod_ean || '').toLowerCase() !== codigo.toLowerCase();
+              hallado = { producto: p, esPack };
+            }
+          } catch {
+            // se cae al aviso de "no registrado"
+          }
+        }
+        if (hallado) {
+          pitido(true);
+          handleClicProducto(hallado.producto, hallado.esPack ? 'PACK' : 'UNIDAD');
+        } else {
+          pitido(false);
+          notificar(`El código ${codigo} no está registrado.`, 'error');
+        }
+      };
+      useEffect(() => {
+        const MAX_PAUSA_MS = 50;
+        let buffer = '';
+        let ultima = 0;
+        let temporizador = null;
+        const limpiar = () => { buffer = ''; if (temporizador) { clearTimeout(temporizador); temporizador = null; } };
+        const esCampoEditable = (el) => !!el && (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA' || el.tagName === 'SELECT' || el.isContentEditable);
+        const hayVentanaAbierta = () => !!document.querySelector('.fixed.inset-0');
+        const disparar = (codigo) => {
+          if (hayVentanaAbierta()) return;
+          escanearCodigoRef.current?.(codigo);
+        };
+        const alPresionar = (e) => {
+          if (e.ctrlKey || e.metaKey || e.altKey || e.isComposing) return;
+          if (esCampoEditable(e.target)) { limpiar(); return; }
+          if (e.key === 'Enter' || e.key === 'Tab') {
+            if (buffer.length >= 4) {
+              // El Enter del lector no debe activar el botón que haya quedado enfocado.
+              e.preventDefault();
+              e.stopPropagation();
+              const codigo = buffer;
+              limpiar();
+              disparar(codigo);
+            } else {
+              limpiar();
+            }
+            return;
+          }
+          if (e.key.length !== 1) return;
+          const ahora = performance.now();
+          if (ahora - ultima > MAX_PAUSA_MS) buffer = '';
+          ultima = ahora;
+          buffer += e.key;
+          if (buffer.length > 1) e.preventDefault();
+          // Lectores configurados sin Enter al final: se cierra solo tras una pausa.
+          if (temporizador) clearTimeout(temporizador);
+          temporizador = setTimeout(() => {
+            const codigo = buffer;
+            limpiar();
+            if (codigo.length >= 8) disparar(codigo);
+          }, 120);
+        };
+        window.addEventListener('keydown', alPresionar, true);
+        return () => { window.removeEventListener('keydown', alPresionar, true); limpiar(); };
+      }, []);
+
+      // ==========================================
       // LECTOR DE CÓDIGO DE BARRAS / BUSCADOR
       // ==========================================
       const handleKeyDownBusqueda = (e) => {
