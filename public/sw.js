@@ -1,6 +1,6 @@
 // Service worker mínimo: no cachea nada (la app necesita internet siempre
-// para hablar con Supabase), solo existe para que el navegador permita
-// "Agregar a pantalla de inicio" / instalar como app.
+// para hablar con Supabase), solo existe para registrar la app como PWA.
+// Sin manejador 'fetch': los Chrome actuales ya no lo exigen para instalar
+// y un manejador vacío solo agrega sobrecarga en cada navegación.
 self.addEventListener('install', () => self.skipWaiting());
 self.addEventListener('activate', () => self.clients.claim());
-self.addEventListener('fetch', () => {});
