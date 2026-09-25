@@ -5006,13 +5006,26 @@ import './index.css';
       const recuperarVentaEspera = (index) => {
         const v = ventasEnEspera[index];
         if (!v) return;
+        const nuevaLista = ventasEnEspera.filter((_, i) => i !== index);
+        // Si ya hay productos en el carrito, se ponen en espera antes de
+        // recuperar la otra venta, para no perderlos.
+        const habiaVentaActual = carrito.length > 0;
+        if (habiaVentaActual) {
+          nuevaLista.push({
+            id: Date.now(),
+            hora: new Date().toLocaleTimeString('es-PE', { hour: '2-digit', minute: '2-digit' }),
+            items: [...carrito],
+            total: totalVenta,
+            cliente: clienteActual
+          });
+          setPedidosCargadosAlCarrito([]);
+        }
         setCarrito(v.items);
         if (v.cliente) setClienteActual(v.cliente);
         setMostrarPago(false);
-        const nuevaLista = ventasEnEspera.filter((_, i) => i !== index);
         guardarVentasEnEsperaLS(nuevaLista);
         setModalVentasEspera(false);
-        notificar('Venta recuperada al carrito.', 'success');
+        notificar(habiaVentaActual ? 'Venta recuperada. La anterior quedó en espera.' : 'Venta recuperada al carrito.', 'success');
       };
 
       const borrarVentaEspera = (index) => {
@@ -8724,11 +8737,11 @@ import './index.css';
                 {modalPedidosRetirar ? 'Pedidos por retirar' : 'Carrito'}
               </div>
               <button
-                onClick={() => setModalVentasEspera(true)}
-                className="mb-2 flex items-center gap-2 pl-3 pr-1.5 py-1.5 rounded-full border border-amber-200 bg-white/70 hover:bg-white text-xs font-semibold text-amber-700 transition"
+                onClick={() => { setModalPedidosRetirar(false); setModalVentasEspera((v) => !v); }}
+                className={`mb-2 flex items-center gap-2 pl-3 pr-1.5 py-1.5 rounded-full border text-xs font-semibold transition ${modalVentasEspera ? 'bg-amber-500 border-amber-500 text-white' : 'border-amber-200 bg-white/70 hover:bg-white text-amber-700'}`}
               >
                 En espera
-                <span className="w-5 h-5 rounded-full bg-amber-500 text-white text-[11px] font-extrabold flex items-center justify-center">
+                <span className={`w-5 h-5 rounded-full text-[11px] font-extrabold flex items-center justify-center ${modalVentasEspera ? 'bg-white text-amber-700' : 'bg-amber-500 text-white'}`}>
                   {ventasEnEspera.length}
                 </span>
               </button>
@@ -8952,6 +8965,62 @@ import './index.css';
               )}
             </div>
             </>
+            ) : modalVentasEspera ? (
+            <>
+            {/* Ventas en espera, dentro del carrito (antes era una ventana emergente) */}
+            <div className="flex items-center justify-between px-4 py-3 bg-white border-b border-stone-100 shrink-0">
+              <span className="text-sm font-extrabold text-stone-900">Ventas en espera</span>
+              <button
+                onClick={() => setModalVentasEspera(false)}
+                className="text-xs font-bold text-amber-700 hover:text-amber-800 transition"
+              >
+                <i className="fa-solid fa-arrow-left text-[10px]"></i> Volver al carrito
+              </button>
+            </div>
+            <div className="flex-1 overflow-y-auto p-3 space-y-2.5 hide-scrollbar">
+              {ventasEnEspera.length === 0 ? (
+                <div className="flex flex-col items-center justify-center h-full text-stone-500 text-center p-4">
+                  <i className="fa-solid fa-pause text-3xl mb-2 text-stone-300"></i>
+                  <p className="text-xs font-semibold">No hay ventas en espera</p>
+                  <p className="text-xs text-stone-500 mt-0.5">Usa "Pausar" en el carrito para dejar una venta aparte.</p>
+                </div>
+              ) : ventasEnEspera.map((v, i) => {
+                const nombres = v.items.map((it) => it.descripcion).filter(Boolean);
+                const resumen = nombres.length > 2 ? `${nombres.slice(0, 2).join(', ')} y ${nombres.length - 2} más` : nombres.join(', ');
+                const unidades = v.items.reduce((a, it) => a + (Number(it.cantidad) || 0), 0);
+                return (
+                  <div key={v.id} className="rounded-[22px] border border-[#f0e9fc] bg-gradient-to-br from-[#f7f2ff] to-white p-3.5">
+                    <div className="flex items-baseline justify-between gap-2">
+                      <span className="text-xs font-semibold text-stone-400 flex items-center gap-1.5">
+                        <i className="w-1.5 h-1.5 rounded-full bg-amber-500"></i> {v.hora}
+                      </span>
+                      <span className="text-[22px] font-bold text-stone-900 tabular-nums tracking-tight whitespace-nowrap">
+                        <small className="text-xs font-semibold text-stone-500 mr-0.5">S/</small>{Number(v.total).toFixed(2)}
+                      </span>
+                    </div>
+                    <p className="text-[13px] text-stone-500 mt-1.5 mb-3 leading-snug line-clamp-2">
+                      <b className="font-semibold text-stone-900">{unidades} {unidades === 1 ? 'ítem' : 'ítems'}</b>{resumen ? ` · ${resumen}` : ''}
+                    </p>
+                    <div className="flex gap-2">
+                      <button
+                        onClick={() => recuperarVentaEspera(i)}
+                        className="flex-1 py-2.5 bg-[#6105dc] hover:bg-[#4d04b0] text-white text-[13px] font-semibold rounded-full transition"
+                      >
+                        Recuperar
+                      </button>
+                      <button
+                        onClick={() => borrarVentaEspera(i)}
+                        title="Descartar"
+                        className="w-10 rounded-full bg-rose-50 hover:bg-rose-100 text-rose-600 text-xs transition"
+                      >
+                        <i className="fa-solid fa-xmark"></i>
+                      </button>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+            </>
             ) : (
             <>
             {/* Encabezado del resumen (solo mobile trae botón de cerrar) */}
@@ -8968,7 +9037,7 @@ import './index.css';
               </span>
               <div className="flex items-center gap-2">
                 <button
-                  onClick={() => setModalVentasEspera(true)}
+                  onClick={() => { setModalPedidosRetirar(false); setModalVentasEspera(true); }}
                   className="md:hidden flex items-center gap-1.5 pl-2.5 pr-1.5 py-1 rounded-full border border-amber-200 bg-amber-50 hover:bg-amber-100 text-xs font-semibold text-amber-700 transition"
                 >
                   En espera
@@ -13509,34 +13578,6 @@ import './index.css';
                 </div>
                 <DesgloseMediosPago desglose={resumenCierre.desglose} />
                 <button onClick={() => setResumenCierre(null)} className="w-full py-2.5 bg-stone-900 text-white font-bold text-xs rounded-full">Entendido</button>
-              </div>
-            </div>
-          )}
-
-          {/* Modal: Ventas en Espera */}
-          {modalVentasEspera && (
-            <div className="fixed inset-0 bg-stone-900/30 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-              <div className="bg-gradient-to-br from-[#f4effc] via-[#f9f8fb] to-[#f5f4f8] border border-white/80 rounded-[28px] max-w-sm w-full p-5 shadow-2xl space-y-3">
-                <div className="flex justify-between items-center">
-                  <h3 className="text-sm font-bold text-stone-900"><i className="fa-solid fa-pause mr-1.5 text-amber-600"></i> Ventas en Espera</h3>
-                  <button onClick={() => setModalVentasEspera(false)} className="text-stone-500 hover:text-stone-900"><i className="fa-solid fa-xmark"></i></button>
-                </div>
-                <div className="space-y-2 max-h-56 overflow-y-auto">
-                  {ventasEnEspera.length === 0 ? (
-                    <p className="text-xs text-stone-500 text-center py-6">No hay ventas en espera.</p>
-                  ) : ventasEnEspera.map((v, i) => (
-                    <div key={v.id} className="flex justify-between items-center p-2.5 bg-amber-50 rounded-xl border border-amber-200 text-xs">
-                      <div>
-                        <p className="font-bold text-stone-900"><i className="fa-solid fa-clock mr-1 text-amber-600"></i> {v.hora} · S/ {v.total.toFixed(2)}</p>
-                        <p className="text-xs text-stone-600">{v.items.length} ítems</p>
-                      </div>
-                      <div className="flex gap-1.5">
-                        <button onClick={() => recuperarVentaEspera(i)} className="px-2.5 py-1 bg-stone-900 text-white text-xs font-bold rounded-lg">Recuperar</button>
-                        <button onClick={() => borrarVentaEspera(i)} className="px-1.5 py-1 bg-rose-100 text-rose-600 text-xs rounded-lg"><i className="fa-solid fa-xmark"></i></button>
-                      </div>
-                    </div>
-                  ))}
-                </div>
               </div>
             </div>
           )}
