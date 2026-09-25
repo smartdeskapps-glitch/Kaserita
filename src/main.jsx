@@ -695,6 +695,10 @@ import './index.css';
       caja: <><path d="M21 8 12 3 3 8v8l9 5 9-5z" /><path d="m3 8 9 5 9-5M12 13v8" /></>,
       buscar: <><circle cx="11" cy="11" r="7" /><path d="m21 21-4.3-4.3" /></>,
       abajo: <path d="m6 9 6 6 6-6" />,
+      tienda: <><path d="M3 9l1-5h16l1 5" /><path d="M4 9v11h16V9" /><path d="M9 20v-6h6v6" /></>,
+      ubicacion: <><path d="M20 10c0 6-8 12-8 12S4 16 4 10a8 8 0 0 1 16 0z" /><circle cx="12" cy="10" r="3" /></>,
+      compartir: <><circle cx="18" cy="5" r="3" /><circle cx="6" cy="12" r="3" /><circle cx="18" cy="19" r="3" /><path d="m8.6 13.5 6.8 4M15.4 6.5l-6.8 4" /></>,
+      copiar: <><rect x="9" y="9" width="12" height="12" rx="2" /><path d="M5 15V5a2 2 0 0 1 2-2h8" /></>,
       x: <path d="M18 6 6 18M6 6l12 12" />,
       back: <path d="m15 18-6-6 6-6" />,
       pdf: <><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" /><path d="M14 2v6h6" /><path d="M12 12v6" /><path d="m9 15 3 3 3-3" /></>,
@@ -2306,6 +2310,7 @@ import './index.css';
       const [telefonoDeliveryEditar, setTelefonoDeliveryEditar] = useState('');
       const [direccionDelivery, setDireccionDelivery] = useState('');
       const [mostrarQRDelivery, setMostrarQRDelivery] = useState(false);
+      const [linkDeliveryCopiado, setLinkDeliveryCopiado] = useState(false);
       // Horario de atención para "Abierto ahora" / "Cerrado" en la vitrina
       // -- un objeto por día de la semana (0=domingo...6=sábado, igual que
       // Date.getDay() del lado de KaseritaDelivery). Arranca todo cerrado
@@ -12706,197 +12711,223 @@ import './index.css';
           {/* Modal: Mi Link de Pedidos (vitrina pública de KaseritaDelivery) */}
           {modalDelivery && (
             <div className="fixed inset-0 bg-stone-900/30 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-              <div className="bg-gradient-to-br from-[#f4effc] via-[#f9f8fb] to-[#f5f4f8] border border-white/80 rounded-[28px] max-w-md w-full p-5 shadow-2xl space-y-4">
-                <div className="flex justify-between items-center">
-                  <h3 className="text-lg font-bold text-stone-900 flex items-center gap-2">
-                    <i className="fa-solid fa-share-nodes text-orange-600"></i> Mi Link de Pedidos
-                  </h3>
-                  <button onClick={() => { setModalDelivery(false); setMostrarQRDelivery(false); }} className="w-8 h-8 rounded-full bg-white/70 hover:bg-white text-stone-500 hover:text-stone-900 shadow-sm"><i className="fa-solid fa-xmark"></i></button>
-                </div>
-
-                {!sesion?.bodega?.delivery_permitido ? (
-                  <div className="bg-amber-50 border border-amber-200 rounded-xl p-3.5 space-y-1.5">
-                    <p className="text-sm font-semibold text-amber-800 flex items-center gap-2">
-                      <i className="fa-solid fa-lock text-xs"></i> Función no habilitada
-                    </p>
-                    <p className="text-xs text-amber-700">
-                      Los Pedidos por WhatsApp son una función paga aparte de tu plan.
-                      Contactá al administrador para habilitarla en tu bodega.
-                    </p>
-                  </div>
-                ) : (
-                  <>
-                    <p className="text-xs text-stone-500">
+              <div className="bg-gradient-to-br from-[#f4effc] via-[#f9f8fb] to-[#f5f4f8] border border-white/80 rounded-[28px] max-w-md w-full shadow-2xl max-h-[92vh] flex flex-col overflow-hidden">
+                <div className="flex items-start gap-2.5 px-4 pt-4 pb-2.5 shrink-0">
+                  <span className="w-[38px] h-[38px] rounded-[14px] bg-[#ece0fd] text-[#6105dc] flex items-center justify-center shrink-0">
+                    <IconoTrazo nombre="compartir" className="w-[19px] h-[19px]" />
+                  </span>
+                  <div className="flex-1 min-w-0">
+                    <h3 className="text-[19px] font-bold tracking-tight text-stone-900 leading-tight">Mi link de pedidos</h3>
+                    <p className="text-xs text-stone-500 mt-0.5 leading-snug">
                       Tus clientes entran a este link, arman su pedido y te lo mandan por WhatsApp
                       con un código -- vos lo cargás acá en caja para cobrar sin escribir nada a mano.
                     </p>
+                  </div>
+                  <button onClick={() => { setModalDelivery(false); setMostrarQRDelivery(false); }} className="w-9 h-9 rounded-full bg-white ring-1 ring-[#6105dc]/10 hover:bg-[#f4eefe] text-stone-500 flex items-center justify-center transition shrink-0" aria-label="Cerrar">
+                    <IconoTrazo nombre="x" className="w-[15px] h-[15px]" />
+                  </button>
+                </div>
 
-                    <Interruptor
-                      activo={deliveryHabilitado}
-                      onClick={() => setDeliveryHabilitado((v) => !v)}
-                      etiqueta="Aparecer en el catálogo público"
-                      icono="fa-store"
-                    />
-
-                    <div className="space-y-2">
-                      <label className="text-xs text-stone-600 block">Logo de tu vitrina:</label>
-                      <div className="flex items-center gap-3">
-                        <label className="relative w-16 h-16 rounded-full overflow-hidden cursor-pointer group border border-stone-200 bg-stone-100 shrink-0">
-                          {logoUrlDelivery ? (
-                            <img src={logoUrlDelivery} alt="Logo" className="w-full h-full object-cover" />
-                          ) : (
-                            <div className="w-full h-full flex items-center justify-center text-stone-400">
-                              <i className="fa-solid fa-store text-lg"></i>
-                            </div>
-                          )}
-                          <div className="absolute inset-0 flex items-center justify-center bg-black/0 group-hover:bg-black/40 transition">
-                            {subiendoLogoDelivery ? (
-                              <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                            ) : (
-                              <i className="fa-solid fa-camera text-white text-xs opacity-0 group-hover:opacity-100 transition"></i>
-                            )}
-                          </div>
-                          <input
-                            type="file"
-                            accept="image/*"
-                            className="hidden"
-                            onChange={(e) => {
-                              const file = e.target.files && e.target.files[0];
-                              e.target.value = '';
-                              if (file) subirLogoDelivery(file);
-                            }}
-                          />
-                        </label>
-                        <p className="text-[10px] text-stone-500 flex-1">Toca el círculo para subir/cambiar el logo que ven tus clientes.</p>
-                      </div>
-                    </div>
-
-                    <div>
-                      <label className="text-xs text-stone-600 block mb-1">Tu link:</label>
-                      <div className="flex items-center gap-1 bg-stone-200/60 rounded-lg px-2.5 py-1.5">
-                        <span className="text-xs text-stone-400 shrink-0">{KASERITA_DELIVERY_URL}/</span>
-                        <input
-                          type="text"
-                          value={slugDelivery}
-                          onChange={(e) => setSlugDelivery(e.target.value)}
-                          onBlur={() => setSlugDelivery((v) => normalizarSlugDelivery(v))}
-                          placeholder="mi-bodega"
-                          className="flex-1 min-w-0 bg-transparent text-xs text-stone-900 font-semibold outline-none"
-                        />
-                      </div>
-                    </div>
-
-                    <div>
-                      <label className="text-xs text-stone-600 block mb-1">Dirección de tu bodega:</label>
-                      <input
-                        type="text"
-                        value={direccionDelivery}
-                        onChange={(e) => setDireccionDelivery(e.target.value)}
-                        placeholder="Ej. Av. Larco 450, Miraflores"
-                        className="w-full bg-white border border-stone-200/70 shadow-sm rounded-xl px-3 py-1.5 text-xs text-stone-900"
-                      />
-                      <p className="text-[10px] text-stone-500 mt-1">Así tus clientes saben de dónde les vas a mandar el pedido.</p>
-                    </div>
-
-                    <div>
-                      <label className="text-xs text-stone-600 block mb-1.5">Horario de atención:</label>
-                      <div className="flex items-center gap-1.5">
-                        {[[1, 'Lu'], [2, 'Ma'], [3, 'Mi'], [4, 'Ju'], [5, 'Vi'], [6, 'Sá'], [0, 'Do']].map(([dia, letra]) => {
-                          const abierto = !!horarioDelivery[dia]?.abierto;
-                          return (
-                            <button
-                              key={dia}
-                              type="button"
-                              onClick={() => setHorarioDelivery((h) => {
-                                if (abierto) return { ...h, [dia]: { ...h[dia], abierto: false } };
-                                // Toma el horario que ya tengan los otros días abiertos, para
-                                // que todos los días activos compartan el mismo rango -- si
-                                // ninguno está abierto todavía, cae al horario típico de bodega.
-                                const otroAbierto = Object.values(h).find((v) => v?.abierto);
-                                return {
-                                  ...h,
-                                  [dia]: { abierto: true, desde: otroAbierto?.desde || '08:00', hasta: otroAbierto?.hasta || '21:00' },
-                                };
-                              })}
-                              className={`flex-1 h-8 shrink-0 rounded-full text-[11px] font-bold flex items-center justify-center transition ${
-                                abierto ? 'bg-[#6105dc] text-white' : 'bg-stone-100 text-stone-400'
-                              }`}
-                            >
-                              {letra}
-                            </button>
-                          );
-                        })}
-                      </div>
-                      {Object.values(horarioDelivery).some((v) => v?.abierto) ? (
-                        <div className="flex items-center gap-1.5 mt-2">
-                          <input
-                            type="time"
-                            value={Object.values(horarioDelivery).find((v) => v?.abierto)?.desde || '08:00'}
-                            onChange={(e) => setHorarioDelivery((h) => {
-                              const nuevo = { ...h };
-                              Object.keys(nuevo).forEach((d) => { if (nuevo[d]?.abierto) nuevo[d] = { ...nuevo[d], desde: e.target.value }; });
-                              return nuevo;
-                            })}
-                            className="flex-1 min-w-0 bg-white border border-stone-200/70 shadow-sm rounded-xl px-2 py-1.5 text-xs text-stone-900"
-                          />
-                          <span className="text-stone-400 text-xs shrink-0">a</span>
-                          <input
-                            type="time"
-                            value={Object.values(horarioDelivery).find((v) => v?.abierto)?.hasta || '21:00'}
-                            onChange={(e) => setHorarioDelivery((h) => {
-                              const nuevo = { ...h };
-                              Object.keys(nuevo).forEach((d) => { if (nuevo[d]?.abierto) nuevo[d] = { ...nuevo[d], hasta: e.target.value }; });
-                              return nuevo;
-                            })}
-                            className="flex-1 min-w-0 bg-white border border-stone-200/70 shadow-sm rounded-xl px-2 py-1.5 text-xs text-stone-900"
-                          />
-                        </div>
-                      ) : (
-                        <p className="text-xs text-stone-400 mt-1.5">Marcá los días en que atendés.</p>
-                      )}
-                      <p className="text-[10px] text-stone-500 mt-1.5">
-                        Así la vitrina muestra "Abierto" o "Cerrado" en tiempo real. Si no lo configurás, no se muestra ningún aviso.
+                {!sesion?.bodega?.delivery_permitido ? (
+                  <div className="px-4 pb-4">
+                    <div className="bg-amber-50 border border-amber-200 rounded-[20px] p-3.5 space-y-1.5">
+                      <p className="text-sm font-semibold text-amber-800 flex items-center gap-2">
+                        <IconoTrazo nombre="warn" className="w-4 h-4" /> Función no habilitada
+                      </p>
+                      <p className="text-xs text-amber-700">
+                        Los Pedidos por WhatsApp son una función paga aparte de tu plan.
+                        Contactá al administrador para habilitarla en tu bodega.
                       </p>
                     </div>
+                  </div>
+                ) : (
+                  <>
+                    <div className="flex-1 overflow-y-auto px-4 pb-16 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden" style={{ scrollbarWidth: 'none' }}>
+                      <div className="bg-white rounded-3xl p-3.5 mb-2.5 ring-1 ring-[#6105dc]/5">
+                        <p className="flex items-center gap-1.5 text-[11.5px] font-bold uppercase tracking-wider text-[#4d04b0] mb-3">
+                          <IconoTrazo nombre="tienda" className="w-3.5 h-3.5" /> Tu vitrina
+                        </p>
+                        <div className="flex items-center gap-3.5">
+                          <label className="relative w-16 h-16 rounded-[22px] cursor-pointer group bg-[#f4eefe] ring-1 ring-[#6105dc]/10 shrink-0">
+                            <span className="absolute inset-0 rounded-[22px] overflow-hidden flex items-center justify-center text-[#6105dc]">
+                              {logoUrlDelivery ? (
+                                <img src={logoUrlDelivery} alt="Logo" className="w-full h-full object-cover" />
+                              ) : (
+                                <IconoTrazo nombre="tienda" className="w-[26px] h-[26px]" />
+                              )}
+                              {subiendoLogoDelivery && (
+                                <span className="absolute inset-0 flex items-center justify-center bg-black/40">
+                                  <span className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
+                                </span>
+                              )}
+                            </span>
+                            <span className="absolute -right-1 -bottom-1 w-6 h-6 rounded-full bg-[#6105dc] text-white flex items-center justify-center border-2 border-white">
+                              <IconoTrazo nombre="plus" className="w-3 h-3" grosor={2.4} />
+                            </span>
+                            <input
+                              type="file"
+                              accept="image/*"
+                              className="hidden"
+                              onChange={(e) => {
+                                const file = e.target.files && e.target.files[0];
+                                e.target.value = '';
+                                if (file) subirLogoDelivery(file);
+                              }}
+                            />
+                          </label>
+                          <p className="text-[12.5px] text-stone-500 leading-snug flex-1">Toca el círculo para subir o cambiar el logo que ven tus clientes.</p>
+                        </div>
 
-                    {sesion?.usuario?.rol === 'dueno' && (
-                      <div>
-                        <label className="text-xs text-stone-600 block mb-1">Tu WhatsApp (ahí te van a llegar los pedidos):</label>
-                        <input
-                          type="text"
-                          value={telefonoDeliveryEditar}
-                          onChange={(e) => setTelefonoDeliveryEditar(e.target.value)}
-                          placeholder="Ej. 51987654321"
-                          className="w-full bg-white border border-stone-200/70 shadow-sm rounded-xl px-3 py-1.5 text-xs text-stone-900"
-                        />
-                        <p className="text-[10px] text-stone-500 mt-1">Sin espacios ni guiones, con el código de país adelante.</p>
-                      </div>
-                    )}
-
-                    {deliveryHabilitado && sesion?.bodega?.slug && (
-                      <div className="space-y-2">
-                        <div className="flex items-center gap-2 bg-emerald-50 border border-emerald-200 rounded-lg px-2.5 py-2">
-                          <i className="fa-solid fa-circle-check text-emerald-600 text-xs shrink-0"></i>
-                          <span className="text-[11px] text-emerald-700 font-medium truncate flex-1">{`${KASERITA_DELIVERY_URL}/${sesion.bodega.slug}`}</span>
+                        <div className="flex items-center justify-between gap-3 mt-3.5 pt-3 border-t border-[#efe6fc]">
+                          <div className="min-w-0">
+                            <p className="text-sm font-semibold text-stone-900">Aparecer en el catálogo público</p>
+                            <p className="text-xs text-stone-500">{deliveryHabilitado ? 'Visible para tus clientes' : 'Oculto: solo entra quien tenga el link'}</p>
+                          </div>
                           <button
                             type="button"
-                            onClick={() => {
-                              navigator.clipboard.writeText(`${KASERITA_DELIVERY_URL}/${sesion.bodega.slug}`);
-                              notificar('Link copiado.', 'success');
-                            }}
-                            className="text-emerald-700 hover:text-emerald-900 shrink-0"
+                            role="switch"
+                            aria-checked={deliveryHabilitado}
+                            aria-label="Aparecer en el catálogo público"
+                            onClick={() => setDeliveryHabilitado((v) => !v)}
+                            className={`relative w-12 h-7 rounded-full shrink-0 transition-colors ${deliveryHabilitado ? 'bg-[#6105dc]' : 'bg-[#d9d5e2]'}`}
                           >
-                            <i className="fa-solid fa-copy text-xs"></i>
+                            <span className={`absolute top-[3px] w-[22px] h-[22px] rounded-full bg-white shadow transition-all ${deliveryHabilitado ? 'left-[23px]' : 'left-[3px]'}`}></span>
                           </button>
                         </div>
 
+                        <label className="text-[12.5px] font-semibold text-stone-700 block mt-3.5 mb-1.5">Tu link</label>
+                        <div className="h-[46px] flex items-center gap-1 px-3.5 rounded-2xl bg-[#f4eefe] focus-within:ring-2 focus-within:ring-[#6105dc]/40">
+                          <span className="text-sm text-stone-400 shrink-0 truncate max-w-[55%]">{KASERITA_DELIVERY_URL.replace(/^https?:\/\//, '')}/</span>
+                          <input
+                            type="text"
+                            value={slugDelivery}
+                            onChange={(e) => setSlugDelivery(e.target.value)}
+                            onBlur={() => setSlugDelivery((v) => normalizarSlugDelivery(v))}
+                            placeholder="mi-bodega"
+                            className="flex-1 min-w-0 bg-transparent text-sm text-stone-900 font-semibold outline-none"
+                          />
+                          {deliveryHabilitado && sesion?.bodega?.slug && (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                navigator.clipboard.writeText(`${KASERITA_DELIVERY_URL}/${sesion.bodega.slug}`);
+                                setLinkDeliveryCopiado(true);
+                                setTimeout(() => setLinkDeliveryCopiado(false), 1600);
+                              }}
+                              className={`shrink-0 h-8 px-3 rounded-full text-xs font-semibold flex items-center gap-1.5 transition ${linkDeliveryCopiado ? 'bg-green-100 text-green-700' : 'bg-white text-[#4d04b0] ring-1 ring-[#6105dc]/15 hover:bg-[#faf8fe]'}`}
+                            >
+                              <IconoTrazo nombre={linkDeliveryCopiado ? 'check' : 'copiar'} className="w-3.5 h-3.5" />
+                              {linkDeliveryCopiado ? 'Copiado' : 'Copiar'}
+                            </button>
+                          )}
+                        </div>
+                      </div>
+
+                      <div className="bg-white rounded-3xl p-3.5 mb-2.5 ring-1 ring-[#6105dc]/5">
+                        <p className="flex items-center gap-1.5 text-[11.5px] font-bold uppercase tracking-wider text-[#4d04b0] mb-3">
+                          <IconoTrazo nombre="ubicacion" className="w-3.5 h-3.5" /> Dónde y cuándo
+                        </p>
+                        <label className="text-[12.5px] font-semibold text-stone-700 block mb-1.5">Dirección de tu bodega</label>
+                        <div className="h-[46px] flex items-center gap-2 px-3.5 rounded-2xl bg-[#faf8fe] ring-1 ring-[#6105dc]/10 focus-within:ring-2 focus-within:ring-[#6105dc]/40">
+                          <input
+                            type="text"
+                            value={direccionDelivery}
+                            onChange={(e) => setDireccionDelivery(e.target.value)}
+                            placeholder="Ej. Av. Larco 450, Miraflores"
+                            className="w-full min-w-0 bg-transparent text-sm text-stone-900 placeholder:text-[#a9a3b8] focus:outline-none"
+                          />
+                        </div>
+                        <p className="text-[11.5px] text-stone-400 mt-1.5 leading-snug">Así tus clientes saben de dónde les vas a mandar el pedido.</p>
+
+                        <label className="text-[12.5px] font-semibold text-stone-700 block mt-4 mb-1.5">Días y horario de atención</label>
+                        <div className="grid grid-cols-7 gap-1.5">
+                          {[[1, 'Lu'], [2, 'Ma'], [3, 'Mi'], [4, 'Ju'], [5, 'Vi'], [6, 'Sá'], [0, 'Do']].map(([dia, letra]) => {
+                            const abierto = !!horarioDelivery[dia]?.abierto;
+                            return (
+                              <button
+                                key={dia}
+                                type="button"
+                                onClick={() => setHorarioDelivery((h) => {
+                                  if (abierto) return { ...h, [dia]: { ...h[dia], abierto: false } };
+                                  // Toma el horario que ya tengan los otros días abiertos, para
+                                  // que todos los días activos compartan el mismo rango -- si
+                                  // ninguno está abierto todavía, cae al horario típico de bodega.
+                                  const otroAbierto = Object.values(h).find((v) => v?.abierto);
+                                  return {
+                                    ...h,
+                                    [dia]: { abierto: true, desde: otroAbierto?.desde || '08:00', hasta: otroAbierto?.hasta || '21:00' },
+                                  };
+                                })}
+                                className={`h-[38px] rounded-full text-xs font-semibold flex items-center justify-center transition ${
+                                  abierto ? 'bg-[#6105dc] text-white' : 'bg-[#f4eefe] text-[#7a7396]'
+                                }`}
+                              >
+                                {letra}
+                              </button>
+                            );
+                          })}
+                        </div>
+                        {Object.values(horarioDelivery).some((v) => v?.abierto) ? (
+                          <div className="flex items-center gap-2 mt-2.5">
+                            <input
+                              type="time"
+                              value={Object.values(horarioDelivery).find((v) => v?.abierto)?.desde || '08:00'}
+                              onChange={(e) => setHorarioDelivery((h) => {
+                                const nuevo = { ...h };
+                                Object.keys(nuevo).forEach((d) => { if (nuevo[d]?.abierto) nuevo[d] = { ...nuevo[d], desde: e.target.value }; });
+                                return nuevo;
+                              })}
+                              className="flex-1 min-w-0 h-[46px] bg-[#faf8fe] ring-1 ring-[#6105dc]/10 rounded-2xl px-3 text-sm text-stone-900 focus:outline-none focus:ring-2 focus:ring-[#6105dc]/40"
+                            />
+                            <span className="text-stone-400 text-xs shrink-0">a</span>
+                            <input
+                              type="time"
+                              value={Object.values(horarioDelivery).find((v) => v?.abierto)?.hasta || '21:00'}
+                              onChange={(e) => setHorarioDelivery((h) => {
+                                const nuevo = { ...h };
+                                Object.keys(nuevo).forEach((d) => { if (nuevo[d]?.abierto) nuevo[d] = { ...nuevo[d], hasta: e.target.value }; });
+                                return nuevo;
+                              })}
+                              className="flex-1 min-w-0 h-[46px] bg-[#faf8fe] ring-1 ring-[#6105dc]/10 rounded-2xl px-3 text-sm text-stone-900 focus:outline-none focus:ring-2 focus:ring-[#6105dc]/40"
+                            />
+                          </div>
+                        ) : (
+                          <p className="text-xs text-stone-400 mt-2">Marcá los días en que atendés.</p>
+                        )}
+                        <p className="text-[11.5px] text-stone-400 mt-1.5 leading-snug">
+                          Así la vitrina muestra "Abierto" o "Cerrado" en tiempo real. Si no lo configurás, no se muestra ningún aviso.
+                        </p>
+                      </div>
+
+                      {sesion?.usuario?.rol === 'dueno' && (
+                        <div className="bg-white rounded-3xl p-3.5 mb-2.5 ring-1 ring-[#6105dc]/5">
+                          <p className="flex items-center gap-1.5 text-[11.5px] font-bold uppercase tracking-wider text-[#4d04b0] mb-3">
+                            <IconoTrazo nombre="chat" className="w-3.5 h-3.5" /> Pedidos por WhatsApp
+                          </p>
+                          <label className="text-[12.5px] font-semibold text-stone-700 block mb-1.5">Tu número (ahí te van a llegar los pedidos)</label>
+                          <div className="h-[46px] flex items-center gap-2 px-3.5 rounded-2xl bg-[#faf8fe] ring-1 ring-[#6105dc]/10 focus-within:ring-2 focus-within:ring-[#6105dc]/40">
+                            <input
+                              type="text"
+                              value={telefonoDeliveryEditar}
+                              onChange={(e) => setTelefonoDeliveryEditar(e.target.value)}
+                              placeholder="Ej. 51987654321"
+                              className="w-full min-w-0 bg-transparent text-sm text-stone-900 placeholder:text-[#a9a3b8] focus:outline-none"
+                            />
+                          </div>
+                          <p className="text-[11.5px] text-stone-400 mt-1.5 leading-snug">Sin espacios ni guiones, con el código de país adelante.</p>
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="relative -mt-14 px-4 pt-6 pb-4 space-y-2 shrink-0 bg-gradient-to-t from-[#f9f8fb] from-70% to-transparent">
+                      {deliveryHabilitado && sesion?.bodega?.slug && (
                         <div className="flex gap-2">
                           <button
                             type="button"
                             onClick={() => setMostrarQRDelivery(true)}
-                            className="flex-1 py-2 bg-white/70 hover:bg-[#ece0fd] text-stone-600 text-xs font-bold rounded-full flex items-center justify-center gap-1.5 shadow-sm"
+                            className="flex-1 h-[46px] bg-white ring-1 ring-[#6105dc]/15 hover:bg-[#faf8fe] text-[#4d04b0] text-sm font-semibold rounded-full flex items-center justify-center gap-2 transition"
                           >
-                            <i className="fa-solid fa-qrcode"></i> Ver QR
+                            <IconoTrazo nombre="qr" className="w-[17px] h-[17px]" /> Ver QR
                           </button>
                           {typeof navigator !== 'undefined' && navigator.share && (
                             <button
@@ -12909,22 +12940,21 @@ import './index.css';
                                   if (err?.name !== 'AbortError') notificar('No se pudo abrir el menú de compartir.', 'error');
                                 }
                               }}
-                              className="flex-1 py-2 bg-[#6105dc] hover:bg-[#4d04b0] text-white text-xs font-bold rounded-full flex items-center justify-center gap-1.5"
+                              className="flex-1 h-[46px] bg-white ring-1 ring-[#6105dc]/15 hover:bg-[#faf8fe] text-[#4d04b0] text-sm font-semibold rounded-full flex items-center justify-center gap-2 transition"
                             >
-                              <i className="fa-solid fa-share-nodes"></i> Compartir
+                              <IconoTrazo nombre="compartir" className="w-[17px] h-[17px]" /> Compartir
                             </button>
                           )}
                         </div>
-                      </div>
-                    )}
-
-                    <button
-                      onClick={guardarConfigDelivery}
-                      disabled={guardandoDelivery}
-                      className="w-full py-2.5 rounded-full bg-[#6105dc] hover:bg-[#4d04b0] text-white font-bold text-sm disabled:opacity-50"
-                    >
-                      {guardandoDelivery ? 'Guardando...' : 'Guardar'}
-                    </button>
+                      )}
+                      <button
+                        onClick={guardarConfigDelivery}
+                        disabled={guardandoDelivery}
+                        className="w-full h-[54px] rounded-full bg-[#6105dc] hover:bg-[#4d04b0] text-white font-semibold text-base transition disabled:opacity-50"
+                      >
+                        {guardandoDelivery ? 'Guardando...' : 'Guardar'}
+                      </button>
+                    </div>
                   </>
                 )}
               </div>
