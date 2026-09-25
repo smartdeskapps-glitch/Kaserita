@@ -2501,8 +2501,6 @@ import './index.css';
       const [formMerma, setFormMerma] = useState({ productoId: '', cantidad: '', motivo: 'Vencido' });
       const [guardandoMerma, setGuardandoMerma] = useState(false);
 
-      // --- Vista: Productos con Stock Bajo ---
-      const [modalStockBajo, setModalStockBajo] = useState(false);
 
       // --- Vista: Ver Stock (todo el catálogo, no solo lo urgente) ---
       const [modalVerStock, setModalVerStock] = useState(false);
@@ -9831,8 +9829,7 @@ import './index.css';
               { grupo: 'Ventas y caja', etiqueta: 'Cuentas por Cobrar', icono: 'fa-hand-holding-dollar', accion: abrirModuloCobroDeudas },
               { grupo: 'Ventas y caja', etiqueta: 'Historial de Ventas Hoy', icono: 'fa-receipt', accion: abrirHistorialDelDia },
               !esAdmin && { grupo: 'Ventas y caja', etiqueta: 'Registrar Cliente', icono: 'fa-user-plus', accion: () => setModalNuevoCliente(true) },
-              { grupo: 'Inventario', etiqueta: 'Stock Bajo', icono: 'fa-triangle-exclamation', tono: 'amber', insignia: cantidadStockBajo > 0 ? String(cantidadStockBajo) : '', accion: () => setModalStockBajo(true) },
-              { grupo: 'Inventario', etiqueta: 'Ver Stock', icono: 'fa-table-list', accion: () => setModalVerStock(true) },
+              { grupo: 'Inventario', etiqueta: 'Ver Stock', icono: 'fa-table-list', tono: cantidadStockBajo > 0 ? 'amber' : undefined, insignia: cantidadStockBajo > 0 ? `${cantidadStockBajo} por reponer` : '', accion: () => { setVerStockFiltro('todos'); setModalVerStock(true); } },
               { grupo: 'Inventario', etiqueta: 'Toma de Inventario', icono: 'fa-clipboard-check', accion: abrirTomaInventario },
               { grupo: 'Inventario', etiqueta: 'Historial de Inventario', icono: 'fa-scale-balanced', accion: abrirHistorialInventario },
               { grupo: 'Inventario', etiqueta: 'Registrar Merma', icono: 'fa-box', accion: () => setModalMerma(true) },
@@ -10933,40 +10930,6 @@ import './index.css';
                 >
                   {guardandoMerma ? 'Guardando...' : 'Registrar Merma'}
                 </button>
-              </div>
-            </div>
-          )}
-
-          {/* Modal: Productos con Stock Bajo */}
-          {modalStockBajo && (
-            <div className="fixed inset-0 bg-stone-900/30 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-              <div className="bg-gradient-to-br from-[#f4effc] via-[#f9f8fb] to-[#f5f4f8] border border-white/80 rounded-[28px] max-w-md w-full p-5 shadow-2xl space-y-3 max-h-[85vh] flex flex-col">
-                <div className="flex justify-between items-center shrink-0">
-                  <h3 className="text-lg font-bold text-stone-900 flex items-center gap-2">
-                    <i className="fa-solid fa-triangle-exclamation text-amber-600"></i> Stock Bajo / Por Agotarse
-                  </h3>
-                  <button onClick={() => setModalStockBajo(false)} className="w-8 h-8 rounded-full bg-white/70 hover:bg-white text-stone-500 hover:text-stone-900 shadow-sm"><i className="fa-solid fa-xmark"></i></button>
-                </div>
-                <div className="flex-1 overflow-y-auto space-y-1.5">
-                  {productos.filter((p) => p.stock_actual != null && Number(p.stock_actual) <= Number(p.stock_min || 5)).length === 0 ? (
-                    <p className="text-xs text-emerald-600 text-center py-8"><i className="fa-solid fa-circle-check mr-1"></i> Todo tu stock está en buen nivel.</p>
-                  ) : (
-                    productos
-                      .filter((p) => p.stock_actual != null && Number(p.stock_actual) <= Number(p.stock_min || 5))
-                      .sort((a, b) => Number(a.stock_actual) - Number(b.stock_actual))
-                      .map((p) => (
-                        <div key={p.id} className="flex items-center justify-between p-2.5 bg-stone-50 border border-stone-200 rounded-xl">
-                          <div>
-                            <p className="text-xs font-semibold text-stone-800">{p.descripcion}</p>
-                            <p className="text-xs text-stone-500">Mínimo: {p.stock_min || 5}</p>
-                          </div>
-                          <span className={`text-sm font-black ${Number(p.stock_actual) <= 0 ? 'text-rose-600' : 'text-amber-600'}`}>
-                            {Number(p.stock_actual) <= 0 ? 'Sin stock' : `${p.stock_actual}`}
-                          </span>
-                        </div>
-                      ))
-                  )}
-                </div>
               </div>
             </div>
           )}
