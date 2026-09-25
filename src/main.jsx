@@ -9401,7 +9401,7 @@ import './index.css';
             const opciones = [
               turnoActivo
                 ? { grupo: '', etiqueta: 'Cerrar Caja', icono: 'fa-lock', tono: 'rose', accion: abrirCierreCaja }
-                : { grupo: '', etiqueta: 'Abrir Turno', icono: 'fa-bolt', tono: 'primario', accion: () => setModalTurno(true) },
+                : { grupo: '', etiqueta: 'Abrir Turno', icono: 'fa-bolt', tono: 'primario', soloMovil: true, accion: () => setModalTurno(true) },
               { grupo: 'Ventas y caja', etiqueta: 'Cuentas por Cobrar', icono: 'fa-hand-holding-dollar', accion: abrirModuloCobroDeudas },
               { grupo: 'Ventas y caja', etiqueta: 'Historial de Ventas Hoy', icono: 'fa-receipt', accion: abrirHistorialDelDia },
               !esAdmin && { grupo: 'Ventas y caja', etiqueta: 'Registrar Cliente', icono: 'fa-user-plus', accion: () => setModalNuevoCliente(true) },
@@ -9431,11 +9431,15 @@ import './index.css';
               },
               { grupo: 'Cuenta', etiqueta: 'Cerrar Sesión', icono: 'fa-right-from-bracket', tono: 'rose', accion: cerrarSesion },
             ].filter(Boolean);
+            // El botón "Abrir Turno" del encabezado ya está visible desde sm (640px);
+            // en pantallas más chicas se oculta y solo queda este ítem del menú.
+            const esEscritorio = typeof window !== 'undefined' && window.matchMedia('(min-width: 640px)').matches;
+            const opcionesMenu = esEscritorio ? opciones.filter((o) => !o.soloMovil) : opciones;
 
             // Sin tildes ni mayúsculas para que "inventario" encuentre "Mercadería", etc.
             const normalizar = (t) => String(t || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
             const q = normalizar(busquedaMenu).trim();
-            const visibles = q ? opciones.filter((o) => normalizar(`${o.etiqueta} ${o.grupo}`).includes(q)) : opciones;
+            const visibles = q ? opcionesMenu.filter((o) => normalizar(`${o.etiqueta} ${o.grupo}`).includes(q)) : opcionesMenu;
             const activo = Math.min(indiceMenu, Math.max(visibles.length - 1, 0));
             const cerrarMenu = () => setMenuMas(false);
             const ejecutar = (o) => { if (!o) return; o.accion(); cerrarMenu(); };
