@@ -12790,7 +12790,7 @@ import './index.css';
               filtros queda fijo y solo el contenido hace scroll. */}
           {modalDashboard && (
             <div className="fixed inset-0 bg-stone-900/30 backdrop-blur-sm flex items-center justify-center z-50 p-2 md:p-4">
-              <div className="bg-gradient-to-br from-[#e9dcff] via-[#f6f1ff] to-[#f1eefb] border border-white/80 rounded-[28px] max-w-6xl w-full max-h-[95vh] flex flex-col overflow-hidden shadow-2xl">
+              <div className="bg-gradient-to-br from-[#f4effc] via-[#f9f8fb] to-[#f5f4f8] border border-white/80 rounded-[28px] max-w-6xl w-full max-h-[95vh] flex flex-col overflow-hidden shadow-2xl">
                 <div className="shrink-0 px-5 md:px-7 pt-6 pb-4 space-y-4">
                   <div className="flex items-start justify-between gap-3">
                     <div className="min-w-0">
@@ -12845,7 +12845,7 @@ import './index.css';
                           ].map((d) => (
                             <div key={d.etiqueta} className="bg-white/80 rounded-2xl p-4 shadow-sm">
                               <div className="flex items-start justify-between gap-2">
-                                <p className="text-2xl font-medium text-stone-900 tracking-tight tabular-nums leading-tight">{d.valor}</p>
+                                <p className="text-xl xl:text-2xl font-medium text-stone-900 tracking-tight tabular-nums leading-tight whitespace-nowrap">{d.valor}</p>
                                 <span className="w-8 h-8 rounded-full bg-[#f4eefe] text-[#6105dc] flex items-center justify-center shrink-0">
                                   <i className={`fa-solid ${d.icono} text-xs`}></i>
                                 </span>
