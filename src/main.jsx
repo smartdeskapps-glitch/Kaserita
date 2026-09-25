@@ -5025,7 +5025,7 @@ import './index.css';
         setMostrarPago(false);
         guardarVentasEnEsperaLS(nuevaLista);
         setModalVentasEspera(false);
-        notificar(habiaVentaActual ? 'Venta recuperada. La anterior quedó en espera.' : 'Venta recuperada al carrito.', 'success');
+        if (habiaVentaActual) notificar('La venta anterior quedó en espera.', 'info');
       };
 
       const borrarVentaEspera = (index) => {
