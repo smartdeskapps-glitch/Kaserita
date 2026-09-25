@@ -8743,16 +8743,21 @@ import './index.css';
                 {turnoActivo ? (
                   <button
                     onClick={abrirCierreCaja}
-                    className="btn-noise hidden sm:inline-flex items-center gap-2 px-3.5 py-2 text-xs font-semibold text-green-600 transition"
+                    className="btn-noise hidden sm:inline-flex text-xs font-medium text-green-700"
                   >
-                    <span className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse"></span> Turno Abierto
+                    <span className="btn-noise-in">
+                      <span className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse"></span> Turno Abierto
+                    </span>
                   </button>
                 ) : (
                   <button
                     onClick={() => setModalTurno(true)}
-                    className="btn-noise hidden sm:inline-flex items-center gap-2 px-4 py-2 text-xs font-semibold text-stone-800 transition"
+                    className="btn-noise hidden sm:inline-flex text-xs font-medium text-[#1c1830]"
                   >
-                    Abrir Turno <span aria-hidden="true">→</span>
+                    <span className="btn-noise-in">
+                      Abrir Turno
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" className="btn-noise-flecha w-3.5 h-3.5" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6" /></svg>
+                    </span>
                   </button>
                 )}
                 <button

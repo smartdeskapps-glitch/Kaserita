@@ -2,53 +2,67 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Botón "Abrir Turno": el borde en sí es un degradado pastel que gira
-   lentamente (no un halo que se escapa del botón), igual al botón de
-   referencia "Start publishing". Técnica de doble fondo (padding-box +
-   border-box) con @property para poder animar el ángulo -- puro CSS,
-   sin shadcn/TS, porque este proyecto es un solo main.jsx. */
+/* Botón "Abrir Turno" / "Turno Abierto": anillo de degradado violeta
+   difuso con grano (ruido SVG) que gira lento, y una pastilla interior
+   (.btn-noise-in) con relieve. Se usa @property para animar el ángulo del
+   degradado; el display lo pone Tailwind en el propio botón (hidden sm:inline-flex). */
 @property --btn-glow-angle {
   syntax: '<angle>';
   initial-value: 0deg;
   inherits: false;
 }
 .btn-noise {
-  --btn-noise-bg: #ffffff;
-  --btn-noise-bg-hover: #fafaf9;
-  border: 5px solid transparent;
+  position: relative;
+  isolation: isolate;
+  padding: 4px;
   border-radius: 9999px;
-  background:
-    linear-gradient(var(--btn-noise-bg), var(--btn-noise-bg)) padding-box,
-    conic-gradient(
-      from var(--btn-glow-angle),
-      #f5f3ff 0deg,
-      #c4b5fd 70deg,
-      #f5f3ff 140deg,
-      #f5f3ff 200deg,
-      #a78bfa 260deg,
-      #f5f3ff 330deg,
-      #f5f3ff 360deg
-    ) border-box;
-  box-shadow: 0 1px 2px rgba(41, 37, 36, 0.06);
-  animation: btn-glow-spin 6s linear infinite;
-  transition: background-color 0.15s ease;
+  overflow: hidden;
+  background: #e8e5ee;
+  box-shadow: 0 0 0 1px rgba(60, 40, 100, 0.09), 0 6px 18px -8px rgba(97, 5, 220, 0.35);
 }
-.btn-noise:hover {
-  background:
-    linear-gradient(var(--btn-noise-bg-hover), var(--btn-noise-bg-hover)) padding-box,
-    conic-gradient(
-      from var(--btn-glow-angle),
-      #f5f3ff 0deg,
-      #c4b5fd 70deg,
-      #f5f3ff 140deg,
-      #f5f3ff 200deg,
-      #a78bfa 260deg,
-      #f5f3ff 330deg,
-      #f5f3ff 360deg
-    ) border-box;
+.btn-noise::before {
+  content: "";
+  position: absolute;
+  inset: -30%;
+  z-index: -2;
+  background: conic-gradient(
+    from var(--btn-glow-angle),
+    #dcd6ea 0deg, #b9a5f5 55deg, #e7d9fb 100deg, #f3c9e6 150deg,
+    #e4e0ee 200deg, #a9bdf3 250deg, #c8b0f8 300deg, #dcd6ea 360deg
+  );
+  filter: blur(6px);
+  animation: btn-glow-spin 9s linear infinite;
 }
+.btn-noise::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 .9 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  opacity: 0.32;
+  mix-blend-mode: soft-light;
+  pointer-events: none;
+}
+.btn-noise-in {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
+  border-radius: 9999px;
+  background: linear-gradient(#fff, #f4f3f6);
+  box-shadow: 0 0 0 1px rgba(60, 40, 100, 0.1), 0 1px 3px rgba(40, 20, 80, 0.18),
+    inset 0 1px 0 #fff, inset 0 -2px 4px rgba(97, 5, 220, 0.05);
+  transition: background 0.15s ease;
+}
+.btn-noise:hover .btn-noise-in { background: linear-gradient(#fff, #efedf3); }
+.btn-noise:active .btn-noise-in { transform: scale(0.985); }
+.btn-noise-flecha { transition: transform 0.2s ease; }
+.btn-noise:hover .btn-noise-flecha { transform: translateX(3px); }
 @keyframes btn-glow-spin {
   to { --btn-glow-angle: 360deg; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .btn-noise::before { animation: none; }
 }
 
 /* "Pestaña" de categoría/carrito activa: se funde sin costura con el
