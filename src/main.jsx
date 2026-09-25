@@ -13256,134 +13256,147 @@ import './index.css';
             </div>
           )}
 
-          {/* Modal: Historial de Ventas del Día */}
-          {modalHistorial && (
-            <div className="fixed inset-0 bg-black/85 flex items-center justify-center z-50 p-4">
-              <div className="bg-stone-100 border border-stone-200 rounded-2xl max-w-xl w-full p-5 shadow-2xl space-y-3">
-                <div className="flex justify-between items-center">
-                  <h3 className="text-base font-bold text-stone-900 flex items-center gap-2">
-                    <i className="fa-solid fa-receipt text-orange-600"></i> Historial de Ventas
-                  </h3>
-                  <button onClick={() => setModalHistorial(false)} className="text-stone-600 hover:text-stone-900"><i className="fa-solid fa-xmark"></i></button>
-                </div>
-
-                <div className="flex flex-wrap items-end gap-2">
-                  <div>
-                    <label className="text-xs text-stone-600 block mb-1">Desde:</label>
-                    <input
-                      type="date"
-                      value={fechaInicioHistorial}
-                      onChange={(e) => setFechaInicioHistorial(e.target.value)}
-                      className="bg-white border border-stone-200/70 shadow-sm rounded-full px-3 py-1.5 text-xs text-stone-900"
-                    />
-                  </div>
-                  <div>
-                    <label className="text-xs text-stone-600 block mb-1">Hasta:</label>
-                    <input
-                      type="date"
-                      value={fechaFinHistorial}
-                      onChange={(e) => setFechaFinHistorial(e.target.value)}
-                      className="bg-white border border-stone-200/70 shadow-sm rounded-full px-3 py-1.5 text-xs text-stone-900"
-                    />
-                  </div>
-                  <button
-                    onClick={() => cargarHistorialPorRango(fechaInicioHistorial, fechaFinHistorial)}
-                    className="px-3 py-1.5 bg-stone-900 hover:bg-stone-800 text-white text-xs font-semibold rounded-lg"
-                  >
-                    Buscar
-                  </button>
-                  <button
-                    onClick={abrirHistorialDelDia}
-                    className="px-3 py-1.5 bg-stone-200 hover:bg-stone-300 text-stone-700 text-xs font-semibold rounded-lg"
-                  >
-                    Hoy
-                  </button>
-                  <input
-                    type="text"
-                    placeholder="Buscar N° de boleta..."
-                    value={busquedaBoletaHistorial}
-                    onChange={(e) => setBusquedaBoletaHistorial(e.target.value)}
-                    className="flex-1 min-w-[140px] bg-stone-50 border border-stone-200 rounded-lg px-3 py-1.5 text-xs text-stone-900"
-                  />
-                  {esAdmin && ventasDelDia.length > 0 && (
-                    <button
-                      onClick={exportarVentasExcel}
-                      className="px-3 py-1.5 bg-stone-200 hover:bg-stone-300 text-stone-700 text-xs font-semibold rounded-lg flex items-center gap-1.5"
-                      title="Exportar a Excel"
-                    >
-                      <i className="fa-solid fa-file-excel"></i> Excel
-                    </button>
-                  )}
-                </div>
-
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-center text-xs">
-                  <div className="bg-stone-50 p-2 rounded-lg border border-stone-200">
-                    <span className="text-stone-600 block text-xs">Ventas</span>
-                    <span className="font-bold text-sm text-stone-900">{ventasDelDia.filter(v => !v.anulada).length}</span>
-                  </div>
-                  <div className="bg-stone-50 p-2 rounded-lg border border-stone-200">
-                    <span className="text-stone-600 block text-xs">Efectivo</span>
-                    <span className="font-bold text-sm text-orange-600">
-                      S/ {ventasDelDia.filter(v => !v.anulada && v.medio_pago === 'EFECTIVO').reduce((a, c) => a + Number(c.total_venta), 0).toFixed(2)}
-                    </span>
-                  </div>
-                  {esAdmin && (
-                    <div className="bg-stone-50 p-2 rounded-lg border border-emerald-800/40">
-                      <span className="text-stone-600 block text-xs">Ganancia</span>
-                      <span className="font-bold text-sm text-emerald-600">
-                        S/ {ventasDelDia.filter(v => !v.anulada).reduce((a, c) => a + Number(c.utilidad_total || 0), 0).toFixed(2)}
-                      </span>
+          {/* Modal: Historial de Ventas (mismo estilo que el Dashboard) */}
+          {modalHistorial && (() => {
+            const activas = ventasDelDia.filter(v => !v.anulada);
+            const totalGeneral = activas.reduce((a, c) => a + Number(c.total_venta), 0);
+            const totalEfectivo = activas.filter(v => v.medio_pago === 'EFECTIVO').reduce((a, c) => a + Number(c.total_venta), 0);
+            const totalGanancia = activas.reduce((a, c) => a + Number(c.utilidad_total || 0), 0);
+            const filtradas = ventasDelDia.filter(v => v.nro_boleta.toLowerCase().includes(busquedaBoletaHistorial.trim().toLowerCase()));
+            const tile = 'bg-white/70 border border-white/80 rounded-2xl shadow-sm px-3 py-2.5 min-w-0';
+            return (
+              <div className="fixed inset-0 bg-stone-900/30 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+                <div className="bg-gradient-to-br from-[#f4effc] via-[#f9f8fb] to-[#f5f4f8] rounded-[28px] max-w-2xl w-full max-h-[92vh] flex flex-col shadow-2xl border border-white/80">
+                  <div className="p-5 pb-3 shrink-0 space-y-3">
+                    <div className="flex justify-between items-center">
+                      <h3 className="text-lg font-bold text-stone-900 flex items-center gap-2">
+                        <span className="w-8 h-8 rounded-xl bg-[#ece0fd] text-[#6105dc] flex items-center justify-center text-sm"><i className="fa-solid fa-receipt"></i></span>
+                        Historial de ventas
+                      </h3>
+                      <button onClick={() => setModalHistorial(false)} className="w-8 h-8 rounded-full bg-white/70 hover:bg-white text-stone-500 hover:text-stone-900 shadow-sm"><i className="fa-solid fa-xmark"></i></button>
                     </div>
-                  )}
-                  <div className="bg-stone-50 p-2 rounded-lg border border-stone-200">
-                    <span className="text-stone-600 block text-xs">Total General</span>
-                    <span className="font-black text-sm text-orange-600">
-                      S/ {ventasDelDia.filter(v => !v.anulada).reduce((a, c) => a + Number(c.total_venta), 0).toFixed(2)}
-                    </span>
-                  </div>
-                </div>
 
-                <div className="max-h-64 overflow-y-auto space-y-1.5">
-                  {cargandoHistorial ? (
-                    <p className="text-xs text-center py-6 text-stone-600">Cargando ventas...</p>
-                  ) : ventasDelDia.filter(v => v.nro_boleta.toLowerCase().includes(busquedaBoletaHistorial.trim().toLowerCase())).length === 0 ? (
-                    <p className="text-xs text-center py-6 text-stone-500">No hay ventas en ese rango.</p>
-                  ) : (
-                    ventasDelDia.filter(v => v.nro_boleta.toLowerCase().includes(busquedaBoletaHistorial.trim().toLowerCase())).map(v => (
-                      <div key={v.id} className={`flex justify-between items-center p-2.5 rounded-lg border text-xs ${v.anulada ? 'bg-rose-950/30 border-rose-900/60 opacity-60' : 'bg-stone-50 border-stone-100'}`}>
-                        <div>
-                          <p className="font-bold text-stone-900 font-mono">
-                            {v.nro_boleta} - <span className="text-stone-600 font-sans">{v.medio_pago}</span>
-                            {v.anulada && <span className="text-rose-600 font-sans"> (ANULADA)</span>}
-                          </p>
-                          <p className="text-xs text-stone-600">{new Date(v.fecha_hora).toLocaleString('es-PE', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })} · {v.clientes?.nombre_completo || 'Cliente'}</p>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <span className="font-black text-orange-600 text-sm">S/ {Number(v.total_venta).toFixed(2)}</span>
-                          <button
-                            onClick={() => setReciboReimpresion(v)}
-                            className="text-xs bg-stone-200 hover:bg-stone-200 text-stone-800 px-2 py-1 rounded border border-stone-200"
-                            title="Reimprimir boleta"
-                          >
-                            <i className="fa-solid fa-print"></i>
-                          </button>
-                          {!v.anulada && esAdmin && (
-                            <button
-                              onClick={() => anularVentaHoy(v)}
-                              className="text-xs bg-rose-950/80 hover:bg-rose-900 text-rose-600 px-2 py-1 rounded border border-rose-800"
-                              title="Anular venta"
-                            >
-                              Anular
-                            </button>
-                          )}
-                        </div>
+                    <div className="flex flex-wrap items-end gap-2">
+                      <div>
+                        <label className="text-xs text-stone-600 block mb-1">Desde:</label>
+                        <input
+                          type="date"
+                          value={fechaInicioHistorial}
+                          onChange={(e) => setFechaInicioHistorial(e.target.value)}
+                          className="bg-white border border-stone-200/70 shadow-sm rounded-full px-3 py-1.5 text-xs text-stone-900"
+                        />
                       </div>
-                    ))
-                  )}
+                      <div>
+                        <label className="text-xs text-stone-600 block mb-1">Hasta:</label>
+                        <input
+                          type="date"
+                          value={fechaFinHistorial}
+                          onChange={(e) => setFechaFinHistorial(e.target.value)}
+                          className="bg-white border border-stone-200/70 shadow-sm rounded-full px-3 py-1.5 text-xs text-stone-900"
+                        />
+                      </div>
+                      <button
+                        onClick={() => cargarHistorialPorRango(fechaInicioHistorial, fechaFinHistorial)}
+                        className="px-4 py-1.5 bg-[#6105dc] hover:bg-[#4d04b0] text-white text-xs font-semibold rounded-full shadow-sm"
+                      >
+                        Buscar
+                      </button>
+                      <button
+                        onClick={abrirHistorialDelDia}
+                        className="px-4 py-1.5 bg-white/70 hover:bg-[#ece0fd] text-stone-600 hover:text-[#4d04b0] text-xs font-semibold rounded-full shadow-sm transition"
+                      >
+                        Hoy
+                      </button>
+                    </div>
+
+                    <div className="flex items-center gap-2">
+                      <div className="relative flex-1 min-w-0">
+                        <i className="fa-solid fa-magnifying-glass absolute left-3.5 top-1/2 -translate-y-1/2 text-stone-400 text-xs"></i>
+                        <input
+                          type="text"
+                          placeholder="Buscar N° de boleta..."
+                          value={busquedaBoletaHistorial}
+                          onChange={(e) => setBusquedaBoletaHistorial(e.target.value)}
+                          className="w-full bg-white border border-stone-200/70 shadow-sm rounded-full pl-9 pr-3 py-2 text-xs text-stone-900 focus:outline-none focus:ring-2 focus:ring-[#d6bdfa]"
+                        />
+                      </div>
+                      {esAdmin && ventasDelDia.length > 0 && (
+                        <button
+                          onClick={exportarVentasExcel}
+                          className="px-4 py-2 bg-white/70 hover:bg-[#ece0fd] text-stone-600 hover:text-[#4d04b0] text-xs font-semibold rounded-full shadow-sm flex items-center gap-1.5 transition shrink-0"
+                          title="Exportar a Excel"
+                        >
+                          <i className="fa-solid fa-file-excel"></i> Excel
+                        </button>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="px-5 pb-5 overflow-y-auto hide-scrollbar space-y-3">
+                    <div className={`grid grid-cols-2 ${esAdmin ? 'sm:grid-cols-4' : 'sm:grid-cols-3'} gap-2`}>
+                      <div className={tile}>
+                        <span className="text-[11px] text-stone-500 block">Ventas</span>
+                        <span className="text-xl font-bold text-stone-900 whitespace-nowrap">{activas.length}</span>
+                      </div>
+                      <div className={tile}>
+                        <span className="text-[11px] text-stone-500 block">Efectivo</span>
+                        <span className="text-xl font-bold text-stone-900 whitespace-nowrap">S/ {formatoSoles(totalEfectivo)}</span>
+                      </div>
+                      {esAdmin && (
+                        <div className={tile}>
+                          <span className="text-[11px] text-stone-500 block">Ganancia</span>
+                          <span className="text-xl font-bold text-emerald-600 whitespace-nowrap">S/ {formatoSoles(totalGanancia)}</span>
+                        </div>
+                      )}
+                      <div className="bg-[#f4eefe] border border-[#d6bdfa] rounded-2xl shadow-sm px-3 py-2.5 min-w-0">
+                        <span className="text-[11px] text-[#6105dc] block">Total general</span>
+                        <span className="text-xl font-bold text-[#4d04b0] whitespace-nowrap">S/ {formatoSoles(totalGeneral)}</span>
+                      </div>
+                    </div>
+
+                    <div className="bg-white/60 backdrop-blur-xl border border-white/80 rounded-3xl shadow-[0_10px_40px_-14px_rgba(97,5,220,0.18)] p-2 max-h-72 overflow-y-auto hide-scrollbar space-y-1">
+                      {cargandoHistorial ? (
+                        <p className="text-xs text-center py-8 text-stone-500">Cargando ventas...</p>
+                      ) : filtradas.length === 0 ? (
+                        <p className="text-xs text-center py-8 text-stone-500">No hay ventas en ese rango.</p>
+                      ) : (
+                        filtradas.map(v => (
+                          <div key={v.id} className={`flex justify-between items-center gap-3 px-3 py-2.5 rounded-2xl text-xs hover:bg-[#f4eefe] transition ${v.anulada ? 'opacity-50' : ''}`}>
+                            <div className="min-w-0">
+                              <p className="font-bold text-stone-900 font-mono truncate">
+                                {v.nro_boleta} <span className="ml-1 px-2 py-0.5 rounded-full bg-[#ece0fd] text-[#4d04b0] font-sans font-semibold text-[10px]">{v.medio_pago}</span>
+                                {v.anulada && <span className="ml-1 px-2 py-0.5 rounded-full bg-rose-100 text-rose-600 font-sans font-semibold text-[10px]">ANULADA</span>}
+                              </p>
+                              <p className="text-[11px] text-stone-500 mt-0.5">{new Date(v.fecha_hora).toLocaleString('es-PE', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })} · {v.clientes?.nombre_completo || 'Cliente'}</p>
+                            </div>
+                            <div className="flex items-center gap-2 shrink-0">
+                              <span className={`font-bold text-sm text-stone-900 whitespace-nowrap ${v.anulada ? 'line-through' : ''}`}>S/ {formatoSoles(Number(v.total_venta))}</span>
+                              <button
+                                onClick={() => setReciboReimpresion(v)}
+                                className="w-8 h-8 rounded-full bg-white hover:bg-[#ece0fd] text-stone-600 hover:text-[#4d04b0] shadow-sm transition"
+                                title="Reimprimir boleta"
+                              >
+                                <i className="fa-solid fa-print"></i>
+                              </button>
+                              {!v.anulada && esAdmin && (
+                                <button
+                                  onClick={() => anularVentaHoy(v)}
+                                  className="px-3 h-8 rounded-full bg-rose-50 hover:bg-rose-100 text-rose-600 font-semibold shadow-sm transition"
+                                  title="Anular venta"
+                                >
+                                  Anular
+                                </button>
+                              )}
+                            </div>
+                          </div>
+                        ))
+                      )}
+                    </div>
+                  </div>
                 </div>
               </div>
-            </div>
-          )}
+            );
+          })()}
 
           {/* Modal: Cierre de Caja con Arqueo */}
           {modalCierreCaja && (
