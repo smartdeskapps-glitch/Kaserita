@@ -677,6 +677,8 @@ import './index.css';
       print: <><path d="M6 9V2h12v7" /><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2" /><rect x="6" y="14" width="12" height="8" /></>,
       chat: <><path d="M7.9 20A9 9 0 1 0 4 16.1L2 22Z" /><path d="M9 10c.5 2 2.5 4 5 5l1.5-1.5-2-1-1 .8c-.8-.4-1.6-1.2-2-2l.8-1-1-2z" /></>,
       bluetooth: <path d="m7 7 10 10-5 5V2l5 5L7 17" />,
+      till: <><rect x="3" y="12" width="18" height="9" rx="2" /><path d="M6 12V6a1 1 0 0 1 1-1h10a1 1 0 0 1 1 1v6" /><path d="M9 8.5h6" /><path d="M8 16.5h.01M12 16.5h.01M16 16.5h.01" /></>,
+      warn: <><path d="M12 3 2 20h20z" /><path d="M12 10v4M12 17.5h.01" /></>,
       x: <path d="M18 6 6 18M6 6l12 12" />,
       back: <path d="m15 18-6-6 6-6" />,
       pdf: <><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" /><path d="M14 2v6h6" /><path d="M12 12v6" /><path d="m9 15 3 3 3-3" /></>,
@@ -9437,10 +9439,10 @@ import './index.css';
             >
               {!mostrarPago ? (
                 <>
-                  <div className="bg-stone-50 border border-stone-100 rounded-2xl px-3.5 py-3 space-y-1.5">
-                    <div className="flex items-center justify-between text-xs text-stone-600">
+                  <div className="bg-[#f4eefe] border border-[#efe6fc] rounded-[22px] px-4 py-3 space-y-1.5">
+                    <div className="flex items-baseline justify-between text-[12.5px] text-stone-500">
                       <span>Subtotal</span>
-                      <span className="tabular-nums">S/ {totalVenta.toFixed(2)}</span>
+                      <span className="tabular-nums">S/ {formatoSoles(totalVenta)}</span>
                     </div>
                     {montoDescuento > 0 && (
                       <div className="flex items-center justify-between text-xs text-rose-600 font-semibold">
@@ -9448,28 +9450,28 @@ import './index.css';
                         <span className="tabular-nums">- S/ {montoDescuento.toFixed(2)}</span>
                       </div>
                     )}
-                    <div className="flex items-center justify-between pt-1.5 mt-1 border-t border-stone-100">
-                      <span className="text-xs font-semibold text-stone-600 uppercase tracking-wider">
+                    <div className="flex items-baseline justify-between pt-2 mt-1 border-t border-[#6105dc]/10">
+                      <span className="text-xs font-semibold text-[#4d04b0]">
                         Total
                       </span>
-                      <span className="text-2xl font-extrabold text-stone-900 tabular-nums">
-                        S/ {totalConDescuento.toFixed(2)}
+                      <span className="text-[28px] font-bold tracking-tight text-stone-900 tabular-nums">
+                        <small className="text-sm font-semibold text-stone-500 mr-1">S/</small>{formatoSoles(totalConDescuento)}
                       </span>
                     </div>
                   </div>
                   <button
                     onClick={() => setMostrarPago(true)}
                     disabled={carrito.length === 0 || !turnoActivo}
-                    className={`w-full py-3.5 rounded-2xl font-bold text-sm transition-all flex items-center justify-center gap-2 ${
+                    className={`w-full py-3.5 rounded-full font-semibold text-[15px] transition-all flex items-center justify-center gap-2 ${
                       !turnoActivo || carrito.length === 0
-                        ? 'bg-stone-200 text-stone-400 cursor-not-allowed'
-                        : 'bg-stone-900 hover:bg-stone-800 text-white shadow-lg shadow-stone-900/25 active:scale-[0.98]'
+                        ? 'bg-[#ebe8f1] text-[#8b869a] cursor-not-allowed'
+                        : 'bg-[#6105dc] hover:bg-[#4d04b0] text-white active:scale-[0.98]'
                     }`}
                   >
                     {!turnoActivo ? (
-                      <><i className="fa-solid fa-triangle-exclamation"></i> Abre un Turno para Cobrar</>
+                      <><IconoTrazo nombre="warn" className="w-[18px] h-[18px]" /> Abre un turno para cobrar</>
                     ) : (
-                      <><i className="fa-solid fa-cash-register"></i> Cobrar</>
+                      <><IconoTrazo nombre="till" className="w-[18px] h-[18px]" /> Cobrar</>
                     )}
                   </button>
                 </>
