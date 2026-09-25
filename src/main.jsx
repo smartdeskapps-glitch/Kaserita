@@ -3820,11 +3820,18 @@ import './index.css';
         }
       };
 
+      // Al tocar el interruptor a mano se limpia "apagado_auto": desde ese
+      // momento manda lo que decidió el dueño y el trigger de stock (ver
+      // combos_apagado_automatico.sql) ya no lo reactiva por su cuenta.
       const alternarActivoCombo = async (combo) => {
         try {
-          const { error } = await sbClient.from('combos').update({ activo: !combo.activo }).eq('id', combo.id);
+          let { error } = await sbClient.from('combos').update({ activo: !combo.activo, apagado_auto: false }).eq('id', combo.id);
+          // Si todavía no se corrió el SQL (la columna no existe), se guarda solo "activo".
+          if (error && /apagado_auto/.test(error.message || '')) {
+            ({ error } = await sbClient.from('combos').update({ activo: !combo.activo }).eq('id', combo.id));
+          }
           if (error) throw error;
-          setCombos((prev) => prev.map((c) => (c.id === combo.id ? { ...c, activo: !combo.activo } : c)));
+          setCombos((prev) => prev.map((c) => (c.id === combo.id ? { ...c, activo: !combo.activo, apagado_auto: false } : c)));
         } catch (err) {
           notificar(`No se pudo actualizar el combo: ${err.message}`, 'error');
         }
@@ -10887,8 +10894,8 @@ import './index.css';
                                 <p className="text-[11px] text-stone-500 truncate">
                                   {(combo.combos_items || []).length} producto{(combo.combos_items || []).length === 1 ? '' : 's'} · S/ {Number(combo.precio_venta).toFixed(2)}
                                 </p>
-                                {combo.activo && estadoCombos.get(combo.id)?.disponible === false && (
-                                  <p className="text-[11px] font-semibold text-rose-600 truncate">Apagado por falta de stock: {estadoCombos.get(combo.id).faltan.join(', ')}</p>
+                                {(combo.activo || combo.apagado_auto) && estadoCombos.get(combo.id)?.disponible === false && (
+                                  <p className="text-[11px] font-semibold text-rose-600 truncate">Apagado por falta de stock: {estadoCombos.get(combo.id).faltan.join(', ')}. Se enciende solo al reponer.</p>
                                 )}
                               </div>
                               <div className="flex items-center gap-2 shrink-0">
