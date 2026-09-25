@@ -503,15 +503,17 @@ import './index.css';
           >
             Buscar
           </button>
-          <button onClick={irAHoy} className="px-3 py-1.5 bg-stone-200 hover:bg-stone-300 text-stone-700 text-xs font-semibold rounded-lg">
-            Hoy
-          </button>
-          <button onClick={irAUltimosNDias} className="px-3 py-1.5 bg-stone-200 hover:bg-stone-300 text-stone-700 text-xs font-semibold rounded-lg">
-            Últimos {diasAtras} días
-          </button>
-          <button onClick={irAEsteMes} className="px-3 py-1.5 bg-stone-200 hover:bg-stone-300 text-stone-700 text-xs font-semibold rounded-lg">
-            Este mes
-          </button>
+          <div className="inline-flex items-center bg-stone-100 rounded-lg p-0.5">
+            <button onClick={irAHoy} className="px-3 py-1 text-stone-600 hover:bg-white hover:text-stone-900 hover:shadow-sm text-xs font-semibold rounded-md transition">
+              Hoy
+            </button>
+            <button onClick={irAUltimosNDias} className="px-3 py-1 text-stone-600 hover:bg-white hover:text-stone-900 hover:shadow-sm text-xs font-semibold rounded-md transition">
+              Últimos {diasAtras} días
+            </button>
+            <button onClick={irAEsteMes} className="px-3 py-1 text-stone-600 hover:bg-white hover:text-stone-900 hover:shadow-sm text-xs font-semibold rounded-md transition">
+              Este mes
+            </button>
+          </div>
           {children}
         </div>
       );
@@ -543,26 +545,21 @@ import './index.css';
       );
     }
 
-    // Tarjeta de indicador del Dashboard de Ventas: ícono en una insignia con
-    // degradado suave (mismo lenguaje visual que las categorías del catálogo,
-    // ver CATEGORIA_ESTILO más abajo) + valor grande + variación opcional.
-    function TarjetaKPI({ icono, color, fondo, etiqueta, valor, delta }) {
+    // Montos del Dashboard con separador de miles (1,752.90) y siempre 2 decimales.
+    const formatoSoles = (n) => Number(n || 0).toLocaleString('es-PE', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+    // Variación porcentual del Dashboard: verde si sube, rojo si baja. Sin
+    // porcentaje (null) no dibuja nada -- pasa cuando el período anterior no
+    // tiene ventas y comparar contra cero no significa nada.
+    function VariacionPct({ pct, corto }) {
+      if (pct == null) return null;
+      const sube = pct >= 0;
       return (
-        <div className="bg-white p-3.5 rounded-2xl border border-stone-200 flex items-start gap-3">
-          <div className={`w-9 h-9 rounded-xl bg-gradient-to-br ${fondo} flex items-center justify-center shrink-0`}>
-            <i className={`fa-solid ${icono} ${color} text-sm`}></i>
-          </div>
-          <div className="min-w-0 flex-1">
-            <span className="text-[11px] text-stone-500 block leading-tight">{etiqueta}</span>
-            <span className={`font-black text-lg ${color} block leading-tight truncate`}>{valor}</span>
-            {delta != null && (
-              <div className={`text-[10px] font-semibold mt-0.5 flex items-center gap-1 ${delta >= 0 ? 'text-emerald-600' : 'text-rose-600'}`}>
-                <i className={`fa-solid ${delta >= 0 ? 'fa-arrow-up' : 'fa-arrow-down'}`}></i>
-                {Math.abs(delta).toFixed(0)}% vs período anterior
-              </div>
-            )}
-          </div>
-        </div>
+        <span className={`inline-flex items-center gap-1 text-xs font-semibold ${sube ? 'text-emerald-600' : 'text-rose-600'}`}>
+          <i className={`fa-solid ${sube ? 'fa-arrow-up' : 'fa-arrow-down'} text-[10px]`}></i>
+          {Math.abs(pct).toFixed(0)}%
+          {!corto && <span className="font-normal text-stone-400">vs. período anterior</span>}
+        </span>
       );
     }
 
@@ -6865,14 +6862,16 @@ import './index.css';
       };
 
       // Colores consistentes por medio de pago, usados en la dona y la leyenda.
+      // Tonos del morado de la marca para los medios digitales y grises para el
+      // resto, en vez de un color distinto por medio.
       const COLOR_MEDIO_PAGO = {
-        EFECTIVO: '#f97316',
-        YAPE: '#8b5cf6',
-        PLIN: '#06b6d4',
-        TARJETA: '#0ea5e9',
-        CREDITO: '#a855f7',
-        MIXTO: '#eab308',
-        OTRO: '#64748b'
+        EFECTIVO: '#3b0f8c',
+        YAPE: '#6105dc',
+        PLIN: '#a26df0',
+        TARJETA: '#57534e',
+        CREDITO: '#a8a29e',
+        MIXTO: '#78716c',
+        OTRO: '#d6d3d1'
       };
 
       const MESES_CORTOS = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Set', 'Oct', 'Nov', 'Dic'];
@@ -6896,17 +6895,6 @@ import './index.css';
           d += ` C ${cp1x},${cp1y} ${cp2x},${cp2y} ${p2.x},${p2.y}`;
         }
         return d;
-      };
-
-      const construirGradienteDona = (porMedio) => {
-        let acc = 0;
-        const partes = porMedio.map(m => {
-          const inicio = acc;
-          acc += m.pct;
-          const color = COLOR_MEDIO_PAGO[m.medio] || '#94a3b8';
-          return `${color} ${inicio}% ${acc}%`;
-        });
-        return partes.length ? `conic-gradient(${partes.join(', ')})` : 'conic-gradient(#e7e5e4 0% 100%)';
       };
 
       const dashStats = useMemo(() => {
@@ -7010,6 +6998,11 @@ import './index.css';
           numDeudores, totalDeuda, maxDeuda,
           numProveedoresDeuda, totalPorPagar, maxPorPagar,
           cambioVentaPct, cambioUtilidadPct,
+          // Sin ventas en el período anterior no hay base de comparación: el
+          // porcentaje (que calcularCambioPct deja en 100) se oculta en pantalla.
+          hayBaseVentaAnterior: totalVentaAnterior > 0,
+          hayBaseUtilidadAnterior: totalUtilidadAnterior > 0,
+          hayBaseMesAnterior: totalMesAnterior > 0,
           anioActual, porMes, maxMes, mesPico, mesActualIdx, totalAnio, promedioMensual, cambioMesPct
         };
       }, [ventasDashboard, clientesDeuda, ventasDashboardAnterior, proveedoresDeudaDash, ventasAnioDash]);
@@ -12810,317 +12803,181 @@ import './index.css';
             </div>
           )}
 
-          {/* Modal: Dashboard de Ventas (detallado) */}
+          {/* Modal: Dashboard de Ventas (detallado). Diseño sobrio: una sola
+              superficie clara, jerarquía por tamaño de letra y líneas finas
+              (no una caja por dato), el morado de la marca como único acento
+              y verde/rojo solo para variaciones y deudas. El encabezado con
+              los filtros queda fijo y solo el contenido hace scroll. */}
           {modalDashboard && (
-            <div className="fixed inset-0 bg-black/85 flex items-center justify-center z-50 p-2 md:p-4">
-              <div className="bg-stone-100 border border-stone-200 rounded-2xl max-w-6xl w-full max-h-[95vh] overflow-y-auto p-4 md:p-6 shadow-2xl space-y-5">
-                <div className="flex flex-wrap justify-between items-center gap-2">
-                  <h3 className="text-base font-bold text-stone-900 flex items-center gap-2">
-                    <i className="fa-solid fa-chart-pie text-orange-600"></i> Dashboard de Ventas
-                  </h3>
-                  <button onClick={() => setModalDashboard(false)} className="text-stone-600 hover:text-stone-900"><i className="fa-solid fa-xmark"></i></button>
+            <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 p-2 md:p-4">
+              <div className="bg-white border border-stone-200 rounded-2xl max-w-6xl w-full max-h-[95vh] flex flex-col overflow-hidden shadow-2xl">
+                <div className="shrink-0 px-5 md:px-6 pt-5 pb-4 border-b border-stone-200 space-y-3">
+                  <div className="flex items-center justify-between gap-2">
+                    <h3 className="text-lg font-bold text-stone-900 tracking-tight">Dashboard de ventas</h3>
+                    <button onClick={() => setModalDashboard(false)} className="w-8 h-8 rounded-lg text-stone-500 hover:text-stone-900 hover:bg-stone-100 flex items-center justify-center" aria-label="Cerrar">
+                      <i className="fa-solid fa-xmark"></i>
+                    </button>
+                  </div>
+                  <FiltroFechasRapido
+                    desde={fechaInicioDash}
+                    hasta={fechaFinDash}
+                    setDesde={setFechaInicioDash}
+                    setHasta={setFechaFinDash}
+                    onRango={cargarDashboard}
+                    diasAtras={7}
+                  >
+                    {dashStats.numVentas > 0 && (
+                      <button
+                        onClick={exportarDashboardExcel}
+                        className="px-3 py-1.5 bg-white border border-stone-200 hover:bg-stone-50 text-stone-700 text-xs font-semibold rounded-lg flex items-center gap-1.5 ml-auto"
+                        title="Exportar a Excel"
+                      >
+                        <i className="fa-solid fa-file-excel"></i> Excel
+                      </button>
+                    )}
+                  </FiltroFechasRapido>
                 </div>
 
-                <FiltroFechasRapido
-                  desde={fechaInicioDash}
-                  hasta={fechaFinDash}
-                  setDesde={setFechaInicioDash}
-                  setHasta={setFechaFinDash}
-                  onRango={cargarDashboard}
-                  diasAtras={7}
-                >
-                  {dashStats.numVentas > 0 && (
-                    <button
-                      onClick={exportarDashboardExcel}
-                      className="px-3 py-1.5 bg-stone-200 hover:bg-stone-300 text-stone-700 text-xs font-semibold rounded-lg flex items-center gap-1.5 ml-auto"
-                      title="Exportar a Excel"
-                    >
-                      <i className="fa-solid fa-file-excel"></i> Excel
-                    </button>
-                  )}
-                </FiltroFechasRapido>
-
+                <div className="flex-1 overflow-y-auto hide-scrollbar px-5 md:px-6 py-6 space-y-8">
                 {cargandoDashboard ? (
                   <p className="text-xs text-center py-10 text-stone-600">Calculando estadísticas...</p>
                 ) : dashStats.numVentas === 0 ? (
                   <p className="text-xs text-center py-10 text-stone-500">No hay ventas registradas en ese rango.</p>
                 ) : (
                   <>
-                    {/* Tarjetas de resumen */}
-                    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2.5">
-                      <TarjetaKPI icono="fa-sack-dollar" color="text-violet-600" fondo="from-violet-500/20 to-violet-500/5" etiqueta="Venta Total" valor={`S/ ${dashStats.totalVenta.toFixed(2)}`} delta={dashStats.cambioVentaPct} />
-                      <TarjetaKPI icono="fa-chart-line" color="text-emerald-600" fondo="from-emerald-500/20 to-emerald-500/5" etiqueta="Utilidad" valor={`S/ ${dashStats.totalUtilidad.toFixed(2)}`} delta={dashStats.cambioUtilidadPct} />
-                      <TarjetaKPI icono="fa-coins" color="text-stone-600" fondo="from-stone-400/20 to-stone-400/5" etiqueta="Costo" valor={`S/ ${dashStats.totalCosto.toFixed(2)}`} />
-                      <TarjetaKPI icono="fa-percent" color="text-sky-600" fondo="from-sky-500/20 to-sky-500/5" etiqueta="Margen" valor={`${dashStats.margenPct.toFixed(1)}%`} />
-                      <TarjetaKPI icono="fa-receipt" color="text-orange-600" fondo="from-orange-500/20 to-orange-500/5" etiqueta="Ticket Promedio" valor={`S/ ${dashStats.ticketPromedio.toFixed(2)}`} />
-                      <TarjetaKPI icono="fa-basket-shopping" color="text-indigo-600" fondo="from-indigo-500/20 to-indigo-500/5" etiqueta="N° de Ventas" valor={dashStats.numVentas} />
-                    </div>
-
-                    {/* Cuentas por Cobrar: dinero retenido en crédito, no depende del rango de fechas */}
-                    <div className="bg-rose-50 p-4 rounded-2xl border border-rose-200">
-                      <div className="flex flex-wrap justify-between items-center gap-2 mb-3">
-                        <h4 className="text-sm font-bold text-rose-900 flex items-center gap-2">
-                          <span className="w-7 h-7 rounded-lg bg-rose-500/15 flex items-center justify-center shrink-0">
-                            <i className="fa-solid fa-hand-holding-dollar text-rose-600 text-xs"></i>
-                          </span>
-                          Cuentas por Cobrar (dinero retenido)
-                        </h4>
-                        <div className="flex gap-4 text-right">
-                          <div>
-                            <span className="text-[11px] text-rose-700 block">Clientes que deben</span>
-                            <span className="font-black text-lg text-rose-700">{dashStats.numDeudores}</span>
-                          </div>
-                          <div>
-                            <span className="text-[11px] text-rose-700 block">Total retenido</span>
-                            <span className="font-black text-lg text-rose-700">S/ {dashStats.totalDeuda.toFixed(2)}</span>
-                          </div>
-                        </div>
+                    {/* Resumen: una cifra principal y el resto como fila de datos */}
+                    <section>
+                      <p className="text-xs font-medium text-stone-500">Venta total</p>
+                      <div className="flex flex-wrap items-baseline gap-x-4 gap-y-1 mt-1">
+                        <span className="text-4xl md:text-5xl font-black text-stone-900 tabular-nums tracking-tight">S/ {formatoSoles(dashStats.totalVenta)}</span>
+                        <VariacionPct pct={dashStats.hayBaseVentaAnterior ? dashStats.cambioVentaPct : null} />
                       </div>
-                      {dashStats.numDeudores === 0 ? (
-                        <p className="text-xs text-rose-700/70"><i className="fa-solid fa-circle-check mr-1"></i>Ningún cliente tiene deuda pendiente.</p>
-                      ) : (
-                        <div className="space-y-2 max-h-40 overflow-y-auto pr-1">
-                          {clientesDeuda.map((c, i) => (
-                            <div key={c.dni + i}>
-                              <div className="flex justify-between items-center text-xs mb-1">
-                                <span className="text-rose-900 font-medium truncate pr-2">{c.nombre_completo || c.dni}</span>
-                                <span className="text-rose-700 font-bold shrink-0">S/ {Number(c.saldo_actual).toFixed(2)}</span>
-                              </div>
-                              <div className="w-full h-1.5 bg-rose-100 rounded-full overflow-hidden">
-                                <div className="h-full bg-rose-500 rounded-full" style={{ width: `${(Number(c.saldo_actual) / dashStats.maxDeuda) * 100}%` }}></div>
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-
-                    {/* Cuentas por Pagar: dinero que la bodega debe a proveedores */}
-                    <div className="bg-amber-50 p-4 rounded-2xl border border-amber-200">
-                      <div className="flex flex-wrap justify-between items-center gap-2 mb-3">
-                        <h4 className="text-sm font-bold text-amber-900 flex items-center gap-2">
-                          <span className="w-7 h-7 rounded-lg bg-amber-500/15 flex items-center justify-center shrink-0">
-                            <i className="fa-solid fa-file-invoice text-amber-600 text-xs"></i>
-                          </span>
-                          Cuentas por Pagar (a proveedores)
-                        </h4>
-                        <div className="flex gap-4 text-right">
-                          <div>
-                            <span className="text-[11px] text-amber-700 block">Proveedores</span>
-                            <span className="font-black text-lg text-amber-700">{dashStats.numProveedoresDeuda}</span>
+                      <div className="grid grid-cols-2 sm:grid-cols-5 gap-y-5 mt-6 pt-5 border-t border-stone-200">
+                        {[
+                          { etiqueta: 'Utilidad', valor: `S/ ${formatoSoles(dashStats.totalUtilidad)}`, pct: dashStats.hayBaseUtilidadAnterior ? dashStats.cambioUtilidadPct : null },
+                          { etiqueta: 'Costo', valor: `S/ ${formatoSoles(dashStats.totalCosto)}` },
+                          { etiqueta: 'Margen', valor: `${dashStats.margenPct.toFixed(1)}%` },
+                          { etiqueta: 'Ticket promedio', valor: `S/ ${formatoSoles(dashStats.ticketPromedio)}` },
+                          { etiqueta: 'N° de ventas', valor: String(dashStats.numVentas) },
+                        ].map((d) => (
+                          <div key={d.etiqueta} className="sm:pl-4 sm:border-l sm:border-stone-200 sm:first:pl-0 sm:first:border-l-0">
+                            <p className="text-xs text-stone-500">{d.etiqueta}</p>
+                            <p className="text-xl font-bold text-stone-900 tabular-nums mt-0.5">{d.valor}</p>
+                            {d.pct != null && <VariacionPct pct={d.pct} corto />}
                           </div>
-                          <div>
-                            <span className="text-[11px] text-amber-700 block">Total por pagar</span>
-                            <span className="font-black text-lg text-amber-700">S/ {dashStats.totalPorPagar.toFixed(2)}</span>
-                          </div>
-                        </div>
+                        ))}
                       </div>
-                      {dashStats.numProveedoresDeuda === 0 ? (
-                        <p className="text-xs text-amber-700/70"><i className="fa-solid fa-circle-check mr-1"></i>No le debes a ningún proveedor.</p>
-                      ) : (
-                        <div className="space-y-2 max-h-40 overflow-y-auto pr-1">
-                          {proveedoresDeudaDash.map((p, i) => (
-                            <div key={p.nombre + i}>
-                              <div className="flex justify-between items-center text-xs mb-1">
-                                <span className="text-amber-900 font-medium truncate pr-2">{p.nombre}</span>
-                                <span className="text-amber-700 font-bold shrink-0">S/ {Number(p.saldo_actual).toFixed(2)}</span>
-                              </div>
-                              <div className="w-full h-1.5 bg-amber-100 rounded-full overflow-hidden">
-                                <div className="h-full bg-amber-500 rounded-full" style={{ width: `${(Number(p.saldo_actual) / dashStats.maxPorPagar) * 100}%` }}></div>
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                      )}
-                    </div>
+                    </section>
 
-                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
+                    <div className="grid grid-cols-1 lg:grid-cols-5 gap-x-10 gap-y-8 border-t border-stone-200 pt-6">
                       {/* Ventas por horario */}
-                      <div className="bg-gradient-to-br from-[#0a0524] via-[#140b3c] to-[#1f0f56] rounded-2xl border border-violet-500/30 shadow-xl shadow-violet-950/40 p-4 sm:p-5 relative overflow-hidden text-white">
-                        <div className="absolute -top-20 -left-20 w-64 h-64 bg-violet-600/20 rounded-full blur-3xl pointer-events-none"></div>
-                        <div className="absolute top-1/2 -right-16 w-64 h-64 bg-indigo-600/15 rounded-full blur-3xl pointer-events-none"></div>
-                        <div className="relative z-10">
-                          <div className="flex flex-wrap items-center justify-between gap-2">
-                            <div className="flex items-center gap-2.5">
-                              <span className="w-9 h-9 rounded-xl bg-violet-500/20 border border-violet-400/30 text-violet-300 flex items-center justify-center shrink-0">
-                                <i className="fa-solid fa-clock text-sm"></i>
-                              </span>
-                              <div>
-                                <div className="flex items-center gap-2">
-                                  <h4 className="text-sm font-bold text-white">Ventas por Horario</h4>
-                                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] font-semibold bg-violet-500/20 text-violet-200 border border-violet-400/30">
-                                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span> En vivo
-                                  </span>
-                                </div>
-                                <p className="text-[10px] text-violet-200/60 mt-0.5">Distribución de ventas a lo largo del día</p>
-                              </div>
-                            </div>
-                            {dashStats.horaPico.total > 0 && (
-                              <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-white/10 backdrop-blur-md border border-violet-400/30 text-[11px] shadow-lg shadow-violet-900/30">
-                                <span className="text-violet-300 font-medium">Pico:</span>
-                                <span className="font-extrabold text-white bg-violet-600/60 px-1.5 py-0.5 rounded-lg border border-violet-400/40">{String(dashStats.horaPico.hora).padStart(2, '0')}:00</span>
-                              </div>
-                            )}
-                          </div>
+                      <section className="lg:col-span-3">
+                        <div className="flex flex-wrap items-baseline justify-between gap-x-3">
+                          <h4 className="text-sm font-semibold text-stone-900">Ventas por hora</h4>
+                          {dashStats.horaPico.total > 0 && (
+                            <p className="text-xs text-stone-500">
+                              Hora pico <span className="font-semibold text-stone-800">{String(dashStats.horaPico.hora).padStart(2, '0')}:00</span>
+                              {' · '}{((dashStats.horaPico.total / dashStats.totalVenta) * 100).toFixed(0)}% de las ventas
+                            </p>
+                          )}
+                        </div>
 
-                          <div
-                            className="relative w-full pt-7 pb-1 mt-2"
-                            onMouseMove={(e) => {
-                              const rect = e.currentTarget.getBoundingClientRect();
-                              if (!rect.width) return;
-                              const relX = ((e.clientX - rect.left) / rect.width) * 300;
-                              const idx = Math.round((relX / 300) * (dashStats.porHora.length - 1));
-                              setHoraResaltada(Math.max(0, Math.min(dashStats.porHora.length - 1, idx)));
-                            }}
-                            onMouseLeave={() => setHoraResaltada(null)}
-                          >
-                            {(() => {
-                              const puntos = dashStats.porHora.map((h, i) => ({
-                                x: (i / (dashStats.porHora.length - 1)) * 300,
-                                y: 100 - (h.total / dashStats.maxHora) * 85,
-                              }));
-                              const lineaPath = curvaSuave(puntos);
-                              const areaPath = `${lineaPath} L 300,100 L 0,100 Z`;
-                              const activo = horaResaltada != null ? puntos[horaResaltada] : null;
-                              return (
-                                <>
-                                  {activo && dashStats.porHora[horaResaltada] && (
-                                    <div
-                                      className="absolute bg-white/10 backdrop-blur-xl border border-white/25 rounded-xl px-3 py-2 text-center shadow-2xl shadow-violet-950/70 pointer-events-none z-20 whitespace-nowrap min-w-[110px]"
-                                      style={{
-                                        left: `${(activo.x / 300) * 100}%`,
-                                        top: 0,
-                                        transform: `translate(${horaResaltada < 2 ? '0%' : horaResaltada > dashStats.porHora.length - 3 ? '-100%' : '-50%'}, 0)`
-                                      }}
-                                    >
-                                      <p className="text-[9px] text-violet-200/80 font-semibold uppercase tracking-wider">{String(dashStats.porHora[horaResaltada].hora).padStart(2, '0')}:00</p>
-                                      <p className="text-sm font-black text-white leading-tight">S/ {dashStats.porHora[horaResaltada].total.toFixed(2)}</p>
-                                      <p className="text-[10px] font-semibold text-emerald-300">{dashStats.porHora[horaResaltada].cantidad} venta{dashStats.porHora[horaResaltada].cantidad === 1 ? '' : 's'}</p>
-                                    </div>
+                        <div
+                          className="relative w-full pt-8 mt-2"
+                          onMouseMove={(e) => {
+                            const rect = e.currentTarget.getBoundingClientRect();
+                            if (!rect.width) return;
+                            const relX = ((e.clientX - rect.left) / rect.width) * 300;
+                            const idx = Math.round((relX / 300) * (dashStats.porHora.length - 1));
+                            setHoraResaltada(Math.max(0, Math.min(dashStats.porHora.length - 1, idx)));
+                          }}
+                          onMouseLeave={() => setHoraResaltada(null)}
+                        >
+                          {(() => {
+                            const puntos = dashStats.porHora.map((h, i) => ({
+                              x: (i / (dashStats.porHora.length - 1)) * 300,
+                              y: 100 - (h.total / dashStats.maxHora) * 85,
+                            }));
+                            const lineaPath = curvaSuave(puntos);
+                            const areaPath = `${lineaPath} L 300,100 L 0,100 Z`;
+                            const activo = horaResaltada != null ? puntos[horaResaltada] : null;
+                            const iPico = dashStats.porHora.findIndex((h) => h.hora === dashStats.horaPico.hora);
+                            return (
+                              <>
+                                {activo && dashStats.porHora[horaResaltada] && (
+                                  <div
+                                    className="absolute bg-stone-900 text-white text-[11px] rounded-lg px-2.5 py-1.5 whitespace-nowrap pointer-events-none z-20 shadow-lg"
+                                    style={{
+                                      left: `${(activo.x / 300) * 100}%`,
+                                      top: 0,
+                                      transform: `translate(${horaResaltada < 2 ? '0%' : horaResaltada > dashStats.porHora.length - 3 ? '-100%' : '-50%'}, 0)`
+                                    }}
+                                  >
+                                    <div className="font-bold">{String(dashStats.porHora[horaResaltada].hora).padStart(2, '0')}:00 · S/ {formatoSoles(dashStats.porHora[horaResaltada].total)}</div>
+                                    <div className="text-stone-300">{dashStats.porHora[horaResaltada].cantidad} venta{dashStats.porHora[horaResaltada].cantidad === 1 ? '' : 's'}</div>
+                                  </div>
+                                )}
+                                <svg className="w-full h-44 overflow-visible" preserveAspectRatio="none" viewBox="0 0 300 100">
+                                  <defs>
+                                    <linearGradient id="olaFill" x1="0%" y1="0%" x2="0%" y2="100%">
+                                      <stop offset="0%" stopColor="#6105dc" stopOpacity="0.14" />
+                                      <stop offset="100%" stopColor="#6105dc" stopOpacity="0" />
+                                    </linearGradient>
+                                  </defs>
+                                  <line x1="0" y1="15" x2="300" y2="15" stroke="#e7e5e4" strokeWidth="1" vectorEffect="non-scaling-stroke" />
+                                  <line x1="0" y1="50" x2="300" y2="50" stroke="#e7e5e4" strokeWidth="1" vectorEffect="non-scaling-stroke" />
+                                  <line x1="0" y1="85" x2="300" y2="85" stroke="#e7e5e4" strokeWidth="1" vectorEffect="non-scaling-stroke" />
+                                  <path d={areaPath} fill="url(#olaFill)" />
+                                  <path d={lineaPath} fill="none" stroke="#6105dc" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" vectorEffect="non-scaling-stroke" />
+                                  {dashStats.horaPico.total > 0 && iPico >= 0 && (
+                                    <circle cx={puntos[iPico].x} cy={puntos[iPico].y} r="3.5" fill="#6105dc" stroke="#ffffff" strokeWidth="2" vectorEffect="non-scaling-stroke" />
                                   )}
-                                  <svg className="w-full h-40 sm:h-48 overflow-visible" preserveAspectRatio="none" viewBox="0 0 300 100">
-                                    <defs>
-                                      <linearGradient id="olaFill" x1="0%" y1="0%" x2="0%" y2="100%">
-                                        <stop offset="0%" stopColor="#9333ea" stopOpacity="0.55" />
-                                        <stop offset="60%" stopColor="#6366f1" stopOpacity="0.18" />
-                                        <stop offset="100%" stopColor="#3b0764" stopOpacity="0.02" />
-                                      </linearGradient>
-                                      <linearGradient id="olaStroke" x1="0%" y1="0%" x2="100%" y2="0%">
-                                        <stop offset="0%" stopColor="#a855f7" />
-                                        <stop offset="50%" stopColor="#c084fc" />
-                                        <stop offset="100%" stopColor="#f0abfc" />
-                                      </linearGradient>
-                                    </defs>
-                                    <line x1="0" y1="15" x2="300" y2="15" stroke="#ffffff" strokeOpacity="0.08" strokeDasharray="4 6" />
-                                    <line x1="0" y1="50" x2="300" y2="50" stroke="#ffffff" strokeOpacity="0.08" strokeDasharray="4 6" />
-                                    <line x1="0" y1="85" x2="300" y2="85" stroke="#ffffff" strokeOpacity="0.08" strokeDasharray="4 6" />
-                                    <path d={areaPath} fill="url(#olaFill)" />
-                                    <path d={lineaPath} fill="none" stroke="url(#olaStroke)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" vectorEffect="non-scaling-stroke" />
-                                    {puntos.map((p, i) => dashStats.porHora[i].total > 0 && (
-                                      <circle
-                                        key={i} cx={p.x} cy={p.y}
-                                        r={i === horaResaltada ? 4 : dashStats.porHora[i].hora === dashStats.horaPico.hora ? 3.5 : 2.5}
-                                        fill={dashStats.porHora[i].hora === dashStats.horaPico.hora ? '#f0abfc' : '#1e1b4b'}
-                                        stroke="#ffffff" strokeWidth="1.5" vectorEffect="non-scaling-stroke"
-                                      />
-                                    ))}
-                                    {activo && (
-                                      <line x1={activo.x} y1="0" x2={activo.x} y2="100" stroke="#e879f9" strokeOpacity="0.6" strokeDasharray="3 3" strokeWidth="1.2" vectorEffect="non-scaling-stroke" />
-                                    )}
-                                  </svg>
-                                </>
-                              );
-                            })()}
-                            <div className="flex items-center justify-between text-[10px] font-medium text-violet-200/50 pt-2 border-t border-white/10 px-0.5 mt-1">
-                              {[0, 3, 6, 9, 12, 15, 18, 21, 24].map(h => (
-                                <span key={h} className={dashStats.horaPico.hora === h ? 'font-bold text-fuchsia-300 bg-violet-500/20 px-1.5 py-0.5 rounded border border-violet-400/40' : ''}>{h}h</span>
-                              ))}
-                            </div>
-                          </div>
-
-                          <div className="mt-3 pt-3 border-t border-violet-500/20 flex flex-wrap items-center justify-between gap-2 text-xs">
-                            <div className="flex items-center gap-2 text-violet-200/90 font-medium">
-                              <span className="relative flex h-2.5 w-2.5">
-                                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-violet-400 opacity-75"></span>
-                                <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-violet-400"></span>
-                              </span>
-                              Hora de mayor afluencia comercial
-                            </div>
-                            {dashStats.horaPico.total > 0 && (
-                              <span className="font-semibold text-violet-100 bg-white/10 px-2.5 py-1 rounded-lg border border-violet-400/20">
-                                {((dashStats.horaPico.total / dashStats.totalVenta) * 100).toFixed(0)}% de las ventas en esa hora
-                              </span>
-                            )}
+                                  {activo && (
+                                    <>
+                                      <line x1={activo.x} y1="0" x2={activo.x} y2="100" stroke="#a8a29e" strokeWidth="1" strokeDasharray="3 3" vectorEffect="non-scaling-stroke" />
+                                      <circle cx={activo.x} cy={activo.y} r="3.5" fill="#6105dc" stroke="#ffffff" strokeWidth="2" vectorEffect="non-scaling-stroke" />
+                                    </>
+                                  )}
+                                </svg>
+                              </>
+                            );
+                          })()}
+                          <div className="flex items-center justify-between text-[10px] font-medium text-stone-400 pt-2 mt-1">
+                            {[0, 3, 6, 9, 12, 15, 18, 21, 24].map(h => (
+                              <span key={h} className={dashStats.horaPico.hora === h ? 'font-bold text-[#6105dc]' : ''}>{h}h</span>
+                            ))}
                           </div>
                         </div>
-                      </div>
+                      </section>
 
                       {/* Métodos de pago */}
-                      <div className="bg-white p-4 sm:p-5 rounded-2xl border border-stone-200">
-                        <div className="flex items-center justify-between mb-1">
-                          <h4 className="text-sm font-bold text-stone-900 flex items-center gap-2.5">
-                            <span className="w-9 h-9 rounded-xl bg-violet-50 text-violet-600 flex items-center justify-center shrink-0 shadow-xs">
-                              <i className="fa-solid fa-credit-card text-sm"></i>
-                            </span>
-                            Métodos de Pago
-                          </h4>
-                          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold bg-violet-50 text-violet-700 border border-violet-100">
-                            <span className="w-1.5 h-1.5 rounded-full bg-violet-600"></span>
-                            {dashStats.numVentas} Transacci{dashStats.numVentas === 1 ? 'ón' : 'ones'}
-                          </span>
+                      <section className="lg:col-span-2">
+                        <div className="flex flex-wrap items-baseline justify-between gap-x-3">
+                          <h4 className="text-sm font-semibold text-stone-900">Métodos de pago</h4>
+                          <p className="text-xs text-stone-500">{dashStats.numVentas} venta{dashStats.numVentas === 1 ? '' : 's'}</p>
                         </div>
-                        <p className="text-xs text-stone-500 mb-3">Distribución de la recaudación por canal de cobro</p>
-
-                        <div className="flex justify-center mb-4">
-                          <div
-                            className="relative w-32 h-32 rounded-full shrink-0 shadow-sm"
-                            style={{ background: construirGradienteDona(dashStats.porMedio) }}
-                          >
-                            <div className="absolute inset-3 bg-white rounded-full flex flex-col items-center justify-center">
-                              <span className="text-[10px] font-semibold tracking-wider text-stone-400 uppercase">Total</span>
-                              <span className="text-lg font-black text-stone-900 tracking-tight">S/ {dashStats.totalVenta.toFixed(0)}</span>
-                            </div>
-                          </div>
+                        <div className="flex h-2.5 rounded-full overflow-hidden bg-stone-100 mt-4">
+                          {dashStats.porMedio.map(m => (
+                            <div key={m.medio} title={`${m.medio}: ${m.pct.toFixed(0)}%`} style={{ width: `${m.pct}%`, background: COLOR_MEDIO_PAGO[m.medio] || '#d6d3d1' }}></div>
+                          ))}
                         </div>
-
-                        <div className="space-y-2.5 pt-3 border-t border-stone-100">
-                          {dashStats.porMedio.map(m => {
-                            const color = COLOR_MEDIO_PAGO[m.medio] || '#94a3b8';
-                            return (
-                              <div key={m.medio} className="p-2.5 rounded-xl bg-stone-50/70 hover:bg-stone-100/90 border border-stone-200/50 transition">
-                                <div className="flex items-center justify-between gap-3 mb-1.5">
-                                  <div className="flex items-center gap-2.5 min-w-0">
-                                    <span className="w-7 h-7 rounded-lg flex items-center justify-center shrink-0" style={{ background: `${color}20`, color }}>
-                                      <i className="fa-solid fa-circle-dollar-to-slot text-xs"></i>
-                                    </span>
-                                    <h5 className="text-xs font-bold text-stone-900 truncate">{m.medio}</h5>
-                                  </div>
-                                  <div className="text-right flex items-center gap-2 shrink-0">
-                                    <div>
-                                      <span className="text-xs font-black text-stone-900 block leading-tight">S/ {m.total.toFixed(2)}</span>
-                                    </div>
-                                    <span className="px-2 py-0.5 rounded-md text-[11px] font-bold" style={{ background: `${color}18`, color, border: `1px solid ${color}40` }}>{m.pct.toFixed(0)}%</span>
-                                  </div>
-                                </div>
-                                <div className="w-full bg-stone-200/70 rounded-full h-1.5 overflow-hidden">
-                                  <div className="h-1.5 rounded-full transition-all duration-500" style={{ width: `${m.pct}%`, background: color }}></div>
-                                </div>
-                              </div>
-                            );
-                          })}
-                        </div>
-                      </div>
+                        <ul className="mt-5 space-y-3">
+                          {dashStats.porMedio.map(m => (
+                            <li key={m.medio} className="flex items-center gap-2.5 text-sm">
+                              <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ background: COLOR_MEDIO_PAGO[m.medio] || '#d6d3d1' }}></span>
+                              <span className="flex-1 min-w-0 truncate font-medium text-stone-800 capitalize">{m.medio.toLowerCase()}</span>
+                              <span className="font-semibold text-stone-900 tabular-nums">S/ {formatoSoles(m.total)}</span>
+                              <span className="w-10 text-right text-xs text-stone-500 tabular-nums">{m.pct.toFixed(0)}%</span>
+                            </li>
+                          ))}
+                        </ul>
+                      </section>
                     </div>
 
                     {/* Tendencia diaria */}
                     {dashStats.porDia.length > 1 && (
-                      <div className="bg-white p-4 rounded-2xl border border-stone-200">
-                        <h4 className="text-sm font-bold text-stone-900 flex items-center gap-2 mb-4">
-                          <span className="w-7 h-7 rounded-lg bg-gradient-to-br from-violet-500/20 to-violet-500/5 flex items-center justify-center shrink-0">
-                            <i className="fa-solid fa-chart-area text-violet-600 text-xs"></i>
-                          </span>
-                          Tendencia de Ventas por Día
-                        </h4>
+                      <section className="border-t border-stone-200 pt-6">
+                        <h4 className="text-sm font-semibold text-stone-900 mb-4">Ventas por día</h4>
                         <div
                           className="relative"
                           onMouseMove={(e) => {
@@ -13132,14 +12989,14 @@ import './index.css';
                           }}
                           onMouseLeave={() => setDiaResaltado(null)}
                         >
-                          <svg viewBox="0 0 300 100" preserveAspectRatio="none" className="w-full h-28">
+                          <svg viewBox="0 0 300 100" preserveAspectRatio="none" className="w-full h-32">
                             <polygon
-                              fill="rgba(124,58,237,0.12)"
+                              fill="rgba(97,5,220,0.08)"
                               points={`0,100 ${dashStats.porDia.map((d, i) => `${(i / (dashStats.porDia.length - 1)) * 300},${100 - (d.total / dashStats.maxDia) * 85}`).join(' ')} 300,100`}
                             />
                             <polyline
                               fill="none"
-                              stroke="#7c3aed"
+                              stroke="#6105dc"
                               strokeWidth="2"
                               strokeLinejoin="round"
                               strokeLinecap="round"
@@ -13151,8 +13008,8 @@ import './index.css';
                               const y = 100 - (dashStats.porDia[diaResaltado].total / dashStats.maxDia) * 85;
                               return (
                                 <g>
-                                  <line x1={x} y1="0" x2={x} y2="100" stroke="#c3c2b7" strokeWidth="1" vectorEffect="non-scaling-stroke" />
-                                  <circle cx={x} cy={y} r="4" fill="#7c3aed" stroke="#fff" strokeWidth="2" vectorEffect="non-scaling-stroke" />
+                                  <line x1={x} y1="0" x2={x} y2="100" stroke="#a8a29e" strokeWidth="1" strokeDasharray="3 3" vectorEffect="non-scaling-stroke" />
+                                  <circle cx={x} cy={y} r="4" fill="#6105dc" stroke="#fff" strokeWidth="2" vectorEffect="non-scaling-stroke" />
                                 </g>
                               );
                             })()}
@@ -13166,121 +13023,151 @@ import './index.css';
                                 style={{ left: `${pctX}%`, top: -6, transform: `translate(${pctX < 8 ? '0%' : pctX > 92 ? '-100%' : '-50%'}, -100%)` }}
                               >
                                 <div className="font-bold">{new Date(`${d.fecha}T00:00:00`).toLocaleDateString('es-PE', { weekday: 'short', day: '2-digit', month: '2-digit' })}</div>
-                                <div className="text-stone-300">S/ {d.total.toFixed(2)}</div>
+                                <div className="text-stone-300">S/ {formatoSoles(d.total)}</div>
                               </div>
                             );
                           })()}
                         </div>
-                        <div className="flex justify-between text-[10px] text-stone-500 mt-1">
+                        <div className="flex justify-between text-[10px] text-stone-400 mt-1.5">
                           <span>{new Date(`${dashStats.porDia[0].fecha}T00:00:00`).toLocaleDateString('es-PE', { day: '2-digit', month: '2-digit' })}</span>
                           <span>{new Date(`${dashStats.porDia[dashStats.porDia.length - 1].fecha}T00:00:00`).toLocaleDateString('es-PE', { day: '2-digit', month: '2-digit' })}</span>
                         </div>
-                      </div>
+                      </section>
                     )}
 
                     {/* Top productos */}
-                    <div className="bg-white p-4 rounded-2xl border border-stone-200">
-                      <h4 className="text-sm font-bold text-stone-900 flex items-center gap-2 mb-4">
-                        <span className="w-7 h-7 rounded-lg bg-gradient-to-br from-emerald-500/20 to-emerald-500/5 flex items-center justify-center shrink-0">
-                          <i className="fa-solid fa-trophy text-emerald-600 text-xs"></i>
-                        </span>
-                        Productos Más Vendidos
-                      </h4>
-                      <div className="space-y-3">
+                    <section className="border-t border-stone-200 pt-6">
+                      <h4 className="text-sm font-semibold text-stone-900 mb-4">Productos más vendidos</h4>
+                      <ol className="space-y-3.5">
                         {dashStats.topProductos.map((p, i) => (
-                          <div key={p.descripcion + i} className="flex items-center gap-3">
-                            <span className={`w-6 h-6 rounded-full flex items-center justify-center text-[11px] font-black shrink-0 ${i === 0 ? 'bg-orange-500 text-white' : i === 1 ? 'bg-orange-200 text-orange-800' : i === 2 ? 'bg-orange-100 text-orange-700' : 'bg-stone-100 text-stone-500'}`}>{i + 1}</span>
+                          <li key={p.descripcion + i} className="flex items-start gap-3">
+                            <span className="w-5 pt-0.5 text-xs font-semibold text-stone-400 tabular-nums">{i + 1}</span>
                             <div className="flex-1 min-w-0">
-                              <div className="flex justify-between items-center text-xs mb-1 gap-2">
-                                <span className="text-stone-800 font-medium truncate">{p.descripcion}</span>
-                                <span className="text-stone-500 shrink-0">{p.cantidad} und · S/ {p.monto.toFixed(2)} · <span className="text-emerald-600 font-semibold">+S/ {p.utilidad.toFixed(2)}</span></span>
+                              <div className="flex justify-between items-baseline gap-3">
+                                <span className="text-sm font-medium text-stone-900 truncate">{p.descripcion}</span>
+                                <span className="text-sm font-semibold text-stone-900 tabular-nums shrink-0">S/ {formatoSoles(p.monto)}</span>
                               </div>
-                              <div className="w-full h-1.5 bg-stone-100 rounded-full overflow-hidden">
-                                <div className="h-full bg-orange-500 rounded-full" style={{ width: `${(p.monto / dashStats.maxProducto) * 100}%` }}></div>
+                              <div className="w-full h-1 bg-stone-100 rounded-full overflow-hidden mt-1.5">
+                                <div className="h-full bg-[#6105dc] rounded-full" style={{ width: `${(p.monto / dashStats.maxProducto) * 100}%` }}></div>
                               </div>
+                              <p className="text-xs text-stone-500 mt-1">
+                                {p.cantidad} und · utilidad <span className="text-emerald-600 font-semibold tabular-nums">S/ {formatoSoles(p.utilidad)}</span>
+                              </p>
                             </div>
-                          </div>
+                          </li>
                         ))}
-                      </div>
-                    </div>
+                      </ol>
+                    </section>
 
                     {/* Ventas por Mes */}
                     {dashStats.totalAnio > 0 && (
-                      <div className="bg-white p-4 sm:p-6 rounded-2xl border border-stone-200">
-                        <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between pb-4 mb-4 border-b border-stone-100 gap-3">
-                          <div className="flex items-center gap-3">
-                            <span className="w-10 h-10 rounded-xl bg-violet-50 text-violet-600 flex items-center justify-center shadow-xs shrink-0">
-                              <i className="fa-solid fa-calendar-days text-sm"></i>
-                            </span>
-                            <div>
-                              <div className="flex items-center gap-2.5">
-                                <h4 className="text-base font-bold text-stone-900">Ventas por Mes</h4>
-                                <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-violet-50 text-violet-700 border border-violet-100">
-                                  <span className="w-1.5 h-1.5 rounded-full bg-violet-600"></span> {dashStats.anioActual}
+                      <section className="border-t border-stone-200 pt-6">
+                        <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
+                          <h4 className="text-sm font-semibold text-stone-900">Ventas por mes · {dashStats.anioActual}</h4>
+                          <p className="text-xs text-stone-500">Acumulado del año <span className="font-semibold text-stone-800 tabular-nums">S/ {formatoSoles(dashStats.totalAnio)}</span></p>
+                        </div>
+
+                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-y-4 mt-4">
+                          <div>
+                            <p className="text-xs text-stone-500">Mes con mayor venta</p>
+                            <p className="text-base font-bold text-stone-900 mt-0.5">{MESES_CORTOS[dashStats.mesPico.mes]} <span className="text-sm font-semibold text-stone-500 tabular-nums">· S/ {formatoSoles(dashStats.mesPico.total)}</span></p>
+                          </div>
+                          <div className="sm:pl-4 sm:border-l sm:border-stone-200">
+                            <p className="text-xs text-stone-500">Promedio mensual</p>
+                            <p className="text-base font-bold text-stone-900 mt-0.5 tabular-nums">S/ {formatoSoles(dashStats.promedioMensual)}</p>
+                          </div>
+                          <div className="sm:pl-4 sm:border-l sm:border-stone-200">
+                            <p className="text-xs text-stone-500">Crecimiento vs mes anterior</p>
+                            {dashStats.hayBaseMesAnterior
+                              ? <div className="mt-0.5 text-base"><VariacionPct pct={dashStats.cambioMesPct} corto /></div>
+                              : <p className="text-base font-bold text-stone-400 mt-0.5">Sin datos previos</p>}
+                          </div>
+                        </div>
+
+                        <div className="grid grid-cols-12 gap-1 sm:gap-2 items-end h-44 pt-6 mt-5">
+                          {dashStats.porMes.map((m, i) => {
+                            const esPico = m.total > 0 && m.mes === dashStats.mesPico.mes;
+                            const esActual = m.mes === dashStats.mesActualIdx;
+                            return (
+                              <div
+                                key={m.mes}
+                                className="flex flex-col items-center h-full justify-end group"
+                                onMouseEnter={() => setMesResaltado(i)}
+                                onMouseLeave={() => setMesResaltado((cur) => (cur === i ? null : cur))}
+                                onFocus={() => setMesResaltado(i)}
+                                onBlur={() => setMesResaltado((cur) => (cur === i ? null : cur))}
+                                tabIndex={m.total > 0 ? 0 : -1}
+                              >
+                                <span className={`text-[9px] sm:text-[10px] font-semibold mb-1 tabular-nums transition-opacity ${mesResaltado === i || esPico ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'} ${esPico ? 'text-[#6105dc]' : 'text-stone-500'}`}>
+                                  {m.total >= 1000 ? `${(m.total / 1000).toFixed(1)}k` : m.total.toFixed(0)}
                                 </span>
-                              </div>
-                              <p className="text-xs text-stone-500 mt-0.5">Comparativa intermensual del año en curso</p>
-                            </div>
-                          </div>
-                          <div className="inline-flex items-center bg-violet-50 border border-violet-100 px-3 py-1.5 rounded-xl text-xs font-semibold text-violet-700 shadow-xs">
-                            <span className="text-violet-400 font-normal mr-1.5">Total acumulado:</span>
-                            <strong className="font-black text-stone-900">S/ {dashStats.totalAnio.toFixed(2)}</strong>
-                          </div>
-                        </div>
-
-                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-5">
-                          <div className="p-3.5 rounded-xl bg-violet-50/50 border border-violet-100/80 flex items-center justify-between gap-2">
-                            <div className="min-w-0">
-                              <span className="text-[11px] font-semibold text-violet-600 uppercase tracking-wider block">Mes con mayor venta</span>
-                              <p className="text-sm font-bold text-stone-900 mt-0.5 truncate">{MESES_CORTOS[dashStats.mesPico.mes]} <span className="text-xs font-semibold text-violet-700">(S/ {dashStats.mesPico.total.toFixed(2)})</span></p>
-                            </div>
-                            {dashStats.mesPico.total > 0 && <span className="px-2 py-0.5 text-[10px] font-bold bg-violet-600 text-white rounded-md shadow-xs uppercase tracking-wider shrink-0">Pico</span>}
-                          </div>
-                          <div className="p-3.5 rounded-xl bg-stone-50/70 border border-stone-200/60">
-                            <span className="text-[11px] font-semibold text-stone-400 uppercase tracking-wider block">Promedio Mensual</span>
-                            <p className="text-sm font-bold text-stone-900 mt-0.5">S/ {dashStats.promedioMensual.toFixed(2)}</p>
-                          </div>
-                          <div className="p-3.5 rounded-xl bg-stone-50/70 border border-stone-200/60">
-                            <span className="text-[11px] font-semibold text-stone-400 uppercase tracking-wider block">Crecimiento vs mes ant.</span>
-                            <p className={`text-sm font-bold mt-0.5 flex items-center gap-1 ${dashStats.cambioMesPct >= 0 ? 'text-emerald-600' : 'text-rose-600'}`}>
-                              <i className={`fa-solid ${dashStats.cambioMesPct >= 0 ? 'fa-arrow-up' : 'fa-arrow-down'} text-xs`}></i>
-                              {Math.abs(dashStats.cambioMesPct).toFixed(0)}%
-                            </p>
-                          </div>
-                        </div>
-
-                        <div className="relative bg-stone-50/40 rounded-xl p-3 sm:p-4 border border-stone-100">
-                          <div className="grid grid-cols-12 gap-1 sm:gap-2 items-end h-44 pt-6 pb-1">
-                            {dashStats.porMes.map((m, i) => {
-                              const esPico = m.total > 0 && m.mes === dashStats.mesPico.mes;
-                              const esActual = m.mes === dashStats.mesActualIdx;
-                              return (
                                 <div
-                                  key={m.mes}
-                                  className="flex flex-col items-center h-full justify-end group"
-                                  onMouseEnter={() => setMesResaltado(i)}
-                                  onMouseLeave={() => setMesResaltado((cur) => (cur === i ? null : cur))}
-                                  onFocus={() => setMesResaltado(i)}
-                                  onBlur={() => setMesResaltado((cur) => (cur === i ? null : cur))}
-                                  tabIndex={m.total > 0 ? 0 : -1}
-                                >
-                                  <span className={`text-[9px] sm:text-[10px] font-semibold mb-1 transition-opacity ${mesResaltado === i || esPico ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'} ${esPico ? 'text-violet-700 bg-violet-100 px-1 rounded' : 'text-stone-400'}`}>
-                                    {m.total >= 1000 ? `${(m.total / 1000).toFixed(1)}k` : m.total.toFixed(0)}
-                                  </span>
-                                  <div
-                                    className={`w-full max-w-[26px] rounded-t-md transition-all duration-300 ${esPico ? 'bg-gradient-to-t from-violet-600 to-indigo-500 shadow-md shadow-violet-500/30' : mesResaltado === i ? 'bg-violet-500' : 'bg-violet-300/70 group-hover:bg-violet-400'}`}
-                                    style={{ height: `${Math.max(2, (m.total / dashStats.maxMes) * 100)}%` }}
-                                  ></div>
-                                  <span className={`text-[10px] sm:text-[11px] font-medium mt-2 ${esPico ? 'font-bold text-violet-700' : esActual ? 'font-bold text-stone-700' : 'text-stone-500'}`}>{MESES_CORTOS[m.mes]}</span>
-                                </div>
-                              );
-                            })}
-                          </div>
+                                  className={`w-full max-w-[26px] rounded-t-md transition-colors duration-200 ${esPico ? 'bg-[#6105dc]' : mesResaltado === i ? 'bg-[#a26df0]' : 'bg-[#d6bdfa] group-hover:bg-[#a26df0]'}`}
+                                  style={{ height: `${Math.max(2, (m.total / dashStats.maxMes) * 100)}%` }}
+                                ></div>
+                                <span className={`text-[10px] sm:text-[11px] mt-2 ${esPico ? 'font-bold text-[#6105dc]' : esActual ? 'font-bold text-stone-800' : 'font-medium text-stone-500'}`}>{MESES_CORTOS[m.mes]}</span>
+                              </div>
+                            );
+                          })}
                         </div>
-                      </div>
+                      </section>
                     )}
+
+                    {/* Deudas: no dependen del rango de fechas */}
+                    <section className="border-t border-stone-200 pt-6 grid grid-cols-1 md:grid-cols-2 gap-x-10 gap-y-8">
+                      <div>
+                        <div className="flex items-baseline justify-between gap-3">
+                          <h4 className="text-sm font-semibold text-stone-900">Cuentas por cobrar</h4>
+                          <p className={`text-base font-bold tabular-nums ${dashStats.totalDeuda > 0 ? 'text-rose-600' : 'text-stone-900'}`}>S/ {formatoSoles(dashStats.totalDeuda)}</p>
+                        </div>
+                        <p className="text-xs text-stone-500 mt-0.5">{dashStats.numDeudores} cliente{dashStats.numDeudores === 1 ? '' : 's'} con deuda</p>
+                        {dashStats.numDeudores === 0 ? (
+                          <p className="text-xs text-stone-400 mt-3">Ningún cliente tiene deuda pendiente.</p>
+                        ) : (
+                          <ul className="space-y-3 mt-4 max-h-48 overflow-y-auto hide-scrollbar">
+                            {clientesDeuda.map((c, i) => (
+                              <li key={c.dni + i}>
+                                <div className="flex justify-between items-baseline gap-3 text-sm">
+                                  <span className="text-stone-800 truncate">{c.nombre_completo || c.dni}</span>
+                                  <span className="font-semibold text-stone-900 tabular-nums shrink-0">S/ {formatoSoles(c.saldo_actual)}</span>
+                                </div>
+                                <div className="w-full h-1 bg-stone-100 rounded-full overflow-hidden mt-1">
+                                  <div className="h-full bg-rose-500 rounded-full" style={{ width: `${(Number(c.saldo_actual) / dashStats.maxDeuda) * 100}%` }}></div>
+                                </div>
+                              </li>
+                            ))}
+                          </ul>
+                        )}
+                      </div>
+
+                      <div>
+                        <div className="flex items-baseline justify-between gap-3">
+                          <h4 className="text-sm font-semibold text-stone-900">Cuentas por pagar</h4>
+                          <p className="text-base font-bold tabular-nums text-stone-900">S/ {formatoSoles(dashStats.totalPorPagar)}</p>
+                        </div>
+                        <p className="text-xs text-stone-500 mt-0.5">{dashStats.numProveedoresDeuda} proveedor{dashStats.numProveedoresDeuda === 1 ? '' : 'es'}</p>
+                        {dashStats.numProveedoresDeuda === 0 ? (
+                          <p className="text-xs text-stone-400 mt-3">No le debes a ningún proveedor.</p>
+                        ) : (
+                          <ul className="space-y-3 mt-4 max-h-48 overflow-y-auto hide-scrollbar">
+                            {proveedoresDeudaDash.map((p, i) => (
+                              <li key={p.nombre + i}>
+                                <div className="flex justify-between items-baseline gap-3 text-sm">
+                                  <span className="text-stone-800 truncate">{p.nombre}</span>
+                                  <span className="font-semibold text-stone-900 tabular-nums shrink-0">S/ {formatoSoles(p.saldo_actual)}</span>
+                                </div>
+                                <div className="w-full h-1 bg-stone-100 rounded-full overflow-hidden mt-1">
+                                  <div className="h-full bg-stone-700 rounded-full" style={{ width: `${(Number(p.saldo_actual) / dashStats.maxPorPagar) * 100}%` }}></div>
+                                </div>
+                              </li>
+                            ))}
+                          </ul>
+                        )}
+                      </div>
+                    </section>
                   </>
                 )}
+                </div>
               </div>
             </div>
           )}
