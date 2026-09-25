@@ -13076,7 +13076,7 @@ import './index.css';
                               const futuro = d > hastaDia;
                               if (futuro) {
                                 return (
-                                  <div key={d} className="rounded-2xl min-h-[60px] sm:min-h-[100px] p-2 sm:p-3 flex flex-col justify-between border border-dashed border-stone-200 text-stone-300">
+                                  <div key={d} className="rounded-2xl min-h-[60px] sm:min-h-[100px] sm:aspect-[5/4] p-2 sm:p-3 flex flex-col justify-between border border-dashed border-stone-200 text-stone-300">
                                     <span className="text-xs sm:text-sm font-semibold">{d}</span>
                                     <span className="text-base text-right">—</span>
                                   </div>
@@ -13093,7 +13093,7 @@ import './index.css';
                                 <div
                                   key={d}
                                   title={`${nombreDia(d)}: S/ ${formatoSoles(v)}`}
-                                  className={`relative rounded-2xl min-h-[60px] sm:min-h-[100px] p-2 sm:p-3 flex flex-col justify-between overflow-hidden ${enRango ? 'ring-2 ring-inset ring-[#6105dc]' : ''} ${esMax ? 'shadow-[0_10px_22px_-8px_rgba(97,5,220,0.55)]' : ''} ${oscuro ? 'text-white' : 'text-stone-800'}`}
+                                  className={`relative rounded-2xl min-h-[60px] sm:min-h-[100px] sm:aspect-[5/4] p-2 sm:p-3 flex flex-col justify-between overflow-hidden ${enRango ? 'ring-2 ring-inset ring-[#6105dc]' : ''} ${esMax ? 'shadow-[0_10px_22px_-8px_rgba(97,5,220,0.55)]' : ''} ${oscuro ? 'text-white' : 'text-stone-800'}`}
                                   style={{ background: esMax ? 'linear-gradient(160deg,#b98cf5,#6105dc)' : v > 0 ? `rgba(97,5,220,${(0.06 + t * 0.5).toFixed(2)})` : '#f0edf5' }}
                                 >
                                   <span className="text-xs sm:text-sm font-semibold opacity-80">
