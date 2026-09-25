@@ -688,42 +688,6 @@ import './index.css';
       );
     }
 
-    // Color de fondo de una foto (promedio de sus esquinas), para que el marco
-    // fijo de la tarjeta se vea uniforme aunque la foto tenga fondo blanco,
-    // negro o de otro color. Se calcula una sola vez por URL. Si el servidor
-    // no permite leer los pixeles, el marco queda blanco y no pasa nada.
-    const fondoFotoCache = new Map();
-    function useFondoFoto(url) {
-      const [fondo, setFondo] = useState(() => fondoFotoCache.get(url) || '#ffffff');
-      useEffect(() => {
-        if (!url) return;
-        if (fondoFotoCache.has(url)) { setFondo(fondoFotoCache.get(url)); return; }
-        let vivo = true;
-        const im = new Image();
-        im.crossOrigin = 'anonymous';
-        im.onload = () => {
-          try {
-            const c = document.createElement('canvas');
-            c.width = c.height = 4;
-            const x = c.getContext('2d', { willReadFrequently: true });
-            const w = im.naturalWidth, h = im.naturalHeight;
-            let r = 0, g = 0, b = 0;
-            [[0, 0], [w - 4, 0], [0, h - 4], [w - 4, h - 4]].forEach(([sx, sy]) => {
-              x.drawImage(im, sx, sy, 4, 4, 0, 0, 4, 4);
-              const d = x.getImageData(0, 0, 4, 4).data;
-              for (let k = 0; k < d.length; k += 4) { r += d[k]; g += d[k + 1]; b += d[k + 2]; }
-            });
-            const col = `rgb(${Math.round(r / 64)},${Math.round(g / 64)},${Math.round(b / 64)})`;
-            fondoFotoCache.set(url, col);
-            if (vivo) setFondo(col);
-          } catch (e) { /* imagen sin CORS: se queda blanco */ }
-        };
-        im.src = url;
-        return () => { vivo = false; };
-      }, [url]);
-      return fondo;
-    }
-
     // Tarjeta de producto de la grilla principal, memoizada: como el catálogo
     // puede tener cientos de tarjetas, sin esto cualquier cambio de estado en
     // PosApp (escribir en el buscador, tocar el carrito, un aviso, etc.)
@@ -731,7 +695,6 @@ import './index.css';
     // Con React.memo, una tarjeta solo se vuelve a renderizar si cambian sus
     // propias props (su producto, o si cambia esAdmin/onSelect/onEdit).
     const ProductoCard = React.memo(function ProductoCard({ prod, esAdmin, enCarrito = 0, onSelect, onEdit, tieneCombo = false, onVerCombo }) {
-      const fondoFoto = useFondoFoto(prod.foto_url);
       const stock = prod.stock_actual;
       const hayStock = stock !== null && stock !== undefined;
       const sinStock = hayStock && Number(stock) <= 0;
@@ -750,13 +713,13 @@ import './index.css';
         >
           {/* Marco fijo: todas las fotos entran en el mismo cuadro, sin
               recortarse, sea alta como una botella o cuadrada como una bolsa. */}
-          <div className="relative w-full aspect-[5/4] rounded-[20px] overflow-hidden ring-1 ring-black/5" style={{ backgroundColor: prod.foto_url ? fondoFoto : undefined }}>
+          <div className="relative w-full aspect-[5/4] rounded-[20px] overflow-hidden bg-white ring-1 ring-black/5">
             {prod.foto_url ? (
               <img
                 src={prod.foto_url}
                 alt=""
                 loading="lazy"
-                className={`w-full h-full object-contain p-2 mix-blend-multiply transition-transform duration-500 group-hover:scale-105 ${sinStock ? 'opacity-40 grayscale' : ''}`}
+                className={`w-full h-full object-contain p-2 transition-transform duration-500 group-hover:scale-105 ${sinStock ? 'opacity-40 grayscale' : ''}`}
               />
             ) : (
               <FotoProducto
