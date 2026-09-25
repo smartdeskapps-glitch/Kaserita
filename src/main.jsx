@@ -10241,15 +10241,8 @@ import './index.css';
                   </div>
                 </div>
               ) : (
-                <div className="absolute left-3 right-3 bottom-3 rounded-[28px] bg-white/15 backdrop-blur-xl ring-1 ring-white/20 p-3.5 space-y-2.5">
+                <div className="absolute left-3 right-3 bottom-3 rounded-[28px] bg-white/15 backdrop-blur-xl ring-1 ring-white/20 px-4 py-3.5">
                   <p className="text-sm text-center text-white/90 leading-snug">Apunta la cámara al código de barras del producto.</p>
-                  <button
-                    type="button"
-                    onClick={() => setMetodoForzado(usandoDetectorNativo ? 'wasm' : 'nativo')}
-                    className="w-full h-11 rounded-full bg-white/20 ring-1 ring-white/15 hover:bg-white/30 text-white text-[13px] font-semibold flex items-center justify-center gap-2 transition"
-                  >
-                    <IconoTrazo nombre="cambio" className="w-4 h-4" /> ¿No detecta? Probar con el otro método ({usandoDetectorNativo ? 'clásico' : 'nativo'})
-                  </button>
                 </div>
               )}
             </div>
