@@ -7740,7 +7740,6 @@ import './index.css';
             if (yaAbierto) {
               setTurnoActivo(yaAbierto);
               setModalTurno(false);
-              notificar('Este cajero ya tenía una caja abierta (la abrió otro dispositivo); se usa esa.', 'info');
               return;
             }
 
@@ -7779,7 +7778,6 @@ import './index.css';
               if (turnoDeOtro) {
                 setTurnoActivo(turnoDeOtro);
                 setModalTurno(false);
-                notificar('Este cajero ya tenía una caja abierta (la abrió otro dispositivo); se usa esa.', 'info');
                 return;
               }
             }
