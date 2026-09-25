@@ -713,7 +713,7 @@ import './index.css';
         >
           {/* Marco fijo: todas las fotos entran en el mismo cuadro, sin
               recortarse, sea alta como una botella o cuadrada como una bolsa. */}
-          <div className="relative w-full aspect-[5/4] rounded-[20px] overflow-hidden bg-white ring-1 ring-black/5">
+          <div className="relative w-full aspect-[4/3] rounded-[20px] overflow-hidden bg-white ring-1 ring-black/5">
             {prod.foto_url ? (
               <img
                 src={prod.foto_url}
@@ -733,64 +733,59 @@ import './index.css';
               <button
                 type="button"
                 onClick={(e) => { e.stopPropagation(); onEdit(prod); }}
-                className="absolute top-2 right-2 w-7 h-7 flex items-center justify-center bg-white/80 hover:bg-white backdrop-blur text-stone-500 hover:text-[#6105dc] rounded-full shadow-sm opacity-0 group-hover:opacity-100 focus:opacity-100 [@media(hover:none)]:opacity-100 transition"
+                className="absolute bottom-2 right-2 w-7 h-7 flex items-center justify-center bg-white/80 hover:bg-white backdrop-blur text-stone-500 hover:text-[#6105dc] rounded-full shadow-sm opacity-0 group-hover:opacity-100 focus:opacity-100 [@media(hover:none)]:opacity-100 transition"
                 title="Editar producto"
               >
                 <i className="fa-solid fa-pen text-[10px]"></i>
               </button>
             )}
+            {tieneCombo && (
+              <button
+                type="button"
+                onClick={(e) => { e.stopPropagation(); onVerCombo?.(prod); }}
+                className="absolute top-2 left-2 w-7 h-7 flex items-center justify-center text-[11px] text-white bg-[#6105dc] hover:bg-[#4d04b0] rounded-full"
+                title="Este producto es parte de un combo -- toca para verlo"
+              >
+                <i className="fa-solid fa-gift"></i>
+              </button>
+            )}
             {enCarrito > 0 && (
-              <span className="absolute top-2 left-2 text-[11px] font-bold text-white bg-emerald-600 pl-2 pr-2.5 py-1 rounded-full flex items-center gap-1 tabular-nums">
+              <span className="absolute top-2 right-2 text-[11px] font-bold text-white bg-emerald-600 pl-2 pr-2.5 py-1 rounded-full flex items-center gap-1 tabular-nums">
                 <i className="fa-solid fa-check text-[10px]"></i> {enCarrito}
               </span>
             )}
           </div>
 
-          <div className="px-1 pt-3 flex flex-col gap-0.5 min-w-0">
+          <div className="px-1 pt-2.5 flex flex-col gap-px min-w-0">
             <p className="text-[11px] font-semibold text-black/45 truncate">{prod.categoria || 'General'}</p>
-            <h3 className="text-sm font-semibold text-stone-900 line-clamp-2 leading-snug min-h-[2.4em] break-words">
+            <h3 className="text-sm font-semibold text-stone-900 line-clamp-2 leading-snug break-words">
               {prod.descripcion}
             </h3>
           </div>
 
-          <div className="mt-auto flex items-end justify-between gap-2 px-1 pt-3 pb-1">
-            <div className="min-w-0">
-              <div className="flex items-center gap-1.5 flex-wrap">
-                <span className="text-xl font-bold text-stone-900 tabular-nums tracking-tight whitespace-nowrap">
-                  <small className="text-[12px] font-semibold text-stone-500 mr-0.5">S/</small>{Number(prod.precio_venta).toFixed(2)}
-                </span>
-                {prod.es_destacado && (
-                  <span className="text-[9px] text-[#6105dc]" title="Destacado en Delivery"><i className="fa-solid fa-star"></i></span>
-                )}
-                {prod.unidad === 'KG' && (
-                  <span className="text-[10px] font-bold text-stone-600 bg-white/70 px-1.5 py-0.5 rounded-full">KG</span>
-                )}
-                {Number(prod.unidades_por_pack) > 1 && (
-                  <span className="text-[10px] font-bold text-stone-600 bg-white/70 px-1.5 py-0.5 rounded-full flex items-center gap-1">
-                    <i className="fa-solid fa-boxes-packing"></i> x{prod.unidades_por_pack}
-                  </span>
-                )}
-              </div>
-              {hayStock && (
-                <span className={`mt-1 text-[11px] flex items-center gap-1.5 ${sinStock ? 'text-rose-600' : stockBajo ? 'text-amber-600' : 'text-black/50'}`}>
-                  <i className={`w-1.5 h-1.5 rounded-full ${sinStock ? 'bg-rose-500' : stockBajo ? 'bg-amber-500' : 'bg-emerald-500'}`}></i>
-                  {sinStock ? 'Sin stock' : stockBajo ? `Quedan ${stock}` : `${stock} disponibles`}
+          <div className="mt-auto flex items-baseline justify-between gap-2 px-1 pt-2 pb-1.5">
+            <div className="flex items-center gap-1.5 flex-wrap min-w-0">
+              <span className="text-[22px] font-bold text-stone-900 tabular-nums tracking-tight whitespace-nowrap">
+                <small className="text-[12px] font-semibold text-stone-500 mr-0.5">S/</small>{Number(prod.precio_venta).toFixed(2)}
+              </span>
+              {prod.es_destacado && (
+                <span className="text-[9px] text-[#6105dc]" title="Destacado en Delivery"><i className="fa-solid fa-star"></i></span>
+              )}
+              {prod.unidad === 'KG' && (
+                <span className="text-[10px] font-bold text-stone-600 bg-white/70 px-1.5 py-0.5 rounded-full">KG</span>
+              )}
+              {Number(prod.unidades_por_pack) > 1 && (
+                <span className="text-[10px] font-bold text-stone-600 bg-white/70 px-1.5 py-0.5 rounded-full flex items-center gap-1">
+                  <i className="fa-solid fa-boxes-packing"></i> x{prod.unidades_por_pack}
                 </span>
               )}
             </div>
-            <div className="flex items-center gap-1.5 shrink-0">
-              {tieneCombo && (
-                <button
-                  type="button"
-                  onClick={(e) => { e.stopPropagation(); onVerCombo?.(prod); }}
-                  className="w-8 h-8 flex items-center justify-center text-[11px] text-white bg-[#6105dc] hover:bg-[#4d04b0] rounded-full shadow-sm"
-                  title="Este producto es parte de un combo -- toca para verlo"
-                >
-                  <i className="fa-solid fa-gift"></i>
-                </button>
-              )}
-              <span className={`w-9 h-9 rounded-full bg-white/75 backdrop-blur-md flex items-center justify-center text-xl leading-none transition group-hover:bg-white ${enCarrito > 0 ? 'text-emerald-600' : 'text-[#6105dc]'}`}>+</span>
-            </div>
+            {hayStock && (
+              <span className={`text-xs flex items-center gap-1.5 shrink-0 ${sinStock ? 'text-rose-600' : stockBajo ? 'text-amber-700' : 'text-stone-600'}`}>
+                <i className={`w-1.5 h-1.5 rounded-full ${sinStock ? 'bg-rose-500' : stockBajo ? 'bg-amber-500' : 'bg-emerald-500'}`}></i>
+                {sinStock ? 'Sin stock' : stockBajo ? `Quedan ${stock}` : `${stock} disp.`}
+              </span>
+            )}
           </div>
         </div>
       );
@@ -8520,7 +8515,7 @@ import './index.css';
                       <button
                         onClick={abrirEscanerParaVenta}
                         title="Escanear código de barras con la cámara"
-                        className="absolute left-2 top-1/2 -translate-y-1/2 w-7 h-7 flex items-center justify-center text-stone-500 hover:text-amber-700 hover:bg-amber-50 rounded-lg transition"
+                        className="absolute left-2.5 top-1/2 -translate-y-1/2 w-7 h-7 flex items-center justify-center text-stone-500 hover:text-[#6105dc] hover:bg-[#f4eefe] rounded-full transition"
                       >
                         <i className="fa-solid fa-barcode text-sm"></i>
                       </button>
@@ -8531,7 +8526,7 @@ import './index.css';
                         onChange={(e) => setBusqueda(e.target.value)}
                         onKeyDown={handleKeyDownBusqueda}
                         placeholder="Escanear código o buscar producto..."
-                        className="w-full bg-white border border-stone-200 text-stone-900 placeholder-stone-500 text-sm rounded-xl pl-11 pr-9 py-2.5 focus:outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-500 transition"
+                        className="w-full bg-white border border-[#d6bdfa]/60 text-stone-900 placeholder-stone-500 text-sm rounded-full pl-12 pr-10 py-2.5 focus:outline-none focus:border-[#6105dc] focus:ring-4 focus:ring-[#6105dc]/10 transition"
                         autoFocus
                       />
                       {busqueda && (
@@ -8540,20 +8535,20 @@ import './index.css';
                             setBusqueda('');
                             cargarProductos('');
                           }}
-                          className="absolute right-2 top-1/2 -translate-y-1/2 w-7 h-7 flex items-center justify-center text-stone-500 hover:text-stone-800 rounded-lg transition"
+                          className="absolute right-2.5 top-1/2 -translate-y-1/2 w-7 h-7 flex items-center justify-center text-stone-500 hover:text-stone-800 rounded-full transition"
                         ><i className="fa-solid fa-xmark"></i></button>
                       )}
                     </div>
                     <button
                       onClick={() => cargarProductos(busqueda)}
-                      className="hidden md:flex items-center justify-center w-10 h-10 shrink-0 bg-white hover:bg-stone-50 text-stone-700 text-xs font-semibold rounded-xl border border-stone-200 transition"
+                      className="hidden md:flex items-center justify-center w-10 h-10 shrink-0 bg-white hover:bg-[#f4eefe] text-stone-700 text-xs font-semibold rounded-full border border-[#d6bdfa]/60 transition"
                     >
                       <i className="fa-solid fa-magnifying-glass"></i>
                     </button>
                     <button
                       onClick={() => { setModalPedidosRetirar(true); cargarPedidosRetirar(); setMostrarResumenMobile(true); }}
                       title="Pedidos por retirar (clientes con cuenta)"
-                      className="relative flex items-center justify-center w-10 h-10 shrink-0 bg-white hover:bg-stone-50 text-stone-700 text-xs font-semibold rounded-xl border border-stone-200 transition"
+                      className="relative flex items-center justify-center w-10 h-10 shrink-0 bg-white hover:bg-[#f4eefe] text-stone-700 text-xs font-semibold rounded-full border border-[#d6bdfa]/60 transition"
                     >
                       <i className="fa-solid fa-bell-concierge"></i>
                       {pedidosPorRetirarPendientes > 0 && (
@@ -8571,7 +8566,7 @@ import './index.css';
                   bottom-3) ni pegada contra el borde de la pantalla. */}
               {/* pt-1.5 pl-1: margen para que el hover (sube 2px + sombra + anillo)
                   no se corte contra el borde del contenedor con scroll. */}
-              <div className="flex-1 overflow-y-auto pt-1.5 pl-1 pr-1 pb-24 md:pb-3 hide-scrollbar">
+              <div className="flex-1 overflow-y-auto pt-1.5 pl-1 pr-1 pb-24 md:pb-6 hide-scrollbar">
                 {categoriaFiltro === '__COMBOS__' ? (
                   combos.filter(c => c.activo).length === 0 ? (
                     <div className="flex flex-col items-center justify-center h-48 text-stone-500 text-center">
