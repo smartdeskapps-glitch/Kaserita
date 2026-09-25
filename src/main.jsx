@@ -1896,8 +1896,8 @@ import './index.css';
           </div>
 
           {modalEditarBodega && (
-            <div className="fixed inset-0 bg-black/85 flex items-center justify-center z-50 p-4">
-              <form onSubmit={guardarTelefonoBodega} className="bg-white border border-stone-200 rounded-2xl max-w-sm w-full p-5 shadow-2xl space-y-4">
+            <div className="fixed inset-0 bg-stone-900/30 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+              <form onSubmit={guardarTelefonoBodega} className="bg-gradient-to-br from-[#f4effc] via-[#f9f8fb] to-[#f5f4f8] border border-white/80 rounded-[28px] max-w-sm w-full p-5 shadow-2xl space-y-4">
                 <h3 className="text-sm font-bold text-stone-900">Editar teléfono -- {modalEditarBodega.nombre}</h3>
                 <div>
                   <label className="text-[11px] font-bold text-stone-400 uppercase tracking-wide">Teléfono de {modalEditarBodega.dueno?.nombre}</label>
@@ -1907,14 +1907,14 @@ import './index.css';
                     value={telefonoEditar}
                     onChange={(e) => setTelefonoEditar(e.target.value)}
                     placeholder="999888777"
-                    className="w-full bg-stone-50 border border-stone-200 rounded-lg px-3 py-2 text-sm text-stone-900 mt-1"
+                    className="w-full bg-white border border-stone-200/70 shadow-sm rounded-xl px-3 py-2 text-sm text-stone-900 mt-1"
                   />
                 </div>
                 <div className="flex gap-2">
-                  <button type="button" onClick={() => setModalEditarBodega(null)} className="flex-1 py-2.5 bg-stone-100 hover:bg-stone-200 text-stone-700 font-bold text-sm rounded-xl">
+                  <button type="button" onClick={() => setModalEditarBodega(null)} className="flex-1 py-2.5 bg-white/70 hover:bg-white/70 text-stone-600 font-bold text-sm rounded-full shadow-sm">
                     Cancelar
                   </button>
-                  <button type="submit" disabled={guardandoEditarBodega} className="flex-1 py-2.5 bg-stone-900 hover:bg-stone-800 disabled:opacity-60 text-white font-bold text-sm rounded-xl">
+                  <button type="submit" disabled={guardandoEditarBodega} className="flex-1 py-2.5 bg-[#6105dc] hover:bg-[#4d04b0] disabled:opacity-60 text-white font-bold text-sm rounded-full">
                     {guardandoEditarBodega ? 'Guardando...' : 'Guardar'}
                   </button>
                 </div>
@@ -1923,8 +1923,8 @@ import './index.css';
           )}
 
           {modalResetearPin && (
-            <div className="fixed inset-0 bg-black/85 flex items-center justify-center z-50 p-4">
-              <div className="bg-white border border-stone-200 rounded-2xl max-w-sm w-full p-5 shadow-2xl space-y-4">
+            <div className="fixed inset-0 bg-stone-900/30 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+              <div className="bg-gradient-to-br from-[#f4effc] via-[#f9f8fb] to-[#f5f4f8] border border-white/80 rounded-[28px] max-w-sm w-full p-5 shadow-2xl space-y-4">
                 <div className="flex items-center gap-2 text-amber-600">
                   <i className="fa-solid fa-key text-lg"></i>
                   <h3 className="text-sm font-bold">Resetear PIN -- {modalResetearPin.nombre}</h3>
@@ -1940,20 +1940,20 @@ import './index.css';
                     maxLength={PIN_MAX}
                     value={nuevoPinReset}
                     onChange={(e) => setNuevoPinReset(e.target.value)}
-                    className="w-full bg-stone-50 border border-stone-200 rounded-lg px-3 py-2 text-sm text-stone-900 mt-1"
+                    className="w-full bg-white border border-stone-200/70 shadow-sm rounded-xl px-3 py-2 text-sm text-stone-900 mt-1"
                   />
                 </div>
                 <div className="flex gap-2">
                   <button
                     onClick={() => { setModalResetearPin(null); setNuevoPinReset(''); }}
-                    className="flex-1 py-2.5 bg-stone-100 hover:bg-stone-200 text-stone-700 font-bold text-sm rounded-xl"
+                    className="flex-1 py-2.5 bg-white/70 hover:bg-white/70 text-stone-600 font-bold text-sm rounded-full shadow-sm"
                   >
                     Cancelar
                   </button>
                   <button
                     onClick={resetearPinConfirmado}
                     disabled={reseteandoPin || !pinValido(nuevoPinReset) || nuevoPinReset.trim().length < PIN_MIN_DUENO}
-                    className="flex-1 py-2.5 bg-violet-600 hover:bg-violet-700 disabled:opacity-40 disabled:cursor-not-allowed text-white font-bold text-sm rounded-xl"
+                    className="flex-1 py-2.5 bg-[#6105dc] hover:bg-[#4d04b0] disabled:opacity-40 disabled:cursor-not-allowed text-white font-bold text-sm rounded-full"
                   >
                     {reseteandoPin ? 'Reseteando...' : 'Resetear PIN'}
                   </button>
@@ -1963,8 +1963,8 @@ import './index.css';
           )}
 
           {modalEliminarBodega && (
-            <div className="fixed inset-0 bg-black/85 flex items-center justify-center z-50 p-4">
-              <div className="bg-white border border-stone-200 rounded-2xl max-w-sm w-full p-5 shadow-2xl space-y-4">
+            <div className="fixed inset-0 bg-stone-900/30 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+              <div className="bg-gradient-to-br from-[#f4effc] via-[#f9f8fb] to-[#f5f4f8] border border-white/80 rounded-[28px] max-w-sm w-full p-5 shadow-2xl space-y-4">
                 <div className="flex items-center gap-2 text-rose-600">
                   <i className="fa-solid fa-triangle-exclamation text-lg"></i>
                   <h3 className="text-sm font-bold">Eliminar "{modalEliminarBodega.nombre}"</h3>
@@ -1975,7 +1975,7 @@ import './index.css';
                 <button
                   onClick={() => descargarBackupBodega(modalEliminarBodega)}
                   disabled={generandoBackupId === modalEliminarBodega.id}
-                  className="w-full py-2 bg-sky-50 hover:bg-sky-100 disabled:opacity-60 text-sky-700 font-bold text-xs rounded-xl flex items-center justify-center gap-1.5"
+                  className="w-full py-2 bg-sky-50 hover:bg-sky-100 disabled:opacity-60 text-sky-700 font-bold text-xs rounded-full flex items-center justify-center gap-1.5"
                 >
                   <i className="fa-solid fa-download text-[10px]"></i> {generandoBackupId === modalEliminarBodega.id ? 'Generando...' : 'Descargar backup primero'}
                 </button>
@@ -1986,20 +1986,20 @@ import './index.css';
                     autoFocus
                     value={textoConfirmarEliminar}
                     onChange={(e) => setTextoConfirmarEliminar(e.target.value)}
-                    className="w-full bg-stone-50 border border-stone-200 rounded-lg px-3 py-2 text-sm text-stone-900 mt-1"
+                    className="w-full bg-white border border-stone-200/70 shadow-sm rounded-xl px-3 py-2 text-sm text-stone-900 mt-1"
                   />
                 </div>
                 <div className="flex gap-2">
                   <button
                     onClick={() => { setModalEliminarBodega(null); setTextoConfirmarEliminar(''); }}
-                    className="flex-1 py-2.5 bg-stone-100 hover:bg-stone-200 text-stone-700 font-bold text-sm rounded-xl"
+                    className="flex-1 py-2.5 bg-white/70 hover:bg-white/70 text-stone-600 font-bold text-sm rounded-full shadow-sm"
                   >
                     Cancelar
                   </button>
                   <button
                     onClick={eliminarBodegaConfirmado}
                     disabled={eliminandoBodega || textoConfirmarEliminar.trim() !== modalEliminarBodega.nombre}
-                    className="flex-1 py-2.5 bg-rose-600 hover:bg-rose-700 disabled:opacity-40 disabled:cursor-not-allowed text-white font-bold text-sm rounded-xl"
+                    className="flex-1 py-2.5 bg-rose-600 hover:bg-rose-700 disabled:opacity-40 disabled:cursor-not-allowed text-white font-bold text-sm rounded-full"
                   >
                     {eliminandoBodega ? 'Eliminando...' : 'Eliminar definitivamente'}
                   </button>
@@ -9512,8 +9512,8 @@ import './index.css';
 
           {/* Modal: Cantidad / Balanza para Peso KG */}
           {modalCantidad && productoSeleccionadoCantidad && (
-            <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4">
-              <div className="bg-stone-100 border border-stone-200 rounded-2xl max-w-xs w-full p-5 shadow-2xl space-y-4 text-center">
+            <div className="fixed inset-0 bg-stone-900/30 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+              <div className="bg-gradient-to-br from-[#f4effc] via-[#f9f8fb] to-[#f5f4f8] border border-white/80 rounded-[28px] max-w-xs w-full p-5 shadow-2xl space-y-4 text-center">
                 <h3 className="text-sm font-bold text-stone-900 leading-tight">{productoSeleccionadoCantidad.descripcion}</h3>
 
                 {productoSeleccionadoCantidad.unidad === 'KG' ? (
@@ -9526,7 +9526,7 @@ import './index.css';
                         min="0.001"
                         value={inputCantidad}
                         onChange={(e) => setInputCantidad(e.target.value)}
-                        className="w-32 bg-stone-50 border border-stone-200 text-center font-mono font-bold text-xl text-orange-600 p-2 rounded-xl focus:outline-none focus:border-orange-500"
+                        className="w-32 bg-stone-50 border border-stone-200 text-center font-mono font-bold text-xl text-orange-600 p-2 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#d6bdfa]"
                         autoFocus
                       />
                       <span className="text-sm font-bold text-stone-700">KG</span>
@@ -9562,7 +9562,7 @@ import './index.css';
                         min="1"
                         value={inputCantidad}
                         onChange={(e) => setInputCantidad(e.target.value)}
-                        className="w-32 bg-stone-50 border border-stone-200 text-center font-mono font-bold text-xl text-orange-600 p-2 rounded-xl focus:outline-none focus:border-orange-500"
+                        className="w-32 bg-stone-50 border border-stone-200 text-center font-mono font-bold text-xl text-orange-600 p-2 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#d6bdfa]"
                         autoFocus
                       />
                       <span className="text-sm font-bold text-stone-700">{tipoVentaSeleccionado === 'PACK' ? 'pack(s)' : 'und'}</span>
@@ -9571,8 +9571,8 @@ import './index.css';
                 )}
 
                 <div className="flex gap-2 pt-1">
-                  <button onClick={() => setModalCantidad(false)} className="flex-1 py-2 bg-stone-200 rounded-lg text-xs font-semibold">Cancelar</button>
-                  <button onClick={confirmarCantidadBalanza} className="flex-1 py-2 bg-stone-900 hover:bg-stone-800 text-white rounded-lg text-xs font-bold shadow">Aceptar</button>
+                  <button onClick={() => setModalCantidad(false)} className="flex-1 py-2 bg-white/70 rounded-full text-xs font-semibold shadow-sm">Cancelar</button>
+                  <button onClick={confirmarCantidadBalanza} className="flex-1 py-2 bg-[#6105dc] hover:bg-[#4d04b0] text-white rounded-full text-xs font-bold shadow">Aceptar</button>
                 </div>
               </div>
             </div>
@@ -9740,8 +9740,8 @@ import './index.css';
 
           {/* Modal: Inventario Inicial (carga de varios productos a la vez) */}
           {modalInventarioInicial && (
-            <div className="fixed inset-0 bg-black/85 flex items-center justify-center z-50 p-2 sm:p-4">
-              <div className="bg-stone-50 border border-stone-200 rounded-2xl max-w-2xl w-full shadow-2xl max-h-[95vh] flex flex-col overflow-hidden">
+            <div className="fixed inset-0 bg-stone-900/30 backdrop-blur-sm flex items-center justify-center z-50 p-2 sm:p-4">
+              <div className="bg-gradient-to-br from-[#f4effc] via-[#f9f8fb] to-[#f5f4f8] border border-white/80 rounded-[28px] max-w-2xl w-full shadow-2xl max-h-[95vh] flex flex-col overflow-hidden">
                 <div className="bg-white border-b border-stone-100 px-4 sm:px-5 pt-4 pb-3.5 shrink-0">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2.5 min-w-0">
@@ -9749,7 +9749,7 @@ import './index.css';
                         <i className="fa-solid fa-boxes-stacked text-sm"></i>
                       </span>
                       <div className="min-w-0">
-                        <h3 className="text-base font-bold text-stone-900 tracking-tight">Registrar Productos</h3>
+                        <h3 className="text-lg font-bold text-stone-900 tracking-tight">Registrar Productos</h3>
                         <span className="inline-block text-[11px] font-semibold text-orange-600 bg-orange-50 px-2 py-0.5 rounded-full border border-orange-100">
                           Producto {filaInventarioExpandidaIdx + 1}{filasInventario.length > 1 ? ` de ${filasInventario.length}` : ''}
                         </span>
@@ -9775,7 +9775,7 @@ import './index.css';
                     const sugerencias = sugerenciasParaFila(fila);
                     const sugerenciasMaestro = sugerenciasMaestroParaFila(fila);
                     const claseCampoVinculado = 'bg-stone-100/60 border border-stone-200 rounded-xl px-3.5 py-2 text-xs text-stone-500 cursor-not-allowed';
-                    const claseCampoNormal = 'bg-stone-50/60 border border-stone-200 rounded-xl px-3.5 py-2 text-xs text-stone-900 placeholder:text-stone-400 focus:border-orange-500 focus:bg-white focus:ring-2 focus:ring-orange-500/20 transition-all';
+                    const claseCampoNormal = 'bg-stone-50/60 border border-stone-200 rounded-xl px-3.5 py-2 text-xs text-stone-900 placeholder:text-stone-400 focus:ring-2 focus:ring-[#d6bdfa] focus:bg-white focus:ring-2 focus:ring-orange-500/20 transition-all';
 
                     // Fila ya completada y no es la que se está editando ahora --
                     // se muestra colapsada como un renglón de "historial" en vez
@@ -10223,7 +10223,7 @@ import './index.css';
                 <div className="shrink-0 bg-white border-t border-stone-200 p-4 space-y-2.5 shadow-[0_-4px_18px_rgba(15,23,42,0.06)]">
                   <button
                     onClick={agregarFilaInventario}
-                    className="w-full py-2.5 px-4 rounded-xl border border-stone-200 bg-stone-100/80 hover:bg-stone-200/70 text-stone-700 font-semibold text-xs flex items-center justify-center gap-1.5 transition active:scale-[0.99]"
+                    className="w-full py-2.5 px-4 rounded-full border border-stone-200 bg-white/70/80 hover:bg-white/70/70 text-stone-600 font-semibold text-xs flex items-center justify-center gap-1.5 transition active:scale-[0.99] shadow-sm"
                   >
                     <span className="text-base font-medium leading-none">+</span> Agregar otro producto
                   </button>
@@ -10245,11 +10245,11 @@ import './index.css';
 
           {/* Modal: Combos */}
           {modalCombos && (
-            <div className="fixed inset-0 bg-black/85 flex items-center justify-center z-50 p-4">
-              <div className="bg-stone-100 border border-stone-200 rounded-2xl max-w-lg w-full p-5 shadow-2xl space-y-3 max-h-[90vh] flex flex-col">
+            <div className="fixed inset-0 bg-stone-900/30 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+              <div className="bg-gradient-to-br from-[#f4effc] via-[#f9f8fb] to-[#f5f4f8] border border-white/80 rounded-[28px] max-w-lg w-full p-5 shadow-2xl space-y-3 max-h-[90vh] flex flex-col">
                 <div className="flex justify-between items-start shrink-0">
                   <div>
-                    <h3 className="text-base font-bold text-stone-900 flex items-center gap-2">
+                    <h3 className="text-lg font-bold text-stone-900 flex items-center gap-2">
                       <span className="w-7 h-7 rounded-[9px] bg-[#f4eefe] flex items-center justify-center shrink-0"><i className="fa-solid fa-gift text-sm text-[#6105dc]"></i></span> Combos
                     </h3>
                     <p className="text-xs text-stone-600 mt-0.5">Paquetes de varios productos a un precio especial. Al venderse, descuentan el stock real de cada producto que los compone.</p>
@@ -10261,7 +10261,7 @@ import './index.css';
                   <>
                     <button
                       onClick={nuevoCombo}
-                      className="w-full py-2.5 bg-[#6105dc] hover:bg-[#4d04b0] text-white text-sm font-bold rounded-xl shadow flex items-center justify-center gap-1.5 shrink-0"
+                      className="w-full py-2.5 bg-[#6105dc] hover:bg-[#4d04b0] text-white text-sm font-bold rounded-full shadow flex items-center justify-center gap-1.5 shrink-0"
                     >
                       <i className="fa-solid fa-plus"></i> Nuevo Combo
                     </button>
@@ -10304,7 +10304,7 @@ import './index.css';
                         placeholder="Ej: Combo Desayuno"
                         value={formCombo.nombre}
                         onChange={(e) => setFormCombo({ ...formCombo, nombre: e.target.value })}
-                        className="w-full bg-white border border-stone-200 rounded-lg px-3 py-1.5 text-sm text-stone-900"
+                        className="w-full bg-white border border-stone-200/70 shadow-sm rounded-xl px-3 py-1.5 text-sm text-stone-900"
                       />
                     </div>
                     <div>
@@ -10314,7 +10314,7 @@ import './index.css';
                         placeholder="Ej: Pan, leche y huevos para empezar el día"
                         value={formCombo.descripcion}
                         onChange={(e) => setFormCombo({ ...formCombo, descripcion: e.target.value })}
-                        className="w-full bg-white border border-stone-200 rounded-lg px-3 py-1.5 text-sm text-stone-900"
+                        className="w-full bg-white border border-stone-200/70 shadow-sm rounded-xl px-3 py-1.5 text-sm text-stone-900"
                       />
                     </div>
 
@@ -10326,7 +10326,7 @@ import './index.css';
                           placeholder="Buscar producto para agregar..."
                           value={busquedaProductoCombo}
                           onChange={(e) => setBusquedaProductoCombo(e.target.value)}
-                          className="w-full bg-white border border-stone-200 rounded-lg px-3 py-1.5 text-sm text-stone-900"
+                          className="w-full bg-white border border-stone-200/70 shadow-sm rounded-xl px-3 py-1.5 text-sm text-stone-900"
                         />
                         {busquedaProductoCombo.trim() && (
                           <div className="absolute z-10 top-full left-0 right-0 mt-1 bg-white border border-stone-300 rounded-lg shadow-xl overflow-hidden max-h-48 overflow-y-auto">
@@ -10386,7 +10386,7 @@ import './index.css';
                           placeholder="0.00"
                           value={formCombo.precio_venta}
                           onChange={(e) => setFormCombo({ ...formCombo, precioTocado: true, precio_venta: e.target.value })}
-                          className="w-full bg-white border border-stone-200 rounded-lg px-3 py-1.5 text-sm font-bold text-stone-900"
+                          className="w-full bg-white border border-stone-200/70 shadow-sm rounded-full px-3 py-1.5 text-sm font-bold text-stone-900"
                         />
                       </div>
                       <div className={`flex flex-col justify-center rounded-lg px-3 py-1.5 ${precioNormalCombo(formCombo) > 0 && Number(formCombo.precio_venta) > 0 ? 'bg-emerald-50' : 'bg-stone-100'}`}>
@@ -10425,13 +10425,13 @@ import './index.css';
                     <Interruptor activo={formCombo.activo} onClick={() => setFormCombo({ ...formCombo, activo: !formCombo.activo })} etiqueta="Combo activo (visible para vender)" />
 
                     <div className="flex gap-2 pt-1 shrink-0">
-                      <button onClick={() => setFormCombo(null)} className="flex-1 py-2.5 bg-stone-200 hover:bg-stone-300 text-stone-800 text-sm font-semibold rounded-xl">
+                      <button onClick={() => setFormCombo(null)} className="flex-1 py-2.5 bg-white/70 hover:bg-[#ece0fd] text-stone-600 text-sm font-semibold rounded-full shadow-sm">
                         Cancelar
                       </button>
                       <button
                         onClick={guardarCombo}
                         disabled={guardandoCombo}
-                        className="flex-1 py-2.5 bg-[#6105dc] hover:bg-[#4d04b0] disabled:opacity-60 text-white font-bold text-sm rounded-xl shadow"
+                        className="flex-1 py-2.5 bg-[#6105dc] hover:bg-[#4d04b0] disabled:opacity-60 text-white font-bold text-sm rounded-full shadow"
                       >
                         {guardandoCombo ? 'Guardando...' : 'Guardar Combo'}
                       </button>
@@ -10444,13 +10444,13 @@ import './index.css';
 
           {/* Modal: Registrar Merma */}
           {modalMerma && (
-            <div className="fixed inset-0 bg-black/85 flex items-center justify-center z-50 p-4">
-              <div className="bg-stone-100 border border-stone-200 rounded-2xl max-w-sm w-full p-5 shadow-2xl space-y-3">
+            <div className="fixed inset-0 bg-stone-900/30 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+              <div className="bg-gradient-to-br from-[#f4effc] via-[#f9f8fb] to-[#f5f4f8] border border-white/80 rounded-[28px] max-w-sm w-full p-5 shadow-2xl space-y-3">
                 <div className="flex justify-between items-center">
-                  <h3 className="text-base font-bold text-stone-900 flex items-center gap-2">
+                  <h3 className="text-lg font-bold text-stone-900 flex items-center gap-2">
                     <i className="fa-solid fa-triangle-exclamation text-amber-600"></i> Registrar Merma
                   </h3>
-                  <button onClick={() => setModalMerma(false)} className="text-stone-600 hover:text-stone-900"><i className="fa-solid fa-xmark"></i></button>
+                  <button onClick={() => setModalMerma(false)} className="w-8 h-8 rounded-full bg-white/70 hover:bg-white text-stone-500 hover:text-stone-900 shadow-sm"><i className="fa-solid fa-xmark"></i></button>
                 </div>
                 <p className="text-xs text-stone-600">Para productos vencidos, rotos, robados o perdidos. Se descuenta del stock automáticamente.</p>
                 <div>
@@ -10458,7 +10458,7 @@ import './index.css';
                   <select
                     value={formMerma.productoId}
                     onChange={(e) => setFormMerma({ ...formMerma, productoId: e.target.value })}
-                    className="w-full bg-stone-50 border border-stone-200 rounded-lg px-3 py-1.5 text-xs text-stone-900"
+                    className="w-full bg-white border border-stone-200/70 shadow-sm rounded-xl px-3 py-1.5 text-xs text-stone-900"
                   >
                     <option value="">-- Seleccionar producto --</option>
                     {productos.map((p) => (
@@ -10474,7 +10474,7 @@ import './index.css';
                       step="0.10"
                       value={formMerma.cantidad}
                       onChange={(e) => setFormMerma({ ...formMerma, cantidad: e.target.value })}
-                      className="w-full bg-stone-50 border border-stone-200 rounded-lg px-3 py-1.5 text-xs text-stone-900"
+                      className="w-full bg-white border border-stone-200/70 shadow-sm rounded-xl px-3 py-1.5 text-xs text-stone-900"
                     />
                   </div>
                   <div>
@@ -10482,7 +10482,7 @@ import './index.css';
                     <select
                       value={formMerma.motivo}
                       onChange={(e) => setFormMerma({ ...formMerma, motivo: e.target.value })}
-                      className="w-full bg-stone-50 border border-stone-200 rounded-lg px-3 py-1.5 text-xs text-stone-900"
+                      className="w-full bg-white border border-stone-200/70 shadow-sm rounded-xl px-3 py-1.5 text-xs text-stone-900"
                     >
                       <option value="Vencido">Vencido</option>
                       <option value="Roto/Dañado">Roto/Dañado</option>
@@ -10494,7 +10494,7 @@ import './index.css';
                 <button
                   onClick={registrarMermaProducto}
                   disabled={guardandoMerma}
-                  className="w-full py-2.5 bg-violet-600 hover:bg-violet-500 disabled:opacity-60 text-white font-bold text-xs rounded-xl shadow"
+                  className="w-full py-2.5 bg-[#6105dc] hover:bg-[#4d04b0] disabled:opacity-60 text-white font-bold text-xs rounded-full shadow"
                 >
                   {guardandoMerma ? 'Guardando...' : 'Registrar Merma'}
                 </button>
@@ -10504,13 +10504,13 @@ import './index.css';
 
           {/* Modal: Productos con Stock Bajo */}
           {modalStockBajo && (
-            <div className="fixed inset-0 bg-black/85 flex items-center justify-center z-50 p-4">
-              <div className="bg-stone-100 border border-stone-200 rounded-2xl max-w-md w-full p-5 shadow-2xl space-y-3 max-h-[85vh] flex flex-col">
+            <div className="fixed inset-0 bg-stone-900/30 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+              <div className="bg-gradient-to-br from-[#f4effc] via-[#f9f8fb] to-[#f5f4f8] border border-white/80 rounded-[28px] max-w-md w-full p-5 shadow-2xl space-y-3 max-h-[85vh] flex flex-col">
                 <div className="flex justify-between items-center shrink-0">
-                  <h3 className="text-base font-bold text-stone-900 flex items-center gap-2">
+                  <h3 className="text-lg font-bold text-stone-900 flex items-center gap-2">
                     <i className="fa-solid fa-triangle-exclamation text-amber-600"></i> Stock Bajo / Por Agotarse
                   </h3>
-                  <button onClick={() => setModalStockBajo(false)} className="text-stone-600 hover:text-stone-900"><i className="fa-solid fa-xmark"></i></button>
+                  <button onClick={() => setModalStockBajo(false)} className="w-8 h-8 rounded-full bg-white/70 hover:bg-white text-stone-500 hover:text-stone-900 shadow-sm"><i className="fa-solid fa-xmark"></i></button>
                 </div>
                 <div className="flex-1 overflow-y-auto space-y-1.5">
                   {productos.filter((p) => p.stock_actual != null && Number(p.stock_actual) <= Number(p.stock_min || 5)).length === 0 ? (
@@ -10538,13 +10538,13 @@ import './index.css';
 
           {/* Modal: Ver Stock (todo el catálogo) */}
           {modalVerStock && (
-            <div className="fixed inset-0 bg-black/85 flex items-center justify-center z-50 p-4">
-              <div className="bg-stone-100 border border-stone-200 rounded-2xl max-w-2xl w-full p-5 shadow-2xl space-y-3 max-h-[85vh] flex flex-col">
+            <div className="fixed inset-0 bg-stone-900/30 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+              <div className="bg-gradient-to-br from-[#f4effc] via-[#f9f8fb] to-[#f5f4f8] border border-white/80 rounded-[28px] max-w-2xl w-full p-5 shadow-2xl space-y-3 max-h-[85vh] flex flex-col">
                 <div className="flex justify-between items-center shrink-0">
-                  <h3 className="text-base font-bold text-stone-900 flex items-center gap-2">
+                  <h3 className="text-lg font-bold text-stone-900 flex items-center gap-2">
                     <i className="fa-solid fa-table-list text-orange-600"></i> Ver Stock
                   </h3>
-                  <button onClick={() => setModalVerStock(false)} className="text-stone-600 hover:text-stone-900"><i className="fa-solid fa-xmark"></i></button>
+                  <button onClick={() => setModalVerStock(false)} className="w-8 h-8 rounded-full bg-white/70 hover:bg-white text-stone-500 hover:text-stone-900 shadow-sm"><i className="fa-solid fa-xmark"></i></button>
                 </div>
                 <div className="flex gap-2 shrink-0">
                   <input
@@ -10552,12 +10552,12 @@ import './index.css';
                     placeholder="Buscar producto..."
                     value={verStockBusqueda}
                     onChange={(e) => setVerStockBusqueda(e.target.value)}
-                    className="flex-1 bg-stone-50 border border-stone-200 rounded-lg px-2.5 py-1.5 text-xs text-stone-900"
+                    className="flex-1 bg-white border border-stone-200/70 shadow-sm rounded-xl px-2.5 py-1.5 text-xs text-stone-900"
                   />
                   <select
                     value={verStockCategoria}
                     onChange={(e) => setVerStockCategoria(e.target.value)}
-                    className="bg-stone-50 border border-stone-200 rounded-lg px-2.5 py-1.5 text-xs text-stone-900"
+                    className="bg-white border border-stone-200/70 shadow-sm rounded-xl px-2.5 py-1.5 text-xs text-stone-900"
                   >
                     <option value="">Todas las categorías</option>
                     {categoriasDB.map(c => <option key={c} value={c}>{c}</option>)}
@@ -10591,11 +10591,11 @@ import './index.css';
               sistema) y "revision" (recién ahí se compara y se guarda, lo
               que ajusta el stock automáticamente si hay diferencia). */}
           {modalTomaInventario && (
-            <div className="fixed inset-0 bg-black/85 flex items-center justify-center z-50 p-4">
-              <div className="bg-stone-100 border border-stone-200 rounded-2xl max-w-2xl w-full p-5 shadow-2xl space-y-3 max-h-[90vh] flex flex-col">
+            <div className="fixed inset-0 bg-stone-900/30 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+              <div className="bg-gradient-to-br from-[#f4effc] via-[#f9f8fb] to-[#f5f4f8] border border-white/80 rounded-[28px] max-w-2xl w-full p-5 shadow-2xl space-y-3 max-h-[90vh] flex flex-col">
                 <div className="flex justify-between items-start shrink-0">
                   <div>
-                    <h3 className="text-base font-bold text-stone-900 flex items-center gap-2">
+                    <h3 className="text-lg font-bold text-stone-900 flex items-center gap-2">
                       <i className="fa-solid fa-clipboard-check text-orange-600"></i> Toma de Inventario
                       <span className="text-[10px] font-bold text-orange-600 bg-orange-100 px-2 py-0.5 rounded-full">
                         Paso {pasoTomaInventario === 'conteo' ? '1' : '2'} de 2
@@ -10613,7 +10613,7 @@ import './index.css';
                         Vaciar
                       </button>
                     )}
-                    <button onClick={() => setModalTomaInventario(false)} className="text-stone-600 hover:text-stone-900"><i className="fa-solid fa-xmark"></i></button>
+                    <button onClick={() => setModalTomaInventario(false)} className="w-8 h-8 rounded-full bg-white/70 hover:bg-white text-stone-500 hover:text-stone-900 shadow-sm"><i className="fa-solid fa-xmark"></i></button>
                   </div>
                 </div>
 
@@ -10627,7 +10627,7 @@ import './index.css';
                           placeholder="Buscar o escanear producto..."
                           value={conteoFisicoBusqueda}
                           onChange={(e) => setConteoFisicoBusqueda(e.target.value)}
-                          className="w-full bg-stone-50 border border-stone-200 rounded-lg px-2.5 py-2 text-xs text-stone-900"
+                          className="w-full bg-white border border-stone-200/70 shadow-sm rounded-xl px-2.5 py-2 text-xs text-stone-900"
                         />
                         {resultadosBusquedaConteo.length > 0 && (
                           <div className="absolute z-10 top-full left-0 right-0 mt-1 bg-white border border-stone-200 rounded-lg shadow-lg max-h-52 overflow-y-auto">
@@ -10703,7 +10703,7 @@ import './index.css';
                                       value={f.pendientePacks}
                                       onChange={(e) => actualizarPendienteConteo(f.productoId, 'pendientePacks', e.target.value)}
                                       onKeyDown={(e) => { if (e.key === 'Enter') agregarHallazgo(f.productoId); }}
-                                      className="w-14 bg-stone-100 border border-stone-200 rounded-lg px-2 py-1.5 text-xs text-stone-900 text-center"
+                                      className="w-14 bg-white border border-stone-200/70 shadow-sm rounded-xl px-2 py-1.5 text-xs text-stone-900 text-center"
                                     />
                                     <span className="text-[9px] text-stone-500">packs</span>
                                   </div>
@@ -10742,13 +10742,13 @@ import './index.css';
                                       value={f.pendienteSueltas}
                                       onChange={(e) => actualizarPendienteConteo(f.productoId, 'pendienteSueltas', e.target.value)}
                                       onKeyDown={(e) => { if (e.key === 'Enter') agregarHallazgo(f.productoId); }}
-                                      className="w-14 bg-stone-100 border border-stone-200 rounded-lg px-2 py-1.5 text-xs text-stone-900 text-center"
+                                      className="w-14 bg-white border border-stone-200/70 shadow-sm rounded-xl px-2 py-1.5 text-xs text-stone-900 text-center"
                                     />
                                     <span className="text-[9px] text-stone-500">sueltas</span>
                                   </div>
                                   <span className="text-xs font-bold text-orange-600 ml-auto shrink-0">= {totalPendiente} und</span>
                                 </div>
-                                <button onClick={() => agregarHallazgo(f.productoId)} className="w-full py-1.5 bg-stone-900 hover:bg-stone-800 text-white rounded-lg text-[11px] font-bold">
+                                <button onClick={() => agregarHallazgo(f.productoId)} className="w-full py-1.5 bg-[#6105dc] hover:bg-[#4d04b0] text-white rounded-full text-[11px] font-bold">
                                   <i className="fa-solid fa-plus"></i> Agregar
                                 </button>
                               </div>
@@ -10793,7 +10793,7 @@ import './index.css';
                     <button
                       onClick={continuarARevisionInventario}
                       disabled={filasTomaInventario.length === 0}
-                      className="w-full py-2.5 bg-stone-900 hover:bg-stone-800 disabled:opacity-50 text-white font-bold text-xs rounded-xl shadow shrink-0"
+                      className="w-full py-2.5 bg-[#6105dc] hover:bg-[#4d04b0] disabled:opacity-50 text-white font-bold text-xs rounded-full shadow shrink-0"
                     >
                       {filasTomaInventario.length === 0 ? 'Agrega al menos un producto' : `Continuar a Revisión (${filasTomaInventario.length})`}
                       {filasTomaInventario.length > 0 && <i className="fa-solid fa-arrow-right ml-1.5"></i>}
@@ -10807,12 +10807,12 @@ import './index.css';
                         placeholder="Buscar en lo contado..."
                         value={tomaInventarioBusqueda}
                         onChange={(e) => setTomaInventarioBusqueda(e.target.value)}
-                        className="flex-1 bg-stone-50 border border-stone-200 rounded-lg px-2.5 py-1.5 text-xs text-stone-900"
+                        className="flex-1 bg-white border border-stone-200/70 shadow-sm rounded-xl px-2.5 py-1.5 text-xs text-stone-900"
                       />
                       <select
                         value={tomaInventarioCategoria}
                         onChange={(e) => setTomaInventarioCategoria(e.target.value)}
-                        className="bg-stone-50 border border-stone-200 rounded-lg px-2.5 py-1.5 text-xs text-stone-900"
+                        className="bg-white border border-stone-200/70 shadow-sm rounded-xl px-2.5 py-1.5 text-xs text-stone-900"
                       >
                         <option value="">Todas las categorías</option>
                         {categoriasDB.map(c => <option key={c} value={c}>{c}</option>)}
@@ -10836,7 +10836,7 @@ import './index.css';
                                 placeholder="Contado"
                                 value={f.stockContado}
                                 onChange={(e) => actualizarStockContado(f.productoId, e.target.value)}
-                                className="w-20 bg-stone-100 border border-stone-200 rounded-lg px-2 py-1.5 text-xs text-stone-900 text-right"
+                                className="w-20 bg-white border border-stone-200/70 shadow-sm rounded-xl px-2 py-1.5 text-xs text-stone-900 text-right"
                               />
                               <span className={`w-14 text-right text-xs font-bold ${
                                 diferencia === null || diferencia === 0 ? 'text-stone-400' : diferencia > 0 ? 'text-emerald-600' : 'text-rose-600'
@@ -10855,14 +10855,14 @@ import './index.css';
                     <div className="flex gap-2 shrink-0">
                       <button
                         onClick={() => setPasoTomaInventario('conteo')}
-                        className="py-2.5 px-4 bg-stone-200 hover:bg-stone-300 text-stone-700 font-bold text-xs rounded-xl shrink-0"
+                        className="py-2.5 px-4 bg-white/70 hover:bg-[#ece0fd] text-stone-600 font-bold text-xs rounded-full shrink-0 shadow-sm"
                       >
                         <i className="fa-solid fa-arrow-left mr-1.5"></i> Seguir contando
                       </button>
                       <button
                         onClick={guardarTomaInventario}
                         disabled={guardandoTomaInventario}
-                        className="flex-1 py-2.5 bg-stone-900 hover:bg-stone-800 disabled:opacity-50 text-white font-bold text-xs rounded-xl shadow"
+                        className="flex-1 py-2.5 bg-[#6105dc] hover:bg-[#4d04b0] disabled:opacity-50 text-white font-bold text-xs rounded-full shadow"
                       >
                         {guardandoTomaInventario ? 'Guardando...' : 'Guardar y Ajustar Stock'}
                       </button>
@@ -10875,13 +10875,13 @@ import './index.css';
 
           {/* Modal: Editar / Desactivar Producto */}
           {modalEditarProducto && formEditarProducto && (
-            <div className="fixed inset-0 bg-black/85 flex items-center justify-center z-50 p-4">
-              <div className="bg-stone-100 border border-stone-200 rounded-2xl max-w-md w-full p-5 shadow-2xl space-y-3 max-h-[90vh] overflow-y-auto">
+            <div className="fixed inset-0 bg-stone-900/30 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+              <div className="bg-gradient-to-br from-[#f4effc] via-[#f9f8fb] to-[#f5f4f8] border border-white/80 rounded-[28px] max-w-md w-full p-5 shadow-2xl space-y-3 max-h-[90vh] overflow-y-auto">
                 <div className="flex justify-between items-center">
-                  <h3 className="text-base font-bold text-stone-900 flex items-center gap-2">
+                  <h3 className="text-lg font-bold text-stone-900 flex items-center gap-2">
                     <i className="fa-solid fa-pen text-orange-600"></i> Editar Producto
                   </h3>
-                  <button onClick={() => setModalEditarProducto(false)} className="text-stone-600 hover:text-stone-900"><i className="fa-solid fa-xmark"></i></button>
+                  <button onClick={() => setModalEditarProducto(false)} className="w-8 h-8 rounded-full bg-white/70 hover:bg-white text-stone-500 hover:text-stone-900 shadow-sm"><i className="fa-solid fa-xmark"></i></button>
                 </div>
                 <div className="flex items-center gap-3">
                   {sesion?.bodega?.permitir_subir_fotos === false ? (
@@ -10955,7 +10955,7 @@ import './index.css';
                       type="text"
                       value={formEditarProducto.descripcion}
                       onChange={(e) => setFormEditarProducto({ ...formEditarProducto, descripcion: e.target.value })}
-                      className="w-full bg-stone-50 border border-stone-200 rounded-lg px-3 py-1.5 text-xs text-stone-900"
+                      className="w-full bg-white border border-stone-200/70 shadow-sm rounded-xl px-3 py-1.5 text-xs text-stone-900"
                     />
                   </div>
                   <div className="grid grid-cols-2 gap-2">
@@ -10966,7 +10966,7 @@ import './index.css';
                         step="0.10"
                         value={formEditarProducto.precio_venta}
                         onChange={(e) => setFormEditarProducto({ ...formEditarProducto, precio_venta: e.target.value })}
-                        className="w-full bg-stone-50 border border-stone-200 rounded-lg px-3 py-1.5 text-xs text-stone-900"
+                        className="w-full bg-white border border-stone-200/70 shadow-sm rounded-xl px-3 py-1.5 text-xs text-stone-900"
                       />
                     </div>
                     <div>
@@ -10976,7 +10976,7 @@ import './index.css';
                         step="0.10"
                         value={formEditarProducto.precio_costo}
                         onChange={(e) => setFormEditarProducto({ ...formEditarProducto, precio_costo: e.target.value })}
-                        className="w-full bg-stone-50 border border-stone-200 rounded-lg px-3 py-1.5 text-xs text-stone-900"
+                        className="w-full bg-white border border-stone-200/70 shadow-sm rounded-xl px-3 py-1.5 text-xs text-stone-900"
                       />
                       {Number(formEditarProducto.precio_costo) > 0 && (
                         <CalculadoraMargen
@@ -10993,7 +10993,7 @@ import './index.css';
                         type="text"
                         value={formEditarProducto.cod_ean}
                         onChange={(e) => setFormEditarProducto({ ...formEditarProducto, cod_ean: e.target.value })}
-                        className="w-full bg-stone-50 border border-stone-200 rounded-lg px-3 py-1.5 text-xs text-stone-900"
+                        className="w-full bg-white border border-stone-200/70 shadow-sm rounded-xl px-3 py-1.5 text-xs text-stone-900"
                       />
                     </div>
                     <div>
@@ -11002,7 +11002,7 @@ import './index.css';
                         <select
                           value={formEditarProducto.categoria}
                           onChange={(e) => setFormEditarProducto({ ...formEditarProducto, categoria: e.target.value })}
-                          className="w-full bg-stone-50 border border-stone-200 rounded-lg px-3 py-1.5 text-xs text-stone-900"
+                          className="w-full bg-white border border-stone-200/70 shadow-sm rounded-xl px-3 py-1.5 text-xs text-stone-900"
                         >
                           {!categoriasDB.includes(formEditarProducto.categoria) && formEditarProducto.categoria && (
                             <option value={formEditarProducto.categoria}>{formEditarProducto.categoria}</option>
@@ -11026,7 +11026,7 @@ import './index.css';
                       <select
                         value={formEditarProducto.unidad}
                         onChange={(e) => setFormEditarProducto({ ...formEditarProducto, unidad: e.target.value })}
-                        className="w-full bg-stone-50 border border-stone-200 rounded-lg px-3 py-1.5 text-xs text-stone-900"
+                        className="w-full bg-white border border-stone-200/70 shadow-sm rounded-xl px-3 py-1.5 text-xs text-stone-900"
                       >
                         <option value="UND">Unidad (UND)</option>
                         <option value="KG">Kilogramo (KG)</option>
@@ -11039,7 +11039,7 @@ import './index.css';
                         step="0.10"
                         value={formEditarProducto.stock_actual}
                         onChange={(e) => setFormEditarProducto({ ...formEditarProducto, stock_actual: e.target.value })}
-                        className="w-full bg-stone-50 border border-stone-200 rounded-lg px-3 py-1.5 text-xs text-stone-900"
+                        className="w-full bg-white border border-stone-200/70 shadow-sm rounded-xl px-3 py-1.5 text-xs text-stone-900"
                       />
                     </div>
                   </div>
@@ -11066,7 +11066,7 @@ import './index.css';
                                 placeholder="Ej: 6"
                                 value={formEditarProducto.unidades_por_pack}
                                 onChange={(e) => setFormEditarProducto({ ...formEditarProducto, unidades_por_pack: e.target.value })}
-                                className="w-full bg-stone-50 border border-stone-200 rounded-lg px-3 py-1.5 text-xs text-stone-900"
+                                className="w-full bg-white border border-stone-200/70 shadow-sm rounded-xl px-3 py-1.5 text-xs text-stone-900"
                               />
                             </div>
                             <div>
@@ -11077,7 +11077,7 @@ import './index.css';
                                 placeholder="Ej: 27.00"
                                 value={formEditarProducto.precio_venta_pack}
                                 onChange={(e) => setFormEditarProducto({ ...formEditarProducto, precio_venta_pack: e.target.value })}
-                                className="w-full bg-stone-50 border border-stone-200 rounded-lg px-3 py-1.5 text-xs text-stone-900"
+                                className="w-full bg-white border border-stone-200/70 shadow-sm rounded-xl px-3 py-1.5 text-xs text-stone-900"
                               />
                             </div>
                           </div>
@@ -11094,7 +11094,7 @@ import './index.css';
                               placeholder="Si ya existe, se vincula solo"
                               value={formEditarProducto.cod_ean_pack}
                               onChange={(e) => setFormEditarProducto({ ...formEditarProducto, cod_ean_pack: e.target.value })}
-                              className="w-full pr-9 bg-stone-50 border border-stone-200 rounded-lg px-3 py-1.5 text-xs text-stone-900"
+                              className="w-full pr-9 bg-white border border-stone-200/70 shadow-sm rounded-xl px-3 py-1.5 text-xs text-stone-900"
                             />
                             <button
                               type="button"
@@ -11116,7 +11116,7 @@ import './index.css';
                       type="text"
                       value={formEditarProducto.sku}
                       onChange={(e) => setFormEditarProducto({ ...formEditarProducto, sku: e.target.value })}
-                      className="w-full bg-stone-50 border border-stone-200 rounded-lg px-3 py-1.5 text-xs text-stone-900"
+                      className="w-full bg-white border border-stone-200/70 shadow-sm rounded-xl px-3 py-1.5 text-xs text-stone-900"
                     />
                   </div>
                   {!(sesion?.bodega?.permitir_subir_fotos === false) && (
@@ -11128,7 +11128,7 @@ import './index.css';
                           onChange={(e) => setFormEditarProducto({ ...formEditarProducto, descripcion_larga: e.target.value })}
                           rows={2}
                           placeholder="Ej: tela, talla, colores disponibles..."
-                          className="w-full bg-stone-50 border border-stone-200 rounded-lg px-3 py-1.5 text-xs text-stone-900"
+                          className="w-full bg-white border border-stone-200/70 shadow-sm rounded-xl px-3 py-1.5 text-xs text-stone-900"
                         />
                       </div>
                       <div>
@@ -11174,14 +11174,14 @@ import './index.css';
                   <button
                     onClick={desactivarProducto}
                     title="Eliminar producto"
-                    className="px-4 py-2.5 bg-rose-950/60 hover:bg-rose-900 text-rose-600 text-xs font-semibold rounded-xl border border-rose-800"
+                    className="px-4 py-2.5 bg-rose-950/60 hover:bg-rose-900 text-rose-600 text-xs font-semibold rounded-full border border-rose-800"
                   >
                     <i className="fa-solid fa-trash-can"></i>
                   </button>
                   <button
                     onClick={guardarEdicionProducto}
                     disabled={guardandoEdicionProducto}
-                    className="flex-1 py-2.5 bg-stone-900 hover:bg-stone-800 disabled:opacity-60 text-white font-bold text-xs rounded-xl shadow"
+                    className="flex-1 py-2.5 bg-[#6105dc] hover:bg-[#4d04b0] disabled:opacity-60 text-white font-bold text-xs rounded-full shadow"
                   >
                     {guardandoEdicionProducto ? 'Guardando...' : 'Guardar Cambios'}
                   </button>
@@ -11192,13 +11192,13 @@ import './index.css';
 
           {/* Modal: Importar del Catálogo Maestro */}
           {modalImportarMaestro && (
-            <div className="fixed inset-0 bg-black/85 flex items-center justify-center z-50 p-4">
-              <div className="bg-stone-100 border border-stone-200 rounded-2xl max-w-lg w-full p-5 shadow-2xl space-y-3 max-h-[85vh] flex flex-col">
+            <div className="fixed inset-0 bg-stone-900/30 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+              <div className="bg-gradient-to-br from-[#f4effc] via-[#f9f8fb] to-[#f5f4f8] border border-white/80 rounded-[28px] max-w-lg w-full p-5 shadow-2xl space-y-3 max-h-[85vh] flex flex-col">
                 <div className="flex justify-between items-center shrink-0">
-                  <h3 className="text-base font-bold text-stone-900 flex items-center gap-2">
+                  <h3 className="text-lg font-bold text-stone-900 flex items-center gap-2">
                     <i className="fa-solid fa-book text-orange-600"></i> Importar del Catálogo Maestro
                   </h3>
-                  <button onClick={() => setModalImportarMaestro(false)} className="text-stone-600 hover:text-stone-900"><i className="fa-solid fa-xmark"></i></button>
+                  <button onClick={() => setModalImportarMaestro(false)} className="w-8 h-8 rounded-full bg-white/70 hover:bg-white text-stone-500 hover:text-stone-900 shadow-sm"><i className="fa-solid fa-xmark"></i></button>
                 </div>
 
                 {productoMaestroSeleccionado ? (
@@ -11220,7 +11220,7 @@ import './index.css';
                           type="number" step="0.10" required
                           value={formImportarMaestro.precio_venta}
                           onChange={(e) => setFormImportarMaestro({ ...formImportarMaestro, precio_venta: e.target.value })}
-                          className="w-full bg-stone-50 border border-stone-200 rounded-lg px-3 py-1.5 text-xs text-stone-900"
+                          className="w-full bg-white border border-stone-200/70 shadow-sm rounded-xl px-3 py-1.5 text-xs text-stone-900"
                         />
                       </div>
                       <div>
@@ -11229,7 +11229,7 @@ import './index.css';
                           type="number" step="0.10"
                           value={formImportarMaestro.precio_costo}
                           onChange={(e) => setFormImportarMaestro({ ...formImportarMaestro, precio_costo: e.target.value })}
-                          className="w-full bg-stone-50 border border-stone-200 rounded-lg px-3 py-1.5 text-xs text-stone-900"
+                          className="w-full bg-white border border-stone-200/70 shadow-sm rounded-xl px-3 py-1.5 text-xs text-stone-900"
                         />
                       </div>
                       <div>
@@ -11238,7 +11238,7 @@ import './index.css';
                           type="number" step="1"
                           value={formImportarMaestro.stock_actual}
                           onChange={(e) => setFormImportarMaestro({ ...formImportarMaestro, stock_actual: e.target.value })}
-                          className="w-full bg-stone-50 border border-stone-200 rounded-lg px-3 py-1.5 text-xs text-stone-900"
+                          className="w-full bg-white border border-stone-200/70 shadow-sm rounded-xl px-3 py-1.5 text-xs text-stone-900"
                         />
                       </div>
                       <div>
@@ -11246,7 +11246,7 @@ import './index.css';
                         <select
                           value={formImportarMaestro.unidad}
                           onChange={(e) => setFormImportarMaestro({ ...formImportarMaestro, unidad: e.target.value })}
-                          className="w-full bg-stone-50 border border-stone-200 rounded-lg px-3 py-1.5 text-xs text-stone-900"
+                          className="w-full bg-white border border-stone-200/70 shadow-sm rounded-xl px-3 py-1.5 text-xs text-stone-900"
                         >
                           <option value="UND">Unidad (UND)</option>
                           <option value="KG">Peso (KG)</option>
@@ -11258,11 +11258,11 @@ import './index.css';
                           type="text"
                           value={formImportarMaestro.cod_ean}
                           onChange={(e) => setFormImportarMaestro({ ...formImportarMaestro, cod_ean: e.target.value })}
-                          className="w-full bg-stone-50 border border-stone-200 rounded-lg px-3 py-1.5 text-xs text-stone-900"
+                          className="w-full bg-white border border-stone-200/70 shadow-sm rounded-xl px-3 py-1.5 text-xs text-stone-900"
                         />
                       </div>
                     </div>
-                    <button type="submit" disabled={guardandoImportMaestro} className="w-full py-2.5 bg-stone-900 hover:bg-stone-800 disabled:opacity-60 text-white font-bold text-xs rounded-xl shadow">
+                    <button type="submit" disabled={guardandoImportMaestro} className="w-full py-2.5 bg-[#6105dc] hover:bg-[#4d04b0] disabled:opacity-60 text-white font-bold text-xs rounded-full shadow">
                       {guardandoImportMaestro ? 'Agregando...' : 'Agregar a mi Inventario'}
                     </button>
                   </form>
@@ -11272,7 +11272,7 @@ import './index.css';
                       type="text" placeholder="Buscar producto..."
                       value={busquedaMaestroImport}
                       onChange={(e) => setBusquedaMaestroImport(e.target.value)}
-                      className="w-full bg-white border border-stone-200 rounded-lg px-3 py-2 text-xs text-stone-900 shrink-0"
+                      className="w-full bg-white border border-stone-200/70 shadow-sm rounded-xl px-3 py-2 text-xs text-stone-900 shrink-0"
                     />
                     <div className="flex-1 overflow-y-auto space-y-1.5">
                       {cargandoMaestroImport ? (
@@ -11310,11 +11310,11 @@ import './index.css';
 
           {/* Modal: Levantamiento de Inventario (conteo físico, escaneando de a uno) */}
           {modalLevantamiento && (
-            <div className="fixed inset-0 bg-black/85 flex items-center justify-center z-50 p-4">
-              <div className="bg-stone-100 border border-stone-200 rounded-2xl max-w-md w-full p-5 shadow-2xl space-y-4">
+            <div className="fixed inset-0 bg-stone-900/30 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+              <div className="bg-gradient-to-br from-[#f4effc] via-[#f9f8fb] to-[#f5f4f8] border border-white/80 rounded-[28px] max-w-md w-full p-5 shadow-2xl space-y-4">
                 <div className="flex justify-between items-start shrink-0">
                   <div>
-                    <h3 className="text-base font-bold text-stone-900 flex items-center gap-2">
+                    <h3 className="text-lg font-bold text-stone-900 flex items-center gap-2">
                       <i className="fa-solid fa-clipboard-list text-orange-600"></i> Levantamiento de Inventario
                     </h3>
                     <p className="text-xs text-stone-600 mt-0.5">Escanea o busca el producto, cuenta lo que tienes físicamente y listo.</p>
@@ -11332,7 +11332,7 @@ import './index.css';
                       value={levantamientoEan}
                       onChange={(e) => setLevantamientoEan(e.target.value)}
                       onKeyDown={(e) => { if (e.key === 'Enter') buscarLevantamientoPorEan(); }}
-                      className="flex-1 min-w-0 bg-stone-50 border border-stone-200 rounded-lg px-3 py-2 text-sm text-stone-900 focus:outline-none focus:border-orange-500"
+                      className="flex-1 min-w-0 bg-white border border-stone-200/70 shadow-sm rounded-xl px-3 py-2 text-sm text-stone-900 focus:outline-none focus:ring-2 focus:ring-[#d6bdfa]"
                     />
                     <button
                       onClick={buscarLevantamientoPorEan}
@@ -11388,7 +11388,7 @@ import './index.css';
                               placeholder="0"
                               value={levantamientoPacks}
                               onChange={(e) => setLevantamientoPacks(e.target.value)}
-                              className="w-full bg-stone-50 border border-stone-200 rounded-lg px-2.5 py-2 text-center text-sm font-bold text-stone-900 focus:outline-none focus:border-orange-500"
+                              className="w-full bg-white border border-stone-200/70 shadow-sm rounded-full px-2.5 py-2 text-center text-sm font-bold text-stone-900 focus:outline-none focus:ring-2 focus:ring-[#d6bdfa]"
                             />
                           </div>
                           <div>
@@ -11398,7 +11398,7 @@ import './index.css';
                               placeholder="0"
                               value={levantamientoSueltas}
                               onChange={(e) => setLevantamientoSueltas(e.target.value)}
-                              className="w-full bg-stone-50 border border-stone-200 rounded-lg px-2.5 py-2 text-center text-sm font-bold text-stone-900 focus:outline-none focus:border-orange-500"
+                              className="w-full bg-white border border-stone-200/70 shadow-sm rounded-full px-2.5 py-2 text-center text-sm font-bold text-stone-900 focus:outline-none focus:ring-2 focus:ring-[#d6bdfa]"
                             />
                           </div>
                           <div>
@@ -11413,7 +11413,7 @@ import './index.css';
                       <button
                         onClick={confirmarConteoLevantamiento}
                         disabled={guardandoLevantamiento || levantamientoPacks === ''}
-                        className="w-full py-2.5 bg-stone-900 hover:bg-stone-800 disabled:opacity-60 text-white font-bold text-xs rounded-xl shadow flex items-center justify-center gap-1.5"
+                        className="w-full py-2.5 bg-[#6105dc] hover:bg-[#4d04b0] disabled:opacity-60 text-white font-bold text-xs rounded-full shadow flex items-center justify-center gap-1.5"
                       >
                         {guardandoLevantamiento ? (
                           <><i className="fa-solid fa-spinner fa-spin"></i> Guardando...</>
@@ -11430,11 +11430,11 @@ import './index.css';
 
           {/* Modal: Entrada de Mercadería (Compras) */}
           {modalEntradaMercaderia && (
-            <div className="fixed inset-0 bg-black/85 flex items-center justify-center z-50 p-4">
-              <div className="bg-stone-100 border border-stone-200 rounded-2xl max-w-lg w-full p-5 shadow-2xl space-y-3 max-h-[90vh] overflow-y-auto">
+            <div className="fixed inset-0 bg-stone-900/30 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+              <div className="bg-gradient-to-br from-[#f4effc] via-[#f9f8fb] to-[#f5f4f8] border border-white/80 rounded-[28px] max-w-lg w-full p-5 shadow-2xl space-y-3 max-h-[90vh] overflow-y-auto">
                 <div className="flex justify-between items-center">
-                  <h3 className="text-base font-bold text-stone-900"><i className="fa-solid fa-truck-ramp-box mr-1.5"></i> Entrada de Mercadería (Compras)</h3>
-                  <button onClick={cerrarModalEntradaMercaderia} className="text-stone-600 hover:text-stone-900"><i className="fa-solid fa-xmark"></i></button>
+                  <h3 className="text-lg font-bold text-stone-900"><i className="fa-solid fa-truck-ramp-box mr-1.5"></i> Entrada de Mercadería (Compras)</h3>
+                  <button onClick={cerrarModalEntradaMercaderia} className="w-8 h-8 rounded-full bg-white/70 hover:bg-white text-stone-500 hover:text-stone-900 shadow-sm"><i className="fa-solid fa-xmark"></i></button>
                 </div>
 
                 <div className="grid grid-cols-2 gap-2">
@@ -11443,14 +11443,14 @@ import './index.css';
                     placeholder="Proveedor / Distribuidor"
                     value={compraCabecera.proveedor}
                     onChange={(e) => setCompraCabecera({ ...compraCabecera, proveedor: e.target.value })}
-                    className="bg-stone-50 border border-stone-200 rounded-lg px-2.5 py-1.5 text-xs text-stone-900"
+                    className="bg-white border border-stone-200/70 shadow-sm rounded-xl px-2.5 py-1.5 text-xs text-stone-900"
                   />
                   <input
                     type="text"
                     placeholder="N° Factura / Guía"
                     value={compraCabecera.nroComprobante}
                     onChange={(e) => setCompraCabecera({ ...compraCabecera, nroComprobante: e.target.value })}
-                    className="bg-stone-50 border border-stone-200 rounded-lg px-2.5 py-1.5 text-xs text-stone-900"
+                    className="bg-white border border-stone-200/70 shadow-sm rounded-xl px-2.5 py-1.5 text-xs text-stone-900"
                   />
                 </div>
 
@@ -11473,7 +11473,7 @@ import './index.css';
                           }
                           setCompraItemTemp({ ...compraItemTemp, productoId: e.target.value, tipo: 'UNIDAD' });
                         }}
-                        className="col-span-3 bg-stone-100 border border-stone-200 rounded-lg px-2.5 py-1.5 text-xs text-stone-900"
+                        className="col-span-3 bg-white border border-stone-200/70 shadow-sm rounded-xl px-2.5 py-1.5 text-xs text-stone-900"
                       >
                         <option value="">-- Seleccionar Producto --</option>
                         {productos.map(p => (
@@ -11489,20 +11489,20 @@ import './index.css';
                             placeholder="Descripción *"
                             value={nuevoProductoInlineCompra.descripcion}
                             onChange={(e) => setNuevoProductoInlineCompra({ ...nuevoProductoInlineCompra, descripcion: e.target.value })}
-                            className="w-full bg-white border border-stone-200 rounded-lg px-2.5 py-1.5 text-xs text-stone-900"
+                            className="w-full bg-white border border-stone-200/70 shadow-sm rounded-xl px-2.5 py-1.5 text-xs text-stone-900"
                           />
                           <div className="grid grid-cols-2 gap-2">
                             <select
                               value={nuevoProductoInlineCompra.categoria}
                               onChange={(e) => setNuevoProductoInlineCompra({ ...nuevoProductoInlineCompra, categoria: e.target.value })}
-                              className="bg-white border border-stone-200 rounded-lg px-2.5 py-1.5 text-xs text-stone-900"
+                              className="bg-white border border-stone-200/70 shadow-sm rounded-xl px-2.5 py-1.5 text-xs text-stone-900"
                             >
                               {categoriasDB.map(c => <option key={c} value={c}>{c}</option>)}
                             </select>
                             <select
                               value={nuevoProductoInlineCompra.unidad}
                               onChange={(e) => setNuevoProductoInlineCompra({ ...nuevoProductoInlineCompra, unidad: e.target.value })}
-                              className="bg-white border border-stone-200 rounded-lg px-2.5 py-1.5 text-xs text-stone-900"
+                              className="bg-white border border-stone-200/70 shadow-sm rounded-xl px-2.5 py-1.5 text-xs text-stone-900"
                             >
                               <option value="UND">Se vende por Unidad (UND)</option>
                               <option value="KG">Se vende por Peso (KG) — balanza</option>
@@ -11513,7 +11513,7 @@ import './index.css';
                               placeholder="Precio costo (S/)"
                               value={nuevoProductoInlineCompra.precio_costo}
                               onChange={(e) => setNuevoProductoInlineCompra({ ...nuevoProductoInlineCompra, precio_costo: e.target.value })}
-                              className="bg-white border border-stone-200 rounded-lg px-2.5 py-1.5 text-xs text-stone-900"
+                              className="bg-white border border-stone-200/70 shadow-sm rounded-xl px-2.5 py-1.5 text-xs text-stone-900"
                             />
                             <input
                               type="number"
@@ -11521,7 +11521,7 @@ import './index.css';
                               placeholder="Precio venta (S/) *"
                               value={nuevoProductoInlineCompra.precio_venta}
                               onChange={(e) => setNuevoProductoInlineCompra({ ...nuevoProductoInlineCompra, precio_venta: e.target.value })}
-                              className="bg-white border border-stone-200 rounded-lg px-2.5 py-1.5 text-xs text-stone-900"
+                              className="bg-white border border-stone-200/70 shadow-sm rounded-xl px-2.5 py-1.5 text-xs text-stone-900"
                             />
                           </div>
                           <div className="grid grid-cols-2 gap-2">
@@ -11547,7 +11547,7 @@ import './index.css';
                         <select
                           value={compraItemTemp.tipo}
                           onChange={(e) => setCompraItemTemp({ ...compraItemTemp, tipo: e.target.value })}
-                          className="col-span-3 bg-stone-100 border border-stone-200 rounded-lg px-2.5 py-1.5 text-xs text-stone-900"
+                          className="col-span-3 bg-white border border-stone-200/70 shadow-sm rounded-xl px-2.5 py-1.5 text-xs text-stone-900"
                         >
                           <option value="UNIDAD">Llega por unidad suelta</option>
                           <option value="PACK">Llega por pack/caja (x{unidadesPorPack})</option>
@@ -11558,7 +11558,7 @@ import './index.css';
                         placeholder={esPack ? 'Cantidad de packs' : 'Cantidad'}
                         value={compraItemTemp.cantidad}
                         onChange={(e) => setCompraItemTemp({ ...compraItemTemp, cantidad: e.target.value })}
-                        className="bg-stone-100 border border-stone-200 rounded-lg px-2 py-1 text-xs text-stone-900"
+                        className="bg-white border border-stone-200/70 shadow-sm rounded-xl px-2 py-1 text-xs text-stone-900"
                       />
                       <input
                         type="number"
@@ -11566,7 +11566,7 @@ import './index.css';
                         placeholder={esPack ? 'Costo por pack' : 'Costo Unit.'}
                         value={compraItemTemp.costoUnitario}
                         onChange={(e) => setCompraItemTemp({ ...compraItemTemp, costoUnitario: e.target.value })}
-                        className="bg-stone-100 border border-stone-200 rounded-lg px-2 py-1 text-xs text-stone-900"
+                        className="bg-white border border-stone-200/70 shadow-sm rounded-xl px-2 py-1 text-xs text-stone-900"
                       />
                       <button
                         type="button"
@@ -11616,7 +11616,7 @@ import './index.css';
                   </span>
                 </div>
 
-                <button onClick={guardarEntradaMercaderia} className="w-full py-2.5 bg-stone-900 hover:bg-stone-800 text-white font-bold text-xs rounded-xl shadow">
+                <button onClick={guardarEntradaMercaderia} className="w-full py-2.5 bg-[#6105dc] hover:bg-[#4d04b0] text-white font-bold text-xs rounded-full shadow">
                   Confirmar Entrada de Mercadería
                 </button>
               </div>
@@ -11625,13 +11625,13 @@ import './index.css';
 
           {/* Modal: Cobrar Deudas / Créditos */}
           {modalCobrarDeudas && (
-            <div className="fixed inset-0 bg-black/85 flex items-center justify-center z-50 p-4">
-              <div className="bg-stone-100 border border-stone-200 rounded-2xl max-w-md w-full p-5 shadow-2xl space-y-3 max-h-[90vh] overflow-y-auto">
+            <div className="fixed inset-0 bg-stone-900/30 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+              <div className="bg-gradient-to-br from-[#f4effc] via-[#f9f8fb] to-[#f5f4f8] border border-white/80 rounded-[28px] max-w-md w-full p-5 shadow-2xl space-y-3 max-h-[90vh] overflow-y-auto">
                 <div className="flex justify-between items-center">
-                  <h3 className="text-base font-bold text-stone-900 flex items-center gap-2">
+                  <h3 className="text-lg font-bold text-stone-900 flex items-center gap-2">
                     <i className="fa-solid fa-hand-holding-dollar text-orange-600"></i> Cuentas por Cobrar
                   </h3>
-                  <button onClick={() => setModalCobrarDeudas(false)} className="text-stone-600 hover:text-stone-900"><i className="fa-solid fa-xmark"></i></button>
+                  <button onClick={() => setModalCobrarDeudas(false)} className="w-8 h-8 rounded-full bg-white/70 hover:bg-white text-stone-500 hover:text-stone-900 shadow-sm"><i className="fa-solid fa-xmark"></i></button>
                 </div>
 
                 {deudorSeleccionado ? (
@@ -11714,10 +11714,10 @@ import './index.css';
                         placeholder="0.00"
                         value={montoAbonoDeuda}
                         onChange={(e) => setMontoAbonoDeuda(e.target.value)}
-                        className="w-full bg-stone-100 border border-stone-200 rounded-lg p-2 text-sm font-bold text-stone-900 focus:outline-none focus:border-orange-500"
+                        className="w-full bg-stone-100 border border-stone-200 rounded-lg p-2 text-sm font-bold text-stone-900 focus:outline-none focus:ring-2 focus:ring-[#d6bdfa]"
                       />
                     </div>
-                    <button onClick={procesarPagoDeudaCliente} className="w-full py-2 bg-stone-900 hover:bg-stone-800 text-white font-bold text-xs rounded-xl shadow flex items-center justify-center gap-1.5">
+                    <button onClick={procesarPagoDeudaCliente} className="w-full py-2 bg-[#6105dc] hover:bg-[#4d04b0] text-white font-bold text-xs rounded-full shadow flex items-center justify-center gap-1.5">
                       <i className="fa-solid fa-check"></i> Registrar Pago de Deuda
                     </button>
                   </div>
@@ -11748,13 +11748,13 @@ import './index.css';
 
           {/* Modal: Cuentas por Pagar (proveedores) */}
           {modalCuentasPagar && (
-            <div className="fixed inset-0 bg-black/85 flex items-center justify-center z-50 p-4">
-              <div className="bg-stone-100 border border-stone-200 rounded-2xl max-w-md w-full p-5 shadow-2xl space-y-3 max-h-[90vh] overflow-y-auto">
+            <div className="fixed inset-0 bg-stone-900/30 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+              <div className="bg-gradient-to-br from-[#f4effc] via-[#f9f8fb] to-[#f5f4f8] border border-white/80 rounded-[28px] max-w-md w-full p-5 shadow-2xl space-y-3 max-h-[90vh] overflow-y-auto">
                 <div className="flex justify-between items-center">
-                  <h3 className="text-base font-bold text-stone-900 flex items-center gap-2">
+                  <h3 className="text-lg font-bold text-stone-900 flex items-center gap-2">
                     <i className="fa-solid fa-file-invoice text-orange-600"></i> Cuentas por Pagar
                   </h3>
-                  <button onClick={() => setModalCuentasPagar(false)} className="text-stone-600 hover:text-stone-900"><i className="fa-solid fa-xmark"></i></button>
+                  <button onClick={() => setModalCuentasPagar(false)} className="w-8 h-8 rounded-full bg-white/70 hover:bg-white text-stone-500 hover:text-stone-900 shadow-sm"><i className="fa-solid fa-xmark"></i></button>
                 </div>
 
                 {proveedorSeleccionado ? (
@@ -11779,7 +11779,7 @@ import './index.css';
                         placeholder="0.00"
                         value={montoMovimientoProveedor}
                         onChange={(e) => setMontoMovimientoProveedor(e.target.value)}
-                        className="w-full bg-stone-100 border border-stone-200 rounded-lg p-2 text-sm font-bold text-stone-900 focus:outline-none focus:border-orange-500"
+                        className="w-full bg-stone-100 border border-stone-200 rounded-lg p-2 text-sm font-bold text-stone-900 focus:outline-none focus:ring-2 focus:ring-[#d6bdfa]"
                       />
                     </div>
                     <div className="grid grid-cols-2 gap-2">
@@ -11824,7 +11824,7 @@ import './index.css';
                 {!proveedorSeleccionado && (
                   <button
                     onClick={() => setModalNuevoProveedor(true)}
-                    className="w-full py-2 bg-stone-200 hover:bg-stone-300 text-stone-800 font-bold text-xs rounded-xl border border-stone-300 border-dashed flex items-center justify-center gap-1.5"
+                    className="w-full py-2 bg-white/70 hover:bg-[#ece0fd] text-stone-600 font-bold text-xs rounded-full border border-stone-300 border-dashed flex items-center justify-center gap-1.5 shadow-sm"
                   >
                     <i className="fa-solid fa-plus"></i> Nuevo Proveedor
                   </button>
@@ -11835,11 +11835,11 @@ import './index.css';
 
           {/* Modal: Nuevo Proveedor */}
           {modalNuevoProveedor && (
-            <div className="fixed inset-0 bg-black/85 flex items-center justify-center z-50 p-4">
-              <div className="bg-stone-100 border border-stone-200 rounded-2xl max-w-sm w-full p-5 shadow-2xl space-y-3">
+            <div className="fixed inset-0 bg-stone-900/30 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+              <div className="bg-gradient-to-br from-[#f4effc] via-[#f9f8fb] to-[#f5f4f8] border border-white/80 rounded-[28px] max-w-sm w-full p-5 shadow-2xl space-y-3">
                 <div className="flex justify-between items-center">
-                  <h3 className="text-base font-bold text-stone-900"><i className="fa-solid fa-truck mr-1.5"></i> Nuevo Proveedor</h3>
-                  <button onClick={() => setModalNuevoProveedor(false)} className="text-stone-600 hover:text-stone-900"><i className="fa-solid fa-xmark"></i></button>
+                  <h3 className="text-lg font-bold text-stone-900"><i className="fa-solid fa-truck mr-1.5"></i> Nuevo Proveedor</h3>
+                  <button onClick={() => setModalNuevoProveedor(false)} className="w-8 h-8 rounded-full bg-white/70 hover:bg-white text-stone-500 hover:text-stone-900 shadow-sm"><i className="fa-solid fa-xmark"></i></button>
                 </div>
                 <form onSubmit={handleGuardarNuevoProveedor} className="space-y-2.5">
                   <div>
@@ -11849,7 +11849,7 @@ import './index.css';
                       required
                       value={formProveedor.nombre}
                       onChange={(e) => setFormProveedor({ ...formProveedor, nombre: e.target.value })}
-                      className="w-full bg-stone-50 border border-stone-200 rounded-lg px-3 py-1.5 text-sm text-stone-900 focus:outline-none focus:border-orange-500"
+                      className="w-full bg-white border border-stone-200/70 shadow-sm rounded-xl px-3 py-1.5 text-sm text-stone-900 focus:outline-none focus:ring-2 focus:ring-[#d6bdfa]"
                     />
                   </div>
                   <div className="grid grid-cols-2 gap-2">
@@ -11859,7 +11859,7 @@ import './index.css';
                         type="text"
                         value={formProveedor.ruc}
                         onChange={(e) => setFormProveedor({ ...formProveedor, ruc: e.target.value })}
-                        className="w-full bg-stone-50 border border-stone-200 rounded-lg px-3 py-1.5 text-sm text-stone-900 focus:outline-none focus:border-orange-500"
+                        className="w-full bg-white border border-stone-200/70 shadow-sm rounded-xl px-3 py-1.5 text-sm text-stone-900 focus:outline-none focus:ring-2 focus:ring-[#d6bdfa]"
                       />
                     </div>
                     <div>
@@ -11868,7 +11868,7 @@ import './index.css';
                         type="text"
                         value={formProveedor.telefono}
                         onChange={(e) => setFormProveedor({ ...formProveedor, telefono: e.target.value })}
-                        className="w-full bg-stone-50 border border-stone-200 rounded-lg px-3 py-1.5 text-sm text-stone-900 focus:outline-none focus:border-orange-500"
+                        className="w-full bg-white border border-stone-200/70 shadow-sm rounded-xl px-3 py-1.5 text-sm text-stone-900 focus:outline-none focus:ring-2 focus:ring-[#d6bdfa]"
                       />
                     </div>
                   </div>
@@ -11880,12 +11880,12 @@ import './index.css';
                       placeholder="0.00"
                       value={formProveedor.saldoInicial}
                       onChange={(e) => setFormProveedor({ ...formProveedor, saldoInicial: e.target.value })}
-                      className="w-full bg-stone-50 border border-stone-200 rounded-lg px-3 py-1.5 text-sm text-stone-900 focus:outline-none focus:border-orange-500"
+                      className="w-full bg-white border border-stone-200/70 shadow-sm rounded-xl px-3 py-1.5 text-sm text-stone-900 focus:outline-none focus:ring-2 focus:ring-[#d6bdfa]"
                     />
                   </div>
                   <button
                     type="submit"
-                    className="w-full py-2.5 bg-stone-900 hover:bg-stone-800 text-white font-bold text-xs rounded-xl shadow"
+                    className="w-full py-2.5 bg-[#6105dc] hover:bg-[#4d04b0] text-white font-bold text-xs rounded-full shadow"
                   >
                     Guardar Proveedor
                   </button>
@@ -11969,13 +11969,13 @@ import './index.css';
           {/* Modal: Historial de Toma de Inventario -- comparar, producto por
               producto, si un día cuadró contra el sistema y otro no. */}
           {modalHistorialInventario && (
-            <div className="fixed inset-0 bg-black/85 flex items-center justify-center z-50 p-4">
-              <div className="bg-stone-100 border border-stone-200 rounded-2xl max-w-lg w-full p-5 shadow-2xl space-y-3 max-h-[90vh] flex flex-col">
+            <div className="fixed inset-0 bg-stone-900/30 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+              <div className="bg-gradient-to-br from-[#f4effc] via-[#f9f8fb] to-[#f5f4f8] border border-white/80 rounded-[28px] max-w-lg w-full p-5 shadow-2xl space-y-3 max-h-[90vh] flex flex-col">
                 <div className="flex justify-between items-center shrink-0">
-                  <h3 className="text-base font-bold text-stone-900 flex items-center gap-2">
+                  <h3 className="text-lg font-bold text-stone-900 flex items-center gap-2">
                     <i className="fa-solid fa-scale-balanced text-orange-600"></i> Historial de Inventario
                   </h3>
-                  <button onClick={() => setModalHistorialInventario(false)} className="text-stone-600 hover:text-stone-900"><i className="fa-solid fa-xmark"></i></button>
+                  <button onClick={() => setModalHistorialInventario(false)} className="w-8 h-8 rounded-full bg-white/70 hover:bg-white text-stone-500 hover:text-stone-900 shadow-sm"><i className="fa-solid fa-xmark"></i></button>
                 </div>
 
                 <FiltroFechasRapido
@@ -11993,7 +11993,7 @@ import './index.css';
                     placeholder="Buscar producto..."
                     value={historialInventarioBusqueda}
                     onChange={(e) => setHistorialInventarioBusqueda(e.target.value)}
-                    className="flex-1 bg-stone-50 border border-stone-200 rounded-lg px-2.5 py-1.5 text-xs text-stone-900"
+                    className="flex-1 bg-white border border-stone-200/70 shadow-sm rounded-xl px-2.5 py-1.5 text-xs text-stone-900"
                   />
                   <label className="flex items-center gap-1.5 px-2.5 py-1.5 bg-stone-50 border border-stone-200 rounded-lg text-xs text-stone-700 font-semibold cursor-pointer shrink-0">
                     <input
@@ -12052,13 +12052,13 @@ import './index.css';
 
           {/* Modal: Gestión de Cajeros */}
           {modalGestionCajeros && (
-            <div className="fixed inset-0 bg-black/85 flex items-center justify-center z-50 p-4">
-              <div className="bg-stone-100 border border-stone-200 rounded-2xl max-w-md w-full p-5 shadow-2xl space-y-3 max-h-[90vh] flex flex-col">
+            <div className="fixed inset-0 bg-stone-900/30 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+              <div className="bg-gradient-to-br from-[#f4effc] via-[#f9f8fb] to-[#f5f4f8] border border-white/80 rounded-[28px] max-w-md w-full p-5 shadow-2xl space-y-3 max-h-[90vh] flex flex-col">
                 <div className="flex justify-between items-center shrink-0">
-                  <h3 className="text-base font-bold text-stone-900 flex items-center gap-2">
+                  <h3 className="text-lg font-bold text-stone-900 flex items-center gap-2">
                     <i className="fa-solid fa-user-group text-orange-600"></i> Cajeros y Empleados
                   </h3>
-                  <button onClick={() => setModalGestionCajeros(false)} className="text-stone-600 hover:text-stone-900"><i className="fa-solid fa-xmark"></i></button>
+                  <button onClick={() => setModalGestionCajeros(false)} className="w-8 h-8 rounded-full bg-white/70 hover:bg-white text-stone-500 hover:text-stone-900 shadow-sm"><i className="fa-solid fa-xmark"></i></button>
                 </div>
 
                 {mostrarFormNuevoCajero ? (
@@ -12069,7 +12069,7 @@ import './index.css';
                         type="text"
                         value={formNuevoCajero.nombre}
                         onChange={(e) => setFormNuevoCajero({ ...formNuevoCajero, nombre: e.target.value })}
-                        className="w-full bg-stone-100 border border-stone-200 rounded-lg px-3 py-1.5 text-xs text-stone-900"
+                        className="w-full bg-white border border-stone-200/70 shadow-sm rounded-xl px-3 py-1.5 text-xs text-stone-900"
                       />
                     </div>
                     <div>
@@ -12079,7 +12079,7 @@ import './index.css';
                         maxLength={8}
                         value={formNuevoCajero.dni}
                         onChange={(e) => setFormNuevoCajero({ ...formNuevoCajero, dni: e.target.value })}
-                        className="w-full bg-stone-100 border border-stone-200 rounded-lg px-3 py-1.5 text-xs text-stone-900"
+                        className="w-full bg-white border border-stone-200/70 shadow-sm rounded-xl px-3 py-1.5 text-xs text-stone-900"
                       />
                     </div>
                     <div>
@@ -12087,7 +12087,7 @@ import './index.css';
                       <select
                         value={formNuevoCajero.rol}
                         onChange={(e) => setFormNuevoCajero({ ...formNuevoCajero, rol: e.target.value })}
-                        className="w-full bg-stone-100 border border-stone-200 rounded-lg px-3 py-1.5 text-xs text-stone-900"
+                        className="w-full bg-white border border-stone-200/70 shadow-sm rounded-xl px-3 py-1.5 text-xs text-stone-900"
                       >
                         <option value="cajero">Cajero (solo vender y cobrar)</option>
                         <option value="administrador">Administrador (acceso completo)</option>
@@ -12102,19 +12102,19 @@ import './index.css';
                           autoComplete="off"
                           value={formNuevoCajero.pin}
                           onChange={(e) => setFormNuevoCajero({ ...formNuevoCajero, pin: e.target.value })}
-                          className="w-full bg-stone-100 border border-stone-200 rounded-lg px-3 py-1.5 text-xs text-stone-900"
+                          className="w-full bg-white border border-stone-200/70 shadow-sm rounded-xl px-3 py-1.5 text-xs text-stone-900"
                         />
                         <p className="text-[10px] text-stone-500 mt-1">Se le va a pedir cada vez que alguien más lo elija al abrir turno.</p>
                       </div>
                     )}
                     <div className="flex gap-2 pt-1">
-                      <button onClick={() => setMostrarFormNuevoCajero(false)} className="flex-1 py-2 bg-stone-200 text-stone-800 text-xs font-semibold rounded-xl">
+                      <button onClick={() => setMostrarFormNuevoCajero(false)} className="flex-1 py-2 bg-white/70 text-stone-600 text-xs font-semibold rounded-full shadow-sm">
                         Cancelar
                       </button>
                       <button
                         onClick={registrarNuevoCajeroCompleto}
                         disabled={guardandoNuevoCajero}
-                        className="flex-1 py-2 bg-stone-900 hover:bg-stone-800 disabled:opacity-60 text-white font-bold text-xs rounded-xl shadow"
+                        className="flex-1 py-2 bg-[#6105dc] hover:bg-[#4d04b0] disabled:opacity-60 text-white font-bold text-xs rounded-full shadow"
                       >
                         {guardandoNuevoCajero ? 'Guardando...' : 'Agregar'}
                       </button>
@@ -12124,7 +12124,7 @@ import './index.css';
                   <>
                     <button
                       onClick={() => setMostrarFormNuevoCajero(true)}
-                      className="w-full py-2.5 bg-stone-200 hover:bg-stone-300 text-stone-800 text-xs font-semibold rounded-xl border border-stone-300 border-dashed flex items-center justify-center gap-1.5 shrink-0"
+                      className="w-full py-2.5 bg-white/70 hover:bg-[#ece0fd] text-stone-600 text-xs font-semibold rounded-full border border-stone-300 border-dashed flex items-center justify-center gap-1.5 shrink-0 shadow-sm"
                     >
                       <i className="fa-solid fa-user-plus"></i> Agregar Nuevo Cajero
                     </button>
@@ -12184,13 +12184,13 @@ import './index.css';
 
           {/* Modal: Mi Link de Pedidos (vitrina pública de KaseritaDelivery) */}
           {modalDelivery && (
-            <div className="fixed inset-0 bg-black/85 flex items-center justify-center z-50 p-4">
-              <div className="bg-stone-100 border border-stone-200 rounded-2xl max-w-md w-full p-5 shadow-2xl space-y-4">
+            <div className="fixed inset-0 bg-stone-900/30 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+              <div className="bg-gradient-to-br from-[#f4effc] via-[#f9f8fb] to-[#f5f4f8] border border-white/80 rounded-[28px] max-w-md w-full p-5 shadow-2xl space-y-4">
                 <div className="flex justify-between items-center">
-                  <h3 className="text-base font-bold text-stone-900 flex items-center gap-2">
+                  <h3 className="text-lg font-bold text-stone-900 flex items-center gap-2">
                     <i className="fa-solid fa-share-nodes text-orange-600"></i> Mi Link de Pedidos
                   </h3>
-                  <button onClick={() => { setModalDelivery(false); setMostrarQRDelivery(false); }} className="text-stone-600 hover:text-stone-900"><i className="fa-solid fa-xmark"></i></button>
+                  <button onClick={() => { setModalDelivery(false); setMostrarQRDelivery(false); }} className="w-8 h-8 rounded-full bg-white/70 hover:bg-white text-stone-500 hover:text-stone-900 shadow-sm"><i className="fa-solid fa-xmark"></i></button>
                 </div>
 
                 {!sesion?.bodega?.delivery_permitido ? (
@@ -12272,7 +12272,7 @@ import './index.css';
                         value={direccionDelivery}
                         onChange={(e) => setDireccionDelivery(e.target.value)}
                         placeholder="Ej. Av. Larco 450, Miraflores"
-                        className="w-full bg-stone-100 border border-stone-200 rounded-lg px-3 py-1.5 text-xs text-stone-900"
+                        className="w-full bg-white border border-stone-200/70 shadow-sm rounded-xl px-3 py-1.5 text-xs text-stone-900"
                       />
                       <p className="text-[10px] text-stone-500 mt-1">Así tus clientes saben de dónde les vas a mandar el pedido.</p>
                     </div>
@@ -12316,7 +12316,7 @@ import './index.css';
                               Object.keys(nuevo).forEach((d) => { if (nuevo[d]?.abierto) nuevo[d] = { ...nuevo[d], desde: e.target.value }; });
                               return nuevo;
                             })}
-                            className="flex-1 min-w-0 bg-stone-100 border border-stone-200 rounded-lg px-2 py-1.5 text-xs text-stone-900"
+                            className="flex-1 min-w-0 bg-white border border-stone-200/70 shadow-sm rounded-xl px-2 py-1.5 text-xs text-stone-900"
                           />
                           <span className="text-stone-400 text-xs shrink-0">a</span>
                           <input
@@ -12327,7 +12327,7 @@ import './index.css';
                               Object.keys(nuevo).forEach((d) => { if (nuevo[d]?.abierto) nuevo[d] = { ...nuevo[d], hasta: e.target.value }; });
                               return nuevo;
                             })}
-                            className="flex-1 min-w-0 bg-stone-100 border border-stone-200 rounded-lg px-2 py-1.5 text-xs text-stone-900"
+                            className="flex-1 min-w-0 bg-white border border-stone-200/70 shadow-sm rounded-xl px-2 py-1.5 text-xs text-stone-900"
                           />
                         </div>
                       ) : (
@@ -12346,7 +12346,7 @@ import './index.css';
                           value={telefonoDeliveryEditar}
                           onChange={(e) => setTelefonoDeliveryEditar(e.target.value)}
                           placeholder="Ej. 51987654321"
-                          className="w-full bg-stone-100 border border-stone-200 rounded-lg px-3 py-1.5 text-xs text-stone-900"
+                          className="w-full bg-white border border-stone-200/70 shadow-sm rounded-xl px-3 py-1.5 text-xs text-stone-900"
                         />
                         <p className="text-[10px] text-stone-500 mt-1">Sin espacios ni guiones, con el código de país adelante.</p>
                       </div>
@@ -12373,7 +12373,7 @@ import './index.css';
                           <button
                             type="button"
                             onClick={() => setMostrarQRDelivery(true)}
-                            className="flex-1 py-2 bg-stone-200 hover:bg-stone-300 text-stone-800 text-xs font-bold rounded-lg flex items-center justify-center gap-1.5"
+                            className="flex-1 py-2 bg-white/70 hover:bg-[#ece0fd] text-stone-600 text-xs font-bold rounded-full flex items-center justify-center gap-1.5 shadow-sm"
                           >
                             <i className="fa-solid fa-qrcode"></i> Ver QR
                           </button>
@@ -12388,7 +12388,7 @@ import './index.css';
                                   if (err?.name !== 'AbortError') notificar('No se pudo abrir el menú de compartir.', 'error');
                                 }
                               }}
-                              className="flex-1 py-2 bg-stone-900 hover:bg-stone-800 text-white text-xs font-bold rounded-lg flex items-center justify-center gap-1.5"
+                              className="flex-1 py-2 bg-[#6105dc] hover:bg-[#4d04b0] text-white text-xs font-bold rounded-full flex items-center justify-center gap-1.5"
                             >
                               <i className="fa-solid fa-share-nodes"></i> Compartir
                             </button>
@@ -12400,7 +12400,7 @@ import './index.css';
                     <button
                       onClick={guardarConfigDelivery}
                       disabled={guardandoDelivery}
-                      className="w-full py-2.5 rounded-xl bg-stone-900 hover:bg-stone-800 text-white font-bold text-sm disabled:opacity-50"
+                      className="w-full py-2.5 rounded-full bg-[#6105dc] hover:bg-[#4d04b0] text-white font-bold text-sm disabled:opacity-50"
                     >
                       {guardandoDelivery ? 'Guardando...' : 'Guardar'}
                     </button>
@@ -12442,8 +12442,8 @@ import './index.css';
 
           {/* Modal: registro de actividad (cambios de precio, anulaciones, turnos, empleados, mermas) */}
           {modalAuditoria && (
-            <div className="fixed inset-0 bg-black/85 flex items-center justify-center z-[60] p-4" onClick={() => setModalAuditoria(false)}>
-              <div className="bg-stone-100 border border-stone-200 rounded-2xl max-w-2xl w-full max-h-[85vh] flex flex-col shadow-2xl" onClick={(e) => e.stopPropagation()}>
+            <div className="fixed inset-0 bg-stone-900/30 backdrop-blur-sm flex items-center justify-center z-[60] p-4" onClick={() => setModalAuditoria(false)}>
+              <div className="bg-gradient-to-br from-[#f4effc] via-[#f9f8fb] to-[#f5f4f8] border border-white/80 rounded-[28px] max-w-2xl w-full max-h-[85vh] flex flex-col shadow-2xl" onClick={(e) => e.stopPropagation()}>
                 <div className="p-4 border-b border-stone-200 flex items-center justify-between gap-3">
                   <h3 className="text-sm font-bold text-stone-900 flex items-center gap-2">
                     <i className="fa-solid fa-clipboard-check text-orange-600"></i> Registro de actividad
@@ -12485,8 +12485,8 @@ import './index.css';
 
           {/* Modal: cambiar el PIN de acceso de la cuenta del dueño */}
           {modalPinDueno && (
-            <div className="fixed inset-0 bg-black/85 flex items-center justify-center z-[60] p-4">
-              <div className="bg-stone-100 border border-stone-200 rounded-2xl max-w-xs w-full p-5 shadow-2xl space-y-3">
+            <div className="fixed inset-0 bg-stone-900/30 backdrop-blur-sm flex items-center justify-center z-[60] p-4">
+              <div className="bg-gradient-to-br from-[#f4effc] via-[#f9f8fb] to-[#f5f4f8] border border-white/80 rounded-[28px] max-w-xs w-full p-5 shadow-2xl space-y-3">
                 <h3 className="text-sm font-bold text-stone-900 flex items-center gap-2">
                   <i className="fa-solid fa-key text-orange-600"></i> Cambiar mi PIN de acceso
                 </h3>
@@ -12502,20 +12502,20 @@ import './index.css';
                     value={formPinDueno[campo]}
                     onChange={(e) => setFormPinDueno((f) => ({ ...f, [campo]: e.target.value }))}
                     placeholder={etiqueta}
-                    className="w-full bg-white border border-stone-200 rounded-xl px-3 py-2.5 text-sm text-stone-900 focus:outline-none focus:border-orange-500"
+                    className="w-full bg-white border border-stone-200 rounded-xl px-3 py-2.5 text-sm text-stone-900 focus:outline-none focus:ring-2 focus:ring-[#d6bdfa]"
                   />
                 ))}
                 <div className="flex gap-2">
                   <button
                     onClick={() => { setModalPinDueno(false); setFormPinDueno({ actual: '', nuevo: '', repetir: '' }); }}
-                    className="flex-1 py-2 bg-stone-200 text-stone-800 text-xs font-semibold rounded-xl"
+                    className="flex-1 py-2 bg-white/70 text-stone-600 text-xs font-semibold rounded-full shadow-sm"
                   >
                     Cancelar
                   </button>
                   <button
                     onClick={cambiarPinDueno}
                     disabled={cambiandoPinDueno || !formPinDueno.actual.trim() || !formPinDueno.nuevo.trim()}
-                    className="flex-1 py-2 bg-orange-500 hover:bg-orange-400 disabled:opacity-50 text-white text-xs font-bold rounded-xl"
+                    className="flex-1 py-2 bg-orange-500 hover:bg-orange-400 disabled:opacity-50 text-white text-xs font-bold rounded-full"
                   >
                     {cambiandoPinDueno ? 'Guardando...' : 'Guardar'}
                   </button>
@@ -12526,8 +12526,8 @@ import './index.css';
 
           {/* Modal: cambiar el PIN de seguridad de un Administrador */}
           {modalPinCajero && (
-            <div className="fixed inset-0 bg-black/85 flex items-center justify-center z-[60] p-4">
-              <div className="bg-stone-100 border border-stone-200 rounded-2xl max-w-xs w-full p-5 shadow-2xl space-y-3">
+            <div className="fixed inset-0 bg-stone-900/30 backdrop-blur-sm flex items-center justify-center z-[60] p-4">
+              <div className="bg-gradient-to-br from-[#f4effc] via-[#f9f8fb] to-[#f5f4f8] border border-white/80 rounded-[28px] max-w-xs w-full p-5 shadow-2xl space-y-3">
                 <h3 className="text-sm font-bold text-stone-900 flex items-center gap-2">
                   <i className="fa-solid fa-key text-orange-600"></i> PIN de {modalPinCajero.nombre}
                 </h3>
@@ -12540,19 +12540,19 @@ import './index.css';
                   value={nuevoPinCajero}
                   onChange={(e) => setNuevoPinCajero(e.target.value)}
                   placeholder="4 a 32 caracteres"
-                  className="w-full bg-white border border-stone-200 rounded-xl px-3 py-2.5 text-center text-lg tracking-widest text-stone-900 focus:outline-none focus:border-orange-500"
+                  className="w-full bg-white border border-stone-200 rounded-xl px-3 py-2.5 text-center text-lg tracking-widest text-stone-900 focus:outline-none focus:ring-2 focus:ring-[#d6bdfa]"
                 />
                 <div className="flex gap-2">
                   <button
                     onClick={() => { setModalPinCajero(null); setNuevoPinCajero(''); }}
-                    className="flex-1 py-2 bg-stone-200 text-stone-800 text-xs font-semibold rounded-xl"
+                    className="flex-1 py-2 bg-white/70 text-stone-600 text-xs font-semibold rounded-full shadow-sm"
                   >
                     Cancelar
                   </button>
                   <button
                     onClick={guardarPinCajero}
                     disabled={guardandoPinCajero}
-                    className="flex-1 py-2 bg-stone-900 hover:bg-stone-800 disabled:opacity-60 text-white font-bold text-xs rounded-xl shadow"
+                    className="flex-1 py-2 bg-[#6105dc] hover:bg-[#4d04b0] disabled:opacity-60 text-white font-bold text-xs rounded-full shadow"
                   >
                     {guardandoPinCajero ? 'Guardando...' : 'Guardar'}
                   </button>
@@ -12756,11 +12756,11 @@ import './index.css';
           )}
 
           {modalNuevoCliente && (
-            <div className="fixed inset-0 bg-black/85 flex items-center justify-center z-50 p-4">
-              <div className="bg-stone-100 border border-stone-200 rounded-2xl max-w-sm w-full p-5 shadow-2xl space-y-3">
+            <div className="fixed inset-0 bg-stone-900/30 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+              <div className="bg-gradient-to-br from-[#f4effc] via-[#f9f8fb] to-[#f5f4f8] border border-white/80 rounded-[28px] max-w-sm w-full p-5 shadow-2xl space-y-3">
                 <div className="flex justify-between items-center">
-                  <h3 className="text-base font-bold text-stone-900"><i className="fa-solid fa-user-plus mr-1.5"></i> Registrar Nuevo Cliente</h3>
-                  <button onClick={() => setModalNuevoCliente(false)} className="text-stone-600 hover:text-stone-900"><i className="fa-solid fa-xmark"></i></button>
+                  <h3 className="text-lg font-bold text-stone-900"><i className="fa-solid fa-user-plus mr-1.5"></i> Registrar Nuevo Cliente</h3>
+                  <button onClick={() => setModalNuevoCliente(false)} className="w-8 h-8 rounded-full bg-white/70 hover:bg-white text-stone-500 hover:text-stone-900 shadow-sm"><i className="fa-solid fa-xmark"></i></button>
                 </div>
                 <form onSubmit={handleGuardarNuevoCliente} className="space-y-2.5">
                   <div>
@@ -12770,7 +12770,7 @@ import './index.css';
                       required
                       value={formCliente.dni}
                       onChange={(e) => setFormCliente({ ...formCliente, dni: e.target.value })}
-                      className="w-full bg-stone-50 border border-stone-200 rounded-lg px-3 py-1.5 text-xs text-stone-900"
+                      className="w-full bg-white border border-stone-200/70 shadow-sm rounded-xl px-3 py-1.5 text-xs text-stone-900"
                     />
                   </div>
                   <div>
@@ -12780,7 +12780,7 @@ import './index.css';
                       required
                       value={formCliente.nombre}
                       onChange={(e) => setFormCliente({ ...formCliente, nombre: e.target.value })}
-                      className="w-full bg-stone-50 border border-stone-200 rounded-lg px-3 py-1.5 text-xs text-stone-900"
+                      className="w-full bg-white border border-stone-200/70 shadow-sm rounded-xl px-3 py-1.5 text-xs text-stone-900"
                     />
                   </div>
                   <div className="grid grid-cols-2 gap-2">
@@ -12790,7 +12790,7 @@ import './index.css';
                         type="text"
                         value={formCliente.telefono}
                         onChange={(e) => setFormCliente({ ...formCliente, telefono: e.target.value })}
-                        className="w-full bg-stone-50 border border-stone-200 rounded-lg px-3 py-1.5 text-xs text-stone-900"
+                        className="w-full bg-white border border-stone-200/70 shadow-sm rounded-xl px-3 py-1.5 text-xs text-stone-900"
                       />
                     </div>
                     <div>
@@ -12799,7 +12799,7 @@ import './index.css';
                         type="text"
                         value={formCliente.correo}
                         onChange={(e) => setFormCliente({ ...formCliente, correo: e.target.value })}
-                        className="w-full bg-stone-50 border border-stone-200 rounded-lg px-3 py-1.5 text-xs text-stone-900"
+                        className="w-full bg-white border border-stone-200/70 shadow-sm rounded-xl px-3 py-1.5 text-xs text-stone-900"
                       />
                     </div>
                   </div>
@@ -12811,10 +12811,10 @@ import './index.css';
                       required
                       value={formCliente.limiteCredito}
                       onChange={(e) => setFormCliente({ ...formCliente, limiteCredito: e.target.value })}
-                      className="w-full bg-stone-50 border border-stone-200 rounded-lg px-3 py-1.5 text-sm font-bold text-orange-600"
+                      className="w-full bg-white border border-stone-200/70 shadow-sm rounded-full px-3 py-1.5 text-sm font-bold text-orange-600"
                     />
                   </div>
-                  <button type="submit" className="w-full py-2.5 bg-stone-900 hover:bg-stone-800 text-white font-bold text-xs rounded-xl shadow mt-2">
+                  <button type="submit" className="w-full py-2.5 bg-[#6105dc] hover:bg-[#4d04b0] text-white font-bold text-xs rounded-full shadow mt-2">
                     Guardar Cliente
                   </button>
                 </form>
@@ -13421,9 +13421,9 @@ import './index.css';
 
           {/* Modal: Cierre de Caja con Arqueo */}
           {modalCierreCaja && (
-            <div className="fixed inset-0 bg-black/85 flex items-center justify-center z-50 p-4">
-              <div className="bg-stone-100 border border-stone-200 rounded-2xl max-w-sm w-full p-5 shadow-2xl space-y-3 text-center">
-                <h3 className="text-base font-bold text-stone-900"><i className="fa-solid fa-lock mr-1.5"></i> Cierre de Turno y Arqueo de Caja</h3>
+            <div className="fixed inset-0 bg-stone-900/30 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+              <div className="bg-gradient-to-br from-[#f4effc] via-[#f9f8fb] to-[#f5f4f8] border border-white/80 rounded-[28px] max-w-sm w-full p-5 shadow-2xl space-y-3 text-center">
+                <h3 className="text-lg font-bold text-stone-900"><i className="fa-solid fa-lock mr-1.5"></i> Cierre de Turno y Arqueo de Caja</h3>
 
                 {!arqueoEsperado ? (
                   <p className="text-xs text-stone-500 py-2">Calculando cuánto debería haber en caja...</p>
@@ -13458,8 +13458,8 @@ import './index.css';
                   </p>
                 )}
                 <div className="flex gap-2 pt-2">
-                  <button onClick={() => setModalCierreCaja(false)} className="flex-1 py-2 bg-stone-200 text-xs font-semibold rounded-lg">Cancelar</button>
-                  <button onClick={handleCierreConArqueo} className="flex-1 py-2 bg-rose-600 hover:bg-rose-500 text-white text-xs font-bold rounded-lg shadow">Confirmar Cierre</button>
+                  <button onClick={() => setModalCierreCaja(false)} className="flex-1 py-2 bg-white/70 text-xs font-semibold rounded-full shadow-sm">Cancelar</button>
+                  <button onClick={handleCierreConArqueo} className="flex-1 py-2 bg-rose-600 hover:bg-rose-500 text-white text-xs font-bold rounded-full shadow">Confirmar Cierre</button>
                 </div>
               </div>
             </div>
@@ -13467,9 +13467,9 @@ import './index.css';
 
           {/* Modal: Resumen de Arqueo */}
           {resumenCierre && (
-            <div className="fixed inset-0 bg-black/85 flex items-center justify-center z-50 p-4">
-              <div className="bg-stone-100 border border-stone-200 rounded-2xl max-w-sm w-full p-5 shadow-2xl space-y-3 text-center">
-                <h3 className="text-base font-bold text-stone-900"><i className="fa-solid fa-chart-simple mr-1.5"></i> Resumen del Turno</h3>
+            <div className="fixed inset-0 bg-stone-900/30 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+              <div className="bg-gradient-to-br from-[#f4effc] via-[#f9f8fb] to-[#f5f4f8] border border-white/80 rounded-[28px] max-w-sm w-full p-5 shadow-2xl space-y-3 text-center">
+                <h3 className="text-lg font-bold text-stone-900"><i className="fa-solid fa-chart-simple mr-1.5"></i> Resumen del Turno</h3>
                 <div className="bg-stone-50 p-3 rounded-xl border border-stone-100 text-xs space-y-1.5 text-left font-mono">
                   <div className="flex justify-between"><span>Fondo Inicial:</span><span>S/ {resumenCierre.inicio.toFixed(2)}</span></div>
                   <div className="flex justify-between"><span>+ Efectivo recibido:</span><span>S/ {resumenCierre.ventas.toFixed(2)}</span></div>
@@ -13480,15 +13480,15 @@ import './index.css';
                   </div>
                 </div>
                 <DesgloseMediosPago desglose={resumenCierre.desglose} />
-                <button onClick={() => setResumenCierre(null)} className="w-full py-2.5 bg-stone-900 text-white font-bold text-xs rounded-xl">Entendido</button>
+                <button onClick={() => setResumenCierre(null)} className="w-full py-2.5 bg-stone-900 text-white font-bold text-xs rounded-full">Entendido</button>
               </div>
             </div>
           )}
 
           {/* Modal: Ventas en Espera */}
           {modalVentasEspera && (
-            <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4">
-              <div className="bg-white border border-stone-200 rounded-2xl max-w-sm w-full p-5 shadow-2xl space-y-3">
+            <div className="fixed inset-0 bg-stone-900/30 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+              <div className="bg-gradient-to-br from-[#f4effc] via-[#f9f8fb] to-[#f5f4f8] border border-white/80 rounded-[28px] max-w-sm w-full p-5 shadow-2xl space-y-3">
                 <div className="flex justify-between items-center">
                   <h3 className="text-sm font-bold text-stone-900"><i className="fa-solid fa-pause mr-1.5 text-amber-600"></i> Ventas en Espera</h3>
                   <button onClick={() => setModalVentasEspera(false)} className="text-stone-500 hover:text-stone-900"><i className="fa-solid fa-xmark"></i></button>
@@ -13515,8 +13515,8 @@ import './index.css';
 
           {/* Modal: Apertura Turno */}
           {modalTurno && (
-            <div className="fixed inset-0 bg-black/85 flex items-center justify-center z-50 p-4">
-              <div className="bg-stone-100 border border-orange-500/80 rounded-2xl max-w-md w-full p-6 shadow-2xl space-y-4">
+            <div className="fixed inset-0 bg-stone-900/30 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+              <div className="bg-gradient-to-br from-[#f4effc] via-[#f9f8fb] to-[#f5f4f8] border border-white/80 rounded-[28px] max-w-md w-full p-6 shadow-2xl space-y-4">
                 <h2 className="text-base font-bold text-stone-900"><i className="fa-solid fa-cash-register mr-1.5"></i> Apertura de Turno de Caja</h2>
                 <div>
                   <label className="text-xs font-semibold text-stone-700 block mb-1">Cajero:</label>
@@ -13550,8 +13550,8 @@ import './index.css';
                   />
                 </div>
                 <div className="flex gap-2">
-                  <button onClick={() => setModalTurno(false)} className="flex-1 py-2 bg-stone-200 text-xs font-semibold rounded-xl">Cancelar</button>
-                  <button onClick={handleAbrirTurno} className="flex-1 py-2 bg-stone-900 text-white text-xs font-bold rounded-xl shadow">Confirmar y Abrir</button>
+                  <button onClick={() => setModalTurno(false)} className="flex-1 py-2 bg-white/70 text-xs font-semibold rounded-full shadow-sm">Cancelar</button>
+                  <button onClick={handleAbrirTurno} className="flex-1 py-2 bg-stone-900 text-white text-xs font-bold rounded-full shadow">Confirmar y Abrir</button>
                 </div>
               </div>
             </div>
@@ -13562,8 +13562,8 @@ import './index.css';
               selector de arriba desbloquearía el panel completo sin pedir
               nada. */}
           {cajeroPendientePin && (
-            <div className="fixed inset-0 bg-black/85 flex items-center justify-center z-[60] p-4">
-              <div className="bg-stone-100 border border-stone-200 rounded-2xl max-w-xs w-full p-5 shadow-2xl space-y-3">
+            <div className="fixed inset-0 bg-stone-900/30 backdrop-blur-sm flex items-center justify-center z-[60] p-4">
+              <div className="bg-gradient-to-br from-[#f4effc] via-[#f9f8fb] to-[#f5f4f8] border border-white/80 rounded-[28px] max-w-xs w-full p-5 shadow-2xl space-y-3">
                 <h3 className="text-sm font-bold text-stone-900 flex items-center gap-2">
                   <i className="fa-solid fa-lock text-orange-600"></i> PIN de {cajeroPendientePin.nombre}
                 </h3>
@@ -13576,19 +13576,19 @@ import './index.css';
                   onChange={(e) => setPinConfirmarCajero(e.target.value)}
                   onKeyDown={(e) => { if (e.key === 'Enter') confirmarPinCajero(); }}
                   placeholder="••••"
-                  className="w-full bg-white border border-stone-200 rounded-xl px-3 py-2.5 text-center text-lg tracking-widest text-stone-900 focus:outline-none focus:border-orange-500"
+                  className="w-full bg-white border border-stone-200 rounded-xl px-3 py-2.5 text-center text-lg tracking-widest text-stone-900 focus:outline-none focus:ring-2 focus:ring-[#d6bdfa]"
                 />
                 <div className="flex gap-2">
                   <button
                     onClick={() => { setCajeroPendientePin(null); setPinConfirmarCajero(''); }}
-                    className="flex-1 py-2 bg-stone-200 text-stone-800 text-xs font-semibold rounded-xl"
+                    className="flex-1 py-2 bg-white/70 text-stone-600 text-xs font-semibold rounded-full shadow-sm"
                   >
                     Cancelar
                   </button>
                   <button
                     onClick={confirmarPinCajero}
                     disabled={verificandoPinCajero || !pinConfirmarCajero.trim()}
-                    className="flex-1 py-2 bg-stone-900 hover:bg-stone-800 disabled:opacity-60 text-white font-bold text-xs rounded-xl shadow"
+                    className="flex-1 py-2 bg-[#6105dc] hover:bg-[#4d04b0] disabled:opacity-60 text-white font-bold text-xs rounded-full shadow"
                   >
                     {verificandoPinCajero ? 'Verificando...' : 'Confirmar'}
                   </button>
@@ -13605,8 +13605,8 @@ import './index.css';
               cajero autoseleccionado por DNI no necesariamente es quien de
               verdad está frente a este dispositivo. */}
           {cajasAbiertasAviso && (
-            <div className="fixed inset-0 bg-black/85 flex items-center justify-center z-50 p-4">
-              <div className="bg-stone-100 border border-orange-500/80 rounded-2xl max-w-md w-full p-6 shadow-2xl space-y-4">
+            <div className="fixed inset-0 bg-stone-900/30 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+              <div className="bg-gradient-to-br from-[#f4effc] via-[#f9f8fb] to-[#f5f4f8] border border-white/80 rounded-[28px] max-w-md w-full p-6 shadow-2xl space-y-4">
                 <div className="text-center">
                   <div className="w-14 h-14 mx-auto bg-orange-100 rounded-full flex items-center justify-center">
                     <i className="fa-solid fa-cash-register text-orange-600 text-xl"></i>
@@ -13640,7 +13640,7 @@ import './index.css';
 
                 <button
                   onClick={abrirCajaNueva}
-                  className="w-full py-2.5 bg-orange-500 hover:bg-orange-400 text-white text-xs font-bold rounded-xl shadow flex items-center justify-center gap-1.5"
+                  className="w-full py-2.5 bg-orange-500 hover:bg-orange-400 text-white text-xs font-bold rounded-full shadow flex items-center justify-center gap-1.5"
                 >
                   <i className="fa-solid fa-plus"></i> Abrir otra caja
                 </button>
@@ -13650,8 +13650,8 @@ import './index.css';
 
           {/* Modal: Boleta Emitida */}
           {ventaCompletada && (
-            <div className="fixed inset-0 bg-black/85 flex items-center justify-center z-50 p-4">
-              <div className="bg-stone-100 border border-stone-200 rounded-3xl max-w-sm w-full p-6 shadow-2xl text-center space-y-4">
+            <div className="fixed inset-0 bg-stone-900/30 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+              <div className="bg-gradient-to-br from-[#f4effc] via-[#f9f8fb] to-[#f5f4f8] border border-white/80 rounded-[28px] max-w-sm w-full p-6 shadow-2xl text-center space-y-4">
                 <div className="relative w-20 h-20 mx-auto">
                   <span className="absolute -top-1 left-1 w-1.5 h-1.5 bg-stone-300 rounded-full"></span>
                   <span className="absolute top-4 -left-3 w-1 h-1 bg-stone-300 rounded-full"></span>
@@ -13787,9 +13787,9 @@ import './index.css';
 
           {/* Modal genérico: reemplazo de prompt() nativo */}
           {modalPrompt && (
-            <div className="fixed inset-0 bg-black/85 flex items-center justify-center z-[100] p-4">
-              <div className="bg-stone-100 border border-stone-200 rounded-2xl max-w-sm w-full p-5 shadow-2xl space-y-3">
-                <h3 className="text-base font-bold text-stone-900">{modalPrompt.titulo}</h3>
+            <div className="fixed inset-0 bg-stone-900/30 backdrop-blur-sm flex items-center justify-center z-[100] p-4">
+              <div className="bg-gradient-to-br from-[#f4effc] via-[#f9f8fb] to-[#f5f4f8] border border-white/80 rounded-[28px] max-w-sm w-full p-5 shadow-2xl space-y-3">
+                <h3 className="text-lg font-bold text-stone-900">{modalPrompt.titulo}</h3>
                 {modalPrompt.mensaje && <p className="text-xs text-stone-600">{modalPrompt.mensaje}</p>}
                 <input
                   type="text"
@@ -13800,18 +13800,18 @@ import './index.css';
                     if (e.key === 'Enter') { modalPrompt.onConfirmar(modalPromptValor); setModalPrompt(null); }
                   }}
                   placeholder={modalPrompt.placeholder}
-                  className="w-full bg-stone-50 border border-stone-200 rounded-lg px-3 py-2 text-sm text-stone-900 focus:outline-none focus:border-orange-500"
+                  className="w-full bg-white border border-stone-200/70 shadow-sm rounded-xl px-3 py-2 text-sm text-stone-900 focus:outline-none focus:ring-2 focus:ring-[#d6bdfa]"
                 />
                 <div className="flex gap-2">
                   <button
                     onClick={() => { modalPrompt.onCancelar(); setModalPrompt(null); }}
-                    className="flex-1 py-2.5 bg-stone-200 hover:bg-stone-300 text-stone-800 font-semibold text-xs rounded-xl"
+                    className="flex-1 py-2.5 bg-white/70 hover:bg-[#ece0fd] text-stone-600 font-semibold text-xs rounded-full shadow-sm"
                   >
                     Cancelar
                   </button>
                   <button
                     onClick={() => { modalPrompt.onConfirmar(modalPromptValor); setModalPrompt(null); }}
-                    className="flex-1 py-2.5 bg-stone-900 hover:bg-stone-800 text-white font-bold text-xs rounded-xl shadow"
+                    className="flex-1 py-2.5 bg-[#6105dc] hover:bg-[#4d04b0] text-white font-bold text-xs rounded-full shadow"
                   >
                     {modalPrompt.textoBoton}
                   </button>
@@ -13822,14 +13822,14 @@ import './index.css';
 
           {/* Modal genérico: reemplazo de confirm() nativo */}
           {modalConfirmar && (
-            <div className="fixed inset-0 bg-black/85 flex items-center justify-center z-[100] p-4">
-              <div className="bg-stone-100 border border-stone-200 rounded-2xl max-w-sm w-full p-5 shadow-2xl space-y-3">
-                <h3 className="text-base font-bold text-stone-900">{modalConfirmar.titulo}</h3>
+            <div className="fixed inset-0 bg-stone-900/30 backdrop-blur-sm flex items-center justify-center z-[100] p-4">
+              <div className="bg-gradient-to-br from-[#f4effc] via-[#f9f8fb] to-[#f5f4f8] border border-white/80 rounded-[28px] max-w-sm w-full p-5 shadow-2xl space-y-3">
+                <h3 className="text-lg font-bold text-stone-900">{modalConfirmar.titulo}</h3>
                 <p className="text-xs text-stone-600">{modalConfirmar.mensaje}</p>
                 <div className="flex gap-2">
                   <button
                     onClick={() => { modalConfirmar.onCancelar(); setModalConfirmar(null); }}
-                    className="flex-1 py-2.5 bg-stone-200 hover:bg-stone-300 text-stone-800 font-semibold text-xs rounded-xl"
+                    className="flex-1 py-2.5 bg-white/70 hover:bg-[#ece0fd] text-stone-600 font-semibold text-xs rounded-full shadow-sm"
                   >
                     Cancelar
                   </button>
