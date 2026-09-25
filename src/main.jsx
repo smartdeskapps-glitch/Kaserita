@@ -671,6 +671,22 @@ import './index.css';
       );
     }
 
+    // Iconos vectoriales de trazo fino (los mismos de la ventana de venta exitosa).
+    const ICONOS_TRAZO = {
+      check: <path d="M20 6 9 17l-5-5" />,
+      print: <><path d="M6 9V2h12v7" /><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2" /><rect x="6" y="14" width="12" height="8" /></>,
+      chat: <><path d="M7.9 20A9 9 0 1 0 4 16.1L2 22Z" /><path d="M9 10c.5 2 2.5 4 5 5l1.5-1.5-2-1-1 .8c-.8-.4-1.6-1.2-2-2l.8-1-1-2z" /></>,
+      bluetooth: <path d="m7 7 10 10-5 5V2l5 5L7 17" />,
+      cloud: <><path d="M17.5 19a4.5 4.5 0 1 0-1.4-8.8A6 6 0 1 0 5 15.5" /><path d="M12 12v9" /><path d="m8.5 15.5 3.5-3.5 3.5 3.5" /></>,
+    };
+    function IconoTrazo({ nombre, className = 'w-4 h-4', grosor = 2 }) {
+      return (
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={grosor} strokeLinecap="round" strokeLinejoin="round" className={className} aria-hidden="true">
+          {ICONOS_TRAZO[nombre]}
+        </svg>
+      );
+    }
+
     function Interruptor({ activo, onClick, etiqueta, icono, title }) {
       return (
         <button
@@ -13719,60 +13735,67 @@ import './index.css';
           {/* Modal: Boleta Emitida */}
           {ventaCompletada && (
             <div className="fixed inset-0 bg-stone-900/30 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-              <div className="bg-gradient-to-br from-[#f4effc] via-[#f9f8fb] to-[#f5f4f8] border border-white/80 rounded-[28px] max-w-sm w-full p-6 shadow-2xl text-center space-y-4">
-                <div className="relative w-20 h-20 mx-auto">
-                  <span className="absolute -top-1 left-1 w-1.5 h-1.5 bg-stone-300 rounded-full"></span>
-                  <span className="absolute top-4 -left-3 w-1 h-1 bg-stone-300 rounded-full"></span>
-                  <span className="absolute -top-2 right-4 w-1 h-1 bg-stone-300 rounded-full"></span>
-                  <span className="absolute top-2 -right-3 w-1.5 h-1.5 bg-stone-300 rounded-full"></span>
-                  <span className="absolute bottom-0 -right-3 w-1 h-1 bg-stone-300 rounded-full"></span>
-                  <div className="w-20 h-20 rounded-full bg-gradient-to-br from-orange-500 to-orange-600 flex items-center justify-center shadow-lg shadow-orange-500/30 ring-4 ring-white">
-                    <i className="fa-solid fa-check text-white text-3xl"></i>
+              <div className="bg-gradient-to-br from-[#f4effc] via-[#f9f8fb] to-[#f5f4f8] border border-white/80 rounded-[28px] max-w-sm w-full p-5 pt-6 shadow-2xl text-center">
+                <div className="w-[60px] h-[60px] mx-auto rounded-full bg-[#6105dc] text-white flex items-center justify-center ring-8 ring-[#6105dc]/10">
+                  <IconoTrazo nombre="check" className="w-7 h-7" grosor={2.6} />
+                </div>
+                <h3 className="text-[22px] font-bold tracking-tight text-stone-900 mt-4">¡Venta exitosa!</h3>
+                <span className="inline-block mt-1.5 text-xs font-semibold text-[#6105dc] bg-[#ece0fd] px-3 py-1 rounded-full tabular-nums">
+                  Boleta {ventaCompletada.nro_boleta}
+                </span>
+                {ventaCompletada.offline && (
+                  <div className="mt-2.5 text-xs text-amber-700 bg-amber-50 rounded-2xl px-3 py-2 flex items-start gap-2 text-left leading-snug">
+                    <IconoTrazo nombre="cloud" className="w-4 h-4 shrink-0 mt-px" />
+                    <span>Guardada sin conexión. Se sincronizará sola cuando vuelva el internet.</span>
                   </div>
-                </div>
-                <div>
-                  <h3 className="text-xl font-black text-stone-900">¡Venta Exitosa!</h3>
-                  <p className="text-xs text-stone-500 mt-1">Boleta <span className="font-bold text-orange-600">{ventaCompletada.nro_boleta}</span> registrada correctamente.</p>
-                  {ventaCompletada.offline && (
-                    <p className="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-2.5 py-1.5 mt-2 flex items-center justify-center gap-1.5">
-                      <i className="fa-solid fa-cloud-arrow-up"></i> Guardada sin conexión. Se sincronizará sola cuando vuelva el internet.
-                    </p>
-                  )}
-                </div>
-                <div className="bg-white p-3 rounded-xl text-left text-xs font-mono space-y-1 text-stone-700 border border-stone-200">
-                  <p><strong>Pago:</strong> {ventaCompletada.medio_pago}</p>
-                  <p><strong>Cliente:</strong> {ventaCompletada.cliente}</p>
+                )}
+                <div className="bg-white rounded-[20px] px-3.5 py-1.5 text-left mt-4 text-[13.5px]">
+                  <div className="flex justify-between items-baseline gap-3 py-2.5 border-b border-stone-100">
+                    <span className="text-stone-400">Pago</span>
+                    <b className="font-semibold text-stone-900">{String(ventaCompletada.medio_pago || '').charAt(0) + String(ventaCompletada.medio_pago || '').slice(1).toLowerCase()}</b>
+                  </div>
+                  <div className="flex justify-between items-baseline gap-3 py-2.5 border-b border-stone-100">
+                    <span className="text-stone-400">Cliente</span>
+                    <b className="font-semibold text-stone-900 text-right">{ventaCompletada.cliente}</b>
+                  </div>
                   {ventaCompletada.descuento > 0 && (
                     <>
-                      <p className="flex justify-between"><span>Subtotal:</span><span>S/ {ventaCompletada.subtotal.toFixed(2)}</span></p>
-                      <p className="flex justify-between text-rose-600"><span>Descuento:</span><span>- S/ {ventaCompletada.descuento.toFixed(2)}</span></p>
+                      <div className="flex justify-between items-baseline gap-3 py-2.5 border-b border-stone-100">
+                        <span className="text-stone-400">Subtotal</span>
+                        <b className="font-semibold text-stone-900 tabular-nums">S/ {formatoSoles(ventaCompletada.subtotal)}</b>
+                      </div>
+                      <div className="flex justify-between items-baseline gap-3 py-2.5 border-b border-stone-100">
+                        <span className="text-stone-400">Descuento</span>
+                        <b className="font-semibold text-rose-600 tabular-nums">− S/ {formatoSoles(ventaCompletada.descuento)}</b>
+                      </div>
                     </>
                   )}
-                  <div className="border-t border-stone-200 pt-1 mt-1 flex justify-between font-bold text-sm text-orange-600">
-                    <span>TOTAL:</span><span>S/ {ventaCompletada.total_venta.toFixed(2)}</span>
+                  <div className="flex justify-between items-baseline pt-3 pb-2">
+                    <span className="text-[13px] font-semibold text-stone-400">Total</span>
+                    <b className="text-[30px] font-bold tracking-tight text-stone-900 tabular-nums">
+                      <small className="text-sm font-semibold text-stone-500 mr-1">S/</small>{formatoSoles(ventaCompletada.total_venta)}
+                    </b>
                   </div>
                 </div>
-                <div className="space-y-2 pt-1">
-                  <button onClick={() => setVentaCompletada(null)} className="w-full py-3 bg-stone-900 hover:bg-stone-800 text-white font-bold text-sm rounded-full shadow transition">
-                    Nueva Venta
+                <button onClick={() => setVentaCompletada(null)} className="w-full mt-3.5 py-3.5 bg-[#6105dc] hover:bg-[#4d04b0] active:scale-[0.98] text-white font-semibold text-[15px] rounded-full transition">
+                  Nueva venta
+                </button>
+                <div className="flex gap-2 mt-2.5">
+                  <button onClick={() => window.print()} className="flex-1 flex items-center justify-center gap-1.5 py-2.5 bg-white hover:bg-[#f4eefe] text-stone-800 font-semibold text-[12.5px] rounded-full ring-1 ring-[#6105dc]/10 hover:ring-[#d6bdfa] transition whitespace-nowrap">
+                    <IconoTrazo nombre="print" className="w-[15px] h-[15px] text-[#6105dc]" /> Imprimir
                   </button>
-                  <div className="grid grid-cols-2 gap-2">
-                    <button onClick={() => window.print()} className="py-2.5 bg-stone-200 hover:bg-stone-300 text-stone-800 font-semibold text-xs rounded-full transition">
-                      <i className="fa-solid fa-print mr-1"></i> Imprimir
-                    </button>
-                    <button onClick={() => enviarBoletaWhatsApp(ventaCompletada)} className="py-2.5 bg-emerald-500 hover:bg-emerald-400 text-white font-semibold text-xs rounded-full transition flex items-center justify-center gap-1.5">
-                      <i className="fa-brands fa-whatsapp"></i> WhatsApp
-                    </button>
-                  </div>
-                  {typeof navigator !== 'undefined' && navigator.bluetooth && (
-                    <button
-                      onClick={() => imprimirBoletaBluetooth(ventaCompletada)}
-                      className="w-full py-2.5 bg-sky-600 hover:bg-sky-500 text-white font-semibold text-xs rounded-full transition flex items-center justify-center gap-1.5"
-                    >
-                      <i className="fa-brands fa-bluetooth-b"></i> Imprimir en ticketera Bluetooth
-                    </button>
-                  )}
+                  <button onClick={() => enviarBoletaWhatsApp(ventaCompletada)} className="flex-1 flex items-center justify-center gap-1.5 py-2.5 bg-white hover:bg-[#f4eefe] text-stone-800 font-semibold text-[12.5px] rounded-full ring-1 ring-[#6105dc]/10 hover:ring-[#d6bdfa] transition whitespace-nowrap">
+                    <IconoTrazo nombre="chat" className="w-[15px] h-[15px] text-[#6105dc]" /> WhatsApp
+                  </button>
                 </div>
+                {typeof navigator !== 'undefined' && navigator.bluetooth && (
+                  <button
+                    onClick={() => imprimirBoletaBluetooth(ventaCompletada)}
+                    className="w-full mt-2 flex items-center justify-center gap-1.5 py-2.5 bg-white hover:bg-[#f4eefe] text-stone-800 font-semibold text-[12.5px] rounded-full ring-1 ring-[#6105dc]/10 hover:ring-[#d6bdfa] transition"
+                  >
+                    <IconoTrazo nombre="bluetooth" className="w-[15px] h-[15px] text-[#6105dc]" /> Ticketera Bluetooth
+                  </button>
+                )}
               </div>
               <ReciboImprimible
                 bodega={bodegaNombre}
