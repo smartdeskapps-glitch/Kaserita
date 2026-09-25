@@ -721,6 +721,7 @@ import './index.css';
       ubicacion: <><path d="M20 10c0 6-8 12-8 12S4 16 4 10a8 8 0 0 1 16 0z" /><circle cx="12" cy="10" r="3" /></>,
       compartir: <><circle cx="18" cy="5" r="3" /><circle cx="6" cy="12" r="3" /><circle cx="18" cy="19" r="3" /><path d="m8.6 13.5 6.8 4M15.4 6.5l-6.8 4" /></>,
       copiar: <><rect x="9" y="9" width="12" height="12" rx="2" /><path d="M5 15V5a2 2 0 0 1 2-2h8" /></>,
+      barras: <><path d="M4 7V5a1 1 0 0 1 1-1h2M17 4h2a1 1 0 0 1 1 1v2M20 17v2a1 1 0 0 1-1 1h-2M7 20H5a1 1 0 0 1-1-1v-2" /><path d="M8 8v8M11 8v8M14 8v5M17 8v8" /></>,
       x: <path d="M18 6 6 18M6 6l12 12" />,
       back: <path d="m15 18-6-6 6-6" />,
       pdf: <><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" /><path d="M14 2v6h6" /><path d="M12 12v6" /><path d="m9 15 3 3 3-3" /></>,
@@ -2520,7 +2521,8 @@ import './index.css';
 
       // --- Módulo: Mermas (pérdidas de producto) ---
       const [modalMerma, setModalMerma] = useState(false);
-      const [formMerma, setFormMerma] = useState({ productoId: '', cantidad: '', motivo: 'Vencido' });
+      const [formMerma, setFormMerma] = useState({ productoId: '', cantidad: '', motivo: 'Vencido', motivoOtro: '' });
+      const [busquedaMerma, setBusquedaMerma] = useState('');
       const [guardandoMerma, setGuardandoMerma] = useState(false);
 
 
@@ -4716,6 +4718,17 @@ import './index.css';
           return;
         }
 
+        if (modoEscaner === 'merma') {
+          const encontrado = buscarProductoPorCodigo(codigoLimpio);
+          if (encontrado) {
+            elegirProductoMerma(encontrado.producto);
+          } else {
+            notificar(`Código ${codigoLimpio} no encontrado en el catálogo.`, 'error');
+          }
+          setModalEscaner(false);
+          return;
+        }
+
         if (modoEscaner === 'editar-pack-ean') {
           setFormEditarProducto((prev) => ({ ...prev, cod_ean_pack: codigoLimpio }));
           notificar(`Código de pack capturado: ${codigoLimpio}`, 'success');
@@ -6490,6 +6503,26 @@ import './index.css';
       // ==========================================
       // MERMAS (pérdidas de producto: vencido, roto, robado, etc.)
       // ==========================================
+      const cerrarModalMerma = () => {
+        setModalMerma(false);
+        setBusquedaMerma('');
+        setFormMerma({ productoId: '', cantidad: '', motivo: 'Vencido', motivoOtro: '' });
+      };
+
+      const abrirEscanerParaMerma = () => {
+        setModoEscaner('merma');
+        setFilaEscaneandoIndex(null);
+        setMetodoForzado(null);
+        setModalEscaner(true);
+      };
+
+      // Elige el producto de la merma (por búsqueda o por código escaneado) y
+      // arranca la cantidad en 1 para que el botón quede listo.
+      const elegirProductoMerma = (prod) => {
+        setFormMerma((f) => ({ ...f, productoId: prod.id, cantidad: f.productoId === prod.id && f.cantidad ? f.cantidad : '1' }));
+        setBusquedaMerma('');
+      };
+
       const registrarMermaProducto = async () => {
         const prod = productos.find((p) => p.id === formMerma.productoId);
         const cant = Number(formMerma.cantidad) || 0;
@@ -6497,6 +6530,12 @@ import './index.css';
           notificar('Selecciona un producto y una cantidad válida.', 'error');
           return;
         }
+        const detalleOtro = (formMerma.motivoOtro || '').trim();
+        if (formMerma.motivo === 'Otro' && !detalleOtro) {
+          notificar('Escribe el motivo de la merma.', 'error');
+          return;
+        }
+        const motivoFinal = formMerma.motivo === 'Otro' ? `Otro: ${detalleOtro}` : formMerma.motivo;
         setGuardandoMerma(true);
         try {
           const totalCosto = +(cant * (Number(prod.precio_costo) || 0)).toFixed(2);
@@ -6512,7 +6551,7 @@ import './index.css';
               cajero_id: cajeroSeleccionado?.id || null,
               fecha: new Date().toISOString(),
               cantidad: cant,
-              motivo: formMerma.motivo,
+              motivo: motivoFinal,
               total_costo: totalCosto
             }]);
             if (error) throw error;
@@ -6522,8 +6561,7 @@ import './index.css';
             if (errAjuste) console.warn('Error al ajustar stock por merma:', errAjuste);
             errorAjusteStock = errAjuste;
           }
-          setModalMerma(false);
-          setFormMerma({ productoId: '', cantidad: '', motivo: 'Vencido' });
+          cerrarModalMerma();
           cargarProductos(busqueda);
           if (errorAjusteStock) {
             notificar(`Merma registrada, pero el stock no se pudo ajustar (${errorAjusteStock.message}). Revísalo en "Ver Stock".`, 'error');
@@ -10894,64 +10932,199 @@ import './index.css';
           )}
 
           {/* Modal: Registrar Merma */}
-          {modalMerma && (
+          {modalMerma && (() => {
+            const prodMerma = productos.find((p) => p.id === formMerma.productoId) || null;
+            const cantMerma = Number(formMerma.cantidad) || 0;
+            const porPeso = !!prodMerma && (String(prodMerma.unidad || '').toUpperCase() === 'KG' || !Number.isInteger(Number(prodMerma.stock_actual) || 0));
+            const pasoMerma = porPeso ? 0.1 : 1;
+            const stockMerma = Number(prodMerma?.stock_actual) || 0;
+            const costoMerma = +(cantMerma * (Number(prodMerma?.precio_costo) || 0)).toFixed(2);
+            const termino = busquedaMerma.trim().toLowerCase();
+            const resultados = termino
+              ? productos
+                  .filter((p) => (p.descripcion || '').toLowerCase().includes(termino)
+                    || (p.cod_ean || '').toLowerCase() === termino
+                    || (p.cod_ean_pack || '').toLowerCase() === termino)
+                  .slice(0, 6)
+              : [];
+            const cambiarCantidad = (delta) => {
+              const nueva = Math.max(pasoMerma, +(cantMerma + delta).toFixed(2));
+              setFormMerma((f) => ({ ...f, cantidad: String(nueva) }));
+            };
+            return (
             <div className="fixed inset-0 bg-stone-900/30 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-              <div className="bg-gradient-to-br from-[#f4effc] via-[#f9f8fb] to-[#f5f4f8] border border-white/80 rounded-[28px] max-w-sm w-full p-5 shadow-2xl space-y-3">
-                <div className="flex justify-between items-center">
-                  <h3 className="text-lg font-bold text-stone-900 flex items-center gap-2">
-                    <i className="fa-solid fa-triangle-exclamation text-amber-600"></i> Registrar Merma
-                  </h3>
-                  <button onClick={() => setModalMerma(false)} className="w-8 h-8 rounded-full bg-white/70 hover:bg-white text-stone-500 hover:text-stone-900 shadow-sm"><i className="fa-solid fa-xmark"></i></button>
-                </div>
-                <p className="text-xs text-stone-600">Para productos vencidos, rotos, robados o perdidos. Se descuenta del stock automáticamente.</p>
-                <div>
-                  <label className="text-xs text-stone-600 block mb-1">Producto:</label>
-                  <select
-                    value={formMerma.productoId}
-                    onChange={(e) => setFormMerma({ ...formMerma, productoId: e.target.value })}
-                    className="w-full bg-white border border-stone-200/70 shadow-sm rounded-xl px-3 py-1.5 text-xs text-stone-900"
-                  >
-                    <option value="">-- Seleccionar producto --</option>
-                    {productos.map((p) => (
-                      <option key={p.id} value={p.id}>{p.descripcion}</option>
-                    ))}
-                  </select>
-                </div>
-                <div className="grid grid-cols-2 gap-2">
-                  <div>
-                    <label className="text-xs text-stone-600 block mb-1">Cantidad:</label>
-                    <input
-                      type="number"
-                      step="0.10"
-                      value={formMerma.cantidad}
-                      onChange={(e) => setFormMerma({ ...formMerma, cantidad: e.target.value })}
-                      className="w-full bg-white border border-stone-200/70 shadow-sm rounded-xl px-3 py-1.5 text-xs text-stone-900"
-                    />
+              <div className="bg-gradient-to-br from-[#f4effc] via-[#f9f8fb] to-[#f5f4f8] border border-white/80 rounded-[28px] max-w-sm w-full p-4 shadow-2xl space-y-3.5 max-h-[92vh] overflow-y-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+                <div className="flex items-center gap-2.5">
+                  <span className="w-[38px] h-[38px] rounded-[14px] bg-amber-100 text-amber-700 flex items-center justify-center shrink-0">
+                    <IconoTrazo nombre="warn" className="w-[19px] h-[19px]" />
+                  </span>
+                  <div className="flex-1 min-w-0">
+                    <h3 className="text-[19px] font-bold tracking-tight text-stone-900 leading-tight">Registrar merma</h3>
+                    <p className="text-xs text-stone-500 mt-0.5 leading-snug">Vencidos, rotos, robados o perdidos. Se descuenta del stock.</p>
                   </div>
-                  <div>
-                    <label className="text-xs text-stone-600 block mb-1">Motivo:</label>
-                    <select
-                      value={formMerma.motivo}
-                      onChange={(e) => setFormMerma({ ...formMerma, motivo: e.target.value })}
-                      className="w-full bg-white border border-stone-200/70 shadow-sm rounded-xl px-3 py-1.5 text-xs text-stone-900"
-                    >
-                      <option value="Vencido">Vencido</option>
-                      <option value="Roto/Dañado">Roto/Dañado</option>
-                      <option value="Robo/Pérdida">Robo/Pérdida</option>
-                      <option value="Otro">Otro</option>
-                    </select>
-                  </div>
+                  <button onClick={cerrarModalMerma} className="w-9 h-9 rounded-full bg-white ring-1 ring-[#6105dc]/10 hover:bg-[#f4eefe] text-stone-500 flex items-center justify-center transition shrink-0" aria-label="Cerrar">
+                    <IconoTrazo nombre="x" className="w-[15px] h-[15px]" />
+                  </button>
                 </div>
+
+                {!prodMerma ? (
+                  <>
+                    <div>
+                      <p className="text-[12.5px] font-semibold text-stone-700 mb-1.5">Producto</p>
+                      <div className="flex gap-2">
+                        <div className="flex-1 min-w-0 h-12 flex items-center gap-2 px-4 rounded-full bg-white ring-1 ring-[#6105dc]/15 focus-within:ring-2 focus-within:ring-[#6105dc]/40">
+                          <IconoTrazo nombre="buscar" className="w-[17px] h-[17px] text-[#6105dc] shrink-0" />
+                          <input
+                            type="text"
+                            autoFocus
+                            value={busquedaMerma}
+                            onChange={(e) => setBusquedaMerma(e.target.value)}
+                            onKeyDown={(e) => {
+                              if (e.key !== 'Enter') return;
+                              e.preventDefault();
+                              // Un lector de códigos "escribe" el código y confirma con Enter.
+                              const porCodigo = buscarProductoPorCodigo(busquedaMerma);
+                              if (porCodigo) elegirProductoMerma(porCodigo.producto);
+                              else if (resultados.length === 1) elegirProductoMerma(resultados[0]);
+                            }}
+                            placeholder="Escribe o escanea el código"
+                            className="w-full min-w-0 bg-transparent text-sm text-stone-900 placeholder:text-[#a9a3b8] focus:outline-none"
+                          />
+                        </div>
+                        <button
+                          type="button"
+                          onClick={abrirEscanerParaMerma}
+                          className="w-12 h-12 rounded-full bg-[#6105dc] hover:bg-[#4d04b0] text-white flex items-center justify-center shrink-0 transition"
+                          aria-label="Escanear código de barras"
+                          title="Escanear código de barras"
+                        >
+                          <IconoTrazo nombre="barras" className="w-[21px] h-[21px]" />
+                        </button>
+                      </div>
+                      {!termino && <p className="text-[11.5px] text-stone-400 mt-1.5">Un lector de códigos de barras también funciona aquí.</p>}
+                    </div>
+                    {termino && (
+                      resultados.length === 0 ? (
+                        <p className="text-xs text-stone-400 text-center py-4">No hay productos que coincidan.</p>
+                      ) : (
+                        <div className="bg-white rounded-[22px] ring-1 ring-[#6105dc]/10 overflow-hidden">
+                          {resultados.map((p, i) => (
+                            <button
+                              key={p.id}
+                              type="button"
+                              onClick={() => elegirProductoMerma(p)}
+                              className={`w-full flex items-center gap-2.5 px-3 py-2 text-left hover:bg-[#f4eefe] transition ${i > 0 ? 'border-t border-[#efe6fc]' : ''}`}
+                            >
+                              <FotoProducto fotoUrl={p.foto_url} categoria={p.categoria} className="w-[38px] h-[38px] rounded-[12px] shrink-0 ring-1 ring-black/5 bg-white" iconClassName="text-xs" />
+                              <span className="min-w-0">
+                                <span className="block text-[13.5px] font-semibold text-stone-900 leading-tight truncate">{p.descripcion}</span>
+                                <span className="block text-[11.5px] text-stone-400">{p.categoria || 'General'} · Stock {p.stock_actual}</span>
+                              </span>
+                            </button>
+                          ))}
+                        </div>
+                      )
+                    )}
+                    {!termino && (
+                      <p className="text-xs text-stone-400 text-center py-5 leading-relaxed">Elige un producto para indicar la cantidad y el motivo.</p>
+                    )}
+                  </>
+                ) : (
+                  <>
+                    <div>
+                      <p className="text-[12.5px] font-semibold text-stone-700 mb-1.5">Producto</p>
+                      <div className="flex items-center gap-2.5 bg-white rounded-[22px] ring-1 ring-[#6105dc]/10 p-2.5 pr-3">
+                        <FotoProducto fotoUrl={prodMerma.foto_url} categoria={prodMerma.categoria} className="w-[50px] h-[50px] rounded-[15px] shrink-0 ring-1 ring-black/5 bg-white" iconClassName="text-sm" />
+                        <div className="flex-1 min-w-0">
+                          <p className="text-[13.5px] font-semibold text-stone-900 leading-tight">{prodMerma.descripcion}</p>
+                          <p className="text-[11.5px] text-stone-400 mt-0.5">Stock actual: {stockMerma}</p>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => setFormMerma((f) => ({ ...f, productoId: '', cantidad: '' }))}
+                          className="shrink-0 px-3 py-1.5 rounded-full bg-[#f4eefe] hover:bg-[#ece0fd] text-[12.5px] font-semibold text-[#6105dc] transition"
+                        >
+                          Cambiar
+                        </button>
+                      </div>
+                    </div>
+
+                    <div>
+                      <p className="text-[12.5px] font-semibold text-stone-700 mb-1.5">Cantidad</p>
+                      <div className="flex items-center gap-3">
+                        <div className="flex items-center bg-white rounded-full ring-1 ring-[#6105dc]/15 shrink-0">
+                          <button type="button" onClick={() => cambiarCantidad(-pasoMerma)} className="w-[46px] h-[46px] flex items-center justify-center text-[#6105dc] rounded-full hover:bg-[#f4eefe] transition" aria-label="Menos">
+                            <IconoTrazo nombre="minus" className="w-[17px] h-[17px]" />
+                          </button>
+                          <input
+                            type="number"
+                            inputMode="decimal"
+                            step={pasoMerma}
+                            min="0"
+                            value={formMerma.cantidad}
+                            onChange={(e) => setFormMerma((f) => ({ ...f, cantidad: e.target.value }))}
+                            className="w-14 text-center text-xl font-bold text-stone-900 tabular-nums bg-transparent focus:outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                          />
+                          <button type="button" onClick={() => cambiarCantidad(pasoMerma)} className="w-[46px] h-[46px] flex items-center justify-center text-[#6105dc] rounded-full hover:bg-[#f4eefe] transition" aria-label="Más">
+                            <IconoTrazo nombre="plus" className="w-[17px] h-[17px]" />
+                          </button>
+                        </div>
+                        <div className="flex-1 text-right">
+                          <p className="text-[11.5px] text-stone-500">Costo perdido</p>
+                          <p className="text-xl font-bold tracking-tight text-rose-700 tabular-nums">S/ {formatoSoles(costoMerma)}</p>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div>
+                      <p className="text-[12.5px] font-semibold text-stone-700 mb-1.5">Motivo</p>
+                      <div className="flex flex-wrap gap-1.5">
+                        {['Vencido', 'Roto/Dañado', 'Robo/Pérdida', 'Otro'].map((t) => (
+                          <button
+                            key={t}
+                            type="button"
+                            onClick={() => setFormMerma((f) => ({ ...f, motivo: t }))}
+                            className={`px-3.5 py-2 rounded-full text-[13px] font-semibold transition ${
+                              formMerma.motivo === t ? 'bg-[#6105dc] text-white' : 'bg-white ring-1 ring-[#6105dc]/10 text-stone-600 hover:bg-[#faf8fe]'
+                            }`}
+                          >
+                            {t}
+                          </button>
+                        ))}
+                      </div>
+                      {formMerma.motivo === 'Otro' && (
+                        <div className="mt-2 h-11 flex items-center px-4 rounded-2xl bg-white ring-1 ring-[#6105dc]/15 focus-within:ring-2 focus-within:ring-[#6105dc]/40">
+                          <input
+                            type="text"
+                            autoFocus
+                            maxLength={80}
+                            value={formMerma.motivoOtro}
+                            onChange={(e) => setFormMerma((f) => ({ ...f, motivoOtro: e.target.value }))}
+                            placeholder="Escribe el motivo"
+                            className="w-full min-w-0 bg-transparent text-sm text-stone-900 placeholder:text-[#a9a3b8] focus:outline-none"
+                          />
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="flex items-center justify-between bg-[#f4eefe] border border-[#efe6fc] rounded-[20px] px-3.5 py-2.5 text-[13px] font-semibold text-[#4d04b0]">
+                      <span>El stock quedará en</span>
+                      <b className={`text-[15px] tabular-nums ${stockMerma - cantMerma < 0 ? 'text-amber-700' : 'text-stone-900'}`}>{Math.max(0, +(stockMerma - cantMerma).toFixed(2))}</b>
+                    </div>
+                  </>
+                )}
+
                 <button
                   onClick={registrarMermaProducto}
-                  disabled={guardandoMerma}
-                  className="w-full py-2.5 bg-[#6105dc] hover:bg-[#4d04b0] disabled:opacity-60 text-white font-bold text-xs rounded-full shadow"
+                  disabled={guardandoMerma || !prodMerma || cantMerma <= 0}
+                  className="w-full h-[54px] rounded-full bg-[#6105dc] hover:bg-[#4d04b0] disabled:bg-[#ebe8f1] disabled:text-[#8b869a] disabled:cursor-not-allowed text-white font-semibold text-base transition"
                 >
-                  {guardandoMerma ? 'Guardando...' : 'Registrar Merma'}
+                  {guardandoMerma ? 'Guardando...' : 'Registrar merma'}
                 </button>
               </div>
             </div>
-          )}
+            );
+          })()}
 
           {/* Modal: Ver Stock (todo el catálogo) */}
           {modalVerStock && (
