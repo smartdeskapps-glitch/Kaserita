@@ -3653,7 +3653,7 @@ import './index.css';
         try {
           const { data, error } = await sbClient
             .from('combos')
-            .select('*, combos_items(*, productos(descripcion, cod_ean, precio_venta, precio_costo, foto_url, categoria, stock_actual))')
+            .select('*, combos_items(*, productos(descripcion, cod_ean, precio_venta, precio_costo, foto_url, categoria, stock_actual, activo))')
             .eq('bodega_id', bodegaId)
             .order('nombre', { ascending: true });
           if (error) throw error;
@@ -4129,6 +4129,31 @@ import './index.css';
         return pedidosRetirarPorTab.historial.filter((p) => new Date(p.creado_en).getTime() >= desde);
       }, [pedidosRetirarPorTab.historial, filtroFechaHistorial]);
 
+      // Disponibilidad de cada combo según el stock de sus productos: un
+      // combo queda "apagado" (no se puede vender) mientras a alguno de sus
+      // productos le falte stock, esté desactivado o se haya eliminado, y
+      // vuelve solo al reponer. No toca el interruptor "activo" del combo.
+      // Usa el stock en vivo de `productos` (lo actualiza el realtime) y, si
+      // ese producto no está en la lista cargada, el que vino con el combo.
+      // `unidades` = cuántos combos completos alcanza a armar el stock.
+      const estadoCombos = useMemo(() => {
+        const enVivo = new Map(productos.map((pr) => [pr.id, pr]));
+        const mapa = new Map();
+        combos.forEach((c) => {
+          const faltan = [];
+          let unidades = Infinity;
+          (c.combos_items || []).forEach((ci) => {
+            const pr = enVivo.get(ci.producto_id) || ci.productos;
+            const req = Number(ci.cantidad) || 1;
+            const stock = pr && pr.activo !== false ? Number(pr.stock_actual) || 0 : 0;
+            if (stock < req) faltan.push(pr?.descripcion || '(producto eliminado)');
+            unidades = Math.min(unidades, Math.floor(stock / req));
+          });
+          mapa.set(c.id, { disponible: faltan.length === 0, faltan, unidades });
+        });
+        return mapa;
+      }, [combos, productos]);
+
       // Qué productos son parte de algún combo activo -- para poder
       // avisarlo en su propia tarjeta del catálogo normal (ver ProductoCard
       // más abajo), no solo dentro de la pestaña "Combos". Así un cajero que
@@ -4136,11 +4161,11 @@ import './index.css';
       // combo con ese producto.
       const productosEnCombo = useMemo(() => {
         const set = new Set();
-        combos.filter((c) => c.activo).forEach((c) => {
+        combos.filter((c) => c.activo && estadoCombos.get(c.id)?.disponible !== false).forEach((c) => {
           (c.combos_items || []).forEach((ci) => set.add(ci.producto_id));
         });
         return set;
-      }, [combos]);
+      }, [combos, estadoCombos]);
 
       // Versión del catálogo con los campos de texto ya en minúscula, para
       // no repetir toLowerCase() sobre cada producto en cada tecla que se
@@ -8913,7 +8938,7 @@ import './index.css';
                     <i className="fa-solid fa-gift text-xs"></i>
                     <span className="font-bold whitespace-nowrap">Combos</span>
                     <span className="text-xs font-semibold text-[#6105dc]/70">
-                      {combos.filter(c => c.activo).length}
+                      {combos.filter(c => c.activo && estadoCombos.get(c.id)?.disponible !== false).length}
                     </span>
                   </button>
                 )}
@@ -8994,12 +9019,25 @@ import './index.css';
                     </div>
                   ) : (
                     <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
-                      {combos.filter(c => c.activo).map((combo) => (
+                      {combos.filter(c => c.activo).map((combo) => {
+                        const est = estadoCombos.get(combo.id) || { disponible: true, faltan: [], unidades: Infinity };
+                        return (
                         <button
                           key={combo.id}
-                          onClick={() => agregarComboAlCarrito(combo)}
-                          className={`text-left bg-white border rounded-2xl overflow-hidden shadow-sm hover:-translate-y-0.5 hover:shadow-lg transition-all duration-200 active:scale-[0.98] relative p-3 flex flex-col gap-1.5 ${
-                            (cantidadEnCarritoPorCombo.get(combo.id) || 0) > 0 ? 'border-[#6105dc] ring-2 ring-[#6105dc]/40' : 'border-[#d6bdfa] hover:border-[#7c1fe0]'
+                          disabled={!est.disponible}
+                          onClick={() => {
+                            if ((cantidadEnCarritoPorCombo.get(combo.id) || 0) + 1 > est.unidades) {
+                              notificar(`No hay stock para más de ${est.unidades} de este combo.`, 'error');
+                              return;
+                            }
+                            agregarComboAlCarrito(combo);
+                          }}
+                          className={`text-left bg-white border rounded-2xl overflow-hidden shadow-sm transition-all duration-200 relative p-3 flex flex-col gap-1.5 ${
+                            !est.disponible
+                              ? 'border-stone-200 opacity-60 grayscale cursor-not-allowed'
+                              : (cantidadEnCarritoPorCombo.get(combo.id) || 0) > 0
+                                ? 'border-[#6105dc] ring-2 ring-[#6105dc]/40 hover:-translate-y-0.5 hover:shadow-lg active:scale-[0.98]'
+                                : 'border-[#d6bdfa] hover:border-[#7c1fe0] hover:-translate-y-0.5 hover:shadow-lg active:scale-[0.98]'
                           }`}
                         >
                           <div className="flex items-center gap-2">
@@ -9011,6 +9049,9 @@ import './index.css';
                           <p className="text-[10px] text-stone-500 line-clamp-2">
                             Incluye: {(combo.combos_items || []).map((ci) => `${ci.productos?.descripcion || '?'} x${ci.cantidad}`).join(', ')}
                           </p>
+                          {!est.disponible && (
+                            <p className="text-[10px] font-bold text-rose-600 line-clamp-2">Sin stock: {est.faltan.join(', ')}</p>
+                          )}
                           <div className="flex items-center justify-between mt-auto pt-1">
                             <span className="text-base font-black text-[#4d04b0] tabular-nums">S/ {Number(combo.precio_venta).toFixed(2)}</span>
                             {(cantidadEnCarritoPorCombo.get(combo.id) || 0) > 0 && (
@@ -9018,7 +9059,8 @@ import './index.css';
                             )}
                           </div>
                         </button>
-                      ))}
+                        );
+                      })}
                     </div>
                   )
                 ) : cargandoProductos && productos.length === 0 ? (
@@ -10845,6 +10887,9 @@ import './index.css';
                                 <p className="text-[11px] text-stone-500 truncate">
                                   {(combo.combos_items || []).length} producto{(combo.combos_items || []).length === 1 ? '' : 's'} · S/ {Number(combo.precio_venta).toFixed(2)}
                                 </p>
+                                {combo.activo && estadoCombos.get(combo.id)?.disponible === false && (
+                                  <p className="text-[11px] font-semibold text-rose-600 truncate">Apagado por falta de stock: {estadoCombos.get(combo.id).faltan.join(', ')}</p>
+                                )}
                               </div>
                               <div className="flex items-center gap-2 shrink-0">
                                 <Interruptor activo={combo.activo} onClick={() => alternarActivoCombo(combo)} etiqueta="" title={combo.activo ? 'Activo (visible para vender)' : 'Inactivo'} />
