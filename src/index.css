@@ -58,6 +58,20 @@
 .btn-noise:active .btn-noise-in { transform: scale(0.985); }
 .btn-noise-flecha { transition: transform 0.2s ease; }
 .btn-noise:hover .btn-noise-flecha { transform: translateX(3px); }
+/* Variante "Turno Abierto": anillo verde menta, quieto (es un estado, no una
+   llamada a la acción). */
+.btn-noise-verde {
+  background: #dfece4;
+  box-shadow: 0 0 0 1px rgba(20, 90, 50, 0.1), 0 6px 18px -8px rgba(22, 163, 74, 0.4);
+}
+.btn-noise-verde::before {
+  background: conic-gradient(
+    from 0deg,
+    #d5eadd 0deg, #a7dfbd 60deg, #e3f5ea 110deg, #cfe9f0 170deg,
+    #bfe6cd 230deg, #e3f5ea 290deg, #d5eadd 360deg
+  );
+  animation: none;
+}
 @keyframes btn-glow-spin {
   to { --btn-glow-angle: 360deg; }
 }

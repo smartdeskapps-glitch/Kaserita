@@ -8743,7 +8743,7 @@ import './index.css';
                 {turnoActivo ? (
                   <button
                     onClick={abrirCierreCaja}
-                    className="btn-noise hidden sm:inline-flex text-xs font-medium text-green-700"
+                    className="btn-noise btn-noise-verde hidden sm:inline-flex text-xs font-medium text-green-700"
                   >
                     <span className="btn-noise-in">
                       <span className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse"></span> Turno Abierto
