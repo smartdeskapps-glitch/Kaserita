@@ -5107,7 +5107,6 @@ import './index.css';
         setMostrarPago(false);
         guardarVentasEnEsperaLS(nuevaLista);
         setModalVentasEspera(false);
-        if (habiaVentaActual) notificar('La venta anterior quedó en espera.', 'info');
       };
 
       const borrarVentaEspera = (index) => {
