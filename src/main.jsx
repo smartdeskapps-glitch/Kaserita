@@ -13017,7 +13017,7 @@ import './index.css';
                       const maxSemana = Math.max(1, ...semanasVisibles.map((s) => s.total));
                       const puedeAnterior = ver.anio === aHoy && ver.mes > 0;
                       const puedeSiguiente = ver.anio === aHoy && ver.mes < mHoy - 1;
-                      const tarjeta = 'rounded-2xl shadow-sm p-3.5 min-w-0';
+                      const tarjeta = 'rounded-2xl shadow-sm p-4 min-w-0';
                       return (
                         <section className="bg-white/60 backdrop-blur-xl border border-white/80 rounded-3xl shadow-[0_10px_40px_-14px_rgba(97,5,220,0.18)] p-5">
                           <div className="flex flex-wrap items-start justify-between gap-2">
@@ -13028,25 +13028,25 @@ import './index.css';
                             <p className="text-xs text-stone-500 sm:text-right">Total del mes<br /><span className="text-sm font-semibold text-stone-900 tabular-nums">S/ {formatoSoles(totalMes)}</span></p>
                           </div>
 
-                          <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5 mt-4">
+                          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mt-5">
                             <div className={`${tarjeta} bg-white/80`}>
                               <p className="text-[11px] text-stone-500 flex items-center gap-1.5"><span className="w-2 h-2 rounded-full bg-stone-400"></span>Promedio diario</p>
-                              <p className="text-base font-semibold text-stone-900 mt-1 tabular-nums whitespace-nowrap truncate">{conVentas.length ? montoResumen(promedio) : '—'}</p>
+                              <p className="text-lg font-semibold text-stone-900 mt-1 tabular-nums whitespace-nowrap truncate">{conVentas.length ? montoResumen(promedio) : '—'}</p>
                               <p className="text-[11px] text-stone-500">en {hastaDia} día{hastaDia === 1 ? '' : 's'} transcurrido{hastaDia === 1 ? '' : 's'}</p>
                             </div>
                             <div className={`${tarjeta} bg-[#f4eefe] border border-[#d6bdfa]`}>
                               <p className="text-[11px] text-stone-500 flex items-center gap-1.5"><span className="w-2 h-2 rounded-full bg-[#6105dc]"></span>Día de mayor venta</p>
-                              <p className="text-base font-semibold text-stone-900 mt-1 tabular-nums whitespace-nowrap truncate">{conVentas.length ? montoResumen(totalDe(diaMax)) : '—'}</p>
+                              <p className="text-lg font-semibold text-stone-900 mt-1 tabular-nums whitespace-nowrap truncate">{conVentas.length ? montoResumen(totalDe(diaMax)) : '—'}</p>
                               <p className="text-[11px] text-stone-500 truncate">{conVentas.length ? `${nombreDia(diaMax)} · ${(totalDe(diaMax) / promedio).toFixed(1).replace('.', ',')}× el promedio` : 'Sin ventas'}</p>
                             </div>
                             <div className={`${tarjeta} bg-white/80`}>
                               <p className="text-[11px] text-stone-500 flex items-center gap-1.5"><span className="w-2 h-2 rounded-full bg-rose-500"></span>Día de menor venta</p>
-                              <p className="text-base font-semibold text-rose-600 mt-1 tabular-nums whitespace-nowrap truncate">{conVentas.length ? montoResumen(totalDe(diaMin)) : '—'}</p>
+                              <p className="text-lg font-semibold text-rose-600 mt-1 tabular-nums whitespace-nowrap truncate">{conVentas.length ? montoResumen(totalDe(diaMin)) : '—'}</p>
                               <p className="text-[11px] text-stone-500 truncate">{conVentas.length ? `${nombreDia(diaMin)} · ${Math.round((totalDe(diaMin) / promedio) * 100)}% del promedio` : 'Sin ventas'}</p>
                             </div>
                             <div className={`${tarjeta} bg-white/80`}>
                               <p className="text-[11px] text-stone-500 flex items-center gap-1.5"><span className="w-2 h-2 rounded-full bg-stone-300"></span>Días sin ventas</p>
-                              <p className="text-base font-semibold text-stone-900 mt-1 tabular-nums">{sinVentas}</p>
+                              <p className="text-lg font-semibold text-stone-900 mt-1 tabular-nums">{sinVentas}</p>
                               <p className="text-[11px] text-stone-500 truncate">{sinVentas ? 'Revisá si el local abrió' : hastaDia ? 'Vendiste todos los días' : '—'}</p>
                             </div>
                           </div>
@@ -13067,7 +13067,7 @@ import './index.css';
                             ><i className="fa-solid fa-chevron-right text-[10px]"></i></button>
                           </div>
 
-                          <div className="grid grid-cols-7 gap-1.5 sm:gap-2 mt-3.5">
+                          <div className="grid grid-cols-7 gap-2 sm:gap-2.5 mt-4">
                             {['lun', 'mar', 'mié', 'jue', 'vie', 'sáb', 'dom'].map((d) => (
                               <div key={d} className="text-[10px] uppercase tracking-wider text-stone-400 text-center pb-0.5">{d}</div>
                             ))}
@@ -13076,9 +13076,9 @@ import './index.css';
                               const futuro = d > hastaDia;
                               if (futuro) {
                                 return (
-                                  <div key={d} className="rounded-2xl min-h-[52px] sm:min-h-[74px] p-1.5 sm:p-2.5 flex flex-col justify-between border border-dashed border-stone-200 text-stone-300">
-                                    <span className="text-xs font-semibold">{d}</span>
-                                    <span className="text-sm text-right">—</span>
+                                  <div key={d} className="rounded-2xl min-h-[60px] sm:min-h-[100px] p-2 sm:p-3 flex flex-col justify-between border border-dashed border-stone-200 text-stone-300">
+                                    <span className="text-xs sm:text-sm font-semibold">{d}</span>
+                                    <span className="text-base text-right">—</span>
                                   </div>
                                 );
                               }
@@ -13093,15 +13093,15 @@ import './index.css';
                                 <div
                                   key={d}
                                   title={`${nombreDia(d)}: S/ ${formatoSoles(v)}`}
-                                  className={`relative rounded-2xl min-h-[52px] sm:min-h-[74px] p-1.5 sm:p-2.5 flex flex-col justify-between overflow-hidden ${enRango ? 'ring-2 ring-inset ring-[#6105dc]' : ''} ${esMax ? 'shadow-[0_10px_22px_-8px_rgba(97,5,220,0.55)]' : ''} ${oscuro ? 'text-white' : 'text-stone-800'}`}
+                                  className={`relative rounded-2xl min-h-[60px] sm:min-h-[100px] p-2 sm:p-3 flex flex-col justify-between overflow-hidden ${enRango ? 'ring-2 ring-inset ring-[#6105dc]' : ''} ${esMax ? 'shadow-[0_10px_22px_-8px_rgba(97,5,220,0.55)]' : ''} ${oscuro ? 'text-white' : 'text-stone-800'}`}
                                   style={{ background: esMax ? 'linear-gradient(160deg,#b98cf5,#6105dc)' : v > 0 ? `rgba(97,5,220,${(0.06 + t * 0.5).toFixed(2)})` : '#f0edf5' }}
                                 >
-                                  <span className="text-xs font-semibold opacity-80">
+                                  <span className="text-xs sm:text-sm font-semibold opacity-80">
                                     {d}
                                     {esMax && <span className="text-[9px] ml-1">▲</span>}
                                     {esMin && <span className={`text-[9px] ml-1 ${oscuro ? 'text-rose-200' : 'text-rose-600'}`}>▼</span>}
                                   </span>
-                                  <span className="text-[10px] sm:text-sm font-semibold text-right tabular-nums whitespace-nowrap">{v > 0 ? `S/ ${montoCorto(v)}` : '—'}</span>
+                                  <span className="text-[10px] sm:text-base font-semibold text-right tabular-nums whitespace-nowrap">{v > 0 ? `S/ ${montoCorto(v)}` : '—'}</span>
                                   {esHoy && <span className={`absolute top-2 right-2 w-1.5 h-1.5 rounded-full ${esMax ? 'bg-white' : 'bg-[#6105dc]'}`}></span>}
                                 </div>
                               );
@@ -13114,14 +13114,14 @@ import './index.css';
                                 <h5 className="text-[13px] font-semibold text-stone-800">Total por semana</h5>
                                 <span className="text-[11px] text-stone-500 hidden sm:inline">La barra compara cada semana con la mejor del mes</span>
                               </div>
-                              <div className="grid grid-cols-2 sm:grid-cols-[repeat(auto-fit,minmax(130px,1fr))] gap-2.5">
+                              <div className="grid grid-cols-2 sm:grid-cols-[repeat(auto-fit,minmax(150px,1fr))] gap-3">
                                 {semanasVisibles.map((s) => (
-                                  <div key={s.i} title={`Semana ${s.i + 1}: S/ ${formatoSoles(s.total)}`} className={`rounded-2xl p-3 flex flex-col gap-1.5 min-w-0 border ${s.total === maxSemana ? 'bg-[#f5eefe] border-[#d9c6f8]' : 'bg-white/70 border-stone-200/70'}`}>
+                                  <div key={s.i} title={`Semana ${s.i + 1}: S/ ${formatoSoles(s.total)}`} className={`rounded-2xl p-4 flex flex-col gap-2 min-w-0 border ${s.total === maxSemana ? 'bg-[#f5eefe] border-[#d9c6f8]' : 'bg-white/70 border-stone-200/70'}`}>
                                     <div className="flex justify-between items-baseline gap-1.5 text-[11px] text-stone-500">
                                       <span>Semana {s.i + 1}</span><span className="text-[10px]">{s.n} d.</span>
                                     </div>
-                                    <p className="text-base font-semibold text-stone-900 tabular-nums whitespace-nowrap">{montoResumen(s.total)}</p>
-                                    <div className="h-1.5 rounded-full bg-stone-200/70 overflow-hidden">
+                                    <p className="text-lg font-semibold text-stone-900 tabular-nums whitespace-nowrap">{montoResumen(s.total)}</p>
+                                    <div className="h-2 rounded-full bg-stone-200/70 overflow-hidden">
                                       <div className="h-full rounded-full bg-gradient-to-r from-[#b98cf5] to-[#6105dc]" style={{ width: `${(s.total / maxSemana) * 100}%` }}></div>
                                     </div>
                                   </div>
