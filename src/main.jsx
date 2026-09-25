@@ -12951,72 +12951,76 @@ import './index.css';
                       </section>
                     </div>
 
-                    {/* Tendencia diaria */}
-                    {dashStats.porDia.length > 1 && (
-                      <section className="bg-white/60 backdrop-blur-xl border border-white/80 rounded-3xl shadow-[0_10px_40px_-14px_rgba(97,5,220,0.18)] p-5">
-                        <h4 className="text-sm font-semibold text-stone-800">Ventas por día</h4>
-                        <div
-                          className="relative mt-5"
-                          onMouseMove={(e) => {
-                            const rect = e.currentTarget.getBoundingClientRect();
-                            if (!rect.width) return;
-                            const relX = ((e.clientX - rect.left) / rect.width) * 300;
-                            const idx = Math.round((relX / 300) * (dashStats.porDia.length - 1));
-                            setDiaResaltado(Math.max(0, Math.min(dashStats.porDia.length - 1, idx)));
-                          }}
-                          onMouseLeave={() => setDiaResaltado(null)}
-                        >
-                          <svg viewBox="0 0 300 100" preserveAspectRatio="none" className="w-full h-32">
-                            <defs>
-                              <linearGradient id="diaFill" x1="0%" y1="0%" x2="0%" y2="100%">
-                                <stop offset="0%" stopColor="#6105dc" stopOpacity="0.18" />
-                                <stop offset="100%" stopColor="#6105dc" stopOpacity="0" />
-                              </linearGradient>
-                            </defs>
-                            <polygon
-                              fill="url(#diaFill)"
-                              points={`0,100 ${dashStats.porDia.map((d, i) => `${(i / (dashStats.porDia.length - 1)) * 300},${100 - (d.total / dashStats.maxDia) * 85}`).join(' ')} 300,100`}
-                            />
-                            <polyline
-                              fill="none"
-                              stroke="#6105dc"
-                              strokeWidth="2.5"
-                              strokeLinejoin="round"
-                              strokeLinecap="round"
-                              vectorEffect="non-scaling-stroke"
-                              points={dashStats.porDia.map((d, i) => `${(i / (dashStats.porDia.length - 1)) * 300},${100 - (d.total / dashStats.maxDia) * 85}`).join(' ')}
-                            />
-                            {diaResaltado != null && (() => {
-                              const x = (diaResaltado / (dashStats.porDia.length - 1)) * 300;
-                              const y = 100 - (dashStats.porDia[diaResaltado].total / dashStats.maxDia) * 85;
+                    {/* Ventas por día: una columna por cada día del rango (los días
+                        sin ventas cuentan como 0), con el mejor día resaltado. Antes
+                        era una línea solo entre los días con ventas, y con pocos
+                        puntos quedaba como un triángulo sin sentido. */}
+                    {(() => {
+                      const ini = new Date(`${fechaInicioDash}T00:00:00`);
+                      const fin = new Date(`${fechaFinDash}T00:00:00`);
+                      const nDias = Math.round((fin - ini) / 86400000) + 1;
+                      let dias = dashStats.porDia;
+                      if (nDias >= 1 && nDias <= 62) {
+                        const totalPorFecha = new Map(dashStats.porDia.map((d) => [d.fecha, d.total]));
+                        dias = Array.from({ length: nDias }, (_, k) => {
+                          const d = new Date(ini);
+                          d.setDate(d.getDate() + k);
+                          const fecha = fechaISOLocal(d);
+                          return { fecha, total: totalPorFecha.get(fecha) || 0 };
+                        });
+                      }
+                      if (dias.length < 2) return null;
+                      const maxD = Math.max(1, ...dias.map((d) => d.total));
+                      const iMejor = dias.reduce((mejor, d, i) => (d.total > dias[mejor].total ? i : mejor), 0);
+                      const mejorDia = dias[iMejor];
+                      const conDetalle = dias.length <= 10;
+                      const cadaN = Math.ceil(dias.length / 8);
+                      return (
+                        <section className="bg-white/60 backdrop-blur-xl border border-white/80 rounded-3xl shadow-[0_10px_40px_-14px_rgba(97,5,220,0.18)] p-5">
+                          <div className="flex flex-wrap items-start justify-between gap-2">
+                            <h4 className="text-sm font-semibold text-stone-800">Ventas por día</h4>
+                            {mejorDia.total > 0 && (
+                              <p className="text-xs text-stone-500">
+                                Mejor día <span className="font-semibold text-[#6105dc]">{new Date(`${mejorDia.fecha}T00:00:00`).toLocaleDateString('es-PE', { weekday: 'short', day: '2-digit', month: '2-digit' })}</span> · S/ {formatoSoles(mejorDia.total)}
+                              </p>
+                            )}
+                          </div>
+                          <div className="flex items-end gap-1.5 sm:gap-2 h-40 mt-6" onMouseLeave={() => setDiaResaltado(null)}>
+                            {dias.map((d, i) => {
+                              const esMejor = mejorDia.total > 0 && i === iMejor;
+                              const activo = diaResaltado === i;
                               return (
-                                <g>
-                                  <line x1={x} y1="0" x2={x} y2="100" stroke="#a8a29e" strokeWidth="1" strokeDasharray="3 3" vectorEffect="non-scaling-stroke" />
-                                  <circle cx={x} cy={y} r="4" fill="#6105dc" stroke="#fff" strokeWidth="2" vectorEffect="non-scaling-stroke" />
-                                </g>
+                                <div key={d.fecha} className="relative flex-1 h-full flex items-end" onMouseEnter={() => setDiaResaltado(i)}>
+                                  {activo && d.total > 0 && (
+                                    <div className={`absolute bottom-full mb-1.5 bg-stone-900 text-white text-[11px] rounded-lg px-2.5 py-1.5 whitespace-nowrap pointer-events-none z-20 shadow-lg ${i < 2 ? 'left-0' : i > dias.length - 3 ? 'right-0' : 'left-1/2 -translate-x-1/2'}`}>
+                                      <div className="font-bold">{new Date(`${d.fecha}T00:00:00`).toLocaleDateString('es-PE', { weekday: 'short', day: '2-digit', month: '2-digit' })}</div>
+                                      <div className="text-stone-300">S/ {formatoSoles(d.total)}</div>
+                                    </div>
+                                  )}
+                                  <div
+                                    className={`w-full rounded-t-xl rounded-b-md transition-colors duration-200 ${esMejor ? 'bg-gradient-to-t from-[#6105dc] to-[#b98cf5] shadow-[0_10px_24px_-8px_rgba(97,5,220,0.55)]' : activo ? 'bg-[#d6bdfa]' : 'bg-white'}`}
+                                    style={{ height: `${Math.max(4, (d.total / maxD) * 100)}%` }}
+                                  ></div>
+                                </div>
                               );
-                            })()}
-                          </svg>
-                          {diaResaltado != null && (() => {
-                            const d = dashStats.porDia[diaResaltado];
-                            const pctX = (diaResaltado / (dashStats.porDia.length - 1)) * 100;
-                            return (
-                              <div
-                                className="absolute bg-stone-900 text-white text-[11px] rounded-lg px-2.5 py-1.5 whitespace-nowrap pointer-events-none z-10 shadow-lg"
-                                style={{ left: `${pctX}%`, top: -6, transform: `translate(${pctX < 8 ? '0%' : pctX > 92 ? '-100%' : '-50%'}, -100%)` }}
-                              >
-                                <div className="font-bold">{new Date(`${d.fecha}T00:00:00`).toLocaleDateString('es-PE', { weekday: 'short', day: '2-digit', month: '2-digit' })}</div>
-                                <div className="text-stone-300">S/ {formatoSoles(d.total)}</div>
-                              </div>
-                            );
-                          })()}
-                        </div>
-                        <div className="flex justify-between text-[10px] text-stone-400 mt-1.5">
-                          <span>{new Date(`${dashStats.porDia[0].fecha}T00:00:00`).toLocaleDateString('es-PE', { day: '2-digit', month: '2-digit' })}</span>
-                          <span>{new Date(`${dashStats.porDia[dashStats.porDia.length - 1].fecha}T00:00:00`).toLocaleDateString('es-PE', { day: '2-digit', month: '2-digit' })}</span>
-                        </div>
-                      </section>
-                    )}
+                            })}
+                          </div>
+                          <div className="flex gap-1.5 sm:gap-2 mt-2 text-[10px] text-stone-400">
+                            {dias.map((d, i) => {
+                              const f = new Date(`${d.fecha}T00:00:00`);
+                              const visible = conDetalle || i % cadaN === 0 || i === dias.length - 1;
+                              return (
+                                <span key={d.fecha} className={`flex-1 text-center leading-tight ${mejorDia.total > 0 && i === iMejor ? 'font-bold text-[#6105dc]' : ''}`}>
+                                  {visible && (conDetalle
+                                    ? <>{f.toLocaleDateString('es-PE', { weekday: 'short' })}<br />{f.getDate()}</>
+                                    : `${f.getDate()}/${f.getMonth() + 1}`)}
+                                </span>
+                              );
+                            })}
+                          </div>
+                        </section>
+                      );
+                    })()}
 
                     {/* Ventas por Mes */}
                     {dashStats.totalAnio > 0 && (
