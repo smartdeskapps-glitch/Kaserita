@@ -485,7 +485,7 @@ import './index.css';
               type="date"
               value={desde}
               onChange={(e) => setDesde(e.target.value)}
-              className="bg-stone-50 border border-stone-200 rounded-lg px-2 py-1.5 text-xs text-stone-900"
+              className="bg-white border border-stone-200/70 shadow-sm rounded-full px-3 py-1.5 text-xs text-stone-900"
             />
           </div>
           <div>
@@ -494,23 +494,23 @@ import './index.css';
               type="date"
               value={hasta}
               onChange={(e) => setHasta(e.target.value)}
-              className="bg-stone-50 border border-stone-200 rounded-lg px-2 py-1.5 text-xs text-stone-900"
+              className="bg-white border border-stone-200/70 shadow-sm rounded-full px-3 py-1.5 text-xs text-stone-900"
             />
           </div>
           <button
             onClick={() => onRango(desde, hasta)}
-            className="px-3 py-1.5 bg-stone-900 hover:bg-stone-800 text-white text-xs font-semibold rounded-lg"
+            className="px-4 py-1.5 bg-[#6105dc] hover:bg-[#4d04b0] text-white text-xs font-semibold rounded-full shadow-sm"
           >
             Buscar
           </button>
-          <div className="inline-flex items-center bg-stone-100 rounded-lg p-0.5">
-            <button onClick={irAHoy} className="px-3 py-1 text-stone-600 hover:bg-white hover:text-stone-900 hover:shadow-sm text-xs font-semibold rounded-md transition">
+          <div className="inline-flex items-center bg-white/70 shadow-sm rounded-full p-0.5">
+            <button onClick={irAHoy} className="px-3 py-1 text-stone-600 hover:bg-[#ece0fd] hover:text-[#4d04b0] text-xs font-semibold rounded-full transition">
               Hoy
             </button>
-            <button onClick={irAUltimosNDias} className="px-3 py-1 text-stone-600 hover:bg-white hover:text-stone-900 hover:shadow-sm text-xs font-semibold rounded-md transition">
+            <button onClick={irAUltimosNDias} className="px-3 py-1 text-stone-600 hover:bg-[#ece0fd] hover:text-[#4d04b0] text-xs font-semibold rounded-full transition">
               Últimos {diasAtras} días
             </button>
-            <button onClick={irAEsteMes} className="px-3 py-1 text-stone-600 hover:bg-white hover:text-stone-900 hover:shadow-sm text-xs font-semibold rounded-md transition">
+            <button onClick={irAEsteMes} className="px-3 py-1 text-stone-600 hover:bg-[#ece0fd] hover:text-[#4d04b0] text-xs font-semibold rounded-full transition">
               Este mes
             </button>
           </div>
@@ -6876,27 +6876,6 @@ import './index.css';
 
       const MESES_CORTOS = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Set', 'Oct', 'Nov', 'Dic'];
 
-      // Convierte una serie de puntos {x,y} en un path SVG suavizado (spline de
-      // Catmull-Rom a Bézier) -- usado para la "ola" de Ventas por Horario, que
-      // se ve mejor como curva continua que como quiebres rectos punto a punto.
-      const curvaSuave = (puntos) => {
-        if (puntos.length < 2) return '';
-        if (puntos.length === 2) return `M ${puntos[0].x},${puntos[0].y} L ${puntos[1].x},${puntos[1].y}`;
-        let d = `M ${puntos[0].x},${puntos[0].y}`;
-        for (let i = 0; i < puntos.length - 1; i++) {
-          const p0 = puntos[i - 1] || puntos[i];
-          const p1 = puntos[i];
-          const p2 = puntos[i + 1];
-          const p3 = puntos[i + 2] || p2;
-          const cp1x = p1.x + (p2.x - p0.x) / 6;
-          const cp1y = p1.y + (p2.y - p0.y) / 6;
-          const cp2x = p2.x - (p3.x - p1.x) / 6;
-          const cp2y = p2.y - (p3.y - p1.y) / 6;
-          d += ` C ${cp1x},${cp1y} ${cp2x},${cp2y} ${p2.x},${p2.y}`;
-        }
-        return d;
-      };
-
       const dashStats = useMemo(() => {
         const validas = ventasDashboard.filter(v => !v.anulada);
         const totalVenta = validas.reduce((a, c) => a + Number(c.total_venta), 0);
@@ -12803,18 +12782,26 @@ import './index.css';
             </div>
           )}
 
-          {/* Modal: Dashboard de Ventas (detallado). Diseño sobrio: una sola
-              superficie clara, jerarquía por tamaño de letra y líneas finas
-              (no una caja por dato), el morado de la marca como único acento
-              y verde/rojo solo para variaciones y deudas. El encabezado con
-              los filtros queda fijo y solo el contenido hace scroll. */}
+          {/* Modal: Dashboard de Ventas (detallado). Estilo "cristal suave": fondo
+              lavanda con degradado, tarjetas blancas translúcidas de esquinas
+              muy redondeadas, cifras grandes y ligeras, el morado de la marca
+              como único acento (la barra más alta se resalta con degradado) y
+              verde/rojo solo para variaciones y deudas. El encabezado con los
+              filtros queda fijo y solo el contenido hace scroll. */}
           {modalDashboard && (
-            <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 p-2 md:p-4">
-              <div className="bg-white border border-stone-200 rounded-2xl max-w-6xl w-full max-h-[95vh] flex flex-col overflow-hidden shadow-2xl">
-                <div className="shrink-0 px-5 md:px-6 pt-5 pb-4 border-b border-stone-200 space-y-3">
-                  <div className="flex items-center justify-between gap-2">
-                    <h3 className="text-lg font-bold text-stone-900 tracking-tight">Dashboard de ventas</h3>
-                    <button onClick={() => setModalDashboard(false)} className="w-8 h-8 rounded-lg text-stone-500 hover:text-stone-900 hover:bg-stone-100 flex items-center justify-center" aria-label="Cerrar">
+            <div className="fixed inset-0 bg-stone-900/30 backdrop-blur-sm flex items-center justify-center z-50 p-2 md:p-4">
+              <div className="bg-gradient-to-br from-[#e9dcff] via-[#f6f1ff] to-[#f1eefb] border border-white/80 rounded-[28px] max-w-6xl w-full max-h-[95vh] flex flex-col overflow-hidden shadow-2xl">
+                <div className="shrink-0 px-5 md:px-7 pt-6 pb-4 space-y-4">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <h3 className="text-2xl md:text-3xl font-medium text-stone-900 tracking-tight">Dashboard de <span className="text-[#6105dc]">ventas</span></h3>
+                      <p className="text-xs text-stone-500 mt-1.5 flex items-center gap-1.5">
+                        <i className="fa-regular fa-circle-question text-stone-400"></i>
+                        Del {String(fechaInicioDash).split('-').reverse().join('/')} al {String(fechaFinDash).split('-').reverse().join('/')}
+                        {dashStats.numVentas > 0 && <> · <span className="text-[#6105dc] font-semibold">{dashStats.numVentas} venta{dashStats.numVentas === 1 ? '' : 's'}</span></>}
+                      </p>
+                    </div>
+                    <button onClick={() => setModalDashboard(false)} className="w-10 h-10 rounded-full bg-white/80 hover:bg-white text-stone-600 hover:text-stone-900 shadow-sm flex items-center justify-center shrink-0" aria-label="Cerrar">
                       <i className="fa-solid fa-xmark"></i>
                     </button>
                   </div>
@@ -12829,141 +12816,106 @@ import './index.css';
                     {dashStats.numVentas > 0 && (
                       <button
                         onClick={exportarDashboardExcel}
-                        className="px-3 py-1.5 bg-white border border-stone-200 hover:bg-stone-50 text-stone-700 text-xs font-semibold rounded-lg flex items-center gap-1.5 ml-auto"
+                        className="px-4 py-1.5 bg-white hover:bg-stone-50 text-stone-700 text-xs font-semibold rounded-full shadow-sm flex items-center gap-1.5 ml-auto"
                         title="Exportar a Excel"
                       >
-                        <i className="fa-solid fa-file-excel"></i> Excel
+                        <i className="fa-solid fa-file-excel text-[#6105dc]"></i> Excel
                       </button>
                     )}
                   </FiltroFechasRapido>
                 </div>
 
-                <div className="flex-1 overflow-y-auto hide-scrollbar px-5 md:px-6 py-6 space-y-8">
+                <div className="flex-1 overflow-y-auto hide-scrollbar px-5 md:px-7 pb-7 pt-1 space-y-4">
                 {cargandoDashboard ? (
                   <p className="text-xs text-center py-10 text-stone-600">Calculando estadísticas...</p>
                 ) : dashStats.numVentas === 0 ? (
                   <p className="text-xs text-center py-10 text-stone-500">No hay ventas registradas en ese rango.</p>
                 ) : (
                   <>
-                    {/* Resumen: una cifra principal y el resto como fila de datos */}
-                    <section>
-                      <p className="text-xs font-medium text-stone-500">Venta total</p>
-                      <div className="flex flex-wrap items-baseline gap-x-4 gap-y-1 mt-1">
-                        <span className="text-4xl md:text-5xl font-black text-stone-900 tabular-nums tracking-tight">S/ {formatoSoles(dashStats.totalVenta)}</span>
-                        <VariacionPct pct={dashStats.hayBaseVentaAnterior ? dashStats.cambioVentaPct : null} />
-                      </div>
-                      <div className="grid grid-cols-2 sm:grid-cols-5 gap-y-5 mt-6 pt-5 border-t border-stone-200">
-                        {[
-                          { etiqueta: 'Utilidad', valor: `S/ ${formatoSoles(dashStats.totalUtilidad)}`, pct: dashStats.hayBaseUtilidadAnterior ? dashStats.cambioUtilidadPct : null },
-                          { etiqueta: 'Costo', valor: `S/ ${formatoSoles(dashStats.totalCosto)}` },
-                          { etiqueta: 'Margen', valor: `${dashStats.margenPct.toFixed(1)}%` },
-                          { etiqueta: 'Ticket promedio', valor: `S/ ${formatoSoles(dashStats.ticketPromedio)}` },
-                          { etiqueta: 'N° de ventas', valor: String(dashStats.numVentas) },
-                        ].map((d) => (
-                          <div key={d.etiqueta} className="sm:pl-4 sm:border-l sm:border-stone-200 sm:first:pl-0 sm:first:border-l-0">
-                            <p className="text-xs text-stone-500">{d.etiqueta}</p>
-                            <p className="text-xl font-bold text-stone-900 tabular-nums mt-0.5">{d.valor}</p>
-                            {d.pct != null && <VariacionPct pct={d.pct} corto />}
-                          </div>
-                        ))}
-                      </div>
-                    </section>
+                    <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
+                      {/* Métricas: 4 mosaicos con el ícono en un círculo */}
+                      <section className="lg:col-span-5 bg-white/60 backdrop-blur-xl border border-white/80 rounded-3xl shadow-[0_10px_40px_-14px_rgba(97,5,220,0.18)] p-5">
+                        <h4 className="text-sm font-semibold text-stone-800">Métricas del período</h4>
+                        <div className="grid grid-cols-2 gap-3 mt-4">
+                          {[
+                            { etiqueta: 'Utilidad', valor: `S/ ${formatoSoles(dashStats.totalUtilidad)}`, icono: 'fa-arrow-trend-up', pct: dashStats.hayBaseUtilidadAnterior ? dashStats.cambioUtilidadPct : null },
+                            { etiqueta: 'Costo', valor: `S/ ${formatoSoles(dashStats.totalCosto)}`, icono: 'fa-coins' },
+                            { etiqueta: 'Margen', valor: `${dashStats.margenPct.toFixed(1)}%`, icono: 'fa-percent' },
+                            { etiqueta: 'Ticket promedio', valor: `S/ ${formatoSoles(dashStats.ticketPromedio)}`, icono: 'fa-receipt' },
+                          ].map((d) => (
+                            <div key={d.etiqueta} className="bg-white/80 rounded-2xl p-4 shadow-sm">
+                              <div className="flex items-start justify-between gap-2">
+                                <p className="text-2xl font-medium text-stone-900 tracking-tight tabular-nums leading-tight">{d.valor}</p>
+                                <span className="w-8 h-8 rounded-full bg-[#f4eefe] text-[#6105dc] flex items-center justify-center shrink-0">
+                                  <i className={`fa-solid ${d.icono} text-xs`}></i>
+                                </span>
+                              </div>
+                              <p className="text-xs text-stone-500 mt-2">{d.etiqueta}</p>
+                              {d.pct != null && <div className="mt-1"><VariacionPct pct={d.pct} corto /></div>}
+                            </div>
+                          ))}
+                        </div>
+                      </section>
 
-                    <div className="grid grid-cols-1 lg:grid-cols-5 gap-x-10 gap-y-8 border-t border-stone-200 pt-6">
-                      {/* Ventas por horario */}
-                      <section className="lg:col-span-3">
-                        <div className="flex flex-wrap items-baseline justify-between gap-x-3">
-                          <h4 className="text-sm font-semibold text-stone-900">Ventas por hora</h4>
+                      {/* Venta total + ventas por hora: la hora pico se resalta */}
+                      <section className="lg:col-span-7 bg-white/60 backdrop-blur-xl border border-white/80 rounded-3xl shadow-[0_10px_40px_-14px_rgba(97,5,220,0.18)] p-5">
+                        <div className="flex flex-wrap items-start justify-between gap-2">
+                          <div>
+                            <h4 className="text-sm font-semibold text-stone-800">Venta total</h4>
+                            <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1 mt-2">
+                              <span className="text-4xl md:text-5xl font-medium text-stone-900 tracking-tight tabular-nums">S/ {formatoSoles(dashStats.totalVenta)}</span>
+                              <VariacionPct pct={dashStats.hayBaseVentaAnterior ? dashStats.cambioVentaPct : null} />
+                            </div>
+                          </div>
                           {dashStats.horaPico.total > 0 && (
-                            <p className="text-xs text-stone-500">
-                              Hora pico <span className="font-semibold text-stone-800">{String(dashStats.horaPico.hora).padStart(2, '0')}:00</span>
-                              {' · '}{((dashStats.horaPico.total / dashStats.totalVenta) * 100).toFixed(0)}% de las ventas
+                            <p className="text-xs text-stone-500 sm:text-right">
+                              Hora pico <span className="font-semibold text-[#6105dc]">{String(dashStats.horaPico.hora).padStart(2, '0')}:00</span><br />
+                              {((dashStats.horaPico.total / dashStats.totalVenta) * 100).toFixed(0)}% de las ventas
                             </p>
                           )}
                         </div>
 
-                        <div
-                          className="relative w-full pt-8 mt-2"
-                          onMouseMove={(e) => {
-                            const rect = e.currentTarget.getBoundingClientRect();
-                            if (!rect.width) return;
-                            const relX = ((e.clientX - rect.left) / rect.width) * 300;
-                            const idx = Math.round((relX / 300) * (dashStats.porHora.length - 1));
-                            setHoraResaltada(Math.max(0, Math.min(dashStats.porHora.length - 1, idx)));
-                          }}
-                          onMouseLeave={() => setHoraResaltada(null)}
-                        >
-                          {(() => {
-                            const puntos = dashStats.porHora.map((h, i) => ({
-                              x: (i / (dashStats.porHora.length - 1)) * 300,
-                              y: 100 - (h.total / dashStats.maxHora) * 85,
-                            }));
-                            const lineaPath = curvaSuave(puntos);
-                            const areaPath = `${lineaPath} L 300,100 L 0,100 Z`;
-                            const activo = horaResaltada != null ? puntos[horaResaltada] : null;
-                            const iPico = dashStats.porHora.findIndex((h) => h.hora === dashStats.horaPico.hora);
+                        <div className="flex items-end gap-[3px] h-40 mt-6" onMouseLeave={() => setHoraResaltada(null)}>
+                          {dashStats.porHora.map((h, i) => {
+                            const esPico = dashStats.horaPico.total > 0 && h.hora === dashStats.horaPico.hora;
+                            const activa = horaResaltada === i;
                             return (
-                              <>
-                                {activo && dashStats.porHora[horaResaltada] && (
-                                  <div
-                                    className="absolute bg-stone-900 text-white text-[11px] rounded-lg px-2.5 py-1.5 whitespace-nowrap pointer-events-none z-20 shadow-lg"
-                                    style={{
-                                      left: `${(activo.x / 300) * 100}%`,
-                                      top: 0,
-                                      transform: `translate(${horaResaltada < 2 ? '0%' : horaResaltada > dashStats.porHora.length - 3 ? '-100%' : '-50%'}, 0)`
-                                    }}
-                                  >
-                                    <div className="font-bold">{String(dashStats.porHora[horaResaltada].hora).padStart(2, '0')}:00 · S/ {formatoSoles(dashStats.porHora[horaResaltada].total)}</div>
-                                    <div className="text-stone-300">{dashStats.porHora[horaResaltada].cantidad} venta{dashStats.porHora[horaResaltada].cantidad === 1 ? '' : 's'}</div>
+                              <div key={h.hora} className="relative flex-1 h-full flex items-end" onMouseEnter={() => setHoraResaltada(i)}>
+                                {activa && h.total > 0 && (
+                                  <div className={`absolute bottom-full mb-1.5 bg-stone-900 text-white text-[11px] rounded-lg px-2.5 py-1.5 whitespace-nowrap pointer-events-none z-20 shadow-lg ${i < 3 ? 'left-0' : i > 20 ? 'right-0' : 'left-1/2 -translate-x-1/2'}`}>
+                                    <div className="font-bold">{String(h.hora).padStart(2, '0')}:00 · S/ {formatoSoles(h.total)}</div>
+                                    <div className="text-stone-300">{h.cantidad} venta{h.cantidad === 1 ? '' : 's'}</div>
                                   </div>
                                 )}
-                                <svg className="w-full h-44 overflow-visible" preserveAspectRatio="none" viewBox="0 0 300 100">
-                                  <defs>
-                                    <linearGradient id="olaFill" x1="0%" y1="0%" x2="0%" y2="100%">
-                                      <stop offset="0%" stopColor="#6105dc" stopOpacity="0.14" />
-                                      <stop offset="100%" stopColor="#6105dc" stopOpacity="0" />
-                                    </linearGradient>
-                                  </defs>
-                                  <line x1="0" y1="15" x2="300" y2="15" stroke="#e7e5e4" strokeWidth="1" vectorEffect="non-scaling-stroke" />
-                                  <line x1="0" y1="50" x2="300" y2="50" stroke="#e7e5e4" strokeWidth="1" vectorEffect="non-scaling-stroke" />
-                                  <line x1="0" y1="85" x2="300" y2="85" stroke="#e7e5e4" strokeWidth="1" vectorEffect="non-scaling-stroke" />
-                                  <path d={areaPath} fill="url(#olaFill)" />
-                                  <path d={lineaPath} fill="none" stroke="#6105dc" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" vectorEffect="non-scaling-stroke" />
-                                  {dashStats.horaPico.total > 0 && iPico >= 0 && (
-                                    <circle cx={puntos[iPico].x} cy={puntos[iPico].y} r="3.5" fill="#6105dc" stroke="#ffffff" strokeWidth="2" vectorEffect="non-scaling-stroke" />
-                                  )}
-                                  {activo && (
-                                    <>
-                                      <line x1={activo.x} y1="0" x2={activo.x} y2="100" stroke="#a8a29e" strokeWidth="1" strokeDasharray="3 3" vectorEffect="non-scaling-stroke" />
-                                      <circle cx={activo.x} cy={activo.y} r="3.5" fill="#6105dc" stroke="#ffffff" strokeWidth="2" vectorEffect="non-scaling-stroke" />
-                                    </>
-                                  )}
-                                </svg>
-                              </>
+                                <div
+                                  className={`w-full rounded-t-xl rounded-b-md transition-colors duration-200 ${esPico ? 'bg-gradient-to-t from-[#6105dc] to-[#b98cf5] shadow-[0_10px_24px_-8px_rgba(97,5,220,0.55)]' : activa ? 'bg-[#d6bdfa]' : 'bg-white'}`}
+                                  style={{ height: `${Math.max(4, (h.total / dashStats.maxHora) * 100)}%` }}
+                                ></div>
+                              </div>
                             );
-                          })()}
-                          <div className="flex items-center justify-between text-[10px] font-medium text-stone-400 pt-2 mt-1">
-                            {[0, 3, 6, 9, 12, 15, 18, 21, 24].map(h => (
-                              <span key={h} className={dashStats.horaPico.hora === h ? 'font-bold text-[#6105dc]' : ''}>{h}h</span>
-                            ))}
-                          </div>
+                          })}
+                        </div>
+                        <div className="flex gap-[3px] mt-2 text-[10px] text-stone-400">
+                          {dashStats.porHora.map((h) => (
+                            <span key={h.hora} className={`flex-1 text-center whitespace-nowrap ${dashStats.horaPico.total > 0 && h.hora === dashStats.horaPico.hora ? 'font-bold text-[#6105dc]' : ''}`}>{h.hora % 3 === 0 ? `${h.hora}h` : ''}</span>
+                          ))}
                         </div>
                       </section>
+                    </div>
 
+                    <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
                       {/* Métodos de pago */}
-                      <section className="lg:col-span-2">
-                        <div className="flex flex-wrap items-baseline justify-between gap-x-3">
-                          <h4 className="text-sm font-semibold text-stone-900">Métodos de pago</h4>
-                          <p className="text-xs text-stone-500">{dashStats.numVentas} venta{dashStats.numVentas === 1 ? '' : 's'}</p>
-                        </div>
-                        <div className="flex h-2.5 rounded-full overflow-hidden bg-stone-100 mt-4">
+                      <section className="lg:col-span-5 bg-white/60 backdrop-blur-xl border border-white/80 rounded-3xl shadow-[0_10px_40px_-14px_rgba(97,5,220,0.18)] p-5">
+                        <h4 className="text-sm font-semibold text-stone-800">Métodos de pago</h4>
+                        <p className="text-xs text-stone-500 mt-0.5">Cómo pagaron tus clientes</p>
+                        <div className="flex h-3 rounded-full overflow-hidden bg-white/80 mt-5">
                           {dashStats.porMedio.map(m => (
                             <div key={m.medio} title={`${m.medio}: ${m.pct.toFixed(0)}%`} style={{ width: `${m.pct}%`, background: COLOR_MEDIO_PAGO[m.medio] || '#d6d3d1' }}></div>
                           ))}
                         </div>
-                        <ul className="mt-5 space-y-3">
+                        <ul className="mt-5 space-y-2">
                           {dashStats.porMedio.map(m => (
-                            <li key={m.medio} className="flex items-center gap-2.5 text-sm">
+                            <li key={m.medio} className="flex items-center gap-3 bg-white/80 rounded-2xl px-3.5 py-2.5 text-sm shadow-sm">
                               <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ background: COLOR_MEDIO_PAGO[m.medio] || '#d6d3d1' }}></span>
                               <span className="flex-1 min-w-0 truncate font-medium text-stone-800 capitalize">{m.medio.toLowerCase()}</span>
                               <span className="font-semibold text-stone-900 tabular-nums">S/ {formatoSoles(m.total)}</span>
@@ -12972,14 +12924,39 @@ import './index.css';
                           ))}
                         </ul>
                       </section>
+
+                      {/* Top productos */}
+                      <section className="lg:col-span-7 bg-white/60 backdrop-blur-xl border border-white/80 rounded-3xl shadow-[0_10px_40px_-14px_rgba(97,5,220,0.18)] p-5">
+                        <h4 className="text-sm font-semibold text-stone-800">Productos más vendidos</h4>
+                        <p className="text-xs text-stone-500 mt-0.5">Por monto vendido en el período</p>
+                        <ol className="mt-4 space-y-2">
+                          {dashStats.topProductos.map((p, i) => (
+                            <li key={p.descripcion + i} className="flex items-center gap-3 bg-white/80 rounded-2xl px-3.5 py-2.5 shadow-sm">
+                              <span className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-semibold shrink-0 ${i === 0 ? 'bg-[#6105dc] text-white' : 'bg-[#f4eefe] text-[#6105dc]'}`}>{i + 1}</span>
+                              <div className="flex-1 min-w-0">
+                                <div className="flex justify-between items-baseline gap-3">
+                                  <span className="text-sm font-medium text-stone-900 truncate">{p.descripcion}</span>
+                                  <span className="text-sm font-semibold text-stone-900 tabular-nums shrink-0">S/ {formatoSoles(p.monto)}</span>
+                                </div>
+                                <div className="w-full h-1 bg-stone-100 rounded-full overflow-hidden mt-1.5">
+                                  <div className="h-full bg-gradient-to-r from-[#a26df0] to-[#6105dc] rounded-full" style={{ width: `${(p.monto / dashStats.maxProducto) * 100}%` }}></div>
+                                </div>
+                                <p className="text-[11px] text-stone-500 mt-1">
+                                  {p.cantidad} und · utilidad <span className="text-emerald-600 font-semibold tabular-nums">S/ {formatoSoles(p.utilidad)}</span>
+                                </p>
+                              </div>
+                            </li>
+                          ))}
+                        </ol>
+                      </section>
                     </div>
 
                     {/* Tendencia diaria */}
                     {dashStats.porDia.length > 1 && (
-                      <section className="border-t border-stone-200 pt-6">
-                        <h4 className="text-sm font-semibold text-stone-900 mb-4">Ventas por día</h4>
+                      <section className="bg-white/60 backdrop-blur-xl border border-white/80 rounded-3xl shadow-[0_10px_40px_-14px_rgba(97,5,220,0.18)] p-5">
+                        <h4 className="text-sm font-semibold text-stone-800">Ventas por día</h4>
                         <div
-                          className="relative"
+                          className="relative mt-5"
                           onMouseMove={(e) => {
                             const rect = e.currentTarget.getBoundingClientRect();
                             if (!rect.width) return;
@@ -12990,14 +12967,20 @@ import './index.css';
                           onMouseLeave={() => setDiaResaltado(null)}
                         >
                           <svg viewBox="0 0 300 100" preserveAspectRatio="none" className="w-full h-32">
+                            <defs>
+                              <linearGradient id="diaFill" x1="0%" y1="0%" x2="0%" y2="100%">
+                                <stop offset="0%" stopColor="#6105dc" stopOpacity="0.18" />
+                                <stop offset="100%" stopColor="#6105dc" stopOpacity="0" />
+                              </linearGradient>
+                            </defs>
                             <polygon
-                              fill="rgba(97,5,220,0.08)"
+                              fill="url(#diaFill)"
                               points={`0,100 ${dashStats.porDia.map((d, i) => `${(i / (dashStats.porDia.length - 1)) * 300},${100 - (d.total / dashStats.maxDia) * 85}`).join(' ')} 300,100`}
                             />
                             <polyline
                               fill="none"
                               stroke="#6105dc"
-                              strokeWidth="2"
+                              strokeWidth="2.5"
                               strokeLinejoin="round"
                               strokeLinecap="round"
                               vectorEffect="non-scaling-stroke"
@@ -13035,56 +13018,26 @@ import './index.css';
                       </section>
                     )}
 
-                    {/* Top productos */}
-                    <section className="border-t border-stone-200 pt-6">
-                      <h4 className="text-sm font-semibold text-stone-900 mb-4">Productos más vendidos</h4>
-                      <ol className="space-y-3.5">
-                        {dashStats.topProductos.map((p, i) => (
-                          <li key={p.descripcion + i} className="flex items-start gap-3">
-                            <span className="w-5 pt-0.5 text-xs font-semibold text-stone-400 tabular-nums">{i + 1}</span>
-                            <div className="flex-1 min-w-0">
-                              <div className="flex justify-between items-baseline gap-3">
-                                <span className="text-sm font-medium text-stone-900 truncate">{p.descripcion}</span>
-                                <span className="text-sm font-semibold text-stone-900 tabular-nums shrink-0">S/ {formatoSoles(p.monto)}</span>
-                              </div>
-                              <div className="w-full h-1 bg-stone-100 rounded-full overflow-hidden mt-1.5">
-                                <div className="h-full bg-[#6105dc] rounded-full" style={{ width: `${(p.monto / dashStats.maxProducto) * 100}%` }}></div>
-                              </div>
-                              <p className="text-xs text-stone-500 mt-1">
-                                {p.cantidad} und · utilidad <span className="text-emerald-600 font-semibold tabular-nums">S/ {formatoSoles(p.utilidad)}</span>
-                              </p>
-                            </div>
-                          </li>
-                        ))}
-                      </ol>
-                    </section>
-
                     {/* Ventas por Mes */}
                     {dashStats.totalAnio > 0 && (
-                      <section className="border-t border-stone-200 pt-6">
-                        <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
-                          <h4 className="text-sm font-semibold text-stone-900">Ventas por mes · {dashStats.anioActual}</h4>
-                          <p className="text-xs text-stone-500">Acumulado del año <span className="font-semibold text-stone-800 tabular-nums">S/ {formatoSoles(dashStats.totalAnio)}</span></p>
-                        </div>
-
-                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-y-4 mt-4">
+                      <section className="bg-white/60 backdrop-blur-xl border border-white/80 rounded-3xl shadow-[0_10px_40px_-14px_rgba(97,5,220,0.18)] p-5">
+                        <div className="flex flex-wrap items-start justify-between gap-2">
                           <div>
-                            <p className="text-xs text-stone-500">Mes con mayor venta</p>
-                            <p className="text-base font-bold text-stone-900 mt-0.5">{MESES_CORTOS[dashStats.mesPico.mes]} <span className="text-sm font-semibold text-stone-500 tabular-nums">· S/ {formatoSoles(dashStats.mesPico.total)}</span></p>
+                            <h4 className="text-sm font-semibold text-stone-800">Ventas por mes · {dashStats.anioActual}</h4>
+                            <p className="text-xs text-stone-500 mt-0.5">Acumulado del año <span className="font-semibold text-stone-800 tabular-nums">S/ {formatoSoles(dashStats.totalAnio)}</span></p>
                           </div>
-                          <div className="sm:pl-4 sm:border-l sm:border-stone-200">
-                            <p className="text-xs text-stone-500">Promedio mensual</p>
-                            <p className="text-base font-bold text-stone-900 mt-0.5 tabular-nums">S/ {formatoSoles(dashStats.promedioMensual)}</p>
-                          </div>
-                          <div className="sm:pl-4 sm:border-l sm:border-stone-200">
-                            <p className="text-xs text-stone-500">Crecimiento vs mes anterior</p>
-                            {dashStats.hayBaseMesAnterior
-                              ? <div className="mt-0.5 text-base"><VariacionPct pct={dashStats.cambioMesPct} corto /></div>
-                              : <p className="text-base font-bold text-stone-400 mt-0.5">Sin datos previos</p>}
+                          <div className="flex flex-wrap gap-2">
+                            <span className="bg-[#ece0fd] text-[#4d04b0] text-[11px] font-semibold px-3 py-1 rounded-full">Mejor mes: {MESES_CORTOS[dashStats.mesPico.mes]} · S/ {formatoSoles(dashStats.mesPico.total)}</span>
+                            <span className="bg-white/80 text-stone-600 text-[11px] font-semibold px-3 py-1 rounded-full shadow-sm">Promedio: S/ {formatoSoles(dashStats.promedioMensual)}</span>
+                            {dashStats.hayBaseMesAnterior && (
+                              <span className="bg-white/80 text-[11px] px-3 py-1 rounded-full shadow-sm inline-flex items-center gap-1.5 text-stone-500">
+                                vs mes anterior <VariacionPct pct={dashStats.cambioMesPct} corto />
+                              </span>
+                            )}
                           </div>
                         </div>
 
-                        <div className="grid grid-cols-12 gap-1 sm:gap-2 items-end h-44 pt-6 mt-5">
+                        <div className="grid grid-cols-12 gap-1.5 sm:gap-2.5 items-end h-48 pt-6 mt-4">
                           {dashStats.porMes.map((m, i) => {
                             const esPico = m.total > 0 && m.mes === dashStats.mesPico.mes;
                             const esActual = m.mes === dashStats.mesActualIdx;
@@ -13102,8 +13055,8 @@ import './index.css';
                                   {m.total >= 1000 ? `${(m.total / 1000).toFixed(1)}k` : m.total.toFixed(0)}
                                 </span>
                                 <div
-                                  className={`w-full max-w-[26px] rounded-t-md transition-colors duration-200 ${esPico ? 'bg-[#6105dc]' : mesResaltado === i ? 'bg-[#a26df0]' : 'bg-[#d6bdfa] group-hover:bg-[#a26df0]'}`}
-                                  style={{ height: `${Math.max(2, (m.total / dashStats.maxMes) * 100)}%` }}
+                                  className={`w-full max-w-[34px] rounded-t-xl rounded-b-md transition-colors duration-200 ${esPico ? 'bg-gradient-to-t from-[#6105dc] to-[#b98cf5] shadow-[0_10px_24px_-8px_rgba(97,5,220,0.55)]' : mesResaltado === i ? 'bg-[#d6bdfa]' : 'bg-white group-hover:bg-[#ece0fd]'}`}
+                                  style={{ height: `${Math.max(3, (m.total / dashStats.maxMes) * 100)}%` }}
                                 ></div>
                                 <span className={`text-[10px] sm:text-[11px] mt-2 ${esPico ? 'font-bold text-[#6105dc]' : esActual ? 'font-bold text-stone-800' : 'font-medium text-stone-500'}`}>{MESES_CORTOS[m.mes]}</span>
                               </div>
@@ -13114,57 +13067,65 @@ import './index.css';
                     )}
 
                     {/* Deudas: no dependen del rango de fechas */}
-                    <section className="border-t border-stone-200 pt-6 grid grid-cols-1 md:grid-cols-2 gap-x-10 gap-y-8">
-                      <div>
-                        <div className="flex items-baseline justify-between gap-3">
-                          <h4 className="text-sm font-semibold text-stone-900">Cuentas por cobrar</h4>
-                          <p className={`text-base font-bold tabular-nums ${dashStats.totalDeuda > 0 ? 'text-rose-600' : 'text-stone-900'}`}>S/ {formatoSoles(dashStats.totalDeuda)}</p>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <section className="bg-white/60 backdrop-blur-xl border border-white/80 rounded-3xl shadow-[0_10px_40px_-14px_rgba(97,5,220,0.18)] p-5">
+                        <div className="flex items-start justify-between gap-3">
+                          <div>
+                            <h4 className="text-sm font-semibold text-stone-800">Cuentas por cobrar</h4>
+                            <p className={`text-2xl font-medium tracking-tight tabular-nums mt-1.5 ${dashStats.totalDeuda > 0 ? 'text-rose-600' : 'text-stone-900'}`}>S/ {formatoSoles(dashStats.totalDeuda)}</p>
+                          </div>
+                          <span className={`text-[11px] font-semibold px-3 py-1 rounded-full ${dashStats.numDeudores > 0 ? 'bg-rose-50 text-rose-600' : 'bg-emerald-50 text-emerald-600'}`}>
+                            {dashStats.numDeudores > 0 ? `${dashStats.numDeudores} cliente${dashStats.numDeudores === 1 ? '' : 's'}` : 'Al día'}
+                          </span>
                         </div>
-                        <p className="text-xs text-stone-500 mt-0.5">{dashStats.numDeudores} cliente{dashStats.numDeudores === 1 ? '' : 's'} con deuda</p>
                         {dashStats.numDeudores === 0 ? (
-                          <p className="text-xs text-stone-400 mt-3">Ningún cliente tiene deuda pendiente.</p>
+                          <p className="text-xs text-stone-500 mt-3">Ningún cliente tiene deuda pendiente.</p>
                         ) : (
-                          <ul className="space-y-3 mt-4 max-h-48 overflow-y-auto hide-scrollbar">
+                          <ul className="space-y-2 mt-4 max-h-48 overflow-y-auto hide-scrollbar">
                             {clientesDeuda.map((c, i) => (
-                              <li key={c.dni + i}>
+                              <li key={c.dni + i} className="bg-white/80 rounded-2xl px-3.5 py-2.5 shadow-sm">
                                 <div className="flex justify-between items-baseline gap-3 text-sm">
                                   <span className="text-stone-800 truncate">{c.nombre_completo || c.dni}</span>
                                   <span className="font-semibold text-stone-900 tabular-nums shrink-0">S/ {formatoSoles(c.saldo_actual)}</span>
                                 </div>
-                                <div className="w-full h-1 bg-stone-100 rounded-full overflow-hidden mt-1">
-                                  <div className="h-full bg-rose-500 rounded-full" style={{ width: `${(Number(c.saldo_actual) / dashStats.maxDeuda) * 100}%` }}></div>
+                                <div className="w-full h-1 bg-stone-100 rounded-full overflow-hidden mt-1.5">
+                                  <div className="h-full bg-rose-400 rounded-full" style={{ width: `${(Number(c.saldo_actual) / dashStats.maxDeuda) * 100}%` }}></div>
                                 </div>
                               </li>
                             ))}
                           </ul>
                         )}
-                      </div>
+                      </section>
 
-                      <div>
-                        <div className="flex items-baseline justify-between gap-3">
-                          <h4 className="text-sm font-semibold text-stone-900">Cuentas por pagar</h4>
-                          <p className="text-base font-bold tabular-nums text-stone-900">S/ {formatoSoles(dashStats.totalPorPagar)}</p>
+                      <section className="bg-white/60 backdrop-blur-xl border border-white/80 rounded-3xl shadow-[0_10px_40px_-14px_rgba(97,5,220,0.18)] p-5">
+                        <div className="flex items-start justify-between gap-3">
+                          <div>
+                            <h4 className="text-sm font-semibold text-stone-800">Cuentas por pagar</h4>
+                            <p className="text-2xl font-medium tracking-tight tabular-nums mt-1.5 text-stone-900">S/ {formatoSoles(dashStats.totalPorPagar)}</p>
+                          </div>
+                          <span className={`text-[11px] font-semibold px-3 py-1 rounded-full ${dashStats.numProveedoresDeuda > 0 ? 'bg-[#ece0fd] text-[#4d04b0]' : 'bg-emerald-50 text-emerald-600'}`}>
+                            {dashStats.numProveedoresDeuda > 0 ? `${dashStats.numProveedoresDeuda} proveedor${dashStats.numProveedoresDeuda === 1 ? '' : 'es'}` : 'Al día'}
+                          </span>
                         </div>
-                        <p className="text-xs text-stone-500 mt-0.5">{dashStats.numProveedoresDeuda} proveedor{dashStats.numProveedoresDeuda === 1 ? '' : 'es'}</p>
                         {dashStats.numProveedoresDeuda === 0 ? (
-                          <p className="text-xs text-stone-400 mt-3">No le debes a ningún proveedor.</p>
+                          <p className="text-xs text-stone-500 mt-3">No le debes a ningún proveedor.</p>
                         ) : (
-                          <ul className="space-y-3 mt-4 max-h-48 overflow-y-auto hide-scrollbar">
+                          <ul className="space-y-2 mt-4 max-h-48 overflow-y-auto hide-scrollbar">
                             {proveedoresDeudaDash.map((p, i) => (
-                              <li key={p.nombre + i}>
+                              <li key={p.nombre + i} className="bg-white/80 rounded-2xl px-3.5 py-2.5 shadow-sm">
                                 <div className="flex justify-between items-baseline gap-3 text-sm">
                                   <span className="text-stone-800 truncate">{p.nombre}</span>
                                   <span className="font-semibold text-stone-900 tabular-nums shrink-0">S/ {formatoSoles(p.saldo_actual)}</span>
                                 </div>
-                                <div className="w-full h-1 bg-stone-100 rounded-full overflow-hidden mt-1">
-                                  <div className="h-full bg-stone-700 rounded-full" style={{ width: `${(Number(p.saldo_actual) / dashStats.maxPorPagar) * 100}%` }}></div>
+                                <div className="w-full h-1 bg-stone-100 rounded-full overflow-hidden mt-1.5">
+                                  <div className="h-full bg-gradient-to-r from-[#a26df0] to-[#6105dc] rounded-full" style={{ width: `${(Number(p.saldo_actual) / dashStats.maxPorPagar) * 100}%` }}></div>
                                 </div>
                               </li>
                             ))}
                           </ul>
                         )}
-                      </div>
-                    </section>
+                      </section>
+                    </div>
                   </>
                 )}
                 </div>
@@ -13190,7 +13151,7 @@ import './index.css';
                       type="date"
                       value={fechaInicioHistorial}
                       onChange={(e) => setFechaInicioHistorial(e.target.value)}
-                      className="bg-stone-50 border border-stone-200 rounded-lg px-2 py-1.5 text-xs text-stone-900"
+                      className="bg-white border border-stone-200/70 shadow-sm rounded-full px-3 py-1.5 text-xs text-stone-900"
                     />
                   </div>
                   <div>
@@ -13199,7 +13160,7 @@ import './index.css';
                       type="date"
                       value={fechaFinHistorial}
                       onChange={(e) => setFechaFinHistorial(e.target.value)}
-                      className="bg-stone-50 border border-stone-200 rounded-lg px-2 py-1.5 text-xs text-stone-900"
+                      className="bg-white border border-stone-200/70 shadow-sm rounded-full px-3 py-1.5 text-xs text-stone-900"
                     />
                   </div>
                   <button
