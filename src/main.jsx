@@ -679,6 +679,9 @@ import './index.css';
       bluetooth: <path d="m7 7 10 10-5 5V2l5 5L7 17" />,
       till: <><rect x="3" y="12" width="18" height="9" rx="2" /><path d="M6 12V6a1 1 0 0 1 1-1h10a1 1 0 0 1 1 1v6" /><path d="M9 8.5h6" /><path d="M8 16.5h.01M12 16.5h.01M16 16.5h.01" /></>,
       warn: <><path d="M12 3 2 20h20z" /><path d="M12 10v4M12 17.5h.01" /></>,
+      plus: <path d="M12 5v14M5 12h14" />,
+      minus: <path d="M5 12h14" />,
+      bag: <><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z" /><path d="M3 6h18" /><path d="M16 10a4 4 0 0 1-8 0" /></>,
       x: <path d="M18 6 6 18M6 6l12 12" />,
       back: <path d="m15 18-6-6 6-6" />,
       pdf: <><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" /><path d="M14 2v6h6" /><path d="M12 12v6" /><path d="m9 15 3 3 3-3" /></>,
@@ -8968,23 +8971,26 @@ import './index.css';
 
           {/* Barra flotante del carrito (solo mobile, cuando hay productos y el panel está cerrado) */}
           {carrito.length > 0 && !mostrarResumenMobile && (
-            <button
-              onClick={() => setMostrarResumenMobile(true)}
-              className="md:hidden fixed left-3 right-3 bottom-3 z-40 flex items-center justify-between gap-3 bg-stone-900 text-white rounded-2xl px-4 py-3.5 shadow-xl shadow-stone-900/30 active:scale-[0.98] transition-transform"
-            >
-              <span className="flex items-center gap-2.5 font-bold text-sm">
-                <span className="flex items-center justify-center w-7 h-7 rounded-full bg-white/25 text-xs font-black">
-                  {carrito.reduce((acc, item) => acc + Number(item.cantidad || 0), 0)}
+            <>
+              <div className="md:hidden fixed inset-x-0 bottom-0 h-24 z-30 pointer-events-none bg-gradient-to-t from-[#f9f8fb]/95 via-[#f9f8fb]/60 to-transparent"></div>
+              <button
+                onClick={() => setMostrarResumenMobile(true)}
+                className="md:hidden fixed left-3 right-3 bottom-3 z-40 h-[58px] flex items-center justify-between gap-3 bg-[#6105dc] hover:bg-[#4d04b0] text-white rounded-full pl-2 pr-2 active:scale-[0.98] transition-transform"
+              >
+                <span className="flex items-center gap-2.5 font-semibold text-[15px]">
+                  <span className="flex items-center justify-center min-w-[42px] h-[42px] rounded-full bg-white/20 text-[15px] font-bold tabular-nums">
+                    {carrito.reduce((acc, item) => acc + Number(item.cantidad || 0), 0)}
+                  </span>
+                  Ver carrito
                 </span>
-                Ver carrito
-              </span>
-              <span className="flex items-center gap-2.5 font-black text-sm">
-                S/ {totalConDescuento.toFixed(2)}
-                <span className="flex items-center justify-center w-9 h-9 rounded-full bg-[#7c1fe0] shrink-0">
-                  <i className="fa-solid fa-basket-shopping text-sm"></i>
+                <span className="flex items-center gap-2.5 font-bold text-base tabular-nums pr-0.5">
+                  <span><small className="text-xs font-semibold opacity-80 mr-0.5">S/</small>{formatoSoles(totalConDescuento)}</span>
+                  <span className="flex items-center justify-center w-[42px] h-[42px] rounded-full bg-white text-[#6105dc] shrink-0">
+                    <IconoTrazo nombre="bag" className="w-5 h-5" />
+                  </span>
                 </span>
-              </span>
-            </button>
+              </button>
+            </>
           )}
 
           {/* Panel Derecho: Resumen de Venta y Cobro (overlay en mobile, fijo en desktop) */}
@@ -9302,22 +9308,24 @@ import './index.css';
             </>
             ) : (
             <>
-            {/* Encabezado del resumen (solo mobile trae botón de cerrar) */}
-            <div className="flex items-center justify-between px-4 py-3 border-b border-stone-200 md:hidden shrink-0">
-              <h2 className="text-sm font-black text-stone-900">Resumen de Venta</h2>
-              <button onClick={() => setMostrarResumenMobile(false)} className="text-stone-600 hover:text-stone-900 text-lg"><i className="fa-solid fa-xmark"></i></button>
-            </div>
-
-            {/* Encabezado Carrito */}
-            <div className="flex items-center justify-between px-4 py-3 bg-white border-b border-stone-100">
-              <span className="text-sm font-extrabold text-stone-900">
-                <span className="md:hidden">Carrito · </span>
-                <span className="text-stone-400 font-semibold">{carrito.reduce((a, c) => a + c.cantidad, 0)} ítems</span>
-              </span>
-              <div className="flex items-center gap-2">
+            {/* Encabezado del carrito: una sola fila de título (con el cierre en
+                mobile) y debajo las acciones rápidas. En desktop todo va en una fila. */}
+            <div className="flex flex-wrap md:flex-nowrap items-center justify-between gap-y-2.5 px-4 pt-2 pb-3 md:py-3 bg-white border-b border-stone-100 shrink-0">
+              <h2 className="text-[19px] md:text-sm font-bold md:font-extrabold tracking-tight text-stone-900">
+                <span className="md:hidden">Carrito</span>
+                <span className="ml-1.5 md:ml-0 text-[13px] md:text-sm text-stone-400 font-semibold">{carrito.reduce((a, c) => a + c.cantidad, 0)} ítems</span>
+              </h2>
+              <button
+                onClick={() => setMostrarResumenMobile(false)}
+                className="md:hidden w-9 h-9 rounded-full bg-[#f4eefe] hover:bg-[#ece0fd] text-stone-500 flex items-center justify-center transition"
+                aria-label="Cerrar"
+              >
+                <IconoTrazo nombre="x" className="w-[15px] h-[15px]" />
+              </button>
+              <div className="flex items-center gap-1.5 w-full md:w-auto">
                 <button
                   onClick={() => { setModalPedidosRetirar(false); setModalVentasEspera(true); }}
-                  className="md:hidden flex items-center gap-1.5 pl-2.5 pr-1.5 py-1 rounded-full border border-amber-200 bg-amber-50 hover:bg-amber-100 text-xs font-semibold text-amber-700 transition"
+                  className="md:hidden flex items-center gap-1.5 pl-3 pr-2 py-1.5 rounded-full ring-1 ring-amber-200 bg-amber-50 hover:bg-amber-100 text-xs font-semibold text-amber-700 transition"
                 >
                   En espera
                   <span className="w-4 h-4 rounded-full bg-amber-500 text-white text-[10px] font-extrabold flex items-center justify-center">
@@ -9327,15 +9335,15 @@ import './index.css';
                 {carrito.length > 0 && (
                   <button
                     onClick={aparcarVentaActual}
-                    className="text-xs text-amber-700 hover:text-amber-800 font-bold transition"
+                    className="px-3.5 py-1.5 rounded-full bg-[#f4eefe] hover:bg-[#ece0fd] text-xs text-[#4d04b0] font-semibold transition"
                   >
-                    <i className="fa-solid fa-pause text-xs"></i> Pausar
+                    Pausar
                   </button>
                 )}
                 {carrito.length > 0 && (
                   <button
                     onClick={() => { setCarrito([]); setDescuentoTipo(null); setDescuentoValor(''); setMostrarPago(false); reiniciarClienteYMedioPago(); setPedidosCargadosAlCarrito([]); }}
-                    className="text-xs text-rose-600 hover:text-rose-600 transition"
+                    className="px-3.5 py-1.5 rounded-full bg-rose-50 hover:bg-rose-100 text-xs text-rose-700 font-semibold transition"
                   >
                     Vaciar
                   </button>
@@ -9379,52 +9387,46 @@ import './index.css';
                 carrito.map((item) => (
                   <div
                     key={item.claveCarrito || item.productoId}
-                    className="flex items-center gap-2.5 p-2.5 bg-white shadow-sm border border-stone-200 rounded-2xl hover:border-stone-300 transition"
+                    className="flex items-center gap-2.5 p-2 bg-[#faf8fe] rounded-[20px]"
                   >
                     <FotoProducto
                       fotoUrl={item.foto_url}
                       categoria={item.categoria}
-                      className="w-10 h-10 rounded-full shrink-0"
+                      className="w-11 h-11 rounded-[14px] shrink-0 ring-1 ring-black/5 bg-white"
                       iconClassName="text-sm"
                     />
                     <div className="flex-1 min-w-0">
-                      <p className="text-xs font-semibold text-stone-900 truncate">
+                      <p className="text-[13px] font-semibold text-stone-900 truncate">
                         {item.descripcion}
                       </p>
-                      <p className="text-xs text-stone-500 tabular-nums">
+                      <p className="text-[11.5px] text-stone-400 tabular-nums">
                         S/ {item.precioUnitario.toFixed(2)} / {item.unidad || 'UND'}
                       </p>
                     </div>
 
-                    <div className="flex items-center gap-1.5 shrink-0">
+                    <div className="flex items-center bg-white rounded-full ring-1 ring-[#6105dc]/10 shrink-0">
                       <button
                         onClick={() => cambiarCantidadCarrito(item.claveCarrito || item.productoId, -1)}
-                        className="w-6 h-6 flex items-center justify-center text-stone-500 hover:bg-stone-200 rounded-full transition"
+                        className="w-8 h-8 flex items-center justify-center text-[#6105dc] hover:bg-[#f4eefe] rounded-full transition"
+                        aria-label="Quitar uno"
                       >
-                        <i className="fa-solid fa-minus text-xs"></i>
+                        <IconoTrazo nombre="minus" className="w-3.5 h-3.5" />
                       </button>
-                      <span className="w-6 text-center text-xs font-bold text-stone-900 tabular-nums">
+                      <span className="min-w-[18px] text-center text-[13px] font-bold text-stone-900 tabular-nums">
                         {item.cantidad}
                       </span>
                       <button
                         onClick={() => cambiarCantidadCarrito(item.claveCarrito || item.productoId, 1)}
-                        className="w-6 h-6 flex items-center justify-center bg-green-500 text-white hover:bg-green-600 rounded-full transition shadow-sm"
+                        className="w-8 h-8 flex items-center justify-center text-[#6105dc] hover:bg-[#f4eefe] rounded-full transition"
+                        aria-label="Agregar uno"
                       >
-                        <i className="fa-solid fa-plus text-xs"></i>
+                        <IconoTrazo nombre="plus" className="w-3.5 h-3.5" />
                       </button>
                     </div>
 
-                    <div className="w-[68px] text-right shrink-0">
-                      <span className="text-xs font-bold text-stone-900 block tabular-nums">
-                        S/ {item.subtotal.toFixed(2)}
-                      </span>
-                      <button
-                        onClick={() => eliminarItemCarrito(item.claveCarrito || item.productoId)}
-                        className="text-xs text-stone-400 hover:text-rose-600 transition"
-                      >
-                        <i className="fa-solid fa-trash-can text-xs"></i> Quitar
-                      </button>
-                    </div>
+                    <span className="w-[58px] text-right text-[13px] font-bold text-stone-900 tabular-nums shrink-0">
+                      S/ {item.subtotal.toFixed(2)}
+                    </span>
                   </div>
                 ))
               )}
