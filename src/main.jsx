@@ -2671,6 +2671,7 @@ import './index.css';
       // Desenfoque progresivo en los bordes de la grilla: solo aparece del lado
       // donde todavia hay productos por ver (arriba si ya se bajo, abajo si falta).
       const [bordesGrilla, setBordesGrilla] = useState({ arriba: false, abajo: true });
+      const [bordesCarrito, setBordesCarrito] = useState({ arriba: false, abajo: false });
 
       // Cambio del PIN de la cuenta del dueño (es la contraseña real de
       // Supabase Auth, "kst-" + PIN). Pide el PIN actual para que un
@@ -9019,7 +9020,16 @@ import './index.css';
             )}
 
             {/* Lista Ítems */}
-            <div className="flex-1 overflow-y-auto p-2.5 space-y-1.5 hide-scrollbar">
+            <div className="relative flex-1 min-h-0 flex flex-col">
+            <div
+              className="flex-1 overflow-y-auto p-2.5 pb-8 space-y-1.5 hide-scrollbar"
+              onScroll={(e) => {
+                const el = e.currentTarget;
+                const arriba = el.scrollTop > 8;
+                const abajo = el.scrollTop + el.clientHeight < el.scrollHeight - 8;
+                setBordesCarrito((b) => (b.arriba === arriba && b.abajo === abajo ? b : { arriba, abajo }));
+              }}
+            >
               {carrito.length === 0 ? (
                 <div className="flex flex-col items-center justify-center h-full text-stone-500 text-center p-4">
                   <i className="fa-solid fa-basket-shopping text-3xl mb-2 text-stone-300"></i>
@@ -9081,6 +9091,18 @@ import './index.css';
                   </div>
                 ))
               )}
+            </div>
+            {/* Desenfoque progresivo: los items se difuminan al pasar bajo el encabezado y el panel de cobro */}
+            <div
+              aria-hidden="true"
+              className={`pointer-events-none absolute inset-x-0 top-0 h-8 z-10 backdrop-blur-md bg-gradient-to-b from-white/80 to-transparent transition-opacity duration-200 ${bordesCarrito.arriba ? 'opacity-100' : 'opacity-0'}`}
+              style={{ WebkitMaskImage: 'linear-gradient(to bottom, black 30%, transparent)', maskImage: 'linear-gradient(to bottom, black 30%, transparent)' }}
+            ></div>
+            <div
+              aria-hidden="true"
+              className={`pointer-events-none absolute inset-x-0 bottom-0 h-14 z-10 backdrop-blur-md bg-gradient-to-t from-white/85 to-transparent transition-opacity duration-200 ${bordesCarrito.abajo ? 'opacity-100' : 'opacity-0'}`}
+              style={{ WebkitMaskImage: 'linear-gradient(to top, black 30%, transparent)', maskImage: 'linear-gradient(to top, black 30%, transparent)' }}
+            ></div>
             </div>
 
             {/* Panel Cobro */}
