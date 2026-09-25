@@ -722,6 +722,9 @@ import './index.css';
       compartir: <><circle cx="18" cy="5" r="3" /><circle cx="6" cy="12" r="3" /><circle cx="18" cy="19" r="3" /><path d="m8.6 13.5 6.8 4M15.4 6.5l-6.8 4" /></>,
       copiar: <><rect x="9" y="9" width="12" height="12" rx="2" /><path d="M5 15V5a2 2 0 0 1 2-2h8" /></>,
       barras: <><path d="M4 7V5a1 1 0 0 1 1-1h2M17 4h2a1 1 0 0 1 1 1v2M20 17v2a1 1 0 0 1-1 1h-2M7 20H5a1 1 0 0 1-1-1v-2" /><path d="M8 8v8M11 8v8M14 8v5M17 8v8" /></>,
+      camaraGira: <><path d="M3 12a9 9 0 0 1 15.5-6.2L21 8" /><path d="M21 3v5h-5" /><path d="M21 12a9 9 0 0 1-15.5 6.2L3 16" /><path d="M3 21v-5h5" /></>,
+      camaraOff: <><path d="M23 7l-7 5 7 5z" /><rect x="1" y="5" width="15" height="14" rx="2" /><path d="M4 2l16 20" /></>,
+      cambio: <path d="M7 7h11l-3-3M17 17H6l3 3" />,
       x: <path d="M18 6 6 18M6 6l12 12" />,
       back: <path d="m15 18-6-6 6-6" />,
       pdf: <><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" /><path d="M14 2v6h6" /><path d="M12 12v6" /><path d="m9 15 3 3 3-3" /></>,
@@ -2824,6 +2827,7 @@ import './index.css';
       // 'venta': agrega el producto encontrado al carrito (uso normal en caja).
       // 'inventario': rellena el campo EAN de una fila del formulario de inventario.
       const [modoEscaner, setModoEscaner] = useState('venta');
+      const [destelloEscaner, setDestelloEscaner] = useState(false);
       const [filaEscaneandoIndex, setFilaEscaneandoIndex] = useState(null);
       // 'cod_ean' o 'cod_ean_pack' -- qué campo de la fila se está escaneando.
       const [campoEscaneandoFila, setCampoEscaneandoFila] = useState('cod_ean');
@@ -4698,6 +4702,8 @@ import './index.css';
         }
         ultimoEscaneoRef.current = { codigo: codigoLimpio, hora: ahora };
         if (navigator.vibrate) navigator.vibrate(60);
+        setDestelloEscaner(true);
+        setTimeout(() => setDestelloEscaner(false), 800);
 
         if (modoEscaner === 'inventario') {
           if (filaEscaneandoIndex !== null) {
@@ -10070,46 +10076,68 @@ import './index.css';
           {/* Modal: Lector de Código de Barras por Cámara */}
           {modalEscaner && (
             <div className="fixed inset-0 bg-black z-[70] flex flex-col">
-              <div className="flex items-center justify-between px-4 py-3 bg-stone-50/90">
-                <h3 className="text-sm font-bold text-stone-900 flex items-center gap-2">
-                  <i className="fa-solid fa-camera text-orange-600"></i> {modoEscaner === 'toma-inventario' ? 'Escanear para el Conteo' : 'Escanear Código de Barras'}
-                </h3>
-                <div className="flex items-center gap-2">
+              <div className="flex-1 relative overflow-hidden bg-black">
+                <video ref={videoNativoRef} className="absolute inset-0 w-full h-full object-cover" playsInline muted autoPlay></video>
+
+                {/* Visor: esquinas blancas (verdes al leer un código) y una línea que recorre el recuadro */}
+                <div
+                  className={`absolute left-1/2 ${modoEscaner === 'toma-inventario' ? 'top-[45%]' : 'top-[42%]'} -translate-x-1/2 -translate-y-1/2 w-[78%] max-w-sm aspect-[1.55/1] rounded-[26px] shadow-[0_0_0_9999px_rgba(12,9,18,0.62)] pointer-events-none transition ${destelloEscaner ? 'bg-green-400/15' : ''}`}
+                >
+                  {[
+                    'left-[-2px] top-[-2px] border-r-0 border-b-0 rounded-tl-[24px]',
+                    'right-[-2px] top-[-2px] border-l-0 border-b-0 rounded-tr-[24px]',
+                    'left-[-2px] bottom-[-2px] border-r-0 border-t-0 rounded-bl-[24px]',
+                    'right-[-2px] bottom-[-2px] border-l-0 border-t-0 rounded-br-[24px]',
+                  ].map((pos) => (
+                    <i key={pos} className={`absolute w-[38px] h-[38px] border-4 transition-colors ${destelloEscaner ? 'border-green-400' : 'border-white'} ${pos}`}></i>
+                  ))}
+                  {!destelloEscaner && <span className="escaner-linea absolute left-3 right-3 h-0.5 rounded-full"></span>}
+                </div>
+
+                <div className="absolute left-3.5 right-3.5 top-3.5 flex items-center gap-2.5">
+                  <div className="flex-1 min-w-0 text-white">
+                    <p className="text-base font-bold tracking-tight leading-tight">{modoEscaner === 'toma-inventario' ? 'Escanear para el conteo' : 'Escanear código'}</p>
+                    <p className="text-xs text-white/70 mt-0.5">{modoEscaner === 'toma-inventario' ? 'Sigue escaneando uno tras otro' : 'Apunta al código de barras'}</p>
+                  </div>
                   {camarasDisponibles.length > 1 && (
                     <button
                       onClick={cambiarCamara}
                       title="Cambiar de cámara"
-                      className="w-9 h-9 flex items-center justify-center bg-stone-200 rounded-xl text-stone-700 hover:text-stone-900"
+                      aria-label="Cambiar de cámara"
+                      className="w-[42px] h-[42px] rounded-full bg-white/15 backdrop-blur-md ring-1 ring-white/20 text-white flex items-center justify-center hover:bg-white/25 transition"
                     >
-                      <i className="fa-solid fa-camera-rotate"></i>
+                      <IconoTrazo nombre="camaraGira" className="w-[18px] h-[18px]" />
                     </button>
                   )}
                   <button
                     onClick={() => setModalEscaner(false)}
-                    className="w-9 h-9 flex items-center justify-center bg-stone-200 rounded-xl text-stone-700 hover:text-stone-900"
+                    aria-label="Cerrar"
+                    className="w-[42px] h-[42px] rounded-full bg-white/15 backdrop-blur-md ring-1 ring-white/20 text-white flex items-center justify-center hover:bg-white/25 transition"
                   >
-                    <i className="fa-solid fa-xmark"></i>
+                    <IconoTrazo nombre="x" className="w-[18px] h-[18px]" />
                   </button>
-                </div>
-              </div>
-
-              <div className="flex-1 relative flex items-center justify-center bg-black overflow-hidden">
-                <div className="relative w-full h-full flex items-center justify-center">
-                  <video ref={videoNativoRef} className="w-full h-full object-cover" playsInline muted autoPlay></video>
-                  <div className="absolute w-[85%] max-w-sm aspect-[2/1] border-2 border-orange-400 rounded-2xl shadow-[0_0_0_9999px_rgba(0,0,0,0.55)] pointer-events-none"></div>
                 </div>
 
                 {errorEscaner && (
-                  <div className="absolute inset-0 flex flex-col items-center justify-center text-center p-6 bg-stone-50">
-                    <i className="fa-solid fa-video-slash text-3xl text-rose-600 mb-3"></i>
-                    <p className="text-sm font-semibold text-stone-900">{errorEscaner}</p>
-                    <p className="text-xs text-stone-500 mt-1">Verifica que le diste permiso de cámara a esta página en tu navegador.</p>
+                  <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 text-center p-8 bg-gradient-to-br from-[#1a1524] to-[#0c0912]">
+                    <span className="w-16 h-16 rounded-3xl bg-rose-500/20 text-rose-400 flex items-center justify-center">
+                      <IconoTrazo nombre="camaraOff" className="w-7 h-7" />
+                    </span>
+                    <p className="text-[17px] font-bold text-white">{errorEscaner}</p>
+                    <p className="text-[13.5px] text-white/70 leading-snug max-w-[260px]">Verifica que le diste permiso de cámara a esta página en tu navegador.</p>
+                    <button
+                      type="button"
+                      onClick={() => { setModalEscaner(false); setTimeout(() => setModalEscaner(true), 60); }}
+                      className="mt-1.5 h-[46px] px-6 rounded-full bg-white text-[#4d04b0] text-sm font-semibold"
+                    >
+                      Reintentar
+                    </button>
                   </div>
                 )}
               </div>
 
               {modoEscaner === 'toma-inventario' ? (
-                <div className="bg-stone-50 rounded-t-2xl shadow-2xl">
+                <div className="bg-white rounded-t-[28px] shadow-2xl">
                   {productoEscaneadoId && (() => {
                     const f = filasTomaInventario.find((x) => x.productoId === productoEscaneadoId);
                     if (!f) return null;
@@ -10196,7 +10224,7 @@ import './index.css';
                           </div>
                           <span className="text-xs font-bold text-orange-600 ml-auto shrink-0">= {totalPendiente} und</span>
                         </div>
-                        <button onClick={() => agregarHallazgo(f.productoId)} className="w-full py-2 bg-stone-900 hover:bg-stone-800 text-white rounded-lg text-xs font-bold">
+                        <button onClick={() => agregarHallazgo(f.productoId)} className="w-full h-[50px] bg-[#6105dc] hover:bg-[#4d04b0] text-white rounded-full text-[15px] font-semibold">
                           <i className="fa-solid fa-plus"></i> Agregar
                         </button>
                       </div>
@@ -10213,14 +10241,14 @@ import './index.css';
                   </div>
                 </div>
               ) : (
-                <div className="p-4 bg-stone-50/90 text-center space-y-1.5">
-                  <p className="text-xs text-stone-600">Apunta la cámara al código de barras del producto.</p>
+                <div className="absolute left-3 right-3 bottom-3 rounded-[28px] bg-white/15 backdrop-blur-xl ring-1 ring-white/20 p-3.5 space-y-2.5">
+                  <p className="text-sm text-center text-white/90 leading-snug">Apunta la cámara al código de barras del producto.</p>
                   <button
                     type="button"
                     onClick={() => setMetodoForzado(usandoDetectorNativo ? 'wasm' : 'nativo')}
-                    className="text-xs text-orange-600 underline"
+                    className="w-full h-11 rounded-full bg-white/20 ring-1 ring-white/15 hover:bg-white/30 text-white text-[13px] font-semibold flex items-center justify-center gap-2 transition"
                   >
-                    ¿No detecta? Probar con el otro método ({usandoDetectorNativo ? 'clásico' : 'nativo'})
+                    <IconoTrazo nombre="cambio" className="w-4 h-4" /> ¿No detecta? Probar con el otro método ({usandoDetectorNativo ? 'clásico' : 'nativo'})
                   </button>
                 </div>
               )}

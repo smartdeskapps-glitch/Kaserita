@@ -107,3 +107,13 @@
 .hide-scrollbar::-webkit-scrollbar {
   display: none;
 }
+
+/* Línea que recorre el visor del lector de códigos. */
+.escaner-linea {
+  top: 20%;
+  background: linear-gradient(90deg, transparent, #b794f6, transparent);
+  box-shadow: 0 0 14px 2px rgba(167, 139, 250, 0.9);
+  animation: escaner-linea 1.7s ease-in-out infinite alternate;
+}
+@keyframes escaner-linea { to { top: 80%; } }
+@media (prefers-reduced-motion: reduce) { .escaner-linea { animation: none; } }
