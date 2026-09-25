@@ -2828,11 +2828,9 @@ import './index.css';
       // 'inventario': rellena el campo EAN de una fila del formulario de inventario.
       const [modoEscaner, setModoEscaner] = useState('venta');
       const [destelloEscaner, setDestelloEscaner] = useState(false);
-      // Aviso flotante dentro del lector ("Agua 500ml x2"): reemplaza al aviso
-      // de arriba, que tapaba los botones de la cámara.
-      const [avisoEscaneo, setAvisoEscaneo] = useState(null);
-      const conteoEscaneosRef = useRef({});
-      const avisoEscaneoTimerRef = useRef(null);
+      // Lo escaneado en la venta actual (el último primero): se muestra dentro
+      // del lector, en vez del aviso de arriba que tapaba los botones de la cámara.
+      const [listaEscaneada, setListaEscaneada] = useState([]);
       const [filaEscaneandoIndex, setFilaEscaneandoIndex] = useState(null);
       // 'cod_ean' o 'cod_ean_pack' -- qué campo de la fila se está escaneando.
       const [campoEscaneandoFila, setCampoEscaneandoFila] = useState('cod_ean');
@@ -4778,14 +4776,23 @@ import './index.css';
         const encontradoPorCodigo = buscarProductoPorCodigo(codigoLimpio);
         if (encontradoPorCodigo) {
           handleClicProducto(encontradoPorCodigo.producto, encontradoPorCodigo.esPack ? 'PACK' : 'UNIDAD');
-          const idConteo = `${encontradoPorCodigo.producto.id}${encontradoPorCodigo.esPack ? '-pack' : ''}`;
-          conteoEscaneosRef.current[idConteo] = (conteoEscaneosRef.current[idConteo] || 0) + 1;
-          setAvisoEscaneo({
-            texto: `${encontradoPorCodigo.producto.descripcion}${encontradoPorCodigo.esPack ? ' (Pack)' : ''}`,
-            n: conteoEscaneosRef.current[idConteo],
+          const prodEsc = encontradoPorCodigo.producto;
+          const claveEsc = `${prodEsc.id}${encontradoPorCodigo.esPack ? '-pack' : ''}`;
+          const precioEsc = encontradoPorCodigo.esPack
+            ? (Number(prodEsc.precio_venta_pack) || Number(prodEsc.precio_venta) * (Number(prodEsc.unidades_por_pack) || 1))
+            : Number(prodEsc.precio_venta);
+          setListaEscaneada((prev) => {
+            const previo = prev.find((x) => x.clave === claveEsc);
+            const item = {
+              clave: claveEsc,
+              descripcion: `${prodEsc.descripcion}${encontradoPorCodigo.esPack ? ' (Pack)' : ''}`,
+              foto_url: prodEsc.foto_url,
+              categoria: prodEsc.categoria,
+              precio: precioEsc,
+              n: (previo?.n || 0) + 1,
+            };
+            return [item, ...prev.filter((x) => x.clave !== claveEsc)].slice(0, 6);
           });
-          clearTimeout(avisoEscaneoTimerRef.current);
-          avisoEscaneoTimerRef.current = setTimeout(() => setAvisoEscaneo(null), 2500);
         } else {
           setModalEscaner(false);
           notificar(`Código ${codigoLimpio} no encontrado en el catálogo.`, 'error');
@@ -4793,8 +4800,7 @@ import './index.css';
       };
 
       const abrirEscanerParaVenta = () => {
-        conteoEscaneosRef.current = {};
-        setAvisoEscaneo(null);
+        setListaEscaneada([]);
         setModoEscaner('venta');
         setFilaEscaneandoIndex(null);
         setMetodoForzado(null);
@@ -10108,16 +10114,6 @@ import './index.css';
                   {!destelloEscaner && <span className="escaner-linea absolute left-3 right-3 h-0.5 rounded-full"></span>}
                 </div>
 
-                {avisoEscaneo && modoEscaner === 'venta' && (
-                  <div className="absolute left-1/2 -translate-x-1/2 top-[21%] max-w-[92%] flex items-center gap-2 pl-2 pr-3.5 py-2 rounded-full bg-white/95 shadow-[0_10px_24px_-10px_rgba(0,0,0,0.5)] text-[13.5px] font-semibold text-[#1c1830]">
-                    <span className="w-[26px] h-[26px] rounded-full bg-green-500 text-white flex items-center justify-center shrink-0">
-                      <IconoTrazo nombre="check" className="w-4 h-4" grosor={2.6} />
-                    </span>
-                    <span className="truncate">{avisoEscaneo.texto}</span>
-                    <span className="shrink-0 px-2 py-0.5 rounded-full bg-[#f4eefe] text-[#4d04b0] text-[12.5px] font-bold">x{avisoEscaneo.n}</span>
-                  </div>
-                )}
-
                 <div className="absolute left-3.5 right-3.5 top-3.5 flex items-center gap-2.5">
                   <div className="flex-1 min-w-0 text-white">
                     <p className="text-base font-bold tracking-tight leading-tight">{modoEscaner === 'toma-inventario' ? 'Escanear para el conteo' : 'Escanear código'}</p>
@@ -10265,8 +10261,31 @@ import './index.css';
                   </div>
                 </div>
               ) : (
-                <div className="absolute left-3 right-3 bottom-3 rounded-[28px] bg-white/15 backdrop-blur-xl ring-1 ring-white/20 px-4 py-3.5">
-                  <p className="text-sm text-center text-white/90 leading-snug">Apunta la cámara al código de barras del producto.</p>
+                <div className="absolute left-3 right-3 bottom-3 rounded-[28px] bg-white/15 backdrop-blur-xl ring-1 ring-white/20 p-3 space-y-2">
+                  {modoEscaner === 'venta' && listaEscaneada.length > 0 ? (
+                    <>
+                      {listaEscaneada.slice(0, 2).map((it, i) => (
+                        <div key={it.clave} className={`flex items-center gap-2.5 bg-white rounded-[18px] py-[7px] pl-[7px] pr-2.5 transition ${i > 0 ? 'opacity-60 scale-[0.97]' : ''}`}>
+                          <FotoProducto fotoUrl={it.foto_url} categoria={it.categoria} className="w-9 h-9 rounded-[11px] shrink-0 ring-1 ring-black/5 bg-white" iconClassName="text-xs" />
+                          <div className="flex-1 min-w-0">
+                            <p className="text-[13px] font-semibold text-[#1c1830] leading-tight truncate">{it.descripcion}</p>
+                            <p className="text-[11.5px] text-[#7a7396]">S/ {formatoSoles(it.precio)}</p>
+                          </div>
+                          <span className="shrink-0 px-2 py-0.5 rounded-full bg-[#f4eefe] text-[#4d04b0] text-[13px] font-bold">x{it.n}</span>
+                        </div>
+                      ))}
+                      <button
+                        type="button"
+                        onClick={() => { setModalEscaner(false); setMostrarResumenMobile(true); }}
+                        className="w-full h-[50px] rounded-full bg-[#6105dc] hover:bg-[#4d04b0] text-white flex items-center justify-between pl-5 pr-2 text-[15px] font-semibold transition"
+                      >
+                        Listo · ver venta
+                        <span className="px-3.5 py-2 rounded-full bg-white/20 text-sm font-bold tabular-nums">S/ {formatoSoles(totalConDescuento)}</span>
+                      </button>
+                    </>
+                  ) : (
+                    <p className="text-sm text-center text-white/90 leading-snug px-1 py-0.5">Apunta la cámara al código de barras del producto.</p>
+                  )}
                 </div>
               )}
             </div>
