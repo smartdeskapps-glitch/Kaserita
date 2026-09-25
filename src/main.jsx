@@ -688,6 +688,42 @@ import './index.css';
       );
     }
 
+    // Color de fondo de una foto (promedio de sus esquinas), para que el marco
+    // fijo de la tarjeta se vea uniforme aunque la foto tenga fondo blanco,
+    // negro o de otro color. Se calcula una sola vez por URL. Si el servidor
+    // no permite leer los pixeles, el marco queda blanco y no pasa nada.
+    const fondoFotoCache = new Map();
+    function useFondoFoto(url) {
+      const [fondo, setFondo] = useState(() => fondoFotoCache.get(url) || '#ffffff');
+      useEffect(() => {
+        if (!url) return;
+        if (fondoFotoCache.has(url)) { setFondo(fondoFotoCache.get(url)); return; }
+        let vivo = true;
+        const im = new Image();
+        im.crossOrigin = 'anonymous';
+        im.onload = () => {
+          try {
+            const c = document.createElement('canvas');
+            c.width = c.height = 4;
+            const x = c.getContext('2d', { willReadFrequently: true });
+            const w = im.naturalWidth, h = im.naturalHeight;
+            let r = 0, g = 0, b = 0;
+            [[0, 0], [w - 4, 0], [0, h - 4], [w - 4, h - 4]].forEach(([sx, sy]) => {
+              x.drawImage(im, sx, sy, 4, 4, 0, 0, 4, 4);
+              const d = x.getImageData(0, 0, 4, 4).data;
+              for (let k = 0; k < d.length; k += 4) { r += d[k]; g += d[k + 1]; b += d[k + 2]; }
+            });
+            const col = `rgb(${Math.round(r / 64)},${Math.round(g / 64)},${Math.round(b / 64)})`;
+            fondoFotoCache.set(url, col);
+            if (vivo) setFondo(col);
+          } catch (e) { /* imagen sin CORS: se queda blanco */ }
+        };
+        im.src = url;
+        return () => { vivo = false; };
+      }, [url]);
+      return fondo;
+    }
+
     // Tarjeta de producto de la grilla principal, memoizada: como el catálogo
     // puede tener cientos de tarjetas, sin esto cualquier cambio de estado en
     // PosApp (escribir en el buscador, tocar el carrito, un aviso, etc.)
@@ -695,99 +731,103 @@ import './index.css';
     // Con React.memo, una tarjeta solo se vuelve a renderizar si cambian sus
     // propias props (su producto, o si cambia esAdmin/onSelect/onEdit).
     const ProductoCard = React.memo(function ProductoCard({ prod, esAdmin, enCarrito = 0, onSelect, onEdit, tieneCombo = false, onVerCombo }) {
+      const fondoFoto = useFondoFoto(prod.foto_url);
+      const stock = prod.stock_actual;
+      const hayStock = stock !== null && stock !== undefined;
+      const sinStock = hayStock && Number(stock) <= 0;
+      const stockBajo = hayStock && !sinStock && Number(stock) <= Number(prod.stock_min || 5);
       return (
         <div
           role="button"
           tabIndex={0}
           onClick={() => onSelect(prod)}
           onKeyDown={(e) => { if (e.key === 'Enter') onSelect(prod); }}
-          className={`text-left rounded-2xl border p-3.5 flex flex-col gap-3 shadow-sm hover:shadow-md transition-all duration-200 active:scale-[0.98] group cursor-pointer ${
-            enCarrito > 0 ? 'bg-emerald-50 border-emerald-300' : 'bg-white border-stone-200 hover:border-stone-300'
+          className={`relative text-left rounded-[28px] p-2.5 flex flex-col border border-white/80 transition-all duration-500 ease-out hover:scale-[1.025] active:scale-[0.975] group cursor-pointer ${
+            enCarrito > 0
+              ? 'bg-gradient-to-br from-[#d9f5e5] to-[#f6fffa] shadow-[0_10px_30px_-14px_rgba(31,157,85,0.45)] hover:shadow-[0_24px_44px_-20px_rgba(31,157,85,0.5)]'
+              : 'bg-gradient-to-br from-[#f1eafd] to-[#fbfaff] shadow-[0_10px_30px_-14px_rgba(97,5,220,0.28)] hover:shadow-[0_24px_44px_-20px_rgba(97,5,220,0.4)]'
           }`}
         >
-          {/* Foto circular + nombre/categoría a la derecha, como en la
-              referencia -- en vez de una foto grande arriba de toda la
-              tarjeta, va pequeña y redonda junto al texto. */}
-          <div className="flex items-center gap-3">
-            <div className="relative w-12 h-12 shrink-0">
-              <FotoProducto
-                fotoUrl={prod.foto_url}
-                categoria={prod.categoria}
-                className="w-12 h-12 rounded-full ring-1 ring-stone-100"
-                iconClassName="text-base opacity-90"
+          {/* Marco fijo: todas las fotos entran en el mismo cuadro, sin
+              recortarse, sea alta como una botella o cuadrada como una bolsa. */}
+          <div className="relative w-full aspect-[5/4] rounded-[20px] overflow-hidden ring-1 ring-black/5 shadow-[0_8px_18px_-12px_rgba(0,0,0,0.25)]" style={{ backgroundColor: prod.foto_url ? fondoFoto : undefined }}>
+            {prod.foto_url ? (
+              <img
+                src={prod.foto_url}
+                alt=""
+                loading="lazy"
+                className={`w-full h-full object-contain p-2 transition-transform duration-500 group-hover:scale-105 ${sinStock ? 'opacity-40 grayscale' : ''}`}
               />
-              {esAdmin && (
-                <button
-                  type="button"
-                  onClick={(e) => { e.stopPropagation(); onEdit(prod); }}
-                  className="absolute -bottom-1 -right-1 w-5 h-5 flex items-center justify-center bg-white hover:bg-stone-50 text-stone-600 hover:text-amber-700 rounded-full shadow-sm border border-stone-200 transition"
-                  title="Editar producto"
-                >
-                  <i className="fa-solid fa-pen text-[9px]"></i>
-                </button>
-              )}
-            </div>
-            <div className="min-w-0 flex-1">
-              <h3 className="text-sm font-bold text-stone-900 line-clamp-2 leading-snug min-h-[2.2em] break-words">
-                {prod.descripcion}
-              </h3>
-              <p className="text-[11px] font-semibold text-stone-400 truncate">
-                {prod.categoria || 'General'}
-              </p>
-            </div>
-            {tieneCombo && (
+            ) : (
+              <FotoProducto
+                fotoUrl=""
+                categoria={prod.categoria}
+                className={`w-full h-full ${sinStock ? 'opacity-40 grayscale' : ''}`}
+                iconClassName="text-4xl opacity-90"
+              />
+            )}
+            {esAdmin && (
               <button
                 type="button"
-                onClick={(e) => { e.stopPropagation(); onVerCombo?.(prod); }}
-                className="shrink-0 w-6 h-6 flex items-center justify-center text-[10px] text-white bg-[#6105dc] hover:bg-[#4d04b0] rounded-lg shadow-sm"
-                title="Este producto es parte de un combo -- toca para verlo"
+                onClick={(e) => { e.stopPropagation(); onEdit(prod); }}
+                className="absolute top-2 right-2 w-7 h-7 flex items-center justify-center bg-white/80 hover:bg-white backdrop-blur text-stone-500 hover:text-[#6105dc] rounded-full shadow-sm opacity-0 group-hover:opacity-100 focus:opacity-100 [@media(hover:none)]:opacity-100 transition"
+                title="Editar producto"
               >
-                <i className="fa-solid fa-gift"></i>
+                <i className="fa-solid fa-pen text-[10px]"></i>
               </button>
             )}
-          </div>
-
-          {/* Precio + etiquetas (destacado / KG / pack) */}
-          <div className="flex items-center gap-1.5 flex-wrap">
-            <span className="text-lg font-extrabold text-stone-900 tabular-nums">
-              S/ {Number(prod.precio_venta).toFixed(2)}
-            </span>
-            {prod.es_destacado && (
-              <span className="text-[10px] font-bold text-white bg-[#6105dc] w-5 h-5 flex items-center justify-center rounded-md" title="Destacado en Delivery">
-                <i className="fa-solid fa-star"></i>
-              </span>
-            )}
-            {prod.unidad === 'KG' && (
-              <span className="text-[10px] font-bold text-stone-600 bg-stone-100 px-1.5 py-0.5 rounded-md">
-                KG
-              </span>
-            )}
-            {Number(prod.unidades_por_pack) > 1 && (
-              <span className="text-[10px] font-bold text-stone-600 bg-stone-100 px-1.5 py-0.5 rounded-md flex items-center gap-1">
-                <i className="fa-solid fa-boxes-packing"></i> x{prod.unidades_por_pack}
-              </span>
-            )}
-          </div>
-
-          {/* Stock + estado en carrito */}
-          <div className="mt-auto pt-2.5 border-t border-stone-100 flex items-center gap-2 text-[11px] min-h-[1.25rem]">
-            {prod.stock_actual !== null && prod.stock_actual !== undefined && (
-              <span className={`font-semibold flex items-center gap-1 shrink-0 ${
-                Number(prod.stock_actual) <= 0
-                  ? 'text-rose-600'
-                  : Number(prod.stock_actual) <= Number(prod.stock_min || 5)
-                  ? 'text-amber-600'
-                  : 'text-stone-400'
-              }`}>
-                <i className="fa-solid fa-boxes-stacked text-[8px]"></i>
-                {Number(prod.stock_actual) <= 0 ? 'Sin stock' : `Stock ${prod.stock_actual}`}
-              </span>
-            )}
             {enCarrito > 0 && (
-              <span className="ml-auto text-[10px] font-bold text-white bg-stone-900 px-2 py-0.5 rounded-full flex items-center gap-1 whitespace-nowrap shrink-0">
-                <i className="fa-solid fa-check"></i> {enCarrito}
+              <span className="absolute top-2 left-2 text-[11px] font-bold text-white bg-emerald-600 pl-2 pr-2.5 py-1 rounded-full flex items-center gap-1 shadow-[0_6px_14px_-6px_rgba(31,157,85,0.7)] tabular-nums">
+                <i className="fa-solid fa-check text-[10px]"></i> {enCarrito}
               </span>
             )}
+          </div>
+
+          <div className="px-1 pt-3 flex flex-col gap-0.5 min-w-0">
+            <p className="text-[11px] font-semibold text-black/45 truncate">{prod.categoria || 'General'}</p>
+            <h3 className="text-sm font-semibold text-stone-900 line-clamp-2 leading-snug min-h-[2.4em] break-words">
+              {prod.descripcion}
+            </h3>
+          </div>
+
+          <div className="mt-auto flex items-end justify-between gap-2 px-1 pt-3 pb-1">
+            <div className="min-w-0">
+              <div className="flex items-center gap-1.5 flex-wrap">
+                <span className="text-xl font-bold text-stone-900 tabular-nums tracking-tight whitespace-nowrap">
+                  <small className="text-[12px] font-semibold text-stone-500 mr-0.5">S/</small>{Number(prod.precio_venta).toFixed(2)}
+                </span>
+                {prod.es_destacado && (
+                  <span className="text-[9px] text-[#6105dc]" title="Destacado en Delivery"><i className="fa-solid fa-star"></i></span>
+                )}
+                {prod.unidad === 'KG' && (
+                  <span className="text-[10px] font-bold text-stone-600 bg-white/70 px-1.5 py-0.5 rounded-full">KG</span>
+                )}
+                {Number(prod.unidades_por_pack) > 1 && (
+                  <span className="text-[10px] font-bold text-stone-600 bg-white/70 px-1.5 py-0.5 rounded-full flex items-center gap-1">
+                    <i className="fa-solid fa-boxes-packing"></i> x{prod.unidades_por_pack}
+                  </span>
+                )}
+              </div>
+              {hayStock && (
+                <span className={`mt-1 text-[11px] flex items-center gap-1.5 ${sinStock ? 'text-rose-600' : stockBajo ? 'text-amber-600' : 'text-black/50'}`}>
+                  <i className={`w-1.5 h-1.5 rounded-full ${sinStock ? 'bg-rose-500' : stockBajo ? 'bg-amber-500' : 'bg-emerald-500'}`}></i>
+                  {sinStock ? 'Sin stock' : stockBajo ? `Quedan ${stock}` : `${stock} disponibles`}
+                </span>
+              )}
+            </div>
+            <div className="flex items-center gap-1.5 shrink-0">
+              {tieneCombo && (
+                <button
+                  type="button"
+                  onClick={(e) => { e.stopPropagation(); onVerCombo?.(prod); }}
+                  className="w-8 h-8 flex items-center justify-center text-[11px] text-white bg-[#6105dc] hover:bg-[#4d04b0] rounded-full shadow-sm"
+                  title="Este producto es parte de un combo -- toca para verlo"
+                >
+                  <i className="fa-solid fa-gift"></i>
+                </button>
+              )}
+              <span className={`w-9 h-9 rounded-full bg-white/75 backdrop-blur-md flex items-center justify-center text-xl leading-none shadow-sm transition group-hover:bg-white ${enCarrito > 0 ? 'text-emerald-600' : 'text-[#6105dc]'}`}>+</span>
+            </div>
           </div>
         </div>
       );
