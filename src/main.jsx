@@ -8727,16 +8727,14 @@ import './index.css';
           {/* Columna Central: Catálogo (Order Line) */}
           <div className="flex-1 flex flex-col overflow-hidden">
             <header className="flex items-center justify-between mx-3 mt-3 px-2 md:px-3 py-2 gap-3">
-              <div className="btn-noise btn-noise-quieto inline-flex min-w-0 max-w-full">
-                <div className="btn-noise-in min-w-0" style={{ padding: '8px 18px', gap: '12px' }}>
-                  <span className="text-[17px] font-extrabold tracking-tight shrink-0 bg-gradient-to-r from-[#8a3df2] via-[#6105dc] to-[#4d04b0] bg-clip-text text-transparent">Kaserita</span>
-                  <span className="w-px h-[26px] bg-[#6105dc]/20 shrink-0"></span>
-                  <div className="min-w-0">
-                    <h1 className="text-sm font-bold text-[#1c1830] leading-tight tracking-tight truncate">{bodegaNombre}</h1>
-                    <p className="text-xs text-[#78729a] truncate leading-tight mt-px">
-                      {cajeroSeleccionado?.nombre || usuarioActivo?.nombre}
-                    </p>
-                  </div>
+              <div className="flex items-center gap-3 min-w-0 max-w-full pl-1">
+                <span className="text-[19px] md:text-[22px] font-extrabold tracking-tight shrink-0 bg-gradient-to-r from-[#8a3df2] via-[#6105dc] to-[#4d04b0] bg-clip-text text-transparent">Kaserita</span>
+                <span className="w-px h-[30px] bg-[#6105dc]/20 shrink-0"></span>
+                <div className="min-w-0">
+                  <h1 className="text-sm md:text-[15px] font-bold text-[#1c1830] leading-tight tracking-tight truncate">{bodegaNombre}</h1>
+                  <p className="text-xs text-[#78729a] truncate leading-tight mt-px">
+                    {cajeroSeleccionado?.nombre || usuarioActivo?.nombre}
+                  </p>
                 </div>
               </div>
               <div className="flex items-center gap-3 shrink-0">
@@ -8874,7 +8872,7 @@ import './index.css';
                         onChange={(e) => setBusqueda(e.target.value)}
                         onKeyDown={handleKeyDownBusqueda}
                         placeholder="Escanear código o buscar producto..."
-                        className="w-full bg-white border border-[#d6bdfa]/60 text-stone-900 placeholder-stone-500 text-sm rounded-full pl-12 pr-10 py-2.5 focus:outline-none focus:border-[#6105dc] focus:ring-4 focus:ring-[#6105dc]/10 transition"
+                        className="w-full bg-white border border-[#d6bdfa]/60 text-stone-900 placeholder-stone-500 text-sm rounded-full pl-12 pr-10 py-2.5 focus:outline-none focus:border-[#6105dc]/45 focus:ring-4 focus:ring-[#6105dc]/[0.07] transition"
                         autoFocus
                       />
                       {busqueda && (
