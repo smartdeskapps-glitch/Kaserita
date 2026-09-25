@@ -744,13 +744,13 @@ import './index.css';
           onKeyDown={(e) => { if (e.key === 'Enter') onSelect(prod); }}
           className={`relative text-left rounded-[28px] p-2.5 flex flex-col border border-white/80 transition-all duration-500 ease-out hover:scale-[1.025] active:scale-[0.975] group cursor-pointer ${
             enCarrito > 0
-              ? 'bg-gradient-to-br from-[#d9f5e5] to-[#f6fffa] shadow-[0_10px_30px_-14px_rgba(31,157,85,0.45)] hover:shadow-[0_24px_44px_-20px_rgba(31,157,85,0.5)]'
-              : 'bg-gradient-to-br from-[#f1eafd] to-[#fbfaff] shadow-[0_10px_30px_-14px_rgba(97,5,220,0.28)] hover:shadow-[0_24px_44px_-20px_rgba(97,5,220,0.4)]'
+              ? 'bg-gradient-to-br from-[#d9f5e5] to-[#f6fffa]'
+              : 'bg-gradient-to-br from-[#f1eafd] to-[#fbfaff]'
           }`}
         >
           {/* Marco fijo: todas las fotos entran en el mismo cuadro, sin
               recortarse, sea alta como una botella o cuadrada como una bolsa. */}
-          <div className="relative w-full aspect-[5/4] rounded-[20px] overflow-hidden ring-1 ring-black/5 shadow-[0_8px_18px_-12px_rgba(0,0,0,0.25)]" style={{ backgroundColor: prod.foto_url ? fondoFoto : undefined }}>
+          <div className="relative w-full aspect-[5/4] rounded-[20px] overflow-hidden ring-1 ring-black/5" style={{ backgroundColor: prod.foto_url ? fondoFoto : undefined }}>
             {prod.foto_url ? (
               <img
                 src={prod.foto_url}
@@ -777,7 +777,7 @@ import './index.css';
               </button>
             )}
             {enCarrito > 0 && (
-              <span className="absolute top-2 left-2 text-[11px] font-bold text-white bg-emerald-600 pl-2 pr-2.5 py-1 rounded-full flex items-center gap-1 shadow-[0_6px_14px_-6px_rgba(31,157,85,0.7)] tabular-nums">
+              <span className="absolute top-2 left-2 text-[11px] font-bold text-white bg-emerald-600 pl-2 pr-2.5 py-1 rounded-full flex items-center gap-1 tabular-nums">
                 <i className="fa-solid fa-check text-[10px]"></i> {enCarrito}
               </span>
             )}
@@ -826,7 +826,7 @@ import './index.css';
                   <i className="fa-solid fa-gift"></i>
                 </button>
               )}
-              <span className={`w-9 h-9 rounded-full bg-white/75 backdrop-blur-md flex items-center justify-center text-xl leading-none shadow-sm transition group-hover:bg-white ${enCarrito > 0 ? 'text-emerald-600' : 'text-[#6105dc]'}`}>+</span>
+              <span className={`w-9 h-9 rounded-full bg-white/75 backdrop-blur-md flex items-center justify-center text-xl leading-none transition group-hover:bg-white ${enCarrito > 0 ? 'text-emerald-600' : 'text-[#6105dc]'}`}>+</span>
             </div>
           </div>
         </div>
