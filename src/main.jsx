@@ -11896,13 +11896,14 @@ import './index.css';
 
           {/* Modal: Historial de Cierres de Caja */}
           {modalHistorialCierres && (
-            <div className="fixed inset-0 bg-black/85 flex items-center justify-center z-50 p-4">
-              <div className="bg-stone-100 border border-stone-200 rounded-2xl max-w-lg w-full p-5 shadow-2xl space-y-3 max-h-[90vh] flex flex-col">
+            <div className="fixed inset-0 bg-stone-900/30 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+              <div className="bg-gradient-to-br from-[#f4effc] via-[#f9f8fb] to-[#f5f4f8] rounded-[28px] max-w-lg w-full p-5 shadow-2xl border border-white/80 space-y-3 max-h-[90vh] flex flex-col">
                 <div className="flex justify-between items-center shrink-0">
-                  <h3 className="text-base font-bold text-stone-900 flex items-center gap-2">
-                    <i className="fa-solid fa-cash-register text-orange-600"></i> Historial de Cierres de Caja
+                  <h3 className="text-lg font-bold text-stone-900 flex items-center gap-2">
+                    <span className="w-8 h-8 rounded-xl bg-[#ece0fd] text-[#6105dc] flex items-center justify-center text-sm"><i className="fa-solid fa-cash-register"></i></span>
+                    Historial de cierres de caja
                   </h3>
-                  <button onClick={() => setModalHistorialCierres(false)} className="text-stone-600 hover:text-stone-900"><i className="fa-solid fa-xmark"></i></button>
+                  <button onClick={() => setModalHistorialCierres(false)} className="w-8 h-8 rounded-full bg-white/70 hover:bg-white text-stone-500 hover:text-stone-900 shadow-sm"><i className="fa-solid fa-xmark"></i></button>
                 </div>
 
                 <FiltroFechasRapido
@@ -11914,31 +11915,51 @@ import './index.css';
                   diasAtras={30}
                 />
 
-                <div className="flex-1 overflow-y-auto space-y-2">
+                <div className="flex-1 overflow-y-auto hide-scrollbar space-y-2">
                   {cargandoCierres ? (
-                    <p className="text-xs text-center py-8 text-stone-600">Cargando...</p>
+                    <p className="text-xs text-center py-8 text-stone-500">Cargando...</p>
                   ) : cierresCaja.length === 0 ? (
                     <p className="text-xs text-center py-8 text-stone-500">No hay cierres de caja en ese rango.</p>
                   ) : (
-                    cierresCaja.map((t) => (
-                      <div key={t.id} className="p-3 bg-white rounded-xl border border-stone-200 text-xs">
-                        <div className="flex justify-between items-center mb-1.5">
-                          <span className="font-bold text-stone-900 flex items-center gap-1.5">
-                            <i className="fa-solid fa-user text-stone-400"></i> {t.cajeros?.nombre || 'Cajero'}
-                          </span>
-                          <span className={`font-black ${t.diferencia === 0 ? 'text-emerald-600' : Math.abs(Number(t.diferencia)) < 1 ? 'text-amber-600' : 'text-rose-600'}`}>
-                            {Number(t.diferencia) === 0 ? (<><i className="fa-solid fa-circle-check mr-1"></i>Cuadre perfecto</>) : `${Number(t.diferencia) > 0 ? '+' : ''}S/ ${Number(t.diferencia).toFixed(2)}`}
-                          </span>
+                    cierresCaja.map((t) => {
+                      const dif = Number(t.diferencia);
+                      const fmt = (f) => new Date(f).toLocaleString('es-PE', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
+                      return (
+                        <div key={t.id} className="p-4 bg-white/60 backdrop-blur-xl border border-white/80 rounded-3xl shadow-[0_10px_40px_-14px_rgba(97,5,220,0.18)] text-xs">
+                          <div className="flex justify-between items-center gap-2 mb-3">
+                            <span className="font-bold text-stone-900 flex items-center gap-2 min-w-0">
+                              <span className="w-7 h-7 rounded-full bg-[#ece0fd] text-[#6105dc] flex items-center justify-center text-[11px] shrink-0"><i className="fa-solid fa-user"></i></span>
+                              <span className="truncate">{t.cajeros?.nombre || 'Cajero'}</span>
+                            </span>
+                            <span className={`px-2.5 py-1 rounded-full font-semibold whitespace-nowrap ${dif === 0 ? 'bg-emerald-50 text-emerald-600' : Math.abs(dif) < 1 ? 'bg-amber-50 text-amber-600' : 'bg-rose-50 text-rose-600'}`}>
+                              {dif === 0 ? (<><i className="fa-solid fa-circle-check mr-1"></i>Cuadre perfecto</>) : `${dif > 0 ? '+' : ''}S/ ${formatoSoles(dif)}`}
+                            </span>
+                          </div>
+                          <div className="grid grid-cols-2 gap-2">
+                            <div className="bg-white/70 rounded-2xl px-3 py-2">
+                              <span className="text-[11px] text-stone-500 block">Apertura</span>
+                              <span className="font-semibold text-stone-800">{fmt(t.fecha_apertura)}</span>
+                            </div>
+                            <div className="bg-white/70 rounded-2xl px-3 py-2">
+                              <span className="text-[11px] text-stone-500 block">Cierre</span>
+                              <span className="font-semibold text-stone-800">{fmt(t.fecha_cierre)}</span>
+                            </div>
+                            <div className="bg-white/70 rounded-2xl px-3 py-2">
+                              <span className="text-[11px] text-stone-500 block">Fondo inicial</span>
+                              <span className="font-semibold text-stone-800 whitespace-nowrap">S/ {formatoSoles(Number(t.monto_inicial))}</span>
+                            </div>
+                            <div className="bg-white/70 rounded-2xl px-3 py-2">
+                              <span className="text-[11px] text-stone-500 block">Ventas efectivo</span>
+                              <span className="font-semibold text-stone-800 whitespace-nowrap">S/ {formatoSoles(Number(t.ventas_sistema || 0))}</span>
+                            </div>
+                            <div className="col-span-2 bg-[#f4eefe] border border-[#d6bdfa] rounded-2xl px-3 py-2 flex justify-between items-center">
+                              <span className="text-[11px] text-[#6105dc]">Contado</span>
+                              <span className="font-bold text-sm text-[#4d04b0] whitespace-nowrap">S/ {formatoSoles(Number(t.monto_final_real || 0))}</span>
+                            </div>
+                          </div>
                         </div>
-                        <div className="grid grid-cols-2 gap-x-3 gap-y-0.5 text-stone-600">
-                          <span>Apertura: {new Date(t.fecha_apertura).toLocaleString('es-PE', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}</span>
-                          <span>Cierre: {new Date(t.fecha_cierre).toLocaleString('es-PE', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}</span>
-                          <span>Fondo inicial: S/ {Number(t.monto_inicial).toFixed(2)}</span>
-                          <span>Ventas efectivo: S/ {Number(t.ventas_sistema || 0).toFixed(2)}</span>
-                          <span className="col-span-2 font-semibold text-stone-800">Contado: S/ {Number(t.monto_final_real || 0).toFixed(2)}</span>
-                        </div>
-                      </div>
-                    ))
+                      );
+                    })
                   )}
                 </div>
               </div>
