@@ -692,6 +692,9 @@ import './index.css';
       etiqueta: <><path d="M20.6 13.4 13.4 20.6a2 2 0 0 1-2.8 0L3 13V3h10l7.6 7.6a2 2 0 0 1 0 2.8z" /><circle cx="7.5" cy="7.5" r="1" /></>,
       borrar: <><path d="M21 5H9l-6 7 6 7h12z" /><path d="m17 9-4 6M13 9l4 6" /></>,
       recibo: <><path d="M4 2v20l3-2 3 2 2-2 2 2 3-2 3 2V2l-3 2-3-2-2 2-2-2-3 2z" /><path d="M8 8h8M8 12h8" /></>,
+      caja: <><path d="M21 8 12 3 3 8v8l9 5 9-5z" /><path d="m3 8 9 5 9-5M12 13v8" /></>,
+      buscar: <><circle cx="11" cy="11" r="7" /><path d="m21 21-4.3-4.3" /></>,
+      abajo: <path d="m6 9 6 6 6-6" />,
       x: <path d="M18 6 6 18M6 6l12 12" />,
       back: <path d="m15 18-6-6 6-6" />,
       pdf: <><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" /><path d="M14 2v6h6" /><path d="M12 12v6" /><path d="m9 15 3 3 3-3" /></>,
@@ -2500,6 +2503,7 @@ import './index.css';
       const [modalVerStock, setModalVerStock] = useState(false);
       const [verStockCategoria, setVerStockCategoria] = useState('');
       const [verStockBusqueda, setVerStockBusqueda] = useState('');
+      const [verStockFiltro, setVerStockFiltro] = useState('todos');
 
       // --- Módulo: Toma de Inventario (conteo físico vs. sistema) ---
       // Flujo en 2 pasos: "conteo" (se busca cada producto y se anota lo que
@@ -4122,13 +4126,22 @@ import './index.css';
 
       // Lista de "Ver Stock": todo el catálogo, filtrable por categoría y
       // texto, ordenado de menor a mayor stock (lo más urgente primero).
-      const productosVerStock = useMemo(() => {
+      const estadoStock = (p) => (
+        Number(p.stock_actual) <= 0 ? 'out' : Number(p.stock_actual) <= Number(p.stock_min || 5) ? 'low' : 'ok'
+      );
+      // Productos por categoría/texto (base de los contadores de los filtros)
+      // y, de ahí, los que coinciden además con el filtro de estado elegido.
+      const productosVerStockBase = useMemo(() => {
         const t = verStockBusqueda.trim().toLowerCase();
         return productos
           .filter((p) => !verStockCategoria || p.categoria === verStockCategoria)
           .filter((p) => !t || (p.descripcion || '').toLowerCase().includes(t))
           .sort((a, b) => Number(a.stock_actual || 0) - Number(b.stock_actual || 0));
       }, [productos, verStockCategoria, verStockBusqueda]);
+      const productosVerStock = useMemo(
+        () => (verStockFiltro === 'todos' ? productosVerStockBase : productosVerStockBase.filter((p) => estadoStock(p) === verStockFiltro)),
+        [productosVerStockBase, verStockFiltro]
+      );
 
       // Filas visibles de "Toma de Inventario", filtradas por categoría y
       // texto igual que "Ver Stock" -- para no tener que contar las 300
@@ -10955,47 +10968,85 @@ import './index.css';
           {/* Modal: Ver Stock (todo el catálogo) */}
           {modalVerStock && (
             <div className="fixed inset-0 bg-stone-900/30 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-              <div className="bg-gradient-to-br from-[#f4effc] via-[#f9f8fb] to-[#f5f4f8] border border-white/80 rounded-[28px] max-w-2xl w-full p-5 shadow-2xl space-y-3 max-h-[85vh] flex flex-col">
-                <div className="flex justify-between items-center shrink-0">
-                  <h3 className="text-lg font-bold text-stone-900 flex items-center gap-2">
-                    <i className="fa-solid fa-table-list text-orange-600"></i> Ver Stock
-                  </h3>
-                  <button onClick={() => setModalVerStock(false)} className="w-8 h-8 rounded-full bg-white/70 hover:bg-white text-stone-500 hover:text-stone-900 shadow-sm"><i className="fa-solid fa-xmark"></i></button>
+              <div className="bg-gradient-to-br from-[#f4effc] via-[#f9f8fb] to-[#f5f4f8] border border-white/80 rounded-[28px] max-w-2xl w-full pt-4 px-4 md:px-5 md:pt-5 shadow-2xl space-y-3 max-h-[85vh] flex flex-col overflow-hidden">
+                <div className="flex items-center gap-2.5 shrink-0">
+                  <span className="w-[38px] h-[38px] rounded-[14px] bg-[#ece0fd] text-[#6105dc] flex items-center justify-center shrink-0">
+                    <IconoTrazo nombre="caja" className="w-[19px] h-[19px]" />
+                  </span>
+                  <div className="flex-1 min-w-0">
+                    <h3 className="text-[19px] font-bold tracking-tight text-stone-900 leading-tight">Ver stock</h3>
+                    <p className="text-xs text-stone-500 mt-0.5">{productosVerStock.length} {productosVerStock.length === 1 ? 'producto' : 'productos'}</p>
+                  </div>
+                  <button onClick={() => setModalVerStock(false)} className="w-9 h-9 rounded-full bg-white ring-1 ring-[#6105dc]/10 hover:bg-[#f4eefe] text-stone-500 flex items-center justify-center transition" aria-label="Cerrar">
+                    <IconoTrazo nombre="x" className="w-[15px] h-[15px]" />
+                  </button>
                 </div>
                 <div className="flex gap-2 shrink-0">
-                  <input
-                    type="text"
-                    placeholder="Buscar producto..."
-                    value={verStockBusqueda}
-                    onChange={(e) => setVerStockBusqueda(e.target.value)}
-                    className="flex-1 min-w-0 bg-white border border-stone-200/70 shadow-sm rounded-xl px-2.5 py-1.5 text-xs text-stone-900"
-                  />
-                  <select
-                    value={verStockCategoria}
-                    onChange={(e) => setVerStockCategoria(e.target.value)}
-                    className="min-w-0 max-w-[48%] truncate bg-white border border-stone-200/70 shadow-sm rounded-xl px-2.5 py-1.5 text-xs text-stone-900"
-                  >
-                    <option value="">Todas las categorías</option>
-                    {categoriasDB.map(c => <option key={c} value={c}>{c}</option>)}
-                  </select>
+                  <div className="flex-1 min-w-0 h-11 flex items-center gap-2 px-3.5 rounded-full bg-white ring-1 ring-[#6105dc]/15 focus-within:ring-2 focus-within:ring-[#6105dc]/40">
+                    <IconoTrazo nombre="buscar" className="w-[17px] h-[17px] text-[#6105dc] shrink-0" />
+                    <input
+                      type="text"
+                      placeholder="Buscar producto"
+                      value={verStockBusqueda}
+                      onChange={(e) => setVerStockBusqueda(e.target.value)}
+                      className="w-full min-w-0 bg-transparent text-sm text-stone-900 placeholder:text-[#a9a3b8] focus:outline-none"
+                    />
+                  </div>
+                  <div className="relative max-w-[46%] shrink-0">
+                    <select
+                      value={verStockCategoria}
+                      onChange={(e) => setVerStockCategoria(e.target.value)}
+                      className="appearance-none h-11 w-full truncate rounded-full bg-[#f4eefe] text-[13px] font-semibold text-[#4d04b0] pl-3.5 pr-8 focus:outline-none focus:ring-2 focus:ring-[#6105dc]/40"
+                    >
+                      <option value="">Todas las categorías</option>
+                      {categoriasDB.map(c => <option key={c} value={c}>{c}</option>)}
+                    </select>
+                    <IconoTrazo nombre="abajo" className="w-3.5 h-3.5 text-[#4d04b0] absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+                  </div>
                 </div>
-                <div className="flex-1 overflow-y-auto space-y-1.5">
+                <div className="flex gap-1.5 shrink-0 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+                  {[
+                    { id: 'todos', texto: 'Todos', n: productosVerStockBase.length },
+                    { id: 'low', texto: 'Stock bajo', n: productosVerStockBase.filter((p) => estadoStock(p) === 'low').length },
+                    { id: 'out', texto: 'Sin stock', n: productosVerStockBase.filter((p) => estadoStock(p) === 'out').length }
+                  ].map((f) => (
+                    <button
+                      key={f.id}
+                      onClick={() => setVerStockFiltro(f.id)}
+                      className={`shrink-0 flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-[12.5px] font-semibold transition ${
+                        verStockFiltro === f.id ? 'bg-[#6105dc] text-white' : 'bg-white ring-1 ring-[#6105dc]/10 text-stone-600 hover:bg-[#faf8fe]'
+                      }`}
+                    >
+                      {f.texto}
+                      <b className={`font-bold tabular-nums ${verStockFiltro === f.id ? 'text-white/75' : 'text-stone-400'}`}>{f.n}</b>
+                    </button>
+                  ))}
+                </div>
+                <div
+                  className="flex-1 overflow-y-auto space-y-1.5 -mx-4 md:-mx-5 px-4 md:px-5 pb-16 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+                  style={{ scrollbarWidth: 'none', WebkitMaskImage: 'linear-gradient(to bottom, black calc(100% - 46px), transparent)', maskImage: 'linear-gradient(to bottom, black calc(100% - 46px), transparent)' }}
+                >
                   {productosVerStock.length === 0 ? (
                     <p className="text-xs text-stone-500 text-center py-8">No hay productos que coincidan.</p>
                   ) : (
-                    productosVerStock.map((p) => (
-                      <div key={p.id} className="flex items-center justify-between p-2.5 bg-stone-50 border border-stone-200 rounded-xl">
-                        <div>
-                          <p className="text-xs font-semibold text-stone-800">{p.descripcion}</p>
-                          <p className="text-xs text-stone-500">{p.categoria || 'General'} · Mínimo: {p.stock_min || 5}</p>
+                    productosVerStock.map((p) => {
+                      const estado = estadoStock(p);
+                      return (
+                        <div key={p.id} className="flex items-center gap-2.5 bg-white rounded-[20px] py-2.5 pl-3.5 pr-2.5 ring-1 ring-[#6105dc]/5">
+                          <div className="flex-1 min-w-0">
+                            <p className="text-[13.5px] font-semibold text-stone-900 leading-tight">{p.descripcion}</p>
+                            <p className="text-xs text-stone-400 mt-0.5">{p.categoria || 'General'} · Mínimo {p.stock_min || 5}</p>
+                          </div>
+                          <span className={`shrink-0 min-w-[52px] h-[34px] px-3 rounded-full flex items-center justify-center font-bold tabular-nums ${
+                            estado === 'out' ? 'bg-rose-100 text-rose-700 text-[12.5px]'
+                              : estado === 'low' ? 'bg-amber-100 text-amber-700 text-sm'
+                              : 'bg-[#f4eefe] text-[#4d04b0] text-sm'
+                          }`}>
+                            {estado === 'out' ? 'Sin stock' : p.stock_actual}
+                          </span>
                         </div>
-                        <span className={`text-sm font-black ${
-                          Number(p.stock_actual) <= 0 ? 'text-rose-600' : Number(p.stock_actual) <= Number(p.stock_min || 5) ? 'text-amber-600' : 'text-stone-700'
-                        }`}>
-                          {Number(p.stock_actual) <= 0 ? 'Sin stock' : `${p.stock_actual}`}
-                        </span>
-                      </div>
-                    ))
+                      );
+                    })
                   )}
                 </div>
               </div>
