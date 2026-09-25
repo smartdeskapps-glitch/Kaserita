@@ -272,6 +272,28 @@ import './index.css';
       { cod_ean: '7750001000024', descripcion: 'Pisco Finca Rotondo Quebranta 750ml', precio_costo: 32.00, precio_venta: 42.00, categoria: 'Licores Y Vinos', unidad: 'UND', stock_actual: 6, foto_url: 'https://hzmrsbeamtbloudmxjrp.supabase.co/storage/v1/object/public/Productos/maestro/dc7e0b2e-034b-4a1e-bc67-c773a23e4dc2.jpg' }
     ];
 
+    // Selector de pestañas en pastilla para las ventanas que agrupan dos vistas
+    // (Toma/Historial de inventario, Ventas/Cierres). La pestaña activa no lleva
+    // onClick; la otra abre la ventana hermana.
+    function PestanasModal({ pestanas }) {
+      return (
+        <div className="flex gap-0.5 p-1 rounded-full bg-[#6105dc]/[0.08] shrink-0">
+          {pestanas.map((t) => (
+            <button
+              key={t.texto}
+              type="button"
+              onClick={t.onClick}
+              className={`flex-1 h-9 rounded-full text-[13px] font-semibold transition ${
+                t.activa ? 'bg-white text-[#4d04b0] shadow-[0_1px_3px_rgba(40,20,80,0.15)]' : 'text-[#6a6386] hover:text-[#4d04b0]'
+              }`}
+            >
+              {t.texto}
+            </button>
+          ))}
+        </div>
+      );
+    }
+
     // Teclado numérico en pantalla, reutilizable para efectivo y pagos mixtos.
     function NumericKeypad({ value, onChange }) {
       const teclas = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '.', '0', 'BORRAR'];
@@ -9827,17 +9849,14 @@ import './index.css';
                 ? { grupo: '', etiqueta: 'Cerrar Caja', icono: 'fa-lock', tono: 'rose', accion: abrirCierreCaja }
                 : { grupo: '', etiqueta: 'Abrir Turno', icono: 'fa-bolt', tono: 'primario', soloMovil: true, accion: () => setModalTurno(true) },
               { grupo: 'Ventas y caja', etiqueta: 'Cuentas por Cobrar', icono: 'fa-hand-holding-dollar', accion: abrirModuloCobroDeudas },
-              { grupo: 'Ventas y caja', etiqueta: 'Historial de Ventas Hoy', icono: 'fa-receipt', accion: abrirHistorialDelDia },
-              !esAdmin && { grupo: 'Ventas y caja', etiqueta: 'Registrar Cliente', icono: 'fa-user-plus', accion: () => setModalNuevoCliente(true) },
+              { grupo: 'Ventas y caja', etiqueta: 'Historial', icono: 'fa-receipt', accion: abrirHistorialDelDia },
+              { grupo: 'Ventas y caja', etiqueta: 'Clientes', icono: 'fa-users', accion: abrirGestionClientes },
               { grupo: 'Inventario', etiqueta: 'Ver Stock', icono: 'fa-table-list', tono: cantidadStockBajo > 0 ? 'amber' : undefined, insignia: cantidadStockBajo > 0 ? `${cantidadStockBajo} por reponer` : '', accion: () => { setVerStockFiltro('todos'); setModalVerStock(true); } },
               { grupo: 'Inventario', etiqueta: 'Toma de Inventario', icono: 'fa-clipboard-check', accion: abrirTomaInventario },
-              { grupo: 'Inventario', etiqueta: 'Historial de Inventario', icono: 'fa-scale-balanced', accion: abrirHistorialInventario },
               { grupo: 'Inventario', etiqueta: 'Registrar Merma', icono: 'fa-box', accion: () => setModalMerma(true) },
               ...(esAdmin ? [
                 { grupo: 'Administración', etiqueta: 'Dashboard de Ventas', icono: 'fa-chart-pie', accion: abrirDashboard },
                 { grupo: 'Administración', etiqueta: 'Cuentas por Pagar', icono: 'fa-file-invoice', accion: abrirCuentasPorPagar },
-                { grupo: 'Administración', etiqueta: 'Historial de Cierres de Caja', icono: 'fa-cash-register', accion: abrirHistorialCierres },
-                { grupo: 'Administración', etiqueta: 'Clientes (editar)', icono: 'fa-users', accion: abrirGestionClientes },
                 { grupo: 'Administración', etiqueta: 'Cajeros y Empleados', icono: 'fa-user-group', accion: abrirGestionCajeros },
                 { grupo: 'Administración', etiqueta: 'Registro de actividad', icono: 'fa-clipboard-check', accion: abrirAuditoria },
                 { grupo: 'Administración', etiqueta: 'Mi Link de Pedidos', icono: 'fa-share-nodes', accion: abrirModalDelivery },
@@ -11052,6 +11071,11 @@ import './index.css';
                     <button onClick={() => setModalTomaInventario(false)} className="w-8 h-8 rounded-full bg-white/70 hover:bg-white text-stone-500 hover:text-stone-900 shadow-sm"><i className="fa-solid fa-xmark"></i></button>
                   </div>
                 </div>
+
+                <PestanasModal pestanas={[
+                  { texto: 'Nueva toma', activa: true },
+                  { texto: 'Historial', onClick: () => { setModalTomaInventario(false); abrirHistorialInventario(); } },
+                ]} />
 
                 {pasoTomaInventario === 'conteo' ? (
                   <>
@@ -12393,6 +12417,11 @@ import './index.css';
                   <button onClick={() => setModalHistorialCierres(false)} className="w-8 h-8 rounded-full bg-white/70 hover:bg-white text-stone-500 hover:text-stone-900 shadow-sm"><i className="fa-solid fa-xmark"></i></button>
                 </div>
 
+                <PestanasModal pestanas={[
+                  { texto: 'Ventas de hoy', onClick: () => { setModalHistorialCierres(false); abrirHistorialDelDia(); } },
+                  { texto: 'Cierres de caja', activa: true },
+                ]} />
+
                 <FiltroFechasRapido
                   desde={fechaInicioCierres}
                   hasta={fechaFinCierres}
@@ -12464,6 +12493,11 @@ import './index.css';
                   </h3>
                   <button onClick={() => setModalHistorialInventario(false)} className="w-8 h-8 rounded-full bg-white/70 hover:bg-white text-stone-500 hover:text-stone-900 shadow-sm"><i className="fa-solid fa-xmark"></i></button>
                 </div>
+
+                <PestanasModal pestanas={[
+                  { texto: 'Nueva toma', onClick: () => { setModalHistorialInventario(false); abrirTomaInventario(); } },
+                  { texto: 'Historial', activa: true },
+                ]} />
 
                 <FiltroFechasRapido
                   desde={fechaInicioHistInventario}
@@ -13162,7 +13196,7 @@ import './index.css';
                         onChange={(e) => setBusquedaClientes(e.target.value)}
                         className="flex-1 min-w-0 bg-white border border-stone-200/70 shadow-sm rounded-full px-4 py-2 text-xs text-stone-900 focus:outline-none focus:ring-2 focus:ring-[#d6bdfa]"
                       />
-                      {clientesLista.length > 0 && (
+                      {esAdmin && clientesLista.length > 0 && (
                         <button
                           onClick={exportarClientesExcel}
                           className="px-3.5 py-2 bg-white/70 hover:bg-[#ece0fd] text-stone-600 hover:text-[#4d04b0] text-xs font-semibold rounded-full shadow-sm flex items-center gap-1.5 transition"
@@ -13181,8 +13215,8 @@ import './index.css';
                         clientesFiltradosGestion().map((c) => (
                           <button
                             key={c.id}
-                            onClick={() => abrirEdicionCliente(c)}
-                            className="w-full flex items-center justify-between gap-3 px-4 py-3 bg-white/60 hover:bg-[#f4eefe] backdrop-blur-xl border border-white/80 rounded-2xl shadow-sm transition text-left"
+                            onClick={() => { if (esAdmin) abrirEdicionCliente(c); }}
+                            className={`w-full flex items-center justify-between gap-3 px-4 py-3 bg-white/60 backdrop-blur-xl border border-white/80 rounded-2xl shadow-sm transition text-left ${esAdmin ? 'hover:bg-[#f4eefe]' : 'cursor-default'}`}
                           >
                             <div>
                               <p className="text-sm font-semibold text-stone-900">{c.nombre_completo}</p>
@@ -13802,6 +13836,13 @@ import './index.css';
                       </h3>
                       <button onClick={() => setModalHistorial(false)} className="w-8 h-8 rounded-full bg-white/70 hover:bg-white text-stone-500 hover:text-stone-900 shadow-sm"><i className="fa-solid fa-xmark"></i></button>
                     </div>
+
+                    {esAdmin && (
+                      <PestanasModal pestanas={[
+                        { texto: 'Ventas de hoy', activa: true },
+                        { texto: 'Cierres de caja', onClick: () => { setModalHistorial(false); abrirHistorialCierres(); } },
+                      ]} />
+                    )}
 
                     <div className="flex flex-wrap items-end gap-2">
                       <div>
