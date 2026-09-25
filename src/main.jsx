@@ -5000,7 +5000,6 @@ import './index.css';
         // venta en espera nunca se retoma; si se retoma y cobra más tarde,
         // el pedido se cierra a mano con "Ya retiró".
         setPedidosCargadosAlCarrito([]);
-        notificar('Venta puesta en espera', 'info');
       };
 
       const recuperarVentaEspera = (index) => {
