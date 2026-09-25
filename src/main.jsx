@@ -12563,27 +12563,27 @@ import './index.css';
 
           {/* Modal: Gestión de Clientes (listar / editar) */}
           {modalGestionClientes && (
-            <div className="fixed inset-0 bg-black/85 flex items-center justify-center z-50 p-4">
-              <div className="bg-stone-100 border border-stone-200 rounded-2xl max-w-lg w-full p-5 shadow-2xl space-y-3 max-h-[90vh] flex flex-col">
+            <div className="fixed inset-0 bg-stone-900/30 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+              <div className="bg-gradient-to-br from-[#f4effc] via-[#f9f8fb] to-[#f5f4f8] border border-white/80 rounded-[28px] max-w-lg w-full p-5 shadow-2xl space-y-3 max-h-[90vh] flex flex-col">
                 <div className="flex justify-between items-center shrink-0">
-                  <h3 className="text-base font-bold text-stone-900 flex items-center gap-2">
-                    <i className="fa-solid fa-users text-orange-600"></i> Clientes
+                  <h3 className="text-lg font-bold text-stone-900 flex items-center gap-2">
+                    <span className="w-8 h-8 rounded-xl bg-[#ece0fd] text-[#6105dc] flex items-center justify-center text-sm"><i className="fa-solid fa-users"></i></span> Clientes
                   </h3>
-                  <button onClick={() => { setModalGestionClientes(false); setClienteEditando(null); }} className="text-stone-600 hover:text-stone-900"><i className="fa-solid fa-xmark"></i></button>
+                  <button onClick={() => { setModalGestionClientes(false); setClienteEditando(null); }} className="w-8 h-8 rounded-full bg-white/70 hover:bg-white text-stone-500 hover:text-stone-900 shadow-sm"><i className="fa-solid fa-xmark"></i></button>
                 </div>
 
                 {!clienteEditando && (
                   <button
                     type="button"
                     onClick={() => setModalNuevoCliente(true)}
-                    className="shrink-0 w-full py-2 bg-orange-600 hover:bg-orange-500 text-white text-xs font-bold rounded-xl shadow flex items-center justify-center gap-2"
+                    className="shrink-0 w-full py-2.5 bg-[#6105dc] hover:bg-[#4d04b0] text-white text-xs font-bold rounded-full shadow-sm flex items-center justify-center gap-2"
                   >
                     <i className="fa-solid fa-user-plus"></i> Agregar Cliente
                   </button>
                 )}
 
                 {clienteEditando ? (
-                  <div className="p-3 bg-stone-50 rounded-xl border border-orange-700/40 space-y-2.5">
+                  <div className="p-4 bg-white/60 backdrop-blur-xl border border-white/80 rounded-3xl shadow-[0_10px_40px_-14px_rgba(97,5,220,0.18)] space-y-2.5">
                     <div className="flex justify-between items-center">
                       <span className="text-xs font-bold text-stone-900">DNI: {clienteEditando.dni}</span>
                       <button onClick={() => setClienteEditando(null)} className="text-xs text-stone-600 underline">Volver a la lista</button>
@@ -12594,7 +12594,7 @@ import './index.css';
                         type="text"
                         value={formEditarCliente.nombre_completo}
                         onChange={(e) => setFormEditarCliente({ ...formEditarCliente, nombre_completo: e.target.value })}
-                        className="w-full bg-stone-100 border border-stone-200 rounded-lg px-3 py-1.5 text-xs text-stone-900"
+                        className="w-full bg-white border border-stone-200/70 shadow-sm rounded-full px-3.5 py-2 text-xs text-stone-900"
                       />
                     </div>
                     <div className="grid grid-cols-2 gap-2">
@@ -12604,7 +12604,7 @@ import './index.css';
                           type="text"
                           value={formEditarCliente.telefono}
                           onChange={(e) => setFormEditarCliente({ ...formEditarCliente, telefono: e.target.value })}
-                          className="w-full bg-stone-100 border border-stone-200 rounded-lg px-3 py-1.5 text-xs text-stone-900"
+                          className="w-full bg-white border border-stone-200/70 shadow-sm rounded-full px-3.5 py-2 text-xs text-stone-900"
                         />
                       </div>
                       <div>
@@ -12613,7 +12613,7 @@ import './index.css';
                           type="text"
                           value={formEditarCliente.correo}
                           onChange={(e) => setFormEditarCliente({ ...formEditarCliente, correo: e.target.value })}
-                          className="w-full bg-stone-100 border border-stone-200 rounded-lg px-3 py-1.5 text-xs text-stone-900"
+                          className="w-full bg-white border border-stone-200/70 shadow-sm rounded-full px-3.5 py-2 text-xs text-stone-900"
                         />
                       </div>
                     </div>
@@ -12624,7 +12624,7 @@ import './index.css';
                         step="10"
                         value={formEditarCliente.limite_credito}
                         onChange={(e) => setFormEditarCliente({ ...formEditarCliente, limite_credito: e.target.value })}
-                        className="w-full bg-stone-100 border border-stone-200 rounded-lg px-3 py-1.5 text-sm font-bold text-orange-600"
+                        className="w-full bg-white border border-stone-200/70 shadow-sm rounded-full px-3.5 py-2 text-sm font-bold text-orange-600"
                       />
                       <p className="text-xs text-stone-500 mt-1">Deuda actual: S/ {Number(clienteEditando.saldo_actual || 0).toFixed(2)} (no editable aquí)</p>
                     </div>
@@ -12635,13 +12635,13 @@ import './index.css';
                         step="1"
                         value={formEditarCliente.dias_credito}
                         onChange={(e) => setFormEditarCliente({ ...formEditarCliente, dias_credito: e.target.value })}
-                        className="w-full bg-stone-100 border border-stone-200 rounded-lg px-3 py-1.5 text-sm font-bold text-stone-900"
+                        className="w-full bg-white border border-stone-200/70 shadow-sm rounded-full px-3.5 py-2 text-sm font-bold text-stone-900"
                       />
                     </div>
                     <button
                       onClick={guardarEdicionCliente}
                       disabled={guardandoEdicionCliente}
-                      className="w-full py-2.5 bg-stone-900 hover:bg-stone-800 disabled:opacity-60 text-white font-bold text-xs rounded-xl shadow"
+                      className="w-full py-2.5 bg-[#6105dc] hover:bg-[#4d04b0] disabled:opacity-60 text-white font-bold text-xs rounded-full shadow-sm"
                     >
                       {guardandoEdicionCliente ? 'Guardando...' : 'Guardar Cambios'}
                     </button>
@@ -12654,19 +12654,19 @@ import './index.css';
                         placeholder="Buscar por nombre o DNI..."
                         value={busquedaClientes}
                         onChange={(e) => setBusquedaClientes(e.target.value)}
-                        className="flex-1 bg-stone-50 border border-stone-200 rounded-xl px-3 py-2 text-xs text-stone-900"
+                        className="flex-1 min-w-0 bg-white border border-stone-200/70 shadow-sm rounded-full px-4 py-2 text-xs text-stone-900 focus:outline-none focus:ring-2 focus:ring-[#d6bdfa]"
                       />
                       {clientesLista.length > 0 && (
                         <button
                           onClick={exportarClientesExcel}
-                          className="px-3 py-2 bg-stone-200 hover:bg-stone-300 text-stone-700 text-xs font-semibold rounded-xl flex items-center gap-1.5"
+                          className="px-3.5 py-2 bg-white/70 hover:bg-[#ece0fd] text-stone-600 hover:text-[#4d04b0] text-xs font-semibold rounded-full shadow-sm flex items-center gap-1.5 transition"
                           title="Exportar a Excel"
                         >
                           <i className="fa-solid fa-file-excel"></i>
                         </button>
                       )}
                     </div>
-                    <div className="flex-1 overflow-y-auto space-y-1.5">
+                    <div className="flex-1 overflow-y-auto hide-scrollbar space-y-2">
                       {cargandoClientes ? (
                         <p className="text-xs text-stone-500 text-center py-6">Cargando...</p>
                       ) : clientesFiltradosGestion().length === 0 ? (
@@ -12676,17 +12676,17 @@ import './index.css';
                           <button
                             key={c.id}
                             onClick={() => abrirEdicionCliente(c)}
-                            className="w-full flex items-center justify-between p-2.5 bg-stone-50 hover:bg-stone-200 border border-stone-200 rounded-xl transition text-left"
+                            className="w-full flex items-center justify-between gap-3 px-4 py-3 bg-white/60 hover:bg-[#f4eefe] backdrop-blur-xl border border-white/80 rounded-2xl shadow-sm transition text-left"
                           >
                             <div>
-                              <p className="text-xs font-semibold text-stone-800">{c.nombre_completo}</p>
+                              <p className="text-sm font-semibold text-stone-900">{c.nombre_completo}</p>
                               <p className="text-xs text-stone-500">DNI: {c.dni} {c.telefono && `· ${c.telefono}`}</p>
                             </div>
                             <div className="text-right shrink-0">
                               {Number(c.saldo_actual) > 0 && (
-                                <span className="text-xs font-bold text-rose-600 block">Debe S/ {Number(c.saldo_actual).toFixed(2)}</span>
+                                <span className="inline-block px-2 py-0.5 mb-1 rounded-full bg-rose-50 text-xs font-bold text-rose-600 whitespace-nowrap">Debe S/ {formatoSoles(Number(c.saldo_actual))}</span>
                               )}
-                              <span className="text-xs text-stone-500">Límite S/ {Number(c.limite_credito || 0).toFixed(2)}</span>
+                              <span className="text-xs text-stone-500 block whitespace-nowrap">Límite S/ {formatoSoles(Number(c.limite_credito || 0))}</span>
                             </div>
                           </button>
                         ))
@@ -12701,11 +12701,11 @@ import './index.css';
           {/* Modal: Nuevo Cliente con Límite de Crédito */}
           {/* Modal: Buscar/Seleccionar Cliente (POS) */}
           {modalBuscarCliente && (
-            <div className="fixed inset-0 bg-black/85 flex items-center justify-center z-50 p-4">
-              <div className="bg-stone-100 border border-stone-200 rounded-2xl max-w-sm w-full p-5 shadow-2xl space-y-3 max-h-[85vh] flex flex-col">
+            <div className="fixed inset-0 bg-stone-900/30 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+              <div className="bg-gradient-to-br from-[#f4effc] via-[#f9f8fb] to-[#f5f4f8] border border-white/80 rounded-[28px] max-w-sm w-full p-5 shadow-2xl space-y-3 max-h-[85vh] flex flex-col">
                 <div className="flex justify-between items-center shrink-0">
-                  <h3 className="text-base font-bold text-stone-900"><i className="fa-solid fa-user mr-1.5"></i> Seleccionar Cliente</h3>
-                  <button onClick={() => setModalBuscarCliente(false)} className="text-stone-600 hover:text-stone-900"><i className="fa-solid fa-xmark"></i></button>
+                  <h3 className="text-lg font-bold text-stone-900 flex items-center gap-2"><span className="w-8 h-8 rounded-xl bg-[#ece0fd] text-[#6105dc] flex items-center justify-center text-sm"><i className="fa-solid fa-user"></i></span> Seleccionar cliente</h3>
+                  <button onClick={() => setModalBuscarCliente(false)} className="w-8 h-8 rounded-full bg-white/70 hover:bg-white text-stone-500 hover:text-stone-900 shadow-sm"><i className="fa-solid fa-xmark"></i></button>
                 </div>
                 <input
                   type="text"
@@ -12713,12 +12713,12 @@ import './index.css';
                   value={busquedaClientePOS}
                   onChange={(e) => setBusquedaClientePOS(e.target.value)}
                   placeholder="Buscar por nombre o DNI..."
-                  className="w-full bg-stone-50 border border-stone-200 rounded-lg px-3 py-2 text-sm text-stone-900 shrink-0"
+                  className="w-full bg-white border border-stone-200/70 shadow-sm rounded-full px-4 py-2 text-sm text-stone-900 shrink-0 focus:outline-none focus:ring-2 focus:ring-[#d6bdfa]"
                 />
-                <div className="flex-1 overflow-y-auto -mx-1 px-1 space-y-1.5">
+                <div className="flex-1 overflow-y-auto hide-scrollbar -mx-1 px-1 space-y-2">
                   <button
                     onClick={() => seleccionarClientePOS({ dni: '99999999', nombre_completo: 'Cliente Varios / Desconocido', saldo_actual: 0 })}
-                    className="w-full text-left p-2.5 bg-stone-50 hover:bg-orange-50 border border-stone-200 rounded-lg transition"
+                    className="w-full text-left px-4 py-3 bg-white/60 hover:bg-[#f4eefe] backdrop-blur-xl border border-white/80 rounded-2xl shadow-sm transition"
                   >
                     <p className="text-sm font-semibold text-stone-900">Cliente Varios / Desconocido</p>
                     <p className="text-xs text-stone-500">Sin DNI registrado</p>
@@ -12732,12 +12732,12 @@ import './index.css';
                       <button
                         key={c.id}
                         onClick={() => seleccionarClientePOS(c)}
-                        className="w-full text-left p-2.5 bg-stone-50 hover:bg-orange-50 border border-stone-200 rounded-lg transition"
+                        className="w-full text-left px-4 py-3 bg-white/60 hover:bg-[#f4eefe] backdrop-blur-xl border border-white/80 rounded-2xl shadow-sm transition"
                       >
                         <div className="flex items-center justify-between gap-2">
                           <p className="text-sm font-semibold text-stone-900 truncate">{c.nombre_completo}</p>
                           {Number(c.saldo_actual) > 0 && (
-                            <span className="text-xs font-bold text-rose-600 shrink-0">S/ {Number(c.saldo_actual).toFixed(2)}</span>
+                            <span className="px-2 py-0.5 rounded-full bg-rose-50 text-xs font-bold text-rose-600 shrink-0 whitespace-nowrap">S/ {formatoSoles(Number(c.saldo_actual))}</span>
                           )}
                         </div>
                         <p className="text-xs text-stone-500">DNI/RUC: {c.dni}</p>
@@ -12747,7 +12747,7 @@ import './index.css';
                 </div>
                 <button
                   onClick={() => { setModalBuscarCliente(false); setModalNuevoCliente(true); }}
-                  className="shrink-0 w-full py-2 text-xs font-semibold text-orange-600 hover:underline"
+                  className="shrink-0 w-full py-2 text-xs font-semibold text-[#6105dc] hover:underline"
                 >
                   + Registrar cliente nuevo
                 </button>
