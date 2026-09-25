@@ -756,7 +756,7 @@ import './index.css';
                 src={prod.foto_url}
                 alt=""
                 loading="lazy"
-                className={`w-full h-full object-contain p-2 transition-transform duration-500 group-hover:scale-105 ${sinStock ? 'opacity-40 grayscale' : ''}`}
+                className={`w-full h-full object-contain p-2 mix-blend-multiply transition-transform duration-500 group-hover:scale-105 ${sinStock ? 'opacity-40 grayscale' : ''}`}
               />
             ) : (
               <FotoProducto
