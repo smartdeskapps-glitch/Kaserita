@@ -677,6 +677,10 @@ import './index.css';
       print: <><path d="M6 9V2h12v7" /><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2" /><rect x="6" y="14" width="12" height="8" /></>,
       chat: <><path d="M7.9 20A9 9 0 1 0 4 16.1L2 22Z" /><path d="M9 10c.5 2 2.5 4 5 5l1.5-1.5-2-1-1 .8c-.8-.4-1.6-1.2-2-2l.8-1-1-2z" /></>,
       bluetooth: <path d="m7 7 10 10-5 5V2l5 5L7 17" />,
+      x: <path d="M18 6 6 18M6 6l12 12" />,
+      back: <path d="m15 18-6-6 6-6" />,
+      pdf: <><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" /><path d="M14 2v6h6" /><path d="M12 12v6" /><path d="m9 15 3 3 3-3" /></>,
+      hand: <><path d="M11 15h2a2 2 0 1 0 0-4h-3c-.6 0-1.1.2-1.4.6L3 16" /><path d="m7 21 1.6-1.4c.3-.4.8-.6 1.4-.6h4c1.1 0 2.1-.4 2.8-1.2l4.6-4.4a2 2 0 0 0-2.75-2.91l-4.2 3.9" /><path d="m2 16 6 6" /><circle cx="16" cy="9" r="2.9" /><circle cx="6" cy="5" r="3" /></>,
       cloud: <><path d="M17.5 19a4.5 4.5 0 1 0-1.4-8.8A6 6 0 1 0 5 15.5" /><path d="M12 12v9" /><path d="m8.5 15.5 3.5-3.5 3.5 3.5" /></>,
     };
     function IconoTrazo({ nombre, className = 'w-4 h-4', grosor = 2 }) {
@@ -11999,119 +12003,170 @@ import './index.css';
           {/* Modal: Cobrar Deudas / Créditos */}
           {modalCobrarDeudas && (
             <div className="fixed inset-0 bg-stone-900/30 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-              <div className="bg-gradient-to-br from-[#f4effc] via-[#f9f8fb] to-[#f5f4f8] border border-white/80 rounded-[28px] max-w-md w-full p-5 shadow-2xl space-y-3 max-h-[90vh] overflow-y-auto">
+              <div className="bg-gradient-to-br from-[#f4effc] via-[#f9f8fb] to-[#f5f4f8] border border-white/80 rounded-[28px] max-w-md w-full p-5 shadow-2xl space-y-3 max-h-[90vh] overflow-y-auto hide-scrollbar">
                 <div className="flex justify-between items-center">
-                  <h3 className="text-lg font-bold text-stone-900 flex items-center gap-2">
-                    <i className="fa-solid fa-hand-holding-dollar text-orange-600"></i> Cuentas por Cobrar
+                  <h3 className="text-lg font-bold text-stone-900 flex items-center gap-2.5">
+                    <span className="w-8 h-8 rounded-xl bg-[#ece0fd] text-[#6105dc] flex items-center justify-center"><IconoTrazo nombre="hand" className="w-4 h-4" /></span>
+                    Cuentas por cobrar
                   </h3>
-                  <button onClick={() => setModalCobrarDeudas(false)} className="w-8 h-8 rounded-full bg-white/70 hover:bg-white text-stone-500 hover:text-stone-900 shadow-sm"><i className="fa-solid fa-xmark"></i></button>
+                  <button onClick={() => setModalCobrarDeudas(false)} className="w-8 h-8 rounded-full bg-white/75 hover:bg-white text-stone-500 hover:text-stone-900 shadow-sm flex items-center justify-center"><IconoTrazo nombre="x" className="w-3.5 h-3.5" /></button>
                 </div>
 
-                {deudorSeleccionado ? (
-                  <div className="p-3 bg-stone-50 rounded-xl border border-amber-500/40 space-y-3">
-                    <div className="flex justify-between items-center">
-                      <span className="font-bold text-xs text-stone-900 flex items-center gap-1.5">
-                        <i className="fa-solid fa-user text-orange-600"></i> {deudorSeleccionado.nombre_completo}
-                      </span>
-                      <button onClick={() => { setDeudorSeleccionado(null); setBoletasDeudor([]); }} className="text-xs text-stone-600 underline">Cambiar</button>
-                    </div>
-                    <div className="text-xs">
-                      <p className="text-stone-600">DNI: {deudorSeleccionado.dni}</p>
-                      <p className="text-rose-600 font-bold mt-1 text-sm">Deuda Actual: S/ {Number(deudorSeleccionado.saldo_actual).toFixed(2)}</p>
+                {deudorSeleccionado ? (() => {
+                  const iniciales = (n) => String(n || '?').trim().split(/\s+/).slice(0, 2).map((w) => w[0]).join('').toUpperCase();
+                  const saldoDeudor = Number(deudorSeleccionado.saldo_actual) || 0;
+                  const abono = parseFloat(montoAbonoDeuda) || 0;
+                  const restante = saldoDeudor - abono;
+                  const lista = mostrarHistorialCompletoDeuda ? boletasDeudorConEstado : boletasPendientesDeuda;
+                  return (
+                  <div className="space-y-3">
+                    <button onClick={() => { setDeudorSeleccionado(null); setBoletasDeudor([]); }} className="inline-flex items-center gap-1 text-[13px] font-semibold text-[#6105dc] hover:text-[#4d04b0] transition">
+                      <IconoTrazo nombre="back" className="w-3.5 h-3.5" /> Todos los clientes
+                    </button>
+
+                    <div className="bg-white/65 border border-white/90 rounded-[22px] px-4 py-3.5 flex items-center gap-3">
+                      <span className="w-11 h-11 rounded-full bg-[#ece0fd] text-[#6105dc] font-bold text-[15px] flex items-center justify-center shrink-0">{iniciales(deudorSeleccionado.nombre_completo)}</span>
+                      <div className="min-w-0">
+                        <p className="text-base font-bold text-stone-900 tracking-tight truncate">{deudorSeleccionado.nombre_completo}</p>
+                        <p className="text-xs text-stone-400">DNI {deudorSeleccionado.dni}</p>
+                      </div>
+                      <div className="ml-auto text-right shrink-0">
+                        <p className="text-[11px] font-semibold text-stone-400">Deuda actual</p>
+                        <p className="text-2xl font-bold tracking-tight text-rose-600 tabular-nums leading-tight">
+                          <small className="text-xs font-semibold mr-0.5">S/</small>{formatoSoles(saldoDeudor)}
+                        </p>
+                      </div>
                     </div>
 
                     {/* Detalle de boletas: por defecto solo lo que aún se debe */}
-                    <div className="bg-stone-100 rounded-lg border border-stone-200 p-2 max-h-40 overflow-y-auto">
-                      <div className="flex items-center justify-between mb-1.5">
-                        <p className="text-xs font-bold text-stone-600 uppercase tracking-wide">
-                          {mostrarHistorialCompletoDeuda ? 'Historial completo de compras' : 'Boletas pendientes de pago'}
+                    <div className="bg-white/65 border border-white/90 rounded-[22px] px-4 py-3.5">
+                      <div className="flex items-baseline justify-between gap-2 mb-1.5">
+                        <p className="text-[11px] font-bold text-stone-400 uppercase tracking-wider">
+                          {mostrarHistorialCompletoDeuda ? 'Historial completo de compras' : 'Boletas pendientes'}
                         </p>
                         {boletasDeudorConEstado.some((b) => b.pagada) && (
                           <button
                             type="button"
                             onClick={() => setMostrarHistorialCompletoDeuda((v) => !v)}
-                            className="text-xs text-orange-600 underline shrink-0"
+                            className="text-xs font-semibold text-[#6105dc] hover:text-[#4d04b0] shrink-0"
                           >
                             {mostrarHistorialCompletoDeuda ? 'Ver solo pendientes' : `Ver historial completo (${boletasDeudorConEstado.length})`}
                           </button>
                         )}
                       </div>
-                      {cargandoDetalleDeudor ? (
-                        <p className="text-xs text-stone-500 text-center py-3">Cargando...</p>
-                      ) : boletasDeudorConEstado.length === 0 ? (
-                        <p className="text-xs text-stone-500 text-center py-3">Sin boletas a crédito registradas.</p>
-                      ) : (mostrarHistorialCompletoDeuda ? boletasDeudorConEstado : boletasPendientesDeuda).length === 0 ? (
-                        <p className="text-xs text-emerald-600 text-center py-3"><i className="fa-solid fa-circle-check mr-1"></i> No hay boletas pendientes.</p>
-                      ) : (
-                        <div className="space-y-2">
-                          {(mostrarHistorialCompletoDeuda ? boletasDeudorConEstado : boletasPendientesDeuda).map((b) => (
-                            <div key={b.id} className={`text-xs border-b border-stone-200 last:border-0 pb-1.5 last:pb-0 ${b.pagada ? 'opacity-50' : ''}`}>
-                              <div className="flex justify-between font-semibold text-stone-800">
-                                <span className="font-mono">
-                                  {b.nro_boleta} {b.pagada && <span className="text-emerald-600 font-sans">(Pagada)</span>}
-                                  {b.vencida && <span className="text-rose-600 font-sans font-bold"> · Vencida hace {b.diasVencido}d</span>}
+                      <div className="max-h-48 overflow-y-auto hide-scrollbar">
+                        {cargandoDetalleDeudor ? (
+                          <p className="text-xs text-stone-500 text-center py-4">Cargando...</p>
+                        ) : boletasDeudorConEstado.length === 0 ? (
+                          <p className="text-xs text-stone-500 text-center py-4">Sin boletas a crédito registradas.</p>
+                        ) : lista.length === 0 ? (
+                          <p className="text-xs text-emerald-600 text-center py-4">No hay boletas pendientes.</p>
+                        ) : (
+                          lista.map((b) => (
+                            <div key={b.id} className={`py-2.5 border-b border-[#6105dc]/10 last:border-0 ${b.pagada ? 'opacity-50' : ''}`}>
+                              <div className="flex justify-between items-center gap-2">
+                                <span className="text-[12.5px] font-bold text-stone-900 tabular-nums">
+                                  {b.nro_boleta}
+                                  {b.pagada && <span className="ml-1.5 text-[10.5px] font-bold text-emerald-600">Pagada</span>}
+                                  {b.vencida && <span className="ml-1.5 text-[10.5px] font-bold text-rose-700 bg-rose-50 rounded-full px-2 py-0.5">Vencida hace {b.diasVencido} d</span>}
                                 </span>
-                                <span className="text-orange-600">S/ {Number(b.total_venta).toFixed(2)}</span>
+                                <span className="text-[13.5px] font-bold text-[#6105dc] tabular-nums whitespace-nowrap">S/ {formatoSoles(b.total_venta)}</span>
                               </div>
-                              <p className="text-stone-500">
+                              <p className="text-xs text-stone-400 mt-0.5 leading-snug">
                                 {new Date(b.fecha_hora).toLocaleDateString('es-PE')} ·{' '}
                                 {(b.ventas_detalle || []).map(d => `${d.productos?.descripcion || 'Producto'} x${d.cantidad}`).join(', ') || 'Sin detalle'}
                               </p>
                             </div>
-                          ))}
-                        </div>
-                      )}
+                          ))
+                        )}
+                      </div>
                     </div>
 
                     {/* Estado de cuenta: PDF y WhatsApp */}
                     <div className="grid grid-cols-2 gap-2">
                       <button
                         onClick={descargarEstadoCuenta}
-                        className="py-2 bg-stone-200 hover:bg-stone-300 text-stone-800 text-xs font-semibold rounded-xl border border-stone-300 flex items-center justify-center gap-1.5"
+                        className="flex items-center justify-center gap-1.5 py-2.5 bg-white hover:bg-[#f4eefe] text-stone-800 text-[12.5px] font-semibold rounded-full ring-1 ring-[#6105dc]/10 hover:ring-[#d6bdfa] transition whitespace-nowrap"
                       >
-                        <i className="fa-solid fa-file-pdf"></i> Descargar PDF
+                        <IconoTrazo nombre="pdf" className="w-[15px] h-[15px] text-[#6105dc]" /> Descargar PDF
                       </button>
                       <button
                         onClick={() => enviarEstadoCuentaWhatsApp(deudorSeleccionado)}
-                        className="py-2 bg-green-600 hover:bg-green-500 text-white text-xs font-semibold rounded-xl flex items-center justify-center gap-1.5"
+                        className="flex items-center justify-center gap-1.5 py-2.5 bg-white hover:bg-[#f4eefe] text-stone-800 text-[12.5px] font-semibold rounded-full ring-1 ring-[#6105dc]/10 hover:ring-[#d6bdfa] transition whitespace-nowrap"
                       >
-                        <i className="fa-brands fa-whatsapp"></i> Enviar por WhatsApp
+                        <IconoTrazo nombre="chat" className="w-[15px] h-[15px] text-[#6105dc]" /> Enviar por WhatsApp
                       </button>
                     </div>
 
-                    <div>
-                      <label className="text-xs text-stone-600 block mb-1">Monto a Abonar (S/):</label>
-                      <input
-                        type="number"
-                        step="1.00"
-                        placeholder="0.00"
-                        value={montoAbonoDeuda}
-                        onChange={(e) => setMontoAbonoDeuda(e.target.value)}
-                        className="w-full bg-stone-100 border border-stone-200 rounded-lg p-2 text-sm font-bold text-stone-900 focus:outline-none focus:ring-2 focus:ring-[#d6bdfa]"
-                      />
+                    <div className="bg-white/65 border border-white/90 rounded-[22px] px-4 py-3.5">
+                      <label htmlFor="monto-abono-deuda" className="text-xs font-semibold text-stone-500 block mb-2">Monto a abonar</label>
+                      <div className="flex items-center gap-2 bg-white rounded-full pl-4 pr-2 py-1.5 ring-1 ring-[#6105dc]/10 focus-within:ring-2 focus-within:ring-[#d6bdfa]">
+                        <span className="text-sm font-semibold text-stone-400">S/</span>
+                        <input
+                          id="monto-abono-deuda"
+                          type="number"
+                          inputMode="decimal"
+                          step="0.10"
+                          placeholder="0.00"
+                          value={montoAbonoDeuda}
+                          onChange={(e) => setMontoAbonoDeuda(e.target.value)}
+                          className="flex-1 min-w-0 bg-transparent text-[22px] font-bold tracking-tight text-stone-900 tabular-nums focus:outline-none"
+                        />
+                        <div className="flex gap-1.5 shrink-0">
+                          <button type="button" onClick={() => setMontoAbonoDeuda(saldoDeudor.toFixed(2))} className="text-[11.5px] font-semibold text-[#4d04b0] bg-[#f4eefe] hover:bg-[#ece0fd] rounded-full px-3 py-1.5 transition whitespace-nowrap">Pagar todo</button>
+                          <button type="button" onClick={() => setMontoAbonoDeuda((saldoDeudor / 2).toFixed(2))} className="text-[11.5px] font-semibold text-[#4d04b0] bg-[#f4eefe] hover:bg-[#ece0fd] rounded-full px-3 py-1.5 transition">Mitad</button>
+                        </div>
+                      </div>
+                      <div className="flex justify-between text-[12.5px] text-stone-400 mt-2 px-1">
+                        <span>Saldo después del pago</span>
+                        <b className={`tabular-nums ${restante < 0 ? 'text-rose-600' : restante === 0 && abono > 0 ? 'text-emerald-600' : 'text-stone-900'}`}>
+                          {restante < 0 ? 'Excede la deuda' : `S/ ${formatoSoles(restante)}`}
+                        </b>
+                      </div>
                     </div>
-                    <button onClick={procesarPagoDeudaCliente} className="w-full py-2 bg-[#6105dc] hover:bg-[#4d04b0] text-white font-bold text-xs rounded-full shadow flex items-center justify-center gap-1.5">
-                      <i className="fa-solid fa-check"></i> Registrar Pago de Deuda
+
+                    <button onClick={procesarPagoDeudaCliente} className="w-full py-3 bg-[#6105dc] hover:bg-[#4d04b0] active:scale-[0.98] text-white font-semibold text-[14.5px] rounded-full flex items-center justify-center gap-2 transition">
+                      <IconoTrazo nombre="check" className="w-4 h-4" grosor={2.4} /> Registrar pago de deuda
                     </button>
                   </div>
-                ) : (
-                  <div className="max-h-60 overflow-y-auto space-y-1.5">
+                  );
+                })() : (
+                  <div className="space-y-3">
                     {clientesDeudores.length === 0 ? (
-                      <p className="text-xs text-emerald-600 text-center py-6"><i className="fa-solid fa-circle-check mr-1"></i>No hay clientes con deuda pendiente.</p>
+                      <p className="text-xs text-emerald-600 text-center py-6">No hay clientes con deuda pendiente.</p>
                     ) : (
-                      clientesDeudores.map(cl => (
-                        <div
-                          key={cl.id}
-                          onClick={() => seleccionarDeudor(cl)}
-                          className="flex justify-between items-center p-2.5 bg-stone-50 hover:bg-stone-200 border border-stone-200 rounded-xl cursor-pointer transition"
-                        >
+                      <>
+                        <div className="bg-white/65 border border-white/90 rounded-[22px] px-4 py-3 flex items-center justify-between">
                           <div>
-                            <p className="text-xs font-bold text-stone-800">{cl.nombre_completo}</p>
-                            <p className="text-xs text-stone-600">DNI: {cl.dni}</p>
+                            <p className="text-xs font-semibold text-stone-400">Total por cobrar</p>
+                            <p className="text-2xl font-bold tracking-tight text-rose-600 tabular-nums">
+                              <small className="text-[13px] font-semibold mr-0.5">S/</small>{formatoSoles(clientesDeudores.reduce((a, c) => a + (Number(c.saldo_actual) || 0), 0))}
+                            </p>
                           </div>
-                          <span className="text-sm font-black text-rose-600">S/ {Number(cl.saldo_actual).toFixed(2)}</span>
+                          <span className="text-xs font-semibold text-[#4d04b0] bg-[#ece0fd] rounded-full px-3 py-1.5">
+                            {clientesDeudores.length} {clientesDeudores.length === 1 ? 'cliente' : 'clientes'}
+                          </span>
                         </div>
-                      ))
+                        <div className="max-h-72 overflow-y-auto hide-scrollbar space-y-2">
+                          {clientesDeudores.map(cl => (
+                            <button
+                              key={cl.id}
+                              type="button"
+                              onClick={() => seleccionarDeudor(cl)}
+                              className="w-full flex items-center gap-3 px-3.5 py-3 bg-white/65 hover:bg-[#f4eefe] border border-white/90 rounded-[20px] text-left transition"
+                            >
+                              <span className="w-[38px] h-[38px] rounded-full bg-[#ece0fd] text-[#6105dc] font-bold text-[13px] flex items-center justify-center shrink-0">
+                                {String(cl.nombre_completo || '?').trim().split(/\s+/).slice(0, 2).map((w) => w[0]).join('').toUpperCase()}
+                              </span>
+                              <span className="flex-1 min-w-0">
+                                <span className="block text-sm font-semibold text-stone-900 truncate">{cl.nombre_completo}</span>
+                                <span className="block text-xs text-stone-400">DNI {cl.dni}</span>
+                              </span>
+                              <span className="text-[13px] font-bold text-rose-600 bg-rose-50 rounded-full px-3 py-1 tabular-nums whitespace-nowrap">S/ {formatoSoles(cl.saldo_actual)}</span>
+                            </button>
+                          ))}
+                        </div>
+                      </>
                     )}
                   </div>
                 )}
