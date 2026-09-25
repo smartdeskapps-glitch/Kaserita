@@ -3530,6 +3530,60 @@ import './index.css';
         }
       };
 
+      // Catálogo en vivo: escucha los cambios de `productos` de la bodega
+      // (stock tras una venta, precios, nombres, fotos, altas y bajas) y los
+      // aplica a la grilla sin recargar. Requiere realtime_productos.sql;
+      // si no está activado, el catálogo sigue refrescándose como siempre.
+      const busquedaActualRef = useRef('');
+      busquedaActualRef.current = busqueda;
+      const recargaCatalogoTimer = useRef(null);
+      useEffect(() => {
+        if (esModoDemo || !sbClient || !bodegaId) return;
+        const recargarSuave = () => {
+          clearTimeout(recargaCatalogoTimer.current);
+          recargaCatalogoTimer.current = setTimeout(() => cargarProductos(busquedaActualRef.current), 400);
+        };
+        const canal = sbClient
+          .channel(`productos-${bodegaId}`)
+          .on(
+            'postgres_changes',
+            { event: '*', schema: 'public', table: 'productos', filter: `bodega_id=eq.${bodegaId}` },
+            (payload) => {
+              if (payload.eventType === 'DELETE') {
+                const id = payload.old?.id;
+                if (id) setProductos((prev) => (prev.some((x) => x.id === id) ? prev.filter((x) => x.id !== id) : prev));
+                return;
+              }
+              const n = payload.new;
+              if (!n?.id) return;
+              if (payload.eventType === 'UPDATE') {
+                setProductos((prev) => {
+                  const i = prev.findIndex((x) => x.id === n.id);
+                  // Desactivado: sale de la grilla. No está en la grilla actual
+                  // (por ejemplo por una búsqueda): se ignora.
+                  if (n.activo === false) return i === -1 ? prev : prev.filter((x) => x.id !== n.id);
+                  if (i === -1) return prev;
+                  const o = prev[i];
+                  // La foto del catálogo maestro manda sobre la copiada al
+                  // importar (ver cargarProductos), y el evento no trae el JOIN.
+                  const fusion = { ...o, ...n, foto_url: o.catalogo_maestro ? o.foto_url : n.foto_url, catalogo_maestro: o.catalogo_maestro };
+                  const copia = prev.slice();
+                  copia[i] = fusion;
+                  return copia;
+                });
+                return;
+              }
+              // INSERT: la posición y el filtro de búsqueda los resuelve una recarga.
+              recargarSuave();
+            }
+          )
+          .subscribe();
+        return () => {
+          clearTimeout(recargaCatalogoTimer.current);
+          sbClient.removeChannel(canal);
+        };
+      }, [esModoDemo, bodegaId]);
+
       // ==========================================
       // COMBOS (paquetes de varios productos a precio especial)
       // ==========================================
