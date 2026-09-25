@@ -3051,7 +3051,7 @@ import './index.css';
               p_horario_atencion: horarioDelivery,
             });
             if (errBodega) {
-              if (errBodega.code === '23505') throw new Error('Ese link ya lo está usando otra bodega, probá con otro.');
+              if (errBodega.code === '23505') throw new Error('Ese link ya lo está usando otra bodega. Contactá al administrador para que te asigne otro.');
               throw errBodega;
             }
             if (sesion?.usuario?.rol === 'dueno' && telefonoLimpio !== (sesion?.usuario?.telefono || '')) {
@@ -12798,14 +12798,8 @@ import './index.css';
                         <label className="text-[12.5px] font-semibold text-stone-700 block mt-3.5 mb-1.5">Tu link</label>
                         <div className="h-[46px] flex items-center gap-1 px-3.5 rounded-2xl bg-[#f4eefe] focus-within:ring-2 focus-within:ring-[#6105dc]/40">
                           <span className="text-sm text-stone-400 shrink-0 truncate max-w-[55%]">{KASERITA_DELIVERY_URL.replace(/^https?:\/\//, '')}/</span>
-                          <input
-                            type="text"
-                            value={slugDelivery}
-                            onChange={(e) => setSlugDelivery(e.target.value)}
-                            onBlur={() => setSlugDelivery((v) => normalizarSlugDelivery(v))}
-                            placeholder="mi-bodega"
-                            className="flex-1 min-w-0 bg-transparent text-sm text-stone-900 font-semibold outline-none"
-                          />
+                          {/* El link es fijo: ya se comparte impreso y en QR, y si cambiara dejaría de funcionar. */}
+                          <span className="flex-1 min-w-0 truncate text-sm text-stone-900 font-semibold">{slugDelivery}</span>
                           {deliveryHabilitado && sesion?.bodega?.slug && (
                             <button
                               type="button"
