@@ -274,28 +274,28 @@ import './index.css';
 
     // Teclado numérico en pantalla, reutilizable para efectivo y pagos mixtos.
     function NumericKeypad({ value, onChange }) {
-      const teclas = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '.', '0', '⌫'];
+      const teclas = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '.', '0', 'BORRAR'];
       const presionar = (t) => {
-        if (t === '⌫') { onChange(value.slice(0, -1)); return; }
+        if (t === 'BORRAR') { onChange(value.slice(0, -1)); return; }
         if (t === '.' && value.includes('.')) return;
         onChange(value + t);
       };
       return (
-        <div className="grid grid-cols-3 gap-1.5 mt-1.5">
+        <div className="grid grid-cols-3 gap-1.5 mt-3">
           {teclas.map((t) => (
             <button
               key={t}
               type="button"
               onClick={() => presionar(t)}
-              className="py-2 bg-stone-100 hover:bg-stone-200 border border-stone-200 rounded-lg text-sm font-bold text-stone-800 active:scale-95 transition"
+              className="h-11 bg-white hover:bg-[#faf8fe] ring-1 ring-[#6105dc]/10 rounded-[14px] text-lg font-semibold text-stone-800 flex items-center justify-center active:scale-95 transition"
             >
-              {t}
+              {t === 'BORRAR' ? <IconoTrazo nombre="borrar" className="w-[22px] h-[22px] text-[#6105dc]" /> : t}
             </button>
           ))}
           <button
             type="button"
             onClick={() => onChange('')}
-            className="col-span-3 py-1.5 bg-rose-950/60 hover:bg-rose-900 border border-rose-800 rounded-lg text-xs font-bold text-rose-200"
+            className="col-span-3 h-9 bg-rose-50 hover:bg-rose-100 rounded-full text-xs font-semibold text-rose-700 transition"
           >
             Limpiar
           </button>
@@ -682,6 +682,16 @@ import './index.css';
       plus: <path d="M12 5v14M5 12h14" />,
       minus: <path d="M5 12h14" />,
       bag: <><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z" /><path d="M3 6h18" /><path d="M16 10a4 4 0 0 1-8 0" /></>,
+      efectivo: <><rect x="2" y="6" width="20" height="12" rx="2" /><circle cx="12" cy="12" r="2.5" /><path d="M6 12h.01M18 12h.01" /></>,
+      movil: <><rect x="6" y="2" width="12" height="20" rx="3" /><path d="M11 18h2" /></>,
+      tarjeta: <><rect x="2" y="5" width="20" height="14" rx="2" /><path d="M2 10h20M6 15h4" /></>,
+      credito: <><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z" /><path d="M14 3v5h5M9 13h6M9 17h4" /></>,
+      mixto: <><path d="m12 2 10 5-10 5L2 7z" /><path d="m2 12 10 5 10-5M2 17l10 5 10-5" /></>,
+      calc: <><rect x="5" y="2" width="14" height="20" rx="2" /><path d="M8 6h8M8 11h.01M12 11h.01M16 11h.01M8 15h.01M12 15h.01M16 15h.01M8 19h.01M12 19h.01M16 19h.01" /></>,
+      qr: <><rect x="3" y="3" width="7" height="7" rx="1" /><rect x="14" y="3" width="7" height="7" rx="1" /><rect x="3" y="14" width="7" height="7" rx="1" /><path d="M14 14h3v3M21 14v.01M14 21h.01M17 21h4v-4" /></>,
+      etiqueta: <><path d="M20.6 13.4 13.4 20.6a2 2 0 0 1-2.8 0L3 13V3h10l7.6 7.6a2 2 0 0 1 0 2.8z" /><circle cx="7.5" cy="7.5" r="1" /></>,
+      borrar: <><path d="M21 5H9l-6 7 6 7h12z" /><path d="m17 9-4 6M13 9l4 6" /></>,
+      recibo: <><path d="M4 2v20l3-2 3 2 2-2 2 2 3-2 3 2V2l-3 2-3-2-2 2-2-2-3 2z" /><path d="M8 8h8M8 12h8" /></>,
       x: <path d="M18 6 6 18M6 6l12 12" />,
       back: <path d="m15 18-6-6 6-6" />,
       pdf: <><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" /><path d="M14 2v6h6" /><path d="M12 12v6" /><path d="m9 15 3 3 3-3" /></>,
@@ -9482,69 +9492,83 @@ import './index.css';
               <button
                 type="button"
                 onClick={() => { setMostrarPago(false); reiniciarClienteYMedioPago(); }}
-                className="text-xs text-stone-500 hover:text-stone-800 font-semibold flex items-center gap-1"
+                className="self-start flex items-center gap-1 pl-2 pr-3 py-1.5 rounded-full bg-[#f4eefe] hover:bg-[#ece0fd] text-[13px] font-semibold text-[#4d04b0] transition"
               >
-                <i className="fa-solid fa-chevron-left text-xs"></i> Volver
+                <IconoTrazo nombre="back" className="w-[15px] h-[15px]" /> Volver
               </button>
 
-              <div>
-                <div className="grid grid-cols-3 gap-2">
-                  {[
-                    { id: 'EFECTIVO', icono: 'fa-money-bill-wave', texto: 'Efectivo' },
-                    { id: 'YAPE', icono: 'fa-mobile-screen', texto: 'Yape' },
-                    { id: 'PLIN', icono: 'fa-mobile-screen', texto: 'Plin' },
-                    { id: 'TARJETA', icono: 'fa-credit-card', texto: 'Tarjeta' },
-                    { id: 'CREDITO', icono: 'fa-file-invoice-dollar', texto: 'Crédito' },
-                    { id: 'MIXTO', icono: 'fa-layer-group', texto: 'Mixto' }
-                  ].map((m) => (
-                    <button
-                      key={m.id}
-                      onClick={() => {
-                        setMedioPago(m.id);
-                        setCampoTeclado(null);
-                        if (m.id === 'CREDITO' && (!clienteActual || clienteActual.dni === '99999999')) {
-                          abrirBuscarClientePOS();
-                        }
-                      }}
-                      className={`flex flex-col items-center gap-1 py-2.5 text-xs font-semibold rounded-2xl border transition ${
-                        medioPago === m.id
-                          ? 'bg-stone-900 border-stone-900 text-white shadow-lg shadow-stone-900/20'
-                          : 'bg-white border-stone-200 text-stone-600 hover:bg-stone-50 hover:text-stone-800 shadow-sm'
-                      }`}
-                    >
-                      <i className={`fa-solid ${m.icono} text-sm`}></i>
-                      {m.texto}
-                    </button>
-                  ))}
-                </div>
+              <div className="grid grid-cols-3 gap-2">
+                {[
+                  { id: 'EFECTIVO', icono: 'efectivo', texto: 'Efectivo' },
+                  { id: 'YAPE', icono: 'movil', texto: 'Yape' },
+                  { id: 'PLIN', icono: 'movil', texto: 'Plin' },
+                  { id: 'TARJETA', icono: 'tarjeta', texto: 'Tarjeta' },
+                  { id: 'CREDITO', icono: 'credito', texto: 'Crédito' },
+                  { id: 'MIXTO', icono: 'mixto', texto: 'Mixto' }
+                ].map((m) => (
+                  <button
+                    key={m.id}
+                    onClick={() => {
+                      setMedioPago(m.id);
+                      setCampoTeclado(null);
+                      if (m.id === 'CREDITO' && (!clienteActual || clienteActual.dni === '99999999')) {
+                        abrirBuscarClientePOS();
+                      }
+                    }}
+                    className={`flex flex-col items-center gap-1.5 pt-3 pb-2.5 text-[12.5px] font-semibold rounded-[20px] transition ${
+                      medioPago === m.id
+                        ? 'bg-[#6105dc] text-white'
+                        : 'bg-[#f4eefe] hover:bg-[#ece0fd] text-stone-600'
+                    }`}
+                  >
+                    <IconoTrazo nombre={m.icono} className={`w-5 h-5 ${medioPago === m.id ? 'text-white' : 'text-[#6105dc]'}`} />
+                    {m.texto}
+                  </button>
+                ))}
               </div>
 
               {medioPago === 'EFECTIVO' && (
-                <div className="bg-stone-200/60 p-3 rounded-xl border border-stone-200 space-y-2.5">
-                  <div>
-                    <label className="text-xs text-stone-600 block mb-1">Paga con (S/):</label>
-                    <div className="flex items-center gap-2">
+                <div className="bg-[#f4eefe] border border-[#efe6fc] rounded-[22px] p-3.5">
+                  <label className="text-xs font-semibold text-[#4d04b0] block mb-2">Paga con</label>
+                  <div className="flex items-center gap-2">
+                    <div className="flex-1 h-14 flex items-center gap-1.5 px-4 rounded-[18px] bg-white ring-1 ring-[#6105dc]/10 focus-within:ring-2 focus-within:ring-[#6105dc]/40">
+                      <span className="text-[15px] font-semibold text-stone-400">S/</span>
                       <input
                         type="text"
                         inputMode="decimal"
                         value={montoRecibido}
                         onChange={(e) => setMontoRecibido(e.target.value)}
                         placeholder="0.00"
-                        className="w-full bg-white border border-stone-300 rounded-lg px-3 py-2 text-2xl font-black text-stone-900 tabular-nums focus:outline-none focus:border-amber-500"
+                        className="w-full min-w-0 bg-transparent text-[28px] font-bold tracking-tight text-stone-900 tabular-nums placeholder:text-[#c4bfd0] focus:outline-none"
                       />
-                      <button
-                        type="button"
-                        onClick={() => setCampoTeclado(campoTeclado === 'recibido' ? null : 'recibido')}
-                        title="Teclado numérico"
-                        className={`shrink-0 w-11 h-11 flex items-center justify-center rounded-lg transition ${campoTeclado === 'recibido' ? 'bg-stone-900 text-white' : 'bg-stone-300 hover:bg-stone-400 text-stone-700'}`}
-                      >
-                        <i className="fa-solid fa-calculator"></i>
-                      </button>
                     </div>
+                    <button
+                      type="button"
+                      onClick={() => setCampoTeclado(campoTeclado === 'recibido' ? null : 'recibido')}
+                      title="Teclado numérico"
+                      className={`shrink-0 w-14 h-14 flex items-center justify-center rounded-[18px] ring-1 ring-[#6105dc]/10 transition ${campoTeclado === 'recibido' ? 'bg-[#6105dc] text-white' : 'bg-white text-[#6105dc] hover:bg-[#faf8fe]'}`}
+                    >
+                      <IconoTrazo nombre="calc" className="w-[22px] h-[22px]" />
+                    </button>
                   </div>
-                  <div className="flex items-center justify-between px-0.5">
-                    <span className="text-xs font-semibold text-stone-600 uppercase tracking-wider">Vuelto</span>
-                    <span className={`text-2xl font-black tabular-nums ${vuelto < 0 ? 'text-rose-600' : 'text-amber-700'}`}>
+                  <div className="flex flex-wrap gap-1.5 mt-2.5">
+                    {[
+                      { t: 'Exacto', v: totalConDescuento },
+                      ...[50, 100, 200].filter((n) => n >= totalConDescuento).map((n) => ({ t: `S/ ${n}`, v: n }))
+                    ].map((c) => (
+                      <button
+                        key={c.t}
+                        type="button"
+                        onClick={() => setMontoRecibido(String(+Number(c.v).toFixed(2)))}
+                        className="px-3.5 py-1.5 rounded-full bg-white ring-1 ring-[#6105dc]/10 hover:bg-[#faf8fe] text-[12.5px] font-semibold text-[#4d04b0] transition"
+                      >
+                        {c.t}
+                      </button>
+                    ))}
+                  </div>
+                  <div className="flex items-center justify-between mt-3 pt-3 border-t border-[#6105dc]/10">
+                    <span className="text-xs font-semibold text-[#4d04b0]">Vuelto</span>
+                    <span className={`text-[26px] font-bold tracking-tight tabular-nums ${vuelto < 0 ? 'text-rose-600' : 'text-green-700'}`}>
                       S/ {vuelto > 0 ? vuelto.toFixed(2) : '0.00'}
                     </span>
                   </div>
@@ -9553,102 +9577,117 @@ import './index.css';
               )}
 
               {(medioPago === 'YAPE' || medioPago === 'PLIN') && (
-                <div className="bg-stone-200/60 p-2 rounded-lg border border-stone-200 text-center">
-                  <button
-                    type="button"
-                    onClick={() => setMedioQR(medioPago)}
-                    className="w-full py-2 bg-stone-300 hover:bg-stone-400 text-stone-900 text-xs font-bold rounded-lg"
-                  >
-                    <i className="fa-solid fa-qrcode"></i> Mostrar QR de {medioPago}
-                  </button>
+                <button
+                  type="button"
+                  onClick={() => setMedioQR(medioPago)}
+                  className="w-full h-[50px] flex items-center justify-center gap-2 rounded-full bg-white ring-1 ring-[#6105dc]/15 hover:bg-[#faf8fe] text-sm font-semibold text-[#4d04b0] transition"
+                >
+                  <IconoTrazo nombre="qr" className="w-[18px] h-[18px]" /> Mostrar QR de {medioPago === 'YAPE' ? 'Yape' : 'Plin'}
+                </button>
+              )}
+
+              {medioPago === 'TARJETA' && (
+                <div className="bg-[#f4eefe] border border-[#efe6fc] rounded-[22px] p-3.5 text-center text-[13px] font-semibold text-[#4d04b0]">
+                  Cobro exacto con tarjeta: S/ {totalConDescuento.toFixed(2)}
                 </div>
               )}
 
               {medioPago === 'CREDITO' && (
-                <div className="space-y-1.5">
-                  <div className="flex items-center justify-between text-xs bg-stone-200/60 border border-stone-200 rounded-lg p-2">
-                    <span className="font-semibold text-stone-800 truncate flex items-center gap-1.5">
-                      <i className="fa-solid fa-user text-stone-500"></i>
-                      {(!clienteActual || clienteActual.dni === '99999999') ? 'Sin cliente asignado' : clienteActual.nombre_completo}
+                <div className="bg-[#f4eefe] border border-[#efe6fc] rounded-[22px] p-3.5">
+                  <div className="flex items-center gap-2.5 bg-white rounded-[18px] ring-1 ring-[#6105dc]/10 px-3 py-2.5">
+                    <span className="w-[34px] h-[34px] rounded-full bg-[#ece0fd] text-[#4d04b0] text-xs font-bold flex items-center justify-center shrink-0">
+                      {(!clienteActual || clienteActual.dni === '99999999')
+                        ? '?'
+                        : (clienteActual.nombre_completo || '?').split(/\s+/).slice(0, 2).map((w) => w[0]).join('').toUpperCase()}
                     </span>
-                    <button type="button" onClick={abrirBuscarClientePOS} className="text-amber-700 font-semibold hover:underline shrink-0 ml-2">
+                    <div className="flex-1 min-w-0 text-[13.5px] font-semibold text-stone-900">
+                      <p className="truncate">
+                        {(!clienteActual || clienteActual.dni === '99999999') ? 'Sin cliente asignado' : clienteActual.nombre_completo}
+                      </p>
+                      <p className={`text-xs font-medium truncate ${(!clienteActual || clienteActual.dni === '99999999') ? 'text-rose-600' : 'text-stone-500'}`}>
+                        {(!clienteActual || clienteActual.dni === '99999999')
+                          ? 'Asigna un cliente registrado para vender a crédito.'
+                          : `Disponible S/ ${Math.max(0, (Number(clienteActual.limite_credito) || 0) - (Number(clienteActual.saldo_actual) || 0)).toFixed(2)} de S/ ${(Number(clienteActual.limite_credito) || 0).toFixed(2)}`}
+                      </p>
+                    </div>
+                    <button type="button" onClick={abrirBuscarClientePOS} className="shrink-0 px-3 py-1.5 rounded-full bg-[#f4eefe] hover:bg-[#ece0fd] text-[12.5px] font-semibold text-[#6105dc] transition">
                       Cambiar
                     </button>
                   </div>
-                  <div className={`p-2 rounded-lg border text-xs ${
-                    (!clienteActual || clienteActual.dni === '99999999')
-                      ? 'bg-rose-950/40 border-rose-800/50 text-rose-600'
-                      : 'bg-amber-950/30 border-amber-800/50 text-amber-700'
-                  }`}>
-                    {(!clienteActual || clienteActual.dni === '99999999') ? (
-                      'Asigna un cliente registrado para vender a crédito.'
-                    ) : (
-                      <>Disponible: S/ {Math.max(0, (Number(clienteActual.limite_credito) || 0) - (Number(clienteActual.saldo_actual) || 0)).toFixed(2)} de S/ {(Number(clienteActual.limite_credito) || 0).toFixed(2)}</>
-                    )}
-                  </div>
+                  {clienteActual && clienteActual.dni !== '99999999' && Number(clienteActual.limite_credito) > 0 && (
+                    <div className="h-2 rounded-full bg-[#e2d4fb] mt-2.5 overflow-hidden">
+                      <div
+                        className="h-full rounded-full bg-[#6105dc]"
+                        style={{ width: `${Math.min(100, Math.max(0, ((Number(clienteActual.saldo_actual) || 0) / Number(clienteActual.limite_credito)) * 100))}%` }}
+                      ></div>
+                    </div>
+                  )}
                 </div>
               )}
 
               {medioPago === 'MIXTO' && (
-                <div className="bg-stone-200/60 p-2 rounded-lg border border-stone-200 space-y-1.5">
-                  <div>
-                    <label className="text-xs text-stone-600 block mb-1">Monto en Tarjeta/Otro (S/):</label>
-                    <div className="flex items-center gap-2">
+                <div className="bg-[#f4eefe] border border-[#efe6fc] rounded-[22px] p-3.5">
+                  <label className="text-xs font-semibold text-[#4d04b0] block mb-2">Monto en tarjeta / otro</label>
+                  <div className="flex items-center gap-2">
+                    <div className="flex-1 h-[50px] flex items-center gap-1.5 px-4 rounded-[18px] bg-white ring-1 ring-[#6105dc]/10 focus-within:ring-2 focus-within:ring-[#6105dc]/40">
+                      <span className="text-sm font-semibold text-stone-400">S/</span>
                       <input
                         type="text"
                         inputMode="decimal"
                         value={montoMixtoOtro}
                         onChange={(e) => setMontoMixtoOtro(e.target.value)}
                         placeholder="0.00"
-                        className="w-full bg-stone-100 border border-stone-300 rounded px-2 py-1 text-sm font-bold text-stone-900 focus:outline-none focus:border-amber-500"
+                        className="w-full min-w-0 bg-transparent text-[22px] font-bold tracking-tight text-stone-900 tabular-nums placeholder:text-[#c4bfd0] focus:outline-none"
                       />
-                      <button
-                        type="button"
-                        onClick={() => setCampoTeclado(campoTeclado === 'mixtoOtro' ? null : 'mixtoOtro')}
-                        title="Teclado numérico"
-                        className={`shrink-0 w-9 h-9 flex items-center justify-center rounded-lg transition ${campoTeclado === 'mixtoOtro' ? 'bg-stone-900 text-white' : 'bg-stone-300 hover:bg-stone-400 text-stone-700'}`}
-                      >
-                        <i className="fa-solid fa-calculator text-xs"></i>
-                      </button>
                     </div>
+                    <button
+                      type="button"
+                      onClick={() => setCampoTeclado(campoTeclado === 'mixtoOtro' ? null : 'mixtoOtro')}
+                      title="Teclado numérico"
+                      className={`shrink-0 w-[50px] h-[50px] flex items-center justify-center rounded-[18px] ring-1 ring-[#6105dc]/10 transition ${campoTeclado === 'mixtoOtro' ? 'bg-[#6105dc] text-white' : 'bg-white text-[#6105dc] hover:bg-[#faf8fe]'}`}
+                    >
+                      <IconoTrazo nombre="calc" className="w-5 h-5" />
+                    </button>
                   </div>
 
-                  <div className="grid grid-cols-2 gap-2 pt-1 border-t border-stone-200">
-                    <div>
-                      <label className="text-xs text-stone-600 block">Falta en efectivo:</label>
-                      <span className="text-sm font-black text-amber-600">S/ {efectivoRequeridoMixto.toFixed(2)}</span>
-                    </div>
-                    <div className="text-right">
-                      <label className="text-xs text-stone-600 block">Vuelto:</label>
-                      <span className={`text-sm font-black ${vueltoMixto < 0 ? 'text-rose-600' : 'text-amber-700'}`}>
-                        S/ {vueltoMixto > 0 ? vueltoMixto.toFixed(2) : '0.00'}
-                      </span>
-                    </div>
+                  <div className="flex items-center justify-between mt-3 pt-3 border-t border-[#6105dc]/10">
+                    <span className="text-xs font-semibold text-[#4d04b0]">Falta en efectivo</span>
+                    <span className="text-[22px] font-bold tracking-tight tabular-nums text-stone-900">S/ {efectivoRequeridoMixto.toFixed(2)}</span>
                   </div>
 
                   {efectivoRequeridoMixto > 0 && (
-                    <div>
-                      <label className="text-xs text-stone-600 block mb-1">Recibe en efectivo (S/):</label>
+                    <>
+                      <label className="text-xs font-semibold text-[#4d04b0] block mt-3 mb-2">Recibe en efectivo</label>
                       <div className="flex items-center gap-2">
-                        <input
-                          type="text"
-                          inputMode="decimal"
-                          value={montoMixtoRecibido}
-                          onChange={(e) => setMontoMixtoRecibido(e.target.value)}
-                          placeholder="0.00"
-                          className="w-full bg-stone-100 border border-stone-300 rounded px-2 py-1 text-sm font-bold text-stone-900 focus:outline-none focus:border-amber-500"
-                        />
+                        <div className="flex-1 h-[50px] flex items-center gap-1.5 px-4 rounded-[18px] bg-white ring-1 ring-[#6105dc]/10 focus-within:ring-2 focus-within:ring-[#6105dc]/40">
+                          <span className="text-sm font-semibold text-stone-400">S/</span>
+                          <input
+                            type="text"
+                            inputMode="decimal"
+                            value={montoMixtoRecibido}
+                            onChange={(e) => setMontoMixtoRecibido(e.target.value)}
+                            placeholder="0.00"
+                            className="w-full min-w-0 bg-transparent text-[22px] font-bold tracking-tight text-stone-900 tabular-nums placeholder:text-[#c4bfd0] focus:outline-none"
+                          />
+                        </div>
                         <button
                           type="button"
                           onClick={() => setCampoTeclado(campoTeclado === 'mixtoRecibido' ? null : 'mixtoRecibido')}
                           title="Teclado numérico"
-                          className={`shrink-0 w-9 h-9 flex items-center justify-center rounded-lg transition ${campoTeclado === 'mixtoRecibido' ? 'bg-stone-900 text-white' : 'bg-stone-300 hover:bg-stone-400 text-stone-700'}`}
+                          className={`shrink-0 w-[50px] h-[50px] flex items-center justify-center rounded-[18px] ring-1 ring-[#6105dc]/10 transition ${campoTeclado === 'mixtoRecibido' ? 'bg-[#6105dc] text-white' : 'bg-white text-[#6105dc] hover:bg-[#faf8fe]'}`}
                         >
-                          <i className="fa-solid fa-calculator text-xs"></i>
+                          <IconoTrazo nombre="calc" className="w-5 h-5" />
                         </button>
                       </div>
-                    </div>
+                    </>
                   )}
+
+                  <div className="flex items-center justify-between mt-3 pt-3 border-t border-[#6105dc]/10">
+                    <span className="text-xs font-semibold text-[#4d04b0]">Vuelto</span>
+                    <span className={`text-[22px] font-bold tracking-tight tabular-nums ${vueltoMixto < 0 ? 'text-rose-600' : 'text-green-700'}`}>
+                      S/ {vueltoMixto > 0 ? vueltoMixto.toFixed(2) : '0.00'}
+                    </span>
+                  </div>
 
                   {(campoTeclado === 'mixtoOtro' || campoTeclado === 'mixtoRecibido') && (
                     <NumericKeypad value={valorTeclado} onChange={asignarDesdeTeclado} />
@@ -9656,42 +9695,42 @@ import './index.css';
                 </div>
               )}
 
-              <div className="border-t border-stone-200 pt-2">
+              <div>
                 {!descuentoTipo ? (
                   carrito.length > 0 && (
                     <button
                       type="button"
                       onClick={() => { setDescuentoTipo('PORCENTAJE'); setDescuentoValor(''); }}
-                      className="text-xs text-amber-700 hover:underline font-semibold"
+                      className="flex items-center gap-1.5 text-[13px] text-[#6105dc] hover:text-[#4d04b0] font-semibold transition"
                     >
-                      <i className="fa-solid fa-tag text-xs"></i> Aplicar descuento
+                      <IconoTrazo nombre="etiqueta" className="w-[15px] h-[15px]" /> Aplicar descuento
                     </button>
                   )
                 ) : (
-                  <div className="bg-stone-200/60 p-2.5 rounded-lg border border-stone-200 space-y-1.5">
+                  <div className="bg-[#f4eefe] border border-[#efe6fc] rounded-[22px] p-3.5 space-y-2.5">
                     <div className="flex items-center justify-between">
-                      <span className="text-xs font-semibold text-stone-600 uppercase tracking-wider">Descuento</span>
+                      <span className="text-xs font-semibold text-[#4d04b0]">Descuento</span>
                       <button
                         type="button"
                         onClick={() => { setDescuentoTipo(null); setDescuentoValor(''); }}
-                        className="text-xs text-rose-600 hover:underline"
+                        className="text-xs font-semibold text-rose-600 hover:underline"
                       >
                         Quitar
                       </button>
                     </div>
                     <div className="flex items-center gap-2">
-                      <div className="flex bg-stone-100 border border-stone-300 rounded-lg overflow-hidden shrink-0">
+                      <div className="flex bg-white rounded-full ring-1 ring-[#6105dc]/10 p-0.5 shrink-0">
                         <button
                           type="button"
                           onClick={() => setDescuentoTipo('PORCENTAJE')}
-                          className={`px-2.5 py-1.5 text-xs font-bold ${descuentoTipo === 'PORCENTAJE' ? 'bg-stone-900 text-white' : 'text-stone-600'}`}
+                          className={`w-10 h-9 rounded-full text-xs font-bold transition ${descuentoTipo === 'PORCENTAJE' ? 'bg-[#6105dc] text-white' : 'text-stone-500'}`}
                         >
                           %
                         </button>
                         <button
                           type="button"
                           onClick={() => setDescuentoTipo('MONTO')}
-                          className={`px-2.5 py-1.5 text-xs font-bold ${descuentoTipo === 'MONTO' ? 'bg-stone-900 text-white' : 'text-stone-600'}`}
+                          className={`w-10 h-9 rounded-full text-xs font-bold transition ${descuentoTipo === 'MONTO' ? 'bg-[#6105dc] text-white' : 'text-stone-500'}`}
                         >
                           S/
                         </button>
@@ -9703,52 +9742,51 @@ import './index.css';
                         value={descuentoValor}
                         onChange={(e) => setDescuentoValor(e.target.value)}
                         placeholder={descuentoTipo === 'PORCENTAJE' ? '0-100' : '0.00'}
-                        className="w-full bg-white border border-stone-300 rounded-lg px-3 py-1.5 text-sm font-bold text-stone-900 focus:outline-none focus:border-amber-500"
+                        className="w-full h-[44px] bg-white ring-1 ring-[#6105dc]/10 rounded-[16px] px-4 text-base font-bold text-stone-900 tabular-nums focus:outline-none focus:ring-2 focus:ring-[#6105dc]/40"
                       />
                     </div>
                   </div>
                 )}
               </div>
 
-              {montoDescuento > 0 && (
-                <div className="space-y-0.5">
-                  <div className="flex items-center justify-between text-xs text-stone-600">
-                    <span>Subtotal</span>
-                    <span className="tabular-nums">S/ {totalVenta.toFixed(2)}</span>
-                  </div>
-                  <div className="flex items-center justify-between text-xs text-rose-600 font-semibold">
-                    <span>Descuento</span>
-                    <span className="tabular-nums">- S/ {montoDescuento.toFixed(2)}</span>
-                  </div>
+              <div className="bg-[#f4eefe] border border-[#efe6fc] rounded-[22px] px-4 py-3 space-y-1.5">
+                {montoDescuento > 0 && (
+                  <>
+                    <div className="flex items-center justify-between text-[12.5px] text-stone-500">
+                      <span>Subtotal</span>
+                      <span className="tabular-nums">S/ {totalVenta.toFixed(2)}</span>
+                    </div>
+                    <div className="flex items-center justify-between text-[12.5px] text-rose-600 font-semibold">
+                      <span>Descuento</span>
+                      <span className="tabular-nums">- S/ {montoDescuento.toFixed(2)}</span>
+                    </div>
+                  </>
+                )}
+                <div className={`flex items-baseline justify-between ${montoDescuento > 0 ? 'pt-2 border-t border-[#6105dc]/10' : ''}`}>
+                  <span className="text-xs font-semibold text-[#4d04b0]">Total a cobrar</span>
+                  <span className="text-[28px] font-bold tracking-tight text-stone-900 tabular-nums">
+                    <small className="text-sm text-stone-500 font-semibold mr-1">S/</small>{formatoSoles(totalConDescuento)}
+                  </span>
                 </div>
-              )}
-
-              <div className="flex items-center justify-between pt-1 pb-0.5 border-t border-stone-200">
-                <span className="text-xs font-semibold text-stone-600 uppercase tracking-wider pt-2">
-                  Total a Cobrar
-                </span>
-                <span className="text-2xl font-extrabold text-stone-900 tabular-nums pt-2">
-                  S/ {totalConDescuento.toFixed(2)}
-                </span>
               </div>
 
               <button
                 onClick={handleCobrar}
                 disabled={procesandoVenta || carrito.length === 0 || !turnoActivo}
-                className={`w-full py-3.5 rounded-xl font-bold text-sm transition-all flex items-center justify-center gap-2 ${
+                className={`w-full h-[54px] rounded-full font-semibold text-base transition-all flex items-center justify-center gap-2 ${
                   !turnoActivo || procesandoVenta || carrito.length === 0
-                    ? 'bg-stone-200 text-stone-400 cursor-not-allowed'
-                    : 'bg-stone-900 hover:bg-stone-800 text-white shadow-lg shadow-stone-900/25 active:scale-[0.98]'
+                    ? 'bg-[#ebe8f1] text-[#8b869a] cursor-not-allowed'
+                    : 'bg-[#6105dc] hover:bg-[#4d04b0] text-white active:scale-[0.98]'
                 }`}
               >
                 {!turnoActivo ? (
-                  <><i className="fa-solid fa-triangle-exclamation"></i> Abre un Turno para Cobrar</>
+                  <><IconoTrazo nombre="warn" className="w-[18px] h-[18px]" /> Abre un turno para cobrar</>
                 ) : procesandoVenta ? (
-                  <><i className="fa-solid fa-spinner fa-spin"></i> Registrando Venta...</>
+                  <><i className="fa-solid fa-spinner fa-spin"></i> Registrando venta...</>
                 ) : medioPago === 'CREDITO' ? (
-                  <><i className="fa-solid fa-file-invoice-dollar"></i> Registrar Venta a Crédito</>
+                  <><IconoTrazo nombre="credito" className="w-[19px] h-[19px]" /> Registrar venta a crédito</>
                 ) : (
-                  <><i className="fa-solid fa-receipt"></i> Cobrar e Imprimir Boleta</>
+                  <><IconoTrazo nombre="recibo" className="w-[19px] h-[19px]" /> Cobrar e imprimir boleta</>
                 )}
               </button>
               </>
