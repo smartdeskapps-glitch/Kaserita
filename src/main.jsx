@@ -9055,7 +9055,7 @@ import './index.css';
             )}
 
             {/* Lista Ítems */}
-            <ScrollDifuminado className="flex-1 overflow-y-auto p-2.5 pb-8 space-y-1.5 hide-scrollbar" altoArriba={36} altoAbajo={56}>
+            <ScrollDifuminado className="flex-1 overflow-y-auto p-2.5 pb-16 space-y-1.5 hide-scrollbar" altoArriba={36} altoAbajo={0}>
               {carrito.length === 0 ? (
                 <div className="flex flex-col items-center justify-center h-full text-stone-500 text-center p-4">
                   <i className="fa-solid fa-basket-shopping text-3xl mb-2 text-stone-300"></i>
@@ -9120,7 +9120,12 @@ import './index.css';
             </ScrollDifuminado>
 
             {/* Panel Cobro */}
-            <div className="p-4 bg-white border-t border-stone-100 space-y-3">
+            {/* El panel es vidrio esmerilado y se monta 40px sobre el final de la lista:
+                los items pasan por debajo, borrosos, y el borde superior se desvanece. */}
+            <div
+              className="relative z-10 -mt-10 p-4 pt-14 space-y-3 backdrop-blur-xl bg-gradient-to-b from-white/60 to-white/90"
+              style={{ WebkitMaskImage: 'linear-gradient(to bottom, transparent 0, black 44px)', maskImage: 'linear-gradient(to bottom, transparent 0, black 44px)' }}
+            >
               {!mostrarPago ? (
                 <>
                   <div className="bg-stone-50 border border-stone-100 rounded-2xl px-3.5 py-3 space-y-1.5">
