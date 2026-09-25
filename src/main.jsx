@@ -3506,7 +3506,18 @@ import './index.css';
               // importarlo -- así una foto que subas después también les
               // llega a las bodegas que ya lo tenían.
               .map((p) => (p.catalogo_maestro ? { ...p, foto_url: p.catalogo_maestro.foto_url || p.foto_url } : p));
-            setProductos(visibles);
+            // Se reutilizan los objetos que no cambiaron: así, al refrescar el
+            // catálogo tras una venta, las tarjetas sin cambios no se vuelven
+            // a renderizar (y no hay destello).
+            setProductos((prev) => {
+              const previos = new Map(prev.map((x) => [x.id, x]));
+              const nuevos = visibles.map((n) => {
+                const o = previos.get(n.id);
+                return o && JSON.stringify(o) === JSON.stringify(n) ? o : n;
+              });
+              const igual = nuevos.length === prev.length && nuevos.every((x, i) => x === prev[i]);
+              return igual ? prev : nuevos;
+            });
           } catch (err) {
             setProductos([]);
             notificar(`No se pudo cargar el catálogo: ${err.message}`, 'error');
@@ -8655,7 +8666,7 @@ import './index.css';
                       ))}
                     </div>
                   )
-                ) : cargandoProductos ? (
+                ) : cargandoProductos && productos.length === 0 ? (
                   <div className="flex flex-col items-center justify-center h-48 text-stone-600 gap-2">
                     <div className="w-8 h-8 border-4 border-amber-500 border-t-transparent rounded-full animate-spin"></div>
                     <p className="text-xs">Cargando productos...</p>
