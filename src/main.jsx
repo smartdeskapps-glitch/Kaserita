@@ -4278,7 +4278,6 @@ import './index.css';
             return;
           }
         }
-        notificar(`Añadido: ${descripcionMostrada}`, 'success');
       }, [notificar]);
 
       // Agrega un combo al carrito como UNA sola línea (precio de bolsa,
@@ -4326,7 +4325,6 @@ import './index.css';
             }
           ];
         });
-        notificar(`Añadido: Combo ${combo.nombre}`, 'success');
       }, [notificar]);
 
       // Combos ids que el cajero sacó a propósito del carrito (con "Quitar")
