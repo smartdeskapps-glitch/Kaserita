@@ -2668,6 +2668,9 @@ import './index.css';
       // Buscador y opción resaltada del menú "Más módulos" (estilo paleta de comandos).
       const [busquedaMenu, setBusquedaMenu] = useState('');
       const [indiceMenu, setIndiceMenu] = useState(0);
+      // Desenfoque progresivo en los bordes de la grilla: solo aparece del lado
+      // donde todavia hay productos por ver (arriba si ya se bajo, abajo si falta).
+      const [bordesGrilla, setBordesGrilla] = useState({ arriba: false, abajo: true });
 
       // Cambio del PIN de la cuenta del dueño (es la contraseña real de
       // Supabase Auth, "kst-" + PIN). Pide el PIN actual para que un
@@ -8568,7 +8571,16 @@ import './index.css';
                   bottom-3) ni pegada contra el borde de la pantalla. */}
               {/* pt-1.5 pl-1: margen para que el hover (sube 2px + sombra + anillo)
                   no se corte contra el borde del contenedor con scroll. */}
-              <div className="flex-1 overflow-y-auto pt-1.5 pl-1 pr-1 pb-24 md:pb-3 hide-scrollbar">
+              <div className="relative flex-1 min-h-0 flex flex-col">
+              <div
+                className="flex-1 overflow-y-auto pt-1.5 pl-1 pr-1 pb-24 md:pb-3 hide-scrollbar"
+                onScroll={(e) => {
+                  const el = e.currentTarget;
+                  const arriba = el.scrollTop > 8;
+                  const abajo = el.scrollTop + el.clientHeight < el.scrollHeight - 8;
+                  setBordesGrilla((b) => (b.arriba === arriba && b.abajo === abajo ? b : { arriba, abajo }));
+                }}
+              >
                 {categoriaFiltro === '__COMBOS__' ? (
                   combos.filter(c => c.activo).length === 0 ? (
                     <div className="flex flex-col items-center justify-center h-48 text-stone-500 text-center">
@@ -8646,6 +8658,18 @@ import './index.css';
                     ))}
                   </div>
                 )}
+                </div>
+                {/* Desenfoque progresivo: la grilla se difumina al llegar a los bordes */}
+                <div
+                  aria-hidden="true"
+                  className={`pointer-events-none absolute inset-x-0 top-0 h-10 z-10 backdrop-blur-md bg-gradient-to-b from-white/80 to-transparent transition-opacity duration-200 ${bordesGrilla.arriba ? 'opacity-100' : 'opacity-0'}`}
+                  style={{ WebkitMaskImage: 'linear-gradient(to bottom, black 30%, transparent)', maskImage: 'linear-gradient(to bottom, black 30%, transparent)' }}
+                ></div>
+                <div
+                  aria-hidden="true"
+                  className={`pointer-events-none absolute inset-x-0 bottom-0 h-16 md:h-12 z-10 backdrop-blur-md bg-gradient-to-t from-white/80 to-transparent transition-opacity duration-200 ${bordesGrilla.abajo ? 'opacity-100' : 'opacity-0'}`}
+                  style={{ WebkitMaskImage: 'linear-gradient(to top, black 30%, transparent)', maskImage: 'linear-gradient(to top, black 30%, transparent)' }}
+                ></div>
                 </div>
               </div>
             </div>
