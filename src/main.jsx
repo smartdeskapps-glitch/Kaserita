@@ -5509,59 +5509,255 @@ import './index.css';
       };
 
       // Genera el PDF de estado de cuenta en el propio navegador (sin backend).
+      // Formato formal: membrete, resumen de la cuenta, antigüedad del saldo
+      // por tramos y detalle de boletas, todo en Helvetica y un solo color.
       const generarPDFEstadoCuenta = async (cliente, boletas) => {
         await asegurarJsPDF();
         const { jsPDF } = window.jspdf;
         const doc = new jsPDF();
-        let y = 18;
+        const M = 15;
+        const R = 195;
+        const OSCURO = [43, 10, 99];
+        const MORADO = [97, 5, 220];
+        const GRIS = [110, 110, 120];
+        const LINEA = [221, 221, 221];
+        const FONDO = [243, 240, 248];
+        const RIESGO = [180, 35, 24];
+        const colorTexto = (c) => doc.setTextColor(c[0], c[1], c[2]);
+        const colorLinea = (c) => doc.setDrawColor(c[0], c[1], c[2]);
+        const colorRelleno = (c) => doc.setFillColor(c[0], c[1], c[2]);
 
-        doc.setFontSize(16);
-        doc.setFont(undefined, 'bold');
-        doc.text('Estado de Cuenta', 14, y);
-        y += 8;
-        doc.setFontSize(10);
-        doc.setFont(undefined, 'normal');
-        doc.text(`Bodega: ${bodegaNombre}`, 14, y); y += 6;
-        doc.text(`Cliente: ${cliente.nombre_completo}  -  DNI: ${cliente.dni}`, 14, y); y += 6;
-        doc.text(`Fecha de emisión: ${new Date().toLocaleString('es-PE')}`, 14, y); y += 10;
+        const hoy = new Date();
+        const ordenadas = [...boletas].sort((a, b) => new Date(a.fecha_hora) - new Date(b.fecha_hora));
+        const filas = ordenadas.map((b) => {
+          const fecha = new Date(b.fecha_hora);
+          const items = (b.ventas_detalle || []).map((d) => `${d.cantidad} x ${d.productos?.descripcion || 'Producto'}`);
+          return {
+            nro: b.nro_boleta,
+            fecha: fecha.toLocaleDateString('es-PE'),
+            dias: Math.max(0, Math.floor((hoy - fecha) / 86400000)),
+            items: items.length ? items : ['Sin detalle disponible'],
+            total: Number(b.total_venta) || 0,
+          };
+        });
+        const sumaBoletas = filas.reduce((a, f) => a + f.total, 0);
+        const saldo = Number(cliente.saldo_actual) || 0;
+        const limite = Number(cliente.limite_credito) || 0;
+        // Si el cliente ya hizo pagos a cuenta, el saldo es menor que la suma
+        // de las boletas: se muestra la diferencia como línea aparte.
+        const pagosACuenta = sumaBoletas - saldo;
+        const hayPagos = pagosACuenta > 0.005;
 
-        doc.setFont(undefined, 'bold');
-        doc.text('Boleta', 14, y);
-        doc.text('Fecha', 50, y);
-        doc.text('Detalle', 80, y);
-        doc.text('Total', 196, y, { align: 'right' });
-        doc.setFont(undefined, 'normal');
-        y += 3;
-        doc.line(14, y, 196, y);
+        // ---- Membrete ----
+        colorTexto(OSCURO);
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(17);
+        doc.text(String(bodegaNombre || '').toUpperCase(), M, 20);
+        colorTexto(GRIS);
+        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(7.5);
+        doc.text('KASERITA · ESTADO DE CUENTA DE CLIENTES', M, 25);
+        colorTexto([34, 34, 34]);
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(12);
+        doc.text('ESTADO DE CUENTA', R, 20, { align: 'right' });
+        colorTexto(GRIS);
+        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(8);
+        doc.text(`Emitido el ${hoy.toLocaleDateString('es-PE')}, ${hoy.toLocaleTimeString('es-PE', { hour: '2-digit', minute: '2-digit' })}`, R, 25, { align: 'right' });
+        colorLinea(OSCURO);
+        doc.setLineWidth(0.9);
+        doc.line(M, 29, R, 29);
+
+        const titulo = (txt, x, y, ancho) => {
+          colorTexto(MORADO);
+          doc.setFont('helvetica', 'bold');
+          doc.setFontSize(7.5);
+          doc.text(txt.toUpperCase(), x, y);
+          colorLinea(LINEA);
+          doc.setLineWidth(0.25);
+          doc.line(x, y + 1.6, x + ancho, y + 1.6);
+        };
+
+        // ---- Cliente y resumen ----
+        let y = 39;
+        titulo('Cliente', M, y, 88);
+        titulo('Resumen de la cuenta', 111, y, R - 111);
+        colorTexto([34, 34, 34]);
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(12);
+        doc.text(String(cliente.nombre_completo || ''), M, y + 8);
+        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(9);
+        colorTexto([70, 70, 70]);
+        doc.text(`DNI ${cliente.dni || '-'}`, M, y + 14);
+        if (cliente.telefono) doc.text(`Teléfono ${cliente.telefono}`, M, y + 19);
+
+        const resumen = [];
+        if (limite > 0) resumen.push(['Límite de crédito', `S/ ${formatoSoles(limite)}`]);
+        resumen.push(['Boletas pendientes', String(filas.length)]);
+        if (filas.length) resumen.push(['Boleta más antigua', filas[0].fecha]);
+        resumen.push(['Saldo pendiente', `S/ ${formatoSoles(saldo)}`, true]);
+        if (limite > 0) resumen.push(['Crédito disponible', `S/ ${formatoSoles(Math.max(0, limite - saldo))}`]);
+        let ry = y + 8;
+        resumen.forEach(([k, v, fuerte]) => {
+          doc.setFont('helvetica', 'normal');
+          doc.setFontSize(9);
+          colorTexto(GRIS);
+          doc.text(k, 111, ry);
+          doc.setFont('helvetica', 'bold');
+          doc.setFontSize(fuerte ? 10.5 : 9);
+          colorTexto(fuerte ? OSCURO : [34, 34, 34]);
+          doc.text(v, R, ry, { align: 'right' });
+          ry += 5.6;
+        });
+        y = Math.max(y + 24, ry) + 6;
+
+        // ---- Antigüedad del saldo (tramos según los días de cada boleta) ----
+        titulo('Antigüedad de las boletas', M, y, R - M);
         y += 6;
+        const tramos = [
+          { t: '0 - 7', min: 0, max: 7 },
+          { t: '8 - 15', min: 8, max: 15 },
+          { t: '16 - 30', min: 16, max: 30 },
+          { t: 'Más de 30', min: 31, max: Infinity },
+        ].map((tr) => ({ ...tr, monto: filas.filter((f) => f.dias >= tr.min && f.dias <= tr.max).reduce((a, f) => a + f.total, 0) }));
+        const anchoCol = (R - M - 34) / 5;
+        colorRelleno(FONDO);
+        doc.rect(M, y, R - M, 7, 'F');
+        colorTexto([68, 68, 68]);
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(7.5);
+        doc.text('DÍAS TRANSCURRIDOS', M + 2, y + 4.7);
+        tramos.forEach((tr, i) => doc.text(tr.t.toUpperCase(), M + 34 + anchoCol * (i + 1) - 2, y + 4.7, { align: 'right' }));
+        doc.text('TOTAL', R - 2, y + 4.7, { align: 'right' });
+        y += 7;
+        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(9);
+        colorTexto([34, 34, 34]);
+        doc.text('Importe (S/)', M + 2, y + 5.5);
+        tramos.forEach((tr, i) => {
+          const atrasado = tr.min >= 16 && tr.monto > 0;
+          doc.setFont('helvetica', atrasado ? 'bold' : 'normal');
+          colorTexto(atrasado ? RIESGO : tr.monto === 0 ? [170, 170, 170] : [34, 34, 34]);
+          doc.text(formatoSoles(tr.monto), M + 34 + anchoCol * (i + 1) - 2, y + 5.5, { align: 'right' });
+        });
+        doc.setFont('helvetica', 'bold');
+        colorTexto([34, 34, 34]);
+        doc.text(formatoSoles(sumaBoletas), R - 2, y + 5.5, { align: 'right' });
+        colorLinea(LINEA);
+        doc.line(M, y + 8, R, y + 8);
+        y += 16;
 
-        if (boletas.length === 0) {
-          doc.text('Sin boletas a crédito registradas.', 14, y);
-          y += 8;
+        // ---- Detalle de boletas ----
+        titulo('Detalle de boletas pendientes', M, y, R - M);
+        y += 6;
+        const cabeceraDetalle = () => {
+          colorRelleno(FONDO);
+          doc.rect(M, y, R - M, 7, 'F');
+          colorTexto([68, 68, 68]);
+          doc.setFont('helvetica', 'bold');
+          doc.setFontSize(7.5);
+          doc.text('FECHA', M + 2, y + 4.7);
+          doc.text('N.º DE BOLETA', M + 26, y + 4.7);
+          doc.text('DESCRIPCIÓN', M + 62, y + 4.7);
+          doc.text('DÍAS', R - 32, y + 4.7, { align: 'right' });
+          doc.text('IMPORTE (S/)', R - 2, y + 4.7, { align: 'right' });
+          y += 7;
+        };
+        cabeceraDetalle();
+
+        if (filas.length === 0) {
+          doc.setFont('helvetica', 'normal');
+          doc.setFontSize(9);
+          colorTexto(GRIS);
+          doc.text('Sin boletas a crédito registradas.', M + 2, y + 6);
+          y += 10;
         }
 
-        boletas.forEach((b) => {
-          const detalle = (b.ventas_detalle || [])
-            .map((d) => `${d.productos?.descripcion || 'Producto'} x${d.cantidad}`)
-            .join(', ') || 'Sin detalle disponible';
-          const fecha = new Date(b.fecha_hora).toLocaleDateString('es-PE');
-          const lineasDetalle = doc.splitTextToSize(detalle, 105);
-
-          if (y > 265) { doc.addPage(); y = 20; }
-
-          doc.text(b.nro_boleta, 14, y);
-          doc.text(fecha, 50, y);
-          doc.text(lineasDetalle, 80, y);
-          doc.text(`S/ ${Number(b.total_venta).toFixed(2)}`, 196, y, { align: 'right' });
-          y += Math.max(6, lineasDetalle.length * 5);
+        filas.forEach((f) => {
+          const lineas = doc.splitTextToSize(f.items.join('\n'), 70).flat();
+          const alto = Math.max(7.5, lineas.length * 4.2 + 3.5);
+          if (y + alto > 262) {
+            doc.addPage();
+            y = 20;
+            cabeceraDetalle();
+          }
+          doc.setFont('helvetica', 'normal');
+          doc.setFontSize(8.5);
+          colorTexto([85, 85, 85]);
+          doc.text(f.fecha, M + 2, y + 5);
+          doc.setFont('helvetica', 'bold');
+          colorTexto([34, 34, 34]);
+          doc.text(String(f.nro), M + 26, y + 5);
+          doc.setFont('helvetica', 'normal');
+          colorTexto([85, 85, 85]);
+          doc.text(lineas, M + 62, y + 5);
+          doc.text(String(f.dias), R - 32, y + 5, { align: 'right' });
+          doc.setFont('helvetica', 'bold');
+          colorTexto([34, 34, 34]);
+          doc.text(formatoSoles(f.total), R - 2, y + 5, { align: 'right' });
+          colorLinea(LINEA);
+          doc.setLineWidth(0.2);
+          doc.line(M, y + alto, R, y + alto);
+          y += alto;
         });
 
-        y += 4;
-        doc.line(14, y, 196, y);
-        y += 9;
-        doc.setFontSize(13);
-        doc.setFont(undefined, 'bold');
-        doc.text(`TOTAL ADEUDADO: S/ ${Number(cliente.saldo_actual).toFixed(2)}`, 196, y, { align: 'right' });
+        // ---- Totales ----
+        if (y > 246) { doc.addPage(); y = 20; }
+        if (hayPagos) {
+          doc.setFont('helvetica', 'normal');
+          doc.setFontSize(9);
+          colorTexto(GRIS);
+          doc.text('Pagos a cuenta', M + 62, y + 6);
+          colorTexto([34, 34, 34]);
+          doc.text(`- ${formatoSoles(pagosACuenta)}`, R - 2, y + 6, { align: 'right' });
+          y += 8;
+        }
+        colorLinea(OSCURO);
+        doc.setLineWidth(0.7);
+        doc.line(M, y + 1, R, y + 1);
+        doc.setLineWidth(0.25);
+        doc.line(M, y + 12, R, y + 12);
+        doc.line(M, y + 13, R, y + 13);
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(10.5);
+        colorTexto(OSCURO);
+        doc.text('Total adeudado', M + 2, y + 8);
+        doc.text(formatoSoles(saldo), R - 2, y + 8, { align: 'right' });
+        y += 24;
+
+        // ---- Nota y saldo a pagar ----
+        if (y > 250) { doc.addPage(); y = 20; }
+        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(8);
+        colorTexto(GRIS);
+        const nota = doc.splitTextToSize('Este documento resume las boletas a crédito pendientes de pago a la fecha de emisión. Si ya realizó un pago que no figura aquí, comuníquese con la bodega para actualizar su cuenta.', 105);
+        doc.text(nota, M, y + 4);
+        colorLinea(OSCURO);
+        doc.setLineWidth(0.5);
+        doc.rect(R - 62, y - 2, 62, 17);
+        colorTexto(MORADO);
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(6.8);
+        doc.text('SALDO TOTAL A PAGAR', R - 4, y + 3.5, { align: 'right' });
+        colorTexto(OSCURO);
+        doc.setFontSize(15);
+        doc.text(`S/ ${formatoSoles(saldo)}`, R - 4, y + 11.5, { align: 'right' });
+
+        // ---- Pie de página en cada hoja ----
+        const paginas = doc.getNumberOfPages();
+        for (let i = 1; i <= paginas; i++) {
+          doc.setPage(i);
+          colorLinea(LINEA);
+          doc.setLineWidth(0.25);
+          doc.line(M, 281, R, 281);
+          doc.setFont('helvetica', 'normal');
+          doc.setFontSize(7.5);
+          colorTexto([136, 136, 136]);
+          doc.text(`${bodegaNombre} · Documento informativo, no tiene valor tributario`, M, 286);
+          doc.text(`Página ${i} de ${paginas}`, R, 286, { align: 'right' });
+        }
 
         return doc;
       };
