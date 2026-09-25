@@ -10968,12 +10968,12 @@ import './index.css';
                     placeholder="Buscar producto..."
                     value={verStockBusqueda}
                     onChange={(e) => setVerStockBusqueda(e.target.value)}
-                    className="flex-1 bg-white border border-stone-200/70 shadow-sm rounded-xl px-2.5 py-1.5 text-xs text-stone-900"
+                    className="flex-1 min-w-0 bg-white border border-stone-200/70 shadow-sm rounded-xl px-2.5 py-1.5 text-xs text-stone-900"
                   />
                   <select
                     value={verStockCategoria}
                     onChange={(e) => setVerStockCategoria(e.target.value)}
-                    className="bg-white border border-stone-200/70 shadow-sm rounded-xl px-2.5 py-1.5 text-xs text-stone-900"
+                    className="min-w-0 max-w-[48%] truncate bg-white border border-stone-200/70 shadow-sm rounded-xl px-2.5 py-1.5 text-xs text-stone-900"
                   >
                     <option value="">Todas las categorías</option>
                     {categoriasDB.map(c => <option key={c} value={c}>{c}</option>)}
@@ -11223,12 +11223,12 @@ import './index.css';
                         placeholder="Buscar en lo contado..."
                         value={tomaInventarioBusqueda}
                         onChange={(e) => setTomaInventarioBusqueda(e.target.value)}
-                        className="flex-1 bg-white border border-stone-200/70 shadow-sm rounded-xl px-2.5 py-1.5 text-xs text-stone-900"
+                        className="flex-1 min-w-0 bg-white border border-stone-200/70 shadow-sm rounded-xl px-2.5 py-1.5 text-xs text-stone-900"
                       />
                       <select
                         value={tomaInventarioCategoria}
                         onChange={(e) => setTomaInventarioCategoria(e.target.value)}
-                        className="bg-white border border-stone-200/70 shadow-sm rounded-xl px-2.5 py-1.5 text-xs text-stone-900"
+                        className="min-w-0 max-w-[48%] truncate bg-white border border-stone-200/70 shadow-sm rounded-xl px-2.5 py-1.5 text-xs text-stone-900"
                       >
                         <option value="">Todas las categorías</option>
                         {categoriasDB.map(c => <option key={c} value={c}>{c}</option>)}
