@@ -2828,8 +2828,9 @@ import './index.css';
       // 'inventario': rellena el campo EAN de una fila del formulario de inventario.
       const [modoEscaner, setModoEscaner] = useState('venta');
       const [destelloEscaner, setDestelloEscaner] = useState(false);
-      // Lo escaneado en la venta actual (el último primero): se muestra dentro
-      // del lector, en vez del aviso de arriba que tapaba los botones de la cámara.
+      // Claves (las mismas del carrito) de lo escaneado en esta sesión del lector,
+      // el último primero. Los datos y cantidades salen del carrito, así los
+      // botones − y + del lector siempre coinciden con la venta.
       const [listaEscaneada, setListaEscaneada] = useState([]);
       const [filaEscaneandoIndex, setFilaEscaneandoIndex] = useState(null);
       // 'cod_ean' o 'cod_ean_pack' -- qué campo de la fila se está escaneando.
@@ -4776,23 +4777,8 @@ import './index.css';
         const encontradoPorCodigo = buscarProductoPorCodigo(codigoLimpio);
         if (encontradoPorCodigo) {
           handleClicProducto(encontradoPorCodigo.producto, encontradoPorCodigo.esPack ? 'PACK' : 'UNIDAD');
-          const prodEsc = encontradoPorCodigo.producto;
-          const claveEsc = `${prodEsc.id}${encontradoPorCodigo.esPack ? '-pack' : ''}`;
-          const precioEsc = encontradoPorCodigo.esPack
-            ? (Number(prodEsc.precio_venta_pack) || Number(prodEsc.precio_venta) * (Number(prodEsc.unidades_por_pack) || 1))
-            : Number(prodEsc.precio_venta);
-          setListaEscaneada((prev) => {
-            const previo = prev.find((x) => x.clave === claveEsc);
-            const item = {
-              clave: claveEsc,
-              descripcion: `${prodEsc.descripcion}${encontradoPorCodigo.esPack ? ' (Pack)' : ''}`,
-              foto_url: prodEsc.foto_url,
-              categoria: prodEsc.categoria,
-              precio: precioEsc,
-              n: (previo?.n || 0) + 1,
-            };
-            return [item, ...prev.filter((x) => x.clave !== claveEsc)].slice(0, 6);
-          });
+          const claveEsc = encontradoPorCodigo.esPack ? `${encontradoPorCodigo.producto.id}::pack` : encontradoPorCodigo.producto.id;
+          setListaEscaneada((prev) => [claveEsc, ...prev.filter((c) => c !== claveEsc)].slice(0, 6));
         } else {
           setModalEscaner(false);
           notificar(`Código ${codigoLimpio} no encontrado en el catálogo.`, 'error');
@@ -10261,32 +10247,59 @@ import './index.css';
                   </div>
                 </div>
               ) : (
-                <div className="absolute left-3 right-3 bottom-3 rounded-[28px] bg-white/15 backdrop-blur-xl ring-1 ring-white/20 p-3 space-y-2">
-                  {modoEscaner === 'venta' && listaEscaneada.length > 0 ? (
-                    <>
-                      {listaEscaneada.slice(0, 2).map((it, i) => (
-                        <div key={it.clave} className={`flex items-center gap-2.5 bg-white rounded-[18px] py-[7px] pl-[7px] pr-2.5 transition ${i > 0 ? 'opacity-60 scale-[0.97]' : ''}`}>
-                          <FotoProducto fotoUrl={it.foto_url} categoria={it.categoria} className="w-9 h-9 rounded-[11px] shrink-0 ring-1 ring-black/5 bg-white" iconClassName="text-xs" />
-                          <div className="flex-1 min-w-0">
-                            <p className="text-[13px] font-semibold text-[#1c1830] leading-tight truncate">{it.descripcion}</p>
-                            <p className="text-[11.5px] text-[#7a7396]">S/ {formatoSoles(it.precio)}</p>
+                (() => {
+                  const escaneados = modoEscaner === 'venta'
+                    ? listaEscaneada
+                        .map((c) => carrito.find((it) => (it.claveCarrito || it.productoId) === c))
+                        .filter(Boolean)
+                        .slice(0, 3)
+                    : [];
+                  if (escaneados.length === 0) {
+                    return (
+                      <div className="absolute left-3 right-3 bottom-3 rounded-[28px] bg-white/15 backdrop-blur-xl ring-1 ring-white/20 px-4 py-3.5">
+                        <p className="text-sm text-center text-white/90 leading-snug">Apunta la cámara al código de barras del producto.</p>
+                      </div>
+                    );
+                  }
+                  return (
+                    <div className="absolute left-3 right-3 bottom-3 rounded-[28px] bg-[#140f20]/90 backdrop-blur-xl ring-1 ring-white/10 p-3.5 text-white">
+                      <div className="flex items-baseline justify-between mb-1.5 text-xs font-semibold uppercase tracking-wide text-white/65">
+                        <span>Escaneado ahora</span>
+                        <b className="text-[12.5px] text-white">{carrito.length} {carrito.length === 1 ? 'producto' : 'productos'}</b>
+                      </div>
+                      {escaneados.map((it, i) => {
+                        const clave = it.claveCarrito || it.productoId;
+                        return (
+                          <div key={clave} className={`flex items-center gap-2.5 py-[7px] ${i > 0 ? 'border-t border-white/10' : ''}`}>
+                            <FotoProducto fotoUrl={it.foto_url} categoria={it.categoria} className={`w-[34px] h-[34px] rounded-[10px] shrink-0 bg-white ${i === 0 ? 'ring-2 ring-green-400' : 'ring-1 ring-black/5'}`} iconClassName="text-xs" />
+                            <div className="flex-1 min-w-0">
+                              <p className="text-[13.5px] font-semibold leading-tight truncate">{it.descripcion}</p>
+                              <p className="text-[11.5px] text-white/60">S/ {formatoSoles(it.precioUnitario)}</p>
+                            </div>
+                            <div className="flex items-center bg-white/[0.12] rounded-full shrink-0">
+                              <button type="button" onClick={() => cambiarCantidadCarrito(clave, -1)} className="w-[30px] h-[30px] flex items-center justify-center text-white" aria-label="Quitar uno">
+                                <IconoTrazo nombre="minus" className="w-[13px] h-[13px]" />
+                              </button>
+                              <span className="min-w-[22px] text-center text-[13.5px] font-bold tabular-nums">{it.cantidad}</span>
+                              <button type="button" onClick={() => cambiarCantidadCarrito(clave, 1)} className="w-[30px] h-[30px] flex items-center justify-center text-white" aria-label="Agregar uno">
+                                <IconoTrazo nombre="plus" className="w-[13px] h-[13px]" />
+                              </button>
+                            </div>
+                            <span className="w-[54px] text-right text-[13.5px] font-bold tabular-nums shrink-0">{formatoSoles(it.subtotal)}</span>
                           </div>
-                          <span className="shrink-0 px-2 py-0.5 rounded-full bg-[#f4eefe] text-[#4d04b0] text-[13px] font-bold">x{it.n}</span>
-                        </div>
-                      ))}
+                        );
+                      })}
                       <button
                         type="button"
                         onClick={() => { setModalEscaner(false); setMostrarResumenMobile(true); }}
-                        className="w-full h-[50px] rounded-full bg-[#6105dc] hover:bg-[#4d04b0] text-white flex items-center justify-between pl-5 pr-2 text-[15px] font-semibold transition"
+                        className="w-full h-[52px] mt-2.5 rounded-full bg-white hover:bg-[#faf8fe] text-[#4d04b0] flex items-center justify-between pl-5 pr-2 text-[15px] font-bold transition"
                       >
                         Listo · ver venta
-                        <span className="px-3.5 py-2 rounded-full bg-white/20 text-sm font-bold tabular-nums">S/ {formatoSoles(totalConDescuento)}</span>
+                        <span className="px-3.5 py-2 rounded-full bg-[#6105dc] text-white text-sm tabular-nums">S/ {formatoSoles(totalConDescuento)}</span>
                       </button>
-                    </>
-                  ) : (
-                    <p className="text-sm text-center text-white/90 leading-snug px-1 py-0.5">Apunta la cámara al código de barras del producto.</p>
-                  )}
-                </div>
+                    </div>
+                  );
+                })()
               )}
             </div>
           )}
