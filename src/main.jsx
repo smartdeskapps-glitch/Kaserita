@@ -548,6 +548,22 @@ import './index.css';
     // Montos del Dashboard con separador de miles (1,752.90) y siempre 2 decimales.
     const formatoSoles = (n) => Number(n || 0).toLocaleString('es-PE', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
+    // Cifras compactas para el calendario de "Ventas por día", que no se rompe
+    // con montos grandes: entero hasta 9,999; luego 12.3k / 123k / 1.2M.
+    const montoCorto = (n) => {
+      if (n >= 1e6) return `${(n / 1e6).toFixed(1).replace(/\.0$/, '')}M`;
+      if (n >= 1e5) return `${Math.round(n / 1e3)}k`;
+      if (n >= 1e4) return `${(n / 1e3).toFixed(1).replace(/\.0$/, '')}k`;
+      return Math.round(n).toLocaleString('es-PE');
+    };
+    // Para las tarjetas de resumen y de semana: con céntimos hasta 9,999.99, sin
+    // céntimos desde 10 mil y abreviado desde un millón.
+    const montoResumen = (n) => {
+      if (n >= 1e6) return `S/ ${(n / 1e6).toFixed(2)}M`;
+      if (n >= 1e4) return `S/ ${Math.round(n).toLocaleString('es-PE')}`;
+      return `S/ ${formatoSoles(n)}`;
+    };
+
     // Variación porcentual del Dashboard: verde si sube, rojo si baja. Sin
     // porcentaje (null) no dibuja nada -- pasa cuando el período anterior no
     // tiene ventas y comparar contra cero no significa nada.
@@ -2623,7 +2639,9 @@ import './index.css';
       // Tooltips de los gráficos del dashboard -- índice del punto/hora/mes bajo
       // el mouse (o foco de teclado), null cuando no hay nada resaltado.
       const [horaResaltada, setHoraResaltada] = useState(null);
-      const [diaResaltado, setDiaResaltado] = useState(null);
+      // Mes que muestra el calendario de "Ventas por día" ({ anio, mes }); null =
+      // el mes de la fecha "Hasta" del filtro.
+      const [mesCalendario, setMesCalendario] = useState(null);
       const [mesResaltado, setMesResaltado] = useState(null);
 
       // --- Cobro / Pagos ---
@@ -6742,6 +6760,7 @@ import './index.css';
       // ==========================================
       const cargarDashboard = async (desde, hasta) => {
         setCargandoDashboard(true);
+        setMesCalendario(null);
         const inicio = new Date(`${desde}T00:00:00`);
         const fin = new Date(`${hasta}T23:59:59.999`);
 
@@ -12951,72 +12970,172 @@ import './index.css';
                       </section>
                     </div>
 
-                    {/* Ventas por día: una columna por cada día del rango (los días
-                        sin ventas cuentan como 0), con el mejor día resaltado. Antes
-                        era una línea solo entre los días con ventas, y con pocos
-                        puntos quedaba como un triángulo sin sentido. */}
+                    {/* Ventas por día: calendario del mes completo. Los datos salen de
+                        las ventas del año (ventasAnioDash), no del rango del filtro, y
+                        el rango elegido queda marcado con un borde. El promedio cuenta
+                        los días transcurridos del mes; el "día de menor venta" ignora
+                        los días sin ventas (esos se cuentan aparte), si no siempre
+                        ganaría un día en cero. */}
                     {(() => {
-                      const ini = new Date(`${fechaInicioDash}T00:00:00`);
-                      const fin = new Date(`${fechaFinDash}T00:00:00`);
-                      const nDias = Math.round((fin - ini) / 86400000) + 1;
-                      let dias = dashStats.porDia;
-                      if (nDias >= 1 && nDias <= 62) {
-                        const totalPorFecha = new Map(dashStats.porDia.map((d) => [d.fecha, d.total]));
-                        dias = Array.from({ length: nDias }, (_, k) => {
-                          const d = new Date(ini);
-                          d.setDate(d.getDate() + k);
-                          const fecha = fechaISOLocal(d);
-                          return { fecha, total: totalPorFecha.get(fecha) || 0 };
-                        });
+                      const [aHoy, mHoy, dHoy] = fechaHoyISO().split('-').map(Number);
+                      const ver = mesCalendario || { anio: Number(fechaFinDash.slice(0, 4)) || aHoy, mes: (Number(fechaFinDash.slice(5, 7)) || mHoy) - 1 };
+                      const fuente = ver.anio === aHoy ? ventasAnioDash : ventasDashboard;
+                      const totalPorFecha = new Map();
+                      fuente.forEach((v) => {
+                        if (v.anulada) return;
+                        const f = fechaISOLocal(new Date(v.fecha_hora));
+                        totalPorFecha.set(f, (totalPorFecha.get(f) || 0) + Number(v.total_venta));
+                      });
+                      const diasMes = new Date(ver.anio, ver.mes + 1, 0).getDate();
+                      const desfase = (new Date(ver.anio, ver.mes, 1).getDay() + 6) % 7; // semana desde el lunes
+                      const prefijo = `${ver.anio}-${String(ver.mes + 1).padStart(2, '0')}-`;
+                      const cmpMes = ver.anio * 12 + ver.mes - (aHoy * 12 + (mHoy - 1));
+                      const hastaDia = cmpMes > 0 ? 0 : cmpMes === 0 ? dHoy : diasMes;
+                      const clave = (d) => prefijo + String(d).padStart(2, '0');
+                      const totalDe = (d) => totalPorFecha.get(clave(d)) || 0;
+                      const transcurridos = Array.from({ length: hastaDia }, (_, k) => k + 1);
+                      const conVentas = transcurridos.filter((d) => totalDe(d) > 0);
+                      const totalMes = transcurridos.reduce((a, d) => a + totalDe(d), 0);
+                      const promedio = hastaDia ? totalMes / hastaDia : 0;
+                      const diaMax = conVentas.reduce((m, d) => (totalDe(d) > totalDe(m) ? d : m), conVentas[0]);
+                      const diaMin = conVentas.reduce((m, d) => (totalDe(d) < totalDe(m) ? d : m), conVentas[0]);
+                      const maxDia = conVentas.length ? totalDe(diaMax) : 1;
+                      const sinVentas = hastaDia - conVentas.length;
+                      const nombreDia = (d) => new Date(ver.anio, ver.mes, d).toLocaleDateString('es-PE', { weekday: 'short', day: 'numeric', month: '2-digit' }).replace(',', '');
+                      const nombreMes = (() => {
+                        const t = new Date(ver.anio, ver.mes, 1).toLocaleDateString('es-PE', { month: 'long', year: 'numeric' }).replace(' de ', ' ');
+                        return t.charAt(0).toUpperCase() + t.slice(1);
+                      })();
+                      const celdas = [...Array(desfase).fill(null), ...Array.from({ length: diasMes }, (_, k) => k + 1)];
+                      while (celdas.length % 7) celdas.push(null);
+                      const semanas = [];
+                      for (let i = 0; i < celdas.length; i += 7) {
+                        const dias = celdas.slice(i, i + 7).filter((d) => d !== null && d <= hastaDia);
+                        semanas.push({ n: dias.length, total: dias.reduce((a, d) => a + totalDe(d), 0) });
                       }
-                      if (dias.length < 2) return null;
-                      const maxD = Math.max(1, ...dias.map((d) => d.total));
-                      const iMejor = dias.reduce((mejor, d, i) => (d.total > dias[mejor].total ? i : mejor), 0);
-                      const mejorDia = dias[iMejor];
-                      const conDetalle = dias.length <= 10;
-                      const cadaN = Math.ceil(dias.length / 8);
+                      const semanasVisibles = semanas.map((s, i) => ({ ...s, i })).filter((s) => s.n > 0);
+                      const maxSemana = Math.max(1, ...semanasVisibles.map((s) => s.total));
+                      const puedeAnterior = ver.anio === aHoy && ver.mes > 0;
+                      const puedeSiguiente = ver.anio === aHoy && ver.mes < mHoy - 1;
+                      const tarjeta = 'rounded-2xl shadow-sm p-3.5 min-w-0';
                       return (
                         <section className="bg-white/60 backdrop-blur-xl border border-white/80 rounded-3xl shadow-[0_10px_40px_-14px_rgba(97,5,220,0.18)] p-5">
                           <div className="flex flex-wrap items-start justify-between gap-2">
-                            <h4 className="text-sm font-semibold text-stone-800">Ventas por día</h4>
-                            {mejorDia.total > 0 && (
-                              <p className="text-xs text-stone-500">
-                                Mejor día <span className="font-semibold text-[#6105dc]">{new Date(`${mejorDia.fecha}T00:00:00`).toLocaleDateString('es-PE', { weekday: 'short', day: '2-digit', month: '2-digit' })}</span> · S/ {formatoSoles(mejorDia.total)}
-                              </p>
-                            )}
+                            <div>
+                              <h4 className="text-sm font-semibold text-stone-800">Ventas por día</h4>
+                              <p className="text-xs text-stone-500 mt-0.5">Pasá el mouse sobre un día para ver el monto exacto</p>
+                            </div>
+                            <p className="text-xs text-stone-500 sm:text-right">Total del mes<br /><span className="text-sm font-semibold text-stone-900 tabular-nums">S/ {formatoSoles(totalMes)}</span></p>
                           </div>
-                          <div className="flex items-end gap-1.5 sm:gap-2 h-40 mt-6" onMouseLeave={() => setDiaResaltado(null)}>
-                            {dias.map((d, i) => {
-                              const esMejor = mejorDia.total > 0 && i === iMejor;
-                              const activo = diaResaltado === i;
+
+                          <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5 mt-4">
+                            <div className={`${tarjeta} bg-white/80`}>
+                              <p className="text-[11px] text-stone-500 flex items-center gap-1.5"><span className="w-2 h-2 rounded-full bg-stone-400"></span>Promedio diario</p>
+                              <p className="text-base font-semibold text-stone-900 mt-1 tabular-nums whitespace-nowrap truncate">{conVentas.length ? montoResumen(promedio) : '—'}</p>
+                              <p className="text-[11px] text-stone-500">en {hastaDia} día{hastaDia === 1 ? '' : 's'} transcurrido{hastaDia === 1 ? '' : 's'}</p>
+                            </div>
+                            <div className={`${tarjeta} bg-[#f4eefe] border border-[#d6bdfa]`}>
+                              <p className="text-[11px] text-stone-500 flex items-center gap-1.5"><span className="w-2 h-2 rounded-full bg-[#6105dc]"></span>Día de mayor venta</p>
+                              <p className="text-base font-semibold text-stone-900 mt-1 tabular-nums whitespace-nowrap truncate">{conVentas.length ? montoResumen(totalDe(diaMax)) : '—'}</p>
+                              <p className="text-[11px] text-stone-500 truncate">{conVentas.length ? `${nombreDia(diaMax)} · ${(totalDe(diaMax) / promedio).toFixed(1).replace('.', ',')}× el promedio` : 'Sin ventas'}</p>
+                            </div>
+                            <div className={`${tarjeta} bg-white/80`}>
+                              <p className="text-[11px] text-stone-500 flex items-center gap-1.5"><span className="w-2 h-2 rounded-full bg-rose-500"></span>Día de menor venta</p>
+                              <p className="text-base font-semibold text-rose-600 mt-1 tabular-nums whitespace-nowrap truncate">{conVentas.length ? montoResumen(totalDe(diaMin)) : '—'}</p>
+                              <p className="text-[11px] text-stone-500 truncate">{conVentas.length ? `${nombreDia(diaMin)} · ${Math.round((totalDe(diaMin) / promedio) * 100)}% del promedio` : 'Sin ventas'}</p>
+                            </div>
+                            <div className={`${tarjeta} bg-white/80`}>
+                              <p className="text-[11px] text-stone-500 flex items-center gap-1.5"><span className="w-2 h-2 rounded-full bg-stone-300"></span>Días sin ventas</p>
+                              <p className="text-base font-semibold text-stone-900 mt-1 tabular-nums">{sinVentas}</p>
+                              <p className="text-[11px] text-stone-500 truncate">{sinVentas ? 'Revisá si el local abrió' : hastaDia ? 'Vendiste todos los días' : '—'}</p>
+                            </div>
+                          </div>
+
+                          <div className="flex items-center gap-2 mt-5">
+                            <button
+                              onClick={() => setMesCalendario({ anio: ver.anio, mes: ver.mes - 1 })}
+                              disabled={!puedeAnterior}
+                              className="w-7 h-7 rounded-full border border-stone-200 bg-white text-stone-500 hover:text-stone-900 disabled:opacity-30 disabled:cursor-not-allowed flex items-center justify-center"
+                              aria-label="Mes anterior"
+                            ><i className="fa-solid fa-chevron-left text-[10px]"></i></button>
+                            <span className="text-[15px] font-semibold text-stone-900 min-w-[8.5rem] text-center">{nombreMes}</span>
+                            <button
+                              onClick={() => setMesCalendario({ anio: ver.anio, mes: ver.mes + 1 })}
+                              disabled={!puedeSiguiente}
+                              className="w-7 h-7 rounded-full border border-stone-200 bg-white text-stone-500 hover:text-stone-900 disabled:opacity-30 disabled:cursor-not-allowed flex items-center justify-center"
+                              aria-label="Mes siguiente"
+                            ><i className="fa-solid fa-chevron-right text-[10px]"></i></button>
+                          </div>
+
+                          <div className="grid grid-cols-7 gap-1.5 sm:gap-2 mt-3.5">
+                            {['lun', 'mar', 'mié', 'jue', 'vie', 'sáb', 'dom'].map((d) => (
+                              <div key={d} className="text-[10px] uppercase tracking-wider text-stone-400 text-center pb-0.5">{d}</div>
+                            ))}
+                            {celdas.map((d, i) => {
+                              if (d === null) return <div key={`v${i}`}></div>;
+                              const futuro = d > hastaDia;
+                              if (futuro) {
+                                return (
+                                  <div key={d} className="rounded-2xl min-h-[52px] sm:min-h-[74px] p-1.5 sm:p-2.5 flex flex-col justify-between border border-dashed border-stone-200 text-stone-300">
+                                    <span className="text-xs font-semibold">{d}</span>
+                                    <span className="text-sm text-right">—</span>
+                                  </div>
+                                );
+                              }
+                              const v = totalDe(d);
+                              const t = maxDia ? v / maxDia : 0;
+                              const esMax = conVentas.length > 0 && d === diaMax;
+                              const esMin = conVentas.length > 1 && d === diaMin;
+                              const oscuro = esMax || t > 0.55;
+                              const enRango = clave(d) >= fechaInicioDash && clave(d) <= fechaFinDash;
+                              const esHoy = cmpMes === 0 && d === dHoy;
                               return (
-                                <div key={d.fecha} className="relative flex-1 h-full flex items-end" onMouseEnter={() => setDiaResaltado(i)}>
-                                  {activo && d.total > 0 && (
-                                    <div className={`absolute bottom-full mb-1.5 bg-stone-900 text-white text-[11px] rounded-lg px-2.5 py-1.5 whitespace-nowrap pointer-events-none z-20 shadow-lg ${i < 2 ? 'left-0' : i > dias.length - 3 ? 'right-0' : 'left-1/2 -translate-x-1/2'}`}>
-                                      <div className="font-bold">{new Date(`${d.fecha}T00:00:00`).toLocaleDateString('es-PE', { weekday: 'short', day: '2-digit', month: '2-digit' })}</div>
-                                      <div className="text-stone-300">S/ {formatoSoles(d.total)}</div>
-                                    </div>
-                                  )}
-                                  <div
-                                    className={`w-full rounded-t-xl rounded-b-md transition-colors duration-200 ${esMejor ? 'bg-gradient-to-t from-[#6105dc] to-[#b98cf5] shadow-[0_10px_24px_-8px_rgba(97,5,220,0.55)]' : activo ? 'bg-[#d6bdfa]' : 'bg-white'}`}
-                                    style={{ height: `${Math.max(4, (d.total / maxD) * 100)}%` }}
-                                  ></div>
+                                <div
+                                  key={d}
+                                  title={`${nombreDia(d)}: S/ ${formatoSoles(v)}`}
+                                  className={`relative rounded-2xl min-h-[52px] sm:min-h-[74px] p-1.5 sm:p-2.5 flex flex-col justify-between overflow-hidden ${enRango ? 'ring-2 ring-inset ring-[#6105dc]' : ''} ${esMax ? 'shadow-[0_10px_22px_-8px_rgba(97,5,220,0.55)]' : ''} ${oscuro ? 'text-white' : 'text-stone-800'}`}
+                                  style={{ background: esMax ? 'linear-gradient(160deg,#b98cf5,#6105dc)' : v > 0 ? `rgba(97,5,220,${(0.06 + t * 0.5).toFixed(2)})` : '#f0edf5' }}
+                                >
+                                  <span className="text-xs font-semibold opacity-80">
+                                    {d}
+                                    {esMax && <span className="text-[9px] ml-1">▲</span>}
+                                    {esMin && <span className={`text-[9px] ml-1 ${oscuro ? 'text-rose-200' : 'text-rose-600'}`}>▼</span>}
+                                  </span>
+                                  <span className="text-[10px] sm:text-sm font-semibold text-right tabular-nums whitespace-nowrap">{v > 0 ? `S/ ${montoCorto(v)}` : '—'}</span>
+                                  {esHoy && <span className={`absolute top-2 right-2 w-1.5 h-1.5 rounded-full ${esMax ? 'bg-white' : 'bg-[#6105dc]'}`}></span>}
                                 </div>
                               );
                             })}
                           </div>
-                          <div className="flex gap-1.5 sm:gap-2 mt-2 text-[10px] text-stone-400">
-                            {dias.map((d, i) => {
-                              const f = new Date(`${d.fecha}T00:00:00`);
-                              const visible = conDetalle || i % cadaN === 0 || i === dias.length - 1;
-                              return (
-                                <span key={d.fecha} className={`flex-1 text-center leading-tight ${mejorDia.total > 0 && i === iMejor ? 'font-bold text-[#6105dc]' : ''}`}>
-                                  {visible && (conDetalle
-                                    ? <>{f.toLocaleDateString('es-PE', { weekday: 'short' })}<br />{f.getDate()}</>
-                                    : `${f.getDate()}/${f.getMonth() + 1}`)}
-                                </span>
-                              );
-                            })}
+
+                          {semanasVisibles.length > 0 && (
+                            <>
+                              <div className="flex items-baseline justify-between mt-6 pt-5 border-t border-stone-200/70 mb-2.5">
+                                <h5 className="text-[13px] font-semibold text-stone-800">Total por semana</h5>
+                                <span className="text-[11px] text-stone-500 hidden sm:inline">La barra compara cada semana con la mejor del mes</span>
+                              </div>
+                              <div className="grid grid-cols-2 sm:grid-cols-[repeat(auto-fit,minmax(130px,1fr))] gap-2.5">
+                                {semanasVisibles.map((s) => (
+                                  <div key={s.i} title={`Semana ${s.i + 1}: S/ ${formatoSoles(s.total)}`} className={`rounded-2xl p-3 flex flex-col gap-1.5 min-w-0 border ${s.total === maxSemana ? 'bg-[#f5eefe] border-[#d9c6f8]' : 'bg-white/70 border-stone-200/70'}`}>
+                                    <div className="flex justify-between items-baseline gap-1.5 text-[11px] text-stone-500">
+                                      <span>Semana {s.i + 1}</span><span className="text-[10px]">{s.n} d.</span>
+                                    </div>
+                                    <p className="text-base font-semibold text-stone-900 tabular-nums whitespace-nowrap">{montoResumen(s.total)}</p>
+                                    <div className="h-1.5 rounded-full bg-stone-200/70 overflow-hidden">
+                                      <div className="h-full rounded-full bg-gradient-to-r from-[#b98cf5] to-[#6105dc]" style={{ width: `${(s.total / maxSemana) * 100}%` }}></div>
+                                    </div>
+                                  </div>
+                                ))}
+                              </div>
+                            </>
+                          )}
+
+                          <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 mt-4 text-[11px] text-stone-500">
+                            <span className="inline-flex items-center gap-1.5"><i className="inline-block w-7 h-2 rounded-full bg-gradient-to-r from-[#f1e9fd] to-[#6105dc]"></i>Menos → más ventas</span>
+                            <span>▲ Mejor día</span>
+                            <span className="text-rose-600">▼ Día más flojo</span>
+                            <span className="inline-flex items-center gap-1.5"><i className="inline-block w-3.5 h-3.5 rounded-[5px] ring-2 ring-inset ring-[#6105dc]"></i>Rango elegido</span>
+                            <span>● Hoy</span>
                           </div>
                         </section>
                       );
