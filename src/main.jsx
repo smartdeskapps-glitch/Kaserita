@@ -8727,13 +8727,16 @@ import './index.css';
           {/* Columna Central: Catálogo (Order Line) */}
           <div className="flex-1 flex flex-col overflow-hidden">
             <header className="flex items-center justify-between mx-3 mt-3 px-2 md:px-3 py-2 gap-3">
-              <div className="flex items-center gap-2.5 min-w-0 max-w-full pl-[5px] pr-4 py-[5px] rounded-full bg-gradient-to-br from-[#7c2ff0] via-[#6105dc] to-[#4d04b0] shadow-[0_10px_22px_-10px_rgba(97,5,220,0.65),inset_0_1px_0_rgba(255,255,255,0.28)]">
-                <span className="h-[42px] px-3 md:px-[15px] rounded-full bg-white text-[#6105dc] text-sm md:text-[15px] font-extrabold tracking-tight flex items-center shrink-0 shadow-[0_2px_6px_rgba(0,0,0,0.15)]">Kaserita</span>
-                <div className="min-w-0">
-                  <h1 className="text-sm md:text-[14.5px] font-bold text-white leading-tight tracking-tight truncate">{bodegaNombre}</h1>
-                  <p className="text-xs text-white/75 truncate leading-tight mt-px">
-                    {cajeroSeleccionado?.nombre || usuarioActivo?.nombre}
-                  </p>
+              <div className="btn-noise btn-noise-quieto inline-flex min-w-0 max-w-full">
+                <div className="btn-noise-in min-w-0" style={{ padding: '8px 18px', gap: '12px' }}>
+                  <span className="text-[17px] font-extrabold tracking-tight shrink-0 bg-gradient-to-r from-[#8a3df2] via-[#6105dc] to-[#4d04b0] bg-clip-text text-transparent">Kaserita</span>
+                  <span className="w-px h-[26px] bg-[#6105dc]/20 shrink-0"></span>
+                  <div className="min-w-0">
+                    <h1 className="text-sm font-bold text-[#1c1830] leading-tight tracking-tight truncate">{bodegaNombre}</h1>
+                    <p className="text-xs text-[#78729a] truncate leading-tight mt-px">
+                      {cajeroSeleccionado?.nombre || usuarioActivo?.nombre}
+                    </p>
+                  </div>
                 </div>
               </div>
               <div className="flex items-center gap-3 shrink-0">

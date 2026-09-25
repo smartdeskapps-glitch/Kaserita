@@ -72,6 +72,9 @@
   );
   animation: none;
 }
+/* Anillo quieto (cápsula de marca del encabezado). */
+.btn-noise-quieto::before { animation: none; }
+
 @keyframes btn-glow-spin {
   to { --btn-glow-angle: 360deg; }
 }
