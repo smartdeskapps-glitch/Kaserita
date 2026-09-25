@@ -460,66 +460,6 @@ import './index.css';
     // mes), usada en Historial de Cierres y en el Dashboard de Ventas -- antes
     // este bloque estaba copiado en los dos lugares, con solo el nombre de los
     // setters y el número de días distinto.
-    // Contenedor con scroll cuyos bordes se difuminan de forma progresiva (varias
-    // capas con desenfoque creciente y una mascara en degradado), y solo del lado
-    // donde todavia hay contenido por ver. Mide al montar y en cada render, no solo
-    // al hacer scroll, para que el borde de abajo aparezca desde el inicio.
-    function ScrollDifuminado({ className, altoArriba = 44, altoAbajo = 64, tinte = '255,255,255', children }) {
-      const ref = useRef(null);
-      const [bordes, setBordes] = useState({ arriba: false, abajo: false });
-      const medir = () => {
-        const el = ref.current;
-        if (!el) return;
-        const arriba = el.scrollTop > 8;
-        const abajo = el.scrollTop + el.clientHeight < el.scrollHeight - 8;
-        setBordes((b) => (b.arriba === arriba && b.abajo === abajo ? b : { arriba, abajo }));
-      };
-      useEffect(() => {
-        medir();
-        const el = ref.current;
-        if (!el || typeof ResizeObserver === 'undefined') return;
-        const ro = new ResizeObserver(medir);
-        ro.observe(el);
-        if (el.firstElementChild) ro.observe(el.firstElementChild);
-        return () => ro.disconnect();
-      });
-      const capas = [
-        { blur: 2, corte: 100 },
-        { blur: 5, corte: 75 },
-        { blur: 10, corte: 50 },
-        { blur: 18, corte: 28 },
-      ];
-      const banda = (lado, alto, visible) => {
-        const dir = lado === 'arriba' ? 'to bottom' : 'to top';
-        return (
-          <div
-            aria-hidden="true"
-            className="pointer-events-none absolute inset-x-0 z-10 transition-opacity duration-200"
-            style={{ [lado === 'arriba' ? 'top' : 'bottom']: 0, height: alto, opacity: visible ? 1 : 0 }}
-          >
-            {capas.map((c, i) => {
-              const mascara = `linear-gradient(${dir}, black 0%, black ${c.corte * 0.4}%, transparent ${c.corte}%)`;
-              return (
-                <div
-                  key={i}
-                  className="absolute inset-0"
-                  style={{ backdropFilter: `blur(${c.blur}px)`, WebkitBackdropFilter: `blur(${c.blur}px)`, WebkitMaskImage: mascara, maskImage: mascara }}
-                ></div>
-              );
-            })}
-            <div className="absolute inset-0" style={{ background: `linear-gradient(${dir}, rgba(${tinte},0.85), rgba(${tinte},0))` }}></div>
-          </div>
-        );
-      };
-      return (
-        <div className="relative flex-1 min-h-0 flex flex-col">
-          <div ref={ref} onScroll={medir} className={className}>{children}</div>
-          {banda('arriba', altoArriba, bordes.arriba)}
-          {banda('abajo', altoAbajo, bordes.abajo)}
-        </div>
-      );
-    }
-
     function FiltroFechasRapido({ desde, hasta, setDesde, setHasta, onRango, diasAtras, children }) {
       const irAHoy = () => {
         const hoy = fechaHoyISO();
@@ -8628,7 +8568,7 @@ import './index.css';
                   bottom-3) ni pegada contra el borde de la pantalla. */}
               {/* pt-1.5 pl-1: margen para que el hover (sube 2px + sombra + anillo)
                   no se corte contra el borde del contenedor con scroll. */}
-              <ScrollDifuminado className="flex-1 overflow-y-auto pt-1.5 pl-1 pr-1 pb-24 md:pb-3 hide-scrollbar" altoAbajo={72}>
+              <div className="flex-1 overflow-y-auto pt-1.5 pl-1 pr-1 pb-24 md:pb-3 hide-scrollbar">
                 {categoriaFiltro === '__COMBOS__' ? (
                   combos.filter(c => c.activo).length === 0 ? (
                     <div className="flex flex-col items-center justify-center h-48 text-stone-500 text-center">
@@ -8706,7 +8646,7 @@ import './index.css';
                     ))}
                   </div>
                 )}
-                </ScrollDifuminado>
+                </div>
               </div>
             </div>
           </div>
@@ -9055,7 +8995,7 @@ import './index.css';
             )}
 
             {/* Lista Ítems */}
-            <ScrollDifuminado className="flex-1 overflow-y-auto p-2.5 pb-16 space-y-1.5 hide-scrollbar" altoArriba={36} altoAbajo={0}>
+            <div className="flex-1 overflow-y-auto p-2.5 pb-16 space-y-1.5 hide-scrollbar">
               {carrito.length === 0 ? (
                 <div className="flex flex-col items-center justify-center h-full text-stone-500 text-center p-4">
                   <i className="fa-solid fa-basket-shopping text-3xl mb-2 text-stone-300"></i>
@@ -9117,7 +9057,7 @@ import './index.css';
                   </div>
                 ))
               )}
-            </ScrollDifuminado>
+            </div>
 
             {/* Panel Cobro */}
             {/* El panel es vidrio esmerilado y se monta 40px sobre el final de la lista:
