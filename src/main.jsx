@@ -719,6 +719,7 @@ import './index.css';
       abajo: <path d="m6 9 6 6 6-6" />,
       tienda: <><path d="M3 9l1-5h16l1 5" /><path d="M4 9v11h16V9" /><path d="M9 20v-6h6v6" /></>,
       ubicacion: <><path d="M20 10c0 6-8 12-8 12S4 16 4 10a8 8 0 0 1 16 0z" /><circle cx="12" cy="10" r="3" /></>,
+      campana: <><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9" /><path d="M13.7 21a2 2 0 0 1-3.4 0" /></>,
       moto: <><circle cx="5.5" cy="17" r="3" /><circle cx="18.5" cy="17" r="3" /><path d="M8.5 17h5l-2.5-8H8" /><path d="M11 9h4l3.5 8" /></>,
       compartir: <><circle cx="18" cy="5" r="3" /><circle cx="6" cy="12" r="3" /><circle cx="18" cy="19" r="3" /><path d="m8.6 13.5 6.8 4M15.4 6.5l-6.8 4" /></>,
       copiar: <><rect x="9" y="9" width="12" height="12" rx="2" /><path d="M5 15V5a2 2 0 0 1 2-2h8" /></>,
@@ -2350,6 +2351,9 @@ import './index.css';
       const [pedidoMinimoDelivery, setPedidoMinimoDelivery] = useState('');
       const [zonaRepartoDelivery, setZonaRepartoDelivery] = useState('');
       const [whatsappRepartidor, setWhatsappRepartidor] = useState('');
+      // Avisar a los clientes que siguen / visitaron la tienda (push desde Delivery).
+      const [resumenAvisos, setResumenAvisos] = useState(null); // { audiencia, proximo } o null si no disponible
+      const [enviandoAviso, setEnviandoAviso] = useState(false);
 
       // --- Pedidos por retirar (clientes con cuenta en KaseritaDelivery) ---
       const [modalPedidosRetirar, setModalPedidosRetirar] = useState(false);
@@ -3020,7 +3024,42 @@ import './index.css';
           .replace(/[^a-z0-9]+/g, '-')
           .replace(/^-+|-+$/g, '');
 
+      const cargarResumenAvisos = async () => {
+        if (esModoDemo || !sbClient) { setResumenAvisos(null); return; }
+        try {
+          const { data, error } = await sbClient.rpc('resumen_avisos_clientes');
+          if (error) throw error;
+          const fila = Array.isArray(data) ? data[0] : data;
+          setResumenAvisos(fila ? { audiencia: Number(fila.audiencia) || 0, proximo: fila.proximo_envio || null } : null);
+        } catch (err) {
+          // Todavía no se corrió migration_34 (o no hay permiso): la tarjeta simplemente no se muestra.
+          setResumenAvisos(null);
+        }
+      };
+
+      const avisarAMisClientes = async () => {
+        const n = resumenAvisos?.audiencia || 0;
+        const ok = await pedirConfirmacion({
+          titulo: 'Avisar a tus clientes',
+          mensaje: `Se enviará una notificación a ${n} cliente${n === 1 ? '' : 's'}: "¡${sesion?.bodega?.nombre || 'Tu bodega'} ya recibe pedidos!". Solo puedes hacerlo una vez por semana. ¿Enviar ahora?`,
+          textoBoton: 'Sí, avisar',
+        });
+        if (!ok) return;
+        setEnviandoAviso(true);
+        try {
+          const { data, error } = await sbClient.rpc('avisar_a_mis_clientes');
+          if (error) throw error;
+          notificar(`Aviso en camino a ${data} cliente${data === 1 ? '' : 's'}.`, 'success');
+          await cargarResumenAvisos();
+        } catch (err) {
+          notificar(err.message || 'No se pudo enviar el aviso.', 'error');
+        } finally {
+          setEnviandoAviso(false);
+        }
+      };
+
       const abrirModalDelivery = () => {
+        cargarResumenAvisos();
         setSlugDelivery(sesion?.bodega?.slug || normalizarSlugDelivery(sesion?.bodega?.nombre));
         setDeliveryHabilitado(!!sesion?.bodega?.delivery_habilitado);
         setLogoUrlDelivery(sesion?.bodega?.logo_url || '');
@@ -13416,6 +13455,37 @@ import './index.css';
                           </>
                         )}
                       </div>
+
+                      {esAdmin && resumenAvisos && sesion?.bodega?.delivery_habilitado && sesion?.bodega?.slug && (
+                        <div className="bg-white rounded-3xl p-3.5 mb-2.5 ring-1 ring-[#6105dc]/5">
+                          <p className="flex items-center gap-1.5 text-[11.5px] font-bold uppercase tracking-wider text-[#4d04b0] mb-3">
+                            <IconoTrazo nombre="campana" className="w-3.5 h-3.5" /> Avisar a tus clientes
+                          </p>
+                          <p className="text-[12.5px] text-stone-600 leading-snug">
+                            Manda una notificación a los clientes que siguen o visitaron tu tienda: <strong>“¡{sesion.bodega.nombre} ya recibe pedidos!”</strong>.
+                            Se envía solo a quienes tienen los avisos activados.
+                          </p>
+                          <p className="text-[11.5px] text-stone-400 mt-1.5">
+                            {resumenAvisos.audiencia} cliente{resumenAvisos.audiencia === 1 ? '' : 's'} recibiría{resumenAvisos.audiencia === 1 ? '' : 'n'} el aviso · máximo una vez por semana.
+                            {' '}Además, se avisa solo cuando activas tu catálogo o la entrega a domicilio.
+                          </p>
+                          <button
+                            type="button"
+                            onClick={avisarAMisClientes}
+                            disabled={enviandoAviso || resumenAvisos.audiencia === 0 || !!resumenAvisos.proximo}
+                            className="mt-3 w-full h-[46px] rounded-full bg-[#f4eefe] hover:bg-[#ece0fd] text-[#4d04b0] text-sm font-semibold flex items-center justify-center gap-2 transition disabled:opacity-50 disabled:hover:bg-[#f4eefe]"
+                          >
+                            <IconoTrazo nombre="campana" className="w-[17px] h-[17px]" />
+                            {enviandoAviso
+                              ? 'Enviando...'
+                              : resumenAvisos.proximo
+                              ? `Disponible el ${new Date(resumenAvisos.proximo).toLocaleDateString('es-PE', { weekday: 'long', day: 'numeric', month: 'long' })}`
+                              : resumenAvisos.audiencia === 0
+                              ? 'Aún no tienes clientes con avisos'
+                              : 'Avisar ahora'}
+                          </button>
+                        </div>
+                      )}
 
                       {sesion?.usuario?.rol === 'dueno' && (
                         <div className="bg-white rounded-3xl p-3.5 mb-2.5 ring-1 ring-[#6105dc]/5">
