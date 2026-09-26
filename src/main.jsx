@@ -4154,12 +4154,16 @@ import './index.css';
       // deuda del cliente (si fue a crédito) + descuento de stock, todo o nada.
       // Si la función aún no existe en Supabase, devuelve faltaFuncion = true y
       // el llamador sigue con el camino de siempre (paso a paso).
-      const registrarVentaAtomica = async (payloadVenta, detalles, ajustes, credito) => {
+      // permitirSinStock = true solo para ventas hechas sin conexión que se
+      // sincronizan (ya ocurrieron en el mostrador); el cobro en línea rechaza
+      // la venta si no alcanza el stock de algún producto.
+      const registrarVentaAtomica = async (payloadVenta, detalles, ajustes, credito, permitirSinStock = false) => {
         const { data, error } = await sbClient.rpc('registrar_venta', {
           p_venta: payloadVenta,
           p_detalles: detalles,
           p_ajustes: (ajustes || []).map((a) => ({ producto_id: a.productoId, delta: a.delta })),
-          p_credito: credito ? { cliente_id: credito.clienteId, monto: credito.monto } : null
+          p_credito: credito ? { cliente_id: credito.clienteId, monto: credito.monto } : null,
+          p_permitir_sin_stock: permitirSinStock
         });
         if (error) {
           const faltaFuncion = error.code === 'PGRST202' || /could not find the function/i.test(error.message || '');
@@ -4188,7 +4192,7 @@ import './index.css';
           try {
             // Camino nuevo: toda la venta en una sola transacción, y un reintento
             // de una venta ya guardada no repite nada (id_local).
-            const atomica = await registrarVentaAtomica(pendiente.payloadVenta, pendiente.payloadDetalles, pendiente.ajustesStock, pendiente.credito);
+            const atomica = await registrarVentaAtomica(pendiente.payloadVenta, pendiente.payloadDetalles, pendiente.ajustesStock, pendiente.credito, true);
             if (!atomica.faltaFuncion && atomica.error) throw atomica.error;
             if (atomica.faltaFuncion) {
             let vCreada;
@@ -4599,6 +4603,19 @@ import './index.css';
       // stock como varias unidades base, no como 1. Así una misma bolsa de
       // stock sirve tanto para vender el pack cerrado como para venderlo
       // suelto si se abre, sin llevar dos números de stock por separado.
+      // Carrito actual para leerlo dentro de callbacks memorizados (evita usar un
+      // valor viejo) al comprobar si alcanza el stock.
+      const carritoRef = useRef(carrito);
+      carritoRef.current = carrito;
+
+      // Unidades de un producto que ya están en el carrito (sueltas, en pack o
+      // dentro de combos), para saber si todavía alcanza el stock.
+      const unidadesEnCarritoDe = (productoId) =>
+        carritoRef.current
+          .flatMap((item) => expandirLineaCarrito(item))
+          .filter((linea) => linea.productoId === productoId)
+          .reduce((acc, linea) => acc + Number(linea.unidadesStock || linea.cantidad || 0), 0);
+
       const agregarAlCarrito = useCallback((producto, cantidad = 1, tipoVenta = 'UNIDAD') => {
         const cantNum = parseFloat(cantidad) || 1;
         const unidadesPorPack = Number(producto.unidades_por_pack) || 1;
@@ -4616,6 +4633,24 @@ import './index.css';
           : Number(producto.precio_costo) || 0;
         const descripcionMostrada = esPack ? `${producto.descripcion} (Pack x${unidadesPorPack})` : producto.descripcion;
         const claveCarrito = esPack ? `${producto.id}::pack` : producto.id;
+
+        // No se puede vender más de lo que hay (solo productos con seguimiento de
+        // stock; sin seguimiento, stock_actual es null y no se bloquea). La base de
+        // datos también lo comprueba al cobrar; esto avisa antes, al agregar.
+        if (producto.stock_actual !== null && producto.stock_actual !== undefined) {
+          const stockDisponible = Number(producto.stock_actual) || 0;
+          const yaEnCarrito = unidadesEnCarritoDe(producto.id);
+          const necesarias = +(cantNum * multiplicadorStock).toFixed(3);
+          if (yaEnCarrito + necesarias > stockDisponible + 1e-9) {
+            notificar(
+              stockDisponible <= 0
+                ? `"${producto.descripcion}" está agotado.`
+                : `Solo ${stockDisponible === 1 ? 'queda 1' : `quedan ${stockDisponible}`} de "${producto.descripcion}"${yaEnCarrito > 0 ? ` (ya tienes ${yaEnCarrito} en el carrito)` : ''}.`,
+              'error'
+            );
+            return;
+          }
+        }
 
         setCarrito(prev => {
           const idx = prev.findIndex(item => (item.claveCarrito || item.productoId) === claveCarrito);
@@ -4653,13 +4688,9 @@ import './index.css';
           }
         });
 
-        // Solo advierte si el stock está bajo o agotado; no bloquea la venta
-        // (el conteo puede tener un pequeño desfase o vender algo aún no registrado).
+        // Avisa si el stock queda bajo.
         if (producto.stock_actual !== null && producto.stock_actual !== undefined) {
-          if (Number(producto.stock_actual) <= 0) {
-            notificar(`"${producto.descripcion}" figura sin stock, pero se agregó igual.`, 'error');
-            return;
-          } else if (Number(producto.stock_actual) <= Number(producto.stock_min || 5)) {
+          if (Number(producto.stock_actual) <= Number(producto.stock_min || 5)) {
             notificar(`Stock bajo de "${producto.descripcion}" (quedan ${producto.stock_actual}).`, 'error');
             return;
           }
@@ -5363,6 +5394,20 @@ import './index.css';
       };
 
       const cambiarCantidadCarrito = (claveCarrito, delta) => {
+        // Al subir la cantidad, comprueba que alcance el stock del catálogo (si el
+        // producto está cargado y tiene seguimiento de stock).
+        if (delta > 0) {
+          const linea = carrito.find((item) => (item.claveCarrito || item.productoId) === claveCarrito);
+          const prod = linea && !linea.esCombo ? productos.find((p) => p.id === linea.productoId) : null;
+          if (prod && prod.stock_actual !== null && prod.stock_actual !== undefined) {
+            const paso = linea.unidad === 'KG' ? 0.250 : 1;
+            const extra = delta * paso * (linea.esPack ? (linea.unidadesPorPack || 1) : 1);
+            if (unidadesEnCarritoDe(prod.id) + extra > (Number(prod.stock_actual) || 0) + 1e-9) {
+              notificar(`Solo ${Number(prod.stock_actual) === 1 ? 'queda 1' : `quedan ${Number(prod.stock_actual)}`} de "${prod.descripcion}".`, 'error');
+              return;
+            }
+          }
+        }
         setCarrito(prev =>
           prev.map(item => {
             if ((item.claveCarrito || item.productoId) === claveCarrito) {
@@ -7917,6 +7962,19 @@ import './index.css';
             }
             ventasDemoRef.current = ventasDemoRef.current.map((v) => (v.id === venta.id ? { ...v, anulada: true, motivo_anulacion: motivo } : v));
           } else if (sbClient) {
+            // Camino nuevo: boleta + deuda + stock en UNA transacción
+            // (anular_venta, ver anular_venta_atomica.sql). Si la función aún no
+            // existe en Supabase, sigue el camino de siempre (paso a paso).
+            const { data: anulada, error: errAnulada } = await sbClient.rpc('anular_venta', {
+              p_venta_id: String(venta.id),
+              p_motivo: motivo
+            });
+            const faltaAnular = !!errAnulada && (errAnulada.code === 'PGRST202' || /could not find the function/i.test(errAnulada.message || ''));
+            if (errAnulada && !faltaAnular) throw errAnulada;
+            if (!errAnulada && anulada?.ya_anulada) {
+              notificar(`La boleta ${venta.nro_boleta} ya estaba anulada.`, 'info');
+            }
+            if (faltaAnular) {
             // Si la venta era a crédito, revertir la deuda del cliente antes de anular
             // (ajuste atómico: no se pisa con otra venta/pago simultáneo al mismo cliente).
             if (venta.medio_pago === 'CREDITO' && venta.cliente_id) {
@@ -7943,6 +8001,7 @@ import './index.css';
               .filter((d) => d.producto_id)
               .map((d) => sbClient.rpc('ajustar_stock', { p_producto_id: d.producto_id, p_delta: Number(d.unidades_stock ?? d.cantidad) }))
             );
+            }
           }
           setVentasDelDia(prev => prev.map(v => v.id === venta.id ? { ...v, anulada: true, motivo_anulacion: motivo } : v));
           cargarProductos(busqueda); // refresca el stock repuesto en el catálogo
@@ -8622,7 +8681,14 @@ import './index.css';
           // No se usa notificar() aquí: el modal de "¡Venta Exitosa!" ya
           // muestra la boleta y el detalle, un toast encima sería redundante.
         } catch (err) {
-          notificar(`Error al registrar venta: ${err.message}`, 'error');
+          if (/^Stock insuficiente/.test(err.message || '')) {
+            // La base rechazó la venta completa (no se guardó nada): se muestra
+            // cuánto queda y se refresca el catálogo con el stock real.
+            notificar(err.message, 'error');
+            cargarProductos(busqueda);
+          } else {
+            notificar(`Error al registrar venta: ${err.message}`, 'error');
+          }
         } finally {
           setProcesandoVenta(false);
         }

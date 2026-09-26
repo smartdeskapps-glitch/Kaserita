@@ -22,10 +22,15 @@
 -- que las politicas RLS de ventas, ventas_detalle, productos y clientes siguen
 -- aplicando igual que cuando la app insertaba directo.
 --
--- Stock: se mantiene la regla actual (ajustar_stock): el stock nunca baja de 0
--- y no se bloquea la venta por falta de stock, porque el conteo de una bodega
--- suele estar desactualizado y el cajero debe poder cobrar lo que tiene en la
--- mano. Los productos con stock sin seguimiento (NULL) no se tocan.
+-- Stock: NO se puede vender mas de lo que hay. Si algun producto con
+-- seguimiento de stock no alcanza, se rechaza la venta completa con el mensaje
+-- 'Stock insuficiente de "X": hay N y se piden M.' y no se guarda nada. Los
+-- productos sin seguimiento de stock (NULL) no se bloquean ni se tocan. La
+-- comprobacion bloquea la fila del producto (FOR UPDATE), asi que dos cajeros
+-- vendiendo lo ultimo que queda no pueden pasar los dos: el segundo es
+-- rechazado. Excepcion: las ventas hechas sin conexion (p_permitir_sin_stock =
+-- true, al sincronizar) ya ocurrieron en el mostrador, asi que se registran
+-- igual y el stock queda en 0 como minimo.
 --
 -- Parametros (todos jsonb):
 --   p_venta    : columnas de la venta (bodega_id, turno_caja_id, cajero_id,
@@ -35,14 +40,21 @@
 --   p_detalles : arreglo con las lineas del detalle (sin venta_id).
 --   p_ajustes  : arreglo [{producto_id, delta}] con lo que se descuenta de stock.
 --   p_credito  : null, o {cliente_id, monto} para sumar a la deuda del cliente.
+--   p_permitir_sin_stock : false (por defecto) rechaza si no alcanza el stock;
+--                true solo para ventas offline que se sincronizan.
 -- Devuelve: { id, nro_boleta, duplicada }.
 -- ============================================================
+
+-- Se borra la version anterior (4 parametros) para que no queden dos funciones
+-- con el mismo nombre: la app no sabria a cual llamar.
+drop function if exists public.registrar_venta(jsonb, jsonb, jsonb, jsonb);
 
 create or replace function public.registrar_venta(
   p_venta jsonb,
   p_detalles jsonb,
   p_ajustes jsonb default '[]'::jsonb,
-  p_credito jsonb default null
+  p_credito jsonb default null,
+  p_permitir_sin_stock boolean default false
 )
 returns jsonb
 language plpgsql
@@ -50,10 +62,12 @@ security invoker
 set search_path = public
 as $$
 declare
-  v_id bigint;
+  v_id public.ventas.id%type;
   v_boleta text;
   v_bodega uuid;
   v_id_local text;
+  v_stock numeric;
+  v_desc text;
   r record;
 begin
   v_bodega := (p_venta->>'bodega_id')::uuid;
@@ -106,6 +120,16 @@ begin
     group by a.producto_id
     order by a.producto_id
   loop
+    if r.delta < 0 and not coalesce(p_permitir_sin_stock, false) then
+      select stock_actual, descripcion into v_stock, v_desc
+      from public.productos
+      where id = r.producto_id
+      for update;
+      if v_stock is not null and v_stock < -r.delta then
+        raise exception 'Stock insuficiente de "%": hay % y se piden %.',
+          coalesce(v_desc, 'producto'), trim_scale(v_stock), trim_scale(-r.delta);
+      end if;
+    end if;
     perform public.ajustar_stock(r.producto_id, r.delta);
   end loop;
 
@@ -113,7 +137,7 @@ begin
 end;
 $$;
 
-revoke all on function public.registrar_venta(jsonb, jsonb, jsonb, jsonb) from public, anon;
-grant execute on function public.registrar_venta(jsonb, jsonb, jsonb, jsonb) to authenticated;
+revoke all on function public.registrar_venta(jsonb, jsonb, jsonb, jsonb, boolean) from public, anon;
+grant execute on function public.registrar_venta(jsonb, jsonb, jsonb, jsonb, boolean) to authenticated;
 
 NOTIFY pgrst, 'reload schema';
