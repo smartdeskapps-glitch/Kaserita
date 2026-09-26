@@ -8706,7 +8706,9 @@ import './index.css';
             >
 
               <img
-                src="/logo-blanco.png"
+                src="/logo-blanco.webp"
+                width="600"
+                height="470"
                 alt="Kaserita"
                 className="relative w-52 md:w-64 h-auto mb-6"
                 style={{ animation: 'auth-panel-in 0.5s ease' }}
