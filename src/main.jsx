@@ -81,6 +81,35 @@ import './index.css';
     };
     const fechaHoyISO = () => fechaISOLocal(new Date());
 
+    // Agrupa filas de `ventas` por dia (hora local) con la misma forma que
+    // devuelve la funcion SQL dashboard_ventas_por_dia: { fecha, total, n,
+    // medios, horas, mixto_efectivo, mixto_otro }. Se usa en modo demo, para
+    // meses de otros anios y como plan B si esa funcion aun no existe.
+    const agruparVentasPorDia = (filas) => {
+      const porFecha = new Map();
+      (filas || []).forEach((v) => {
+        if (v.anulada) return;
+        const f = new Date(v.fecha_hora);
+        const fecha = fechaISOLocal(f);
+        let d = porFecha.get(fecha);
+        if (!d) {
+          d = { fecha, total: 0, n: 0, medios: {}, horas: {}, mixto_efectivo: 0, mixto_otro: 0 };
+          porFecha.set(fecha, d);
+        }
+        const monto = Number(v.total_venta) || 0;
+        const medio = v.medio_pago || 'OTRO';
+        d.total += monto;
+        d.n += 1;
+        d.medios[medio] = { total: (d.medios[medio]?.total || 0) + monto, n: (d.medios[medio]?.n || 0) + 1 };
+        d.horas[f.getHours()] = (d.horas[f.getHours()] || 0) + monto;
+        if (medio === 'MIXTO') {
+          d.mixto_efectivo += Number(v.monto_efectivo) || 0;
+          d.mixto_otro += Number(v.monto_otro) || 0;
+        }
+      });
+      return [...porFecha.values()].sort((a, b) => (a.fecha < b.fecha ? -1 : 1));
+    };
+
     const normalizarCamposPack = (f) => ({
       unidades_por_pack: f.vendeEnPack && Number(f.unidades_por_pack) > 1 ? Number(f.unidades_por_pack) : 1,
       precio_venta_pack: f.vendeEnPack && f.precio_venta_pack ? Number(f.precio_venta_pack) : null,
@@ -2712,9 +2741,11 @@ import './index.css';
       const [clientesDeuda, setClientesDeuda] = useState([]);
       const [ventasDashboardAnterior, setVentasDashboardAnterior] = useState([]);
       const [proveedoresDeudaDash, setProveedoresDeudaDash] = useState([]);
-      // Ventas del año calendario en curso, para "Ventas por Mes" -- no
-      // depende del rango de fechas elegido en el filtro rápido.
-      const [ventasAnioDash, setVentasAnioDash] = useState([]);
+      // Ventas del año calendario en curso agrupadas por día (calendario y
+      // "Ventas por Mes") -- no dependen del rango de fechas del filtro rápido.
+      // Vienen sumadas desde la base (dashboard_ventas_por_dia.sql) para no
+      // chocar con el tope de 1.000 filas por consulta.
+      const [diasAnioDash, setDiasAnioDash] = useState([]);
       // Tooltips de los gráficos del dashboard -- índice del punto/hora/mes bajo
       // el mouse (o foco de teclado), null cuando no hay nada resaltado.
       const [horaResaltada, setHoraResaltada] = useState(null);
@@ -7405,10 +7436,10 @@ import './index.css';
           const anioActual = new Date().getFullYear();
           const inicioAnio = new Date(anioActual, 0, 1);
           const finAnio = new Date(anioActual, 11, 31, 23, 59, 59, 999);
-          setVentasAnioDash(ventasDemoRef.current.filter((v) => {
+          setDiasAnioDash(agruparVentasPorDia(ventasDemoRef.current.filter((v) => {
             const f = new Date(v.fecha_hora);
             return f >= inicioAnio && f <= finAnio;
-          }));
+          })));
 
           setCargandoDashboard(false);
           return;
@@ -7465,16 +7496,31 @@ import './index.css';
             // Ventas del año calendario en curso, para "Ventas por Mes" --
             // independiente del rango de fechas elegido en el filtro rápido.
             const anioActual = new Date().getFullYear();
-            const inicioAnio = new Date(anioActual, 0, 1).toISOString();
-            const finAnio = new Date(anioActual, 11, 31, 23, 59, 59, 999).toISOString();
-            const { data: ventasAnio, error: errAnio } = await sbClient
-              .from('ventas')
-              .select('fecha_hora, total_venta, anulada, medio_pago, monto_efectivo, monto_otro')
-              .eq('bodega_id', bodegaId)
-              .gte('fecha_hora', inicioAnio)
-              .lte('fecha_hora', finAnio);
-            if (errAnio) console.warn(errAnio);
-            setVentasAnioDash(ventasAnio || []);
+            let zona = 'America/Lima';
+            try { zona = Intl.DateTimeFormat().resolvedOptions().timeZone || zona; } catch (e) { /* se queda con Lima */ }
+            const { data: diasAnio, error: errAnio } = await sbClient.rpc('dashboard_ventas_por_dia', {
+              p_bodega_id: bodegaId,
+              p_desde: `${anioActual}-01-01`,
+              p_hasta: `${anioActual}-12-31`,
+              p_zona: zona
+            });
+            if (!errAnio && Array.isArray(diasAnio)) {
+              setDiasAnioDash(diasAnio);
+            } else {
+              // Plan B si la funcion SQL aun no existe: el SELECT de siempre
+              // (Supabase lo corta en 1.000 filas, por eso se prefiere la funcion).
+              console.warn('dashboard_ventas_por_dia no disponible, se usa la consulta directa', errAnio);
+              const inicioAnio = new Date(anioActual, 0, 1).toISOString();
+              const finAnio = new Date(anioActual, 11, 31, 23, 59, 59, 999).toISOString();
+              const { data: ventasAnio, error: errAnio2 } = await sbClient
+                .from('ventas')
+                .select('fecha_hora, total_venta, anulada, medio_pago, monto_efectivo, monto_otro')
+                .eq('bodega_id', bodegaId)
+                .gte('fecha_hora', inicioAnio)
+                .lte('fecha_hora', finAnio);
+              if (errAnio2) console.warn(errAnio2);
+              setDiasAnioDash(agruparVentasPorDia(ventasAnio || []));
+            }
           } catch (err) {
             console.warn(err);
             notificar(`No se pudo cargar el dashboard: ${err.message}`, 'error');
@@ -7591,10 +7637,11 @@ import './index.css';
         // independiente del rango de fechas del filtro rápido.
         const anioActual = new Date().getFullYear();
         const porMes = Array.from({ length: 12 }, (_, m) => ({ mes: m, total: 0, cantidad: 0 }));
-        ventasAnioDash.filter(v => !v.anulada).forEach(v => {
-          const m = new Date(v.fecha_hora).getMonth();
-          porMes[m].total += Number(v.total_venta);
-          porMes[m].cantidad += 1;
+        diasAnioDash.forEach(d => {
+          const m = Number(String(d.fecha).slice(5, 7)) - 1;
+          if (!porMes[m]) return;
+          porMes[m].total += Number(d.total);
+          porMes[m].cantidad += Number(d.n);
         });
         const maxMes = Math.max(1, ...porMes.map(m => m.total));
         const mesPico = porMes.reduce((mejor, m) => (m.total > mejor.total ? m : mejor), porMes[0]);
@@ -7621,7 +7668,7 @@ import './index.css';
           hayBaseMesAnterior: totalMesAnterior > 0,
           anioActual, porMes, maxMes, mesPico, mesActualIdx, totalAnio, promedioMensual, cambioMesPct
         };
-      }, [ventasDashboard, clientesDeuda, ventasDashboardAnterior, proveedoresDeudaDash, ventasAnioDash]);
+      }, [ventasDashboard, clientesDeuda, ventasDashboardAnterior, proveedoresDeudaDash, diasAnioDash]);
 
       // Exporta todo el Dashboard a un Excel real (.xlsx, varias hojas),
       // no un CSV -- cada sección del dashboard es su propia hoja.
@@ -14219,7 +14266,7 @@ import './index.css';
                     </div>
 
                     {/* Ventas por día: calendario del mes completo. Los datos salen de
-                        las ventas del año (ventasAnioDash), no del rango del filtro, y
+                        las ventas del año (diasAnioDash), no del rango del filtro, y
                         el rango elegido queda marcado con un borde. El promedio cuenta
                         los días transcurridos del mes; el "día de menor venta" ignora
                         los días sin ventas (esos se cuentan aparte), si no siempre
@@ -14227,13 +14274,9 @@ import './index.css';
                     {(() => {
                       const [aHoy, mHoy, dHoy] = fechaHoyISO().split('-').map(Number);
                       const ver = mesCalendario || { anio: Number(fechaFinDash.slice(0, 4)) || aHoy, mes: (Number(fechaFinDash.slice(5, 7)) || mHoy) - 1 };
-                      const fuente = ver.anio === aHoy ? ventasAnioDash : ventasDashboard;
+                      const diasFuente = ver.anio === aHoy ? diasAnioDash : agruparVentasPorDia(ventasDashboard);
                       const totalPorFecha = new Map();
-                      fuente.forEach((v) => {
-                        if (v.anulada) return;
-                        const f = fechaISOLocal(new Date(v.fecha_hora));
-                        totalPorFecha.set(f, (totalPorFecha.get(f) || 0) + Number(v.total_venta));
-                      });
+                      diasFuente.forEach((d) => totalPorFecha.set(d.fecha, Number(d.total)));
                       const diasMes = new Date(ver.anio, ver.mes + 1, 0).getDate();
                       const desfase = (new Date(ver.anio, ver.mes, 1).getDay() + 6) % 7; // semana desde el lunes
                       const prefijo = `${ver.anio}-${String(ver.mes + 1).padStart(2, '0')}-`;
@@ -14273,24 +14316,14 @@ import './index.css';
                       const selDia = diaCalendarioSel && diaCalendarioSel.startsWith(prefijo) ? Number(diaCalendarioSel.slice(8, 10)) : null;
                       const detalleDia = (() => {
                         if (!selDia || selDia > hastaDia) return null;
-                        const delDia = fuente.filter((v) => !v.anulada && fechaISOLocal(new Date(v.fecha_hora)) === clave(selDia));
-                        const total = delDia.reduce((a, v) => a + Number(v.total_venta), 0);
-                        const porMedioDia = {};
-                        const horas = Array.from({ length: 24 }, () => 0);
-                        let mixtoEfectivo = 0;
-                        let mixtoOtro = 0;
-                        delDia.forEach((v) => {
-                          const medio = v.medio_pago || 'OTRO';
-                          const m = porMedioDia[medio] || (porMedioDia[medio] = { medio, total: 0, n: 0 });
-                          m.total += Number(v.total_venta);
-                          m.n += 1;
-                          horas[new Date(v.fecha_hora).getHours()] += Number(v.total_venta);
-                          if (medio === 'MIXTO') {
-                            mixtoEfectivo += Number(v.monto_efectivo) || 0;
-                            mixtoOtro += Number(v.monto_otro) || 0;
-                          }
-                        });
-                        const medios = Object.values(porMedioDia).sort((a, b) => b.total - a.total);
+                        const dd = diasFuente.find((x) => x.fecha === clave(selDia));
+                        const total = Number(dd?.total) || 0;
+                        const medios = Object.entries(dd?.medios || {})
+                          .map(([medio, m]) => ({ medio, total: Number(m.total) || 0, n: Number(m.n) || 0 }))
+                          .sort((a, b) => b.total - a.total);
+                        const horas = Array.from({ length: 24 }, (_, h) => Number(dd?.horas?.[h]) || 0);
+                        const mixtoEfectivo = Number(dd?.mixto_efectivo) || 0;
+                        const mixtoOtro = Number(dd?.mixto_otro) || 0;
                         const horasConVentas = horas.map((t, h) => (t > 0 ? h : -1)).filter((h) => h >= 0);
                         const desdeHora = horasConVentas.length ? Math.min(8, horasConVentas[0]) : 8;
                         const hastaHora = horasConVentas.length ? Math.max(21, horasConVentas[horasConVentas.length - 1]) : 21;
@@ -14298,7 +14331,7 @@ import './index.css';
                         const maxH = Math.max(0, ...rangoHoras.map((h) => h.total));
                         const pico = maxH > 0 ? rangoHoras.find((h) => h.total === maxH).hora : null;
                         const titulo = new Date(ver.anio, ver.mes, selDia).toLocaleDateString('es-PE', { weekday: 'long', day: 'numeric', month: 'long' }).replace(',', '').replace(/^./, (c) => c.toUpperCase());
-                        return { total, n: delDia.length, medios, mixtoEfectivo, mixtoOtro, rangoHoras, maxH, pico, titulo };
+                        return { total, n: Number(dd?.n) || 0, medios, mixtoEfectivo, mixtoOtro, rangoHoras, maxH, pico, titulo };
                       })();
                       const irDia = (d) => { if (d >= 1 && d <= hastaDia) setDiaCalendarioSel(clave(d)); };
                       return (
