@@ -719,6 +719,7 @@ import './index.css';
       abajo: <path d="m6 9 6 6 6-6" />,
       tienda: <><path d="M3 9l1-5h16l1 5" /><path d="M4 9v11h16V9" /><path d="M9 20v-6h6v6" /></>,
       ubicacion: <><path d="M20 10c0 6-8 12-8 12S4 16 4 10a8 8 0 0 1 16 0z" /><circle cx="12" cy="10" r="3" /></>,
+      moto: <><circle cx="5.5" cy="17" r="3" /><circle cx="18.5" cy="17" r="3" /><path d="M8.5 17h5l-2.5-8H8" /><path d="M11 9h4l3.5 8" /></>,
       compartir: <><circle cx="18" cy="5" r="3" /><circle cx="6" cy="12" r="3" /><circle cx="18" cy="19" r="3" /><path d="m8.6 13.5 6.8 4M15.4 6.5l-6.8 4" /></>,
       copiar: <><rect x="9" y="9" width="12" height="12" rx="2" /><path d="M5 15V5a2 2 0 0 1 2-2h8" /></>,
       barras: <><path d="M4 7V5a1 1 0 0 1 1-1h2M17 4h2a1 1 0 0 1 1 1v2M20 17v2a1 1 0 0 1-1 1h-2M7 20H5a1 1 0 0 1-1-1v-2" /><path d="M8 8v8M11 8v8M14 8v5M17 8v8" /></>,
@@ -2343,6 +2344,12 @@ import './index.css';
       // hasta que el dueño lo configure.
       const [horarioDelivery, setHorarioDelivery] = useState(() => ({ 0: null, 1: null, 2: null, 3: null, 4: null, 5: null, 6: null }));
       const [guardandoDelivery, setGuardandoDelivery] = useState(false);
+      // Entrega a domicilio: el local reparte con su propio repartidor.
+      const [domicilioHabilitado, setDomicilioHabilitado] = useState(false);
+      const [costoEnvioDelivery, setCostoEnvioDelivery] = useState('');
+      const [pedidoMinimoDelivery, setPedidoMinimoDelivery] = useState('');
+      const [zonaRepartoDelivery, setZonaRepartoDelivery] = useState('');
+      const [whatsappRepartidor, setWhatsappRepartidor] = useState('');
 
       // --- Pedidos por retirar (clientes con cuenta en KaseritaDelivery) ---
       const [modalPedidosRetirar, setModalPedidosRetirar] = useState(false);
@@ -3018,6 +3025,11 @@ import './index.css';
         setDeliveryHabilitado(!!sesion?.bodega?.delivery_habilitado);
         setLogoUrlDelivery(sesion?.bodega?.logo_url || '');
         setDireccionDelivery(sesion?.bodega?.direccion || '');
+        setDomicilioHabilitado(!!sesion?.bodega?.delivery_domicilio);
+        setCostoEnvioDelivery(sesion?.bodega?.costo_envio != null ? String(Number(sesion.bodega.costo_envio)) : '');
+        setPedidoMinimoDelivery(sesion?.bodega?.pedido_minimo != null ? String(Number(sesion.bodega.pedido_minimo)) : '');
+        setZonaRepartoDelivery(sesion?.bodega?.zona_reparto || '');
+        setWhatsappRepartidor(sesion?.bodega?.whatsapp_repartidor || '');
         setTelefonoDeliveryEditar(sesion?.usuario?.rol === 'dueno' ? (sesion?.usuario?.telefono || '') : '');
         setHorarioDelivery({
           0: null, 1: null, 2: null, 3: null, 4: null, 5: null, 6: null,
@@ -3063,6 +3075,14 @@ import './index.css';
           notificar('Elegí un link antes de activar el catálogo público.', 'error');
           return;
         }
+        const aNumero = (t) => Math.max(0, parseFloat(String(t).replace(',', '.')) || 0);
+        const costoEnvioNum = aNumero(costoEnvioDelivery);
+        const pedidoMinimoNum = aNumero(pedidoMinimoDelivery);
+        const whatsappRepartidorLimpio = whatsappRepartidor.replace(/\D/g, '');
+        if (whatsappRepartidorLimpio && (whatsappRepartidorLimpio.length < 7 || whatsappRepartidorLimpio.length > 15)) {
+          notificar('El WhatsApp del repartidor no es válido.', 'error');
+          return;
+        }
         setGuardandoDelivery(true);
         try {
           const telefonoLimpio = telefonoDeliveryEditar.trim();
@@ -3084,6 +3104,25 @@ import './index.css';
               if (errBodega.code === '23505') throw new Error('Ese link ya lo está usando otra bodega. Contactá al administrador para que te asigne otro.');
               throw errBodega;
             }
+            // Solo se llama si algo de la entrega a domicilio cambió -- así
+            // guardar el resto del link no depende de esta función.
+            const b0 = sesion?.bodega || {};
+            const cambioDomicilio =
+              domicilioHabilitado !== !!b0.delivery_domicilio ||
+              costoEnvioNum !== Number(b0.costo_envio || 0) ||
+              pedidoMinimoNum !== Number(b0.pedido_minimo || 0) ||
+              zonaRepartoDelivery.trim() !== (b0.zona_reparto || '') ||
+              whatsappRepartidorLimpio !== (b0.whatsapp_repartidor || '');
+            if (cambioDomicilio) {
+              const { error: errDomicilio } = await sbClient.rpc('actualizar_mi_entrega_domicilio', {
+                p_habilitado: domicilioHabilitado,
+                p_costo_envio: costoEnvioNum,
+                p_pedido_minimo: pedidoMinimoNum,
+                p_zona: zonaRepartoDelivery.trim() || null,
+                p_whatsapp_repartidor: whatsappRepartidorLimpio || null,
+              });
+              if (errDomicilio) throw errDomicilio;
+            }
             if (sesion?.usuario?.rol === 'dueno' && telefonoLimpio !== (sesion?.usuario?.telefono || '')) {
               const { error: errTelefono } = await sbClient
                 .from('usuarios')
@@ -3102,6 +3141,11 @@ import './index.css';
               banner_url: null,
               direccion: direccionDelivery.trim() || null,
               horario_atencion: horarioDelivery,
+              delivery_domicilio: domicilioHabilitado,
+              costo_envio: costoEnvioNum,
+              pedido_minimo: pedidoMinimoNum,
+              zona_reparto: zonaRepartoDelivery.trim() || null,
+              whatsapp_repartidor: whatsappRepartidorLimpio || null,
             },
             usuario: s.usuario?.rol === 'dueno' ? { ...s.usuario, telefono: telefonoLimpio || null } : s.usuario,
           }));
@@ -3150,6 +3194,47 @@ import './index.css';
         }
       };
 
+      // Pedido a domicilio: pasa a "en camino" (el cliente lo ve en su celular).
+      const marcarPedidoEnCamino = async (id) => {
+        setProcesandoPedidoRetirarId(id);
+        try {
+          const { error } = await sbClient.rpc('marcar_pedido_en_camino', { p_id: id });
+          if (error) throw error;
+          setPedidosRetirar((prev) => prev.map((p) => (p.id === id ? { ...p, estado: 'en_camino' } : p)));
+          notificar('Pedido en camino. El cliente ya lo ve así.', 'success');
+        } catch (err) {
+          notificar(err.message || 'No se pudo marcar el pedido.', 'error');
+        } finally {
+          setProcesandoPedidoRetirarId(null);
+        }
+      };
+
+      // Abre WhatsApp con el pedido ya armado (referencia, teléfono, monto a
+      // cobrar y el enlace de la ubicación) para mandárselo al repartidor. Si
+      // el negocio guardó el número de su repartidor va directo a ese chat;
+      // si no, WhatsApp deja elegir el contacto.
+      const enviarPedidoAlRepartidor = (p) => {
+        const envio = Number(p.costo_envio || 0);
+        const subtotal = (p.items || []).reduce((acc, it) => acc + Number(it.cantidad || 0) * Number(it.precio_venta || 0), 0);
+        const total = subtotal + envio;
+        const medio = { efectivo: 'efectivo', yape_plin: 'Yape / Plin', tarjeta: 'tarjeta' }[p.medio_pago] || p.medio_pago || '';
+        const pagaCon = Number(p.paga_con || 0);
+        const lineas = (p.items || []).map((it) => `${it.cantidad}x ${it.descripcion}`);
+        const mensaje = [
+          `Pedido a domicilio · ${p.codigo_corto}`,
+          `Cliente: ${p.cliente_nombre || '-'} · ${p.telefono_contacto || '-'}`,
+          `Referencia: ${p.entrega_referencia || '-'}`,
+          '',
+          ...lineas,
+          '',
+          `Cobrar S/ ${total.toFixed(2)}${medio ? ` en ${medio}` : ''}${p.medio_pago === 'efectivo' && pagaCon > 0 ? ` (paga con S/ ${pagaCon.toFixed(2)}, vuelto S/ ${Math.max(0, pagaCon - total).toFixed(2)})` : ''}`,
+          '',
+          `Ubicación: https://www.google.com/maps?q=${p.entrega_lat},${p.entrega_lng}`,
+        ].join('\n');
+        const tel = (sesion?.bodega?.whatsapp_repartidor || '').replace(/\D/g, '');
+        window.open(`https://wa.me/${tel}?text=${encodeURIComponent(mensaje)}`, '_blank', 'noopener,noreferrer');
+      };
+
       // Carga directo al carrito del POS un pedido de "Pedidos por retirar",
       // sin tener que ir a buscarlo de nuevo por código en "Cargar Pedido".
       // Items ya vienen validados (los reconstruyó el trigger al crearse el
@@ -3194,7 +3279,13 @@ import './index.css';
           });
           if (agregados > 0) {
             setPedidosCargadosAlCarrito((prev) => [...prev, { id: pedido.id, codigoCorto: pedido.codigo_corto }]);
-            notificar(`Pedido ${pedido.codigo_corto} agregado al carrito. Se cierra solo cuando cobres.`, 'success');
+            const envioPedido = Number(pedido.costo_envio || 0);
+            notificar(
+              pedido.tipo_entrega === 'domicilio' && envioPedido > 0
+                ? `Pedido ${pedido.codigo_corto} agregado al carrito. Recuerda cobrar aparte S/ ${envioPedido.toFixed(2)} de envío (no está en el carrito).`
+                : `Pedido ${pedido.codigo_corto} agregado al carrito. Se cierra solo cuando cobres.`,
+              'success'
+            );
             // Vuelve a la vista normal del carrito para que se vea de una
             // vez lo que se acaba de cargar, en vez de dejar al cajero
             // todavía parado en la pantalla de "Pedidos por retirar".
@@ -3269,7 +3360,7 @@ import './index.css';
             { event: 'INSERT', schema: 'public', table: 'pedidos_seguimiento', filter: `bodega_id=eq.${sesion.bodega.id}` },
             (payload) => {
               sonarAvisoPedidoNuevo();
-              notificar(`Nuevo pedido: ${payload.new.codigo_corto}`, 'success');
+              notificar(`Nuevo pedido${payload.new.tipo_entrega === 'domicilio' ? ' a domicilio' : ''}: ${payload.new.codigo_corto}`, 'success');
               setPedidosRetirar((prev) => (prev.some((p) => p.id === payload.new.id) ? prev : [...prev, payload.new]));
             }
           )
@@ -4111,7 +4202,7 @@ import './index.css';
         const porFecha = (a, b) => new Date(a.creado_en) - new Date(b.creado_en);
         return {
           pendiente: pedidosRetirar.filter((p) => p.estado === 'pendiente').sort(porFecha),
-          listo: pedidosRetirar.filter((p) => p.estado === 'listo').sort(porFecha),
+          listo: pedidosRetirar.filter((p) => p.estado === 'listo' || p.estado === 'en_camino').sort(porFecha),
           historial: pedidosRetirar
             .filter((p) => p.estado === 'retirado' || p.estado === 'cancelado')
             .sort((a, b) => -porFecha(a, b)),
@@ -9269,15 +9360,18 @@ import './index.css';
                   const colgado = p.estado === 'pendiente' && minutos >= 120; // más de 2 horas: probablemente el cliente ya no viene.
                   const procesando = procesandoPedidoRetirarId === p.id;
                   const nombreCliente = p.cliente_nombre || p.codigo_corto;
+                  const esDomicilioPedido = p.tipo_entrega === 'domicilio';
+                  const envioPedido = esDomicilioPedido ? Number(p.costo_envio || 0) : 0;
                   const totalPedido = (p.items || []).reduce(
                     (acc, it) => acc + Number(it.cantidad || 0) * Number(it.precio_venta || 0),
                     0
-                  );
+                  ) + envioPedido;
                   const esHistorial = p.estado === 'retirado' || p.estado === 'cancelado';
                   const yaEnCarrito = pedidosCargadosAlCarrito.some((c) => c.id === p.id);
                   const estadoInfo = {
                     pendiente: { texto: 'Pendiente', color: 'text-amber-600', dot: 'bg-amber-500' },
                     listo: { texto: 'Listo', color: 'text-emerald-600', dot: 'bg-emerald-500' },
+                    en_camino: { texto: 'En camino', color: 'text-[#6105dc]', dot: 'bg-[#6105dc]' },
                     retirado: { texto: 'Entregado', color: 'text-stone-400', dot: 'bg-stone-300' },
                     cancelado: { texto: 'Cancelado', color: 'text-rose-400', dot: 'bg-rose-300' },
                   }[p.estado];
@@ -9320,10 +9414,60 @@ import './index.css';
                         ))}
                       </div>
 
+                      {esDomicilioPedido && (
+                        <div className="rounded-lg bg-[#f4eefe] px-3 py-2 space-y-1 text-xs">
+                          <div className="flex items-center justify-between gap-2">
+                            <span className="flex items-center gap-1.5 font-semibold text-[#4d04b0]">
+                              <IconoTrazo nombre="moto" className="w-3.5 h-3.5" /> A domicilio
+                            </span>
+                            <span className="text-stone-500 tabular-nums">Envío S/ {envioPedido.toFixed(2)}</span>
+                          </div>
+                          <p className="text-stone-800">{p.entrega_referencia}</p>
+                          <p className="text-stone-500">
+                            Tel. {p.telefono_contacto}
+                            {p.medio_pago && (
+                              <>
+                                {' · Paga al recibir: '}
+                                {{ efectivo: 'efectivo', yape_plin: 'Yape / Plin', tarjeta: 'tarjeta' }[p.medio_pago] || p.medio_pago}
+                                {p.medio_pago === 'efectivo' && Number(p.paga_con) > 0 && ` (con S/ ${Number(p.paga_con).toFixed(2)}, vuelto S/ ${Math.max(0, Number(p.paga_con) - totalPedido).toFixed(2)})`}
+                              </>
+                            )}
+                          </p>
+                        </div>
+                      )}
+
                       <div className="flex items-baseline justify-between">
-                        <span className="text-[11px] text-stone-400">Total</span>
+                        <span className="text-[11px] text-stone-400">{esDomicilioPedido ? 'Total a cobrar (con envío)' : 'Total'}</span>
                         <span className="text-sm font-semibold text-stone-900 tabular-nums">S/ {totalPedido.toFixed(2)}</span>
                       </div>
+
+                      {esDomicilioPedido && !esHistorial && p.entrega_lat != null && p.entrega_lng != null && (
+                        <div className="flex gap-2">
+                          <button
+                            onClick={() => enviarPedidoAlRepartidor(p)}
+                            className="flex-1 py-2 rounded-lg bg-[#6105dc] hover:bg-[#4d04b0] text-white text-xs font-semibold flex items-center justify-center gap-1.5 transition"
+                          >
+                            <IconoTrazo nombre="chat" className="w-3.5 h-3.5" /> Enviar al repartidor
+                          </button>
+                          <a
+                            href={`https://www.google.com/maps?q=${p.entrega_lat},${p.entrega_lng}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="px-3 py-2 rounded-lg bg-[#f4eefe] hover:bg-[#ece0fd] text-[#4d04b0] text-xs font-semibold flex items-center gap-1.5 transition"
+                          >
+                            <IconoTrazo nombre="ubicacion" className="w-3.5 h-3.5" /> Ver mapa
+                          </a>
+                        </div>
+                      )}
+                      {esDomicilioPedido && (p.estado === 'pendiente' || p.estado === 'listo') && (
+                        <button
+                          onClick={() => marcarPedidoEnCamino(p.id)}
+                          disabled={procesando}
+                          className="w-full py-2 rounded-lg bg-stone-900 hover:bg-stone-800 text-white text-xs font-semibold disabled:opacity-50 transition"
+                        >
+                          Marcar en camino
+                        </button>
+                      )}
 
                       {/* "Ya retiró" ya no es un atajo disponible desde el
                           arranque -- confundía con "Marcar listo"/"Al
@@ -9341,7 +9485,7 @@ import './index.css';
                           title="Confirmar que el cliente ya se llevó lo que está en el carrito"
                           className="w-full py-2 rounded-lg bg-stone-900 hover:bg-stone-800 text-white text-xs font-semibold disabled:opacity-50 transition"
                         >
-                          Confirmar retiro
+                          {esDomicilioPedido ? 'Confirmar entrega' : 'Confirmar retiro'}
                         </button>
                       ) : (
                         <>
@@ -9354,7 +9498,7 @@ import './index.css';
                               {marcandoListoId === p.id ? 'Un momento...' : 'Marcar listo'}
                             </button>
                           )}
-                          {p.estado === 'listo' && (
+                          {(p.estado === 'listo' || p.estado === 'en_camino') && (
                             <button
                               onClick={() => cargarPedidoDesdeRetirar(p)}
                               disabled={procesando}
@@ -13188,6 +13332,89 @@ import './index.css';
                         <p className="text-[11.5px] text-stone-400 mt-1.5 leading-snug">
                           Así la vitrina muestra "Abierto" o "Cerrado" en tiempo real. Si no lo configurás, no se muestra ningún aviso.
                         </p>
+                      </div>
+
+                      <div className="bg-white rounded-3xl p-3.5 mb-2.5 ring-1 ring-[#6105dc]/5">
+                        <p className="flex items-center gap-1.5 text-[11.5px] font-bold uppercase tracking-wider text-[#4d04b0] mb-3">
+                          <IconoTrazo nombre="moto" className="w-3.5 h-3.5" /> Entrega a domicilio
+                        </p>
+                        <div className="flex items-center justify-between gap-3">
+                          <div className="min-w-0">
+                            <p className="text-sm font-semibold text-stone-900">Llevar pedidos a domicilio</p>
+                            <p className="text-[11.5px] text-stone-400 leading-snug mt-0.5">Tus clientes marcan su ubicación en el mapa y tú la reenvías a tu repartidor por WhatsApp.</p>
+                          </div>
+                          <button
+                            type="button"
+                            role="switch"
+                            aria-checked={domicilioHabilitado}
+                            aria-label="Entrega a domicilio"
+                            onClick={() => setDomicilioHabilitado((v) => !v)}
+                            className={`relative w-12 h-7 rounded-full shrink-0 transition-colors ${domicilioHabilitado ? 'bg-[#6105dc]' : 'bg-[#d9d5e2]'}`}
+                          >
+                            <span className={`absolute top-[3px] w-[22px] h-[22px] rounded-full bg-white shadow transition-all ${domicilioHabilitado ? 'left-[23px]' : 'left-[3px]'}`}></span>
+                          </button>
+                        </div>
+
+                        {domicilioHabilitado && (
+                          <>
+                            <div className="grid grid-cols-2 gap-2.5 mt-3.5">
+                              <div>
+                                <label className="text-[12.5px] font-semibold text-stone-700 block mb-1.5">Costo de envío</label>
+                                <div className="h-[46px] flex items-center gap-1.5 px-3.5 rounded-2xl bg-[#faf8fe] ring-1 ring-[#6105dc]/10 focus-within:ring-2 focus-within:ring-[#6105dc]/40">
+                                  <span className="text-sm text-stone-400">S/</span>
+                                  <input
+                                    type="text"
+                                    inputMode="decimal"
+                                    value={costoEnvioDelivery}
+                                    onChange={(e) => setCostoEnvioDelivery(e.target.value)}
+                                    placeholder="3.00"
+                                    className="w-full min-w-0 bg-transparent text-sm text-stone-900 placeholder:text-[#a9a3b8] focus:outline-none"
+                                  />
+                                </div>
+                              </div>
+                              <div>
+                                <label className="text-[12.5px] font-semibold text-stone-700 block mb-1.5">Pedido mínimo</label>
+                                <div className="h-[46px] flex items-center gap-1.5 px-3.5 rounded-2xl bg-[#faf8fe] ring-1 ring-[#6105dc]/10 focus-within:ring-2 focus-within:ring-[#6105dc]/40">
+                                  <span className="text-sm text-stone-400">S/</span>
+                                  <input
+                                    type="text"
+                                    inputMode="decimal"
+                                    value={pedidoMinimoDelivery}
+                                    onChange={(e) => setPedidoMinimoDelivery(e.target.value)}
+                                    placeholder="20.00"
+                                    className="w-full min-w-0 bg-transparent text-sm text-stone-900 placeholder:text-[#a9a3b8] focus:outline-none"
+                                  />
+                                </div>
+                              </div>
+                            </div>
+
+                            <label className="text-[12.5px] font-semibold text-stone-700 block mt-3.5 mb-1.5">Zona de reparto</label>
+                            <div className="h-[46px] flex items-center gap-2 px-3.5 rounded-2xl bg-[#faf8fe] ring-1 ring-[#6105dc]/10 focus-within:ring-2 focus-within:ring-[#6105dc]/40">
+                              <input
+                                type="text"
+                                value={zonaRepartoDelivery}
+                                onChange={(e) => setZonaRepartoDelivery(e.target.value)}
+                                maxLength={120}
+                                placeholder="Ej. Cercado, Breña y Jesús María"
+                                className="w-full min-w-0 bg-transparent text-sm text-stone-900 placeholder:text-[#a9a3b8] focus:outline-none"
+                              />
+                            </div>
+                            <p className="text-[11.5px] text-stone-400 mt-1.5 leading-snug">Se le muestra al cliente antes de pedir.</p>
+
+                            <label className="text-[12.5px] font-semibold text-stone-700 block mt-3.5 mb-1.5">WhatsApp de tu repartidor (opcional)</label>
+                            <div className="h-[46px] flex items-center gap-2 px-3.5 rounded-2xl bg-[#faf8fe] ring-1 ring-[#6105dc]/10 focus-within:ring-2 focus-within:ring-[#6105dc]/40">
+                              <input
+                                type="text"
+                                inputMode="tel"
+                                value={whatsappRepartidor}
+                                onChange={(e) => setWhatsappRepartidor(e.target.value)}
+                                placeholder="Ej. 51987111222"
+                                className="w-full min-w-0 bg-transparent text-sm text-stone-900 placeholder:text-[#a9a3b8] focus:outline-none"
+                              />
+                            </div>
+                            <p className="text-[11.5px] text-stone-400 mt-1.5 leading-snug">Con el código de país. Si lo dejas vacío, WhatsApp te deja elegir el contacto cada vez. Los clientes no ven este número.</p>
+                          </>
+                        )}
                       </div>
 
                       {sesion?.usuario?.rol === 'dueno' && (
