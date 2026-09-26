@@ -3662,12 +3662,15 @@ import './index.css';
         setCargandoProductos(true);
         if (sbClient) {
           try {
-            const construirQuery = (conFotoMaestro) => {
+            const TAMANO_LOTE_CATALOGO = 1000;
+            const construirQuery = (conFotoMaestro, desdeId = null) => {
               let q = sbClient
                 .from('productos')
                 .select(conFotoMaestro ? '*, catalogo_maestro(foto_url)' : '*')
                 .eq('bodega_id', bodegaId)
-                .order('descripcion', { ascending: true });
+                .order('id', { ascending: true })
+                .limit(TAMANO_LOTE_CATALOGO);
+              if (desdeId) q = q.gt('id', desdeId);
               if (termino.trim()) {
                 const b = termino.trim();
                 q = q.or(`cod_ean.ilike.%${b}%,descripcion.ilike.%${b}%,categoria.ilike.%${b}%`);
@@ -3675,13 +3678,32 @@ import './index.css';
               return q;
             };
 
-            let { data, error } = await construirQuery(true);
+            // Supabase corta cada respuesta en 1.000 filas: una bodega con más
+            // productos veía el catálogo incompleto sin ningún aviso. Se trae
+            // por lotes con cursor sobre el id (no con OFFSET: si alguien
+            // agrega un producto a mitad de la carga, no se repite ni se salta
+            // ninguno) y al final se ordena por descripción, como antes.
+            const traerCatalogoCompleto = async (conFotoMaestro) => {
+              const filas = [];
+              let desdeId = null;
+              for (;;) {
+                const { data: lote, error: errLote } = await construirQuery(conFotoMaestro, desdeId);
+                if (errLote) return { data: null, error: errLote };
+                filas.push(...(lote || []));
+                if (!lote || lote.length < TAMANO_LOTE_CATALOGO) break;
+                desdeId = lote[lote.length - 1].id;
+              }
+              filas.sort((a, b) => String(a.descripcion || '').localeCompare(String(b.descripcion || ''), 'es'));
+              return { data: filas, error: null };
+            };
+
+            let { data, error } = await traerCatalogoCompleto(true);
             if (error) {
               // Compatibilidad: si todavía no se corrió
               // catalogo_maestro_enlazar_foto.sql, la relación no existe en
               // el schema cache y este primer intento falla -- se reintenta
               // sin el JOIN en vez de dejar el catálogo entero sin cargar.
-              ({ data, error } = await construirQuery(false));
+              ({ data, error } = await traerCatalogoCompleto(false));
             }
             if (error) throw error;
 
@@ -4062,13 +4084,40 @@ import './index.css';
         for (let i = 0; i < cola.length; i++) {
           const pendiente = cola[i];
           try {
-            const { data: vCreada, error: vErr } = await sbClient
+            let vCreada;
+            let yaSincronizada = false;
+            const { data: vInsertada, error: vErr } = await sbClient
               .from('ventas')
               .insert([pendiente.payloadVenta])
               .select()
               .single();
-            if (vErr) throw vErr;
+            if (vErr) {
+              // 23505 = ya hay una venta con este id_local: un intento anterior sí
+              // llegó a guardarla aunque la respuesta se perdió. Si ya tiene su
+              // detalle, está completa y no se repite nada; si no, se sigue
+              // desde el detalle (el crédito y el stock van después de él).
+              if (vErr.code === '23505' && pendiente.payloadVenta.id_local) {
+                const { data: existente } = await sbClient
+                  .from('ventas')
+                  .select('id')
+                  .eq('bodega_id', bodegaId)
+                  .eq('id_local', pendiente.payloadVenta.id_local)
+                  .maybeSingle();
+                if (!existente) throw vErr;
+                vCreada = existente;
+                const { count: cantDetalles } = await sbClient
+                  .from('ventas_detalle')
+                  .select('id', { count: 'exact', head: true })
+                  .eq('venta_id', existente.id);
+                yaSincronizada = (cantDetalles || 0) > 0;
+              } else {
+                throw vErr;
+              }
+            } else {
+              vCreada = vInsertada;
+            }
 
+            if (!yaSincronizada) {
             const detalles = pendiente.payloadDetalles.map((d) => ({ ...d, venta_id: vCreada.id }));
             const { error: detErr } = await sbClient.from('ventas_detalle').insert(detalles);
             if (detErr) console.warn('Detalle no sincronizado de una venta offline:', detErr);
@@ -4087,6 +4136,7 @@ import './index.css';
             if (resultadosAjuste.some((r) => r.error)) {
               console.warn('Una venta offline se sincronizó pero su ajuste de stock falló:', pendiente);
               hayFallosDeStock = true;
+            }
             }
 
             exitosas++;
@@ -4161,7 +4211,8 @@ import './index.css';
         try {
           if (sbClient && bodegaId && !esModoDemo) {
             const { error } = await sbClient.from('categorias').insert([{ nombre: limpio, bodega_id: bodegaId }]);
-            if (error) throw error;
+            // 23505 = esa categoría ya existe (otro cajero la creó a la vez): no es un error.
+            if (error && error.code !== '23505') throw error;
           }
           setCategoriasDB((prev) => [...prev, limpio]);
           asignar(limpio);
@@ -7241,9 +7292,15 @@ import './index.css';
             // 30 líneas antes hacía 30 viajes de red seguidos).
             await Promise.all(compraItems.map(async (it) => {
               const unidadesStock = Number(it.cantidadStock ?? it.cantidad);
-              const { data: nuevoStock } = await sbClient.rpc('ajustar_stock', { p_producto_id: it.productoId, p_delta: unidadesStock });
-              if (nuevoStock === null) {
-                await sbClient.from('productos').update({ stock_actual: unidadesStock }).eq('id', it.productoId);
+              // ajustar_stock_inicializando suma y, si el producto no tenía stock
+              // (null), lo inicializa, todo en una sola sentencia (sin carrera).
+              // Si esa función todavía no existe, se usa el camino anterior.
+              const { error: errInicializando } = await sbClient.rpc('ajustar_stock_inicializando', { p_producto_id: it.productoId, p_delta: unidadesStock });
+              if (errInicializando) {
+                const { data: nuevoStock } = await sbClient.rpc('ajustar_stock', { p_producto_id: it.productoId, p_delta: unidadesStock });
+                if (nuevoStock === null) {
+                  await sbClient.from('productos').update({ stock_actual: unidadesStock }).eq('id', it.productoId);
+                }
               }
               await sbClient.from('productos').update({ precio_costo: it.costoUnitario }).eq('id', it.productoId);
             }));
@@ -8101,7 +8158,24 @@ import './index.css';
         }
 
         setProcesandoVenta(true);
-        const correlativo = `B001-${String(Date.now()).slice(-8)}`;
+        // Número de boleta correlativo por bodega (siguiente_correlativo, ver
+        // concurrencia_ronda2.sql): no se repite aunque dos cajeros cobren a
+        // la vez. Si no hay conexión, la función no existe todavía o tarda más
+        // de 3 segundos, se usa el número por hora de siempre.
+        let correlativo = `B001-${String(Date.now()).slice(-8)}`;
+        if (sbClient && !esModoDemo && enLinea) {
+          try {
+            const respuestaCorrelativo = await Promise.race([
+              sbClient.rpc('siguiente_correlativo', { p_serie: 'B001' }),
+              new Promise((resolver) => setTimeout(() => resolver(null), 3000)),
+            ]);
+            if (respuestaCorrelativo && !respuestaCorrelativo.error && respuestaCorrelativo.data) {
+              correlativo = respuestaCorrelativo.data;
+            }
+          } catch {
+            // se queda con el número por hora
+          }
+        }
 
         let seVendioOffline = false;
 
@@ -8229,8 +8303,13 @@ import './index.css';
               seVendioOffline = true;
               payloadVenta.fecha_hora = new Date().toISOString();
 
+              // id_local: llave única de esta venta offline -- si al sincronizar se
+              // pierde la respuesta y se reintenta, la base de datos la reconoce
+              // y no la guarda dos veces.
+              const idLocal = `local-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+              payloadVenta.id_local = idLocal;
               const pendiente = {
-                idLocal: `local-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+                idLocal,
                 payloadVenta,
                 payloadDetalles: payloadDetallesSinVentaId,
                 credito: medioPago === 'CREDITO' && idClienteReal ? { clienteId: idClienteReal, monto: totalConDescuento } : null,
