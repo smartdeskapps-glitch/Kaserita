@@ -2721,6 +2721,10 @@ import './index.css';
       // Mes que muestra el calendario de "Ventas por día" ({ anio, mes }); null =
       // el mes de la fecha "Hasta" del filtro.
       const [mesCalendario, setMesCalendario] = useState(null);
+      // Día del calendario abierto en la hoja de detalle (fecha ISO) y su pestaña.
+      const [diaCalendarioSel, setDiaCalendarioSel] = useState(null);
+      const [pestanaDiaCal, setPestanaDiaCal] = useState('pagos');
+      useEffect(() => { if (!modalDashboard) setDiaCalendarioSel(null); }, [modalDashboard]);
       const [mesResaltado, setMesResaltado] = useState(null);
 
       // --- Cobro / Pagos ---
@@ -7465,7 +7469,7 @@ import './index.css';
             const finAnio = new Date(anioActual, 11, 31, 23, 59, 59, 999).toISOString();
             const { data: ventasAnio, error: errAnio } = await sbClient
               .from('ventas')
-              .select('fecha_hora, total_venta, anulada')
+              .select('fecha_hora, total_venta, anulada, medio_pago, monto_efectivo, monto_otro')
               .eq('bodega_id', bodegaId)
               .gte('fecha_hora', inicioAnio)
               .lte('fecha_hora', finAnio);
@@ -7505,6 +7509,7 @@ import './index.css';
         MIXTO: '#78716c',
         OTRO: '#d6d3d1'
       };
+      const NOMBRE_MEDIO_DIA = (medio) => medio.charAt(0) + medio.slice(1).toLowerCase();
 
       const MESES_CORTOS = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Set', 'Oct', 'Nov', 'Dic'];
 
@@ -14261,12 +14266,48 @@ import './index.css';
                       const puedeAnterior = ver.anio === aHoy && ver.mes > 0;
                       const puedeSiguiente = ver.anio === aHoy && ver.mes < mHoy - 1;
                       const tarjeta = 'rounded-2xl shadow-sm p-4 min-w-0';
+
+                      // Hoja de detalle del día tocado: monto, ventas, ticket, cómo
+                      // pagaron y ventas por hora. Sale de las mismas ventas del
+                      // calendario, no pide nada extra.
+                      const selDia = diaCalendarioSel && diaCalendarioSel.startsWith(prefijo) ? Number(diaCalendarioSel.slice(8, 10)) : null;
+                      const detalleDia = (() => {
+                        if (!selDia || selDia > hastaDia) return null;
+                        const delDia = fuente.filter((v) => !v.anulada && fechaISOLocal(new Date(v.fecha_hora)) === clave(selDia));
+                        const total = delDia.reduce((a, v) => a + Number(v.total_venta), 0);
+                        const porMedioDia = {};
+                        const horas = Array.from({ length: 24 }, () => 0);
+                        let mixtoEfectivo = 0;
+                        let mixtoOtro = 0;
+                        delDia.forEach((v) => {
+                          const medio = v.medio_pago || 'OTRO';
+                          const m = porMedioDia[medio] || (porMedioDia[medio] = { medio, total: 0, n: 0 });
+                          m.total += Number(v.total_venta);
+                          m.n += 1;
+                          horas[new Date(v.fecha_hora).getHours()] += Number(v.total_venta);
+                          if (medio === 'MIXTO') {
+                            mixtoEfectivo += Number(v.monto_efectivo) || 0;
+                            mixtoOtro += Number(v.monto_otro) || 0;
+                          }
+                        });
+                        const medios = Object.values(porMedioDia).sort((a, b) => b.total - a.total);
+                        const horasConVentas = horas.map((t, h) => (t > 0 ? h : -1)).filter((h) => h >= 0);
+                        const desdeHora = horasConVentas.length ? Math.min(8, horasConVentas[0]) : 8;
+                        const hastaHora = horasConVentas.length ? Math.max(21, horasConVentas[horasConVentas.length - 1]) : 21;
+                        const rangoHoras = horas.slice(desdeHora, hastaHora + 1).map((t, i) => ({ hora: desdeHora + i, total: t }));
+                        const maxH = Math.max(0, ...rangoHoras.map((h) => h.total));
+                        const pico = maxH > 0 ? rangoHoras.find((h) => h.total === maxH).hora : null;
+                        const titulo = new Date(ver.anio, ver.mes, selDia).toLocaleDateString('es-PE', { weekday: 'long', day: 'numeric', month: 'long' }).replace(',', '').replace(/^./, (c) => c.toUpperCase());
+                        return { total, n: delDia.length, medios, mixtoEfectivo, mixtoOtro, rangoHoras, maxH, pico, titulo };
+                      })();
+                      const irDia = (d) => { if (d >= 1 && d <= hastaDia) setDiaCalendarioSel(clave(d)); };
                       return (
+                        <>
                         <section className="bg-white/60 backdrop-blur-xl border border-white/80 rounded-3xl shadow-[0_10px_40px_-14px_rgba(97,5,220,0.18)] p-5">
                           <div className="flex flex-wrap items-start justify-between gap-2">
                             <div>
                               <h4 className="text-sm font-semibold text-stone-800">Ventas por día</h4>
-                              <p className="text-xs text-stone-500 mt-0.5">Pasá el mouse sobre un día para ver el monto exacto</p>
+                              <p className="text-xs text-stone-500 mt-0.5">Tocá un día para ver el detalle</p>
                             </div>
                             <p className="text-xs text-stone-500 sm:text-right">Total del mes<br /><span className="text-sm font-semibold text-stone-900 tabular-nums">S/ {formatoSoles(totalMes)}</span></p>
                           </div>
@@ -14310,7 +14351,7 @@ import './index.css';
                             ><i className="fa-solid fa-chevron-right text-[10px]"></i></button>
                           </div>
 
-                          <div className="grid grid-cols-7 gap-2 sm:gap-2.5 mt-4">
+                          <div className="grid grid-cols-7 gap-1.5 sm:gap-2.5 mt-4">
                             {['lun', 'mar', 'mié', 'jue', 'vie', 'sáb', 'dom'].map((d) => (
                               <div key={d} className="text-[10px] uppercase tracking-wider text-stone-400 text-center pb-0.5">{d}</div>
                             ))}
@@ -14319,9 +14360,9 @@ import './index.css';
                               const futuro = d > hastaDia;
                               if (futuro) {
                                 return (
-                                  <div key={d} className="rounded-2xl min-h-[60px] sm:min-h-[100px] sm:aspect-[5/4] p-2 sm:p-3 flex flex-col justify-between border border-dashed border-stone-200 text-stone-300">
-                                    <span className="text-xs sm:text-sm font-semibold">{d}</span>
-                                    <span className="text-base text-right">—</span>
+                                  <div key={d} className="rounded-[14px] sm:rounded-2xl aspect-square sm:aspect-[5/4] sm:min-h-[100px] p-2 sm:p-3 flex flex-col items-center justify-center sm:items-stretch sm:justify-between sm:border sm:border-dashed sm:border-stone-200 text-stone-300">
+                                    <span className="text-[13px] sm:text-sm font-semibold">{d}</span>
+                                    <span className="hidden sm:block text-base text-right">—</span>
                                   </div>
                                 );
                               }
@@ -14333,20 +14374,22 @@ import './index.css';
                               const enRango = clave(d) >= fechaInicioDash && clave(d) <= fechaFinDash;
                               const esHoy = cmpMes === 0 && d === dHoy;
                               return (
-                                <div
+                                <button
+                                  type="button"
                                   key={d}
+                                  onClick={() => setDiaCalendarioSel(clave(d))}
                                   title={`${nombreDia(d)}: S/ ${formatoSoles(v)}`}
-                                  className={`relative rounded-2xl min-h-[60px] sm:min-h-[100px] sm:aspect-[5/4] p-2 sm:p-3 flex flex-col justify-between overflow-hidden ${enRango ? 'ring-2 ring-inset ring-[#6105dc]' : ''} ${esMax ? 'shadow-[0_10px_22px_-8px_rgba(97,5,220,0.55)]' : ''} ${oscuro ? 'text-white' : 'text-stone-800'}`}
+                                  className={`relative rounded-[14px] sm:rounded-2xl aspect-square sm:aspect-[5/4] sm:min-h-[100px] p-2 sm:p-3 flex flex-col items-center justify-center sm:items-stretch sm:justify-between overflow-hidden active:scale-95 transition-transform ${selDia === d ? 'outline outline-[2.5px] outline-offset-2 outline-stone-900' : ''} ${enRango ? 'ring-2 ring-inset ring-[#6105dc]' : ''} ${esMax ? 'shadow-[0_10px_22px_-8px_rgba(97,5,220,0.55)]' : ''} ${oscuro ? 'text-white' : 'text-stone-800'}`}
                                   style={{ background: esMax ? 'linear-gradient(160deg,#b98cf5,#6105dc)' : v > 0 ? `rgba(97,5,220,${(0.06 + t * 0.5).toFixed(2)})` : '#f0edf5' }}
                                 >
-                                  <span className="text-xs sm:text-sm font-semibold opacity-80">
+                                  <span className="text-[13px] sm:text-sm font-bold sm:font-semibold sm:opacity-80">
                                     {d}
-                                    {esMax && <span className="text-[9px] ml-1">▲</span>}
-                                    {esMin && <span className={`text-[9px] ml-1 ${oscuro ? 'text-rose-200' : 'text-rose-600'}`}>▼</span>}
+                                    {esMax && <span className="absolute top-1 right-1.5 text-[8px] leading-none sm:static sm:text-[9px] sm:ml-1">▲</span>}
+                                    {esMin && <span className={`absolute top-1 right-1.5 text-[8px] leading-none sm:static sm:text-[9px] sm:ml-1 ${oscuro ? 'text-rose-200' : 'text-rose-600'}`}>▼</span>}
                                   </span>
-                                  <span className="text-[10px] sm:text-base font-semibold text-right tabular-nums whitespace-nowrap">{v > 0 ? `S/ ${montoCorto(v)}` : '—'}</span>
-                                  {esHoy && <span className={`absolute top-2 right-2 w-1.5 h-1.5 rounded-full ${esMax ? 'bg-white' : 'bg-[#6105dc]'}`}></span>}
-                                </div>
+                                  <span className="hidden sm:block text-base font-semibold text-right tabular-nums whitespace-nowrap">{v > 0 ? `S/ ${montoCorto(v)}` : '—'}</span>
+                                  {esHoy && <span className={`absolute bottom-1.5 left-1/2 -ml-[2px] w-1 h-1 sm:bottom-auto sm:left-auto sm:ml-0 sm:top-2 sm:right-2 sm:w-1.5 sm:h-1.5 rounded-full ${esMax || oscuro ? 'bg-white' : 'bg-[#6105dc]'}`}></span>}
+                                </button>
                               );
                             })}
                           </div>
@@ -14381,6 +14424,125 @@ import './index.css';
                             <span>● Hoy</span>
                           </div>
                         </section>
+
+                        {detalleDia && (
+                          <div className="fixed inset-0 z-[70] flex items-end sm:items-center justify-center bg-[#1c1830]/45 backdrop-blur-[3px]" onClick={() => setDiaCalendarioSel(null)}>
+                            <div
+                              role="dialog"
+                              aria-modal="true"
+                              onClick={(e) => e.stopPropagation()}
+                              className="kd-hoja w-full sm:max-w-md max-h-[88vh] overflow-y-auto hide-scrollbar bg-white rounded-t-[28px] sm:rounded-[28px] px-[18px] pt-2.5 pb-6 flex flex-col gap-3 shadow-2xl"
+                            >
+                              <div className="w-[38px] h-1 rounded bg-[#e3d9f5] mx-auto shrink-0 sm:hidden"></div>
+                              <div className="flex items-center justify-between shrink-0">
+                                <button onClick={() => irDia(selDia - 1)} disabled={selDia <= 1} aria-label="Día anterior" className="w-[34px] h-[34px] rounded-full bg-white ring-1 ring-[#efe6fc] text-[#4d04b0] flex items-center justify-center disabled:opacity-30">
+                                  <i className="fa-solid fa-chevron-left text-xs"></i>
+                                </button>
+                                <p className="text-xs font-bold text-[#78729a]">{detalleDia.titulo}</p>
+                                <button onClick={() => irDia(selDia + 1)} disabled={selDia >= hastaDia} aria-label="Día siguiente" className="w-[34px] h-[34px] rounded-full bg-white ring-1 ring-[#efe6fc] text-[#4d04b0] flex items-center justify-center disabled:opacity-30">
+                                  <i className="fa-solid fa-chevron-right text-xs"></i>
+                                </button>
+                              </div>
+
+                              <div className="text-center flex flex-col items-center gap-1.5 shrink-0">
+                                <p className={`text-4xl font-medium tracking-tight tabular-nums leading-none ${detalleDia.total > 0 ? 'text-stone-900' : 'text-[#a9a4c0]'}`}>S/ {formatoSoles(detalleDia.total)}</p>
+                                <div className="flex flex-wrap justify-center gap-1.5">
+                                  {conVentas.length > 0 && selDia === diaMax && (
+                                    <span className="inline-flex items-center gap-1.5 text-[11px] font-extrabold px-2.5 py-1 rounded-full bg-[#ece0fd] text-[#4d04b0]"><i className="fa-solid fa-arrow-up text-[9px]"></i>Mejor día del mes</span>
+                                  )}
+                                  {conVentas.length > 1 && selDia === diaMin && (
+                                    <span className="inline-flex items-center gap-1.5 text-[11px] font-extrabold px-2.5 py-1 rounded-full bg-rose-50 text-rose-600"><i className="fa-solid fa-arrow-down text-[9px]"></i>Día más flojo</span>
+                                  )}
+                                  {detalleDia.total === 0 && (
+                                    <span className="text-[11px] font-extrabold px-2.5 py-1 rounded-full bg-[#f0edf5] text-[#78729a]">Sin ventas</span>
+                                  )}
+                                </div>
+                                <p className="text-xs text-[#78729a]">
+                                  {detalleDia.total > 0 && promedio > 0
+                                    ? `${(detalleDia.total / promedio).toFixed(1).replace('.', ',')}× el promedio diario`
+                                    : detalleDia.total > 0 ? '' : 'Ningún movimiento registrado'}
+                                </p>
+                              </div>
+
+                              <div className="grid grid-cols-2 gap-2 shrink-0">
+                                <div className="bg-[#f4eefe] rounded-2xl px-3 py-2.5">
+                                  <p className="text-[10.5px] text-[#78729a]">Ventas</p>
+                                  <p className="text-[15px] font-bold tabular-nums">{detalleDia.n}</p>
+                                </div>
+                                <div className="bg-[#f4eefe] rounded-2xl px-3 py-2.5">
+                                  <p className="text-[10.5px] text-[#78729a]">Ticket promedio</p>
+                                  <p className="text-[15px] font-bold tabular-nums">{detalleDia.n ? `S/ ${formatoSoles(detalleDia.total / detalleDia.n)}` : '—'}</p>
+                                </div>
+                              </div>
+
+                              {detalleDia.n > 0 && (
+                                <>
+                                  <div className="grid grid-cols-2 bg-[#f0edf5] rounded-full p-[3px] shrink-0">
+                                    {[['pagos', 'Pagos'], ['horas', 'Por hora']].map(([id, texto]) => (
+                                      <button
+                                        key={id}
+                                        onClick={() => setPestanaDiaCal(id)}
+                                        className={`h-[34px] rounded-full text-[12.5px] font-bold transition ${pestanaDiaCal === id ? 'bg-white text-[#4d04b0] shadow-[0_1px_4px_rgba(28,24,48,0.12)]' : 'text-[#78729a]'}`}
+                                      >
+                                        {texto}
+                                      </button>
+                                    ))}
+                                  </div>
+
+                                  {pestanaDiaCal === 'pagos' ? (
+                                    <>
+                                      <div className="flex h-2.5 rounded-full overflow-hidden bg-[#f0edf5] gap-0.5 shrink-0">
+                                        {detalleDia.medios.map((m) => (
+                                          <div key={m.medio} title={NOMBRE_MEDIO_DIA(m.medio)} style={{ width: `${(m.total / detalleDia.total) * 100}%`, background: COLOR_MEDIO_PAGO[m.medio] || '#d6d3d1' }}></div>
+                                        ))}
+                                      </div>
+                                      <ul className="flex flex-col gap-1.5 shrink-0">
+                                        {detalleDia.medios.map((m) => (
+                                          <li key={m.medio} className="flex items-center gap-2.5 bg-[#f4eefe] rounded-2xl px-3 py-2.5 text-[13px]">
+                                            <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ background: COLOR_MEDIO_PAGO[m.medio] || '#d6d3d1' }}></span>
+                                            <div className="flex-1 min-w-0">
+                                              <p className="font-bold text-stone-800">{NOMBRE_MEDIO_DIA(m.medio)}</p>
+                                              <p className="text-[10.5px] text-[#78729a] truncate">
+                                                {m.medio === 'MIXTO' && detalleDia.mixtoEfectivo + detalleDia.mixtoOtro > 0
+                                                  ? `Efectivo S/ ${formatoSoles(detalleDia.mixtoEfectivo)} + otro S/ ${formatoSoles(detalleDia.mixtoOtro)}`
+                                                  : `${m.n} venta${m.n === 1 ? '' : 's'}`}
+                                              </p>
+                                            </div>
+                                            <span className="font-extrabold tabular-nums">S/ {formatoSoles(m.total)}</span>
+                                            <span className="w-9 text-right text-[11.5px] text-[#78729a] tabular-nums">{Math.round((m.total / detalleDia.total) * 100)}%</span>
+                                          </li>
+                                        ))}
+                                      </ul>
+                                    </>
+                                  ) : (
+                                    <>
+                                      <div className="flex items-baseline justify-between shrink-0">
+                                        <span className="text-xs font-bold text-stone-800">Ventas por hora</span>
+                                        {detalleDia.pico != null && <span className="text-[11px] font-semibold text-[#78729a]">Hora pico {String(detalleDia.pico).padStart(2, '0')}:00</span>}
+                                      </div>
+                                      <div className="flex items-end gap-[3px] h-16 shrink-0">
+                                        {detalleDia.rangoHoras.map((h) => (
+                                          <div
+                                            key={h.hora}
+                                            title={`${String(h.hora).padStart(2, '0')}:00 · S/ ${formatoSoles(h.total)}`}
+                                            className={`flex-1 rounded-t-md rounded-b-sm ${h.total > 0 && h.hora === detalleDia.pico ? 'bg-gradient-to-t from-[#6105dc] to-[#b98cf5]' : 'bg-[#ece0fd]'}`}
+                                            style={{ height: `${h.total > 0 ? Math.max(8, (h.total / detalleDia.maxH) * 100) : 4}%` }}
+                                          ></div>
+                                        ))}
+                                      </div>
+                                      <div className="flex gap-[3px] text-[9.5px] text-[#a8a3c2] shrink-0">
+                                        {detalleDia.rangoHoras.map((h) => (
+                                          <span key={h.hora} className="flex-1 text-center whitespace-nowrap">{h.hora % 3 === 0 ? `${h.hora}h` : ''}</span>
+                                        ))}
+                                      </div>
+                                    </>
+                                  )}
+                                </>
+                              )}
+                            </div>
+                          </div>
+                        )}
+                        </>
                       );
                     })()}
 
