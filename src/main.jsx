@@ -3129,21 +3129,9 @@ import './index.css';
             // Modo Demo Local: no hay bodega real en Supabase -- se aplica
             // directo en memoria, igual que el resto de la demo.
           } else {
-            // El dueño no puede actualizar bodegas directo (RLS solo lo permite
-            // al super-admin) -- esta función security definer es el único
-            // camino, y de paso respeta si el admin le dio delivery_permitido.
-            const { error: errBodega } = await sbClient.rpc('actualizar_mi_delivery', {
-              p_slug: slugLimpio || null,
-              p_delivery_habilitado: deliveryHabilitado,
-              p_logo_url: logoUrlDelivery || null,
-              p_direccion: direccionDelivery.trim() || null,
-              p_horario_atencion: horarioDelivery,
-            });
-            if (errBodega) {
-              if (errBodega.code === '23505') throw new Error('Ese link ya lo está usando otra bodega. Contactá al administrador para que te asigne otro.');
-              throw errBodega;
-            }
-            // Solo se llama si algo de la entrega a domicilio cambió -- así
+            // Primero la entrega a domicilio y después el catálogo: si se activan las dos
+            // a la vez, sale un solo aviso a los clientes ("ya recibe pedidos") que ya
+            // menciona el delivery. Solo se llama si algo de la entrega cambió -- así
             // guardar el resto del link no depende de esta función.
             const b0 = sesion?.bodega || {};
             const cambioDomicilio =
@@ -3161,6 +3149,20 @@ import './index.css';
                 p_whatsapp_repartidor: whatsappRepartidorLimpio || null,
               });
               if (errDomicilio) throw errDomicilio;
+            }
+            // El dueño no puede actualizar bodegas directo (RLS solo lo permite
+            // al super-admin) -- esta función security definer es el único
+            // camino, y de paso respeta si el admin le dio delivery_permitido.
+            const { error: errBodega } = await sbClient.rpc('actualizar_mi_delivery', {
+              p_slug: slugLimpio || null,
+              p_delivery_habilitado: deliveryHabilitado,
+              p_logo_url: logoUrlDelivery || null,
+              p_direccion: direccionDelivery.trim() || null,
+              p_horario_atencion: horarioDelivery,
+            });
+            if (errBodega) {
+              if (errBodega.code === '23505') throw new Error('Ese link ya lo está usando otra bodega. Contactá al administrador para que te asigne otro.');
+              throw errBodega;
             }
             if (sesion?.usuario?.rol === 'dueno' && telefonoLimpio !== (sesion?.usuario?.telefono || '')) {
               const { error: errTelefono } = await sbClient
