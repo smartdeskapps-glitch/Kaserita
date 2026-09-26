@@ -81,6 +81,48 @@ import './index.css';
     };
     const fechaHoyISO = () => fechaISOLocal(new Date());
 
+    // Zona horaria del celular: el dia y la hora de las ventas se agrupan en la
+    // base con esta zona para que coincidan con lo que ve el usuario.
+    const zonaLocal = () => {
+      try { return Intl.DateTimeFormat().resolvedOptions().timeZone || 'America/Lima'; } catch (e) { return 'America/Lima'; }
+    };
+
+    // Resumen de un periodo con la misma forma que devuelve la funcion SQL
+    // dashboard_resumen_periodo. Se usa en modo demo y como plan B si esa
+    // funcion aun no existe (en ese caso queda con el tope de 1.000 filas).
+    const resumirVentasPeriodo = (filas, filasAnterior) => {
+      const validas = (filas || []).filter((v) => !v.anulada);
+      const r = { total: 0, utilidad: 0, n: validas.length, por_hora: {}, por_dia: [], por_medio: {}, top_productos: [], anterior: { total: 0, utilidad: 0 } };
+      const dias = {};
+      const prod = {};
+      validas.forEach((v) => {
+        const monto = Number(v.total_venta) || 0;
+        r.total += monto;
+        r.utilidad += Number(v.utilidad_total) || 0;
+        const f = new Date(v.fecha_hora);
+        const h = f.getHours();
+        r.por_hora[h] = { total: (r.por_hora[h]?.total || 0) + monto, n: (r.por_hora[h]?.n || 0) + 1 };
+        const dia = fechaISOLocal(f);
+        dias[dia] = (dias[dia] || 0) + monto;
+        const medio = v.medio_pago || 'OTRO';
+        r.por_medio[medio] = (r.por_medio[medio] || 0) + monto;
+        (v.ventas_detalle || []).forEach((d) => {
+          const clave = d.descripcion || 'Producto';
+          if (!prod[clave]) prod[clave] = { descripcion: clave, cantidad: 0, monto: 0, utilidad: 0 };
+          prod[clave].cantidad += Number(d.cantidad) || 0;
+          prod[clave].monto += Number(d.subtotal) || 0;
+          prod[clave].utilidad += Number(d.utilidad) || 0;
+        });
+      });
+      r.por_dia = Object.entries(dias).sort((a, b) => a[0].localeCompare(b[0])).map(([fecha, total]) => ({ fecha, total }));
+      r.top_productos = Object.values(prod).sort((a, b) => b.monto - a.monto).slice(0, 8);
+      (filasAnterior || []).filter((v) => !v.anulada).forEach((v) => {
+        r.anterior.total += Number(v.total_venta) || 0;
+        r.anterior.utilidad += Number(v.utilidad_total) || 0;
+      });
+      return r;
+    };
+
     // Agrupa filas de `ventas` por dia (hora local) con la misma forma que
     // devuelve la funcion SQL dashboard_ventas_por_dia: { fecha, total, n,
     // medios, horas, mixto_efectivo, mixto_otro }. Se usa en modo demo, para
@@ -2734,12 +2776,16 @@ import './index.css';
 
       // --- Módulo: Dashboard de Ventas (solo Administrador) ---
       const [modalDashboard, setModalDashboard] = useState(false);
-      const [ventasDashboard, setVentasDashboard] = useState([]);
+      // Resumen del rango elegido (venta total, hora pico, medios de pago,
+      // top productos, periodo anterior): viene sumado desde la base
+      // (dashboard_resumen_periodo.sql) para no chocar con el tope de 1.000 filas.
+      const [resumenPeriodo, setResumenPeriodo] = useState(null);
+      // Dias del anio del rango cuando no es el anio en curso (calendario).
+      const [diasAnioRango, setDiasAnioRango] = useState([]);
       const [cargandoDashboard, setCargandoDashboard] = useState(false);
       const [fechaInicioDash, setFechaInicioDash] = useState(fechaHoyISO());
       const [fechaFinDash, setFechaFinDash] = useState(fechaHoyISO());
       const [clientesDeuda, setClientesDeuda] = useState([]);
-      const [ventasDashboardAnterior, setVentasDashboardAnterior] = useState([]);
       const [proveedoresDeudaDash, setProveedoresDeudaDash] = useState([]);
       // Ventas del año calendario en curso agrupadas por día (calendario y
       // "Ventas por Mes") -- no dependen del rango de fechas del filtro rápido.
@@ -7419,8 +7465,6 @@ import './index.css';
             const f = new Date(v.fecha_hora);
             return f >= inicio && f <= fin;
           });
-          setVentasDashboard(enRango);
-
           const duracionMs = fin.getTime() - inicio.getTime();
           const finAnterior = new Date(inicio.getTime() - 1);
           const inicioAnterior = new Date(finAnterior.getTime() - duracionMs);
@@ -7428,7 +7472,7 @@ import './index.css';
             const f = new Date(v.fecha_hora);
             return f >= inicioAnterior && f <= finAnterior;
           });
-          setVentasDashboardAnterior(anterior);
+          setResumenPeriodo(resumirVentasPeriodo(enRango, anterior));
 
           setClientesDeuda(clientesLista.filter((c) => (Number(c.saldo_actual) || 0) > 0).sort((a, b) => (Number(b.saldo_actual) || 0) - (Number(a.saldo_actual) || 0)));
           setProveedoresDeudaDash([]);
@@ -7440,6 +7484,8 @@ import './index.css';
             const f = new Date(v.fecha_hora);
             return f >= inicioAnio && f <= finAnio;
           })));
+          const anioRangoDemo = Number(hasta.slice(0, 4));
+          setDiasAnioRango(anioRangoDemo === anioActual ? [] : agruparVentasPorDia(ventasDemoRef.current.filter((v) => new Date(v.fecha_hora).getFullYear() === anioRangoDemo)));
 
           setCargandoDashboard(false);
           return;
@@ -7447,29 +7493,42 @@ import './index.css';
 
         if (sbClient && bodegaId) {
           try {
-            const { data, error } = await sbClient
-              .from('ventas')
-              .select('*, ventas_detalle(*)')
-              .eq('bodega_id', bodegaId)
-              .gte('fecha_hora', inicio.toISOString())
-              .lte('fecha_hora', fin.toISOString())
-              .order('fecha_hora', { ascending: true });
-            if (error) throw error;
-            setVentasDashboard(data || []);
+            const { data: resumen, error: errResumen } = await sbClient.rpc('dashboard_resumen_periodo', {
+              p_bodega_id: bodegaId,
+              p_desde: desde,
+              p_hasta: hasta,
+              p_zona: zonaLocal()
+            });
+            if (!errResumen && resumen && typeof resumen === 'object') {
+              setResumenPeriodo(resumen);
+            } else {
+              // Plan B si la funcion SQL aun no existe: las consultas de
+              // siempre (Supabase las corta en 1.000 filas, por eso se prefiere
+              // la funcion).
+              console.warn('dashboard_resumen_periodo no disponible, se usa la consulta directa', errResumen);
+              const { data, error } = await sbClient
+                .from('ventas')
+                .select('*, ventas_detalle(*)')
+                .eq('bodega_id', bodegaId)
+                .gte('fecha_hora', inicio.toISOString())
+                .lte('fecha_hora', fin.toISOString())
+                .order('fecha_hora', { ascending: true });
+              if (error) throw error;
 
-            // Período anterior de igual duración, para comparar tendencia
-            // (ej: "últimos 7 días" vs los 7 días previos a esos).
-            const duracionMs = fin.getTime() - inicio.getTime();
-            const finAnterior = new Date(inicio.getTime() - 1);
-            const inicioAnterior = new Date(finAnterior.getTime() - duracionMs);
-            const { data: dataAnterior, error: errAnterior } = await sbClient
-              .from('ventas')
-              .select('total_venta, utilidad_total, anulada')
-              .eq('bodega_id', bodegaId)
-              .gte('fecha_hora', inicioAnterior.toISOString())
-              .lte('fecha_hora', finAnterior.toISOString());
-            if (errAnterior) throw errAnterior;
-            setVentasDashboardAnterior(dataAnterior || []);
+              // Período anterior de igual duración, para comparar tendencia
+              // (ej: "últimos 7 días" vs los 7 días previos a esos).
+              const duracionMs = fin.getTime() - inicio.getTime();
+              const finAnterior = new Date(inicio.getTime() - 1);
+              const inicioAnterior = new Date(finAnterior.getTime() - duracionMs);
+              const { data: dataAnterior, error: errAnterior } = await sbClient
+                .from('ventas')
+                .select('total_venta, utilidad_total, anulada')
+                .eq('bodega_id', bodegaId)
+                .gte('fecha_hora', inicioAnterior.toISOString())
+                .lte('fecha_hora', finAnterior.toISOString());
+              if (errAnterior) throw errAnterior;
+              setResumenPeriodo(resumirVentasPeriodo(data || [], dataAnterior || []));
+            }
 
             // Deuda de clientes (crédito): es un saldo vigente, no depende del
             // rango de fechas elegido -- se muestra el estado actual siempre.
@@ -7496,8 +7555,7 @@ import './index.css';
             // Ventas del año calendario en curso, para "Ventas por Mes" --
             // independiente del rango de fechas elegido en el filtro rápido.
             const anioActual = new Date().getFullYear();
-            let zona = 'America/Lima';
-            try { zona = Intl.DateTimeFormat().resolvedOptions().timeZone || zona; } catch (e) { /* se queda con Lima */ }
+            const zona = zonaLocal();
             const { data: diasAnio, error: errAnio } = await sbClient.rpc('dashboard_ventas_por_dia', {
               p_bodega_id: bodegaId,
               p_desde: `${anioActual}-01-01`,
@@ -7520,6 +7578,20 @@ import './index.css';
                 .lte('fecha_hora', finAnio);
               if (errAnio2) console.warn(errAnio2);
               setDiasAnioDash(agruparVentasPorDia(ventasAnio || []));
+            }
+
+            // Si el rango termina en otro anio, el calendario muestra ese anio.
+            const anioRango = Number(hasta.slice(0, 4));
+            if (anioRango && anioRango !== anioActual) {
+              const { data: diasOtro } = await sbClient.rpc('dashboard_ventas_por_dia', {
+                p_bodega_id: bodegaId,
+                p_desde: `${anioRango}-01-01`,
+                p_hasta: `${anioRango}-12-31`,
+                p_zona: zona
+              });
+              setDiasAnioRango(Array.isArray(diasOtro) ? diasOtro : []);
+            } else {
+              setDiasAnioRango([]);
             }
           } catch (err) {
             console.warn(err);
@@ -7560,57 +7632,36 @@ import './index.css';
       const MESES_CORTOS = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Set', 'Oct', 'Nov', 'Dic'];
 
       const dashStats = useMemo(() => {
-        const validas = ventasDashboard.filter(v => !v.anulada);
-        const totalVenta = validas.reduce((a, c) => a + Number(c.total_venta), 0);
-        const totalUtilidad = validas.reduce((a, c) => a + Number(c.utilidad_total || 0), 0);
+        const R = resumenPeriodo || resumirVentasPeriodo([], []);
+        const totalVenta = Number(R.total) || 0;
+        const totalUtilidad = Number(R.utilidad) || 0;
         // utilidad_total ya es total_venta - costo, así que el costo sale despejando.
         const totalCosto = totalVenta - totalUtilidad;
-        const numVentas = validas.length;
+        const numVentas = Number(R.n) || 0;
         const ticketPromedio = numVentas ? totalVenta / numVentas : 0;
         const margenPct = totalVenta ? (totalUtilidad / totalVenta) * 100 : 0;
 
-        const porHora = Array.from({ length: 24 }, (_, h) => ({ hora: h, total: 0, cantidad: 0 }));
-        validas.forEach(v => {
-          const h = new Date(v.fecha_hora).getHours();
-          porHora[h].total += Number(v.total_venta);
-          porHora[h].cantidad += 1;
-        });
+        const porHora = Array.from({ length: 24 }, (_, h) => ({
+          hora: h,
+          total: Number(R.por_hora?.[h]?.total) || 0,
+          cantidad: Number(R.por_hora?.[h]?.n) || 0
+        }));
         const maxHora = Math.max(1, ...porHora.map(h => h.total));
         const horaPico = porHora.reduce((mejor, h) => (h.total > mejor.total ? h : mejor), porHora[0]);
 
-        const porDiaMap = {};
-        validas.forEach(v => {
-          // fecha_hora es un timestamp UTC (como lo devuelve Supabase) --
-          // recortar los primeros 10 caracteres agrupa por el día en UTC, no
-          // en el día local, mismo tipo de bug que fechaHoyISO() (ver arriba).
-          const dia = fechaISOLocal(new Date(v.fecha_hora));
-          porDiaMap[dia] = (porDiaMap[dia] || 0) + Number(v.total_venta);
-        });
-        const porDia = Object.entries(porDiaMap)
-          .sort((a, b) => a[0].localeCompare(b[0]))
-          .map(([fecha, total]) => ({ fecha, total }));
+        const porDia = (R.por_dia || []).map(d => ({ fecha: d.fecha, total: Number(d.total) || 0 }));
         const maxDia = Math.max(1, ...porDia.map(d => d.total));
 
-        const porMedioMap = {};
-        validas.forEach(v => {
-          const medio = v.medio_pago || 'OTRO';
-          porMedioMap[medio] = (porMedioMap[medio] || 0) + Number(v.total_venta);
-        });
-        const porMedio = Object.entries(porMedioMap)
-          .map(([medio, total]) => ({ medio, total, pct: totalVenta ? (total / totalVenta) * 100 : 0 }))
+        const porMedio = Object.entries(R.por_medio || {})
+          .map(([medio, total]) => ({ medio, total: Number(total) || 0, pct: totalVenta ? ((Number(total) || 0) / totalVenta) * 100 : 0 }))
           .sort((a, b) => b.total - a.total);
 
-        const prodMap = {};
-        validas.forEach(v => {
-          (v.ventas_detalle || []).forEach(d => {
-            const key = d.descripcion || 'Producto';
-            if (!prodMap[key]) prodMap[key] = { descripcion: key, cantidad: 0, monto: 0, utilidad: 0 };
-            prodMap[key].cantidad += Number(d.cantidad);
-            prodMap[key].monto += Number(d.subtotal);
-            prodMap[key].utilidad += Number(d.utilidad || 0);
-          });
-        });
-        const topProductos = Object.values(prodMap).sort((a, b) => b.monto - a.monto).slice(0, 8);
+        const topProductos = (R.top_productos || []).map(p => ({
+          descripcion: p.descripcion,
+          cantidad: Number(p.cantidad) || 0,
+          monto: Number(p.monto) || 0,
+          utilidad: Number(p.utilidad) || 0
+        }));
         const maxProducto = Math.max(1, ...topProductos.map(p => p.monto));
 
         const numDeudores = clientesDeuda.length;
@@ -7623,9 +7674,8 @@ import './index.css';
 
         // Comparación contra el período inmediatamente anterior de igual
         // duración (ej. "últimos 7 días" vs los 7 días previos a esos).
-        const validasAnterior = ventasDashboardAnterior.filter(v => !v.anulada);
-        const totalVentaAnterior = validasAnterior.reduce((a, c) => a + Number(c.total_venta), 0);
-        const totalUtilidadAnterior = validasAnterior.reduce((a, c) => a + Number(c.utilidad_total || 0), 0);
+        const totalVentaAnterior = Number(R.anterior?.total) || 0;
+        const totalUtilidadAnterior = Number(R.anterior?.utilidad) || 0;
         const calcularCambioPct = (actual, anterior) => {
           if (anterior === 0) return actual > 0 ? 100 : 0;
           return ((actual - anterior) / anterior) * 100;
@@ -7668,12 +7718,42 @@ import './index.css';
           hayBaseMesAnterior: totalMesAnterior > 0,
           anioActual, porMes, maxMes, mesPico, mesActualIdx, totalAnio, promedioMensual, cambioMesPct
         };
-      }, [ventasDashboard, clientesDeuda, ventasDashboardAnterior, proveedoresDeudaDash, diasAnioDash]);
+      }, [resumenPeriodo, clientesDeuda, proveedoresDeudaDash, diasAnioDash]);
 
       // Exporta todo el Dashboard a un Excel real (.xlsx, varias hojas),
       // no un CSV -- cada sección del dashboard es su propia hoja.
       const exportarDashboardExcel = async () => {
         await asegurarXLSX();
+        // El detalle de cada venta del período se pide completo y por tandas de
+        // 1.000 (Supabase corta cada consulta en 1.000 filas), solo al exportar.
+        notificar('Preparando el Excel...', 'info');
+        let ventasDashboard = [];
+        try {
+          if (esModoDemo) {
+            const ini = new Date(`${fechaInicioDash}T00:00:00`);
+            const fin = new Date(`${fechaFinDash}T23:59:59.999`);
+            ventasDashboard = ventasDemoRef.current.filter((v) => { const f = new Date(v.fecha_hora); return f >= ini && f <= fin; });
+          } else {
+            const TAM = 1000;
+            for (let desdeFila = 0; ; desdeFila += TAM) {
+              const { data, error } = await sbClient
+                .from('ventas')
+                .select('*, ventas_detalle(*)')
+                .eq('bodega_id', bodegaId)
+                .gte('fecha_hora', new Date(`${fechaInicioDash}T00:00:00`).toISOString())
+                .lte('fecha_hora', new Date(`${fechaFinDash}T23:59:59.999`).toISOString())
+                .order('fecha_hora', { ascending: true })
+                .order('id', { ascending: true })
+                .range(desdeFila, desdeFila + TAM - 1);
+              if (error) throw error;
+              ventasDashboard.push(...(data || []));
+              if (!data || data.length < TAM) break;
+            }
+          }
+        } catch (err) {
+          notificar(`No se pudo preparar el Excel: ${err.message}`, 'error');
+          return;
+        }
         const libro = XLSX.utils.book_new();
 
         const hojaResumen = XLSX.utils.json_to_sheet([{
@@ -14274,7 +14354,7 @@ import './index.css';
                     {(() => {
                       const [aHoy, mHoy, dHoy] = fechaHoyISO().split('-').map(Number);
                       const ver = mesCalendario || { anio: Number(fechaFinDash.slice(0, 4)) || aHoy, mes: (Number(fechaFinDash.slice(5, 7)) || mHoy) - 1 };
-                      const diasFuente = ver.anio === aHoy ? diasAnioDash : agruparVentasPorDia(ventasDashboard);
+                      const diasFuente = ver.anio === aHoy ? diasAnioDash : diasAnioRango;
                       const totalPorFecha = new Map();
                       diasFuente.forEach((d) => totalPorFecha.set(d.fecha, Number(d.total)));
                       const diasMes = new Date(ver.anio, ver.mes + 1, 0).getDate();
