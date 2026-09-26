@@ -2776,6 +2776,8 @@ import './index.css';
 
       // --- Módulo: Dashboard de Ventas (solo Administrador) ---
       const [modalDashboard, setModalDashboard] = useState(false);
+      // Intento de cobro en curso: { huella, idLocal } -- ver el cobro en línea.
+      const intentoVentaRef = useRef(null);
       // Resumen del rango elegido (venta total, hora pico, medios de pago,
       // top productos, periodo anterior): viene sumado desde la base
       // (dashboard_resumen_periodo.sql) para no chocar con el tope de 1.000 filas.
@@ -4147,6 +4149,25 @@ import './index.css';
         } catch { /* localStorage lleno o bloqueado: no es crítico */ }
       };
 
+      // Registra una venta completa en UNA transacción de la base de datos
+      // (registrar_venta, ver registrar_venta_atomica.sql): venta + detalle +
+      // deuda del cliente (si fue a crédito) + descuento de stock, todo o nada.
+      // Si la función aún no existe en Supabase, devuelve faltaFuncion = true y
+      // el llamador sigue con el camino de siempre (paso a paso).
+      const registrarVentaAtomica = async (payloadVenta, detalles, ajustes, credito) => {
+        const { data, error } = await sbClient.rpc('registrar_venta', {
+          p_venta: payloadVenta,
+          p_detalles: detalles,
+          p_ajustes: (ajustes || []).map((a) => ({ producto_id: a.productoId, delta: a.delta })),
+          p_credito: credito ? { cliente_id: credito.clienteId, monto: credito.monto } : null
+        });
+        if (error) {
+          const faltaFuncion = error.code === 'PGRST202' || /could not find the function/i.test(error.message || '');
+          return { data: null, error, faltaFuncion };
+        }
+        return { data, error: null, faltaFuncion: false };
+      };
+
       // Sube a Supabase las ventas que se hicieron sin conexión: inserta la
       // venta con su fecha_hora original, su detalle, aplica el ajuste de
       // stock (RPC) y, si era a crédito, recién ahí suma la deuda real en
@@ -4165,6 +4186,11 @@ import './index.css';
         for (let i = 0; i < cola.length; i++) {
           const pendiente = cola[i];
           try {
+            // Camino nuevo: toda la venta en una sola transacción, y un reintento
+            // de una venta ya guardada no repite nada (id_local).
+            const atomica = await registrarVentaAtomica(pendiente.payloadVenta, pendiente.payloadDetalles, pendiente.ajustesStock, pendiente.credito);
+            if (!atomica.faltaFuncion && atomica.error) throw atomica.error;
+            if (atomica.faltaFuncion) {
             let vCreada;
             let yaSincronizada = false;
             const { data: vInsertada, error: vErr } = await sbClient
@@ -4217,6 +4243,7 @@ import './index.css';
             if (resultadosAjuste.some((r) => r.error)) {
               console.warn('Una venta offline se sincronizó pero su ajuste de stock falló:', pendiente);
               hayFallosDeStock = true;
+            }
             }
             }
 
@@ -8310,6 +8337,9 @@ import './index.css';
         }
 
         let seVendioOffline = false;
+        // Boleta con la que quedó guardada la venta (si la venta ya existía por un
+        // reintento, es la de la primera vez).
+        let boletaFinal = correlativo;
 
         try {
           if (sbClient) {
@@ -8465,6 +8495,30 @@ import './index.css';
                 setClienteActual(prev => (prev ? { ...prev, saldo_actual: +(saldoAct + totalConDescuento).toFixed(2) } : prev));
               }
             } else {
+              // La misma venta reintentada (por ejemplo, si se cortó internet y no
+              // se supo si llegó a guardarse) lleva el mismo id_local, así la base
+              // de datos no la duplica. Si el carrito cambió, se genera uno nuevo.
+              const huellaVenta = JSON.stringify([
+                bodegaId, idTurnoReal || null, medioPago, totalConDescuento, idClienteReal || null,
+                payloadDetallesSinVentaId.map((d) => [d.producto_id, d.combo_id, d.cantidad, d.subtotal])
+              ]);
+              if (!intentoVentaRef.current || intentoVentaRef.current.huella !== huellaVenta) {
+                intentoVentaRef.current = { huella: huellaVenta, idLocal: `pos-${Date.now()}-${Math.random().toString(36).slice(2, 8)}` };
+              }
+              payloadVenta.id_local = intentoVentaRef.current.idLocal;
+
+              const atomica = await registrarVentaAtomica(
+                payloadVenta,
+                payloadDetallesSinVentaId,
+                ajustesStock,
+                medioPago === 'CREDITO' && idClienteReal ? { clienteId: idClienteReal, monto: totalConDescuento } : null
+              );
+              if (!atomica.faltaFuncion) {
+                if (atomica.error) throw atomica.error;
+                if (atomica.data?.nro_boleta) boletaFinal = atomica.data.nro_boleta;
+                intentoVentaRef.current = null;
+              } else {
+              // Camino de siempre (paso a paso), mientras registrar_venta no exista.
               const { data: vCreada, error: vErr } = await sbClient
                 .from('ventas')
                 .insert([payloadVenta])
@@ -8509,6 +8563,8 @@ import './index.css';
                 console.warn('Error al ajustar stock de la venta:', fallosAjusteStock);
                 notificar(`Venta registrada, pero el stock de ${fallosAjusteStock.length} producto(s) no se pudo actualizar. Revísalo en "Ver Stock".`, 'error');
               }
+              intentoVentaRef.current = null;
+              }
             }
           }
 
@@ -8536,7 +8592,7 @@ import './index.css';
           }
 
           const resultado = {
-            nro_boleta: correlativo,
+            nro_boleta: boletaFinal,
             medio_pago: medioPago,
             total_venta: totalConDescuento,
             subtotal: totalVenta,
