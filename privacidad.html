@@ -3,8 +3,8 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>Política de Privacidad - Kaserita</title>
-<meta name="description" content="Cómo Kaserita recolecta, usa y protege tus datos." />
+<title>Política de Privacidad y Cookies - Kaserita</title>
+<meta name="description" content="Cómo Kaserita y KaseritaDelivery recolectan, usan y protegen tus datos personales, y qué almacenamiento local utilizan." />
 <link rel="icon" href="/icon-192.png" type="image/png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -12,7 +12,7 @@
 <style>
   :root {
     --paper: #faf8f6; --card: #ffffff; --ink: #1c1523; --muted: #6f6779; --line: #e9e3ee;
-    --violet: #7c3aed; --violet-ink: #5b21b6; --blue: #2563eb;
+    --violet: #7c3aed; --violet-ink: #5b21b6; --blue: #2563eb; --soft: #f4eefe;
     --font-display: 'Plus Jakarta Sans', system-ui, sans-serif;
     --font-body: 'Work Sans', system-ui, sans-serif;
   }
@@ -28,12 +28,17 @@
   .updated { font-size: 12.5px; color: var(--muted); margin: 0 0 28px; }
   h1 { font-family: var(--font-display); font-weight: 800; font-size: clamp(24px, 5vw, 30px); letter-spacing: -0.01em; margin: 20px 0 6px; }
   h2 { font-family: var(--font-display); font-weight: 700; font-size: 17px; margin: 32px 0 8px; letter-spacing: -0.005em; }
+  h3 { font-family: var(--font-display); font-weight: 700; font-size: 14.5px; margin: 18px 0 4px; }
   p, li { font-size: 14.5px; color: #362a47; }
   ul { padding-left: 20px; margin: 8px 0; }
   li { margin-bottom: 4px; }
   a { color: var(--violet-ink); }
+  .resumen { background: var(--soft); border-radius: 14px; padding: 14px 16px; margin: 18px 0 8px; }
+  .resumen p { margin: 0 0 6px; font-weight: 600; }
+  .resumen ul { margin: 0; }
   .back { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; color: var(--muted); text-decoration: none; margin-top: 40px; }
   footer { margin-top: 40px; padding-top: 16px; border-top: 1px solid var(--line); font-size: 11px; color: var(--muted); text-align: center; }
+  footer a { color: var(--muted); }
 </style>
 </head>
 <body>
@@ -43,56 +48,141 @@
     <div class="brand-name">Kaser<span>ita</span></div>
   </div>
 
-  <h1>Política de Privacidad</h1>
-  <p class="updated">Última actualización: septiembre de 2026</p>
+  <h1>Política de Privacidad y Cookies</h1>
+  <p class="updated">Última actualización: 26 de septiembre de 2026</p>
 
-  <p>En Kaserita nos tomamos en serio la privacidad de los dueños de bodega que usan nuestro sistema y de las personas que hacen pedidos a través de él. Este documento explica qué datos recolectamos, para qué los usamos y con quién los compartimos.</p>
+  <p>Esta política explica cómo tratamos tus datos personales en <strong>Kaserita</strong> (el sistema de punto de venta para bodegas) y en <strong>KaseritaDelivery</strong> (la vitrina donde los clientes hacen pedidos a las bodegas). La redactamos conforme a la Ley N.º 29733, Ley de Protección de Datos Personales, y su reglamento.</p>
 
-  <h2>1. Quiénes somos</h2>
-  <p>Kaserita es un sistema de punto de venta y catálogo online para bodegas y negocios pequeños en Perú. Si tenés alguna consulta sobre esta política, podés escribirnos a <a href="mailto:smartdeskapps@smartdeskapps.com">smartdeskapps@smartdeskapps.com</a>.</p>
+  <div class="resumen">
+    <p>En pocas palabras</p>
+    <ul>
+      <li>Solo pedimos los datos que necesitamos para que el servicio funcione.</li>
+      <li>No vendemos tus datos ni los usamos para publicidad de terceros.</li>
+      <li>No usamos cookies de publicidad ni de análisis; solo almacenamiento técnico necesario.</li>
+      <li>Puedes acceder a tus datos, corregirlos o eliminarlos. Si usas Delivery, puedes borrar tu cuenta tú mismo desde el Perfil.</li>
+    </ul>
+  </div>
+
+  <h2>1. Quién es el responsable</h2>
+  <p>El responsable del tratamiento es <strong>SmartDesk Apps</strong>, RUC 10490217644, que opera Kaserita y KaseritaDelivery de forma 100% virtual (sin local de atención al público). Puedes contactarnos en <a href="mailto:smartdeskapps@smartdeskapps.com">smartdeskapps@smartdeskapps.com</a> o al <a href="tel:+51900376462">+51 900 376 462</a>.</p>
+  <p>Según quién seas, los roles son estos:</p>
+  <ul>
+    <li><strong>Si eres dueño de bodega o parte de su personal:</strong> SmartDesk Apps es responsable de los datos de tu cuenta y de tu suscripción.</li>
+    <li><strong>Si haces pedidos por KaseritaDelivery:</strong> SmartDesk Apps es responsable de los datos de tu cuenta. Cuando haces un pedido, la bodega que lo recibe usa los datos de ese pedido (nombre, celular, dirección) para atenderlo, y responde por ese uso.</li>
+    <li><strong>Datos de los clientes de una bodega que la propia bodega registra</strong> (por ejemplo, quién le debe en el crédito): la bodega es la responsable y SmartDesk Apps solo los almacena por encargo de ella para que el sistema funcione.</li>
+  </ul>
 
   <h2>2. Qué datos recolectamos</h2>
-  <p>Dependiendo de cómo uses Kaserita, podemos recolectar:</p>
+  <h3>Dueños de bodega y su personal</h3>
   <ul>
-    <li><strong>Datos de tu cuenta de Google</strong> (si iniciás sesión con Google): tu nombre, correo electrónico y foto de perfil.</li>
-    <li><strong>Datos que ingresás al registrar tu bodega</strong>: nombre del negocio, DNI y número de celular/WhatsApp.</li>
-    <li><strong>Datos de clientes de tu bodega</strong> (si usás el catálogo online): nombre y celular de quienes hacen pedidos por KaseritaDelivery.</li>
-    <li><strong>Datos de quienes piden por KaseritaDelivery</strong>: nombre, celular y correo (de su cuenta de Google), las tiendas que guardan, el historial de sus pedidos y, si eligen entrega a domicilio, la ubicación o referencia de entrega que marcan. Si activan las notificaciones, también guardamos el permiso de su navegador para poder avisarles del estado de su pedido.</li>
-    <li><strong>Datos de uso del negocio</strong>: productos, precios, ventas, stock, clientes y pedidos que cargás en el sistema — esta información es tuya y solo la ve tu bodega.</li>
-    <li><strong>Datos de pago</strong>: cuando pagás tu suscripción, tu tarjeta se procesa directo con Culqi (nuestra pasarela de pago) — el número de tu tarjeta nunca pasa por nuestros servidores ni queda guardado en Kaserita.</li>
+    <li><strong>Cuenta de Google</strong> (si inicias sesión con Google): nombre, correo y foto de perfil.</li>
+    <li><strong>Registro de la bodega</strong>: nombre del negocio, DNI, número de celular o WhatsApp.</li>
+    <li><strong>Cajeros</strong>: nombre y PIN de acceso. El PIN se guarda cifrado, nunca en texto plano.</li>
+    <li><strong>Suscripción</strong>: plan contratado, fechas y estado de pago. Los datos de la tarjeta o de Yape los procesa directamente Culqi; el número de tu tarjeta nunca pasa por nuestros servidores ni queda guardado en Kaserita.</li>
+    <li><strong>Datos del negocio</strong>: productos, precios, ventas, stock, proveedores, clientes y pedidos que cargas en el sistema. Son de tu bodega y solo los ve tu bodega.</li>
   </ul>
+  <h3>Clientes de KaseritaDelivery</h3>
+  <ul>
+    <li><strong>Cuenta de Google</strong>: nombre, correo y foto de perfil.</li>
+    <li><strong>Celular</strong>, para que la bodega pueda coordinar la entrega.</li>
+    <li><strong>Ubicación de entrega</strong>: el punto que marcas en el mapa y la referencia que escribes, solo si eliges entrega a domicilio.</li>
+    <li><strong>Tus pedidos</strong>: productos, total, forma de entrega (retiro o delivery) y medio de pago que elegiste (solo la opción, por ejemplo efectivo o Yape; no guardamos datos de tarjeta), y su estado.</li>
+    <li><strong>Tiendas guardadas</strong> y tus tiendas habituales.</li>
+    <li><strong>Permiso de notificaciones</strong> de tu navegador, si decides activarlas.</li>
+  </ul>
+  <h3>Datos técnicos</h3>
+  <p>Al usar la web, nuestros proveedores de alojamiento pueden registrar datos técnicos habituales, como la dirección IP, el tipo de dispositivo y de navegador, y la fecha y hora de acceso. Los usamos para la seguridad y el funcionamiento del servicio.</p>
+  <p>No recolectamos datos sensibles (salud, creencias, origen étnico, entre otros). Los servicios están dirigidos a personas mayores de edad; si eres menor, usa Delivery con la autorización de tu madre, padre o tutor.</p>
 
   <h2>3. Para qué usamos tus datos</h2>
   <ul>
-    <li>Para crear y mantener tu cuenta y darte acceso al sistema.</li>
-    <li>Para procesar el pago de tu suscripción.</li>
-    <li>Para que tus clientes puedan hacer pedidos por tu catálogo online y avisarte cuando llegan.</li>
-    <li>Para darte soporte cuando nos escribís con una consulta.</li>
+    <li>Crear y mantener tu cuenta y darte acceso al sistema (necesario para prestar el servicio).</li>
+    <li>Procesar el pago de la suscripción y enviarte avisos sobre ella.</li>
+    <li>Permitir que hagas pedidos a una bodega y que esta los reciba, los prepare y los entregue.</li>
+    <li>Avisarte del estado de tu pedido (por ejemplo, cuando está listo o en camino), si activaste las notificaciones.</li>
+    <li>Darte soporte cuando nos escribes y atender reclamos.</li>
+    <li>Mantener la seguridad del servicio y prevenir fraudes o abusos.</li>
+    <li>Cumplir obligaciones legales cuando corresponda.</li>
   </ul>
+  <p>No usamos tus datos para elaborar perfiles con fines publicitarios ni los cedemos a terceros para que te envíen publicidad. Tratamos tus datos con tu consentimiento, que nos das al crear tu cuenta o usar el servicio aceptando esta política, y porque son necesarios para ejecutar el servicio que nos pides. Puedes retirar tu consentimiento en cualquier momento (ver sección 10), lo que puede implicar que ya no podamos prestarte el servicio.</p>
 
-  <h2>4. Con quién compartimos datos</h2>
-  <p>No vendemos tu información a terceros. Compartimos datos únicamente con los proveedores que necesitamos para que Kaserita funcione:</p>
+  <h2>4. Ubicación y notificaciones</h2>
+  <p><strong>Ubicación.</strong> Solo se solicita cuando eliges entrega a domicilio y marcas dónde recibirás tu pedido. La usamos únicamente para esa entrega y se comparte con la bodega que atiende tu pedido. No hacemos seguimiento de tu ubicación en segundo plano.</p>
+  <p><strong>Notificaciones.</strong> Son opcionales. Tu navegador te pide permiso y puedes desactivarlas cuando quieras desde tu Perfil o desde los ajustes del navegador.</p>
+
+  <h2>5. Cookies y almacenamiento local</h2>
+  <p>Kaserita y KaseritaDelivery <strong>no usan cookies de publicidad, de seguimiento ni herramientas de analítica de terceros</strong>. Solo guardan en tu dispositivo información técnica necesaria para que la aplicación funcione:</p>
   <ul>
-    <li><strong>Supabase</strong>: aloja nuestra base de datos y gestiona el inicio de sesión.</li>
-    <li><strong>Culqi</strong>: procesa los pagos de las suscripciones.</li>
-    <li><strong>Google</strong>: gestiona el inicio de sesión con tu cuenta de Google.</li>
+    <li><strong>Sesión</strong>: mantiene tu sesión iniciada para que no tengas que ingresar en cada visita. Se elimina al cerrar sesión.</li>
+    <li><strong>Preferencias y carrito (Delivery)</strong>: tu carrito por tienda, tus favoritos, la última tienda visitada, tu dirección guardada y si desactivaste las notificaciones.</li>
+    <li><strong>Trabajo en curso (Kaserita)</strong>: el carrito actual, las ventas en espera y las ventas hechas sin conexión que aún no se han sincronizado, para no perderlas si se corta internet.</li>
+    <li><strong>Caché de la aplicación</strong>: permite que la app cargue más rápido y se instale como aplicación en tu celular.</li>
+  </ul>
+  <p>Como se trata solo de almacenamiento técnico y necesario, no requiere un aviso de consentimiento aparte. Puedes borrarlo en cualquier momento cerrando sesión o eliminando los datos del sitio desde la configuración de tu navegador; ten en cuenta que, si lo haces, perderás el carrito y, en Kaserita, cualquier venta sin conexión que no se haya sincronizado. Si en el futuro incorporamos herramientas de analítica o publicidad, te lo informaremos y te pediremos tu consentimiento antes de usarlas.</p>
+
+  <h2>6. Con quién compartimos tus datos</h2>
+  <p>No vendemos tu información. La compartimos únicamente en estos casos:</p>
+  <ul>
+    <li><strong>La bodega que atiende tu pedido</strong> (si usas Delivery): recibe tu nombre, celular, dirección de entrega (si aplica) y el detalle del pedido.</li>
+    <li><strong>Proveedores que nos permiten operar</strong>, que tratan los datos por encargo nuestro y solo para prestarnos el servicio:
+      <ul>
+        <li><strong>Supabase</strong>: base de datos e inicio de sesión.</li>
+        <li><strong>Vercel</strong>: alojamiento de la aplicación web.</li>
+        <li><strong>Google</strong>: inicio de sesión con tu cuenta de Google y tipografías de las páginas informativas.</li>
+        <li><strong>Culqi</strong>: procesamiento de los pagos de la suscripción.</li>
+        <li><strong>OpenStreetMap</strong>: imágenes del mapa; recibe tu dirección IP y la zona del mapa que visualizas, pero no tu nombre ni tus pedidos.</li>
+        <li><strong>Cloudflare (cdnjs)</strong>: iconos de la interfaz.</li>
+        <li><strong>Servicios de notificaciones de tu navegador</strong> (de Google, Apple o Mozilla, según el navegador): entregan los avisos push si los activaste.</li>
+      </ul>
+    </li>
+    <li><strong>Autoridades</strong>, cuando una norma o una orden válida nos lo exija.</li>
   </ul>
 
-  <h2>5. Cómo protegemos tus datos</h2>
-  <p>Los datos de cada bodega están separados a nivel de base de datos (Row Level Security): una bodega nunca puede ver la información de otra. Las contraseñas y PIN de acceso se guardan cifrados, no en texto plano.</p>
+  <h2>7. Transferencia de datos fuera del Perú</h2>
+  <p>Algunos de los proveedores mencionados (por ejemplo Supabase, Vercel y Google) almacenan o procesan datos en servidores ubicados fuera del Perú. Al usar el servicio, aceptas esta transferencia. Nos aseguramos de trabajar con proveedores que aplican medidas de seguridad y compromisos contractuales de protección de datos adecuados.</p>
 
-  <h2>6. Cuánto tiempo guardamos tus datos</h2>
-  <p>Guardamos tus datos mientras tu cuenta esté activa. Si cancelás tu suscripción, tu información queda inactiva y podés pedirnos que la eliminemos por completo escribiéndonos.</p>
+  <h2>8. Cómo protegemos tus datos</h2>
+  <ul>
+    <li>Las conexiones viajan cifradas (HTTPS).</li>
+    <li>Los datos de cada bodega están separados a nivel de base de datos (Row Level Security): una bodega nunca puede ver la información de otra.</li>
+    <li>Los PIN de acceso se guardan cifrados.</li>
+    <li>Aplicamos una política de seguridad de contenido que limita qué puede ejecutar y a dónde puede conectarse la aplicación.</li>
+    <li>Restringimos el acceso interno a los datos solo a lo necesario.</li>
+  </ul>
+  <p>Ningún sistema es totalmente infalible. Si ocurre un incidente de seguridad que afecte tus datos personales, te lo informaremos y lo comunicaremos a la autoridad cuando corresponda.</p>
 
-  <h2>7. Tus derechos</h2>
-  <p>Podés pedirnos en cualquier momento acceder, corregir o eliminar tus datos, escribiéndonos a <a href="mailto:smartdeskapps@smartdeskapps.com">smartdeskapps@smartdeskapps.com</a>.</p>
-  <p>Si sos cliente de KaseritaDelivery, además podés <strong>eliminar tu cuenta tú mismo</strong> desde <em>Perfil → Eliminar mi cuenta</em>: se borran tu nombre, celular, correo, tiendas guardadas e historial de pedidos. Las ventas que cada bodega ya registró en su propio sistema forman parte de su contabilidad y no se eliminan.</p>
+  <h2>9. Cuánto tiempo guardamos tus datos</h2>
+  <ul>
+    <li><strong>Bodegas:</strong> mientras tu cuenta esté activa. Si cancelas tu suscripción, tu información queda inactiva y puedes pedirnos que la eliminemos por completo.</li>
+    <li><strong>Clientes de Delivery:</strong> mientras mantengas tu cuenta. Al eliminarla desde el Perfil, se borran tus datos personales, tus tiendas guardadas y tu historial de pedidos.</li>
+    <li><strong>Lo que la ley exija conservar</strong> (por ejemplo, registros de pagos de suscripciones por obligaciones tributarias) se guarda por el plazo legal.</li>
+    <li>Las ventas que cada bodega registró en su sistema forman parte de la contabilidad de esa bodega y no se eliminan cuando un cliente borra su cuenta; esos registros no conservan los datos de la cuenta del cliente.</li>
+  </ul>
 
-  <h2>8. Cambios a esta política</h2>
-  <p>Si actualizamos esta política, vamos a cambiar la fecha al principio de esta página.</p>
+  <h2>10. Tus derechos</h2>
+  <p>Tienes derecho a <strong>acceder</strong> a tus datos, <strong>rectificarlos</strong> si son inexactos, <strong>cancelarlos</strong> (eliminarlos), <strong>oponerte</strong> a que se traten para una finalidad determinada y <strong>retirar tu consentimiento</strong>. Son los llamados derechos ARCO.</p>
+  <ul>
+    <li><strong>Cómo ejercerlos:</strong> escríbenos a <a href="mailto:smartdeskapps@smartdeskapps.com">smartdeskapps@smartdeskapps.com</a> con el asunto “Derechos ARCO”, indicando qué derecho quieres ejercer y el correo o celular con el que usas el servicio. Podemos pedirte que confirmes tu identidad para evitar que otra persona acceda a tus datos.</li>
+    <li><strong>Plazo:</strong> respondemos dentro de los plazos que fija la normativa, como máximo 20 días hábiles.</li>
+    <li><strong>Eliminar tu cuenta de Delivery:</strong> puedes hacerlo tú mismo en <em>Perfil → Eliminar mi cuenta</em>. Si tienes un pedido en curso, primero debe terminar.</li>
+    <li><strong>Datos que tiene una bodega sobre ti</strong> (por ejemplo, tu ficha de crédito): para modificarlos o eliminarlos, dirígete primero a esa bodega, que es la responsable de esos datos.</li>
+  </ul>
+  <p>Si consideras que no atendimos correctamente tu solicitud, puedes presentar un reclamo ante la Autoridad Nacional de Protección de Datos Personales (Ministerio de Justicia y Derechos Humanos).</p>
+
+  <h2>11. Menores de edad</h2>
+  <p>No dirigimos nuestros servicios a menores de edad ni recolectamos sus datos de manera intencional. Si detectamos que una cuenta pertenece a un menor sin autorización de su representante, podemos eliminarla.</p>
+
+  <h2>12. Cambios a esta política</h2>
+  <p>Si actualizamos esta política, cambiaremos la fecha al inicio de esta página y, si el cambio es importante, te avisaremos dentro de la aplicación.</p>
+
+  <h2>13. Contacto y reclamos</h2>
+  <p>Para cualquier consulta sobre tus datos, escríbenos a <a href="mailto:smartdeskapps@smartdeskapps.com">smartdeskapps@smartdeskapps.com</a>. También puedes registrar un reclamo o queja en nuestro <a href="/reclamos.html">Libro de Reclamaciones</a>.</p>
 
   <a class="back" href="/">← Volver a Kaserita</a>
-  <footer>Kaserita © 2026 — hecho para bodegas peruanas</footer>
+  <footer>
+    Kaserita © 2026 — hecho para bodegas peruanas<br>
+    <a href="/terminos.html">Condiciones del Servicio</a> · <a href="/terminos-delivery.html">Términos de KaseritaDelivery</a> · <a href="/reclamos.html">Libro de Reclamaciones</a>
+  </footer>
 </div>
 </body>
 </html>

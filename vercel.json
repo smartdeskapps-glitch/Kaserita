@@ -19,6 +19,7 @@
     { "source": "/registro", "destination": "/registro.html" },
     { "source": "/privacidad", "destination": "/privacidad.html" },
     { "source": "/terminos", "destination": "/terminos.html" },
+    { "source": "/terminos-delivery", "destination": "/terminos-delivery.html" },
     { "source": "/reclamos", "destination": "/reclamos.html" },
     { "source": "/(.*)", "destination": "/index.html" }
   ]

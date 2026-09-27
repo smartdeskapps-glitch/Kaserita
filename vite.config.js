@@ -15,6 +15,7 @@ export default defineConfig({
         registro: resolve(__dirname, 'registro.html'),
         privacidad: resolve(__dirname, 'privacidad.html'),
         terminos: resolve(__dirname, 'terminos.html'),
+        terminosDelivery: resolve(__dirname, 'terminos-delivery.html'),
         reclamos: resolve(__dirname, 'reclamos.html'),
       },
     },
