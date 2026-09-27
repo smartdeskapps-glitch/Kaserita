@@ -992,7 +992,7 @@ import './index.css';
           // (sin auth_id) en una sola transacción. El dueño entra con "Continuar
           // con Google" usando ESE correo: en su primer ingreso la cuenta se
           // vincula sola (ver reclamar_cuenta_por_correo). Ya no hay DNI ni PIN.
-          const { error } = await sbClient.rpc('admin_crear_bodega_por_correo', {
+          const { data: bodegaNuevaId, error } = await sbClient.rpc('admin_crear_bodega_por_correo', {
             p_correo: correo,
             p_nombre_bodega: formNuevaBodega.nombreBodega.trim(),
             p_nombre_dueno: formNuevaBodega.nombreDueno.trim(),
@@ -1003,8 +1003,18 @@ import './index.css';
           });
           if (error) throw error;
 
-          notificar(`Bodega creada. El dueño entra con "Continuar con Google" usando ${correo}.`, 'success');
-          setFormNuevaBodega({ correo: '', nombreBodega: '', nombreDueno: '', dias: '30', telefono: '', mostrarCatalogoMaestro: true, permitirSubirFotos: true });
+          // El plan con catálogo activa "Pedidos WhatsApp" (KaseritaDelivery) y
+          // anota el primer pago del combo, igual que al registrarse antes.
+          const planElegido = planesAdmin.find((pl) => pl.id === (formNuevaBodega.planId || planPos?.id)) || null;
+          let avisoPlan = '';
+          if (planElegido?.permite_delivery && bodegaNuevaId) {
+            let { error: errPlan } = await sbClient.from('bodegas').update({ delivery_permitido: true, combo_primer_pago_en: new Date().toISOString() }).eq('id', bodegaNuevaId);
+            if (errPlan) ({ error: errPlan } = await sbClient.from('bodegas').update({ delivery_permitido: true }).eq('id', bodegaNuevaId));
+            if (errPlan) avisoPlan = ' Ojo: no se pudo activar "Pedidos WhatsApp"; actívalo desde la fila de la bodega.';
+          }
+
+          notificar(`Bodega creada${planElegido ? ` (${planElegido.nombre})` : ''}. El dueño entra con "Continuar con Google" usando ${correo}.${avisoPlan}`, avisoPlan ? 'error' : 'success');
+          setFormNuevaBodega({ correo: '', nombreBodega: '', nombreDueno: '', dias: '30', telefono: '', planId: '', mostrarCatalogoMaestro: true, permitirSubirFotos: true });
           setModalNueva(false);
           cargarBodegas();
         } catch (err) {
@@ -1917,6 +1927,32 @@ import './index.css';
                   />
                 </div>
               </div>
+              {planesAdmin.length > 0 && (
+                <div>
+                  <label className="text-xs text-stone-600 block mb-1">Plan:</label>
+                  <select
+                    value={formNuevaBodega.planId || planPos?.id || planesAdmin[0].id}
+                    onChange={(e) => setFormNuevaBodega({ ...formNuevaBodega, planId: e.target.value })}
+                    className="w-full bg-stone-50 border border-stone-200 rounded-lg px-3 py-2 text-sm text-stone-900"
+                  >
+                    {[...planesAdmin].sort((a, b) => Number(a.precio_soles) - Number(b.precio_soles)).map((pl) => (
+                      <option key={pl.id} value={pl.id}>
+                        {pl.nombre} · S/ {Number(pl.precio_soles_promo ?? pl.precio_soles).toFixed(2)} al mes
+                      </option>
+                    ))}
+                  </select>
+                  {(() => {
+                    const pl = planesAdmin.find((x) => x.id === (formNuevaBodega.planId || planPos?.id || planesAdmin[0].id));
+                    if (!pl) return null;
+                    return (
+                      <p className="text-[11px] text-stone-500 mt-1">
+                        {pl.precio_soles_promo != null ? `Promo en los primeros ${pl.meses_promo} pagos; después S/ ${Number(pl.precio_soles).toFixed(2)}. ` : ''}
+                        {pl.permite_delivery ? 'Incluye Pedidos por WhatsApp (KaseritaDelivery).' : 'Solo Punto de Venta.'}
+                      </p>
+                    );
+                  })()}
+                </div>
+              )}
               <label className="flex items-center gap-2 text-xs text-stone-600 cursor-pointer">
                 <input
                   type="checkbox"
@@ -2428,7 +2464,7 @@ import './index.css';
       const [cargandoAdminLogin, setCargandoAdminLogin] = useState(false);
       const [bodegasAdmin, setBodegasAdmin] = useState([]);
       const [cargandoBodegasAdmin, setCargandoBodegasAdmin] = useState(false);
-      const [formNuevaBodega, setFormNuevaBodega] = useState({ correo: '', nombreBodega: '', nombreDueno: '', dias: '30', telefono: '', mostrarCatalogoMaestro: true, permitirSubirFotos: true });
+      const [formNuevaBodega, setFormNuevaBodega] = useState({ correo: '', nombreBodega: '', nombreDueno: '', dias: '30', telefono: '', planId: '', mostrarCatalogoMaestro: true, permitirSubirFotos: true });
       const [guardandoNuevaBodega, setGuardandoNuevaBodega] = useState(false);
 
       // --- Bodega & Cajeros ---
