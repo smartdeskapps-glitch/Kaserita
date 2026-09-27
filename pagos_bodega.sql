@@ -57,7 +57,7 @@ create or replace function public.admin_registrar_pago_bodega(
   p_bodega_id uuid,
   p_monto numeric,
   p_dias integer default 30,
-  p_plan_id uuid default null,
+  p_plan_id text default null,
   p_medio text default 'yape',
   p_nota text default null,
   p_fecha date default null
@@ -137,8 +137,8 @@ begin
 end;
 $$;
 
-revoke all on function public.admin_registrar_pago_bodega(uuid, numeric, integer, uuid, text, text, date) from public, anon;
-grant execute on function public.admin_registrar_pago_bodega(uuid, numeric, integer, uuid, text, text, date) to authenticated;
+revoke all on function public.admin_registrar_pago_bodega(uuid, numeric, integer, text, text, text, date) from public, anon;
+grant execute on function public.admin_registrar_pago_bodega(uuid, numeric, integer, text, text, text, date) to authenticated;
 
 -- ------------------------------------------------------------
 -- Anular un pago cargado por error: lo marca como anulado (queda en el
