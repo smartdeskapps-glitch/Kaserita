@@ -1013,8 +1013,35 @@ import './index.css';
             if (errPlan) avisoPlan = ' Ojo: no se pudo activar "Pedidos WhatsApp"; actívalo desde la fila de la bodega.';
           }
 
-          notificar(`Bodega creada${planElegido ? ` (${planElegido.nombre})` : ''}. El dueño entra con "Continuar con Google" usando ${correo}.${avisoPlan}`, avisoPlan ? 'error' : 'success');
-          setFormNuevaBodega({ correo: '', nombreBodega: '', nombreDueno: '', dias: '30', telefono: '', planId: '', mostrarCatalogoMaestro: true, permitirSubirFotos: true });
+          // Primer pago: se anota en el historial junto con la bodega, en vez
+          // de tener que abrir "Registrar pago" aparte apenas después de
+          // crearla. Los días de vigencia ya se sumaron arriba (p_dias en la
+          // creación), así que aquí va con p_dias: 0 -- solo deja constancia
+          // del cobro, no vuelve a mover el vencimiento.
+          let avisoPago = '';
+          const montoPrimerPago = Number(formNuevaBodega.monto);
+          if (planElegido && bodegaNuevaId && formNuevaBodega.monto !== '' && Number.isFinite(montoPrimerPago) && montoPrimerPago > 0) {
+            const { error: errPago } = await sbClient.rpc('admin_registrar_pago_bodega', {
+              p_bodega_id: bodegaNuevaId,
+              p_monto: montoPrimerPago,
+              p_dias: 0,
+              p_plan_id: planElegido.id,
+              p_medio: formNuevaBodega.medio || 'yape',
+              p_nota: 'Primer pago (alta de la bodega)',
+              p_fecha: null
+            });
+            if (errPago) {
+              avisoPago = /could not find the function/i.test(errPago.message || '')
+                ? ' Ojo: falta ejecutar pagos_bodega.sql para que quede el primer pago en el historial.'
+                : ' Ojo: no se pudo anotar el primer pago en el historial; regístralo a mano.';
+            } else {
+              cargarPagos();
+            }
+          }
+
+          const avisoTotal = `${avisoPlan}${avisoPago}`;
+          notificar(`Bodega creada${planElegido ? ` (${planElegido.nombre})` : ''}. El dueño entra con "Continuar con Google" usando ${correo}.${avisoTotal}`, avisoTotal ? 'error' : 'success');
+          setFormNuevaBodega({ correo: '', nombreBodega: '', nombreDueno: '', dias: '30', telefono: '', planId: '', monto: '', medio: 'yape', mostrarCatalogoMaestro: true, permitirSubirFotos: true });
           setModalNueva(false);
           cargarBodegas();
         } catch (err) {
@@ -2350,7 +2377,7 @@ import './index.css';
                   <label className="text-xs text-stone-600 block mb-1">Plan:</label>
                   <select
                     value={formNuevaBodega.planId || planPos?.id || planesAdmin[0].id}
-                    onChange={(e) => setFormNuevaBodega({ ...formNuevaBodega, planId: e.target.value })}
+                    onChange={(e) => setFormNuevaBodega({ ...formNuevaBodega, planId: e.target.value, monto: '' })}
                     className="w-full bg-stone-50 border border-stone-200 rounded-lg px-3 py-2 text-sm text-stone-900"
                   >
                     {[...planesAdmin].sort((a, b) => Number(a.precio_soles) - Number(b.precio_soles)).map((pl) => (
@@ -2371,6 +2398,39 @@ import './index.css';
                   })()}
                 </div>
               )}
+              {planesAdmin.length > 0 && (() => {
+                const pl = planesAdmin.find((x) => x.id === (formNuevaBodega.planId || planPos?.id || planesAdmin[0].id));
+                const sugerido = pl ? Number(pl.precio_soles_promo ?? pl.precio_soles).toFixed(2) : '';
+                return (
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="text-xs text-stone-600 block mb-1">Monto cobrado (S/, 0 si aún no paga):</label>
+                      <input
+                        type="number" min="0" step="0.01" inputMode="decimal"
+                        placeholder={sugerido}
+                        value={formNuevaBodega.monto !== '' ? formNuevaBodega.monto : sugerido}
+                        onChange={(e) => setFormNuevaBodega({ ...formNuevaBodega, monto: e.target.value })}
+                        className="w-full bg-stone-50 border border-stone-200 rounded-lg px-3 py-2 text-sm text-stone-900"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-xs text-stone-600 block mb-1">Medio de pago:</label>
+                      <select
+                        value={formNuevaBodega.medio}
+                        onChange={(e) => setFormNuevaBodega({ ...formNuevaBodega, medio: e.target.value })}
+                        className="w-full bg-stone-50 border border-stone-200 rounded-lg px-3 py-2 text-sm text-stone-900"
+                      >
+                        <option value="yape">Yape</option>
+                        <option value="plin">Plin</option>
+                        <option value="efectivo">Efectivo</option>
+                        <option value="transferencia">Transferencia</option>
+                        <option value="otro">Otro</option>
+                      </select>
+                    </div>
+                    <p className="col-span-2 text-[11px] text-stone-500 -mt-1">Este primer pago queda anotado en el "Historial de pagos" de la bodega.</p>
+                  </div>
+                );
+              })()}
               <label className="flex items-center gap-2 text-xs text-stone-600 cursor-pointer">
                 <input
                   type="checkbox"
@@ -2882,7 +2942,7 @@ import './index.css';
       const [cargandoAdminLogin, setCargandoAdminLogin] = useState(false);
       const [bodegasAdmin, setBodegasAdmin] = useState([]);
       const [cargandoBodegasAdmin, setCargandoBodegasAdmin] = useState(false);
-      const [formNuevaBodega, setFormNuevaBodega] = useState({ correo: '', nombreBodega: '', nombreDueno: '', dias: '30', telefono: '', planId: '', mostrarCatalogoMaestro: true, permitirSubirFotos: true });
+      const [formNuevaBodega, setFormNuevaBodega] = useState({ correo: '', nombreBodega: '', nombreDueno: '', dias: '30', telefono: '', planId: '', monto: '', medio: 'yape', mostrarCatalogoMaestro: true, permitirSubirFotos: true });
       const [guardandoNuevaBodega, setGuardandoNuevaBodega] = useState(false);
 
       // --- Bodega & Cajeros ---
