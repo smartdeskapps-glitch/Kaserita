@@ -1566,6 +1566,10 @@ import './index.css';
       const [menuFila, setMenuFila] = useState(null);
       const [gruposAbiertos, setGruposAbiertos] = useState({ venc: true, porv: true, nuevo: true, ok: false, off: false });
       const [planesAdmin, setPlanesAdmin] = useState([]);
+      const [modalCambioPlan, setModalCambioPlan] = useState(null);
+      const [planNuevoId, setPlanNuevoId] = useState('');
+      const [sumarPagoCambio, setSumarPagoCambio] = useState(false);
+      const [guardandoCambioPlan, setGuardandoCambioPlan] = useState(false);
 
       // El plan de cada bodega se deduce de si tiene "Pedidos WhatsApp"
       // (delivery_permitido): con eso, plan con catálogo; sin eso, solo POS.
@@ -1575,6 +1579,53 @@ import './index.css';
       const planPos = planesAdmin.find((pl) => !pl.permite_delivery) || null;
       const planCat = planesAdmin.find((pl) => pl.permite_delivery) || null;
       const planDe = (b) => (b.delivery_permitido ? planCat : planPos);
+
+      const abrirCambioPlan = (b) => {
+        setModalCambioPlan(b);
+        setPlanNuevoId((planDe(b) || planPos || planesAdmin[0])?.id || '');
+        setSumarPagoCambio(false);
+      };
+
+      // Cambio de plan: el plan con catálogo es "Pedidos WhatsApp"
+      // (delivery_permitido) prendido. Subir de plan lo prende y anota el
+      // primer pago del combo; bajar de plan lo apaga y también apaga el
+      // catálogo público. Opcionalmente registra el pago del nuevo plan.
+      const cambiarPlanBodega = async (e) => {
+        e.preventDefault();
+        const b = modalCambioPlan;
+        const nuevo = planesAdmin.find((pl) => pl.id === planNuevoId);
+        if (!b || !nuevo) return;
+        const cambia = !!nuevo.permite_delivery !== !!b.delivery_permitido;
+        const conPago = sumarPagoCambio && !!b.activa_hasta;
+        if (!cambia && !conPago) { setModalCambioPlan(null); return; }
+        setGuardandoCambioPlan(true);
+        try {
+          const payload = {};
+          if (cambia) {
+            payload.delivery_permitido = !!nuevo.permite_delivery;
+            if (!nuevo.permite_delivery) payload.delivery_habilitado = false;
+            else if (!b.combo_primer_pago_en) payload.combo_primer_pago_en = new Date().toISOString();
+          }
+          if (conPago) {
+            const base = b.activa_hasta > fechaHoyISO() ? new Date(`${b.activa_hasta}T00:00:00`) : new Date();
+            payload.activa_hasta = fechaISOLocal(new Date(base.getTime() + 30 * 86400000));
+            payload.activa = true;
+          }
+          let { error } = await sbClient.from('bodegas').update(payload).eq('id', b.id);
+          if (error && payload.combo_primer_pago_en) {
+            delete payload.combo_primer_pago_en;
+            ({ error } = await sbClient.from('bodegas').update(payload).eq('id', b.id));
+          }
+          if (error) throw error;
+          notificar(`${b.nombre} ahora tiene el plan ${nuevo.nombre}${conPago ? ' y se registró el pago (+30 días)' : ''}.`, 'success');
+          setModalCambioPlan(null);
+          cargarBodegas();
+        } catch (err) {
+          notificar(`No se pudo cambiar el plan: ${err.message}`, 'error');
+        } finally {
+          setGuardandoCambioPlan(false);
+        }
+      };
 
       const estadoDe = (b) => {
         if (b.dueno && !b.dueno.auth_id) return { k: 'nuevo', t: 'Aún no ingresa', pill: 'bg-sky-100 text-sky-700', dias: null };
@@ -1786,7 +1837,15 @@ import './index.css';
 
                               <div>
                                 {planesAdmin.length > 0 ? (
-                                  <span className="text-[11px] font-bold px-2.5 py-0.5 rounded-full bg-violet-100 text-violet-700">{b.delivery_permitido ? 'POS + Catálogo' : 'Punto de Venta'}</span>
+                                  <button
+                                    type="button"
+                                    onClick={() => abrirCambioPlan(b)}
+                                    title="Cambiar de plan"
+                                    className="text-[11px] font-bold px-2.5 py-0.5 rounded-full bg-violet-100 text-violet-700 hover:bg-violet-200 flex items-center gap-1.5"
+                                  >
+                                    {b.delivery_permitido ? 'POS + Catálogo' : 'Punto de Venta'}
+                                    <i className="fa-solid fa-arrows-up-down text-[9px]"></i>
+                                  </button>
                                 ) : (
                                   <span className="text-xs text-stone-400">—</span>
                                 )}
@@ -1829,6 +1888,7 @@ import './index.css';
                                     <div className="fixed inset-0 z-10" onClick={() => setMenuFila(null)}></div>
                                     <div role="menu" className="absolute right-0 top-full mt-1 z-20 w-56 bg-white border border-stone-200 rounded-xl shadow-xl p-1.5 text-xs font-semibold text-stone-700">
                                       {[
+                                        ['Cambiar plan', 'fa-arrows-up-down text-violet-600', () => abrirCambioPlan(b)],
                                         [b.activa ? 'Desactivar ahora' : 'Activar', b.activa ? 'fa-power-off text-rose-500' : 'fa-power-off text-emerald-600', () => alternarActiva(b)],
                                         ['+7 días de vigencia', 'fa-calendar-plus', () => extenderVigencia(b, 7)],
                                         ['+30 días de vigencia', 'fa-calendar-plus', () => extenderVigencia(b, 30)],
@@ -1863,6 +1923,77 @@ import './index.css';
                   </section>
                 );
               })
+            )}
+
+            {modalCambioPlan && (
+              <div className="fixed inset-0 z-40 bg-stone-900/50 flex items-center justify-center p-4" onClick={() => !guardandoCambioPlan && setModalCambioPlan(null)}>
+                <form onSubmit={cambiarPlanBodega} className="relative bg-white rounded-2xl shadow-2xl w-full max-w-md max-h-[92vh] overflow-y-auto p-5 space-y-3" onClick={(e) => e.stopPropagation()}>
+                  <button
+                    type="button"
+                    onClick={() => setModalCambioPlan(null)}
+                    aria-label="Cerrar"
+                    className="absolute top-3 right-3 w-8 h-8 flex items-center justify-center rounded-full text-stone-400 hover:bg-stone-100"
+                  >
+                    <i className="fa-solid fa-xmark"></i>
+                  </button>
+                  <h3 className="text-sm font-bold text-stone-900 flex items-center gap-2 pr-8">
+                    <i className="fa-solid fa-arrows-up-down text-violet-600"></i> Cambiar plan
+                  </h3>
+                  <p className="text-xs text-stone-500">
+                    {modalCambioPlan.nombre} · plan actual: <b className="text-stone-700">{modalCambioPlan.delivery_permitido ? 'POS + Catálogo' : 'Punto de Venta'}</b>
+                  </p>
+                  <div className="space-y-2">
+                    {[...planesAdmin].sort((a, b) => Number(a.precio_soles) - Number(b.precio_soles)).map((pl) => (
+                      <label key={pl.id} className={`flex items-start gap-3 p-3 rounded-xl border cursor-pointer ${planNuevoId === pl.id ? 'border-violet-500 bg-violet-50' : 'border-stone-200 hover:border-stone-300'}`}>
+                        <input type="radio" name="plan-nuevo" checked={planNuevoId === pl.id} onChange={() => setPlanNuevoId(pl.id)} className="mt-1 accent-violet-600" />
+                        <span className="flex-1 min-w-0">
+                          <span className="flex items-baseline justify-between gap-2">
+                            <span className="text-sm font-bold text-stone-900">{pl.nombre}</span>
+                            <span className="text-sm font-extrabold tabular-nums">S/ {Number(pl.precio_soles_promo ?? pl.precio_soles).toFixed(2)}<small className="text-[11px] font-medium text-stone-500"> /mes</small></span>
+                          </span>
+                          <span className="block text-[11px] text-stone-500 mt-0.5">
+                            {pl.precio_soles_promo != null ? `Promo en los primeros ${pl.meses_promo} pagos; después S/ ${Number(pl.precio_soles).toFixed(2)}. ` : ''}
+                            {pl.permite_delivery ? 'Incluye Pedidos por WhatsApp (KaseritaDelivery).' : 'Solo Punto de Venta.'}
+                          </span>
+                        </span>
+                      </label>
+                    ))}
+                  </div>
+                  {(() => {
+                    const nuevo = planesAdmin.find((pl) => pl.id === planNuevoId);
+                    if (!nuevo) return null;
+                    const sube = !!nuevo.permite_delivery && !modalCambioPlan.delivery_permitido;
+                    const baja = !nuevo.permite_delivery && !!modalCambioPlan.delivery_permitido;
+                    if (!sube && !baja) return <p className="text-[11px] text-stone-500 bg-stone-50 rounded-lg px-3 py-2">Es el mismo plan que ya tiene.</p>;
+                    return (
+                      <p className={`text-[11px] rounded-lg px-3 py-2 ${baja ? 'bg-amber-50 text-amber-800' : 'bg-violet-50 text-violet-800'}`}>
+                        {sube
+                          ? 'Se activa "Pedidos WhatsApp": la bodega podrá publicar su catálogo en KaseritaDelivery.'
+                          : 'Se apaga "Pedidos WhatsApp" y su catálogo público deja de mostrarse. Sus productos y ventas no se pierden.'}
+                      </p>
+                    );
+                  })()}
+                  <label className={`flex items-start gap-2 text-xs ${modalCambioPlan.activa_hasta ? 'text-stone-600 cursor-pointer' : 'text-stone-400'}`}>
+                    <input
+                      type="checkbox"
+                      disabled={!modalCambioPlan.activa_hasta}
+                      checked={sumarPagoCambio && !!modalCambioPlan.activa_hasta}
+                      onChange={(e) => setSumarPagoCambio(e.target.checked)}
+                      className="mt-0.5 rounded border-stone-300"
+                    />
+                    <span>
+                      Registrar también el pago del nuevo plan (+30 días de vigencia)
+                      {!modalCambioPlan.activa_hasta && <span className="block text-[11px]">Esta bodega no tiene vencimiento.</span>}
+                    </span>
+                  </label>
+                  <div className="flex justify-end gap-2 pt-1">
+                    <button type="button" onClick={() => setModalCambioPlan(null)} className="px-4 py-2 text-xs font-semibold rounded-lg bg-stone-100 text-stone-700 hover:bg-stone-200">Cancelar</button>
+                    <button type="submit" disabled={guardandoCambioPlan} className="px-4 py-2 text-xs font-bold rounded-lg bg-stone-900 text-white hover:bg-stone-800 disabled:opacity-60">
+                      {guardandoCambioPlan ? 'Guardando...' : 'Guardar cambio'}
+                    </button>
+                  </div>
+                </form>
+              </div>
             )}
 
             {modalNueva && (
