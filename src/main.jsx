@@ -2858,6 +2858,15 @@ import './index.css';
       const esModoDemo = bodegaId === BODEGA_DEMO_ID;
       const bodegaNombre = sesion?.bodega?.nombre || 'Mi Bodega';
       const usuarioActivo = sesion?.usuario || null;
+      // Identifica "esta es mi propia fila en cajeros": lo normal es
+      // comparar por DNI, pero un dueño creado por correo (sin DNI, entra con
+      // Google) no tiene ninguno -- para ese caso se lo reconoce por ser la
+      // única fila con rol "dueno" de la bodega (nunca debería haber dos).
+      // Sin esto, un dueño sin DNI queda sin forma de identificarse: se le
+      // crea un cajero duplicado en cada carga y, peor, nunca puede elegirse
+      // a sí mismo al abrir turno (le pediría un PIN que no tiene).
+      const esCajeroDelUsuarioActivo = (c) =>
+        usuarioActivo && (usuarioActivo.dni ? c.dni === usuarioActivo.dni : c.rol === (usuarioActivo.rol || 'dueno'));
       // Una bodega vencida (o desactivada a mano) sigue existiendo, pero
       // mi_bodega_id() en el servidor ya no la reconoce -- acá solo se usa
       // para mostrar la pantalla de aviso en vez de un catálogo vacío sin
@@ -3650,13 +3659,13 @@ import './index.css';
           // en 'cajeros' (puede pasar en bodegas antiguas, o si se perdió el
           // insert al crear la cuenta), se crea aquí mismo con su mismo rol,
           // para que nunca se quede sin su nivel de acceso real.
-          if (usuarioActivo && !cjs.some((c) => c.dni === usuarioActivo.dni)) {
+          if (usuarioActivo && !cjs.some(esCajeroDelUsuarioActivo)) {
             const { data: propio, error: errPropio } = await sbClient
               .from('cajeros')
               .insert([{
                 bodega_id: bodegaId,
                 nombre: usuarioActivo.nombre,
-                dni: usuarioActivo.dni,
+                dni: usuarioActivo.dni || null,
                 rol: usuarioActivo.rol || 'dueno',
                 activo: true
               }])
@@ -3675,7 +3684,7 @@ import './index.css';
           // dentro de la misma función.
           let resuelto = cajeroSeleccionado;
           if (cjs.length > 0 && !cajeroSeleccionado) {
-            const propio = cjs.find((c) => c.dni === usuarioActivo?.dni);
+            const propio = cjs.find(esCajeroDelUsuarioActivo);
             resuelto = propio || cjs[0];
             setCajeroSeleccionado(resuelto);
           }
@@ -4236,7 +4245,7 @@ import './index.css';
       // panel completo -- antes de aplicar ese cambio, se pide su PIN.
       const elegirCajeroTurno = (f) => {
         if (!f) return;
-        const esUnoMismo = usuarioActivo?.dni && f.dni === usuarioActivo.dni;
+        const esUnoMismo = esCajeroDelUsuarioActivo(f);
         const esElevado = f.rol === 'administrador' || f.rol === 'dueno';
         if (esElevado && !esUnoMismo) {
           setCajeroPendientePin(f);
