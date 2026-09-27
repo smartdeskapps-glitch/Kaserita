@@ -258,21 +258,23 @@ function App() {
           </div>
         </section>
 
-        <section className="sec">
-          <h2 className="sec-title">Preguntas frecuentes</h2>
-          <p className="sec-sub">Lo que más preguntan antes de empezar.</p>
-          <Faq />
-        </section>
+        <div className="cierre">
+          <section className="sec">
+            <h2 className="sec-title">Preguntas frecuentes</h2>
+            <p className="sec-sub">Lo que más preguntan antes de empezar.</p>
+            <Faq />
+          </section>
 
-        <section className="sec">
-          <div className="cta-banner">
-            <h3>¿List@ para activar tu negocio?</h3>
-            <p>Elige tu plan arriba y escríbenos: te respondemos por WhatsApp.</p>
-            <button type="button" className="cta" disabled={!planActual} onClick={continuarPorWhatsApp}>
-              <IconWhatsApp /> Continuar por WhatsApp
-            </button>
-          </div>
-        </section>
+          <section className="sec cierre-cta">
+            <div className="cta-banner">
+              <h3>¿List@ para activar tu negocio?</h3>
+              <p>Elige tu plan arriba y escríbenos: te respondemos por WhatsApp.</p>
+              <button type="button" className="cta" disabled={!planActual} onClick={continuarPorWhatsApp}>
+                <IconWhatsApp /> Continuar por WhatsApp
+              </button>
+            </div>
+          </section>
+        </div>
 
         {pie}
       </main>

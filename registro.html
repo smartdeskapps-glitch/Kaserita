@@ -215,8 +215,11 @@
     .benefit p { font-size: 13px; }
     .faq-q { font-size: 14.5px; padding: 17px 20px; }
     .faq-a p { font-size: 13.5px; padding: 0 20px 17px; }
-    .cta-banner { padding: 44px 28px; border-radius: 30px; }
-    .cta-banner h3 { font-size: 26px; }
+    .cierre { display: grid; grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr); gap: 48px; align-items: start; }
+    .cierre .faq { max-width: none; }
+    .cierre-cta { position: sticky; top: 24px; }
+    .cta-banner { padding: 40px 28px; border-radius: 30px; }
+    .cta-banner h3 { font-size: 26px; line-height: 1.15; text-wrap: balance; }
     .cta-banner p { font-size: 15px; }
   }
   @media (prefers-reduced-motion: reduce) {
