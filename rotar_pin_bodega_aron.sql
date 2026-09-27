@@ -5,51 +5,40 @@
 -- ese archivo ya se borró del repo, sigue en el historial de git, así
 -- que ese PIN debe darse por comprometido.
 --
--- Qué hace (todo en una transacción): genera un PIN nuevo DE 8 DÍGITOS
--- AL AZAR -- no queda escrito en este archivo, solo en el resultado
--- que ves al correrlo en el SQL Editor. Borra la cuenta de Auth vieja
--- de ese dueño (así la contraseña filtrada deja de servir para
--- cualquier cosa) y deja el PIN nuevo listo para que el dueño
--- "reclame" su cuenta en su próximo login -- exactamente lo mismo que
--- hace "Resetear PIN" del panel de administrador (admin_resetear_pin_bodega),
--- solo que este script no depende de una sesión de super-admin.
+-- Qué hace, en una sola sentencia (evita bloques DO / tablas
+-- temporales: el SQL Editor de Supabase a veces ejecuta cada
+-- sentencia en una conexión distinta, y una tabla temporal no
+-- sobrevive de una a la otra):
+--   1) Borra la cuenta de Auth vieja de ese dueño (así la contraseña
+--      filtrada, kst- + el PIN viejo, deja de abrir sesión).
+--   2) Le pone un PIN nuevo DE 8 DÍGITOS AL AZAR -- no queda escrito
+--      en este archivo, solo en el resultado que ves al correrlo.
+--   3) Deja auth_id en null, para que el dueño "reclame" su cuenta de
+--      nuevo en su próximo login, exactamente lo mismo que hace
+--      "Resetear PIN" en el panel de administrador.
 --
--- Ejecutar en el SQL Editor de Supabase. Después de correrlo, mira la
--- columna "pin_nuevo" del resultado y avísale al dueño por teléfono o
--- WhatsApp -- no lo pegues en un commit, en un archivo del repo ni en
--- ningún lugar que vaya a quedar guardado en texto plano.
+-- Ejecutar en el SQL Editor de Supabase. Si esa bodega ya no existe,
+-- no actualiza nada y el resultado sale vacío. Después de correrlo,
+-- mira la columna "pin_nuevo" del resultado y avísale al dueño por
+-- teléfono o WhatsApp -- no lo pegues en un commit, en un archivo del
+-- repo ni en ningún lugar que vaya a quedar guardado en texto plano.
 -- ============================================================
 
-do $$
-declare
-  v_usuario record;
-  v_pin text := lpad((random() * 99999999)::bigint::text, 8, '0');
-  v_email text;
-begin
-  select u.id, u.dni into v_usuario
-  from public.usuarios u
-  where u.dni = '49021764' and u.rol = 'dueno';
-
-  if v_usuario.id is null then
-    raise notice 'No se encontró ningún dueño con DNI 49021764 (puede que esa bodega ya no exista). Nada que rotar.';
-    return;
-  end if;
-
-  v_email := 'bodega_' || v_usuario.dni || '@kaserita.app';
-
-  -- Cierra la cuenta de Auth vieja: la contraseña filtrada (kst- + PIN viejo)
-  -- deja de abrir sesión desde este momento.
-  delete from auth.users where email = v_email;
-
-  update public.usuarios
-  set auth_id = null, pin_acceso = v_pin
-  where id = v_usuario.id;
-
-  drop table if exists _pin_rotado;
-  create temporary table _pin_rotado (pin_nuevo text);
-  insert into _pin_rotado values (v_pin);
-end $$;
-
-select pin_nuevo from _pin_rotado;
+with dueno as (
+  select id, dni
+  from public.usuarios
+  where dni = '49021764' and rol = 'dueno'
+),
+borrar_auth as (
+  delete from auth.users
+  where email = (select 'bodega_' || dni || '@kaserita.app' from dueno)
+  returning 1
+)
+update public.usuarios u
+set auth_id = null,
+    pin_acceso = lpad((random() * 99999999)::bigint::text, 8, '0')
+from dueno d
+where u.id = d.id
+returning u.dni, u.pin_acceso as pin_nuevo;
 
 NOTIFY pgrst, 'reload schema';
