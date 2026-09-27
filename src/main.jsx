@@ -1586,6 +1586,22 @@ import './index.css';
       useEffect(() => {
         sbClient.from('planes_kaserita').select('*').eq('activo', true).then(({ data }) => setPlanesAdmin(data || []));
       }, [sbClient]);
+
+      // ---- Visitas a la landing y a /registro (ver analitica_eventos.sql) ----
+      const [analitica, setAnalitica] = useState(null); // null = aún no se sabe si el SQL está corrido
+      useEffect(() => {
+        sbClient.rpc('admin_resumen_analitica', { p_dias: 30 }).then(({ data, error }) => {
+          if (error) { console.warn('[admin] admin_resumen_analitica:', error.message); setAnalitica(false); return; }
+          setAnalitica(data || []);
+        });
+      }, [sbClient]);
+      const sumaAnalitica = (pagina, evento, dias) => {
+        if (!Array.isArray(analitica)) return 0;
+        const desde = fechaISOLocal(new Date(Date.now() - dias * 86400000));
+        return analitica
+          .filter((f) => f.pagina === pagina && f.evento === evento && f.fecha >= desde)
+          .reduce((acc, f) => acc + Number(f.total), 0);
+      };
       const planPos = planesAdmin.find((pl) => !pl.permite_delivery) || null;
       const planCat = planesAdmin.find((pl) => pl.permite_delivery) || null;
       const planDe = (b) => (b.delivery_permitido ? planCat : planPos);
@@ -1851,6 +1867,25 @@ import './index.css';
                 <span className="block text-2xl font-black tabular-nums text-stone-900">{planPos || planCat ? `S/ ${porCobrarTotal.toFixed(2)}` : '—'}</span>
               </div>
             </div>
+
+            {analitica !== false && (
+              <div className="bg-white border border-stone-200 rounded-xl px-4 py-3 flex flex-wrap items-center gap-x-6 gap-y-2">
+                <h3 className="text-xs font-bold text-stone-900 flex items-center gap-1.5 shrink-0">
+                  <i className="fa-solid fa-chart-line text-violet-600"></i> Visitas (últimos 7 / 30 días)
+                </h3>
+                {[
+                  ['Vio la landing', 'inicio', 'vista'],
+                  ['Tocó "Crear mi cuenta"', 'inicio', 'click_crear_cuenta'],
+                  ['Vio /registro', 'registro', 'vista'],
+                  ['Tocó "Continuar por WhatsApp"', 'registro', 'click_whatsapp']
+                ].map(([etiqueta, pagina, evento]) => (
+                  <span key={etiqueta} className="text-xs text-stone-600">
+                    {etiqueta}: <b className="text-stone-900 tabular-nums">{sumaAnalitica(pagina, evento, 7)}</b>
+                    <span className="text-stone-400"> / {sumaAnalitica(pagina, evento, 30)}</span>
+                  </span>
+                ))}
+              </div>
+            )}
 
             <div className="flex flex-wrap items-center gap-2">
               <div className="relative flex-1 min-w-[220px]">

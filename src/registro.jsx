@@ -61,11 +61,22 @@ function Faq() {
   );
 }
 
+// Conteo anónimo de visitas a /registro y del clic en "Continuar por
+// WhatsApp" (ver analitica_eventos.sql). No identifica a nadie: cada
+// llamada es solo "se abrió esta página" o "se tocó este botón, con este
+// plan", sin nada que junte dos visitas de la misma persona. Si falla
+// (bloqueador de anuncios, sin red) no afecta el registro.
+const anotarEvento = (evento, dato) => {
+  sbClient.from('analitica_eventos').insert([{ pagina: 'registro', evento, dato: dato || null }]).then(() => {}, () => {});
+};
+
 function App() {
   const [paso, setPaso] = useState('cargando'); // cargando | plan | ya-tiene
   const [sesionGoogle, setSesionGoogle] = useState(null);
   const [planes, setPlanes] = useState([]);
   const [planElegido, setPlanElegido] = useState(null);
+
+  useEffect(() => { anotarEvento('vista'); }, []);
 
   useEffect(() => {
     sbClient.from('planes_kaserita').select('*').eq('activo', true).order('precio_soles').then(({ data }) => {
@@ -98,6 +109,7 @@ function App() {
   // Abre WhatsApp con el plan elegido y el precio de la promo (si tiene).
   const continuarPorWhatsApp = () => {
     if (!planActual) return;
+    anotarEvento('click_whatsapp', planActual.nombre);
     const lineas = ['Hola, quiero crear mi cuenta en Kaserita.', `Plan: ${planActual.nombre}`];
     if (planActual.precio_soles_promo != null) {
       lineas.push(`Promo: ${dinero(precioHoy(planActual))} al mes en mis primeros ${planActual.meses_promo} pagos (después ${dinero(planActual.precio_soles)}).`);
