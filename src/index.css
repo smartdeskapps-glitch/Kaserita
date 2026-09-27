@@ -118,12 +118,47 @@
 @keyframes escaner-linea { to { top: 80%; } }
 @media (prefers-reduced-motion: reduce) { .escaner-linea { animation: none; } }
 
-/* Fondo del catálogo del POS (violeta de marca): el mismo grano SVG del
-   botón "Abrir Turno" (arriba, .btn-noise), pero fijo -- sin el giro de
-   color -- y a la intensidad "fuerte" (0.5). isolation:isolate + z-index
-   negativo lo dejan detrás de todo el contenido real (header, tarjetas,
-   carrito), igual que en el botón: solo se ve en los huecos del fondo. */
+/* Fondo del catálogo del POS: "aurora violeta". Tres masas de color muy
+   difuminadas y fijas (.aurora-*, insertadas como hijos reales en main.jsx,
+   justo después de este div) más una cuadrícula técnica sutil que se
+   desvanece hacia arriba-izquierda, y encima el mismo grano SVG del botón
+   "Abrir Turno" (.btn-noise), aquí fijo -- sin su giro de color -- y a
+   intensidad media (0.42). isolation:isolate + z-index negativo dejan las
+   tres capas detrás de todo el contenido real (header, tarjetas, carrito):
+   solo se ven en los huecos del fondo, igual que en el botón. */
 .fondo-pos-grano { isolation: isolate; }
+.aurora-pos {
+  position: absolute;
+  inset: -15%;
+  z-index: -3;
+  filter: blur(46px);
+  pointer-events: none;
+}
+.aurora-mancha { position: absolute; border-radius: 9999px; }
+.aurora-mancha-1 {
+  width: 60%; aspect-ratio: 1; left: -6%; top: -16%;
+  background: radial-gradient(circle, #C2C1EC 0%, rgba(194, 193, 236, 0) 68%);
+}
+.aurora-mancha-2 {
+  width: 52%; aspect-ratio: 1; right: -10%; top: -4%;
+  background: radial-gradient(circle, #AEBBF6 0%, rgba(174, 187, 246, 0) 68%);
+}
+.aurora-mancha-3 {
+  width: 58%; aspect-ratio: 1; left: 20%; bottom: -26%; opacity: 0.55;
+  background: radial-gradient(circle, #8E62E3 0%, rgba(142, 98, 227, 0) 70%);
+}
+.aurora-grid {
+  position: absolute;
+  inset: 0;
+  z-index: -2;
+  pointer-events: none;
+  background-image:
+    linear-gradient(rgba(97, 5, 220, 0.05) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(97, 5, 220, 0.05) 1px, transparent 1px);
+  background-size: 34px 34px;
+  mask-image: radial-gradient(ellipse at 20% 0%, #000 0%, transparent 72%);
+  -webkit-mask-image: radial-gradient(ellipse at 20% 0%, #000 0%, transparent 72%);
+}
 .fondo-pos-grano::after {
   content: "";
   position: absolute;
@@ -131,7 +166,7 @@
   z-index: -1;
   pointer-events: none;
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 .9 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
-  opacity: 0.5;
+  opacity: 0.42;
   mix-blend-mode: soft-light;
 }
 

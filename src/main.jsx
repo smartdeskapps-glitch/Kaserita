@@ -9857,8 +9857,19 @@ import './index.css';
       return (
         <div
           className={`relative fondo-pos-grano flex h-screen text-stone-900 font-sans select-none overflow-hidden ${(!enLinea || ventasPendientesSync.length > 0) ? 'pt-7' : ''}`}
-          style={{ background: 'radial-gradient(circle at 12% 8%, #E7DCFB 0%, transparent 42%), radial-gradient(circle at 48% 6%, #E3E0F9 0%, transparent 45%), radial-gradient(circle at 88% 10%, #EAD9F9 0%, transparent 45%), #F5F2FC' }}
+          style={{ background: '#F8F6FD' }}
         >
+          {/* Fondo "aurora violeta": tres masas de color muy difuminadas (fijas,
+              sin animación) + una cuadrícula técnica sutil que se desvanece
+              hacia el centro. El grano de siempre (.fondo-pos-grano::after) va
+              encima de todo esto. Decorativo -- aria-hidden y sin clics. */}
+          <div className="aurora-pos" aria-hidden="true">
+            <div className="aurora-mancha aurora-mancha-1"></div>
+            <div className="aurora-mancha aurora-mancha-2"></div>
+            <div className="aurora-mancha aurora-mancha-3"></div>
+          </div>
+          <div className="aurora-grid" aria-hidden="true"></div>
+
           {/* Toast */}
           {toast.visible && (
             <div className={`fixed top-[4.75rem] inset-x-4 md:top-4 md:inset-x-auto md:right-4 md:max-w-xs z-[100] pointer-events-none flex items-center gap-2.5 px-4 py-3 rounded-xl shadow-xl border-l-4 bg-white text-xs font-semibold ${toast.tipo === 'error' ? 'border-rose-500 text-rose-700' : 'border-emerald-500 text-emerald-700'}`}>
