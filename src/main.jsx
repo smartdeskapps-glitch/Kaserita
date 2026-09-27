@@ -829,6 +829,28 @@ import './index.css';
       );
     }
 
+    // Interruptor compacto para las filas del panel de administrador: la
+    // etiqueta va arriba y el interruptor abajo, para que tres de ellos
+    // quepan en una sola columna de la tabla.
+    function MiniInterruptor({ activo, onClick, etiqueta, title }) {
+      return (
+        <button
+          type="button"
+          onClick={onClick}
+          title={title}
+          role="switch"
+          aria-checked={!!activo}
+          aria-label={etiqueta}
+          className="flex flex-col items-center gap-1 text-[10px] font-semibold text-stone-500"
+        >
+          <span>{etiqueta}</span>
+          <span className={`relative inline-flex h-4 w-7 shrink-0 items-center rounded-full transition-colors ${activo ? 'bg-violet-600' : 'bg-stone-300'}`}>
+            <span className={`inline-block h-3 w-3 transform rounded-full bg-white transition-transform ${activo ? 'translate-x-3.5' : 'translate-x-0.5'}`} />
+          </span>
+        </button>
+      );
+    }
+
     // Tarjeta de producto de la grilla principal, memoizada: como el catálogo
     // puede tener cientos de tarjetas, sin esto cualquier cambio de estado en
     // PosApp (escribir en el buscador, tocar el carrito, un aviso, etc.)
@@ -983,6 +1005,7 @@ import './index.css';
 
           notificar(`Bodega creada. El dueño entra con "Continuar con Google" usando ${correo}.`, 'success');
           setFormNuevaBodega({ correo: '', nombreBodega: '', nombreDueno: '', dias: '30', telefono: '', mostrarCatalogoMaestro: true, permitirSubirFotos: true });
+          setModalNueva(false);
           cargarBodegas();
         } catch (err) {
           notificar(`No se pudo crear la bodega: ${err.message}`, 'error');
@@ -1086,6 +1109,25 @@ import './index.css';
           cargarBodegas();
         } catch (err) {
           notificar(`No se pudo actualizar: ${err.message}`, 'error');
+        }
+      };
+
+      // "Registrar pago": suma 30 días desde el vencimiento (o desde hoy si ya
+      // venció) y deja la bodega activa. Todavía no guarda un historial de pagos.
+      const registrarPagoBodega = async (bodega) => {
+        if (!bodega.activa_hasta) {
+          notificar(`${bodega.nombre} no tiene vencimiento, no hace falta registrar un pago.`, 'info');
+          return;
+        }
+        try {
+          const base = bodega.activa_hasta > fechaHoyISO() ? new Date(`${bodega.activa_hasta}T00:00:00`) : new Date();
+          const nueva = fechaISOLocal(new Date(base.getTime() + 30 * 86400000));
+          const { error } = await sbClient.from('bodegas').update({ activa_hasta: nueva, activa: true }).eq('id', bodega.id);
+          if (error) throw error;
+          notificar(`Pago registrado: ${bodega.nombre} vence el ${new Date(`${nueva}T00:00:00`).toLocaleDateString('es-PE')}.`, 'success');
+          cargarBodegas();
+        } catch (err) {
+          notificar(`No se pudo registrar el pago: ${err.message}`, 'error');
         }
       };
 
@@ -1506,6 +1548,80 @@ import './index.css';
         }
       };
 
+      // ==========================================
+      // VISTA "BODEGAS": agrupada por urgencia (vencidas, por vencer, sin
+      // ingresar, al día, desactivadas) para ver qué cobrar primero.
+      // ==========================================
+      const [modalNueva, setModalNueva] = useState(false);
+      const [menuFila, setMenuFila] = useState(null);
+      const [gruposAbiertos, setGruposAbiertos] = useState({ venc: true, porv: true, nuevo: true, ok: false, off: false });
+      const [planesAdmin, setPlanesAdmin] = useState([]);
+
+      // El plan de cada bodega se deduce de si tiene "Pedidos WhatsApp"
+      // (delivery_permitido): con eso, plan con catálogo; sin eso, solo POS.
+      useEffect(() => {
+        sbClient.from('planes_kaserita').select('*').eq('activo', true).then(({ data }) => setPlanesAdmin(data || []));
+      }, [sbClient]);
+      const planPos = planesAdmin.find((pl) => !pl.permite_delivery) || null;
+      const planCat = planesAdmin.find((pl) => pl.permite_delivery) || null;
+      const planDe = (b) => (b.delivery_permitido ? planCat : planPos);
+
+      const estadoDe = (b) => {
+        if (b.dueno && !b.dueno.auth_id) return { k: 'nuevo', t: 'Aún no ingresa', pill: 'bg-sky-100 text-sky-700', dias: null };
+        if (b.activa === false) return { k: 'off', t: 'Desactivada', pill: 'bg-stone-200 text-stone-600', dias: null };
+        if (!b.activa_hasta) return { k: 'ok', t: 'Sin vencimiento', pill: 'bg-emerald-100 text-emerald-700', dias: null };
+        const dias = Math.round((new Date(`${b.activa_hasta}T00:00:00`) - new Date(`${fechaHoyISO()}T00:00:00`)) / 86400000);
+        if (dias < 0) return { k: 'venc', t: `Vencida hace ${-dias} d`, pill: 'bg-rose-100 text-rose-700', dias };
+        if (dias === 0) return { k: 'porv', t: 'Vence hoy', pill: 'bg-amber-100 text-amber-700', dias };
+        if (dias <= 7) return { k: 'porv', t: `Vence en ${dias} d`, pill: 'bg-amber-100 text-amber-700', dias };
+        return { k: 'ok', t: `Al día · ${dias} d`, pill: 'bg-emerald-100 text-emerald-700', dias };
+      };
+      const iniciales = (nombre) => (nombre || '?').split(/\s+/).slice(0, 2).map((x) => x[0] || '').join('').toUpperCase();
+      const precioPlan = (b) => Number(planDe(b)?.precio_soles) || 0;
+
+      const GRUPOS_ADMIN = [
+        { k: 'venc', titulo: 'Vencidas', pill: 'bg-rose-100 text-rose-700' },
+        { k: 'porv', titulo: 'Vencen en 7 días', pill: 'bg-amber-100 text-amber-700' },
+        { k: 'nuevo', titulo: 'Aún no ingresan', pill: 'bg-sky-100 text-sky-700' },
+        { k: 'ok', titulo: 'Al día', pill: 'bg-emerald-100 text-emerald-700' },
+        { k: 'off', titulo: 'Desactivadas', pill: 'bg-stone-200 text-stone-600' }
+      ];
+      const enBusqueda = busquedaBodegas.trim() !== '';
+      const datosGrupos = GRUPOS_ADMIN.map((g) => {
+        const items = bodegasFiltradas
+          .map((b) => ({ b, e: estadoDe(b) }))
+          .filter((x) => x.e.k === g.k)
+          .sort((x, y) => (x.e.dias ?? 9999) - (y.e.dias ?? 9999));
+        const monto = g.k === 'venc' || g.k === 'porv' ? items.reduce((acc, x) => acc + precioPlan(x.b), 0) : 0;
+        return { ...g, items, monto };
+      });
+      const kpiCuenta = (k) => bodegasAdmin.filter((b) => estadoDe(b).k === k).length;
+      const porCobrarTotal = bodegasAdmin
+        .filter((b) => ['venc', 'porv'].includes(estadoDe(b).k))
+        .reduce((acc, b) => acc + precioPlan(b), 0);
+      const irAGrupo = (k) => {
+        setGruposAbiertos((prev) => ({ ...prev, [k]: true }));
+        setTimeout(() => document.getElementById(`grupo-${k}`)?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 60);
+      };
+
+      // Recordatorio por WhatsApp: si la bodega vence o ya venció, el mensaje
+      // ya sale escrito con el plan y el precio; si no, abre el chat vacío.
+      const escribirAlDueno = (b, e) => {
+        const soloNumeros = (b.dueno?.telefono || '').replace(/\D/g, '');
+        if (!soloNumeros) return;
+        const telConCodigo = soloNumeros.length === 9 ? `51${soloNumeros}` : soloNumeros;
+        let url = `https://wa.me/${telConCodigo}`;
+        if (e.k === 'venc' || e.k === 'porv') {
+          const cuando = e.dias < 0 ? `venció hace ${-e.dias} días` : e.dias === 0 ? 'vence hoy' : `vence en ${e.dias} días`;
+          const plan = planDe(b);
+          const nombre = (b.dueno?.nombre || '').split(' ')[0];
+          const texto = `Hola ${nombre}, te escribimos de Kaserita. La suscripción de ${b.nombre} ${cuando}.` +
+            (plan ? `\nSi quieres seguir con tu plan ${plan.nombre} (S/ ${Number(plan.precio_soles).toFixed(2)} al mes), puedes yapear y avisarnos por aquí. ¡Gracias!` : '\nSi quieres seguir, puedes yapear y avisarnos por aquí. ¡Gracias!');
+          url += `?text=${encodeURIComponent(texto)}`;
+        }
+        window.open(url, '_blank', 'noopener,noreferrer');
+      };
+
       return (
         <div className="h-screen bg-stone-50 flex flex-col overflow-hidden">
           {toast.visible && (
@@ -1556,8 +1672,201 @@ import './index.css';
 
           <div className="flex-1 overflow-y-auto bg-stone-100">
           {vistaAdmin === 'bodegas' && (
-          <div className="max-w-3xl mx-auto p-4 md:p-6 space-y-6">
-            <form onSubmit={crearBodega} className="bg-white border border-stone-200 rounded-2xl p-5 space-y-3">
+          <div className="max-w-6xl mx-auto p-4 md:p-6 space-y-4">
+            <div className="grid grid-cols-2 md:grid-cols-5 gap-2.5">
+              {[
+                ['ok', 'Al día', 'text-stone-900'],
+                ['porv', 'Vencen en 7 días', 'text-amber-600'],
+                ['venc', 'Vencidas', 'text-rose-600'],
+                ['nuevo', 'Aún no ingresan', 'text-sky-600']
+              ].map(([k, etiqueta, color]) => (
+                <button key={k} type="button" onClick={() => irAGrupo(k)} className="text-left bg-white border border-stone-200 hover:border-violet-300 rounded-xl px-3.5 py-3 transition">
+                  <span className="block text-[11px] font-semibold text-stone-500">{etiqueta}</span>
+                  <span className={`block text-2xl font-black tabular-nums ${color}`}>{kpiCuenta(k)}</span>
+                </button>
+              ))}
+              <div className="col-span-2 md:col-span-1 bg-white border border-stone-200 rounded-xl px-3.5 py-3" title="Suma del precio regular del plan de cada bodega vencida o por vencer. Es un estimado: no considera promociones.">
+                <span className="block text-[11px] font-semibold text-stone-500">Por cobrar (aprox.)</span>
+                <span className="block text-2xl font-black tabular-nums text-stone-900">{planPos || planCat ? `S/ ${porCobrarTotal.toFixed(2)}` : '—'}</span>
+              </div>
+            </div>
+
+            <div className="flex flex-wrap items-center gap-2">
+              <div className="relative flex-1 min-w-[220px]">
+                <i className="fa-solid fa-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-stone-400 text-xs"></i>
+                <input
+                  type="text"
+                  value={busquedaBodegas}
+                  onChange={(e) => setBusquedaBodegas(e.target.value)}
+                  placeholder="Buscar por bodega, dueño o correo..."
+                  aria-label="Buscar bodega"
+                  className="w-full pl-8 pr-3 py-2.5 text-sm bg-white border border-stone-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-violet-200"
+                />
+              </div>
+              <button
+                onClick={cargarConsumoFotos}
+                disabled={cargandoConsumoFotos || bodegasAdmin.length === 0}
+                className="text-xs font-semibold px-3 py-2.5 rounded-xl bg-violet-50 text-violet-700 hover:bg-violet-100 disabled:opacity-60 flex items-center gap-1.5"
+              >
+                <i className="fa-solid fa-images text-[10px]"></i>
+                {cargandoConsumoFotos ? 'Calculando...' : 'Ver consumo de fotos'}
+              </button>
+              <button
+                onClick={() => setModalNueva(true)}
+                className="text-sm font-bold px-4 py-2.5 rounded-xl bg-stone-900 hover:bg-stone-800 text-white flex items-center gap-2"
+              >
+                <i className="fa-solid fa-plus text-xs"></i> Nueva bodega
+              </button>
+            </div>
+
+            {cargandoBodegasAdmin ? (
+              <p className="text-xs text-stone-500 text-center py-6">Cargando...</p>
+            ) : bodegasAdmin.length === 0 ? (
+              <p className="text-xs text-stone-500 text-center py-6">Todavía no creaste ninguna bodega.</p>
+            ) : bodegasFiltradas.length === 0 ? (
+              <p className="text-xs text-stone-500 text-center py-6">Ninguna bodega coincide con "{busquedaBodegas}".</p>
+            ) : (
+              datosGrupos.filter((g) => g.items.length > 0).map((g) => {
+                const abierto = enBusqueda || gruposAbiertos[g.k];
+                return (
+                  <section key={g.k} id={`grupo-${g.k}`} className="bg-white border border-stone-200 rounded-2xl scroll-mt-3">
+                    <div className={`flex items-center gap-2.5 px-4 py-2.5 bg-stone-50 flex-wrap rounded-t-2xl ${abierto ? 'border-b border-stone-200' : 'rounded-b-2xl'}`}>
+                      <button
+                        type="button"
+                        onClick={() => setGruposAbiertos((prev) => ({ ...prev, [g.k]: !prev[g.k] }))}
+                        aria-expanded={abierto}
+                        className="flex items-center gap-2"
+                      >
+                        <i className={`fa-solid fa-chevron-down text-[10px] text-stone-400 transition-transform ${abierto ? '' : '-rotate-90'}`}></i>
+                        <span className={`text-[11px] font-bold px-2.5 py-1 rounded-full ${g.pill}`}>{g.titulo}</span>
+                        <span className="text-xs text-stone-500">{g.items.length} {g.items.length === 1 ? 'bodega' : 'bodegas'}</span>
+                      </button>
+                      <span className="flex-1"></span>
+                      {g.monto > 0 && <span className="text-xs font-extrabold tabular-nums text-stone-700">S/ {g.monto.toFixed(2)} por cobrar</span>}
+                    </div>
+
+                    {abierto && (
+                      <div>
+                        <div className="hidden md:grid md:grid-cols-[minmax(0,1.7fr)_minmax(0,1.1fr)_minmax(0,0.8fr)_150px_auto] gap-x-4 px-4 py-1.5 text-[10px] font-bold uppercase tracking-wider text-stone-400">
+                          <span>Bodega</span><span>Vigencia</span><span>Plan</span><span className="text-center">Módulos</span><span className="w-[132px]"></span>
+                        </div>
+                        {g.items.map(({ b, e }) => {
+                          const pct = e.dias === null ? 100 : Math.max(0, Math.min(100, (e.dias / 30) * 100));
+                          const colorBarra = e.k === 'venc' ? 'bg-rose-500' : e.k === 'porv' ? 'bg-amber-500' : e.k === 'ok' ? 'bg-emerald-500' : 'bg-stone-300';
+                          const urgente = e.k === 'venc' || e.k === 'porv';
+                          return (
+                            <div key={b.id} className="grid grid-cols-1 md:grid-cols-[minmax(0,1.7fr)_minmax(0,1.1fr)_minmax(0,0.8fr)_150px_auto] gap-x-4 gap-y-2.5 items-center px-4 py-3 border-t border-stone-100">
+                              <div className="flex items-center gap-3 min-w-0">
+                                <span className="w-9 h-9 rounded-xl bg-violet-100 text-violet-700 flex items-center justify-center text-xs font-black shrink-0">{iniciales(b.nombre)}</span>
+                                <div className="min-w-0">
+                                  <p className="text-sm font-bold text-stone-900 truncate">{b.nombre}</p>
+                                  <p className="text-xs text-stone-500 truncate">
+                                    {b.dueno ? `${b.dueno.nombre} · ${b.dueno.email || `DNI ${b.dueno.dni}`}` : 'Sin dueño registrado'}
+                                    {consumoFotos[b.id] && ` · ${consumoFotos[b.id].archivos} fotos (${formatearBytes(consumoFotos[b.id].bytes)})`}
+                                  </p>
+                                </div>
+                              </div>
+
+                              <div title={b.activa_hasta ? `Vigencia hasta el ${new Date(`${b.activa_hasta}T00:00:00`).toLocaleDateString('es-PE')}` : 'Sin vencimiento'}>
+                                <span className={`inline-block text-[11px] font-bold px-2.5 py-0.5 rounded-full ${e.pill}`}>{e.t}</span>
+                                <div className="h-1.5 w-28 rounded-full bg-stone-100 overflow-hidden mt-1.5">
+                                  <div className={`h-full rounded-full ${colorBarra}`} style={{ width: `${pct}%` }}></div>
+                                </div>
+                              </div>
+
+                              <div>
+                                {planesAdmin.length > 0 ? (
+                                  <span className="text-[11px] font-bold px-2.5 py-0.5 rounded-full bg-violet-100 text-violet-700">{b.delivery_permitido ? 'POS + Catálogo' : 'Punto de Venta'}</span>
+                                ) : (
+                                  <span className="text-xs text-stone-400">—</span>
+                                )}
+                              </div>
+
+                              <div className="flex items-center gap-3 md:justify-center">
+                                <MiniInterruptor activo={b.mostrar_catalogo_maestro} onClick={() => alternarCatalogoMaestroBodega(b)} etiqueta="Maestro" title="Mostrar/ocultar el Catálogo Maestro en esta bodega" />
+                                <MiniInterruptor activo={b.permitir_subir_fotos} onClick={() => alternarSubirFotosBodega(b)} etiqueta="Fotos" title="Permitir/bloquear que esta bodega suba fotos de sus productos" />
+                                <MiniInterruptor activo={b.delivery_permitido} onClick={() => alternarDeliveryPermitidoBodega(b)} etiqueta="Pedidos" title="Habilitar/deshabilitar Pedidos por WhatsApp (KaseritaDelivery) para esta bodega -- función paga aparte del plan base" />
+                              </div>
+
+                              <div className="flex items-center gap-1.5 justify-end relative">
+                                <button
+                                  onClick={() => registrarPagoBodega(b)}
+                                  title="Suma 30 días de vigencia y deja la bodega activa"
+                                  className={`text-xs font-semibold px-2.5 py-1.5 rounded-lg flex items-center gap-1.5 ${urgente ? 'bg-violet-600 text-white hover:bg-violet-700' : 'bg-stone-100 text-stone-700 hover:bg-stone-200'}`}
+                                >
+                                  <i className="fa-solid fa-mobile-screen text-[10px]"></i> Pago
+                                </button>
+                                {b.dueno && b.dueno.telefono && (
+                                  <button
+                                    onClick={() => escribirAlDueno(b, e)}
+                                    title={urgente ? `Recordar el pago a ${b.dueno.nombre} por WhatsApp` : `Escribir a ${b.dueno.nombre} por WhatsApp`}
+                                    aria-label="WhatsApp"
+                                    className="w-8 h-8 flex items-center justify-center bg-emerald-50 hover:bg-emerald-100 text-emerald-600 rounded-lg"
+                                  >
+                                    <i className="fa-brands fa-whatsapp text-sm"></i>
+                                  </button>
+                                )}
+                                <button
+                                  onClick={() => setMenuFila(menuFila === b.id ? null : b.id)}
+                                  aria-haspopup="menu"
+                                  aria-label="Más acciones"
+                                  className="w-8 h-8 flex items-center justify-center bg-stone-100 hover:bg-stone-200 text-stone-600 rounded-lg"
+                                >
+                                  <i className="fa-solid fa-ellipsis text-sm"></i>
+                                </button>
+                                {menuFila === b.id && (
+                                  <>
+                                    <div className="fixed inset-0 z-10" onClick={() => setMenuFila(null)}></div>
+                                    <div role="menu" className="absolute right-0 top-full mt-1 z-20 w-56 bg-white border border-stone-200 rounded-xl shadow-xl p-1.5 text-xs font-semibold text-stone-700">
+                                      {[
+                                        [b.activa ? 'Desactivar ahora' : 'Activar', b.activa ? 'fa-power-off text-rose-500' : 'fa-power-off text-emerald-600', () => alternarActiva(b)],
+                                        ['+7 días de vigencia', 'fa-calendar-plus', () => extenderVigencia(b, 7)],
+                                        ['+30 días de vigencia', 'fa-calendar-plus', () => extenderVigencia(b, 30)],
+                                        ...(b.activa_hasta ? [['Quitar vencimiento', 'fa-infinity', () => quitarVencimiento(b)]] : []),
+                                        null,
+                                        [generandoBackupId === b.id ? 'Generando backup...' : 'Backup', 'fa-download text-sky-600', () => descargarBackupBodega(b)],
+                                        ...(b.dueno ? [['Editar teléfono', 'fa-pen', () => { setModalEditarBodega(b); setTelefonoEditar(b.dueno.telefono || ''); }]] : []),
+                                        ...(b.dueno && b.dueno.dni ? [['Resetear PIN', 'fa-key text-violet-600', () => { setModalResetearPin(b); setNuevoPinReset(''); }]] : []),
+                                        null,
+                                        ['Eliminar tienda', 'fa-trash text-rose-600', () => { setModalEliminarBodega(b); setTextoConfirmarEliminar(''); }]
+                                      ].map((it, i) => it === null ? (
+                                        <div key={`sep-${i}`} className="my-1 border-t border-stone-100"></div>
+                                      ) : (
+                                        <button
+                                          key={it[0]}
+                                          role="menuitem"
+                                          onClick={() => { setMenuFila(null); it[2](); }}
+                                          className={`w-full text-left px-2.5 py-2 rounded-lg hover:bg-stone-50 flex items-center gap-2.5 ${it[0] === 'Eliminar tienda' ? 'text-rose-600' : ''}`}
+                                        >
+                                          <i className={`fa-solid ${it[1]} w-4 text-center text-[11px] ${it[1].includes('text-') ? '' : 'text-stone-400'}`}></i> {it[0]}
+                                        </button>
+                                      ))}
+                                    </div>
+                                  </>
+                                )}
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </section>
+                );
+              })
+            )}
+
+            {modalNueva && (
+              <div className="fixed inset-0 z-40 bg-stone-900/50 flex items-center justify-center p-4" onClick={() => !guardandoNuevaBodega && setModalNueva(false)}>
+                <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-xl max-h-[92vh] overflow-y-auto p-5" onClick={(e) => e.stopPropagation()}>
+                  <button
+                    type="button"
+                    onClick={() => setModalNueva(false)}
+                    aria-label="Cerrar"
+                    className="absolute top-3 right-3 w-8 h-8 flex items-center justify-center rounded-full text-stone-400 hover:bg-stone-100"
+                  >
+                    <i className="fa-solid fa-xmark"></i>
+                  </button>
+            <form onSubmit={crearBodega} className="space-y-3">
               <h2 className="text-sm font-bold text-stone-900 flex items-center gap-2">
                 <i className="fa-solid fa-store text-orange-600"></i> Nueva Bodega
               </h2>
@@ -1634,150 +1943,9 @@ import './index.css';
                 {guardandoNuevaBodega ? 'Creando...' : 'Crear Bodega'}
               </button>
             </form>
-
-            <div className="space-y-2">
-              <div className="flex items-center justify-between gap-2 flex-wrap">
-                <h2 className="text-sm font-bold text-stone-900 flex items-center gap-2">
-                  <i className="fa-solid fa-list text-orange-600"></i> Bodegas ({bodegasAdmin.length})
-                </h2>
-                <button
-                  onClick={cargarConsumoFotos}
-                  disabled={cargandoConsumoFotos || bodegasAdmin.length === 0}
-                  className="text-xs font-semibold px-2.5 py-1.5 rounded-lg bg-violet-50 text-violet-700 hover:bg-violet-100 disabled:opacity-60 flex items-center gap-1.5"
-                >
-                  <i className="fa-solid fa-images text-[10px]"></i>
-                  {cargandoConsumoFotos ? 'Calculando...' : 'Ver consumo de fotos'}
-                </button>
-              </div>
-              {bodegasAdmin.length > 0 && (
-                <div className="relative">
-                  <i className="fa-solid fa-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-stone-400 text-xs"></i>
-                  <input
-                    type="text"
-                    value={busquedaBodegas}
-                    onChange={(e) => setBusquedaBodegas(e.target.value)}
-                    placeholder="Buscar por nombre de bodega, dueño o DNI..."
-                    className="w-full pl-8 pr-3 py-2 text-xs border border-stone-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-200"
-                  />
                 </div>
-              )}
-              {cargandoBodegasAdmin ? (
-                <p className="text-xs text-stone-500 text-center py-6">Cargando...</p>
-              ) : bodegasAdmin.length === 0 ? (
-                <p className="text-xs text-stone-500 text-center py-6">Todavía no creaste ninguna bodega.</p>
-              ) : bodegasFiltradas.length === 0 ? (
-                <p className="text-xs text-stone-500 text-center py-6">Ninguna bodega coincide con "{busquedaBodegas}".</p>
-              ) : (
-                bodegasFiltradas.map((b) => {
-                  const hoy = fechaHoyISO();
-                  const vencida = b.activa === false || (b.activa_hasta && b.activa_hasta < hoy);
-                  return (
-                    <div key={b.id} className="bg-white border border-stone-200 rounded-xl p-4 space-y-2.5">
-                      <div className="flex items-start justify-between gap-2">
-                        <div className="min-w-0">
-                          <p className="text-sm font-bold text-stone-900 truncate">{b.nombre}</p>
-                          <p className="text-xs text-stone-500">
-                            {b.dueno ? `${b.dueno.nombre} · ${b.dueno.email || `DNI ${b.dueno.dni}`}${b.dueno.auth_id ? '' : ' · aún no ingresa'}` : 'Sin dueño registrado'}
-                          </p>
-                        </div>
-                        <div className="shrink-0 flex items-center gap-1.5">
-                          {b.dueno && b.dueno.telefono && (
-                            <button
-                              onClick={() => {
-                                const soloNumeros = b.dueno.telefono.replace(/\D/g, '');
-                                const telConCodigo = soloNumeros.length === 9 ? `51${soloNumeros}` : soloNumeros;
-                                window.open(`https://wa.me/${telConCodigo}`, '_blank');
-                              }}
-                              title={`Escribir a ${b.dueno.nombre} por WhatsApp`}
-                              className="w-6 h-6 flex items-center justify-center bg-emerald-50 hover:bg-emerald-100 text-emerald-600 rounded-full"
-                            >
-                              <i className="fa-brands fa-whatsapp text-xs"></i>
-                            </button>
-                          )}
-                          <span className={`text-[10px] font-bold px-2 py-1 rounded-full ${vencida ? 'bg-rose-100 text-rose-600' : 'bg-emerald-100 text-emerald-600'}`}>
-                            {vencida ? 'VENCIDA' : 'ACTIVA'}
-                          </span>
-                        </div>
-                      </div>
-                      <p className="text-xs text-stone-600">
-                        Vigencia: {b.activa_hasta ? new Date(`${b.activa_hasta}T00:00:00`).toLocaleDateString('es-PE') : 'Sin vencimiento'}
-                        {consumoFotos[b.id] && (
-                          <span className="ml-2 text-stone-400">
-                            · <i className="fa-solid fa-images text-[10px]"></i> {consumoFotos[b.id].archivos} fotos ({formatearBytes(consumoFotos[b.id].bytes)})
-                          </span>
-                        )}
-                      </p>
-                      <div className="flex flex-wrap gap-1.5">
-                        <button onClick={() => alternarActiva(b)} className={`text-xs font-semibold px-2.5 py-1.5 rounded-lg ${b.activa ? 'bg-rose-50 text-rose-600 hover:bg-rose-100' : 'bg-emerald-50 text-emerald-600 hover:bg-emerald-100'}`}>
-                          {b.activa ? 'Desactivar ahora' : 'Activar'}
-                        </button>
-                        <button onClick={() => extenderVigencia(b, 7)} className="text-xs font-semibold px-2.5 py-1.5 rounded-lg bg-stone-100 text-stone-700 hover:bg-stone-200">+7 días</button>
-                        <button onClick={() => extenderVigencia(b, 30)} className="text-xs font-semibold px-2.5 py-1.5 rounded-lg bg-stone-100 text-stone-700 hover:bg-stone-200">+30 días</button>
-                        {b.activa_hasta && (
-                          <button onClick={() => quitarVencimiento(b)} className="text-xs font-semibold px-2.5 py-1.5 rounded-lg bg-stone-100 text-stone-700 hover:bg-stone-200">Quitar vencimiento</button>
-                        )}
-                      </div>
-
-                      <div className="flex flex-wrap items-center gap-x-4 gap-y-2 pt-2.5 border-t border-stone-100">
-                        <Interruptor
-                          activo={b.mostrar_catalogo_maestro}
-                          onClick={() => alternarCatalogoMaestroBodega(b)}
-                          title="Mostrar/ocultar el Catálogo Maestro en esta bodega"
-                          icono="fa-book"
-                          etiqueta="Catálogo Maestro"
-                        />
-                        <Interruptor
-                          activo={b.permitir_subir_fotos}
-                          onClick={() => alternarSubirFotosBodega(b)}
-                          title="Permitir/bloquear que esta bodega suba fotos de sus productos"
-                          icono="fa-camera"
-                          etiqueta="Subir fotos"
-                        />
-                        <Interruptor
-                          activo={b.delivery_permitido}
-                          onClick={() => alternarDeliveryPermitidoBodega(b)}
-                          title="Habilitar/deshabilitar Pedidos por WhatsApp (KaseritaDelivery) para esta bodega -- función paga aparte del plan base"
-                          icono="fa-share-nodes"
-                          etiqueta="Pedidos WhatsApp"
-                        />
-                      </div>
-
-                      <div className="flex flex-wrap items-center gap-1.5 pt-2.5 border-t border-stone-100">
-                        <button
-                          onClick={() => descargarBackupBodega(b)}
-                          disabled={generandoBackupId === b.id}
-                          className="text-xs font-semibold px-2.5 py-1.5 rounded-lg bg-sky-50 text-sky-700 hover:bg-sky-100 disabled:opacity-60 flex items-center gap-1.5"
-                        >
-                          <i className="fa-solid fa-download text-[10px]"></i> {generandoBackupId === b.id ? 'Generando...' : 'Backup'}
-                        </button>
-                        {b.dueno && (
-                          <button
-                            onClick={() => { setModalEditarBodega(b); setTelefonoEditar(b.dueno.telefono || ''); }}
-                            className="text-xs font-semibold px-2.5 py-1.5 rounded-lg bg-stone-100 text-stone-700 hover:bg-stone-200 flex items-center gap-1.5"
-                          >
-                            <i className="fa-solid fa-pen text-[10px]"></i> Editar teléfono
-                          </button>
-                        )}
-                        {b.dueno && b.dueno.dni && (
-                          <button
-                            onClick={() => { setModalResetearPin(b); setNuevoPinReset(''); }}
-                            className="text-xs font-semibold px-2.5 py-1.5 rounded-lg bg-violet-50 text-violet-700 hover:bg-violet-100 flex items-center gap-1.5"
-                          >
-                            <i className="fa-solid fa-key text-[10px]"></i> Resetear PIN
-                          </button>
-                        )}
-                        <button
-                          onClick={() => { setModalEliminarBodega(b); setTextoConfirmarEliminar(''); }}
-                          className="text-xs font-semibold px-2.5 py-1.5 rounded-lg bg-rose-50 text-rose-600 hover:bg-rose-100 flex items-center gap-1.5 ml-auto"
-                        >
-                          <i className="fa-solid fa-trash text-[10px]"></i> Eliminar tienda
-                        </button>
-                      </div>
-                    </div>
-                  );
-                })
-              )}
-            </div>
+              </div>
+            )}
           </div>
           )}
 
