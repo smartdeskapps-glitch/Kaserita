@@ -1166,6 +1166,12 @@ import './index.css';
       const [generandoBackupId, setGenerandoBackupId] = useState(null);
       const [modalEliminarBodega, setModalEliminarBodega] = useState(null);
       const [textoConfirmarEliminar, setTextoConfirmarEliminar] = useState('');
+      // Por defecto SÍ se guarda el resumen (nombre, plan, cuánto pagó en
+      // total) en bodegas_eliminadas, para comparar más adelante clientes
+      // ganados vs. perdidos -- se destilda solo para una bodega de prueba
+      // que no representa a un cliente real.
+      const [conservarHistorialEliminar, setConservarHistorialEliminar] = useState(true);
+      const [motivoEliminar, setMotivoEliminar] = useState('');
       const [eliminandoBodega, setEliminandoBodega] = useState(false);
 
       // Tablas que se relacionan con una bodega por una columna bodega_id
@@ -1226,11 +1232,22 @@ import './index.css';
             await sbClient.storage.from('Productos').remove(archivos.map((f) => `${modalEliminarBodega.id}/${f.name}`));
           }
 
-          const { error } = await sbClient.rpc('admin_eliminar_bodega', { p_bodega_id: modalEliminarBodega.id });
-          if (error) throw error;
-          notificar('Bodega eliminada junto con todos sus datos.', 'success');
+          const { error } = await sbClient.rpc('admin_eliminar_bodega', {
+            p_bodega_id: modalEliminarBodega.id,
+            p_conservar_historial: conservarHistorialEliminar,
+            p_motivo: motivoEliminar.trim() || null
+          });
+          if (error) {
+            if (error.code === 'PGRST202' || /could not find the function/i.test(error.message || '')) {
+              throw new Error('Falta ejecutar bodegas_eliminadas.sql en Supabase.');
+            }
+            throw error;
+          }
+          notificar(`Bodega eliminada junto con todos sus datos.${conservarHistorialEliminar ? ' Su resumen quedó guardado.' : ''}`, 'success');
           setModalEliminarBodega(null);
           setTextoConfirmarEliminar('');
+          setConservarHistorialEliminar(true);
+          setMotivoEliminar('');
           cargarBodegas();
         } catch (err) {
           notificar(`No se pudo eliminar: ${err.message}`, 'error');
@@ -1608,6 +1625,33 @@ import './index.css';
       }, [sbClient]);
       useEffect(() => { cargarPagos(); }, [cargarPagos]);
 
+      // ---- Bodegas eliminadas (ver bodegas_eliminadas.sql) -- para
+      // comparar clientes ganados vs. perdidos en el tiempo. Se carga
+      // recién al abrir el modal, no en cada render del panel.
+      const [bajasAdmin, setBajasAdmin] = useState([]);
+      const [bajasDisponibles, setBajasDisponibles] = useState(true);
+      const [cargandoBajas, setCargandoBajas] = useState(false);
+      const [modalBajas, setModalBajas] = useState(false);
+
+      const abrirModalBajas = async () => {
+        setModalBajas(true);
+        setCargandoBajas(true);
+        const { data, error } = await sbClient
+          .from('bodegas_eliminadas')
+          .select('*')
+          .order('eliminado_en', { ascending: false })
+          .limit(500);
+        if (error) {
+          console.warn('[admin] bodegas_eliminadas:', error.message);
+          setBajasDisponibles(false);
+          setBajasAdmin([]);
+        } else {
+          setBajasDisponibles(true);
+          setBajasAdmin(data || []);
+        }
+        setCargandoBajas(false);
+      };
+
       // El plan de cada bodega se deduce de si tiene "Pedidos WhatsApp"
       // (delivery_permitido): con eso, plan con catálogo; sin eso, solo POS.
       useEffect(() => {
@@ -1935,6 +1979,12 @@ import './index.css';
                 {cargandoConsumoFotos ? 'Calculando...' : 'Ver consumo de fotos'}
               </button>
               <button
+                onClick={abrirModalBajas}
+                className="text-xs font-semibold px-3 py-2.5 rounded-xl bg-rose-50 text-rose-700 hover:bg-rose-100 flex items-center gap-1.5"
+              >
+                <i className="fa-solid fa-user-slash text-[10px]"></i> Clientes que se fueron
+              </button>
+              <button
                 onClick={() => setModalNueva(true)}
                 className="text-sm font-bold px-4 py-2.5 rounded-xl bg-stone-900 hover:bg-stone-800 text-white flex items-center gap-2"
               >
@@ -2068,7 +2118,7 @@ import './index.css';
                                         ...(b.dueno ? [['Editar teléfono', 'fa-pen', () => { setModalEditarBodega(b); setTelefonoEditar(b.dueno.telefono || ''); }]] : []),
                                         ...(b.dueno && b.dueno.dni ? [['Resetear PIN', 'fa-key text-violet-600', () => { setModalResetearPin(b); setNuevoPinReset(''); }]] : []),
                                         null,
-                                        ['Eliminar tienda', 'fa-trash text-rose-600', () => { setModalEliminarBodega(b); setTextoConfirmarEliminar(''); }]
+                                        ['Eliminar tienda', 'fa-trash text-rose-600', () => { setModalEliminarBodega(b); setTextoConfirmarEliminar(''); setConservarHistorialEliminar(true); setMotivoEliminar(''); }]
                                       ].map((it, i) => it === null ? (
                                         <div key={`sep-${i}`} className="my-1 border-t border-stone-100"></div>
                                       ) : (
@@ -2245,6 +2295,57 @@ import './index.css';
                       <button onClick={() => { const b = modalHistorial; setModalHistorial(null); abrirModalPago(b); }} className="shrink-0 px-3 py-2 text-xs font-bold rounded-lg bg-violet-600 text-white hover:bg-violet-700 flex items-center gap-1.5">
                         <i className="fa-solid fa-plus text-[10px]"></i> Registrar pago
                       </button>
+                    </div>
+                  </div>
+                </div>
+              );
+            })()}
+
+            {modalBajas && (() => {
+              const total = bajasAdmin.reduce((acc, r) => acc + Number(r.total_pagado || 0), 0);
+              return (
+                <div className="fixed inset-0 z-40 bg-stone-900/50 flex items-center justify-center p-4" onClick={() => setModalBajas(false)}>
+                  <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[92vh] overflow-y-auto p-5" onClick={(e) => e.stopPropagation()}>
+                    <button type="button" onClick={() => setModalBajas(false)} aria-label="Cerrar" className="absolute top-3 right-3 w-8 h-8 flex items-center justify-center rounded-full text-stone-400 hover:bg-stone-100">
+                      <i className="fa-solid fa-xmark"></i>
+                    </button>
+                    <h3 className="text-sm font-bold text-stone-900 flex items-center gap-2 pr-8">
+                      <i className="fa-solid fa-user-slash text-rose-600"></i> Clientes que se fueron
+                    </h3>
+                    <p className="text-xs text-stone-500 mt-0.5">
+                      {bajasAdmin.length} {bajasAdmin.length === 1 ? 'bodega eliminada' : 'bodegas eliminadas'} con historial guardado · pagaron en total <b className="text-stone-700">S/ {total.toFixed(2)}</b>
+                    </p>
+                    <div className="mt-3">
+                      {cargandoBajas ? (
+                        <p className="text-xs text-stone-500 text-center py-8">Cargando...</p>
+                      ) : !bajasDisponibles ? (
+                        <p className="text-xs text-stone-500 text-center py-8">Falta ejecutar bodegas_eliminadas.sql en Supabase.</p>
+                      ) : bajasAdmin.length === 0 ? (
+                        <p className="text-xs text-stone-500 text-center py-8">Todavía no eliminaste ninguna bodega guardando su historial.</p>
+                      ) : (
+                        <div className="space-y-2">
+                          {bajasAdmin.map((r) => (
+                            <div key={r.id} className="border border-stone-200 rounded-xl px-3.5 py-2.5">
+                              <div className="flex items-start justify-between gap-3">
+                                <div className="min-w-0">
+                                  <p className="text-sm font-bold text-stone-900">{r.nombre_bodega}</p>
+                                  <p className="text-xs text-stone-500">
+                                    {r.nombre_dueno || 'Sin nombre'}{r.correo_dueno ? ` · ${r.correo_dueno}` : ''}
+                                  </p>
+                                  <p className="text-xs text-stone-500 mt-0.5">
+                                    {r.plan_nombre || 'Sin plan'} · {r.cantidad_pagos} {r.cantidad_pagos === 1 ? 'pago' : 'pagos'} · total <b className="text-stone-700">S/ {Number(r.total_pagado || 0).toFixed(2)}</b>
+                                  </p>
+                                  {r.primer_pago_en && (
+                                    <p className="text-[11px] text-stone-400">Pagó desde {fechaLarga(r.primer_pago_en)} hasta {fechaLarga(r.ultimo_pago_en)}</p>
+                                  )}
+                                  {r.motivo && <p className="text-[11px] text-stone-500 mt-0.5">“{r.motivo}”</p>}
+                                </div>
+                                <p className="shrink-0 text-[11px] text-stone-400 text-right">Eliminada<br />{fechaLarga(r.eliminado_en?.slice(0, 10))}</p>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -2791,6 +2892,30 @@ import './index.css';
                 >
                   <i className="fa-solid fa-download text-[10px]"></i> {generandoBackupId === modalEliminarBodega.id ? 'Generando...' : 'Descargar backup primero'}
                 </button>
+                <label className="flex items-start gap-2 text-xs text-stone-600 cursor-pointer bg-white/60 rounded-xl px-3 py-2.5">
+                  <input
+                    type="checkbox"
+                    checked={conservarHistorialEliminar}
+                    onChange={(e) => setConservarHistorialEliminar(e.target.checked)}
+                    className="rounded border-stone-300 mt-0.5"
+                  />
+                  <span>
+                    <span className="font-semibold text-stone-700">Guardar su resumen</span> (nombre, dueño, plan y cuánto pagó en total) para el comparativo de clientes ganados y perdidos. Desmárcalo si es una bodega de prueba.
+                  </span>
+                </label>
+                {conservarHistorialEliminar && (
+                  <div>
+                    <label className="text-[11px] font-bold text-stone-400 uppercase tracking-wide">Motivo (opcional)</label>
+                    <input
+                      type="text"
+                      maxLength={200}
+                      placeholder="Ej: cerró el negocio, se fue con la competencia..."
+                      value={motivoEliminar}
+                      onChange={(e) => setMotivoEliminar(e.target.value)}
+                      className="w-full bg-white border border-stone-200/70 shadow-sm rounded-xl px-3 py-2 text-sm text-stone-900 mt-1"
+                    />
+                  </div>
+                )}
                 <div>
                   <label className="text-[11px] font-bold text-stone-400 uppercase tracking-wide">Escribe "{modalEliminarBodega.nombre}" para confirmar</label>
                   <input
