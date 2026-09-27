@@ -945,7 +945,7 @@ import './index.css';
         try {
           const { data: bodegas, error } = await sbClient.from('bodegas').select('*').order('nombre');
           if (error) throw error;
-          const { data: duenos } = await sbClient.from('usuarios').select('id, bodega_id, nombre, dni, auth_id, telefono').eq('rol', 'dueno');
+          const { data: duenos } = await sbClient.from('usuarios').select('id, bodega_id, nombre, dni, email, auth_id, telefono').eq('rol', 'dueno');
           const duenoPorBodega = new Map((duenos || []).map((d) => [d.bodega_id, d]));
           setBodegasAdmin((bodegas || []).map((b) => ({ ...b, dueno: duenoPorBodega.get(b.id) || null })));
         } catch (err) {
@@ -959,22 +959,21 @@ import './index.css';
 
       const crearBodega = async (e) => {
         e.preventDefault();
-        if (!pinValido(formNuevaBodega.pin) || formNuevaBodega.pin.trim().length < PIN_MIN_DUENO) {
-          notificar(`El PIN del dueño debe tener entre ${PIN_MIN_DUENO} y ${PIN_MAX} caracteres.`, 'error');
+        const correo = formNuevaBodega.correo.trim().toLowerCase();
+        if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(correo)) {
+          notificar('Ingresa un correo válido (el de la cuenta de Google del dueño).', 'error');
           return;
         }
         setGuardandoNuevaBodega(true);
         try {
-          // admin_crear_bodega crea la bodega y la fila del dueño (sin
-          // auth_id -- recién queda vinculada a una cuenta real cuando ese
-          // dueño inicia sesión por primera vez con su DNI+PIN, ver
-          // reclamar_cuenta_bodega) en una sola transacción: si el DNI ya
-          // existe en otra bodega, no queda ninguna bodega a medio crear.
-          const { error } = await sbClient.rpc('admin_crear_bodega', {
+          // admin_crear_bodega_por_correo crea la bodega y la fila del dueño
+          // (sin auth_id) en una sola transacción. El dueño entra con "Continuar
+          // con Google" usando ESE correo: en su primer ingreso la cuenta se
+          // vincula sola (ver reclamar_cuenta_por_correo). Ya no hay DNI ni PIN.
+          const { error } = await sbClient.rpc('admin_crear_bodega_por_correo', {
+            p_correo: correo,
             p_nombre_bodega: formNuevaBodega.nombreBodega.trim(),
             p_nombre_dueno: formNuevaBodega.nombreDueno.trim(),
-            p_dni: formNuevaBodega.dni.trim(),
-            p_pin: formNuevaBodega.pin.trim(),
             p_dias: Number(formNuevaBodega.dias) || 0,
             p_telefono: formNuevaBodega.telefono.trim() || null,
             p_mostrar_catalogo_maestro: formNuevaBodega.mostrarCatalogoMaestro,
@@ -982,8 +981,8 @@ import './index.css';
           });
           if (error) throw error;
 
-          notificar('Bodega creada. El dueño ya puede iniciar sesión con su DNI y PIN.', 'success');
-          setFormNuevaBodega({ nombreBodega: '', nombreDueno: '', dni: '', pin: '', dias: '30', telefono: '', mostrarCatalogoMaestro: true, permitirSubirFotos: true });
+          notificar(`Bodega creada. El dueño entra con "Continuar con Google" usando ${correo}.`, 'success');
+          setFormNuevaBodega({ correo: '', nombreBodega: '', nombreDueno: '', dias: '30', telefono: '', mostrarCatalogoMaestro: true, permitirSubirFotos: true });
           cargarBodegas();
         } catch (err) {
           notificar(`No se pudo crear la bodega: ${err.message}`, 'error');
@@ -1027,7 +1026,8 @@ import './index.css';
         return bodegasAdmin.filter((b) =>
           b.nombre.toLowerCase().includes(termino) ||
           b.dueno?.nombre?.toLowerCase().includes(termino) ||
-          b.dueno?.dni?.includes(termino)
+          b.dueno?.dni?.includes(termino) ||
+          b.dueno?.email?.toLowerCase().includes(termino)
         );
       }, [bodegasAdmin, busquedaBodegas]);
 
@@ -1120,7 +1120,7 @@ import './index.css';
             // todavía no fue reclamada, ahí vive su PIN en texto plano
             // (necesario hasta su primer login, ver reclamar_cuenta_bodega)
             // y no tiene por qué terminar en un archivo descargable.
-            sbClient.from('usuarios').select('id, bodega_id, nombre, dni, telefono, rol, activo, auth_id').eq('bodega_id', bodega.id),
+            sbClient.from('usuarios').select('id, bodega_id, nombre, dni, email, telefono, rol, activo, auth_id').eq('bodega_id', bodega.id),
             sbClient.from('productos').select('*').eq('bodega_id', bodega.id),
             sbClient.from('compras').select('*, compras_detalle(*)').eq('bodega_id', bodega.id),
             sbClient.from('ventas').select('*, ventas_detalle(*)').eq('bodega_id', bodega.id),
@@ -1562,6 +1562,15 @@ import './index.css';
                 <i className="fa-solid fa-store text-orange-600"></i> Nueva Bodega
               </h2>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div className="sm:col-span-2">
+                  <label className="text-xs text-stone-600 block mb-1">Correo del Dueño (con el que entrará con Google):</label>
+                  <input
+                    type="email" required placeholder="Ej: juan@gmail.com"
+                    value={formNuevaBodega.correo}
+                    onChange={(e) => setFormNuevaBodega({ ...formNuevaBodega, correo: e.target.value })}
+                    className="w-full bg-stone-50 border border-stone-200 rounded-lg px-3 py-2 text-sm text-stone-900"
+                  />
+                </div>
                 <div>
                   <label className="text-xs text-stone-600 block mb-1">Nombre de la Bodega:</label>
                   <input
@@ -1586,24 +1595,6 @@ import './index.css';
                     type="text" placeholder="Ej: 987654321"
                     value={formNuevaBodega.telefono}
                     onChange={(e) => setFormNuevaBodega({ ...formNuevaBodega, telefono: e.target.value })}
-                    className="w-full bg-stone-50 border border-stone-200 rounded-lg px-3 py-2 text-sm text-stone-900"
-                  />
-                </div>
-                <div>
-                  <label className="text-xs text-stone-600 block mb-1">DNI (usuario de acceso):</label>
-                  <input
-                    type="text" required maxLength={8} placeholder="8 dígitos"
-                    value={formNuevaBodega.dni}
-                    onChange={(e) => setFormNuevaBodega({ ...formNuevaBodega, dni: e.target.value })}
-                    className="w-full bg-stone-50 border border-stone-200 rounded-lg px-3 py-2 text-sm text-stone-900"
-                  />
-                </div>
-                <div>
-                  <label className="text-xs text-stone-600 block mb-1">PIN inicial:</label>
-                  <input
-                    type="text" required minLength={PIN_MIN_DUENO} maxLength={PIN_MAX} placeholder="8 a 32 caracteres (letras y números)"
-                    value={formNuevaBodega.pin}
-                    onChange={(e) => setFormNuevaBodega({ ...formNuevaBodega, pin: e.target.value })}
                     className="w-full bg-stone-50 border border-stone-200 rounded-lg px-3 py-2 text-sm text-stone-900"
                   />
                 </div>
@@ -1686,7 +1677,7 @@ import './index.css';
                         <div className="min-w-0">
                           <p className="text-sm font-bold text-stone-900 truncate">{b.nombre}</p>
                           <p className="text-xs text-stone-500">
-                            {b.dueno ? `${b.dueno.nombre} · DNI ${b.dueno.dni}${b.dueno.auth_id ? '' : ' · sin reclamar aún'}` : 'Sin dueño registrado'}
+                            {b.dueno ? `${b.dueno.nombre} · ${b.dueno.email || `DNI ${b.dueno.dni}`}${b.dueno.auth_id ? '' : ' · aún no ingresa'}` : 'Sin dueño registrado'}
                           </p>
                         </div>
                         <div className="shrink-0 flex items-center gap-1.5">
@@ -1767,7 +1758,7 @@ import './index.css';
                             <i className="fa-solid fa-pen text-[10px]"></i> Editar teléfono
                           </button>
                         )}
-                        {b.dueno && (
+                        {b.dueno && b.dueno.dni && (
                           <button
                             onClick={() => { setModalResetearPin(b); setNuevoPinReset(''); }}
                             className="text-xs font-semibold px-2.5 py-1.5 rounded-lg bg-violet-50 text-violet-700 hover:bg-violet-100 flex items-center gap-1.5"
@@ -2269,7 +2260,7 @@ import './index.css';
       const [cargandoAdminLogin, setCargandoAdminLogin] = useState(false);
       const [bodegasAdmin, setBodegasAdmin] = useState([]);
       const [cargandoBodegasAdmin, setCargandoBodegasAdmin] = useState(false);
-      const [formNuevaBodega, setFormNuevaBodega] = useState({ nombreBodega: '', nombreDueno: '', dni: '', pin: '', dias: '30', telefono: '', mostrarCatalogoMaestro: true, permitirSubirFotos: true });
+      const [formNuevaBodega, setFormNuevaBodega] = useState({ correo: '', nombreBodega: '', nombreDueno: '', dias: '30', telefono: '', mostrarCatalogoMaestro: true, permitirSubirFotos: true });
       const [guardandoNuevaBodega, setGuardandoNuevaBodega] = useState(false);
 
       // --- Bodega & Cajeros ---
@@ -3006,7 +2997,17 @@ import './index.css';
               // segunda consulta secuencial después -- en cada carga de la
               // app esto le ahorra una ida y vuelta completa al servidor
               // antes de poder ocultar el splash.
-              const { data: usuarioConBodega } = await sbClient.from('usuarios').select('*, bodegas(*)').eq('auth_id', session.user.id).maybeSingle();
+              let { data: usuarioConBodega } = await sbClient.from('usuarios').select('*, bodegas(*)').eq('auth_id', session.user.id).maybeSingle();
+              if (!usuarioConBodega) {
+                // Bodega creada por el admin con el correo del dueño: en su
+                // primer ingreso con Google se vincula la cuenta a esa bodega
+                // (reclamar_cuenta_por_correo.sql). Si la función aún no existe
+                // o el correo no tiene bodega, sigue el camino de siempre.
+                const { data: bodegaReclamada } = await sbClient.rpc('reclamar_cuenta_por_correo');
+                if (bodegaReclamada) {
+                  ({ data: usuarioConBodega } = await sbClient.from('usuarios').select('*, bodegas(*)').eq('auth_id', session.user.id).maybeSingle());
+                }
+              }
               if (usuarioConBodega) {
                 const { bodegas: bodega, ...usuario } = usuarioConBodega;
                 setSesion({ usuario, bodega: bodega || { id: usuario.bodega_id, nombre: 'Mi Bodega' } });
