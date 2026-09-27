@@ -1122,25 +1122,6 @@ import './index.css';
         }
       };
 
-      // "Registrar pago": suma 30 días desde el vencimiento (o desde hoy si ya
-      // venció) y deja la bodega activa. Todavía no guarda un historial de pagos.
-      const registrarPagoBodega = async (bodega) => {
-        if (!bodega.activa_hasta) {
-          notificar(`${bodega.nombre} no tiene vencimiento, no hace falta registrar un pago.`, 'info');
-          return;
-        }
-        try {
-          const base = bodega.activa_hasta > fechaHoyISO() ? new Date(`${bodega.activa_hasta}T00:00:00`) : new Date();
-          const nueva = fechaISOLocal(new Date(base.getTime() + 30 * 86400000));
-          const { error } = await sbClient.from('bodegas').update({ activa_hasta: nueva, activa: true }).eq('id', bodega.id);
-          if (error) throw error;
-          notificar(`Pago registrado: ${bodega.nombre} vence el ${new Date(`${nueva}T00:00:00`).toLocaleDateString('es-PE')}.`, 'success');
-          cargarBodegas();
-        } catch (err) {
-          notificar(`No se pudo registrar el pago: ${err.message}`, 'error');
-        }
-      };
-
       const quitarVencimiento = async (bodega) => {
         try {
           const { error } = await sbClient.from('bodegas').update({ activa_hasta: null }).eq('id', bodega.id);
@@ -1568,8 +1549,37 @@ import './index.css';
       const [planesAdmin, setPlanesAdmin] = useState([]);
       const [modalCambioPlan, setModalCambioPlan] = useState(null);
       const [planNuevoId, setPlanNuevoId] = useState('');
-      const [sumarPagoCambio, setSumarPagoCambio] = useState(false);
       const [guardandoCambioPlan, setGuardandoCambioPlan] = useState(false);
+
+      // ---- Historial de pagos (ver pagos_bodega.sql) ----
+      const [pagosAdmin, setPagosAdmin] = useState([]);
+      const [pagosDisponibles, setPagosDisponibles] = useState(false);
+      const [modalPago, setModalPago] = useState(null);
+      const [guardandoPago, setGuardandoPago] = useState(false);
+      const [modalHistorial, setModalHistorial] = useState(null);
+      const [historial, setHistorial] = useState([]);
+      const [cargandoHistorial, setCargandoHistorial] = useState(false);
+      const [pagoPorAnular, setPagoPorAnular] = useState(null);
+
+      const cargarPagos = useCallback(async () => {
+        const { data, error } = await sbClient
+          .from('pagos_bodega')
+          .select('id, bodega_id, fecha_pago, monto, plan_nombre')
+          .eq('anulado', false)
+          .order('fecha_pago', { ascending: false })
+          .order('creado_en', { ascending: false })
+          .limit(1000);
+        if (error) {
+          // Sin la tabla (aún no se corrió pagos_bodega.sql) el panel sigue igual.
+          console.warn('[admin] pagos_bodega:', error.message);
+          setPagosDisponibles(false);
+          setPagosAdmin([]);
+          return;
+        }
+        setPagosDisponibles(true);
+        setPagosAdmin(data || []);
+      }, [sbClient]);
+      useEffect(() => { cargarPagos(); }, [cargarPagos]);
 
       // El plan de cada bodega se deduce de si tiene "Pedidos WhatsApp"
       // (delivery_permitido): con eso, plan con catálogo; sin eso, solo POS.
@@ -1580,10 +1590,102 @@ import './index.css';
       const planCat = planesAdmin.find((pl) => pl.permite_delivery) || null;
       const planDe = (b) => (b.delivery_permitido ? planCat : planPos);
 
+      const ultimoPagoPorBodega = new Map();
+      pagosAdmin.forEach((pg) => { if (!ultimoPagoPorBodega.has(pg.bodega_id)) ultimoPagoPorBodega.set(pg.bodega_id, pg); });
+      const cobradoEsteMes = pagosAdmin
+        .filter((pg) => pg.fecha_pago && pg.fecha_pago.slice(0, 7) === fechaHoyISO().slice(0, 7))
+        .reduce((acc, pg) => acc + Number(pg.monto || 0), 0);
+      const fechaCorta = (iso) => (iso ? new Date(`${iso}T00:00:00`).toLocaleDateString('es-PE', { day: 'numeric', month: 'short' }) : '');
+      const fechaLarga = (iso) => (iso ? new Date(`${iso}T00:00:00`).toLocaleDateString('es-PE') : 'Sin vencimiento');
+
+      // Monto sugerido: el precio de promo mientras la bodega esté dentro de
+      // sus primeros pagos de ese plan; después, el precio regular.
+      const sugerirMonto = (b, plan) => {
+        if (!plan) return '';
+        const previos = pagosAdmin.filter((pg) => pg.bodega_id === b.id && pg.plan_nombre === plan.nombre).length;
+        const usaPromo = plan.precio_soles_promo != null && previos < Number(plan.meses_promo || 0);
+        return Number(usaPromo ? plan.precio_soles_promo : plan.precio_soles).toFixed(2);
+      };
+
+      const abrirModalPago = (b) => {
+        const plan = planDe(b) || planPos || planesAdmin[0] || null;
+        setModalPago({ b, planId: plan?.id || '', monto: sugerirMonto(b, plan), fecha: fechaHoyISO(), dias: '30', medio: 'yape', nota: '' });
+      };
+
+      const registrarPago = async (e) => {
+        e.preventDefault();
+        const f = modalPago;
+        if (!f) return;
+        const monto = Number(f.monto);
+        const dias = Math.trunc(Number(f.dias));
+        if (f.monto === '' || !Number.isFinite(monto) || monto < 0) { notificar('Escribe un monto válido.', 'error'); return; }
+        if (!Number.isFinite(dias) || dias < 0 || dias > 400) { notificar('Los días deben estar entre 0 y 400.', 'error'); return; }
+        setGuardandoPago(true);
+        try {
+          const { data, error } = await sbClient.rpc('admin_registrar_pago_bodega', {
+            p_bodega_id: f.b.id,
+            p_monto: monto,
+            p_dias: dias,
+            p_plan_id: f.planId || null,
+            p_medio: f.medio,
+            p_nota: f.nota.trim() || null,
+            p_fecha: f.fecha || null
+          });
+          if (error) {
+            if (error.code === 'PGRST202' || /could not find the function/i.test(error.message || '')) {
+              throw new Error('Falta ejecutar pagos_bodega.sql en Supabase.');
+            }
+            throw error;
+          }
+          notificar(`Pago de S/ ${monto.toFixed(2)} registrado. ${f.b.nombre}: ${data?.vence_despues ? `vence el ${fechaLarga(data.vence_despues)}` : 'sin vencimiento'}.`, 'success');
+          setModalPago(null);
+          cargarBodegas();
+          cargarPagos();
+        } catch (err) {
+          notificar(`No se pudo registrar el pago: ${err.message}`, 'error');
+        } finally {
+          setGuardandoPago(false);
+        }
+      };
+
+      const abrirHistorial = async (b) => {
+        setModalHistorial(b);
+        setHistorial([]);
+        setPagoPorAnular(null);
+        setCargandoHistorial(true);
+        try {
+          const { data, error } = await sbClient
+            .from('pagos_bodega')
+            .select('*')
+            .eq('bodega_id', b.id)
+            .order('fecha_pago', { ascending: false })
+            .order('creado_en', { ascending: false });
+          if (error) throw error;
+          setHistorial(data || []);
+        } catch (err) {
+          notificar(`No se pudo cargar el historial: ${err.message}`, 'error');
+        } finally {
+          setCargandoHistorial(false);
+        }
+      };
+
+      const anularPago = async (pg) => {
+        try {
+          const { error } = await sbClient.rpc('admin_anular_pago_bodega', { p_pago_id: pg.id, p_motivo: null });
+          if (error) throw error;
+          notificar('Pago anulado. Se quitaron los días que había sumado.', 'success');
+          setPagoPorAnular(null);
+          if (modalHistorial) abrirHistorial(modalHistorial);
+          cargarBodegas();
+          cargarPagos();
+        } catch (err) {
+          notificar(`No se pudo anular el pago: ${err.message}`, 'error');
+        }
+      };
+
       const abrirCambioPlan = (b) => {
         setModalCambioPlan(b);
         setPlanNuevoId((planDe(b) || planPos || planesAdmin[0])?.id || '');
-        setSumarPagoCambio(false);
       };
 
       // Cambio de plan: el plan con catálogo es "Pedidos WhatsApp"
@@ -1596,8 +1698,7 @@ import './index.css';
         const nuevo = planesAdmin.find((pl) => pl.id === planNuevoId);
         if (!b || !nuevo) return;
         const cambia = !!nuevo.permite_delivery !== !!b.delivery_permitido;
-        const conPago = sumarPagoCambio && !!b.activa_hasta;
-        if (!cambia && !conPago) { setModalCambioPlan(null); return; }
+        if (!cambia) { setModalCambioPlan(null); return; }
         setGuardandoCambioPlan(true);
         try {
           const payload = {};
@@ -1606,18 +1707,13 @@ import './index.css';
             if (!nuevo.permite_delivery) payload.delivery_habilitado = false;
             else if (!b.combo_primer_pago_en) payload.combo_primer_pago_en = new Date().toISOString();
           }
-          if (conPago) {
-            const base = b.activa_hasta > fechaHoyISO() ? new Date(`${b.activa_hasta}T00:00:00`) : new Date();
-            payload.activa_hasta = fechaISOLocal(new Date(base.getTime() + 30 * 86400000));
-            payload.activa = true;
-          }
           let { error } = await sbClient.from('bodegas').update(payload).eq('id', b.id);
           if (error && payload.combo_primer_pago_en) {
             delete payload.combo_primer_pago_en;
             ({ error } = await sbClient.from('bodegas').update(payload).eq('id', b.id));
           }
           if (error) throw error;
-          notificar(`${b.nombre} ahora tiene el plan ${nuevo.nombre}${conPago ? ' y se registró el pago (+30 días)' : ''}.`, 'success');
+          notificar(`${b.nombre} ahora tiene el plan ${nuevo.nombre}.`, 'success');
           setModalCambioPlan(null);
           cargarBodegas();
         } catch (err) {
@@ -1734,7 +1830,7 @@ import './index.css';
           <div className="flex-1 overflow-y-auto bg-stone-100">
           {vistaAdmin === 'bodegas' && (
           <div className="max-w-6xl mx-auto p-4 md:p-6 space-y-4">
-            <div className="grid grid-cols-2 md:grid-cols-5 gap-2.5">
+            <div className="grid grid-cols-2 md:grid-cols-6 gap-2.5">
               {[
                 ['ok', 'Al día', 'text-stone-900'],
                 ['porv', 'Vencen en 7 días', 'text-amber-600'],
@@ -1746,6 +1842,10 @@ import './index.css';
                   <span className={`block text-2xl font-black tabular-nums ${color}`}>{kpiCuenta(k)}</span>
                 </button>
               ))}
+              <div className="bg-white border border-stone-200 rounded-xl px-3.5 py-3" title="Suma de los pagos registrados con fecha de este mes (sin los anulados).">
+                <span className="block text-[11px] font-semibold text-stone-500">Cobrado este mes</span>
+                <span className="block text-2xl font-black tabular-nums text-emerald-600">{pagosDisponibles ? `S/ ${cobradoEsteMes.toFixed(2)}` : '—'}</span>
+              </div>
               <div className="col-span-2 md:col-span-1 bg-white border border-stone-200 rounded-xl px-3.5 py-3" title="Suma del precio regular del plan de cada bodega vencida o por vencer. Es un estimado: no considera promociones.">
                 <span className="block text-[11px] font-semibold text-stone-500">Por cobrar (aprox.)</span>
                 <span className="block text-2xl font-black tabular-nums text-stone-900">{planPos || planCat ? `S/ ${porCobrarTotal.toFixed(2)}` : '—'}</span>
@@ -1833,6 +1933,13 @@ import './index.css';
                                 <div className="h-1.5 w-28 rounded-full bg-stone-100 overflow-hidden mt-1.5">
                                   <div className={`h-full rounded-full ${colorBarra}`} style={{ width: `${pct}%` }}></div>
                                 </div>
+                                {pagosDisponibles && (
+                                  <p className="text-[10px] text-stone-400 mt-1">
+                                    {ultimoPagoPorBodega.get(b.id)
+                                      ? `Último pago: ${fechaCorta(ultimoPagoPorBodega.get(b.id).fecha_pago)} · S/ ${Number(ultimoPagoPorBodega.get(b.id).monto).toFixed(2)}`
+                                      : 'Sin pagos registrados'}
+                                  </p>
+                                )}
                               </div>
 
                               <div>
@@ -1859,8 +1966,8 @@ import './index.css';
 
                               <div className="flex items-center gap-1.5 justify-end relative">
                                 <button
-                                  onClick={() => registrarPagoBodega(b)}
-                                  title="Suma 30 días de vigencia y deja la bodega activa"
+                                  onClick={() => abrirModalPago(b)}
+                                  title="Registrar el pago (Yape, efectivo o transferencia) y sumar días de vigencia"
                                   className={`text-xs font-semibold px-2.5 py-1.5 rounded-lg flex items-center gap-1.5 ${urgente ? 'bg-violet-600 text-white hover:bg-violet-700' : 'bg-stone-100 text-stone-700 hover:bg-stone-200'}`}
                                 >
                                   <i className="fa-solid fa-mobile-screen text-[10px]"></i> Pago
@@ -1888,6 +1995,7 @@ import './index.css';
                                     <div className="fixed inset-0 z-10" onClick={() => setMenuFila(null)}></div>
                                     <div role="menu" className="absolute right-0 top-full mt-1 z-20 w-56 bg-white border border-stone-200 rounded-xl shadow-xl p-1.5 text-xs font-semibold text-stone-700">
                                       {[
+                                        ['Historial de pagos', 'fa-clock-rotate-left text-sky-600', () => abrirHistorial(b)],
                                         ['Cambiar plan', 'fa-arrows-up-down text-violet-600', () => abrirCambioPlan(b)],
                                         [b.activa ? 'Desactivar ahora' : 'Activar', b.activa ? 'fa-power-off text-rose-500' : 'fa-power-off text-emerald-600', () => alternarActiva(b)],
                                         ['+7 días de vigencia', 'fa-calendar-plus', () => extenderVigencia(b, 7)],
@@ -1924,6 +2032,162 @@ import './index.css';
                 );
               })
             )}
+
+            {modalPago && (() => {
+              const f = modalPago;
+              const hoy = fechaHoyISO();
+              const diasNum = Math.trunc(Number(f.dias)) || 0;
+              const baseVence = f.b.activa_hasta && f.b.activa_hasta > hoy ? f.b.activa_hasta : hoy;
+              const nuevaVence = diasNum > 0 ? fechaISOLocal(new Date(new Date(`${baseVence}T00:00:00`).getTime() + diasNum * 86400000)) : f.b.activa_hasta;
+              const actualiza = (cambios) => setModalPago({ ...f, ...cambios });
+              const campo = 'w-full bg-stone-50 border border-stone-200 rounded-lg px-3 py-2 text-sm text-stone-900';
+              return (
+                <div className="fixed inset-0 z-40 bg-stone-900/50 flex items-center justify-center p-4" onClick={() => !guardandoPago && setModalPago(null)}>
+                  <form onSubmit={registrarPago} className="relative bg-white rounded-2xl shadow-2xl w-full max-w-md max-h-[92vh] overflow-y-auto p-5 space-y-3" onClick={(e) => e.stopPropagation()}>
+                    <button type="button" onClick={() => setModalPago(null)} aria-label="Cerrar" className="absolute top-3 right-3 w-8 h-8 flex items-center justify-center rounded-full text-stone-400 hover:bg-stone-100">
+                      <i className="fa-solid fa-xmark"></i>
+                    </button>
+                    <h3 className="text-sm font-bold text-stone-900 flex items-center gap-2 pr-8">
+                      <i className="fa-solid fa-mobile-screen text-violet-600"></i> Registrar pago
+                    </h3>
+                    <p className="text-xs text-stone-500">{f.b.nombre} · vigencia actual: <b className="text-stone-700">{fechaLarga(f.b.activa_hasta)}</b></p>
+                    {planesAdmin.length > 0 && (
+                      <div>
+                        <label className="text-xs text-stone-600 block mb-1">Plan que paga:</label>
+                        <select
+                          value={f.planId}
+                          onChange={(e) => {
+                            const plan = planesAdmin.find((pl) => pl.id === e.target.value);
+                            actualiza({ planId: e.target.value, monto: sugerirMonto(f.b, plan) });
+                          }}
+                          className={campo}
+                        >
+                          {[...planesAdmin].sort((a, b) => Number(a.precio_soles) - Number(b.precio_soles)).map((pl) => (
+                            <option key={pl.id} value={pl.id}>{pl.nombre}{pl.permite_delivery ? ' (con Pedidos WhatsApp)' : ''}</option>
+                          ))}
+                        </select>
+                        {(() => {
+                          const plan = planesAdmin.find((pl) => pl.id === f.planId);
+                          if (!plan || !!plan.permite_delivery === !!f.b.delivery_permitido) return null;
+                          return (
+                            <p className="text-[11px] text-violet-700 mt-1">
+                              {plan.permite_delivery ? 'Cambio de plan: se activa "Pedidos WhatsApp".' : 'Cambio de plan: se apaga "Pedidos WhatsApp" y su catálogo público.'}
+                            </p>
+                          );
+                        })()}
+                      </div>
+                    )}
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label className="text-xs text-stone-600 block mb-1">Monto cobrado (S/):</label>
+                        <input type="number" min="0" step="0.01" inputMode="decimal" value={f.monto} onChange={(e) => actualiza({ monto: e.target.value })} className={campo} />
+                      </div>
+                      <div>
+                        <label className="text-xs text-stone-600 block mb-1">Días a sumar:</label>
+                        <input type="number" min="0" max="400" step="1" value={f.dias} onChange={(e) => actualiza({ dias: e.target.value })} className={campo} />
+                      </div>
+                      <div>
+                        <label className="text-xs text-stone-600 block mb-1">Medio de pago:</label>
+                        <select value={f.medio} onChange={(e) => actualiza({ medio: e.target.value })} className={campo}>
+                          <option value="yape">Yape</option>
+                          <option value="plin">Plin</option>
+                          <option value="efectivo">Efectivo</option>
+                          <option value="transferencia">Transferencia</option>
+                          <option value="otro">Otro</option>
+                        </select>
+                      </div>
+                      <div>
+                        <label className="text-xs text-stone-600 block mb-1">Fecha del pago:</label>
+                        <input type="date" value={f.fecha} max={hoy} onChange={(e) => actualiza({ fecha: e.target.value })} className={campo} />
+                      </div>
+                    </div>
+                    <div>
+                      <label className="text-xs text-stone-600 block mb-1">Nota (opcional):</label>
+                      <input type="text" maxLength={200} placeholder="Ej: Yape a nombre de Juan, operación 123456" value={f.nota} onChange={(e) => actualiza({ nota: e.target.value })} className={campo} />
+                    </div>
+                    <p className="text-[11px] rounded-lg px-3 py-2 bg-violet-50 text-violet-800">
+                      {diasNum > 0
+                        ? <>La bodega pasará a vencer el <b>{fechaLarga(nuevaVence)}</b> y quedará activa.</>
+                        : 'Con 0 días solo se anota el pago; la vigencia no cambia.'}
+                    </p>
+                    <div className="flex justify-end gap-2 pt-1">
+                      <button type="button" onClick={() => setModalPago(null)} className="px-4 py-2 text-xs font-semibold rounded-lg bg-stone-100 text-stone-700 hover:bg-stone-200">Cancelar</button>
+                      <button type="submit" disabled={guardandoPago} className="px-4 py-2 text-xs font-bold rounded-lg bg-stone-900 text-white hover:bg-stone-800 disabled:opacity-60">
+                        {guardandoPago ? 'Guardando...' : 'Registrar pago'}
+                      </button>
+                    </div>
+                  </form>
+                </div>
+              );
+            })()}
+
+            {modalHistorial && (() => {
+              const vigentes = historial.filter((pg) => !pg.anulado);
+              const total = vigentes.reduce((acc, pg) => acc + Number(pg.monto || 0), 0);
+              return (
+                <div className="fixed inset-0 z-40 bg-stone-900/50 flex items-center justify-center p-4" onClick={() => setModalHistorial(null)}>
+                  <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[92vh] overflow-y-auto p-5" onClick={(e) => e.stopPropagation()}>
+                    <button type="button" onClick={() => setModalHistorial(null)} aria-label="Cerrar" className="absolute top-3 right-3 w-8 h-8 flex items-center justify-center rounded-full text-stone-400 hover:bg-stone-100">
+                      <i className="fa-solid fa-xmark"></i>
+                    </button>
+                    <h3 className="text-sm font-bold text-stone-900 flex items-center gap-2 pr-8">
+                      <i className="fa-solid fa-clock-rotate-left text-sky-600"></i> Historial de pagos
+                    </h3>
+                    <p className="text-xs text-stone-500 mt-0.5">
+                      {modalHistorial.nombre} · {vigentes.length} {vigentes.length === 1 ? 'pago' : 'pagos'} · total cobrado <b className="text-stone-700">S/ {total.toFixed(2)}</b>
+                    </p>
+                    <div className="mt-3">
+                      {cargandoHistorial ? (
+                        <p className="text-xs text-stone-500 text-center py-8">Cargando...</p>
+                      ) : historial.length === 0 ? (
+                        <p className="text-xs text-stone-500 text-center py-8">Esta bodega todavía no tiene pagos registrados.</p>
+                      ) : (
+                        <div className="space-y-2">
+                          {historial.map((pg) => (
+                            <div key={pg.id} className={`border rounded-xl px-3.5 py-2.5 ${pg.anulado ? 'border-stone-200 bg-stone-50 opacity-70' : 'border-stone-200'}`}>
+                              <div className="flex items-start justify-between gap-3">
+                                <div className="min-w-0">
+                                  <p className="text-sm font-bold text-stone-900">
+                                    <span className={pg.anulado ? 'line-through' : ''}>S/ {Number(pg.monto).toFixed(2)}</span>
+                                    <span className="ml-2 text-xs font-semibold text-stone-500 capitalize">{pg.medio}</span>
+                                    {pg.anulado && <span className="ml-2 text-[10px] font-bold px-2 py-0.5 rounded-full bg-rose-100 text-rose-700">ANULADO</span>}
+                                  </p>
+                                  <p className="text-xs text-stone-500">
+                                    {fechaLarga(pg.fecha_pago)}{pg.plan_nombre ? ` · ${pg.plan_nombre}` : ''}
+                                    {pg.dias > 0 ? ` · +${pg.dias} días` : ' · solo registro'}
+                                  </p>
+                                  {pg.dias > 0 && (
+                                    <p className="text-[11px] text-stone-400">Vencía {fechaLarga(pg.vence_antes)} → pasó a {fechaLarga(pg.vence_despues)}</p>
+                                  )}
+                                  {pg.nota && <p className="text-[11px] text-stone-500 mt-0.5">“{pg.nota}”</p>}
+                                </div>
+                                {!pg.anulado && (
+                                  pagoPorAnular === pg.id ? (
+                                    <span className="shrink-0 flex items-center gap-1.5 text-[11px]">
+                                      <span className="text-stone-500">¿Anular?</span>
+                                      <button onClick={() => anularPago(pg)} className="font-bold px-2 py-1 rounded-md bg-rose-600 text-white">Sí</button>
+                                      <button onClick={() => setPagoPorAnular(null)} className="font-semibold px-2 py-1 rounded-md bg-stone-100 text-stone-700">No</button>
+                                    </span>
+                                  ) : (
+                                    <button onClick={() => setPagoPorAnular(pg.id)} className="shrink-0 text-[11px] font-semibold px-2 py-1 rounded-md bg-rose-50 text-rose-600 hover:bg-rose-100">Anular</button>
+                                  )
+                                )}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                    <div className="flex justify-between items-center gap-2 pt-4">
+                      <p className="text-[11px] text-stone-400">Anular un pago quita los días que sumó. El registro queda en el historial.</p>
+                      <button onClick={() => { const b = modalHistorial; setModalHistorial(null); abrirModalPago(b); }} className="shrink-0 px-3 py-2 text-xs font-bold rounded-lg bg-violet-600 text-white hover:bg-violet-700 flex items-center gap-1.5">
+                        <i className="fa-solid fa-plus text-[10px]"></i> Registrar pago
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              );
+            })()}
 
             {modalCambioPlan && (
               <div className="fixed inset-0 z-40 bg-stone-900/50 flex items-center justify-center p-4" onClick={() => !guardandoCambioPlan && setModalCambioPlan(null)}>
@@ -1973,19 +2237,7 @@ import './index.css';
                       </p>
                     );
                   })()}
-                  <label className={`flex items-start gap-2 text-xs ${modalCambioPlan.activa_hasta ? 'text-stone-600 cursor-pointer' : 'text-stone-400'}`}>
-                    <input
-                      type="checkbox"
-                      disabled={!modalCambioPlan.activa_hasta}
-                      checked={sumarPagoCambio && !!modalCambioPlan.activa_hasta}
-                      onChange={(e) => setSumarPagoCambio(e.target.checked)}
-                      className="mt-0.5 rounded border-stone-300"
-                    />
-                    <span>
-                      Registrar también el pago del nuevo plan (+30 días de vigencia)
-                      {!modalCambioPlan.activa_hasta && <span className="block text-[11px]">Esta bodega no tiene vencimiento.</span>}
-                    </span>
-                  </label>
+                  <p className="text-[11px] text-stone-500">Esto solo cambia el plan. Para cobrarlo y sumar días de vigencia usa <b>Pago</b> y elige el plan nuevo.</p>
                   <div className="flex justify-end gap-2 pt-1">
                     <button type="button" onClick={() => setModalCambioPlan(null)} className="px-4 py-2 text-xs font-semibold rounded-lg bg-stone-100 text-stone-700 hover:bg-stone-200">Cancelar</button>
                     <button type="submit" disabled={guardandoCambioPlan} className="px-4 py-2 text-xs font-bold rounded-lg bg-stone-900 text-white hover:bg-stone-800 disabled:opacity-60">
