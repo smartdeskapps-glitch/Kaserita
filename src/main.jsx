@@ -273,7 +273,7 @@ import './index.css';
     // Base de la vitrina pública de KaseritaDelivery (repo y deploy
     // separados de este). El link final de cada bodega es esta URL + su
     // slug, ej. KASERITA_DELIVERY_URL + '/san-luis'.
-    const KASERITA_DELIVERY_URL = 'https://kaserita-delivery.vercel.app';
+    const KASERITA_DELIVERY_URL = 'https://delivery.smartdeskapps.com';
 
     // El login sigue pidiendo DNI + PIN como siempre, pero por debajo se usa
     // Supabase Auth real (necesario para que RLS pueda proteger los datos de
