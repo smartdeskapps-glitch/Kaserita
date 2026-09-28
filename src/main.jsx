@@ -754,7 +754,7 @@ import './index.css';
     // si no, cae de vuelta al ícono de categoría (nunca queda un hueco vacío).
     function FotoProducto({ fotoUrl, categoria, className, iconClassName }) {
       if (fotoUrl) {
-        return <img src={fotoUrl} alt="" className={`object-cover ${className}`} />;
+        return <img src={fotoUrl} alt="" loading="lazy" decoding="async" className={`object-cover ${className}`} />;
       }
       const est = estiloCategoria(categoria);
       return (
