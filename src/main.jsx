@@ -6982,11 +6982,16 @@ import {
         // concurrencia_ronda2.sql): no se repite aunque dos cajeros cobren a
         // la vez. Si no hay conexión, la función no existe todavía o tarda más
         // de 3 segundos, se usa el número por hora de siempre.
-        let correlativo = `B001-${String(Date.now()).slice(-8)}`;
+        // La serie es propia de cada bodega (ver serie_boleta_por_bodega.sql)
+        // para que dos bodegas distintas no emitan boletas que se vean
+        // idénticas -- "B001" queda solo como respaldo si la bodega todavía
+        // no tiene serie_boleta cargada (sesión vieja en caché, por ejemplo).
+        const serieBoleta = (sesion?.bodega?.serie_boleta || 'B001').toUpperCase();
+        let correlativo = `${serieBoleta}-${String(Date.now()).slice(-8)}`;
         if (sbClient && !esModoDemo && enLinea) {
           try {
             const respuestaCorrelativo = await Promise.race([
-              sbClient.rpc('siguiente_correlativo', { p_serie: 'B001' }),
+              sbClient.rpc('siguiente_correlativo', { p_serie: serieBoleta }),
               new Promise((resolver) => setTimeout(() => resolver(null), 3000)),
             ]);
             if (respuestaCorrelativo && !respuestaCorrelativo.error && respuestaCorrelativo.data) {
