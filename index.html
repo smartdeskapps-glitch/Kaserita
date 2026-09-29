@@ -74,6 +74,15 @@
   .wide-shot-hint i { animation: wide-shot-nudge 1.3s ease-in-out infinite; }
   .wide-shot.scrolled .wide-shot-hint { display: none; }
 
+  .delivery-options { display: grid; grid-template-columns: repeat(2, 1fr); gap: 14px; max-width: 900px; margin: 0 auto 22px; }
+  .delivery-option { background: var(--card); border: 1.5px solid var(--line); border-radius: 16px; padding: 18px; display: flex; gap: 13px; align-items: flex-start; text-align: left; }
+  .delivery-option-icon { width: 40px; height: 40px; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 16px; flex-shrink: 0; background: var(--tint-bg, rgba(124,58,237,.1)); color: var(--tint, var(--violet)); }
+  .delivery-option.c-blue { --tint: #2563eb; --tint-bg: rgba(37,99,235,.1); }
+  .delivery-option.c-green { --tint: #16a34a; --tint-bg: rgba(22,163,74,.1); }
+  .delivery-option h3 { font-family: var(--font-display); font-weight: 700; font-size: 14px; margin: 0 0 4px; }
+  .delivery-option p { font-size: 12.5px; color: var(--muted); margin: 0; line-height: 1.55; }
+  @media (max-width: 640px) { .delivery-options { grid-template-columns: 1fr; } }
+
   .section { margin: 46px 0; }
   .section-title { font-family: var(--font-display); font-weight: 800; font-size: 21px; margin: 0 0 4px; letter-spacing: -0.01em; text-align: center; }
   .section-sub { font-size: 13px; color: var(--muted); margin: 0 auto 22px; line-height: 1.5; text-align: center; max-width: 50ch; }
@@ -90,6 +99,8 @@
   }
   .benefit h3 { font-family: var(--font-display); font-weight: 700; font-size: 14px; margin: 0 0 5px; }
   .benefit p { font-size: 12.5px; color: var(--muted); margin: 0; line-height: 1.55; }
+  .benefit-tag { margin: 14px 0 0; padding-top: 12px; border-top: 1px solid var(--line); font-size: 11px; font-weight: 700; color: var(--tint, var(--violet)); display: flex; align-items: center; gap: 6px; }
+  .benefit-tag i { font-size: 9.5px; }
   .benefit.c-violet { --tint: #7c3aed; --tint-bg: rgba(124,58,237,.1); }
   .benefit.c-blue { --tint: #2563eb; --tint-bg: rgba(37,99,235,.1); }
   .benefit.c-emerald { --tint: #059669; --tint-bg: rgba(5,150,105,.1); }
@@ -194,17 +205,65 @@
     <h2 class="section-title">Qué ofrece Kaserita</h2>
     <p class="section-sub">Todo lo que tu negocio necesita para vender rápido y tener el control total.</p>
     <div class="benefits">
-      <div class="benefit c-violet"><div class="benefit-icon"><i class="fa-solid fa-cash-register"></i></div><h3>Caja y ventas</h3><p>Cobra en segundos, emite tickets y lleva el control exacto de los turnos de cada cajero.</p></div>
-      <div class="benefit c-blue"><div class="benefit-icon"><i class="fa-solid fa-boxes-stacked"></i></div><h3>Inventario</h3><p>Stock actualizado automáticamente con cada venta y alertas de productos a punto de agotarse.</p></div>
-      <div class="benefit c-rose"><div class="benefit-icon"><i class="fa-solid fa-users"></i></div><h3>Clientes y fiado</h3><p>Lleva el control seguro de las cuentas por cobrar y conoce el historial de cada cliente.</p></div>
-      <div class="benefit c-amber"><div class="benefit-icon"><i class="fa-solid fa-chart-line"></i></div><h3>Reportes</h3><p>Revisa tus ventas del día, del mes y por cajero al instante. Olvídate de sacar cuentas a mano.</p></div>
-      <div class="benefit c-green"><div class="benefit-icon"><i class="fa-brands fa-whatsapp"></i></div><h3>Tienda Virtual</h3><p>Activa tu propia tienda (KaseritaDelivery) para recibir pedidos por WhatsApp listos para recoger.</p></div>
-      <div class="benefit c-emerald"><div class="benefit-icon"><i class="fa-solid fa-mobile-screen"></i></div><h3>100% desde el celular</h3><p>Funciona como cualquier app. Úsala de inmediato sin comprar equipos ni instalar programas.</p></div>
+      <div class="benefit c-violet">
+        <div class="benefit-icon"><i class="fa-solid fa-cash-register"></i></div>
+        <h3>Caja y ventas</h3>
+        <p>Cobra en segundos por nombre o código, imprime el ticket o mándalo por WhatsApp, y lleva el control exacto de cada turno de cajero.</p>
+        <div class="benefit-tag"><i class="fa-solid fa-check"></i> Apertura y cierre de caja</div>
+      </div>
+      <div class="benefit c-blue">
+        <div class="benefit-icon"><i class="fa-solid fa-boxes-stacked"></i></div>
+        <h3>Inventario</h3>
+        <p>El stock se descuenta solo con cada venta y te avisa apenas un producto está por acabarse, para que nunca te quedes sin vender por falta de mercadería.</p>
+        <div class="benefit-tag"><i class="fa-solid fa-check"></i> Alertas de stock mínimo</div>
+      </div>
+      <div class="benefit c-rose">
+        <div class="benefit-icon"><i class="fa-solid fa-users"></i></div>
+        <h3>Clientes y fiado</h3>
+        <p>Registra las cuentas por cobrar de cada cliente y consulta cuánto y desde cuándo te debe, sin cuadernos ni memoria.</p>
+        <div class="benefit-tag"><i class="fa-solid fa-check"></i> Historial por cliente</div>
+      </div>
+      <div class="benefit c-amber">
+        <div class="benefit-icon"><i class="fa-solid fa-chart-line"></i></div>
+        <h3>Reportes</h3>
+        <p>Revisa tus ventas del día, del mes y por cajero al instante, y detecta qué productos son los que más se mueven.</p>
+        <div class="benefit-tag"><i class="fa-solid fa-check"></i> Sin sacar cuentas a mano</div>
+      </div>
+      <div class="benefit c-green">
+        <div class="benefit-icon"><i class="fa-brands fa-whatsapp"></i></div>
+        <h3>Tienda Virtual</h3>
+        <p>Activa tu catálogo online con tus fotos y precios; tus clientes arman su pedido y te llega ordenado y listo para preparar por WhatsApp.</p>
+        <div class="benefit-tag"><i class="fa-solid fa-check"></i> Incluido en POS + Tienda Virtual</div>
+      </div>
+      <div class="benefit c-emerald">
+        <div class="benefit-icon"><i class="fa-solid fa-mobile-screen"></i></div>
+        <h3>100% desde el celular</h3>
+        <p>Se instala como cualquier app, sin comprar equipos ni instalar programas — y funciona igual desde la laptop si prefieres usarla ahí.</p>
+        <div class="benefit-tag"><i class="fa-solid fa-check"></i> Acceso desde varios dispositivos</div>
+      </div>
     </div>
   </section>
 
   <section class="section section-wide">
     <span class="eyebrow eyebrow-center"><i class="fa-brands fa-whatsapp"></i> KaseritaDelivery</span>
+    <h2 class="section-title">Tus clientes piden desde donde estén</h2>
+    <p class="section-sub">Comparten tu link, arman su pedido con fotos y precios, y a ti te llega ordenado por WhatsApp — tú eliges cómo entregarlo.</p>
+    <div class="delivery-options">
+      <div class="delivery-option c-blue">
+        <div class="delivery-option-icon"><i class="fa-solid fa-shop"></i></div>
+        <div>
+          <h3>Retiro en tienda</h3>
+          <p>Tu cliente arma su pedido, lo confirma por WhatsApp y solo pasa a recogerlo ya armado. Cero colas, cero llamadas.</p>
+        </div>
+      </div>
+      <div class="delivery-option c-green">
+        <div class="delivery-option-icon"><i class="fa-solid fa-motorcycle"></i></div>
+        <div>
+          <h3>Delivery a domicilio</h3>
+          <p>Recibes la dirección de tu cliente y le mandas el pedido con tu propio repartidor o moto de confianza.</p>
+        </div>
+      </div>
+    </div>
     <div class="wide-shot" id="wideShot">
       <img src="/como-funciona-delivery.jpg" alt="Tus clientes hacen sus pedidos desde donde estén con KaseritaDelivery, y tú eliges retiro en tienda o delivery." loading="lazy">
       <div class="wide-shot-hint"><i class="fa-solid fa-chevron-right"></i></div>
