@@ -81,7 +81,7 @@ export default function App() {
           <h2>Reclamo registrado</h2>
           <p className="screen-sub">Tu código de seguimiento es:</p>
           <p className="codigo">{codigo}</p>
-          <p className="screen-sub">Guarda este código. Te responderemos al correo indicado en un plazo máximo de 30 días calendario, conforme al Código de Protección y Defensa del Consumidor.</p>
+          <p className="screen-sub">Guarda este código. Te responderemos al correo indicado en un plazo máximo de 30 días calendario, conforme al Código de Protección y Defensa del Consumidor (Ley N.º 29571) y su Reglamento del Libro de Reclamaciones (D.S. N.º 070-2017-PCM).</p>
           <a className="back" href="/">← Volver a Kaserita</a>
         </div>
       </div>
@@ -93,7 +93,7 @@ export default function App() {
       <Topbar />
       <div className="card">
         <h1>Libro de Reclamaciones</h1>
-        <p className="screen-sub">Conforme a lo establecido en el Código de Protección y Defensa del Consumidor, este establecimiento cuenta con un Libro de Reclamaciones virtual. Su registro no impide acudir a otras vías de solución de controversias ni es requisito previo para interponer una denuncia ante el INDECOPI.</p>
+        <p className="screen-sub">Conforme a lo establecido en el Código de Protección y Defensa del Consumidor (Ley N.º 29571) y su Reglamento del Libro de Reclamaciones (D.S. N.º 070-2017-PCM), este establecimiento cuenta con un Libro de Reclamaciones virtual. Su registro no impide acudir a otras vías de solución de controversias ni es requisito previo para interponer una denuncia ante el INDECOPI.</p>
 
         <form onSubmit={enviar}>
           <h2 className="seccion">1. Identificación del consumidor reclamante</h2>
