@@ -16,7 +16,7 @@ const precioHoy = (plan) => Number(plan.precio_soles_promo ?? plan.precio_soles)
 const etiquetaPlan = (plan) => (plan.permite_delivery ? 'POS + Catálogo' : 'Punto de Venta');
 const beneficiosPlan = (plan) =>
   plan.permite_delivery
-    ? ['Todo el POS', 'Catálogo virtual', 'Pedidos por delivery y retiro', 'Más alcance']
+    ? ['Todo el POS', 'Tienda virtual', 'Pedidos por delivery y retiro', 'Más alcance']
     : ['Ventas', 'Inventario', 'Reportes básicos', 'Control de caja'];
 
 const IconWhatsApp = () => (
