@@ -138,6 +138,10 @@
   .step-card h3 { font-family: var(--font-display); font-weight: 700; font-size: 14px; margin: 0 0 5px; }
   .step-card p { font-size: 12.5px; color: var(--muted); margin: 0; line-height: 1.55; }
   .step-arrow { position: absolute; top: 27px; right: -22px; color: var(--line); font-size: 15px; z-index: 1; }
+  .step-tag { margin: 14px 0 0; padding-top: 12px; border-top: 1px solid var(--line); font-size: 11px; font-weight: 700; color: var(--violet-ink); display: flex; align-items: center; gap: 6px; }
+  .step-tag i { font-size: 10px; }
+  .steps-cta { display: flex; flex-direction: column; align-items: center; gap: 8px; margin-top: 26px; }
+  .steps-cta span { font-size: 12px; color: var(--muted); }
 
   @media (max-width: 720px) {
     .steps-grid { grid-template-columns: 1fr; gap: 12px; }
@@ -152,11 +156,13 @@
   }
   a.contact-card:hover { transform: translateY(-3px); box-shadow: 0 16px 32px -20px rgba(28,21,35,.22); border-color: rgba(124,58,237,.3); }
   .contact-card-icon {
-    width: 38px; height: 38px; border-radius: 11px; background: rgba(124,58,237,.1); color: var(--violet);
+    width: 38px; height: 38px; border-radius: 11px; background: var(--tint-bg, rgba(124,58,237,.1)); color: var(--tint, var(--violet));
     display: flex; align-items: center; justify-content: center; font-size: 15px; flex-shrink: 0;
   }
   .contact-card strong { font-family: var(--font-display); font-weight: 700; font-size: 12.5px; display: block; margin-bottom: 2px; color: var(--ink); }
   .contact-card span { font-size: 12.5px; color: var(--muted); overflow-wrap: anywhere; }
+  .contact-card.c-whatsapp { --tint: #16a34a; --tint-bg: rgba(37,211,102,.14); }
+  .contact-card.c-blue { --tint: #2563eb; --tint-bg: rgba(37,99,235,.1); }
 
   @media (max-width: 560px) { .contact-grid { grid-template-columns: 1fr; } }
 
@@ -305,32 +311,40 @@
 
   <section class="section">
     <h2 class="section-title">Empieza en 3 pasos</h2>
+    <p class="section-sub">No necesitas ser un experto en tecnología — es tan fácil como mandar un mensaje.</p>
     <div class="steps-grid">
       <div class="step-card">
         <div class="step-num">1</div>
         <h3>Activas tu cuenta</h3>
         <p>Nos escribes por WhatsApp, eliges tu plan y pagas el primer mes por Yape.</p>
+        <div class="step-tag"><i class="fa-solid fa-clock"></i> Toma menos de 2 minutos</div>
         <i class="fa-solid fa-chevron-right step-arrow"></i>
       </div>
       <div class="step-card">
         <div class="step-num">2</div>
         <h3>Cargas tu catálogo</h3>
         <p>Tus productos, precios y stock inicial — a mano o importando una lista.</p>
+        <div class="step-tag"><i class="fa-solid fa-headset"></i> Te ayudamos si tienes Excel</div>
         <i class="fa-solid fa-chevron-right step-arrow"></i>
       </div>
       <div class="step-card">
         <div class="step-num">3</div>
         <h3>Empiezas a vender</h3>
         <p>Abres turno de caja y cobras, todo desde el mismo celular.</p>
+        <div class="step-tag"><i class="fa-solid fa-rocket"></i> ¡Listo para vender!</div>
       </div>
+    </div>
+    <div class="steps-cta">
+      <a class="cta-primary" href="/registro">Crear mi cuenta ahora <i class="fa-solid fa-arrow-right"></i></a>
     </div>
   </section>
 
   <section class="section">
     <h2 class="section-title">Contacto</h2>
+    <p class="section-sub">¿Dudas antes de empezar? Escríbenos, te respondemos rápido.</p>
     <div class="contact-grid">
-      <a class="contact-card" href="tel:+51900376462"><div class="contact-card-icon"><i class="fa-solid fa-phone"></i></div><div><strong>Teléfono / WhatsApp</strong><span>+51 900 376 462</span></div></a>
-      <a class="contact-card" href="mailto:smartdeskapps@smartdeskapps.com"><div class="contact-card-icon"><i class="fa-solid fa-envelope"></i></div><div><strong>Correo</strong><span>smartdeskapps@smartdeskapps.com</span></div></a>
+      <a class="contact-card c-whatsapp" href="tel:+51900376462"><div class="contact-card-icon"><i class="fa-solid fa-phone"></i></div><div><strong>Teléfono / WhatsApp</strong><span>+51 900 376 462</span></div></a>
+      <a class="contact-card c-blue" href="mailto:smartdeskapps@smartdeskapps.com"><div class="contact-card-icon"><i class="fa-solid fa-envelope"></i></div><div><strong>Correo</strong><span>smartdeskapps@smartdeskapps.com</span></div></a>
       <a class="contact-card" href="https://www.facebook.com/profile.php?id=61594577277594" target="_blank" rel="noopener"><div class="contact-card-icon"><i class="fa-brands fa-facebook"></i></div><div><strong>Facebook</strong><span>Kaserita</span></div></a>
       <div class="contact-card"><div class="contact-card-icon"><i class="fa-solid fa-building"></i></div><div><strong>Operación</strong><span>100% virtual — sin local de atención al público</span></div></div>
     </div>
