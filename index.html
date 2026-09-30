@@ -141,6 +141,10 @@
     transition: transform .18s ease, box-shadow .18s ease, border-color .18s ease;
   }
   .step-card:hover { transform: translateY(-3px); box-shadow: 0 16px 32px -20px rgba(28,21,35,.22); border-color: rgba(124,58,237,.3); }
+  .step-card.c-2 .step-num { background: linear-gradient(135deg, #a855f7, #7c3aed); }
+  .step-card.c-3 .step-num { background: linear-gradient(135deg, #10b981, #059669); }
+  .step-card.c-2 .step-tag { color: #9333ea; }
+  .step-card.c-3 .step-tag { color: #059669; }
   .step-num {
     width: 34px; height: 34px; border-radius: 10px; background: linear-gradient(135deg, var(--blue), var(--violet)); color: #fff;
     font-family: var(--font-display); font-weight: 800; font-size: 14px; display: flex; align-items: center; justify-content: center; margin-bottom: 14px;
@@ -340,6 +344,7 @@
   </section>
 
   <section class="section">
+    <span class="eyebrow eyebrow-center"><i class="fa-solid fa-flag-checkered"></i> Comienza hoy mismo</span>
     <h2 class="section-title">Empieza en 3 pasos</h2>
     <p class="section-sub">No necesitas ser un experto en tecnología — es tan fácil como mandar un mensaje.</p>
     <div class="steps-grid">
@@ -350,14 +355,14 @@
         <div class="step-tag"><i class="fa-solid fa-clock"></i> Toma menos de 2 minutos</div>
         <i class="fa-solid fa-chevron-right step-arrow"></i>
       </div>
-      <div class="step-card">
+      <div class="step-card c-2">
         <div class="step-num">2</div>
         <h3>Cargas tu catálogo</h3>
         <p>Tus productos, precios y stock inicial — a mano o importando una lista.</p>
         <div class="step-tag"><i class="fa-solid fa-headset"></i> Te ayudamos si tienes Excel</div>
         <i class="fa-solid fa-chevron-right step-arrow"></i>
       </div>
-      <div class="step-card">
+      <div class="step-card c-3">
         <div class="step-num">3</div>
         <h3>Empiezas a vender</h3>
         <p>Abres turno de caja y cobras, todo desde el mismo celular.</p>
