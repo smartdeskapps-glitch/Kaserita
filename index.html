@@ -158,23 +158,24 @@
     .step-arrow { display: none; }
   }
 
-  .contact-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 14px; }
+  .contact-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
   .contact-card {
-    background: var(--card); border: 1.5px solid var(--line); border-radius: 16px; padding: 18px;
-    display: flex; gap: 13px; align-items: center; text-decoration: none;
+    background: var(--card); border: 1.5px solid var(--line); border-radius: 14px; padding: 14px;
+    display: flex; gap: 10px; align-items: center; text-decoration: none;
     transition: transform .18s ease, box-shadow .18s ease, border-color .18s ease;
   }
   a.contact-card:hover { transform: translateY(-3px); box-shadow: 0 16px 32px -20px rgba(28,21,35,.22); border-color: rgba(124,58,237,.3); }
   .contact-card-icon {
-    width: 38px; height: 38px; border-radius: 11px; background: var(--tint-bg, rgba(124,58,237,.1)); color: var(--tint, var(--violet));
-    display: flex; align-items: center; justify-content: center; font-size: 15px; flex-shrink: 0;
+    width: 34px; height: 34px; border-radius: 10px; background: var(--tint-bg, rgba(124,58,237,.1)); color: var(--tint, var(--violet));
+    display: flex; align-items: center; justify-content: center; font-size: 13.5px; flex-shrink: 0;
   }
-  .contact-card strong { font-family: var(--font-display); font-weight: 700; font-size: 12.5px; display: block; margin-bottom: 2px; color: var(--ink); }
-  .contact-card span { font-size: 12.5px; color: var(--muted); overflow-wrap: anywhere; }
+  .contact-card strong { font-family: var(--font-body); font-weight: 600; font-size: 10.5px; display: block; margin-bottom: 2px; color: var(--tint, var(--violet)); }
+  .contact-card span { font-family: var(--font-display); font-weight: 700; font-size: 12px; color: var(--ink); display: block; overflow-wrap: anywhere; line-height: 1.35; }
   .contact-card.c-whatsapp { --tint: #16a34a; --tint-bg: rgba(37,211,102,.14); }
   .contact-card.c-blue { --tint: #2563eb; --tint-bg: rgba(37,99,235,.1); }
 
-  @media (max-width: 560px) { .contact-grid { grid-template-columns: 1fr; } }
+  @media (max-width: 860px) { .contact-grid { grid-template-columns: repeat(2, 1fr); } }
+  @media (max-width: 480px) { .contact-grid { grid-template-columns: 1fr; } }
 
   .legal-links { display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; }
   .legal-links a { font-size: 12.5px; font-weight: 600; color: var(--violet-ink); text-decoration: none; background: var(--card); border: 1.5px solid var(--line); border-radius: 999px; padding: 9px 16px; display: inline-flex; align-items: center; gap: 7px; }
@@ -369,13 +370,13 @@
   </section>
 
   <section class="section">
-    <h2 class="section-title">Contacto</h2>
-    <p class="section-sub">¿Dudas antes de empezar? Escríbenos, te respondemos rápido.</p>
+    <h2 class="section-title">Canales de Atención Oficial</h2>
+    <p class="section-sub">Estamos listos para resolver tus dudas y acompañar el crecimiento de tu negocio.</p>
     <div class="contact-grid">
       <a class="contact-card c-whatsapp" href="tel:+51900376462"><div class="contact-card-icon"><i class="fa-solid fa-phone"></i></div><div><strong>Teléfono / WhatsApp</strong><span>+51 900 376 462</span></div></a>
-      <a class="contact-card c-blue" href="mailto:smartdeskapps@smartdeskapps.com"><div class="contact-card-icon"><i class="fa-solid fa-envelope"></i></div><div><strong>Correo</strong><span>smartdeskapps@smartdeskapps.com</span></div></a>
-      <a class="contact-card" href="https://www.facebook.com/profile.php?id=61594577277594" target="_blank" rel="noopener"><div class="contact-card-icon"><i class="fa-brands fa-facebook"></i></div><div><strong>Facebook</strong><span>Kaserita</span></div></a>
-      <div class="contact-card"><div class="contact-card-icon"><i class="fa-solid fa-building"></i></div><div><strong>Operación</strong><span>100% virtual — sin local de atención al público</span></div></div>
+      <a class="contact-card c-blue" href="mailto:smartdeskapps@smartdeskapps.com"><div class="contact-card-icon"><i class="fa-solid fa-envelope"></i></div><div><strong>Correo Electrónico</strong><span>smartdeskapps@smartdeskapps.com</span></div></a>
+      <a class="contact-card" href="https://www.facebook.com/profile.php?id=61594577277594" target="_blank" rel="noopener"><div class="contact-card-icon"><i class="fa-brands fa-facebook"></i></div><div><strong>Redes Sociales</strong><span>Facebook: Kaserita</span></div></a>
+      <div class="contact-card c-blue"><div class="contact-card-icon"><i class="fa-solid fa-building"></i></div><div><strong>Operación Oficial</strong><span>100% virtual, todo el Perú</span></div></div>
     </div>
   </section>
 
