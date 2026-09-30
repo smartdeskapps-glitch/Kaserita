@@ -60,6 +60,35 @@
   .hero-shot { margin: 34px 0 0; }
   .hero-shot img { width: 100%; height: auto; display: block; border-radius: 20px; box-shadow: 0 30px 60px -30px rgba(28,21,35,.3); }
 
+  .showcase { position: relative; overflow: hidden; }
+  .showcase-glow {
+    position: absolute; inset: -8% -10% auto -10%; height: 380px; z-index: 0; pointer-events: none;
+    background: radial-gradient(55% 55% at 28% 15%, rgba(124,58,237,.16), transparent 70%),
+                radial-gradient(45% 45% at 82% 5%, rgba(37,99,235,.14), transparent 70%);
+  }
+  .showcase-stage { position: relative; z-index: 1; display: flex; align-items: center; justify-content: center; min-height: 400px; padding: 26px 0 56px; }
+  .showcase-desktop {
+    width: min(620px, 76%); border-radius: 16px; overflow: hidden; background: var(--ink);
+    box-shadow: 0 40px 70px -32px rgba(28,21,35,.42); will-change: transform;
+  }
+  .showcase-browser-bar { display: flex; align-items: center; gap: 6px; padding: 9px 12px; background: #241a30; }
+  .showcase-browser-bar span { width: 9px; height: 9px; border-radius: 50%; background: #4a3f57; }
+  .showcase-desktop img { display: block; width: 100%; height: auto; }
+  .showcase-mobile {
+    position: absolute; right: 7%; bottom: -34px; width: min(180px, 30vw); padding: 8px; border-radius: 26px;
+    background: var(--ink); box-shadow: 0 30px 55px -22px rgba(28,21,35,.48); will-change: transform;
+  }
+  .showcase-mobile::before { content: ''; position: absolute; top: 9px; left: 50%; transform: translateX(-50%); width: 34px; height: 4px; border-radius: 3px; background: #4a3f57; }
+  .showcase-mobile img { display: block; width: 100%; height: auto; border-radius: 18px; }
+  @media (max-width: 680px) {
+    .showcase-stage { flex-direction: column; gap: 24px; min-height: 0; padding: 14px 0 34px; }
+    .showcase-desktop { width: 100%; }
+    .showcase-mobile { position: static; width: 148px; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .showcase-desktop, .showcase-mobile { transform: none !important; }
+  }
+
   .section-wide { margin-left: calc(50% - 50vw); margin-right: calc(50% - 50vw); padding: 0 20px; }
   .eyebrow-center { display: flex; width: fit-content; margin: 0 auto 16px; }
   .wide-shot { max-width: 1240px; margin: 0 auto; overflow-x: auto; border-radius: 18px; position: relative; }
@@ -261,6 +290,22 @@
         <h3>100% desde el celular</h3>
         <p>Se instala como cualquier app, sin comprar equipos ni instalar programas — y funciona igual desde la laptop si prefieres usarla ahí.</p>
         <div class="benefit-tag"><i class="fa-solid fa-check"></i> Acceso desde varios dispositivos</div>
+      </div>
+    </div>
+  </section>
+
+  <section class="section showcase">
+    <div class="showcase-glow" aria-hidden="true"></div>
+    <span class="eyebrow eyebrow-center"><i class="fa-solid fa-eye"></i> Así se ve por dentro</span>
+    <h2 class="section-title">Software de verdad, no una maqueta</h2>
+    <p class="section-sub">La misma pantalla que usan las bodegas todos los días: caja, catálogo e inventario en un solo lugar.</p>
+    <div class="showcase-stage">
+      <div class="showcase-desktop" id="showcaseDesktop">
+        <div class="showcase-browser-bar"><span></span><span></span><span></span></div>
+        <img src="/showcase-desktop.webp" alt="Panel de caja de Kaserita con el catálogo de productos y el carrito de venta" loading="lazy">
+      </div>
+      <div class="showcase-mobile" id="showcaseMobile">
+        <img src="/showcase-mobile.png" alt="Catálogo de KaseritaDelivery visto desde el celular del cliente" loading="lazy">
       </div>
     </div>
   </section>
