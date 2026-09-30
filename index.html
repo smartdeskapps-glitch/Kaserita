@@ -61,11 +61,6 @@
   .hero-shot img { width: 100%; height: auto; display: block; border-radius: 20px; box-shadow: 0 30px 60px -30px rgba(28,21,35,.3); }
 
   .showcase { position: relative; overflow: hidden; }
-  .showcase-glow {
-    position: absolute; inset: -8% -10% auto -10%; height: 380px; z-index: 0; pointer-events: none;
-    background: radial-gradient(55% 55% at 28% 15%, rgba(124,58,237,.16), transparent 70%),
-                radial-gradient(45% 45% at 82% 5%, rgba(37,99,235,.14), transparent 70%);
-  }
   .showcase-stage { position: relative; z-index: 1; display: flex; align-items: center; justify-content: center; min-height: 400px; padding: 26px 0 56px; }
   .showcase-desktop {
     width: min(620px, 76%); border-radius: 16px; overflow: hidden; background: var(--ink);
@@ -295,7 +290,6 @@
   </section>
 
   <section class="section showcase">
-    <div class="showcase-glow" aria-hidden="true"></div>
     <span class="eyebrow eyebrow-center"><i class="fa-solid fa-eye"></i> Así se ve por dentro</span>
     <h2 class="section-title">Software de verdad, no una maqueta</h2>
     <p class="section-sub">La misma pantalla que usan las bodegas todos los días: caja, catálogo e inventario en un solo lugar.</p>
