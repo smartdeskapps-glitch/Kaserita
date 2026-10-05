@@ -542,6 +542,55 @@ import {
       return `S/ ${formatoSoles(n)}`;
     };
 
+    // Registro de actividad: convierte una fila de "auditoria" en una frase
+    // legible (título + detalle por campo) en vez del texto técnico de la base
+    // (con UUID, nombres de columna y flechas). Usa los cambios estructurados
+    // ("cambios") y, para el nombre, lo que viene en "resumen".
+    const AUDITORIA_CAMPOS = {
+      precio_venta: ['Precio de venta', 'dinero'], precio_costo: ['Costo', 'dinero'],
+      activo: ['Activo', 'bool'], anulada: ['Anulada', 'bool'], motivo_anulacion: ['Motivo', 'texto'],
+      total_venta: ['Total', 'dinero'], medio_pago: ['Medio de pago', 'texto'],
+      estado: ['Estado', 'estado'], monto_inicial: ['Monto inicial', 'dinero'],
+      monto_final_real: ['Efectivo contado', 'dinero'], diferencia: ['Diferencia', 'dinero'],
+      rol: ['Rol', 'texto'], nombre: ['Nombre', 'texto'], pin_seguridad: ['PIN de seguridad', 'texto'],
+    };
+    function valorAuditoria(tipo, v) {
+      if (v === null || v === undefined || v === '') return 'sin dato';
+      if (tipo === 'dinero' && !Number.isNaN(Number(v))) return `S/ ${Number(v).toFixed(2)}`;
+      if (tipo === 'bool') return (v === true || v === 'true') ? 'Sí' : 'No';
+      if (tipo === 'estado') return String(v).toUpperCase() === 'ABIERTA' ? 'abierto' : String(v).toUpperCase() === 'CERRADA' ? 'cerrado' : String(v).toLowerCase();
+      return String(v);
+    }
+    function describirAuditoria(f) {
+      const cambios = f.cambios && typeof f.cambios === 'object' ? f.cambios : {};
+      const m = /^[^:]+: *(.*?)(?: [(].*)?$/.exec(f.resumen || '');
+      let nombre = (m && m[1] ? m[1] : '').trim();
+      if (/^[0-9a-f]{8}-[0-9a-f]{4}-/i.test(nombre)) nombre = '';
+      const con = nombre ? `: ${nombre}` : '';
+      let titulo;
+      const op = f.operacion;
+      if (f.tabla === 'productos') titulo = `Producto ${op === 'DELETE' ? 'eliminado' : 'modificado'}${con}`;
+      else if (f.tabla === 'ventas') titulo = cambios.anulada && valorAuditoria('bool', cambios.anulada.despues) === 'Sí' ? `Venta anulada${con}` : `Venta ${op === 'DELETE' ? 'eliminada' : 'modificada'}${con}`;
+      else if (f.tabla === 'turnos_caja') {
+        const est = cambios.estado ? valorAuditoria('estado', cambios.estado.despues) : '';
+        titulo = op === 'INSERT' ? 'Turno de caja abierto' : est === 'cerrado' ? 'Turno de caja cerrado' : op === 'DELETE' ? 'Turno de caja eliminado' : 'Turno de caja modificado';
+      }
+      else if (f.tabla === 'cajeros') titulo = `Empleado ${op === 'INSERT' ? 'creado' : op === 'DELETE' ? 'eliminado' : 'modificado'}${con}`;
+      else if (f.tabla === 'mermas') titulo = `Merma ${op === 'DELETE' ? 'eliminada' : 'registrada'}${con}`;
+      else titulo = (f.resumen || 'Cambio registrado').replace(/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/gi, '').replace(/ {2,}/g, ' ').trim();
+      const detalle = Object.entries(cambios)
+        .filter(([k]) => !(f.tabla === 'turnos_caja' && k === 'estado'))
+        .map(([k, c]) => {
+          const [etq, tipo] = AUDITORIA_CAMPOS[k] || [k.replace(/_/g, ' '), 'texto'];
+          const antes = c && c.antes, despues = c && c.despues;
+          if (k === 'pin_seguridad') return 'PIN de seguridad cambiado';
+          return (antes === null || antes === undefined || antes === '') && f.tabla === 'turnos_caja'
+            ? `${etq}: ${valorAuditoria(tipo, despues)}`
+            : `${etq}: ${valorAuditoria(tipo, antes)} → ${valorAuditoria(tipo, despues)}`;
+        });
+      return { titulo, detalle };
+    }
+
     // Variación porcentual del Dashboard: verde si sube, rojo si baja. Sin
     // porcentaje (null) no dibuja nada -- pasa cuando el período anterior no
     // tiene ventas y comparar contra cero no significa nada.
@@ -12570,9 +12619,14 @@ import {
                   )}
                   {filasAuditoria.filter((f) => filtroAuditoria === 'todo' || f.tabla === filtroAuditoria).map((f) => (
                     <div key={f.id} className="bg-white border border-stone-200 rounded-xl px-3 py-2">
-                      <p className="text-xs font-semibold text-stone-800 break-words">{f.resumen}</p>
+                      {(() => { const d = describirAuditoria(f); return (
+                        <>
+                          <p className="text-xs font-semibold text-stone-800 break-words">{d.titulo}</p>
+                          {d.detalle.length > 0 && <p className="text-[11px] text-stone-600 mt-0.5 break-words">{d.detalle.join(' · ')}</p>}
+                        </>
+                      ); })()}
                       <p className="text-[10px] text-stone-500 mt-0.5">
-                        {new Date(f.creado_en).toLocaleString('es-PE')}
+                        {new Date(f.creado_en).toLocaleString('es-PE', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
                         {f.turnos_abiertos && f.turnos_abiertos.length > 0 ? ` · Turno abierto de: ${f.turnos_abiertos.join(', ')}` : ' · Sin turnos abiertos'}
                       </p>
                     </div>
@@ -12593,7 +12647,7 @@ import {
                 <p className="text-xs text-stone-600">
                   Es el PIN con el que entras a Kaserita. Usa {PIN_MIN_DUENO} caracteres o más, mezclando letras y números.
                 </p>
-                {[['actual', 'PIN actual'], ['nuevo', 'PIN nuevo'], ['repetir', 'Repetí el PIN nuevo']].map(([campo, etiqueta]) => (
+                {[['actual', 'PIN actual'], ['nuevo', 'PIN nuevo'], ['repetir', 'Repite el PIN nuevo']].map(([campo, etiqueta]) => (
                   <input
                     key={campo}
                     type="password"
