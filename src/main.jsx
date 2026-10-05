@@ -1621,7 +1621,7 @@ import {
                 const { data: esAdmin } = await sbClient.from('super_admins').select('auth_id').eq('auth_id', session.user.id).maybeSingle();
                 if (!esAdmin) {
                   setVerificandoSesion(false);
-                  notificar('Esta cuenta no tiene ninguna suscripción activa. Te llevamos a activar tu bodega...', 'error');
+                  notificar('Esta cuenta no tiene ninguna suscripción activa. Te llevamos a activar tu negocio...', 'error');
                   setTimeout(() => { window.location.href = '/registro'; }, 1800);
                   return;
                 }
@@ -1726,7 +1726,7 @@ import {
         const n = resumenAvisos?.audiencia || 0;
         const ok = await pedirConfirmacion({
           titulo: 'Avisar a tus clientes',
-          mensaje: `Se enviará una notificación a ${n} cliente${n === 1 ? '' : 's'}: "¡${sesion?.bodega?.nombre || 'Tu bodega'} ya recibe pedidos!". Solo puedes hacerlo una vez por semana. ¿Enviar ahora?`,
+          mensaje: `Se enviará una notificación a ${n} cliente${n === 1 ? '' : 's'}: "¡${sesion?.bodega?.nombre || 'Tu negocio'} ya recibe pedidos!". Solo puedes hacerlo una vez por semana. ¿Enviar ahora?`,
           textoBoton: 'Sí, avisar',
         });
         if (!ok) return;
@@ -1796,7 +1796,7 @@ import {
         }
         const slugLimpio = normalizarSlugDelivery(slugDelivery);
         if (deliveryHabilitado && !slugLimpio) {
-          notificar('Elegí un link antes de activar el catálogo público.', 'error');
+          notificar('Elige un link antes de activar el catálogo público.', 'error');
           return;
         }
         const aNumero = (t) => Math.max(0, parseFloat(String(t).replace(',', '.')) || 0);
@@ -1972,7 +1972,7 @@ import {
       // verdad recién cuando handleCobrar termina la venta con éxito.
       const cargarPedidoDesdeRetirar = async (pedido) => {
         if (pedidosCargadosAlCarrito.some((p) => p.id === pedido.id)) {
-          notificar('Ese pedido ya está en el carrito -- cóbralo para completarlo.', 'info');
+          notificar('Ese pedido ya está en el carrito: cóbralo para completarlo.', 'info');
           return;
         }
         setProcesandoPedidoRetirarId(pedido.id);
@@ -2912,7 +2912,7 @@ import {
       const agregarCategoriaPersonalizada = async (asignar) => {
         const nombre = await pedirTexto({
           titulo: 'Nueva categoría',
-          mensaje: 'Solo la verás en esta bodega.',
+          mensaje: 'Solo la verás en este negocio.',
           placeholder: 'Ej: Repostería',
           textoBoton: 'Crear categoría'
         });
@@ -4781,7 +4781,7 @@ import {
         doc.setFont('helvetica', 'normal');
         doc.setFontSize(8);
         colorTexto(GRIS);
-        const nota = doc.splitTextToSize('Este documento resume las boletas a crédito pendientes de pago a la fecha de emisión. Si ya realizó un pago que no figura aquí, comuníquese con la bodega para actualizar su cuenta.', 105);
+        const nota = doc.splitTextToSize('Este documento resume las boletas a crédito pendientes de pago a la fecha de emisión. Si ya realizó un pago que no figura aquí, comuníquese con el negocio para actualizar su cuenta.', 105);
         doc.text(nota, M, y + 4);
         colorLinea(OSCURO);
         doc.setLineWidth(0.5);
@@ -8166,7 +8166,7 @@ import {
                     <div className="w-8 h-8 border-4 border-amber-500 border-t-transparent rounded-full animate-spin"></div>
                     <p className="text-xs">Cargando productos...</p>
                   </div>
-                ) : productos.length === 0 ? (
+                ) : productos.length === 0 && !busqueda.trim() ? (
                   <div className="flex flex-col items-center justify-center h-full text-center px-4">
                     <div className="w-16 h-16 rounded-2xl bg-amber-500/10 flex items-center justify-center mb-3">
                       <i className="fa-solid fa-boxes-stacked text-2xl text-amber-600"></i>
@@ -9646,7 +9646,7 @@ import {
                             {sesion?.bodega?.permitir_subir_fotos === false ? (
                               <div className="flex items-center gap-2.5">
                                 <FotoProducto fotoUrl={fila.foto_url} categoria={fila.categoria} className="w-16 h-16 rounded-xl shrink-0 border border-stone-200" iconClassName="text-xl" />
-                                <p className="text-[10.5px] text-stone-500">La subida de fotos está desactivada para tu bodega.</p>
+                                <p className="text-[10.5px] text-stone-500">La subida de fotos está desactivada para tu negocio.</p>
                               </div>
                             ) : (
                               <div className="flex items-center gap-3">
@@ -9881,7 +9881,7 @@ import {
                           </label>
                           {esExistente && fila.vendeEnPackOriginal && !fila.vendeEnPack && (
                             <p className="text-[11px] text-rose-600 font-semibold mt-1">
-                              <i className="fa-solid fa-triangle-exclamation mr-1"></i> Este producto ya vendía por pack -- al guardar se le va a quitar esa configuración.
+                              <i className="fa-solid fa-triangle-exclamation mr-1"></i> Este producto ya vendía por pack: al guardar se le va a quitar esa configuración.
                             </p>
                           )}
                           {fila.vendeEnPack && (
@@ -10802,7 +10802,7 @@ import {
                       </div>
                       <p className="text-xs text-stone-500">
                         <span className="font-semibold text-stone-700 block">Foto del producto</span>
-                        La subida de fotos está desactivada para tu bodega. Contacta a Kaserita si la necesitas.
+                        La subida de fotos está desactivada para tu negocio. Contacta a Kaserita si la necesitas.
                       </p>
                     </>
                   ) : (
@@ -10851,7 +10851,7 @@ import {
                   </span>
                   <span>
                     <span className="block text-xs font-bold text-stone-800">Destacar en Kaserita Delivery</span>
-                    <span className="block text-[10px] text-stone-500">Aparece en el carrusel de destacados de tu tienda online. Podés marcar varios productos.</span>
+                    <span className="block text-[10px] text-stone-500">Aparece en el carrusel de destacados de tu tienda online. Puedes marcar varios productos.</span>
                   </span>
                 </label>
                 <div className="space-y-2.5">
@@ -12161,7 +12161,7 @@ import {
                     <h3 className="text-[19px] font-bold tracking-tight text-stone-900 leading-tight">Mi link de pedidos</h3>
                     <p className="text-xs text-stone-500 mt-0.5 leading-snug">
                       Tus clientes entran a este link, arman su pedido y te lo mandan por WhatsApp
-                      con un código -- vos lo cargás acá en caja para cobrar sin escribir nada a mano.
+                      con un código, que cargas aquí en caja para cobrar sin escribir nada a mano.
                     </p>
                   </div>
                   <button onClick={() => { setModalDelivery(false); setMostrarQRDelivery(false); }} className="w-9 h-9 rounded-full bg-white ring-1 ring-[#6105dc]/10 hover:bg-[#f4eefe] text-stone-500 flex items-center justify-center transition shrink-0" aria-label="Cerrar">
@@ -12262,7 +12262,7 @@ import {
                         <p className="flex items-center gap-1.5 text-[11.5px] font-bold uppercase tracking-wider text-[#4d04b0] mb-3">
                           <IconoTrazo nombre="ubicacion" className="w-3.5 h-3.5" /> Dónde y cuándo
                         </p>
-                        <label className="text-[12.5px] font-semibold text-stone-700 block mb-1.5">Dirección de tu bodega</label>
+                        <label className="text-[12.5px] font-semibold text-stone-700 block mb-1.5">Dirección de tu negocio</label>
                         <div className="h-[46px] flex items-center gap-2 px-3.5 rounded-2xl bg-[#faf8fe] ring-1 ring-[#6105dc]/10 focus-within:ring-2 focus-within:ring-[#6105dc]/40">
                           <input
                             type="text"
@@ -12484,7 +12484,7 @@ import {
                               onClick={async () => {
                                 const url = `${KASERITA_DELIVERY_URL}/${sesion.bodega.slug}`;
                                 try {
-                                  await navigator.share({ title: 'Mi Link de Pedidos', text: 'Hacé tu pedido acá:', url });
+                                  await navigator.share({ title: 'Mi Link de Pedidos', text: 'Haz tu pedido aquí:', url });
                                 } catch (err) {
                                   if (err?.name !== 'AbortError') notificar('No se pudo abrir el menú de compartir.', 'error');
                                 }
@@ -12591,7 +12591,7 @@ import {
                   <i className="fa-solid fa-key text-orange-600"></i> Cambiar mi PIN de acceso
                 </h3>
                 <p className="text-xs text-stone-600">
-                  Es el PIN con el que entrás a Kaserita. Usá {PIN_MIN_DUENO} caracteres o más, mezclando letras y números.
+                  Es el PIN con el que entras a Kaserita. Usa {PIN_MIN_DUENO} caracteres o más, mezclando letras y números.
                 </p>
                 {[['actual', 'PIN actual'], ['nuevo', 'PIN nuevo'], ['repetir', 'Repetí el PIN nuevo']].map(([campo, etiqueta]) => (
                   <input
@@ -13166,7 +13166,7 @@ import {
                           <div className="flex flex-wrap items-start justify-between gap-2">
                             <div>
                               <h4 className="text-sm font-semibold text-stone-800">Ventas por día</h4>
-                              <p className="text-xs text-stone-500 mt-0.5">Tocá un día para ver el detalle</p>
+                              <p className="text-xs text-stone-500 mt-0.5">Toca un día para ver el detalle</p>
                             </div>
                             <p className="text-xs text-stone-500 sm:text-right">Total del mes<br /><span className="text-sm font-semibold text-stone-900 tabular-nums">S/ {formatoSoles(totalMes)}</span></p>
                           </div>
@@ -13789,7 +13789,7 @@ import {
                 <h3 className="text-sm font-bold text-stone-900 flex items-center gap-2">
                   <i className="fa-solid fa-lock text-orange-600"></i> PIN de {cajeroPendientePin.nombre}
                 </h3>
-                <p className="text-xs text-stone-600">Esta cuenta tiene acceso de Administrador -- ingresa su PIN para continuar.</p>
+                <p className="text-xs text-stone-600">Esta cuenta tiene acceso de Administrador: ingresa su PIN para continuar.</p>
                 <input
                   type="password"
                   maxLength={PIN_MAX}

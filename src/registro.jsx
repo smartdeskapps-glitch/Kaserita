@@ -136,8 +136,8 @@ function App() {
         <div className="card">
           <div className="center-block">
             <div className="success-badge"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M3 8.5l3.5 3.5L13 5" /></svg></div>
-            <h2>Ya tienes una bodega activa</h2>
-            <p className="screen-sub">Esta cuenta de Google ya tiene una bodega creada en Kaserita -- no hace falta registrarte de nuevo.</p>
+            <h2>Ya tienes un negocio activo</h2>
+            <p className="screen-sub">Esta cuenta de Google ya tiene un negocio creado en Kaserita, así que no hace falta registrarte de nuevo.</p>
             <a href="/pos" className="pay-btn">Entrar a mi panel</a>
           </div>
         </div>
