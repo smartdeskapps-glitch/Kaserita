@@ -1,0 +1,6 @@
+User-agent: *
+Allow: /
+Disallow: /pos
+Disallow: /registro
+
+Sitemap: https://kaserita.smartdeskapps.com/sitemap.xml

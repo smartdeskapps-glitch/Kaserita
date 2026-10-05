@@ -20,7 +20,8 @@
       "has": [{ "type": "host", "value": "kaserita.vercel.app" }],
       "destination": "https://kaserita.smartdeskapps.com/:path*",
       "permanent": true
-    }
+    },
+    { "source": "/demo", "destination": "/", "permanent": true }
   ],
   "rewrites": [
     { "source": "/pos", "destination": "/pos.html" },
@@ -29,6 +30,6 @@
     { "source": "/terminos", "destination": "/terminos.html" },
     { "source": "/terminos-delivery", "destination": "/terminos-delivery.html" },
     { "source": "/reclamos", "destination": "/reclamos.html" },
-    { "source": "/(.*)", "destination": "/index.html" }
+    { "source": "/favicon.ico", "destination": "/icon-192.png" }
   ]
 }
