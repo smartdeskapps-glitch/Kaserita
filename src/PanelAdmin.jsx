@@ -6,6 +6,12 @@ import {
   categoriaDesdeTexto, FotoProducto, MiniInterruptor,
 } from './PanelAdminCompartido.jsx';
 
+// Medios con los que el equipo registra un pago (se guarda el valor tal cual en pagos_bodega.medio).
+const MEDIOS_PAGO = [
+  ['yape', 'Yape'], ['plin', 'Plin'], ['izipay', 'Tarjeta (Izipay)'],
+  ['efectivo', 'Efectivo'], ['transferencia', 'Transferencia'], ['otro', 'Otro'],
+];
+
 // Panel del super-administrador: crea bodegas (el unico lugar donde se
 // puede crear una, ver panel_admin.sql) y controla su vigencia. No usa
 // "sesion" (esa es la de dueno/cajero de una bodega) -- entra con su
@@ -915,8 +921,11 @@ import {
           const cuando = e.dias < 0 ? `venció hace ${-e.dias} días` : e.dias === 0 ? 'vence hoy' : `vence en ${e.dias} días`;
           const plan = planDe(b);
           const nombre = (b.dueno?.nombre || '').split(' ')[0];
+          const comoPagar = 'puedes pagar por Yape o con tarjeta (te enviamos un link de pago) y avisarnos por aquí. ¡Gracias!';
           const texto = `Hola ${nombre}, te escribimos de Kaserita. La suscripción de ${b.nombre} ${cuando}.` +
-            (plan ? `\nSi quieres seguir con tu plan ${plan.nombre} (S/ ${Number(plan.precio_soles).toFixed(2)} al mes), puedes yapear y avisarnos por aquí. ¡Gracias!` : '\nSi quieres seguir, puedes yapear y avisarnos por aquí. ¡Gracias!');
+            (plan
+              ? `\nSi quieres seguir con tu plan ${plan.nombre} (S/ ${Number(plan.precio_soles).toFixed(2)} al mes), ${comoPagar}`
+              : `\nSi quieres seguir, ${comoPagar}`);
           url += `?text=${encodeURIComponent(texto)}`;
         }
         window.open(url, '_blank', 'noopener,noreferrer');
@@ -1135,7 +1144,7 @@ import {
                               <div className="flex items-center gap-1.5 justify-end relative">
                                 <button
                                   onClick={() => abrirModalPago(b)}
-                                  title="Registrar el pago (Yape, efectivo o transferencia) y sumar días de vigencia"
+                                  title="Registrar el pago (Yape, tarjeta, efectivo o transferencia) y sumar días de vigencia"
                                   className={`text-xs font-semibold px-2.5 py-1.5 rounded-lg flex items-center gap-1.5 ${urgente ? 'bg-violet-600 text-white hover:bg-violet-700' : 'bg-stone-100 text-stone-700 hover:bg-stone-200'}`}
                                 >
                                   <i className="fa-solid fa-mobile-screen text-[10px]"></i> Pago
@@ -1257,11 +1266,7 @@ import {
                       <div>
                         <label className="text-xs text-stone-600 block mb-1">Medio de pago:</label>
                         <select value={f.medio} onChange={(e) => actualiza({ medio: e.target.value })} className={campo}>
-                          <option value="yape">Yape</option>
-                          <option value="plin">Plin</option>
-                          <option value="efectivo">Efectivo</option>
-                          <option value="transferencia">Transferencia</option>
-                          <option value="otro">Otro</option>
+                          {MEDIOS_PAGO.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
                         </select>
                       </div>
                       <div>
@@ -1271,7 +1276,7 @@ import {
                     </div>
                     <div>
                       <label className="text-xs text-stone-600 block mb-1">Nota (opcional):</label>
-                      <input type="text" maxLength={200} placeholder="Ej: Yape a nombre de Juan, operación 123456" value={f.nota} onChange={(e) => actualiza({ nota: e.target.value })} className={campo} />
+                      <input type="text" maxLength={200} placeholder="Ej: Yape a nombre de Juan, op. 123456 / link Izipay pagado por Juan" value={f.nota} onChange={(e) => actualiza({ nota: e.target.value })} className={campo} />
                     </div>
                     <p className="text-[11px] rounded-lg px-3 py-2 bg-violet-50 text-violet-800">
                       {diasNum > 0
@@ -1577,11 +1582,7 @@ import {
                         onChange={(e) => setFormNuevaBodega({ ...formNuevaBodega, medio: e.target.value })}
                         className="w-full bg-stone-50 border border-stone-200 rounded-lg px-3 py-2 text-sm text-stone-900"
                       >
-                        <option value="yape">Yape</option>
-                        <option value="plin">Plin</option>
-                        <option value="efectivo">Efectivo</option>
-                        <option value="transferencia">Transferencia</option>
-                        <option value="otro">Otro</option>
+                        {MEDIOS_PAGO.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
                       </select>
                     </div>
                     <p className="col-span-2 text-[11px] text-stone-500 -mt-1">Este primer pago queda anotado en el "Historial de pagos" de la bodega.</p>

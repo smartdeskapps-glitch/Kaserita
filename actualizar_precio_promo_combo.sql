@@ -3,8 +3,7 @@
 -- igual que antes. Punto de Venta (S/30) no cambia.
 --
 -- Ejecutar a mano en el SQL Editor de Supabase. No requiere redesplegar
--- nada -- tanto /registro como la Edge Function cobrar-plan-culqi leen
--- estos valores en vivo de la tabla en cada pago.
+-- nada -- /registro lee estos valores en vivo de la tabla.
 
 update public.planes_kaserita
 set precio_soles_promo = 39.90,

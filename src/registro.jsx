@@ -8,7 +8,8 @@ const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY || "sb_publisha
 const sbClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 // Por ahora el alta de cuentas es manual: el botón "Continuar" abre WhatsApp
-// con el plan elegido y el equipo activa la cuenta (el pago es por Yape).
+// con el plan elegido y el equipo activa la cuenta (el pago es por Yape o con
+// un link de pago de Izipay de un solo uso que el equipo envía por WhatsApp).
 const WHATSAPP_ALTAS = '51900376462';
 
 const dinero = (n) => `S/ ${Number(n).toFixed(2)}`;
@@ -40,11 +41,11 @@ function Faq() {
   const [abierto, setAbierto] = useState(0);
   const preguntas = [
     { q: '¿Necesito instalar algo?', a: 'No. Kaserita funciona desde el navegador, en tu celular, tablet o PC. No hay nada que descargar ni instalar.' },
-    { q: '¿Cómo pago?', a: 'Por Yape. Al continuar se abre WhatsApp con tu plan; te respondemos, te indicamos cómo pagar tu primer mes y activamos tu cuenta. Kaserita no guarda datos bancarios.' },
+    { q: '¿Cómo pago?', a: 'Por Yape o con tarjeta. Al continuar se abre WhatsApp con tu plan; te respondemos, te enviamos los datos de Yape o un link de pago con tarjeta para tu primer mes y activamos tu cuenta. Kaserita no guarda datos bancarios.' },
     { q: '¿Puedo cancelar cuando quiera?', a: 'Sí. Es un pago por mes, sin contrato ni permanencia. Si no quieres seguir, simplemente no vuelves a pagar el mes siguiente.' },
     { q: '¿Cobran comisión por mis ventas?', a: 'No. Solo pagas la suscripción mensual de tu plan.' },
     { q: '¿Puedo empezar con Punto de Venta y sumar el catálogo después?', a: 'Sí, puedes arrancar con el plan que necesites hoy y ampliarlo más adelante sin perder tus productos ni tu historial de ventas.' },
-    { q: '¿Qué necesito para activar mi cuenta?', a: 'Solo escribirnos por WhatsApp. Te pediremos los datos básicos de tu negocio (nombre, DNI y celular) y tu pago por Yape.' },
+    { q: '¿Qué necesito para activar mi cuenta?', a: 'Solo escribirnos por WhatsApp. Te pediremos los datos básicos de tu negocio (nombre, DNI y celular) y el pago de tu primer mes.' },
   ];
   return (
     <div className="faq">
@@ -168,7 +169,7 @@ function App() {
             <div className="hero-copy">
               <span className="eyebrow-w">Para tu negocio</span>
               <h1>Elige cómo quieres vender</h1>
-              <p className="hero-sub">Escríbenos por WhatsApp con tu plan, paga el primer mes por Yape y activamos tu cuenta.</p>
+              <p className="hero-sub">Escríbenos por WhatsApp con tu plan, paga el primer mes por Yape o con tarjeta y activamos tu cuenta.</p>
               <ul className="trust-row">
                 <li><IconCheck /> Sin contrato</li>
                 <li><IconCheck /> Sin comisiones por tus ventas</li>
@@ -211,7 +212,7 @@ function App() {
                       <IconWhatsApp /> Continuar por WhatsApp
                     </button>
                   </div>
-                  <p className="fine fine-d">Se abre WhatsApp con tu plan. Pagas por Yape y activamos tu cuenta.</p>
+                  <p className="fine fine-d">Se abre WhatsApp con tu plan. Pagas por Yape o con tarjeta y activamos tu cuenta.</p>
                 </>
               )}
             </div>
@@ -220,7 +221,7 @@ function App() {
       </header>
 
       <main className="main">
-        <p className="fine fine-m">Se abre WhatsApp con tu plan. Pagas por Yape y activamos tu cuenta. No guardamos datos bancarios.</p>
+        <p className="fine fine-m">Se abre WhatsApp con tu plan. Pagas por Yape o con tarjeta y activamos tu cuenta. No guardamos datos bancarios.</p>
 
         <section className="sec">
           <h2 className="sec-title">Cómo funciona</h2>
@@ -232,8 +233,8 @@ function App() {
             </div>
             <div className="mini">
               <div className="dot"><svg className="ic" viewBox="0 0 16 16"><rect x="4" y="1.8" width="8" height="12.4" rx="2" /><path d="M7 12h2" /></svg></div>
-              <b>Yapeas</b>
-              <span>Solo el primer mes, te decimos a dónde</span>
+              <b>Pagas</b>
+              <span>Solo el primer mes, por Yape o con tarjeta</span>
             </div>
             <div className="mini">
               <div className="dot"><IconCheck /></div>
