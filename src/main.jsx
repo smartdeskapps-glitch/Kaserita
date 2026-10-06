@@ -542,6 +542,14 @@ import {
       return `S/ ${formatoSoles(n)}`;
     };
 
+    // Validaciones de formularios. Sin barras invertidas a propósito.
+    // DNI: 8 dígitos. RUC: 11 dígitos. Carné de extranjería o pasaporte: 9 a 12 letras o números.
+    const esDniValido = (v) => /^[0-9]{8}$/.test(String(v || '').trim());
+    const esDocumentoValido = (v) => /^([0-9]{8}|[0-9]{11}|[A-Za-z0-9]{9,12})$/.test(String(v || '').trim());
+    const esRucValido = (v) => /^[0-9]{11}$/.test(String(v || '').trim());
+    // Número >= 0 (vacío cuenta como válido cuando es opcional).
+    const esMontoNoNegativo = (v) => v === '' || v === null || v === undefined || (Number.isFinite(Number(v)) && Number(v) >= 0);
+
     // Registro de actividad: convierte una fila de "auditoria" en una frase
     // legible (título + detalle por campo) en vez del texto técnico de la base
     // (con UUID, nombres de columna y flechas). Usa los cambios estructurados
@@ -2219,6 +2227,10 @@ import {
           notificar('Nombre y DNI son obligatorios.', 'error');
           return;
         }
+        if (!esDocumentoValido(dni) || esRucValido(dni)) {
+          notificar('Revisa el DNI: debe tener 8 dígitos (o carné/pasaporte de 9 a 12 letras o números).', 'error');
+          return;
+        }
         // Un Administrador desbloquea el panel completo al elegirlo en
         // "Abrir Turno" -- por eso necesita su propio PIN desde que se
         // crea (ver cajeros_pin_administrador.sql). Un Cajero normal no
@@ -3619,7 +3631,7 @@ import {
       escanearCodigoRef.current = async (codigo) => {
         if (!sesion || cuentaVencida) return;
         if (!turnoActivo) {
-          notificar('Abrí un turno para poder escanear productos.', 'info');
+          notificar('Abre un turno para poder escanear productos.', 'info');
           return;
         }
         let hallado = buscarProductoPorCodigo(codigo);
@@ -4306,6 +4318,14 @@ import {
           notificar('DNI y Nombre son obligatorios.', 'error');
           return;
         }
+        if (!esDocumentoValido(dni)) {
+          notificar('Revisa el documento: DNI de 8 dígitos, RUC de 11 o carné/pasaporte de 9 a 12 letras o números.', 'error');
+          return;
+        }
+        if (!esMontoNoNegativo(limiteCredito)) {
+          notificar('El límite de crédito no puede ser negativo.', 'error');
+          return;
+        }
         const limite = Number(limiteCredito) || 0;
 
         try {
@@ -4406,6 +4426,14 @@ import {
         const { nombre, ruc, telefono, saldoInicial } = formProveedor;
         if (!nombre.trim()) {
           notificar('El nombre del proveedor es obligatorio.', 'error');
+          return;
+        }
+        if (ruc.trim() && !esRucValido(ruc)) {
+          notificar('El RUC debe tener 11 dígitos.', 'error');
+          return;
+        }
+        if (!esMontoNoNegativo(saldoInicial)) {
+          notificar('La deuda inicial no puede ser negativa.', 'error');
           return;
         }
         const saldo = Math.max(0, Number(saldoInicial) || 0);
@@ -5199,6 +5227,14 @@ import {
           return;
         }
 
+        const filasAValidar = [...filasNuevas, ...filasExistentes];
+        const precioInvalido = filasAValidar.some((f) => !(Number(f.precio_venta) > 0));
+        const costoInvalido = filasAValidar.some((f) => !esMontoNoNegativo(f.precio_costo));
+        if (precioInvalido || costoInvalido) {
+          notificar(precioInvalido ? 'El precio de venta debe ser mayor que 0.' : 'El precio de costo no puede ser negativo.', 'error');
+          return;
+        }
+
         setGuardandoInventario(true);
         try {
           if (esModoDemo) {
@@ -5493,6 +5529,18 @@ import {
         if (!productoEditando || !formEditarProducto) return;
         if (!formEditarProducto.descripcion.trim() || !formEditarProducto.precio_venta) {
           notificar('Descripción y Precio de Venta son obligatorios.', 'error');
+          return;
+        }
+        if (!(Number(formEditarProducto.precio_venta) > 0)) {
+          notificar('El precio de venta debe ser mayor que 0.', 'error');
+          return;
+        }
+        if (!esMontoNoNegativo(formEditarProducto.precio_costo)) {
+          notificar('El precio de costo no puede ser negativo.', 'error');
+          return;
+        }
+        if (!esMontoNoNegativo(formEditarProducto.stock_actual)) {
+          notificar('El stock no puede ser negativo.', 'error');
           return;
         }
         setGuardandoEdicionProducto(true);
@@ -6694,6 +6742,7 @@ import {
       // ==========================================
       // ARQUEO Y CIERRE DE CAJA
       // ==========================================
+      // Las ventas anuladas no cuentan: ese dinero no entró (o se devolvió).
       // Efectivo que entró en el turno: ventas 100% en efectivo + la parte
       // en efectivo de las ventas Mixtas (ese dinero también entra
       // físicamente a la caja). Se reutiliza al abrir el modal (para
@@ -6702,11 +6751,12 @@ import {
       const calcularVentasEfectivoTurno = async () => {
         if (!turnoActivo) return 0;
         const vts = esModoDemo
-          ? ventasDemoRef.current.filter((v) => v.turno_caja_id === turnoActivo.id && ['EFECTIVO', 'MIXTO'].includes(v.medio_pago))
+          ? ventasDemoRef.current.filter((v) => v.turno_caja_id === turnoActivo.id && !v.anulada && ['EFECTIVO', 'MIXTO'].includes(v.medio_pago))
           : (sbClient ? (await sbClient
               .from('ventas')
               .select('total_venta, medio_pago, monto_efectivo')
               .eq('turno_caja_id', turnoActivo.id)
+              .eq('anulada', false)
               .in('medio_pago', ['EFECTIVO', 'MIXTO'])).data : null);
 
         return (vts || []).reduce((acc, v) => {
@@ -6722,11 +6772,12 @@ import {
       const calcularDesgloseMedioPagoTurno = async () => {
         if (!turnoActivo) return null;
         const vts = esModoDemo
-          ? ventasDemoRef.current.filter((v) => v.turno_caja_id === turnoActivo.id)
+          ? ventasDemoRef.current.filter((v) => v.turno_caja_id === turnoActivo.id && !v.anulada)
           : (sbClient ? (await sbClient
               .from('ventas')
               .select('total_venta, medio_pago, monto_otro')
-              .eq('turno_caja_id', turnoActivo.id)).data : null);
+              .eq('turno_caja_id', turnoActivo.id)
+              .eq('anulada', false)).data : null);
 
         const desglose = { YAPE: 0, PLIN: 0, TARJETA: 0, CREDITO: 0, MIXTO_OTRO: 0 };
         (vts || []).forEach((v) => {
@@ -12405,10 +12456,10 @@ import {
                             />
                           </div>
                         ) : (
-                          <p className="text-xs text-stone-400 mt-2">Marcá los días en que atendés.</p>
+                          <p className="text-xs text-stone-400 mt-2">Marca los días en que atiendes.</p>
                         )}
                         <p className="text-[11.5px] text-stone-400 mt-1.5 leading-snug">
-                          Así la vitrina muestra "Abierto" o "Cerrado" en tiempo real. Si no lo configurás, no se muestra ningún aviso.
+                          Así la vitrina muestra "Abierto" o "Cerrado" en tiempo real. Si no lo configuras, no se muestra ningún aviso.
                         </p>
                       </div>
 
@@ -12599,7 +12650,7 @@ import {
                 onClick={(e) => e.stopPropagation()}
               >
                 <div className="flex items-center justify-between w-full">
-                  <h3 className="text-sm font-bold text-stone-900">Escaneá para pedir</h3>
+                  <h3 className="text-sm font-bold text-stone-900">Escanea para pedir</h3>
                   <button aria-label="Cerrar" onClick={() => setMostrarQRDelivery(false)} className="text-stone-500 hover:text-stone-900">
                     <i className="fa-solid fa-xmark text-lg"></i>
                   </button>
@@ -13273,7 +13324,7 @@ import {
                             <div className={`${tarjeta} bg-white/80`}>
                               <p className="text-[11px] text-stone-500 flex items-center gap-1.5"><span className="w-2 h-2 rounded-full bg-stone-300"></span>Días sin ventas</p>
                               <p className="text-lg font-semibold text-stone-900 mt-1 tabular-nums">{sinVentas}</p>
-                              <p className="text-[11px] text-stone-500 truncate">{sinVentas ? 'Revisá si el local abrió' : hastaDia ? 'Vendiste todos los días' : '—'}</p>
+                              <p className="text-[11px] text-stone-500 truncate">{sinVentas ? 'Revisa si el local abrió' : hastaDia ? 'Vendiste todos los días' : '—'}</p>
                             </div>
                           </div>
 
