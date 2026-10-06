@@ -18,6 +18,18 @@
       "headers": [
         { "key": "Cache-Control", "value": "public, max-age=31536000, immutable" }
       ]
+    },
+    {
+      "source": "/(hero-nueva.jpg|como-funciona-delivery.jpg|og-image.jpg|logo-blanco.webp|logo-blanco-wordmark.png|icon-192.png|icon-512.png|icon.svg)",
+      "headers": [
+        { "key": "Cache-Control", "value": "public, max-age=86400, stale-while-revalidate=604800" }
+      ]
+    },
+    {
+      "source": "/(splash-pos.js|sw-registro.js|inicio.js)",
+      "headers": [
+        { "key": "Cache-Control", "value": "public, max-age=3600, stale-while-revalidate=86400" }
+      ]
     }
   ],
   "redirects": [
