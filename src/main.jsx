@@ -8917,7 +8917,7 @@ import {
             {/* El panel es vidrio esmerilado y se monta 40px sobre el final de la lista:
                 los items pasan por debajo, borrosos, y el borde superior se desvanece. */}
             <div
-              className="relative z-10 -mt-10 p-4 pt-14 space-y-3 backdrop-blur-xl bg-gradient-to-b from-white/60 to-white/90"
+              className="relative z-10 -mt-10 p-4 pt-14 space-y-3 backdrop-blur-xl bg-gradient-to-b from-white/60 to-white/90 min-h-0 overflow-y-auto overscroll-contain"
               style={{ WebkitMaskImage: 'linear-gradient(to bottom, transparent 0, black 44px)', maskImage: 'linear-gradient(to bottom, transparent 0, black 44px)' }}
             >
               {!mostrarPago ? (
@@ -9220,6 +9220,9 @@ import {
                 )}
               </div>
 
+              {/* Total y botón de cobro siempre a la vista: si las opciones de pago no
+                  caben en pantallas bajas, lo de arriba hace scroll y esto se queda abajo. */}
+              <div className="sticky bottom-0 -mx-4 -mb-4 px-4 pb-4 pt-3 space-y-3 bg-gradient-to-t from-white via-white/95 to-white/0">
               <div className="bg-[#f4eefe] border border-[#efe6fc] rounded-[22px] px-4 py-3 space-y-1.5">
                 {montoDescuento > 0 && (
                   <>
@@ -9260,6 +9263,7 @@ import {
                   <><IconoTrazo nombre="recibo" className="w-[19px] h-[19px]" /> Cobrar e imprimir boleta</>
                 )}
               </button>
+              </div>
               </>
               )}
             </div>
