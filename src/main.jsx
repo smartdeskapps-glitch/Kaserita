@@ -14,6 +14,7 @@ import { efectivoEntrante, desgloseMediosPago, diferenciaArqueo } from './lib/ar
 import { calcularDescuento } from './lib/descuentos.js';
 import { resumirVentasPeriodo, agruparVentasPorDia, calcularCambioPct } from './lib/dashboard.js';
 import { valorAuditoria, describirAuditoria } from './lib/auditoria.js';
+import { antiguedadTurno } from './lib/turnos.js';
 import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCombo, margenCombo, expandirLineaCombo, detalleComboTicket } from './lib/combos.js';
 
 
@@ -917,6 +918,10 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
       // combinación exacta de cajas abiertas (ver claveAviso en
       // verificarTurno), no en cada recarga de la página.
       const [cajasAbiertasAviso, setCajasAbiertasAviso] = useState(null);
+      // Caja de este mismo cajero que quedó abierta de un día anterior: se avisa
+      // en vez de retomarla en silencio (el cierre sumaría las ventas de varios días).
+      const [avisoTurnoViejo, setAvisoTurnoViejo] = useState(null);
+      const [cierreAlRetomar, setCierreAlRetomar] = useState(false);
       const [montoApertura, setMontoApertura] = useState('100.00');
       const [modalGestionCajeros, setModalGestionCajeros] = useState(false);
       const [cajerosGestion, setCajerosGestion] = useState([]);
@@ -6683,6 +6688,14 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
         setArqueoEsperado({ inicio: montoIni, ventas: ventasEfectivo, esperado: +(montoIni + ventasEfectivo).toFixed(2), desglose });
       };
 
+      useEffect(() => {
+        if (cierreAlRetomar && turnoActivo) {
+          setCierreAlRetomar(false);
+          abrirCierreCaja();
+        }
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+      }, [cierreAlRetomar, turnoActivo]);
+
       const handleCierreConArqueo = async () => {
         if (!turnoActivo) return;
         const montoReal = parseFloat(montoConteoEfectivo) || 0;
@@ -6821,6 +6834,16 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
         setModalTurno(true);
       };
 
+      // Caja antigua: retomarla (y cerrarla de una vez si se pide) o seguir con ella.
+      const retomarTurnoViejo = (cerrar) => {
+        const t = avisoTurnoViejo;
+        if (!t) return;
+        setTurnoActivo(t);
+        if (t.cajeros) setCajeroSeleccionado(t.cajeros);
+        setAvisoTurnoViejo(null);
+        if (cerrar) setCierreAlRetomar(true);
+      };
+
       // Abrir turno
       const handleAbrirTurno = async () => {
         const monto = parseFloat(montoApertura) || 0;
@@ -6856,8 +6879,14 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
               .is('fecha_cierre', null)
               .maybeSingle();
             if (yaAbierto) {
-              setTurnoActivo(yaAbierto);
               setModalTurno(false);
+              const edad = antiguedadTurno(yaAbierto.fecha_apertura);
+              if (edad.antiguo) {
+                setAvisoTurnoViejo(yaAbierto);
+                return;
+              }
+              setTurnoActivo(yaAbierto);
+              notificar(`Ya tenías una caja abierta ${edad.etiqueta}: se retomó esa en vez de abrir otra.`, 'info');
               return;
             }
 
@@ -7915,6 +7944,15 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
             <div className={`fixed top-[4.75rem] inset-x-4 md:top-4 md:inset-x-auto md:right-4 md:max-w-xs z-[100] pointer-events-none flex items-center gap-2.5 px-4 py-3 rounded-xl shadow-xl border-l-4 bg-white text-xs font-semibold ${toast.tipo === 'error' ? 'border-rose-500 text-rose-700' : 'border-emerald-500 text-emerald-700'}`}>
               <i className={`fa-solid ${toast.tipo === 'error' ? 'fa-circle-exclamation' : 'fa-circle-check'} text-sm shrink-0`}></i>
               {toast.texto}
+            </div>
+          )}
+
+          {/* Caja abierta de un día anterior: el cierre mezclaría las ventas de varios días */}
+          {turnoActivo && !modalCierreCaja && antiguedadTurno(turnoActivo.fecha_apertura).antiguo && (
+            <div className="fixed top-0 inset-x-0 z-[85] bg-amber-500 text-white text-xs font-semibold py-1.5 px-3 flex items-center justify-center gap-2 flex-wrap text-center" role="alert">
+              <i className="fa-solid fa-triangle-exclamation"></i>
+              Tu caja lleva abierta {antiguedadTurno(turnoActivo.fecha_apertura).etiqueta.replace('hace ', '')}: el cierre sumará las ventas de todos esos días.
+              <button onClick={abrirCierreCaja} className="underline font-bold">Cerrar caja ahora</button>
             </div>
           )}
 
@@ -13916,10 +13954,22 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
                           Desde el {new Date(t.fecha_apertura).toLocaleString('es-PE', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}
                           {' '}· S/ {Number(t.monto_inicial || 0).toFixed(2)} inicial
                         </p>
+                        {antiguedadTurno(t.fecha_apertura).antiguo && (
+                          <p className="text-[11px] font-semibold text-amber-700 mt-0.5">
+                            <i className="fa-solid fa-triangle-exclamation mr-1"></i>Abierta {antiguedadTurno(t.fecha_apertura).etiqueta}: conviene cerrarla.
+                          </p>
+                        )}
                       </div>
-                      <button onClick={() => unirseACaja(t)} className="shrink-0 px-3 py-2 bg-stone-900 hover:bg-stone-800 text-white text-xs font-bold rounded-lg">
-                        Usar esta caja
-                      </button>
+                      <div className="shrink-0 flex flex-col gap-1.5">
+                        <button onClick={() => unirseACaja(t)} className="px-3 py-2 bg-stone-900 hover:bg-stone-800 text-white text-xs font-bold rounded-lg">
+                          Usar esta caja
+                        </button>
+                        {antiguedadTurno(t.fecha_apertura).antiguo && (
+                          <button onClick={() => { unirseACaja(t); setCierreAlRetomar(true); }} className="px-3 py-1.5 bg-amber-100 hover:bg-amber-200 text-amber-800 text-xs font-bold rounded-lg">
+                            Cerrar esta caja
+                          </button>
+                        )}
+                      </div>
                     </div>
                   ))}
                 </div>
@@ -13930,6 +13980,32 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
                 >
                   <i className="fa-solid fa-plus"></i> Abrir otra caja
                 </button>
+              </div>
+            </div>
+          )}
+
+          {/* Aviso: tu caja sigue abierta de un día anterior */}
+          {avisoTurnoViejo && (
+            <div className="fixed inset-0 bg-stone-900/30 backdrop-blur-sm flex items-center justify-center z-50 p-4" role="alertdialog" aria-modal="true">
+              <div className="bg-gradient-to-br from-[#f4effc] via-[#f9f8fb] to-[#f5f4f8] border border-white/80 rounded-[28px] max-w-sm w-full p-6 shadow-2xl space-y-4 text-center">
+                <div className="w-14 h-14 mx-auto bg-amber-100 rounded-full flex items-center justify-center">
+                  <i className="fa-solid fa-triangle-exclamation text-amber-600 text-xl"></i>
+                </div>
+                <div>
+                  <h2 className="text-base font-bold text-stone-900">Tienes una caja abierta {antiguedadTurno(avisoTurnoViejo.fecha_apertura).etiqueta}</h2>
+                  <p className="text-xs text-stone-500 mt-1.5 leading-relaxed">
+                    Se abrió el {new Date(avisoTurnoViejo.fecha_apertura).toLocaleString('es-PE', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })} con S/ {Number(avisoTurnoViejo.monto_inicial || 0).toFixed(2)} inicial.
+                    Si sigues con ella, el cierre sumará las ventas de todos esos días. Lo recomendable es cerrarla y empezar una nueva.
+                  </p>
+                </div>
+                <div className="space-y-2">
+                  <button onClick={() => retomarTurnoViejo(true)} className="w-full py-2.5 bg-orange-500 hover:bg-orange-400 text-white text-xs font-bold rounded-full shadow">
+                    Cerrar esa caja ahora
+                  </button>
+                  <button onClick={() => retomarTurnoViejo(false)} className="w-full py-2.5 bg-white/80 hover:bg-white text-stone-700 text-xs font-semibold rounded-full shadow-sm">
+                    Seguir con esa caja
+                  </button>
+                </div>
               </div>
             </div>
           )}
