@@ -13446,7 +13446,7 @@ import {
                             ><i className="fa-solid fa-chevron-right text-[10px]"></i></button>
                           </div>
 
-                          <div className="grid grid-cols-7 gap-1.5 sm:gap-2.5 mt-4">
+                          <div className="grid grid-cols-[repeat(7,minmax(0,1fr))] gap-1.5 sm:gap-2.5 mt-4">
                             {['lun', 'mar', 'mié', 'jue', 'vie', 'sáb', 'dom'].map((d) => (
                               <div key={d} className="text-[10px] uppercase tracking-wider text-stone-400 text-center pb-0.5">{d}</div>
                             ))}
@@ -13455,9 +13455,9 @@ import {
                               const futuro = d > hastaDia;
                               if (futuro) {
                                 return (
-                                  <div key={d} className="rounded-[14px] sm:rounded-2xl aspect-square sm:aspect-[5/4] sm:min-h-[100px] p-2 sm:p-3 flex flex-col items-center justify-center sm:items-stretch sm:justify-between sm:border sm:border-dashed sm:border-stone-200 text-stone-300">
+                                  <div key={d} className="rounded-[14px] sm:rounded-2xl aspect-square sm:aspect-[5/4] min-w-0 p-2 lg:p-3 flex flex-col items-center justify-center sm:items-stretch sm:justify-between sm:border sm:border-dashed sm:border-stone-200 text-stone-300">
                                     <span className="text-[13px] sm:text-sm font-semibold">{d}</span>
-                                    <span className="hidden sm:block text-base text-right">—</span>
+                                    <span className="hidden sm:block text-[11px] md:text-sm lg:text-base text-right">—</span>
                                   </div>
                                 );
                               }
@@ -13474,7 +13474,7 @@ import {
                                   key={d}
                                   onClick={() => setDiaCalendarioSel(clave(d))}
                                   title={`${nombreDia(d)}: S/ ${formatoSoles(v)}`}
-                                  className={`relative rounded-[14px] sm:rounded-2xl aspect-square sm:aspect-[5/4] sm:min-h-[100px] p-2 sm:p-3 flex flex-col items-center justify-center sm:items-stretch sm:justify-between overflow-hidden active:scale-95 transition-transform ${selDia === d ? 'outline outline-[2.5px] outline-offset-2 outline-stone-900' : ''} ${enRango ? 'ring-2 ring-inset ring-[#6105dc]' : ''} ${esMax ? 'shadow-[0_10px_22px_-8px_rgba(97,5,220,0.55)]' : ''} ${oscuro ? 'text-white' : 'text-stone-800'}`}
+                                  className={`relative rounded-[14px] sm:rounded-2xl aspect-square sm:aspect-[5/4] min-w-0 p-2 lg:p-3 flex flex-col items-center justify-center sm:items-stretch sm:justify-between overflow-hidden active:scale-95 transition-transform ${selDia === d ? 'outline outline-[2.5px] outline-offset-2 outline-stone-900' : ''} ${enRango ? 'ring-2 ring-inset ring-[#6105dc]' : ''} ${esMax ? 'shadow-[0_10px_22px_-8px_rgba(97,5,220,0.55)]' : ''} ${oscuro ? 'text-white' : 'text-stone-800'}`}
                                   style={{ background: esMax ? 'linear-gradient(160deg,#b98cf5,#6105dc)' : v > 0 ? `rgba(97,5,220,${(0.06 + t * 0.5).toFixed(2)})` : '#f0edf5' }}
                                 >
                                   <span className="text-[13px] sm:text-sm font-bold sm:font-semibold sm:opacity-80">
@@ -13482,7 +13482,7 @@ import {
                                     {esMax && <span className="absolute top-1 right-1.5 text-[8px] leading-none sm:static sm:text-[9px] sm:ml-1">▲</span>}
                                     {esMin && <span className={`absolute top-1 right-1.5 text-[8px] leading-none sm:static sm:text-[9px] sm:ml-1 ${oscuro ? 'text-rose-200' : 'text-rose-600'}`}>▼</span>}
                                   </span>
-                                  <span className="hidden sm:block text-base font-semibold text-right tabular-nums whitespace-nowrap">{v > 0 ? `S/ ${montoCorto(v)}` : '—'}</span>
+                                  <span className="hidden sm:block text-[11px] md:text-sm lg:text-base font-semibold text-right tabular-nums whitespace-nowrap">{v > 0 ? `S/ ${montoCorto(v)}` : '—'}</span>
                                   {esHoy && <span className={`absolute bottom-1.5 left-1/2 -ml-[2px] w-1 h-1 sm:bottom-auto sm:left-auto sm:ml-0 sm:top-2 sm:right-2 sm:w-1.5 sm:h-1.5 rounded-full ${esMax || oscuro ? 'bg-white' : 'bg-[#6105dc]'}`}></span>}
                                 </button>
                               );
