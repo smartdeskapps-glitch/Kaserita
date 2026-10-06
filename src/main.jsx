@@ -27,9 +27,9 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
         return v.toString(16);
       });
     };
-    const asegurarJsPDF = () => cargarScriptExterno('https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js');
-    const asegurarConfetti = () => cargarScriptExterno('https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js');
-    const asegurarZXing = () => cargarScriptExterno('https://cdn.jsdelivr.net/npm/zxing-wasm@3.1.3/dist/iife/reader/index.min.js');
+    const asegurarJsPDF = () => cargarScriptExterno('https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js', 'sha384-JcnsjUPPylna1s1fvi1u12X5qjY5OL56iySh75FdtrwhO/SWXgMjoVqcKyIIWOLk');
+    const asegurarConfetti = () => cargarScriptExterno('https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js', 'sha384-HAH79XdRvHr6axVGh4xQWVCp14kcd32bNk4Xu0sHDHtFQ42n6BAM8ykvB47dGz6D');
+    const asegurarZXing = () => cargarScriptExterno('https://cdn.jsdelivr.net/npm/zxing-wasm@3.1.3/dist/iife/reader/index.min.js', 'sha384-O/6uuumgOqcsO9GVD2Hjpf/o2fd6DPoIP81jBYJkCaRTdS/dFV6i9kW3tQ2PP0FZ');
 
     // La tabla productos exige cod_ean (no admite vacío), aunque hay artículos
     // reales sin código de barras (a granel, hechos en casa, etc.). Cuando el

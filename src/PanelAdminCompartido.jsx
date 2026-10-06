@@ -15,11 +15,14 @@ import { fechaISOLocal, fechaHoyISO } from './lib/fechas.js';
     // mismo tiempo (ej. dos botones de exportar), ambas reciben la MISMA
     // promesa en vez de inyectar el <script> dos veces.
     const scriptsExternosCargados = {};
-    const cargarScriptExterno = (url) => {
+    // Con `integrity` el navegador verifica el hash SHA-384 del archivo: si el CDN
+    // fuera comprometido y sirviera otro contenido, el script NO se ejecuta.
+    const cargarScriptExterno = (url, integrity) => {
       if (!scriptsExternosCargados[url]) {
         scriptsExternosCargados[url] = new Promise((resolve, reject) => {
           const script = document.createElement('script');
           script.src = url;
+          if (integrity) { script.integrity = integrity; script.crossOrigin = 'anonymous'; }
           script.onload = () => resolve();
           script.onerror = () => reject(new Error(`No se pudo cargar ${url}`));
           document.head.appendChild(script);
@@ -27,7 +30,7 @@ import { fechaISOLocal, fechaHoyISO } from './lib/fechas.js';
       }
       return scriptsExternosCargados[url];
     };
-    const asegurarXLSX = () => cargarScriptExterno('https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js');
+    const asegurarXLSX = () => cargarScriptExterno('https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js', 'sha384-vtjasyidUo0kW94K5MXDXntzOJpQgBKXmE7e2Ga4LG0skTTLeBi97eFAXsqewJjw');
     // SKU: código interno corto y legible para identificar el producto en
     // reportes/estantes, sin depender del código de barras (que a veces no
     // existe o es larguísimo). Prefijo por categoría + sufijo corto -- no
