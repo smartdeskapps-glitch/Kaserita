@@ -1557,7 +1557,7 @@ import {
       // se cierran al tocar el fondo oscuro, así que se hace exactamente eso:
       // se busca la capa de fondo más alta y se le hace clic. Las que no se
       // cierran con el fondo (p. ej. las que piden un PIN) tampoco se cierran
-      // con Escape. Va en fase de captura para correr antes que el menú de
+      // con Escape salvo que tengan botón de cerrar. Va en fase de captura para correr antes que el menú de
       // búsqueda, que maneja su propio Escape.
       useEffect(() => {
         const alPresionar = (e) => {
@@ -1570,6 +1570,13 @@ import {
           // La pantalla de carga inicial no es una ventana: no se toca.
           if (arriba.querySelector('img[alt="Kaserita"]') && !arriba.querySelector('button')) return;
           arriba.click();
+          // Si no se cerró con el fondo (hay ventanas que solo se cierran con su
+          // botón de cerrar), se pulsa ese botón.
+          setTimeout(() => {
+            if (!document.body.contains(arriba)) return;
+            const cerrar = arriba.querySelector('button[aria-label="Cerrar"]') || arriba.querySelector('button:has(i.fa-xmark)');
+            if (cerrar) cerrar.click();
+          }, 60);
         };
         window.addEventListener('keydown', alPresionar, true);
         return () => window.removeEventListener('keydown', alPresionar, true);
