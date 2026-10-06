@@ -12,6 +12,8 @@ import {
 import { esDniValido, esDocumentoValido, esRucValido, esMontoNoNegativo } from './lib/validaciones.js';
 import { efectivoEntrante, desgloseMediosPago, diferenciaArqueo } from './lib/arqueo.js';
 import { calcularDescuento } from './lib/descuentos.js';
+import { resumirVentasPeriodo, agruparVentasPorDia, calcularCambioPct } from './lib/dashboard.js';
+import { valorAuditoria, describirAuditoria } from './lib/auditoria.js';
 import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCombo, margenCombo, expandirLineaCombo, detalleComboTicket } from './lib/combos.js';
 
 
@@ -51,71 +53,6 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
     // base con esta zona para que coincidan con lo que ve el usuario.
     const zonaLocal = () => {
       try { return Intl.DateTimeFormat().resolvedOptions().timeZone || 'America/Lima'; } catch (e) { return 'America/Lima'; }
-    };
-
-    // Resumen de un periodo con la misma forma que devuelve la funcion SQL
-    // dashboard_resumen_periodo. Se usa en modo demo y como plan B si esa
-    // funcion aun no existe (en ese caso queda con el tope de 1.000 filas).
-    const resumirVentasPeriodo = (filas, filasAnterior) => {
-      const validas = (filas || []).filter((v) => !v.anulada);
-      const r = { total: 0, utilidad: 0, n: validas.length, por_hora: {}, por_dia: [], por_medio: {}, top_productos: [], anterior: { total: 0, utilidad: 0 } };
-      const dias = {};
-      const prod = {};
-      validas.forEach((v) => {
-        const monto = Number(v.total_venta) || 0;
-        r.total += monto;
-        r.utilidad += Number(v.utilidad_total) || 0;
-        const f = new Date(v.fecha_hora);
-        const h = f.getHours();
-        r.por_hora[h] = { total: (r.por_hora[h]?.total || 0) + monto, n: (r.por_hora[h]?.n || 0) + 1 };
-        const dia = fechaISOLocal(f);
-        dias[dia] = (dias[dia] || 0) + monto;
-        const medio = v.medio_pago || 'OTRO';
-        r.por_medio[medio] = (r.por_medio[medio] || 0) + monto;
-        (v.ventas_detalle || []).forEach((d) => {
-          const clave = d.descripcion || 'Producto';
-          if (!prod[clave]) prod[clave] = { descripcion: clave, cantidad: 0, monto: 0, utilidad: 0 };
-          prod[clave].cantidad += Number(d.cantidad) || 0;
-          prod[clave].monto += Number(d.subtotal) || 0;
-          prod[clave].utilidad += Number(d.utilidad) || 0;
-        });
-      });
-      r.por_dia = Object.entries(dias).sort((a, b) => a[0].localeCompare(b[0])).map(([fecha, total]) => ({ fecha, total }));
-      r.top_productos = Object.values(prod).sort((a, b) => b.monto - a.monto).slice(0, 8);
-      (filasAnterior || []).filter((v) => !v.anulada).forEach((v) => {
-        r.anterior.total += Number(v.total_venta) || 0;
-        r.anterior.utilidad += Number(v.utilidad_total) || 0;
-      });
-      return r;
-    };
-
-    // Agrupa filas de `ventas` por dia (hora local) con la misma forma que
-    // devuelve la funcion SQL dashboard_ventas_por_dia: { fecha, total, n,
-    // medios, horas, mixto_efectivo, mixto_otro }. Se usa en modo demo, para
-    // meses de otros anios y como plan B si esa funcion aun no existe.
-    const agruparVentasPorDia = (filas) => {
-      const porFecha = new Map();
-      (filas || []).forEach((v) => {
-        if (v.anulada) return;
-        const f = new Date(v.fecha_hora);
-        const fecha = fechaISOLocal(f);
-        let d = porFecha.get(fecha);
-        if (!d) {
-          d = { fecha, total: 0, n: 0, medios: {}, horas: {}, mixto_efectivo: 0, mixto_otro: 0 };
-          porFecha.set(fecha, d);
-        }
-        const monto = Number(v.total_venta) || 0;
-        const medio = v.medio_pago || 'OTRO';
-        d.total += monto;
-        d.n += 1;
-        d.medios[medio] = { total: (d.medios[medio]?.total || 0) + monto, n: (d.medios[medio]?.n || 0) + 1 };
-        d.horas[f.getHours()] = (d.horas[f.getHours()] || 0) + monto;
-        if (medio === 'MIXTO') {
-          d.mixto_efectivo += Number(v.monto_efectivo) || 0;
-          d.mixto_otro += Number(v.monto_otro) || 0;
-        }
-      });
-      return [...porFecha.values()].sort((a, b) => (a.fecha < b.fecha ? -1 : 1));
     };
 
     const normalizarCamposPack = (f) => ({
@@ -548,55 +485,6 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
       if (n >= 1e4) return `S/ ${Math.round(n).toLocaleString('es-PE')}`;
       return `S/ ${formatoSoles(n)}`;
     };
-
-    // Registro de actividad: convierte una fila de "auditoria" en una frase
-    // legible (título + detalle por campo) en vez del texto técnico de la base
-    // (con UUID, nombres de columna y flechas). Usa los cambios estructurados
-    // ("cambios") y, para el nombre, lo que viene en "resumen".
-    const AUDITORIA_CAMPOS = {
-      precio_venta: ['Precio de venta', 'dinero'], precio_costo: ['Costo', 'dinero'],
-      activo: ['Activo', 'bool'], anulada: ['Anulada', 'bool'], motivo_anulacion: ['Motivo', 'texto'],
-      total_venta: ['Total', 'dinero'], medio_pago: ['Medio de pago', 'texto'],
-      estado: ['Estado', 'estado'], monto_inicial: ['Monto inicial', 'dinero'],
-      monto_final_real: ['Efectivo contado', 'dinero'], diferencia: ['Diferencia', 'dinero'],
-      rol: ['Rol', 'texto'], nombre: ['Nombre', 'texto'], pin_seguridad: ['PIN de seguridad', 'texto'],
-    };
-    function valorAuditoria(tipo, v) {
-      if (v === null || v === undefined || v === '') return 'sin dato';
-      if (tipo === 'dinero' && !Number.isNaN(Number(v))) return `S/ ${Number(v).toFixed(2)}`;
-      if (tipo === 'bool') return (v === true || v === 'true') ? 'Sí' : 'No';
-      if (tipo === 'estado') return String(v).toUpperCase() === 'ABIERTA' ? 'abierto' : String(v).toUpperCase() === 'CERRADA' ? 'cerrado' : String(v).toLowerCase();
-      return String(v);
-    }
-    function describirAuditoria(f) {
-      const cambios = f.cambios && typeof f.cambios === 'object' ? f.cambios : {};
-      const m = /^[^:]+: *(.*?)(?: [(].*)?$/.exec(f.resumen || '');
-      let nombre = (m && m[1] ? m[1] : '').trim();
-      if (/^[0-9a-f]{8}-[0-9a-f]{4}-/i.test(nombre)) nombre = '';
-      const con = nombre ? `: ${nombre}` : '';
-      let titulo;
-      const op = f.operacion;
-      if (f.tabla === 'productos') titulo = `Producto ${op === 'DELETE' ? 'eliminado' : 'modificado'}${con}`;
-      else if (f.tabla === 'ventas') titulo = cambios.anulada && valorAuditoria('bool', cambios.anulada.despues) === 'Sí' ? `Venta anulada${con}` : `Venta ${op === 'DELETE' ? 'eliminada' : 'modificada'}${con}`;
-      else if (f.tabla === 'turnos_caja') {
-        const est = cambios.estado ? valorAuditoria('estado', cambios.estado.despues) : '';
-        titulo = op === 'INSERT' ? 'Turno de caja abierto' : est === 'cerrado' ? 'Turno de caja cerrado' : op === 'DELETE' ? 'Turno de caja eliminado' : 'Turno de caja modificado';
-      }
-      else if (f.tabla === 'cajeros') titulo = `Empleado ${op === 'INSERT' ? 'creado' : op === 'DELETE' ? 'eliminado' : 'modificado'}${con}`;
-      else if (f.tabla === 'mermas') titulo = `Merma ${op === 'DELETE' ? 'eliminada' : 'registrada'}${con}`;
-      else titulo = (f.resumen || 'Cambio registrado').replace(/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/gi, '').replace(/ {2,}/g, ' ').trim();
-      const detalle = Object.entries(cambios)
-        .filter(([k]) => !(f.tabla === 'turnos_caja' && k === 'estado'))
-        .map(([k, c]) => {
-          const [etq, tipo] = AUDITORIA_CAMPOS[k] || [k.replace(/_/g, ' '), 'texto'];
-          const antes = c && c.antes, despues = c && c.despues;
-          if (k === 'pin_seguridad') return 'PIN de seguridad cambiado';
-          return (antes === null || antes === undefined || antes === '') && f.tabla === 'turnos_caja'
-            ? `${etq}: ${valorAuditoria(tipo, despues)}`
-            : `${etq}: ${valorAuditoria(tipo, antes)} → ${valorAuditoria(tipo, despues)}`;
-        });
-      return { titulo, detalle };
-    }
 
     // Variación porcentual del Dashboard: verde si sube, rojo si baja. Sin
     // porcentaje (null) no dibuja nada -- pasa cuando el período anterior no
@@ -6481,10 +6369,6 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
         // duración (ej. "últimos 7 días" vs los 7 días previos a esos).
         const totalVentaAnterior = Number(R.anterior?.total) || 0;
         const totalUtilidadAnterior = Number(R.anterior?.utilidad) || 0;
-        const calcularCambioPct = (actual, anterior) => {
-          if (anterior === 0) return actual > 0 ? 100 : 0;
-          return ((actual - anterior) / anterior) * 100;
-        };
         const cambioVentaPct = calcularCambioPct(totalVenta, totalVentaAnterior);
         const cambioUtilidadPct = calcularCambioPct(totalUtilidad, totalUtilidadAnterior);
 

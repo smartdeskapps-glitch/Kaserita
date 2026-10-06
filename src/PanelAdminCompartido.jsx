@@ -1,4 +1,5 @@
 import React from 'react';
+import { fechaISOLocal, fechaHoyISO } from './lib/fechas.js';
 
 // ============================================================
 // Helpers compartidos entre PosApp (src/main.jsx) y PanelAdmin
@@ -45,13 +46,7 @@ import React from 'react';
     // "mañana" en UTC y "Hoy" mostraba la fecha equivocada (ventas del día
     // desaparecían del historial). Se arma la fecha con los componentes
     // locales del Date en vez de convertir a UTC.
-    const fechaISOLocal = (d) => {
-      const y = d.getFullYear();
-      const m = String(d.getMonth() + 1).padStart(2, '0');
-      const day = String(d.getDate()).padStart(2, '0');
-      return `${y}-${m}-${day}`;
-    };
-    const fechaHoyISO = () => fechaISOLocal(new Date());
+    // fechaISOLocal y fechaHoyISO viven en src/lib/fechas.js (con pruebas).
     // Recomprime una imagen a JPEG en el navegador (canvas), bajando primero
     // la calidad y después también la resolución, hasta quedar bajo maxKB o
     // hasta agotar los intentos -- así una foto de cámara (varios MB) no
