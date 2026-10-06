@@ -10233,7 +10233,7 @@ import {
                                   if (!(costo > 0) || !(precio > 0)) return null;
                                   const margen = ((precio - costo) / precio) * 100;
                                   const color = margen < 0 ? 'text-rose-600' : margen < 10 ? 'text-amber-600' : 'text-emerald-600';
-                                  return <p className={`text-[11px] font-semibold ${color}`}>Ganancia S/ {(precio - costo).toFixed(2)} · margen {margen.toFixed(0)}%{margen < 10 ? ' (bajo)' : ''}</p>;
+                                  return <p className={`text-[11px] font-semibold ${color}`}>Ganancia S/ {(precio - costo).toFixed(2)} · margen {margen.toFixed(margen < 10 ? 1 : 0)}%{margen < 10 ? ' (bajo)' : ''}</p>;
                                 })()}
                                 {(combo.activo || combo.apagado_auto) && estadoCombos.get(combo.id)?.disponible === false && (
                                   <p className="text-[11px] font-semibold text-rose-600 truncate">Apagado por falta de stock: {estadoCombos.get(combo.id).faltan.join(', ')}. Se enciende solo al reponer.</p>
@@ -10389,7 +10389,7 @@ import {
                       return (
                         <p className={`text-xs font-semibold rounded-lg px-3 py-2 flex items-center gap-1.5 border ${bajo ? 'text-amber-700 bg-amber-50 border-amber-200' : 'text-emerald-700 bg-emerald-50 border-emerald-200'}`}>
                           <i className={`fa-solid ${bajo ? 'fa-triangle-exclamation' : 'fa-circle-check'}`}></i>
-                          Ganancia por combo: S/ {ganancia.toFixed(2)} (margen {margen.toFixed(0)}%){bajo ? ' -- margen muy bajo, revisa el precio.' : ''}
+                          Ganancia por combo: S/ {ganancia.toFixed(2)} (margen {margen.toFixed(margen < 10 ? 1 : 0)}%){bajo ? ' -- margen muy bajo, revisa el precio.' : ''}
                         </p>
                       );
                     })()}
@@ -13317,7 +13317,7 @@ import {
                               <li key={c.id} className="flex items-center justify-between gap-3 bg-white/80 rounded-2xl px-3.5 py-2.5 shadow-sm">
                                 <div className="min-w-0">
                                   <p className="text-sm font-medium text-stone-900 truncate">{c.nombre}</p>
-                                  <p className="text-[11px] text-stone-500">{c.unidades} combo{c.unidades === 1 ? '' : 's'} · ganancia <span className={`font-semibold tabular-nums ${margen < 10 ? 'text-amber-600' : 'text-emerald-600'}`}>S/ {formatoSoles(c.utilidad)} ({margen.toFixed(0)}%)</span></p>
+                                  <p className="text-[11px] text-stone-500">{c.unidades} combo{c.unidades === 1 ? '' : 's'} · ganancia <span className={`font-semibold tabular-nums ${margen < 10 ? 'text-amber-600' : 'text-emerald-600'}`}>S/ {formatoSoles(c.utilidad)} ({margen.toFixed(margen < 10 ? 1 : 0)}%)</span></p>
                                 </div>
                                 <span className="text-sm font-semibold text-stone-900 tabular-nums shrink-0">S/ {formatoSoles(c.monto)}</span>
                               </li>
