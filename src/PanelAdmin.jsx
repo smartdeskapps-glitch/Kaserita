@@ -735,6 +735,24 @@ const MEDIOS_PAGO = [
           .filter((f) => f.pagina === pagina && f.evento === evento && f.fecha >= desde)
           .reduce((acc, f) => acc + Number(f.total), 0);
       };
+      // ---- Errores de la app (ver errores_app.sql) ----
+      const [erroresApp, setErroresApp] = useState(null); // null = cargando; false = el SQL aún no está corrido
+      const [cargandoErrores, setCargandoErrores] = useState(false);
+      const cargarErroresApp = useCallback(() => {
+        setCargandoErrores(true);
+        sbClient.rpc('admin_listar_errores', { p_dias: 14 }).then(({ data, error }) => {
+          setCargandoErrores(false);
+          if (error) { console.warn('[admin] admin_listar_errores:', error.message); setErroresApp(false); return; }
+          setErroresApp(data || []);
+        });
+      }, [sbClient]);
+      useEffect(() => { cargarErroresApp(); }, [cargarErroresApp]);
+      const limpiarErroresApp = async () => {
+        const { error } = await sbClient.rpc('admin_limpiar_errores', { p_mas_de_dias: 0 });
+        if (error) { notificar(`No se pudieron borrar: ${error.message}`, 'error'); return; }
+        notificar('Errores borrados.', 'success');
+        setErroresApp([]);
+      };
       const planPos = planesAdmin.find((pl) => !pl.permite_delivery) || null;
       const planCat = planesAdmin.find((pl) => pl.permite_delivery) || null;
       const planDe = (b) => (b.delivery_permitido ? planCat : planPos);
@@ -975,6 +993,15 @@ const MEDIOS_PAGO = [
               <i className="fa-solid fa-boxes-packing mr-1.5"></i> Productos de Clientes
               {productosSinMaestro.length > 0 && (
                 <span className="ml-1.5 px-1.5 py-0.5 rounded-full bg-amber-100 text-amber-700 text-[10px]">{productosSinMaestro.length}</span>
+              )}
+            </button>
+            <button
+              onClick={() => setVistaAdmin('errores')}
+              className={`px-4 py-2 text-xs font-bold rounded-t-lg transition ${vistaAdmin === 'errores' ? 'bg-stone-100 text-stone-900 border-t border-x border-stone-200' : 'text-stone-500 hover:text-stone-800'}`}
+            >
+              <i className="fa-solid fa-bug mr-1.5"></i> Errores
+              {Array.isArray(erroresApp) && erroresApp.length > 0 && (
+                <span className="ml-1.5 px-1.5 py-0.5 rounded-full bg-rose-100 text-rose-700 text-[10px]">{erroresApp.length}</span>
               )}
             </button>
           </div>
@@ -1861,6 +1888,58 @@ const MEDIOS_PAGO = [
                 ))}
               </div>
             )}
+          </div>
+          )}
+
+          {vistaAdmin === 'errores' && (
+          <div className="max-w-4xl mx-auto p-4 md:p-6 space-y-4">
+            <div className="flex items-start justify-between gap-3">
+              <p className="text-xs text-stone-500">
+                Errores no controlados de los últimos 14 días, agrupados. No incluyen datos personales. Un error repetido aparece una sola vez con su conteo.
+              </p>
+              <div className="flex gap-2 shrink-0">
+                <button onClick={cargarErroresApp} disabled={cargandoErrores} className="px-3 py-1.5 bg-white border border-stone-200 hover:border-violet-300 rounded-lg text-xs font-bold text-stone-700 disabled:opacity-50">
+                  <i className={`fa-solid fa-rotate mr-1 ${cargandoErrores ? 'fa-spin' : ''}`}></i> Actualizar
+                </button>
+                {Array.isArray(erroresApp) && erroresApp.length > 0 && (
+                  <button onClick={limpiarErroresApp} className="px-3 py-1.5 bg-white border border-stone-200 hover:border-rose-300 rounded-lg text-xs font-bold text-rose-600">
+                    Borrar todos
+                  </button>
+                )}
+              </div>
+            </div>
+            {erroresApp === false && (
+              <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 text-xs text-amber-800">
+                Falta ejecutar <strong>errores_app.sql</strong> en Supabase para activar el registro de errores.
+              </div>
+            )}
+            {erroresApp === null && <p className="text-xs text-stone-400">Cargando…</p>}
+            {Array.isArray(erroresApp) && erroresApp.length === 0 && (
+              <div className="bg-white border border-stone-200 rounded-xl p-8 text-center">
+                <i className="fa-solid fa-circle-check text-emerald-500 text-2xl mb-2"></i>
+                <p className="text-sm font-bold text-stone-800">Sin errores en los últimos 14 días</p>
+              </div>
+            )}
+            {Array.isArray(erroresApp) && erroresApp.map((er, i) => (
+              <details key={`${er.origen}-${i}-${er.ultima}`} className="bg-white border border-stone-200 rounded-xl">
+                <summary className="cursor-pointer list-none px-4 py-3 flex items-start gap-3">
+                  <span className="shrink-0 mt-0.5 px-2 py-0.5 rounded-full bg-rose-100 text-rose-700 text-[11px] font-black tabular-nums" title="Veces que ocurrió">{er.veces}×</span>
+                  <span className="min-w-0 flex-1">
+                    <span className="block text-sm font-semibold text-stone-900 break-words">{er.mensaje}</span>
+                    <span className="block text-[11px] text-stone-500 mt-0.5">
+                      Última: {new Date(er.ultima).toLocaleString('es-PE')} · {er.negocios > 0 ? `${er.negocios} negocio${Number(er.negocios) === 1 ? '' : 's'}` : 'sin sesión'} · {er.origen === 'render' ? 'pantalla rota' : er.origen === 'promesa' ? 'operación fallida' : 'error de código'}
+                    </span>
+                  </span>
+                </summary>
+                <div className="px-4 pb-4 text-[11px] text-stone-600 space-y-1.5 border-t border-stone-100 pt-3">
+                  {er.accion && <p><strong>Último botón tocado:</strong> {er.accion}</p>}
+                  {er.ruta && <p><strong>Ruta:</strong> {er.ruta}</p>}
+                  {er.navegador && <p className="break-words"><strong>Navegador:</strong> {er.navegador}</p>}
+                  <p><strong>Primera vez:</strong> {new Date(er.primera).toLocaleString('es-PE')}</p>
+                  {er.detalle && <pre className="mt-2 p-2.5 bg-stone-50 rounded-lg overflow-x-auto whitespace-pre-wrap break-words text-[10px] text-stone-700">{er.detalle}</pre>}
+                </div>
+              </details>
+            ))}
           </div>
           )}
           </div>

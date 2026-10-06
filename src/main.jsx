@@ -15,6 +15,7 @@ import { calcularDescuento } from './lib/descuentos.js';
 import { resumirVentasPeriodo, agruparVentasPorDia, calcularCambioPct } from './lib/dashboard.js';
 import { valorAuditoria, describirAuditoria } from './lib/auditoria.js';
 import { antiguedadTurno } from './lib/turnos.js';
+import { iniciarMonitoreo, reportarError } from './monitoreo.js';
 import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCombo, margenCombo, expandirLineaCombo, detalleComboTicket } from './lib/combos.js';
 
 
@@ -712,6 +713,9 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
         }
         return null;
       }, [supabaseUrl, supabaseKey]);
+
+      // Errores no controlados -> tabla errores_app (se ven en el panel de superadmin).
+      useEffect(() => iniciarMonitoreo(sbClient), [sbClient]);
 
       const pedirTexto = ({ titulo, mensaje, placeholder = '', valorInicial = '', textoBoton = 'Confirmar' }) => {
         return new Promise((resolve) => {
@@ -14216,5 +14220,27 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
       );
     }
 
-    ReactDOM.createRoot(document.getElementById('root')).render(<PosApp />);
+    // Si un error al dibujar la pantalla la rompiera, en vez de dejarla en blanco
+    // se muestra un aviso con un botón para recargar, y el error queda registrado.
+    class LimiteDeError extends React.Component {
+      constructor(props) { super(props); this.state = { fallo: false }; }
+      static getDerivedStateFromError() { return { fallo: true }; }
+      componentDidCatch(error) {
+        reportarError({ mensaje: (error && error.message) || String(error), stack: error && error.stack, origen: 'render' });
+      }
+      render() {
+        if (!this.state.fallo) return this.props.children;
+        return (
+          <div role="alert" className="min-h-screen flex items-center justify-center bg-stone-100 p-6">
+            <div className="max-w-sm w-full bg-white rounded-2xl shadow p-6 text-center space-y-3">
+              <h1 className="text-lg font-bold text-stone-900">Algo salió mal</h1>
+              <p className="text-sm text-stone-600">Tuvimos un problema al mostrar esta pantalla. Tus ventas guardadas están a salvo. Recarga para continuar.</p>
+              <button onClick={() => window.location.reload()} className="w-full py-2.5 bg-stone-900 text-white text-sm font-bold rounded-xl">Recargar</button>
+            </div>
+          </div>
+        );
+      }
+    }
+
+    ReactDOM.createRoot(document.getElementById('root')).render(<LimiteDeError><PosApp /></LimiteDeError>);
   
