@@ -1553,6 +1553,28 @@ import {
         setCargandoAuditoria(false);
       };
 
+      // Escape cierra la ventana (modal) que esté arriba de todo. Casi todas
+      // se cierran al tocar el fondo oscuro, así que se hace exactamente eso:
+      // se busca la capa de fondo más alta y se le hace clic. Las que no se
+      // cierran con el fondo (p. ej. las que piden un PIN) tampoco se cierran
+      // con Escape. Va en fase de captura para correr antes que el menú de
+      // búsqueda, que maneja su propio Escape.
+      useEffect(() => {
+        const alPresionar = (e) => {
+          if (e.key !== 'Escape' || e.defaultPrevented) return;
+          const capas = [...document.querySelectorAll('div.fixed.inset-0')]
+            .filter((el) => el.offsetParent !== null || getComputedStyle(el).position === 'fixed');
+          if (capas.length === 0) return;
+          const zDe = (el) => parseInt(getComputedStyle(el).zIndex, 10) || 0;
+          const arriba = capas.reduce((mejor, el) => (zDe(el) >= zDe(mejor) ? el : mejor), capas[0]);
+          // La pantalla de carga inicial no es una ventana: no se toca.
+          if (arriba.querySelector('img[alt="Kaserita"]') && !arriba.querySelector('button')) return;
+          arriba.click();
+        };
+        window.addEventListener('keydown', alPresionar, true);
+        return () => window.removeEventListener('keydown', alPresionar, true);
+      }, []);
+
       const [mostrarResumenMobile, setMostrarResumenMobile] = useState(false);
       const inputBusquedaRef = useRef(null);
 
@@ -8121,7 +8143,7 @@ import {
                         autoFocus
                       />
                       {busqueda && (
-                        <button
+                        <button aria-label="Cerrar"
                           onClick={() => {
                             setBusqueda('');
                             cargarProductos('');
@@ -8130,7 +8152,7 @@ import {
                         ><i className="fa-solid fa-xmark"></i></button>
                       )}
                     </div>
-                    <button
+                    <button aria-label="Buscar"
                       onClick={() => cargarProductos(busqueda)}
                       className="hidden md:flex items-center justify-center w-10 h-10 shrink-0 bg-white hover:bg-[#f4eefe] text-stone-700 text-xs font-semibold rounded-full border border-[#d6bdfa]/60 transition"
                     >
@@ -8332,7 +8354,7 @@ import {
               <h2 className="text-sm font-black text-stone-900 flex items-center gap-2">
                 <i className="fa-solid fa-bell-concierge text-orange-600"></i> Pedidos por retirar
               </h2>
-              <button onClick={() => setModalPedidosRetirar(false)} className="text-stone-600 hover:text-stone-900 text-lg"><i className="fa-solid fa-xmark"></i></button>
+              <button aria-label="Cerrar" onClick={() => setModalPedidosRetirar(false)} className="text-stone-600 hover:text-stone-900 text-lg"><i className="fa-solid fa-xmark"></i></button>
             </div>
 
             {/* Pestañas: pendiente -> listo -> historial, el mismo recorrido
@@ -9410,7 +9432,7 @@ import {
                             {f.historial.map((h) => (
                               <span key={h.id} className="inline-flex items-center gap-1 bg-stone-200 rounded-full pl-2 pr-1 py-0.5 text-[11px] text-stone-700">
                                 +{h.cantidad}
-                                <button onClick={() => quitarHallazgo(f.productoId, h.id)} className="w-3.5 h-3.5 flex items-center justify-center text-stone-500 hover:text-rose-600">
+                                <button aria-label="Cerrar" onClick={() => quitarHallazgo(f.productoId, h.id)} className="w-3.5 h-3.5 flex items-center justify-center text-stone-500 hover:text-rose-600">
                                   <i className="fa-solid fa-xmark text-[9px]"></i>
                                 </button>
                               </span>
@@ -10062,7 +10084,7 @@ import {
                     </h3>
                     <p className="text-xs text-stone-600 mt-0.5">Paquetes de varios productos a un precio especial. Al venderse, descuentan el stock real de cada producto que los compone.</p>
                   </div>
-                  <button onClick={() => { setModalCombos(false); setFormCombo(null); }} className="text-stone-600 hover:text-stone-900 shrink-0"><i className="fa-solid fa-xmark"></i></button>
+                  <button aria-label="Cerrar" onClick={() => { setModalCombos(false); setFormCombo(null); }} className="text-stone-600 hover:text-stone-900 shrink-0"><i className="fa-solid fa-xmark"></i></button>
                 </div>
 
                 {!formCombo ? (
@@ -10180,7 +10202,7 @@ import {
                               className="w-14 bg-stone-100 border border-stone-200 rounded px-2 py-1 text-xs text-stone-900 text-center"
                             />
                             <span className="text-[11px] font-semibold text-stone-600 w-16 shrink-0 text-right">S/ {(it.precio_venta * it.cantidad).toFixed(2)}</span>
-                            <button onClick={() => quitarItemCombo(it.producto_id)} className="w-6 h-6 flex items-center justify-center text-stone-400 hover:text-rose-600 shrink-0">
+                            <button aria-label="Cerrar" onClick={() => quitarItemCombo(it.producto_id)} className="w-6 h-6 flex items-center justify-center text-stone-400 hover:text-rose-600 shrink-0">
                               <i className="fa-solid fa-xmark text-xs"></i>
                             </button>
                           </div>
@@ -10563,7 +10585,7 @@ import {
                         Vaciar
                       </button>
                     )}
-                    <button onClick={() => setModalTomaInventario(false)} className="w-8 h-8 rounded-full bg-white/70 hover:bg-white text-stone-500 hover:text-stone-900 shadow-sm"><i className="fa-solid fa-xmark"></i></button>
+                    <button aria-label="Cerrar" onClick={() => setModalTomaInventario(false)} className="w-8 h-8 rounded-full bg-white/70 hover:bg-white text-stone-500 hover:text-stone-900 shadow-sm"><i className="fa-solid fa-xmark"></i></button>
                   </div>
                 </div>
 
@@ -10631,7 +10653,7 @@ import {
                                   <span className="text-xs font-bold text-orange-600 shrink-0">
                                     {f.stockContado === '' ? 'Sin contar' : `${f.stockContado} und`}
                                   </span>
-                                  <button onClick={() => quitarProductoDeConteo(f.productoId)} className="text-stone-400 hover:text-rose-600 shrink-0">
+                                  <button aria-label="Eliminar" onClick={() => quitarProductoDeConteo(f.productoId)} className="text-stone-400 hover:text-rose-600 shrink-0">
                                     <i className="fa-solid fa-trash-can"></i>
                                   </button>
                                 </div>
@@ -10641,7 +10663,7 @@ import {
                                     {f.historial.map((h) => (
                                       <span key={h.id} className="inline-flex items-center gap-1 bg-stone-200 rounded-full pl-2 pr-1 py-0.5 text-[11px] text-stone-700">
                                         +{h.cantidad}
-                                        <button onClick={() => quitarHallazgo(f.productoId, h.id)} className="w-3.5 h-3.5 flex items-center justify-center text-stone-500 hover:text-rose-600">
+                                        <button aria-label="Cerrar" onClick={() => quitarHallazgo(f.productoId, h.id)} className="w-3.5 h-3.5 flex items-center justify-center text-stone-500 hover:text-rose-600">
                                           <i className="fa-solid fa-xmark text-[9px]"></i>
                                         </button>
                                       </span>
@@ -10733,7 +10755,7 @@ import {
                                       >
                                         Sumar más
                                       </button>
-                                      <button onClick={() => quitarProductoDeConteo(f.productoId)} className="shrink-0 text-stone-400 hover:text-rose-600">
+                                      <button aria-label="Eliminar" onClick={() => quitarProductoDeConteo(f.productoId)} className="shrink-0 text-stone-400 hover:text-rose-600">
                                         <i className="fa-solid fa-trash-can"></i>
                                       </button>
                                     </div>
@@ -10836,7 +10858,7 @@ import {
                   <h3 className="text-lg font-bold text-stone-900 flex items-center gap-2">
                     <i className="fa-solid fa-pen text-orange-600"></i> Editar Producto
                   </h3>
-                  <button onClick={() => setModalEditarProducto(false)} className="w-8 h-8 rounded-full bg-white/70 hover:bg-white text-stone-500 hover:text-stone-900 shadow-sm"><i className="fa-solid fa-xmark"></i></button>
+                  <button aria-label="Cerrar" onClick={() => setModalEditarProducto(false)} className="w-8 h-8 rounded-full bg-white/70 hover:bg-white text-stone-500 hover:text-stone-900 shadow-sm"><i className="fa-solid fa-xmark"></i></button>
                 </div>
                 <div className="flex items-center gap-3">
                   {sesion?.bodega?.permitir_subir_fotos === false ? (
@@ -11092,7 +11114,7 @@ import {
                           {formEditarProducto.fotos_extra.map((url, idx) => (
                             <div key={idx} className="relative w-14 h-14 rounded-lg overflow-hidden border border-stone-200 shrink-0">
                               <img src={url} className="w-full h-full object-cover" alt="" />
-                              <button
+                              <button aria-label="Cerrar"
                                 type="button"
                                 onClick={() => quitarFotoExtra(idx)}
                                 className="absolute top-0 right-0 w-4 h-4 flex items-center justify-center bg-black/60 text-white text-[10px] rounded-bl"
@@ -11153,7 +11175,7 @@ import {
                   <h3 className="text-lg font-bold text-stone-900 flex items-center gap-2">
                     <i className="fa-solid fa-book text-orange-600"></i> Importar del Catálogo Maestro
                   </h3>
-                  <button onClick={() => setModalImportarMaestro(false)} className="w-8 h-8 rounded-full bg-white/70 hover:bg-white text-stone-500 hover:text-stone-900 shadow-sm"><i className="fa-solid fa-xmark"></i></button>
+                  <button aria-label="Cerrar" onClick={() => setModalImportarMaestro(false)} className="w-8 h-8 rounded-full bg-white/70 hover:bg-white text-stone-500 hover:text-stone-900 shadow-sm"><i className="fa-solid fa-xmark"></i></button>
                 </div>
 
                 {productoMaestroSeleccionado ? (
@@ -11274,7 +11296,7 @@ import {
                     </h3>
                     <p className="text-xs text-stone-600 mt-0.5">Escanea o busca el producto, cuenta lo que tienes físicamente y listo.</p>
                   </div>
-                  <button onClick={() => { setModalLevantamiento(false); cerrarResultadoLevantamiento(); }} className="text-stone-600 hover:text-stone-900 shrink-0"><i className="fa-solid fa-xmark"></i></button>
+                  <button aria-label="Cerrar" onClick={() => { setModalLevantamiento(false); cerrarResultadoLevantamiento(); }} className="text-stone-600 hover:text-stone-900 shrink-0"><i className="fa-solid fa-xmark"></i></button>
                 </div>
 
                 <div className="space-y-1.5">
@@ -11314,7 +11336,7 @@ import {
                       <p className="text-xs font-bold text-rose-700">Producto no encontrado</p>
                       <p className="text-xs text-rose-600 mt-0.5">Regístralo primero en "Registrar Productos" y vuelve a intentarlo.</p>
                     </div>
-                    <button onClick={cerrarResultadoLevantamiento} className="text-rose-400 hover:text-rose-600 shrink-0"><i className="fa-solid fa-xmark"></i></button>
+                    <button aria-label="Cerrar" onClick={cerrarResultadoLevantamiento} className="text-rose-400 hover:text-rose-600 shrink-0"><i className="fa-solid fa-xmark"></i></button>
                   </div>
                 )}
 
@@ -11330,7 +11352,7 @@ import {
                           <p className="text-sm font-bold text-stone-900 truncate">{producto.descripcion}</p>
                           <p className="text-[11px] text-stone-500 mt-0.5">SKU: {producto.sku || '—'} · 1 pack = {unidadesPorPack} und.</p>
                         </div>
-                        <button onClick={cerrarResultadoLevantamiento} className="text-emerald-500 hover:text-emerald-700 shrink-0"><i className="fa-solid fa-xmark"></i></button>
+                        <button aria-label="Cerrar" onClick={cerrarResultadoLevantamiento} className="text-emerald-500 hover:text-emerald-700 shrink-0"><i className="fa-solid fa-xmark"></i></button>
                       </div>
 
                       <div className="space-y-1.5">
@@ -11389,7 +11411,7 @@ import {
               <div className="bg-gradient-to-br from-[#f4effc] via-[#f9f8fb] to-[#f5f4f8] border border-white/80 rounded-[28px] max-w-lg w-full p-5 shadow-2xl space-y-3 max-h-[90vh] overflow-y-auto">
                 <div className="flex justify-between items-center">
                   <h3 className="text-lg font-bold text-stone-900"><i className="fa-solid fa-truck-ramp-box mr-1.5"></i> Entrada de Mercadería (Compras)</h3>
-                  <button onClick={cerrarModalEntradaMercaderia} className="w-8 h-8 rounded-full bg-white/70 hover:bg-white text-stone-500 hover:text-stone-900 shadow-sm"><i className="fa-solid fa-xmark"></i></button>
+                  <button aria-label="Cerrar" onClick={cerrarModalEntradaMercaderia} className="w-8 h-8 rounded-full bg-white/70 hover:bg-white text-stone-500 hover:text-stone-900 shadow-sm"><i className="fa-solid fa-xmark"></i></button>
                 </div>
 
                 <div className="grid grid-cols-2 gap-2">
@@ -11587,7 +11609,7 @@ import {
                     <span className="w-8 h-8 rounded-xl bg-[#ece0fd] text-[#6105dc] flex items-center justify-center"><IconoTrazo nombre="hand" className="w-4 h-4" /></span>
                     Cuentas por cobrar
                   </h3>
-                  <button onClick={() => setModalCobrarDeudas(false)} className="w-8 h-8 rounded-full bg-white/75 hover:bg-white text-stone-500 hover:text-stone-900 shadow-sm flex items-center justify-center"><IconoTrazo nombre="x" className="w-3.5 h-3.5" /></button>
+                  <button aria-label="Cerrar" onClick={() => setModalCobrarDeudas(false)} className="w-8 h-8 rounded-full bg-white/75 hover:bg-white text-stone-500 hover:text-stone-900 shadow-sm flex items-center justify-center"><IconoTrazo nombre="x" className="w-3.5 h-3.5" /></button>
                 </div>
 
                 {deudorSeleccionado ? (() => {
@@ -11760,7 +11782,7 @@ import {
                   <h3 className="text-lg font-bold text-stone-900 flex items-center gap-2">
                     <i className="fa-solid fa-file-invoice text-orange-600"></i> Cuentas por Pagar
                   </h3>
-                  <button onClick={() => setModalCuentasPagar(false)} className="w-8 h-8 rounded-full bg-white/70 hover:bg-white text-stone-500 hover:text-stone-900 shadow-sm"><i className="fa-solid fa-xmark"></i></button>
+                  <button aria-label="Cerrar" onClick={() => setModalCuentasPagar(false)} className="w-8 h-8 rounded-full bg-white/70 hover:bg-white text-stone-500 hover:text-stone-900 shadow-sm"><i className="fa-solid fa-xmark"></i></button>
                 </div>
 
                 {proveedorSeleccionado ? (
@@ -11845,7 +11867,7 @@ import {
               <div className="bg-gradient-to-br from-[#f4effc] via-[#f9f8fb] to-[#f5f4f8] border border-white/80 rounded-[28px] max-w-sm w-full p-5 shadow-2xl space-y-3">
                 <div className="flex justify-between items-center">
                   <h3 className="text-lg font-bold text-stone-900"><i className="fa-solid fa-truck mr-1.5"></i> Nuevo Proveedor</h3>
-                  <button onClick={() => setModalNuevoProveedor(false)} className="w-8 h-8 rounded-full bg-white/70 hover:bg-white text-stone-500 hover:text-stone-900 shadow-sm"><i className="fa-solid fa-xmark"></i></button>
+                  <button aria-label="Cerrar" onClick={() => setModalNuevoProveedor(false)} className="w-8 h-8 rounded-full bg-white/70 hover:bg-white text-stone-500 hover:text-stone-900 shadow-sm"><i className="fa-solid fa-xmark"></i></button>
                 </div>
                 <form onSubmit={handleGuardarNuevoProveedor} className="space-y-2.5">
                   <div>
@@ -11909,7 +11931,7 @@ import {
                     <span className="w-8 h-8 rounded-xl bg-[#ece0fd] text-[#6105dc] flex items-center justify-center text-sm"><i className="fa-solid fa-cash-register"></i></span>
                     Historial de cierres de caja
                   </h3>
-                  <button onClick={() => setModalHistorialCierres(false)} className="w-8 h-8 rounded-full bg-white/70 hover:bg-white text-stone-500 hover:text-stone-900 shadow-sm"><i className="fa-solid fa-xmark"></i></button>
+                  <button aria-label="Cerrar" onClick={() => setModalHistorialCierres(false)} className="w-8 h-8 rounded-full bg-white/70 hover:bg-white text-stone-500 hover:text-stone-900 shadow-sm"><i className="fa-solid fa-xmark"></i></button>
                 </div>
 
                 <PestanasModal pestanas={[
@@ -11986,7 +12008,7 @@ import {
                   <h3 className="text-lg font-bold text-stone-900 flex items-center gap-2">
                     <i className="fa-solid fa-scale-balanced text-orange-600"></i> Historial de Inventario
                   </h3>
-                  <button onClick={() => setModalHistorialInventario(false)} className="w-8 h-8 rounded-full bg-white/70 hover:bg-white text-stone-500 hover:text-stone-900 shadow-sm"><i className="fa-solid fa-xmark"></i></button>
+                  <button aria-label="Cerrar" onClick={() => setModalHistorialInventario(false)} className="w-8 h-8 rounded-full bg-white/70 hover:bg-white text-stone-500 hover:text-stone-900 shadow-sm"><i className="fa-solid fa-xmark"></i></button>
                 </div>
 
                 <PestanasModal pestanas={[
@@ -12074,7 +12096,7 @@ import {
                   <h3 className="text-lg font-bold text-stone-900 flex items-center gap-2">
                     <i className="fa-solid fa-user-group text-orange-600"></i> Cajeros y Empleados
                   </h3>
-                  <button onClick={() => setModalGestionCajeros(false)} className="w-8 h-8 rounded-full bg-white/70 hover:bg-white text-stone-500 hover:text-stone-900 shadow-sm"><i className="fa-solid fa-xmark"></i></button>
+                  <button aria-label="Cerrar" onClick={() => setModalGestionCajeros(false)} className="w-8 h-8 rounded-full bg-white/70 hover:bg-white text-stone-500 hover:text-stone-900 shadow-sm"><i className="fa-solid fa-xmark"></i></button>
                 </div>
 
                 {mostrarFormNuevoCajero ? (
@@ -12571,7 +12593,7 @@ import {
               >
                 <div className="flex items-center justify-between w-full">
                   <h3 className="text-sm font-bold text-stone-900">Escaneá para pedir</h3>
-                  <button onClick={() => setMostrarQRDelivery(false)} className="text-stone-500 hover:text-stone-900">
+                  <button aria-label="Cerrar" onClick={() => setMostrarQRDelivery(false)} className="text-stone-500 hover:text-stone-900">
                     <i className="fa-solid fa-xmark text-lg"></i>
                   </button>
                 </div>
@@ -12597,7 +12619,7 @@ import {
                   <h3 className="text-sm font-bold text-stone-900 flex items-center gap-2">
                     <i className="fa-solid fa-clipboard-check text-orange-600"></i> Registro de actividad
                   </h3>
-                  <button onClick={() => setModalAuditoria(false)} className="text-stone-500 hover:text-stone-800"><i className="fa-solid fa-xmark"></i></button>
+                  <button aria-label="Cerrar" onClick={() => setModalAuditoria(false)} className="text-stone-500 hover:text-stone-800"><i className="fa-solid fa-xmark"></i></button>
                 </div>
                 <div className="px-4 pt-3 flex gap-1.5 flex-wrap">
                   {[['todo', 'Todo'], ['productos', 'Precios y productos'], ['ventas', 'Ventas'], ['turnos_caja', 'Turnos'], ['cajeros', 'Empleados'], ['mermas', 'Mermas']].map(([valor, etiqueta]) => (
@@ -12723,7 +12745,7 @@ import {
                   <h3 className="text-lg font-bold text-stone-900 flex items-center gap-2">
                     <span className="w-8 h-8 rounded-xl bg-[#ece0fd] text-[#6105dc] flex items-center justify-center text-sm"><i className="fa-solid fa-users"></i></span> Clientes
                   </h3>
-                  <button onClick={() => { setModalGestionClientes(false); setClienteEditando(null); }} className="w-8 h-8 rounded-full bg-white/70 hover:bg-white text-stone-500 hover:text-stone-900 shadow-sm"><i className="fa-solid fa-xmark"></i></button>
+                  <button aria-label="Cerrar" onClick={() => { setModalGestionClientes(false); setClienteEditando(null); }} className="w-8 h-8 rounded-full bg-white/70 hover:bg-white text-stone-500 hover:text-stone-900 shadow-sm"><i className="fa-solid fa-xmark"></i></button>
                 </div>
 
                 {!clienteEditando && (
@@ -12859,7 +12881,7 @@ import {
               <div className="bg-gradient-to-br from-[#f4effc] via-[#f9f8fb] to-[#f5f4f8] border border-white/80 rounded-[28px] max-w-sm w-full p-5 shadow-2xl space-y-3 max-h-[85vh] flex flex-col">
                 <div className="flex justify-between items-center shrink-0">
                   <h3 className="text-lg font-bold text-stone-900 flex items-center gap-2"><span className="w-8 h-8 rounded-xl bg-[#ece0fd] text-[#6105dc] flex items-center justify-center text-sm"><i className="fa-solid fa-user"></i></span> Seleccionar cliente</h3>
-                  <button onClick={() => setModalBuscarCliente(false)} className="w-8 h-8 rounded-full bg-white/70 hover:bg-white text-stone-500 hover:text-stone-900 shadow-sm"><i className="fa-solid fa-xmark"></i></button>
+                  <button aria-label="Cerrar" onClick={() => setModalBuscarCliente(false)} className="w-8 h-8 rounded-full bg-white/70 hover:bg-white text-stone-500 hover:text-stone-900 shadow-sm"><i className="fa-solid fa-xmark"></i></button>
                 </div>
                 <input
                   type="text"
@@ -12914,7 +12936,7 @@ import {
               <div className="bg-gradient-to-br from-[#f4effc] via-[#f9f8fb] to-[#f5f4f8] border border-white/80 rounded-[28px] max-w-sm w-full p-5 shadow-2xl space-y-3">
                 <div className="flex justify-between items-center">
                   <h3 className="text-lg font-bold text-stone-900"><i className="fa-solid fa-user-plus mr-1.5"></i> Registrar Nuevo Cliente</h3>
-                  <button onClick={() => setModalNuevoCliente(false)} className="w-8 h-8 rounded-full bg-white/70 hover:bg-white text-stone-500 hover:text-stone-900 shadow-sm"><i className="fa-solid fa-xmark"></i></button>
+                  <button aria-label="Cerrar" onClick={() => setModalNuevoCliente(false)} className="w-8 h-8 rounded-full bg-white/70 hover:bg-white text-stone-500 hover:text-stone-900 shadow-sm"><i className="fa-solid fa-xmark"></i></button>
                 </div>
                 <form onSubmit={handleGuardarNuevoCliente} className="space-y-2.5">
                   <div>
@@ -13591,7 +13613,7 @@ import {
                         <span className="w-8 h-8 rounded-xl bg-[#ece0fd] text-[#6105dc] flex items-center justify-center text-sm"><i className="fa-solid fa-receipt"></i></span>
                         Historial de ventas
                       </h3>
-                      <button onClick={() => setModalHistorial(false)} className="w-8 h-8 rounded-full bg-white/70 hover:bg-white text-stone-500 hover:text-stone-900 shadow-sm"><i className="fa-solid fa-xmark"></i></button>
+                      <button aria-label="Cerrar" onClick={() => setModalHistorial(false)} className="w-8 h-8 rounded-full bg-white/70 hover:bg-white text-stone-500 hover:text-stone-900 shadow-sm"><i className="fa-solid fa-xmark"></i></button>
                     </div>
 
                     {esAdmin && (

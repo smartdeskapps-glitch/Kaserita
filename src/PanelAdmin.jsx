@@ -1805,10 +1805,10 @@ const MEDIOS_PAGO = [
                           <p className="text-[11px] text-stone-500">{p.categoria || 'Sin categoría'}</p>
                         </div>
                         <div className="flex gap-1 shrink-0">
-                          <button onClick={() => setFormMaestro({ id: p.id, descripcion: p.descripcion, categoria: p.categoria || 'Abarrotes', sku: p.sku || '', foto_url: p.foto_url || '' })} className="w-7 h-7 flex items-center justify-center bg-stone-100 hover:bg-stone-200 text-stone-700 rounded-lg">
+                          <button aria-label="Editar" onClick={() => setFormMaestro({ id: p.id, descripcion: p.descripcion, categoria: p.categoria || 'Abarrotes', sku: p.sku || '', foto_url: p.foto_url || '' })} className="w-7 h-7 flex items-center justify-center bg-stone-100 hover:bg-stone-200 text-stone-700 rounded-lg">
                             <i className="fa-solid fa-pen text-xs"></i>
                           </button>
-                          <button onClick={() => eliminarProductoMaestro(p)} className="w-7 h-7 flex items-center justify-center bg-rose-50 hover:bg-rose-100 text-rose-600 rounded-lg">
+                          <button aria-label="Eliminar" onClick={() => eliminarProductoMaestro(p)} className="w-7 h-7 flex items-center justify-center bg-rose-50 hover:bg-rose-100 text-rose-600 rounded-lg">
                             <i className="fa-solid fa-trash-can text-xs"></i>
                           </button>
                         </div>
