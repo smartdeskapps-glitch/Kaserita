@@ -7,6 +7,10 @@ const __dirname = fileURLToPath(new URL('.', import.meta.url));
 
 export default defineConfig({
   plugins: [react()],
+  test: {
+    include: ["src/**/*.test.js"],
+    environment: "node",
+  },
   build: {
     rollupOptions: {
       input: {

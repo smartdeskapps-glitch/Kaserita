@@ -9,6 +9,10 @@ import {
   CATEGORIA_ESTILO_POR_NOMBRE_NORMALIZADO, CATEGORIA_ALIAS,
   estiloCategoria, categoriaDesdeTexto, FotoProducto, MiniInterruptor,
 } from './PanelAdminCompartido.jsx';
+import { esDniValido, esDocumentoValido, esRucValido, esMontoNoNegativo } from './lib/validaciones.js';
+import { efectivoEntrante, desgloseMediosPago, diferenciaArqueo } from './lib/arqueo.js';
+import { calcularDescuento } from './lib/descuentos.js';
+import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCombo, margenCombo, expandirLineaCombo, detalleComboTicket } from './lib/combos.js';
 
 
     const generarUUID = () => {
@@ -315,17 +319,6 @@ import {
       );
     }
 
-    // Contenido de un combo para los tickets: una frase corta por producto
-    // ("Coca Cola 500ml x2"), con la cantidad ya multiplicada por los combos
-    // vendidos. Devuelve [] si la línea no es un combo.
-    const detalleComboTicket = (it) => {
-      if (!it || !it.esCombo || !Array.isArray(it.itemsCombo)) return [];
-      return it.itemsCombo.map((c) => {
-        const cant = +(Number(c.cantidadBase) * Number(it.cantidad || 1)).toFixed(3);
-        return `${c.descripcion} x${cant}`;
-      });
-    };
-
     function ReciboImprimible({ bodega, boleta, fecha, cliente, medioPago, items, total, anulada, subtotal, descuento }) {
       const lineaSolida = { borderTop: '2px solid #000', margin: '6px 0' };
       return (
@@ -555,14 +548,6 @@ import {
       if (n >= 1e4) return `S/ ${Math.round(n).toLocaleString('es-PE')}`;
       return `S/ ${formatoSoles(n)}`;
     };
-
-    // Validaciones de formularios. Sin barras invertidas a propósito.
-    // DNI: 8 dígitos. RUC: 11 dígitos. Carné de extranjería o pasaporte: 9 a 12 letras o números.
-    const esDniValido = (v) => /^[0-9]{8}$/.test(String(v || '').trim());
-    const esDocumentoValido = (v) => /^([0-9]{8}|[0-9]{11}|[A-Za-z0-9]{9,12})$/.test(String(v || '').trim());
-    const esRucValido = (v) => /^[0-9]{11}$/.test(String(v || '').trim());
-    // Número >= 0 (vacío cuenta como válido cuando es opcional).
-    const esMontoNoNegativo = (v) => v === '' || v === null || v === undefined || (Number.isFinite(Number(v)) && Number(v) >= 0);
 
     // Registro de actividad: convierte una fila de "auditoria" en una frase
     // legible (título + detalle por campo) en vez del texto técnico de la base
@@ -2648,12 +2633,12 @@ import {
       // Suma de los precios de venta normales de cada producto del combo
       // (según su cantidad) -- referencia para que el dueño vea cuánto está
       // descontando al ponerle precio de bolsa al combo.
-      const precioNormalCombo = (form) => (form?.items || []).reduce((acc, it) => acc + it.precio_venta * it.cantidad, 0);
+      const precioNormalCombo = (form) => sumaPreciosCombo(form?.items);
 
       // Suma de los COSTOS de cada producto del combo -- referencia para
       // avisar si el precio de bolsa quedó por debajo de lo que cuesta
       // armarlo (ver aviso de "precio bajo costo" en el formulario).
-      const costoNormalCombo = (form) => (form?.items || []).reduce((acc, it) => acc + it.precio_costo * it.cantidad, 0);
+      const costoNormalCombo = (form) => sumaCostosCombo(form?.items);
 
       // Mientras el precio no se haya tocado a mano (precioTocado false),
       // sigue en automático a la suma de precios normales de los productos
@@ -3571,34 +3556,7 @@ import {
       // ajuste de stock (ajustar_stock por producto) no necesitan saber que
       // los combos existen: para ellos es una venta de varios productos,
       // como cualquier otra.
-      const expandirLineaCarrito = (item) => {
-        if (!item.esCombo) return [item];
-        const pesoTotal = item.itemsCombo.reduce((acc, c) => acc + c.precioVenta * c.cantidadBase, 0);
-        let subtotalAsignado = 0;
-        return item.itemsCombo.map((comp, i) => {
-          const cantidadComponente = +(comp.cantidadBase * item.cantidad).toFixed(3);
-          const esUltimo = i === item.itemsCombo.length - 1;
-          let subtotalComponente;
-          if (esUltimo) {
-            subtotalComponente = +(item.subtotal - subtotalAsignado).toFixed(2);
-          } else {
-            const fraccion = pesoTotal > 0 ? (comp.precioVenta * comp.cantidadBase) / pesoTotal : 1 / item.itemsCombo.length;
-            subtotalComponente = +(item.subtotal * fraccion).toFixed(2);
-            subtotalAsignado = +(subtotalAsignado + subtotalComponente).toFixed(2);
-          }
-          return {
-            productoId: comp.productoId,
-            cod_ean: comp.cod_ean,
-            descripcion: `${comp.descripcion} (${item.descripcion})`,
-            cantidad: cantidadComponente,
-            precioUnitario: cantidadComponente > 0 ? +(subtotalComponente / cantidadComponente).toFixed(2) : 0,
-            precioCosto: comp.precioCosto,
-            subtotal: subtotalComponente,
-            unidadesStock: cantidadComponente,
-            comboId: item.comboId
-          };
-        });
-      };
+      const expandirLineaCarrito = expandirLineaCombo; // lógica probada en src/lib/combos.js
 
       const handleClicProducto = useCallback((prod, tipoVentaForzado = null) => {
         const esKG = prod.unidad === 'KG';
@@ -4160,15 +4118,10 @@ import {
 
       // Descuento sobre el total de la venta (% o monto fijo), nunca negativo
       // ni mayor al propio total.
-      const montoDescuento = useMemo(() => {
-        if (!descuentoTipo) return 0;
-        const valor = parseFloat(descuentoValor) || 0;
-        if (valor <= 0) return 0;
-        const monto = descuentoTipo === 'PORCENTAJE'
-          ? totalVenta * (Math.min(valor, 100) / 100)
-          : valor;
-        return +Math.min(Math.max(monto, 0), totalVenta).toFixed(2);
-      }, [descuentoTipo, descuentoValor, totalVenta]);
+      const montoDescuento = useMemo(
+        () => calcularDescuento({ tipo: descuentoTipo, valor: descuentoValor, total: totalVenta }),
+        [descuentoTipo, descuentoValor, totalVenta]
+      );
 
       // Total que realmente se le cobra al cliente, después del descuento.
       const totalConDescuento = useMemo(() => {
@@ -6811,10 +6764,7 @@ import {
               .eq('anulada', false)
               .in('medio_pago', ['EFECTIVO', 'MIXTO'])).data : null);
 
-        return (vts || []).reduce((acc, v) => {
-          const efectivo = v.medio_pago === 'EFECTIVO' ? Number(v.total_venta) : Number(v.monto_efectivo) || 0;
-          return acc + efectivo;
-        }, 0);
+        return efectivoEntrante(vts);
       };
 
       // Solo informativo para el arqueo: cuánto se vendió en cada medio que
@@ -6831,15 +6781,7 @@ import {
               .eq('turno_caja_id', turnoActivo.id)
               .eq('anulada', false)).data : null);
 
-        const desglose = { YAPE: 0, PLIN: 0, TARJETA: 0, CREDITO: 0, MIXTO_OTRO: 0 };
-        (vts || []).forEach((v) => {
-          if (v.medio_pago === 'MIXTO') {
-            desglose.MIXTO_OTRO += Number(v.monto_otro) || 0;
-          } else if (Object.prototype.hasOwnProperty.call(desglose, v.medio_pago)) {
-            desglose[v.medio_pago] += Number(v.total_venta) || 0;
-          }
-        });
-        return desglose;
+        return desgloseMediosPago(vts);
       };
 
       // Abre el modal de cierre ya mostrando cuánto debería haber en caja,
@@ -6866,7 +6808,7 @@ import {
           calcularDesgloseMedioPagoTurno()
         ]);
         const esperado = +(montoIni + ventasEfectivo).toFixed(2);
-        const dif = +(montoReal - esperado).toFixed(2);
+        const dif = diferenciaArqueo(montoReal, esperado);
 
         if (sbClient && !esModoDemo) {
           try {
@@ -10235,7 +10177,7 @@ import {
                                   const costo = (combo.combos_items || []).reduce((acc, ci) => acc + (Number(ci.productos?.precio_costo) || 0) * Number(ci.cantidad), 0);
                                   const precio = Number(combo.precio_venta) || 0;
                                   if (!(costo > 0) || !(precio > 0)) return null;
-                                  const margen = ((precio - costo) / precio) * 100;
+                                  const margen = margenCombo(precio, costo).margenPct;
                                   const color = margen < 0 ? 'text-rose-600' : margen < 10 ? 'text-amber-600' : 'text-emerald-600';
                                   return <p className={`text-[11px] font-semibold ${color}`}>Ganancia S/ {(precio - costo).toFixed(2)} · margen {margen.toFixed(margen < 10 ? 1 : 0)}%{margen < 10 ? ' (bajo)' : ''}</p>;
                                 })()}
@@ -10387,9 +10329,7 @@ import {
 
                     {costoNormalCombo(formCombo) > 0 && Number(formCombo.precio_venta) >= costoNormalCombo(formCombo) && (() => {
                       const precio = Number(formCombo.precio_venta);
-                      const ganancia = precio - costoNormalCombo(formCombo);
-                      const margen = precio > 0 ? (ganancia / precio) * 100 : 0;
-                      const bajo = margen < 10;
+                      const { ganancia, margenPct: margen, bajo } = margenCombo(precio, costoNormalCombo(formCombo));
                       return (
                         <p className={`text-xs font-semibold rounded-lg px-3 py-2 flex items-center gap-1.5 border ${bajo ? 'text-amber-700 bg-amber-50 border-amber-200' : 'text-emerald-700 bg-emerald-50 border-emerald-200'}`}>
                           <i className={`fa-solid ${bajo ? 'fa-triangle-exclamation' : 'fa-circle-check'}`}></i>
