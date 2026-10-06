@@ -315,6 +315,17 @@ import {
       );
     }
 
+    // Contenido de un combo para los tickets: una frase corta por producto
+    // ("Coca Cola 500ml x2"), con la cantidad ya multiplicada por los combos
+    // vendidos. Devuelve [] si la línea no es un combo.
+    const detalleComboTicket = (it) => {
+      if (!it || !it.esCombo || !Array.isArray(it.itemsCombo)) return [];
+      return it.itemsCombo.map((c) => {
+        const cant = +(Number(c.cantidadBase) * Number(it.cantidad || 1)).toFixed(3);
+        return `${c.descripcion} x${cant}`;
+      });
+    };
+
     function ReciboImprimible({ bodega, boleta, fecha, cliente, medioPago, items, total, anulada, subtotal, descuento }) {
       const lineaSolida = { borderTop: '2px solid #000', margin: '6px 0' };
       return (
@@ -336,6 +347,9 @@ import {
                   <span>{it.cantidad} {it.unidad || 'UND'} x S/ {Number(it.precioUnitario || 0).toFixed(2)}</span>
                   <span>S/ {Number(it.subtotal).toFixed(2)}</span>
                 </div>
+                {detalleComboTicket(it).map((l, k) => (
+                  <div key={k} style={{ fontSize: 11, paddingLeft: 8 }}>- {l}</div>
+                ))}
               </div>
             ))}
           </div>
@@ -1431,6 +1445,7 @@ import {
       // top productos, periodo anterior): viene sumado desde la base
       // (dashboard_resumen_periodo.sql) para no chocar con el tope de 1.000 filas.
       const [resumenPeriodo, setResumenPeriodo] = useState(null);
+      const [combosVendidos, setCombosVendidos] = useState([]);
       // Dias del anio del rango cuando no es el anio en curso (calendario).
       const [diasAnioRango, setDiasAnioRango] = useState([]);
       const [cargandoDashboard, setCargandoDashboard] = useState(false);
@@ -3541,8 +3556,13 @@ import {
           if (items.length === 0) return false;
           return items.every((ci) => (disponible.get(ci.producto_id) || 0) >= Number(ci.cantidad));
         });
-        if (comboListo) convertirProductosEnCombo(comboListo);
-      }, [carrito, combos, convertirProductosEnCombo]);
+        if (comboListo) {
+          convertirProductosEnCombo(comboListo);
+          const normal = (comboListo.combos_items || []).reduce((acc, ci) => acc + (Number(ci.productos?.precio_venta) || 0) * Number(ci.cantidad), 0);
+          const ahorro = normal - Number(comboListo.precio_venta);
+          notificar(ahorro > 0.005 ? `Se aplicó el combo "${comboListo.nombre}": el cliente ahorra S/ ${ahorro.toFixed(2)}.` : `Se aplicó el combo "${comboListo.nombre}".`, 'success');
+        }
+      }, [carrito, combos, convertirProductosEnCombo, notificar]);
 
       // Convierte el carrito (donde un combo es UNA línea) en las líneas
       // "reales" que se guardan en ventas_detalle y descuentan stock -- una
@@ -6293,6 +6313,38 @@ import {
 
         if (sbClient && bodegaId) {
           try {
+            // Combos vendidos en el período: el resumen por producto reparte cada
+            // combo entre sus componentes, así que se consulta aparte por combo_id.
+            // Una venta anulada no cuenta. Si falla, simplemente no se muestra.
+            try {
+              const { data: filasCombo } = await sbClient
+                .from('ventas_detalle')
+                .select('combo_id, producto_id, cantidad, subtotal, utilidad, ventas!inner(fecha_hora, anulada, bodega_id)')
+                .not('combo_id', 'is', null)
+                .eq('ventas.bodega_id', bodegaId)
+                .eq('ventas.anulada', false)
+                .gte('ventas.fecha_hora', inicio.toISOString())
+                .lte('ventas.fecha_hora', fin.toISOString())
+                .limit(5000);
+              const porCombo = new Map();
+              (filasCombo || []).forEach((d) => {
+                const g = porCombo.get(d.combo_id) || { monto: 0, utilidad: 0, porProducto: new Map() };
+                g.monto += Number(d.subtotal) || 0;
+                g.utilidad += Number(d.utilidad) || 0;
+                g.porProducto.set(d.producto_id, (g.porProducto.get(d.producto_id) || 0) + (Number(d.cantidad) || 0));
+                porCombo.set(d.combo_id, g);
+              });
+              setCombosVendidos([...porCombo.entries()].map(([id, g]) => {
+                const combo = combos.find((c) => c.id === id);
+                const base = combo && (combo.combos_items || [])[0];
+                const unidades = base && Number(base.cantidad) > 0 ? (g.porProducto.get(base.producto_id) || 0) / Number(base.cantidad) : 0;
+                return { id, nombre: combo ? combo.nombre : 'Combo eliminado', unidades: Math.round(unidades * 100) / 100, monto: g.monto, utilidad: g.utilidad };
+              }).sort((a, b) => b.monto - a.monto));
+            } catch (errCombos) {
+              console.warn('No se pudo cargar el resumen de combos', errCombos);
+              setCombosVendidos([]);
+            }
+
             const { data: resumen, error: errResumen } = await sbClient.rpc('dashboard_resumen_periodo', {
               p_bodega_id: bodegaId,
               p_desde: desde,
@@ -7436,7 +7488,7 @@ import {
         await asegurarJsPDF();
         const { jsPDF } = window.jspdf;
         const items = venta.items || [];
-        const alturaEstimada = 58 + items.length * 9 + (venta.descuento > 0 ? 10 : 0);
+        const alturaEstimada = 58 + items.length * 9 + items.reduce((a, it) => a + detalleComboTicket(it).length * 3.6, 0) + (venta.descuento > 0 ? 10 : 0);
         const doc = new jsPDF({ unit: 'mm', format: [80, Math.max(100, alturaEstimada)] });
         let y = 8;
 
@@ -7459,6 +7511,13 @@ import {
           doc.text(`${it.cantidad} ${it.unidad || 'UND'} x S/ ${Number(it.precioUnitario || 0).toFixed(2)}`, 4, y);
           doc.text(`S/ ${Number(it.subtotal).toFixed(2)}`, 76, y, { align: 'right' });
           y += 5;
+          detalleComboTicket(it).forEach((l) => {
+            doc.setFontSize(7);
+            const sub = doc.splitTextToSize(`- ${l}`, 68);
+            doc.text(sub, 7, y);
+            y += sub.length * 3.2;
+            doc.setFontSize(8);
+          });
         });
 
         doc.line(4, y, 76, y); y += 5;
@@ -7575,6 +7634,7 @@ import {
           const der = `S/ ${Number(it.subtotal).toFixed(2)}`;
           const espacios = Math.max(1, ANCHO - izq.length - der.length);
           texto(izq + ' '.repeat(espacios) + der); salto();
+          detalleComboTicket(it).forEach((l) => { texto('  - ' + l.slice(0, ANCHO - 4)); salto(); });
         });
 
         texto('-'.repeat(ANCHO)); salto();
@@ -10167,6 +10227,14 @@ import {
                                 <p className="text-[11px] text-stone-500 truncate">
                                   {(combo.combos_items || []).length} producto{(combo.combos_items || []).length === 1 ? '' : 's'} · S/ {Number(combo.precio_venta).toFixed(2)}
                                 </p>
+                                {(() => {
+                                  const costo = (combo.combos_items || []).reduce((acc, ci) => acc + (Number(ci.productos?.precio_costo) || 0) * Number(ci.cantidad), 0);
+                                  const precio = Number(combo.precio_venta) || 0;
+                                  if (!(costo > 0) || !(precio > 0)) return null;
+                                  const margen = ((precio - costo) / precio) * 100;
+                                  const color = margen < 0 ? 'text-rose-600' : margen < 10 ? 'text-amber-600' : 'text-emerald-600';
+                                  return <p className={`text-[11px] font-semibold ${color}`}>Ganancia S/ {(precio - costo).toFixed(2)} · margen {margen.toFixed(0)}%{margen < 10 ? ' (bajo)' : ''}</p>;
+                                })()}
                                 {(combo.activo || combo.apagado_auto) && estadoCombos.get(combo.id)?.disponible === false && (
                                   <p className="text-[11px] font-semibold text-rose-600 truncate">Apagado por falta de stock: {estadoCombos.get(combo.id).faltan.join(', ')}. Se enciende solo al reponer.</p>
                                 )}
@@ -10312,6 +10380,19 @@ import {
                         El precio (S/ {Number(formCombo.precio_venta).toFixed(2)}) es menor al costo de estos productos (S/ {costoNormalCombo(formCombo).toFixed(2)}) -- estarías vendiendo a pérdida.
                       </p>
                     )}
+
+                    {costoNormalCombo(formCombo) > 0 && Number(formCombo.precio_venta) >= costoNormalCombo(formCombo) && (() => {
+                      const precio = Number(formCombo.precio_venta);
+                      const ganancia = precio - costoNormalCombo(formCombo);
+                      const margen = precio > 0 ? (ganancia / precio) * 100 : 0;
+                      const bajo = margen < 10;
+                      return (
+                        <p className={`text-xs font-semibold rounded-lg px-3 py-2 flex items-center gap-1.5 border ${bajo ? 'text-amber-700 bg-amber-50 border-amber-200' : 'text-emerald-700 bg-emerald-50 border-emerald-200'}`}>
+                          <i className={`fa-solid ${bajo ? 'fa-triangle-exclamation' : 'fa-circle-check'}`}></i>
+                          Ganancia por combo: S/ {ganancia.toFixed(2)} (margen {margen.toFixed(0)}%){bajo ? ' -- margen muy bajo, revisa el precio.' : ''}
+                        </p>
+                      );
+                    })()}
 
                     <Interruptor activo={formCombo.activo} onClick={() => setFormCombo({ ...formCombo, activo: !formCombo.activo })} etiqueta="Combo activo (visible para vender)" />
 
@@ -13224,6 +13305,27 @@ import {
                         </ol>
                       </section>
                     </div>
+
+                    {combosVendidos.length > 0 && (
+                      <section className="bg-white/60 backdrop-blur-xl border border-white/80 rounded-3xl shadow-[0_10px_40px_-14px_rgba(97,5,220,0.18)] p-5">
+                        <h4 className="text-sm font-semibold text-stone-800">Combos vendidos</h4>
+                        <p className="text-xs text-stone-500 mt-0.5">Unidades, ventas y ganancia de cada combo en el período</p>
+                        <ul className="mt-4 space-y-2">
+                          {combosVendidos.map((c) => {
+                            const margen = c.monto > 0 ? (c.utilidad / c.monto) * 100 : 0;
+                            return (
+                              <li key={c.id} className="flex items-center justify-between gap-3 bg-white/80 rounded-2xl px-3.5 py-2.5 shadow-sm">
+                                <div className="min-w-0">
+                                  <p className="text-sm font-medium text-stone-900 truncate">{c.nombre}</p>
+                                  <p className="text-[11px] text-stone-500">{c.unidades} combo{c.unidades === 1 ? '' : 's'} · ganancia <span className={`font-semibold tabular-nums ${margen < 10 ? 'text-amber-600' : 'text-emerald-600'}`}>S/ {formatoSoles(c.utilidad)} ({margen.toFixed(0)}%)</span></p>
+                                </div>
+                                <span className="text-sm font-semibold text-stone-900 tabular-nums shrink-0">S/ {formatoSoles(c.monto)}</span>
+                              </li>
+                            );
+                          })}
+                        </ul>
+                      </section>
+                    )}
 
                     {/* Ventas por día: calendario del mes completo. Los datos salen de
                         las ventas del año (diasAnioDash), no del rango del filtro, y
