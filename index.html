@@ -21,7 +21,6 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@600;700;800&family=Work+Sans:wght@400;500;600&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
 <style>
   :root {
     --paper: #faf8f6; --card: #ffffff; --ink: #1c1523; --muted: #6f6779; --line: #e9e3ee;
@@ -33,6 +32,7 @@
   html, body { margin: 0; padding: 0; }
   body { background: var(--paper); color: var(--ink); font-family: var(--font-body); line-height: 1.6; -webkit-font-smoothing: antialiased; overflow-x: hidden; }
   a { color: inherit; }
+  .ic { height: 1em; width: auto; fill: currentColor; display: inline-block; vertical-align: -0.125em; flex-shrink: 0; }
   .wrap { max-width: 900px; margin: 0 auto; padding: 20px 20px 0; }
 
   header {
@@ -88,7 +88,7 @@
   .mb-price strong { color: var(--ink); font-family: var(--font-display); }
   .mb-title em { font-style: normal; color: var(--violet); }
   .mb-sub { font-size: 13px; color: var(--muted); text-align: center; margin: 0 0 22px; }
-  .mb-sub i { margin-left: 6px; animation: mb-bounce 1.4s ease-in-out infinite; display: inline-block; }
+  .mb-sub .ic { margin-left: 6px; animation: mb-bounce 1.4s ease-in-out infinite; display: inline-block; }
   @keyframes mb-bounce { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(3px); } }
   .mb-fit { transform: translateY(var(--mb-fit-ty, 0px)); width: 512px; height: calc(var(--mb-h, 544px) * var(--fit)); flex-shrink: 0; }
   .mb-laptop { width: 512px; transform: scale(var(--fit)); transform-origin: top center; isolation: isolate; }
@@ -134,7 +134,7 @@
     .mb-float-2 { --c: var(--c2, 0); --fx: -46px; left: 660px; }
   }
   @media (max-width: 767px) { .mb-scene { height: 185vh; } }
-  @media (prefers-reduced-motion: reduce) { .mb-sub i { animation: none; } .mb-float { --c: 1; } .mb-strip .mb-fig { opacity: 1; transform: none; transition: none; } .mb-scene { height: auto; } .mb-pin { position: static; height: auto; min-height: 0; padding: 24px 0 40px; } }
+  @media (prefers-reduced-motion: reduce) { .mb-sub .ic { animation: none; } .mb-float { --c: 1; } .mb-strip .mb-fig { opacity: 1; transform: none; transition: none; } .mb-scene { height: auto; } .mb-pin { position: static; height: auto; min-height: 0; padding: 24px 0 40px; } }
 
   /* "También desde el celular": texto + mujer con el celular de Kaserita */
   .cel { margin: 28px 0 0; background: linear-gradient(135deg, #f3edff 0%, #ffffff 62%); border: 1.5px solid var(--line); border-radius: 28px;
@@ -249,7 +249,7 @@
   .step-card p { font-size: 12.5px; color: var(--muted); margin: 0; line-height: 1.55; }
   .step-arrow { position: absolute; top: 27px; right: -22px; color: var(--line); font-size: 15px; z-index: 1; }
   .step-tag { margin: 14px 0 0; padding-top: 12px; border-top: 1px solid var(--line); font-size: 11px; font-weight: 700; color: var(--violet-ink); display: flex; align-items: center; gap: 6px; }
-  .step-tag i { font-size: 10px; }
+  .step-tag .ic { font-size: 10px; }
   .steps-cta { display: flex; flex-direction: column; align-items: center; gap: 8px; margin-top: 26px; }
   .steps-cta span { font-size: 12px; color: var(--muted); }
 
@@ -300,6 +300,9 @@
 </style>
 </head>
 <body>
+<!-- Iconos: Font Awesome Free 6.5.1 (https://fontawesome.com), licencia CC BY 4.0 -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false"><symbol id="i-arrow-right"><path d="M438.6 278.6c12.5-12.5 12.5-32.8 0-45.3l-160-160c-12.5-12.5-32.8-12.5-45.3 0s-12.5 32.8 0 45.3L338.8 224 32 224c-17.7 0-32 14.3-32 32s14.3 32 32 32l306.7 0L233.4 393.4c-12.5 12.5-12.5 32.8 0 45.3s32.8 12.5 45.3 0l160-160z"/></symbol><symbol id="i-arrow-down"><path d="M169.4 470.6c12.5 12.5 32.8 12.5 45.3 0l160-160c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0L224 370.8 224 64c0-17.7-14.3-32-32-32s-32 14.3-32 32l0 306.7L54.6 265.4c-12.5-12.5-32.8-12.5-45.3 0s-12.5 32.8 0 45.3l160 160z"/></symbol><symbol id="i-mobile-screen"><path d="M16 64C16 28.7 44.7 0 80 0H304c35.3 0 64 28.7 64 64V448c0 35.3-28.7 64-64 64H80c-35.3 0-64-28.7-64-64V64zM144 448c0 8.8 7.2 16 16 16h64c8.8 0 16-7.2 16-16s-7.2-16-16-16H160c-8.8 0-16 7.2-16 16zM304 64H80V384H304V64z"/></symbol><symbol id="i-check"><path d="M438.6 105.4c12.5 12.5 12.5 32.8 0 45.3l-256 256c-12.5 12.5-32.8 12.5-45.3 0l-128-128c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0L160 338.7 393.4 105.4c12.5-12.5 32.8-12.5 45.3 0z"/></symbol><symbol id="i-cash-register"><path d="M64 0C46.3 0 32 14.3 32 32V96c0 17.7 14.3 32 32 32h80v32H87c-31.6 0-58.5 23.1-63.3 54.4L1.1 364.1C.4 368.8 0 373.6 0 378.4V448c0 35.3 28.7 64 64 64H448c35.3 0 64-28.7 64-64V378.4c0-4.8-.4-9.6-1.1-14.4L488.2 214.4C483.5 183.1 456.6 160 425 160H208V128h80c17.7 0 32-14.3 32-32V32c0-17.7-14.3-32-32-32H64zM96 48H256c8.8 0 16 7.2 16 16s-7.2 16-16 16H96c-8.8 0-16-7.2-16-16s7.2-16 16-16zM64 432c0-8.8 7.2-16 16-16H432c8.8 0 16 7.2 16 16s-7.2 16-16 16H80c-8.8 0-16-7.2-16-16zm48-168a24 24 0 1 1 0-48 24 24 0 1 1 0 48zm120-24a24 24 0 1 1 -48 0 24 24 0 1 1 48 0zM160 344a24 24 0 1 1 0-48 24 24 0 1 1 0 48zM328 240a24 24 0 1 1 -48 0 24 24 0 1 1 48 0zM256 344a24 24 0 1 1 0-48 24 24 0 1 1 0 48zM424 240a24 24 0 1 1 -48 0 24 24 0 1 1 48 0zM352 344a24 24 0 1 1 0-48 24 24 0 1 1 0 48z"/></symbol><symbol id="i-star"><path d="M316.9 18C311.6 7 300.4 0 288.1 0s-23.4 7-28.8 18L195 150.3 51.4 171.5c-12 1.8-22 10.2-25.7 21.7s-.7 24.2 7.9 32.7L137.8 329 113.2 474.7c-2 12 3 24.2 12.9 31.3s23 8 33.8 2.3l128.3-68.5 128.3 68.5c10.8 5.7 23.9 4.9 33.8-2.3s14.9-19.3 12.9-31.3L438.5 329 542.7 225.9c8.6-8.5 11.7-21.2 7.9-32.7s-13.7-19.9-25.7-21.7L381.2 150.3 316.9 18z"/></symbol><symbol id="i-bag-shopping"><path d="M160 112c0-35.3 28.7-64 64-64s64 28.7 64 64v48H160V112zm-48 48H48c-26.5 0-48 21.5-48 48V416c0 53 43 96 96 96H352c53 0 96-43 96-96V208c0-26.5-21.5-48-48-48H336V112C336 50.1 285.9 0 224 0S112 50.1 112 112v48zm24 48a24 24 0 1 1 0 48 24 24 0 1 1 0-48zm152 24a24 24 0 1 1 48 0 24 24 0 1 1 -48 0z"/></symbol><symbol id="i-tag"><path d="M0 80V229.5c0 17 6.7 33.3 18.7 45.3l176 176c25 25 65.5 25 90.5 0L418.7 317.3c25-25 25-65.5 0-90.5l-176-176c-12-12-28.3-18.7-45.3-18.7H48C21.5 32 0 53.5 0 80zm112 32a32 32 0 1 1 0 64 32 32 0 1 1 0-64z"/></symbol><symbol id="i-boxes-stacked"><path d="M248 0H208c-26.5 0-48 21.5-48 48V160c0 35.3 28.7 64 64 64H352c35.3 0 64-28.7 64-64V48c0-26.5-21.5-48-48-48H328V80c0 8.8-7.2 16-16 16H264c-8.8 0-16-7.2-16-16V0zM64 256c-35.3 0-64 28.7-64 64V448c0 35.3 28.7 64 64 64H224c35.3 0 64-28.7 64-64V320c0-35.3-28.7-64-64-64H184v80c0 8.8-7.2 16-16 16H120c-8.8 0-16-7.2-16-16V256H64zM352 512H512c35.3 0 64-28.7 64-64V320c0-35.3-28.7-64-64-64H472v80c0 8.8-7.2 16-16 16H408c-8.8 0-16-7.2-16-16V256H352c-15 0-28.8 5.1-39.7 13.8c4.9 10.4 7.7 22 7.7 34.2V464c0 12.2-2.8 23.8-7.7 34.2C323.2 506.9 337 512 352 512z"/></symbol><symbol id="i-users"><path d="M144 0a80 80 0 1 1 0 160A80 80 0 1 1 144 0zM512 0a80 80 0 1 1 0 160A80 80 0 1 1 512 0zM0 298.7C0 239.8 47.8 192 106.7 192h42.7c15.9 0 31 3.5 44.6 9.7c-1.3 7.2-1.9 14.7-1.9 22.3c0 38.2 16.8 72.5 43.3 96c-.2 0-.4 0-.7 0H21.3C9.6 320 0 310.4 0 298.7zM405.3 320c-.2 0-.4 0-.7 0c26.6-23.5 43.3-57.8 43.3-96c0-7.6-.7-15-1.9-22.3c13.6-6.3 28.7-9.7 44.6-9.7h42.7C592.2 192 640 239.8 640 298.7c0 11.8-9.6 21.3-21.3 21.3H405.3zM224 224a96 96 0 1 1 192 0 96 96 0 1 1 -192 0zM128 485.3C128 411.7 187.7 352 261.3 352H378.7C452.3 352 512 411.7 512 485.3c0 14.7-11.9 26.7-26.7 26.7H154.7c-14.7 0-26.7-11.9-26.7-26.7z"/></symbol><symbol id="i-chart-line"><path d="M64 64c0-17.7-14.3-32-32-32S0 46.3 0 64V400c0 44.2 35.8 80 80 80H480c17.7 0 32-14.3 32-32s-14.3-32-32-32H80c-8.8 0-16-7.2-16-16V64zm406.6 86.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0L320 210.7l-57.4-57.4c-12.5-12.5-32.8-12.5-45.3 0l-112 112c-12.5 12.5-12.5 32.8 0 45.3s32.8 12.5 45.3 0L240 221.3l57.4 57.4c12.5 12.5 32.8 12.5 45.3 0l128-128z"/></symbol><symbol id="i-barcode"><path d="M24 32C10.7 32 0 42.7 0 56V456c0 13.3 10.7 24 24 24H40c13.3 0 24-10.7 24-24V56c0-13.3-10.7-24-24-24H24zm88 0c-8.8 0-16 7.2-16 16V464c0 8.8 7.2 16 16 16s16-7.2 16-16V48c0-8.8-7.2-16-16-16zm72 0c-13.3 0-24 10.7-24 24V456c0 13.3 10.7 24 24 24h16c13.3 0 24-10.7 24-24V56c0-13.3-10.7-24-24-24H184zm96 0c-13.3 0-24 10.7-24 24V456c0 13.3 10.7 24 24 24h16c13.3 0 24-10.7 24-24V56c0-13.3-10.7-24-24-24H280zM448 56V456c0 13.3 10.7 24 24 24h16c13.3 0 24-10.7 24-24V56c0-13.3-10.7-24-24-24H472c-13.3 0-24 10.7-24 24zm-64-8V464c0 8.8 7.2 16 16 16s16-7.2 16-16V48c0-8.8-7.2-16-16-16s-16 7.2-16 16z"/></symbol><symbol id="i-whatsapp"><path d="M380.9 97.1C339 55.1 283.2 32 223.9 32c-122.4 0-222 99.6-222 222 0 39.1 10.2 77.3 29.6 111L0 480l117.7-30.9c32.4 17.7 68.9 27 106.1 27h.1c122.3 0 224.1-99.6 224.1-222 0-59.3-25.2-115-67.1-157zm-157 341.6c-33.2 0-65.7-8.9-94-25.7l-6.7-4-69.8 18.3L72 359.2l-4.4-7c-18.5-29.4-28.2-63.3-28.2-98.2 0-101.7 82.8-184.5 184.6-184.5 49.3 0 95.6 19.2 130.4 54.1 34.8 34.9 56.2 81.2 56.1 130.5 0 101.8-84.9 184.6-186.6 184.6zm101.2-138.2c-5.5-2.8-32.8-16.2-37.9-18-5.1-1.9-8.8-2.8-12.5 2.8-3.7 5.6-14.3 18-17.6 21.8-3.2 3.7-6.5 4.2-12 1.4-32.6-16.3-54-29.1-75.5-66-5.7-9.8 5.7-9.1 16.3-30.3 1.8-3.7.9-6.9-.5-9.7-1.4-2.8-12.5-30.1-17.1-41.2-4.5-10.8-9.1-9.3-12.5-9.5-3.2-.2-6.9-.2-10.6-.2-3.7 0-9.7 1.4-14.8 6.9-5.1 5.6-19.4 19-19.4 46.3 0 27.3 19.9 53.7 22.6 57.4 2.8 3.7 39.1 59.7 94.8 83.8 35.2 15.2 49 16.5 66.6 13.9 10.7-1.6 32.8-13.4 37.4-26.4 4.6-13 4.6-24.1 3.2-26.4-1.3-2.5-5-3.9-10.5-6.6z"/></symbol><symbol id="i-flag-checkered"><path d="M32 0C49.7 0 64 14.3 64 32V48l69-17.2c38.1-9.5 78.3-5.1 113.5 12.5c46.3 23.2 100.8 23.2 147.1 0l9.6-4.8C423.8 28.1 448 43.1 448 66.1V345.8c0 13.3-8.3 25.3-20.8 30l-34.7 13c-46.2 17.3-97.6 14.6-141.7-7.4c-37.9-19-81.3-23.7-122.5-13.4L64 384v96c0 17.7-14.3 32-32 32s-32-14.3-32-32V400 334 64 32C0 14.3 14.3 0 32 0zM64 187.1l64-13.9v65.5L64 252.6V318l48.8-12.2c5.1-1.3 10.1-2.4 15.2-3.3V238.7l38.9-8.4c8.3-1.8 16.7-2.5 25.1-2.1l0-64c13.6 .4 27.2 2.6 40.4 6.4l23.6 6.9v66.7l-41.7-12.3c-7.3-2.1-14.8-3.4-22.3-3.8v71.4c21.8 1.9 43.3 6.7 64 14.4V244.2l22.7 6.7c13.5 4 27.3 6.4 41.3 7.4V194c-7.8-.8-15.6-2.3-23.2-4.5l-40.8-12v-62c-13-3.8-25.8-8.8-38.2-15c-8.2-4.1-16.9-7-25.8-8.8v72.4c-13-.4-26 .8-38.7 3.6L128 173.2V98L64 114v73.1zM320 335.7c16.8 1.5 33.9-.7 50-6.8l14-5.2V251.9l-7.9 1.8c-18.4 4.3-37.3 5.7-56.1 4.5v77.4zm64-149.4V115.4c-20.9 6.1-42.4 9.1-64 9.1V194c13.9 1.4 28 .5 41.7-2.6l22.3-5.2z"/></symbol><symbol id="i-clock"><path d="M256 0a256 256 0 1 1 0 512A256 256 0 1 1 256 0zM232 120V256c0 8 4 15.5 10.7 20l96 64c11 7.4 25.9 4.4 33.3-6.7s4.4-25.9-6.7-33.3L280 243.2V120c0-13.3-10.7-24-24-24s-24 10.7-24 24z"/></symbol><symbol id="i-chevron-right"><path d="M310.6 233.4c12.5 12.5 12.5 32.8 0 45.3l-192 192c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L242.7 256 73.4 86.6c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l192 192z"/></symbol><symbol id="i-headset"><path d="M256 48C141.1 48 48 141.1 48 256v40c0 13.3-10.7 24-24 24s-24-10.7-24-24V256C0 114.6 114.6 0 256 0S512 114.6 512 256V400.1c0 48.6-39.4 88-88.1 88L313.6 488c-8.3 14.3-23.8 24-41.6 24H240c-26.5 0-48-21.5-48-48s21.5-48 48-48h32c17.8 0 33.3 9.7 41.6 24l110.4 .1c22.1 0 40-17.9 40-40V256c0-114.9-93.1-208-208-208zM144 208h16c17.7 0 32 14.3 32 32V352c0 17.7-14.3 32-32 32H144c-35.3 0-64-28.7-64-64V272c0-35.3 28.7-64 64-64zm224 0c35.3 0 64 28.7 64 64v48c0 35.3-28.7 64-64 64H352c-17.7 0-32-14.3-32-32V240c0-17.7 14.3-32 32-32h16z"/></symbol><symbol id="i-rocket"><path d="M156.6 384.9L125.7 354c-8.5-8.5-11.5-20.8-7.7-32.2c3-8.9 7-20.5 11.8-33.8L24 288c-8.6 0-16.6-4.6-20.9-12.1s-4.2-16.7 .2-24.1l52.5-88.5c13-21.9 36.5-35.3 61.9-35.3l82.3 0c2.4-4 4.8-7.7 7.2-11.3C289.1-4.1 411.1-8.1 483.9 5.3c11.6 2.1 20.6 11.2 22.8 22.8c13.4 72.9 9.3 194.8-111.4 276.7c-3.5 2.4-7.3 4.8-11.3 7.2v82.3c0 25.4-13.4 49-35.3 61.9l-88.5 52.5c-7.4 4.4-16.6 4.5-24.1 .2s-12.1-12.2-12.1-20.9V380.8c-14.1 4.9-26.4 8.9-35.7 11.9c-11.2 3.6-23.4 .5-31.8-7.8zM384 168a40 40 0 1 0 0-80 40 40 0 1 0 0 80z"/></symbol><symbol id="i-phone"><path d="M164.9 24.6c-7.7-18.6-28-28.5-47.4-23.2l-88 24C12.1 30.2 0 46 0 64C0 311.4 200.6 512 448 512c18 0 33.8-12.1 38.6-29.5l24-88c5.3-19.4-4.6-39.7-23.2-47.4l-96-40c-16.3-6.8-35.2-2.1-46.3 11.6L304.7 368C234.3 334.7 177.3 277.7 144 207.3L193.3 167c13.7-11.2 18.4-30 11.6-46.3l-40-96z"/></symbol><symbol id="i-envelope"><path d="M48 64C21.5 64 0 85.5 0 112c0 15.1 7.1 29.3 19.2 38.4L236.8 313.6c11.4 8.5 27 8.5 38.4 0L492.8 150.4c12.1-9.1 19.2-23.3 19.2-38.4c0-26.5-21.5-48-48-48H48zM0 176V384c0 35.3 28.7 64 64 64H448c35.3 0 64-28.7 64-64V176L294.4 339.2c-22.8 17.1-54 17.1-76.8 0L0 176z"/></symbol><symbol id="i-facebook"><path d="M512 256C512 114.6 397.4 0 256 0S0 114.6 0 256C0 376 82.7 476.8 194.2 504.5V334.2H141.4V256h52.8V222.3c0-87.1 39.4-127.5 125-127.5c16.2 0 44.2 3.2 55.7 6.4V172c-6-.6-16.5-1-29.6-1c-42 0-58.2 15.9-58.2 57.2V256h83.6l-14.4 78.2H287V510.1C413.8 494.8 512 386.9 512 256h0z"/></symbol><symbol id="i-file-contract"><path d="M64 0C28.7 0 0 28.7 0 64V448c0 35.3 28.7 64 64 64H320c35.3 0 64-28.7 64-64V160H256c-17.7 0-32-14.3-32-32V0H64zM256 0V128H384L256 0zM80 64h64c8.8 0 16 7.2 16 16s-7.2 16-16 16H80c-8.8 0-16-7.2-16-16s7.2-16 16-16zm0 64h64c8.8 0 16 7.2 16 16s-7.2 16-16 16H80c-8.8 0-16-7.2-16-16s7.2-16 16-16zm54.2 253.8c-6.1 20.3-24.8 34.2-46 34.2H80c-8.8 0-16-7.2-16-16s7.2-16 16-16h8.2c7.1 0 13.3-4.6 15.3-11.4l14.9-49.5c3.4-11.3 13.8-19.1 25.6-19.1s22.2 7.7 25.6 19.1l11.6 38.6c7.4-6.2 16.8-9.7 26.8-9.7c15.9 0 30.4 9 37.5 23.2l4.4 8.8H304c8.8 0 16 7.2 16 16s-7.2 16-16 16H240c-6.1 0-11.6-3.4-14.3-8.8l-8.8-17.7c-1.7-3.4-5.1-5.5-8.8-5.5s-7.2 2.1-8.8 5.5l-8.8 17.7c-2.9 5.9-9.2 9.4-15.7 8.8s-12.1-5.1-13.9-11.3L144 349l-9.8 32.8z"/></symbol><symbol id="i-motorcycle"><path d="M280 32c-13.3 0-24 10.7-24 24s10.7 24 24 24h57.7l16.4 30.3L256 192l-45.3-45.3c-12-12-28.3-18.7-45.3-18.7H64c-17.7 0-32 14.3-32 32v32h96c88.4 0 160 71.6 160 160c0 11-1.1 21.7-3.2 32h70.4c-2.1-10.3-3.2-21-3.2-32c0-52.2 25-98.6 63.7-127.8l15.4 28.6C402.4 276.3 384 312 384 352c0 70.7 57.3 128 128 128s128-57.3 128-128s-57.3-128-128-128c-13.5 0-26.5 2.1-38.7 6L418.2 128H480c17.7 0 32-14.3 32-32V64c0-17.7-14.3-32-32-32H459.6c-7.5 0-14.7 2.6-20.5 7.4L391.7 78.9l-14-26c-7-12.9-20.5-21-35.2-21H280zM462.7 311.2l28.2 52.2c6.3 11.7 20.9 16 32.5 9.7s16-20.9 9.7-32.5l-28.2-52.2c2.3-.3 4.7-.4 7.1-.4c35.3 0 64 28.7 64 64s-28.7 64-64 64s-64-28.7-64-64c0-15.5 5.5-29.7 14.7-40.8zM187.3 376c-9.5 23.5-32.5 40-59.3 40c-35.3 0-64-28.7-64-64s28.7-64 64-64c26.9 0 49.9 16.5 59.3 40h66.4C242.5 268.8 190.5 224 128 224C57.3 224 0 281.3 0 352s57.3 128 128 128c62.5 0 114.5-44.8 125.8-104H187.3zM128 384a32 32 0 1 0 0-64 32 32 0 1 0 0 64z"/></symbol><symbol id="i-shield-halved"><path d="M256 0c4.6 0 9.2 1 13.4 2.9L457.7 82.8c22 9.3 38.4 31 38.3 57.2c-.5 99.2-41.3 280.7-213.6 363.2c-16.7 8-36.1 8-52.8 0C57.3 420.7 16.5 239.2 16 140c-.1-26.2 16.3-47.9 38.3-57.2L242.7 2.9C246.8 1 251.4 0 256 0zm0 66.8V444.8C394 378 431.1 230.1 432 141.4L256 66.8l0 0z"/></symbol><symbol id="i-book"><path d="M96 0C43 0 0 43 0 96V416c0 53 43 96 96 96H384h32c17.7 0 32-14.3 32-32s-14.3-32-32-32V384c17.7 0 32-14.3 32-32V32c0-17.7-14.3-32-32-32H384 96zm0 384H352v64H96c-17.7 0-32-14.3-32-32s14.3-32 32-32zm32-240c0-8.8 7.2-16 16-16H336c8.8 0 16 7.2 16 16s-7.2 16-16 16H144c-8.8 0-16-7.2-16-16zm16 48H336c8.8 0 16 7.2 16 16s-7.2 16-16 16H144c-8.8 0-16-7.2-16-16s7.2-16 16-16z"/></symbol></svg>
+
 <div class="wrap">
   <header>
     <a class="brand" href="/" aria-label="Kaserita - inicio">
@@ -319,10 +322,10 @@
         <h1 class="mb-title" id="mbTitle">Todo tu negocio en <em>una sola pantalla</em></h1>
         <p class="mb-lead">El punto de venta para bodegas y tiendas, sin cuadernos ni cuentas a mano: caja, inventario y fiado desde tu celular o laptop.</p>
         <div class="mb-cta-row">
-          <a class="cta-primary" href="/registro" data-cta="hero">Crear mi cuenta <i class="fa-solid fa-arrow-right"></i></a>
+          <a class="cta-primary" href="/registro" data-cta="hero">Crear mi cuenta <svg class="ic" viewBox="0 0 448 512" aria-hidden="true"><use href="#i-arrow-right"/></svg></a>
           <span class="mb-price">Desde <strong>S/ 30</strong> al mes · sin contrato</span>
         </div>
-        <p class="mb-sub" id="mbSub">Desliza y mira cómo se abre tu punto de venta <i class="fa-solid fa-arrow-down"></i></p>
+        <p class="mb-sub" id="mbSub">Desliza y mira cómo se abre tu punto de venta <svg class="ic" viewBox="0 0 384 512" aria-hidden="true"><use href="#i-arrow-down"/></svg></p>
       </div>
       <div class="mb-fit" id="mbFit">
         <div class="mb-laptop" id="mbLaptop">
@@ -366,15 +369,15 @@
 
   <section class="cel" id="celular" aria-labelledby="celTitulo">
     <div class="cel-text">
-      <span class="eyebrow"><i class="fa-solid fa-mobile-screen"></i> Funciona en celular y PC</span>
+      <span class="eyebrow"><svg class="ic" viewBox="0 0 384 512" aria-hidden="true"><use href="#i-mobile-screen"/></svg> Funciona en celular y PC</span>
       <h2 id="celTitulo">Tu negocio también <em>en el bolsillo</em></h2>
       <p>Abre Kaserita desde el celular como cualquier app: cobra, revisa tu stock y mira tus ventas estés donde estés, sin comprar equipos ni instalar programas.</p>
       <ul class="cel-list">
-        <li><span class="plan-check"><i class="fa-solid fa-check"></i></span> Cobra desde cualquier lugar, con tus mismos productos y precios</li>
-        <li><span class="plan-check"><i class="fa-solid fa-check"></i></span> Se instala en tu pantalla de inicio como una app más</li>
-        <li><span class="plan-check"><i class="fa-solid fa-check"></i></span> La misma cuenta en el celular y en la laptop</li>
+        <li><span class="plan-check"><svg class="ic" viewBox="0 0 448 512" aria-hidden="true"><use href="#i-check"/></svg></span> Cobra desde cualquier lugar, con tus mismos productos y precios</li>
+        <li><span class="plan-check"><svg class="ic" viewBox="0 0 448 512" aria-hidden="true"><use href="#i-check"/></svg></span> Se instala en tu pantalla de inicio como una app más</li>
+        <li><span class="plan-check"><svg class="ic" viewBox="0 0 448 512" aria-hidden="true"><use href="#i-check"/></svg></span> La misma cuenta en el celular y en la laptop</li>
       </ul>
-      <a class="cta-primary" href="/registro" data-cta="celular">Crear mi cuenta ahora <i class="fa-solid fa-arrow-right"></i></a>
+      <a class="cta-primary" href="/registro" data-cta="celular">Crear mi cuenta ahora <svg class="ic" viewBox="0 0 448 512" aria-hidden="true"><use href="#i-arrow-right"/></svg></a>
     </div>
     <div class="cel-visual">
       <img class="cel-woman" src="/pos-celular-mujer.webp" width="595" height="1016" loading="lazy" decoding="async" alt="Emprendedora con su delantal de Kaserita señalando el punto de venta en el celular">
@@ -396,43 +399,43 @@
             <h3>Plan POS</h3>
             <p class="plan-desc-tag">Gestiona tu tienda de forma rápida y sencilla.</p>
           </div>
-          <div class="plan-card-icon"><i class="fa-solid fa-cash-register"></i></div>
+          <div class="plan-card-icon"><svg class="ic" viewBox="0 0 512 512" aria-hidden="true"><use href="#i-cash-register"/></svg></div>
         </div>
         <div class="plan-price-row">
           <p class="plan-price-tag">S/ 30 <small>/mes</small></p>
         </div>
         <p class="plan-desc-tag">Pago mensual simple mediante link de pago Izipay (Yape/Plin/tarjeta).</p>
         <ul>
-          <li><span class="plan-check"><i class="fa-solid fa-check"></i></span> Registro de ventas ilimitadas</li>
-          <li><span class="plan-check"><i class="fa-solid fa-check"></i></span> Control de inventario y alerta de stock</li>
-          <li><span class="plan-check"><i class="fa-solid fa-check"></i></span> Reportes básicos de cierre de caja</li>
-          <li><span class="plan-check"><i class="fa-solid fa-check"></i></span> Control de fiado y cuentas por cobrar</li>
-          <li><span class="plan-check"><i class="fa-solid fa-check"></i></span> Uso simultáneo en PC y celular</li>
+          <li><span class="plan-check"><svg class="ic" viewBox="0 0 448 512" aria-hidden="true"><use href="#i-check"/></svg></span> Registro de ventas ilimitadas</li>
+          <li><span class="plan-check"><svg class="ic" viewBox="0 0 448 512" aria-hidden="true"><use href="#i-check"/></svg></span> Control de inventario y alerta de stock</li>
+          <li><span class="plan-check"><svg class="ic" viewBox="0 0 448 512" aria-hidden="true"><use href="#i-check"/></svg></span> Reportes básicos de cierre de caja</li>
+          <li><span class="plan-check"><svg class="ic" viewBox="0 0 448 512" aria-hidden="true"><use href="#i-check"/></svg></span> Control de fiado y cuentas por cobrar</li>
+          <li><span class="plan-check"><svg class="ic" viewBox="0 0 448 512" aria-hidden="true"><use href="#i-check"/></svg></span> Uso simultáneo en PC y celular</li>
         </ul>
-        <a class="plan-btn ghost" href="/registro" data-cta="plan-pos">Elegir Plan POS <i class="fa-solid fa-arrow-right"></i></a>
+        <a class="plan-btn ghost" href="/registro" data-cta="plan-pos">Elegir Plan POS <svg class="ic" viewBox="0 0 448 512" aria-hidden="true"><use href="#i-arrow-right"/></svg></a>
       </div>
       <div class="plan-card destacado">
-        <span class="plan-badge-float"><i class="fa-solid fa-star"></i> Más completo · Recomendado</span>
+        <span class="plan-badge-float"><svg class="ic" viewBox="0 0 576 512" aria-hidden="true"><use href="#i-star"/></svg> Más completo · Recomendado</span>
         <div class="plan-card-top">
           <div>
             <h3>POS + Tienda Virtual</h3>
             <p class="plan-desc-tag">Permite recibir pedidos desde tu tienda física y online.</p>
           </div>
-          <div class="plan-card-icon"><i class="fa-solid fa-bag-shopping"></i></div>
+          <div class="plan-card-icon"><svg class="ic" viewBox="0 0 448 512" aria-hidden="true"><use href="#i-bag-shopping"/></svg></div>
         </div>
         <div class="plan-price-row">
           <p class="plan-price-tag">S/ 39.90 <small>/mes</small></p>
           <span class="plan-price-old">S/ 54.90</span>
         </div>
-        <p class="plan-promo-note"><i class="fa-solid fa-tag"></i> Precio promocional por los primeros 3 meses</p>
+        <p class="plan-promo-note"><svg class="ic" viewBox="0 0 448 512" aria-hidden="true"><use href="#i-tag"/></svg> Precio promocional por los primeros 3 meses</p>
         <ul>
-          <li class="highlight"><span class="plan-check"><i class="fa-solid fa-check"></i></span> Todo lo incluido en el Plan POS</li>
-          <li><span class="plan-check"><i class="fa-solid fa-check"></i></span> Catálogo online con tu logo y enlace propio</li>
-          <li><span class="plan-check"><i class="fa-solid fa-check"></i></span> Recepción de pedidos directo a tu WhatsApp</li>
-          <li><span class="plan-check"><i class="fa-solid fa-check"></i></span> Opciones de retiro en tienda y delivery</li>
-          <li><span class="plan-check"><i class="fa-solid fa-check"></i></span> Mayor alcance y volumen de ventas</li>
+          <li class="highlight"><span class="plan-check"><svg class="ic" viewBox="0 0 448 512" aria-hidden="true"><use href="#i-check"/></svg></span> Todo lo incluido en el Plan POS</li>
+          <li><span class="plan-check"><svg class="ic" viewBox="0 0 448 512" aria-hidden="true"><use href="#i-check"/></svg></span> Catálogo online con tu logo y enlace propio</li>
+          <li><span class="plan-check"><svg class="ic" viewBox="0 0 448 512" aria-hidden="true"><use href="#i-check"/></svg></span> Recepción de pedidos directo a tu WhatsApp</li>
+          <li><span class="plan-check"><svg class="ic" viewBox="0 0 448 512" aria-hidden="true"><use href="#i-check"/></svg></span> Opciones de retiro en tienda y delivery</li>
+          <li><span class="plan-check"><svg class="ic" viewBox="0 0 448 512" aria-hidden="true"><use href="#i-check"/></svg></span> Mayor alcance y volumen de ventas</li>
         </ul>
-        <a class="plan-btn solid" href="/registro" data-cta="plan-completo">Probar 3 meses con descuento <i class="fa-solid fa-arrow-right"></i></a>
+        <a class="plan-btn solid" href="/registro" data-cta="plan-completo">Probar 3 meses con descuento <svg class="ic" viewBox="0 0 448 512" aria-hidden="true"><use href="#i-arrow-right"/></svg></a>
       </div>
     </div>
     <p class="plan-note">Precios sujetos a promociones vigentes.</p>
@@ -442,17 +445,17 @@
     <h2 class="section-title">Qué ofrece Kaserita</h2>
     <p class="section-sub">Todo lo que tu negocio necesita para vender rápido y tener el control total.</p>
     <div class="feat-list">
-      <div class="feat c-violet"><div class="feat-icon"><i class="fa-solid fa-cash-register"></i></div><div><h3>Caja y ventas</h3><p>Cobra en segundos por nombre o código y lleva el control de cada turno.</p></div></div>
-      <div class="feat c-blue"><div class="feat-icon"><i class="fa-solid fa-boxes-stacked"></i></div><div><h3>Inventario</h3><p>El stock baja solo con cada venta y te avisa cuando un producto se acaba.</p></div></div>
-      <div class="feat c-rose"><div class="feat-icon"><i class="fa-solid fa-users"></i></div><div><h3>Clientes y fiado</h3><p>Quién te debe, cuánto y desde cuándo, sin cuadernos ni memoria.</p></div></div>
-      <div class="feat c-amber"><div class="feat-icon"><i class="fa-solid fa-chart-line"></i></div><div><h3>Reportes</h3><p>Ventas del día, del mes y por cajero al instante.</p></div></div>
-      <div class="feat c-emerald"><div class="feat-icon"><i class="fa-solid fa-barcode"></i></div><div><h3>Lector y ticket</h3><p>Escanea los productos con tu lector de código de barras e imprime el ticket de cada venta.</p></div></div>
-      <div class="feat c-green"><div class="feat-icon"><i class="fa-brands fa-whatsapp"></i></div><div><h3>Tienda Virtual</h3><p>Tu catálogo online: tus clientes piden y el pedido te llega ordenado por WhatsApp. Incluido en POS + Tienda Virtual.</p></div></div>
+      <div class="feat c-violet"><div class="feat-icon"><svg class="ic" viewBox="0 0 512 512" aria-hidden="true"><use href="#i-cash-register"/></svg></div><div><h3>Caja y ventas</h3><p>Cobra en segundos por nombre o código y lleva el control de cada turno.</p></div></div>
+      <div class="feat c-blue"><div class="feat-icon"><svg class="ic" viewBox="0 0 576 512" aria-hidden="true"><use href="#i-boxes-stacked"/></svg></div><div><h3>Inventario</h3><p>El stock baja solo con cada venta y te avisa cuando un producto se acaba.</p></div></div>
+      <div class="feat c-rose"><div class="feat-icon"><svg class="ic" viewBox="0 0 640 512" aria-hidden="true"><use href="#i-users"/></svg></div><div><h3>Clientes y fiado</h3><p>Quién te debe, cuánto y desde cuándo, sin cuadernos ni memoria.</p></div></div>
+      <div class="feat c-amber"><div class="feat-icon"><svg class="ic" viewBox="0 0 512 512" aria-hidden="true"><use href="#i-chart-line"/></svg></div><div><h3>Reportes</h3><p>Ventas del día, del mes y por cajero al instante.</p></div></div>
+      <div class="feat c-emerald"><div class="feat-icon"><svg class="ic" viewBox="0 0 512 512" aria-hidden="true"><use href="#i-barcode"/></svg></div><div><h3>Lector y ticket</h3><p>Escanea los productos con tu lector de código de barras e imprime el ticket de cada venta.</p></div></div>
+      <div class="feat c-green"><div class="feat-icon"><svg class="ic" viewBox="0 0 448 512" aria-hidden="true"><use href="#i-whatsapp"/></svg></div><div><h3>Tienda Virtual</h3><p>Tu catálogo online: tus clientes piden y el pedido te llega ordenado por WhatsApp. Incluido en POS + Tienda Virtual.</p></div></div>
     </div>
   </section>
 
   <section class="section section-wide">
-    <span class="eyebrow eyebrow-center"><i class="fa-brands fa-whatsapp"></i> KaseritaDelivery</span>
+    <span class="eyebrow eyebrow-center"><svg class="ic" viewBox="0 0 448 512" aria-hidden="true"><use href="#i-whatsapp"/></svg> KaseritaDelivery</span>
     <h2 class="section-title">Tus clientes piden desde donde estén</h2>
     <p class="section-sub">Comparten tu link, arman su pedido con fotos y precios, y a ti te llega ordenado por WhatsApp. Tú eliges si lo recogen en tienda o lo llevas a domicilio.</p>
     <div class="delivery-shot">
@@ -461,7 +464,7 @@
   </section>
 
   <section class="section">
-    <span class="eyebrow eyebrow-center"><i class="fa-solid fa-flag-checkered"></i> Comienza hoy mismo</span>
+    <span class="eyebrow eyebrow-center"><svg class="ic" viewBox="0 0 448 512" aria-hidden="true"><use href="#i-flag-checkered"/></svg> Comienza hoy mismo</span>
     <h2 class="section-title">Empieza en 3 pasos</h2>
     <p class="section-sub">No necesitas ser un experto en tecnología — es tan fácil como mandar un mensaje.</p>
     <div class="steps-grid">
@@ -469,25 +472,25 @@
         <div class="step-num">1</div>
         <h3>Activas tu cuenta</h3>
         <p>Eliges tu plan y nos escribes por WhatsApp. Pagas el primer mes mediante link de pago Izipay (Yape/Plin/tarjeta) y activamos tu cuenta.</p>
-        <div class="step-tag"><i class="fa-solid fa-clock"></i> Toma menos de 2 minutos</div>
-        <i class="fa-solid fa-chevron-right step-arrow"></i>
+        <div class="step-tag"><svg class="ic" viewBox="0 0 512 512" aria-hidden="true"><use href="#i-clock"/></svg> Toma menos de 2 minutos</div>
+        <svg class="ic step-arrow" viewBox="0 0 320 512" aria-hidden="true"><use href="#i-chevron-right"/></svg>
       </div>
       <div class="step-card c-2">
         <div class="step-num">2</div>
         <h3>Cargas tu catálogo</h3>
         <p>Tus productos, precios y stock inicial. Te ayudamos a cargarlos, a mano o desde tu lista de Excel.</p>
-        <div class="step-tag"><i class="fa-solid fa-headset"></i> Cargamos tu catálogo contigo</div>
-        <i class="fa-solid fa-chevron-right step-arrow"></i>
+        <div class="step-tag"><svg class="ic" viewBox="0 0 512 512" aria-hidden="true"><use href="#i-headset"/></svg> Cargamos tu catálogo contigo</div>
+        <svg class="ic step-arrow" viewBox="0 0 320 512" aria-hidden="true"><use href="#i-chevron-right"/></svg>
       </div>
       <div class="step-card c-3">
         <div class="step-num">3</div>
         <h3>Empiezas a vender</h3>
         <p>Abres turno de caja y cobras, todo desde el mismo celular.</p>
-        <div class="step-tag"><i class="fa-solid fa-rocket"></i> ¡Listo para vender!</div>
+        <div class="step-tag"><svg class="ic" viewBox="0 0 512 512" aria-hidden="true"><use href="#i-rocket"/></svg> ¡Listo para vender!</div>
       </div>
     </div>
     <div class="steps-cta">
-      <a class="cta-primary" href="/registro" data-cta="pasos">Crear mi cuenta ahora <i class="fa-solid fa-arrow-right"></i></a>
+      <a class="cta-primary" href="/registro" data-cta="pasos">Crear mi cuenta ahora <svg class="ic" viewBox="0 0 448 512" aria-hidden="true"><use href="#i-arrow-right"/></svg></a>
     </div>
   </section>
 
@@ -509,18 +512,18 @@
     <h2 class="section-title">Canales de Atención Oficial</h2>
     <p class="section-sub">Escríbenos y resolvemos tus dudas antes de empezar.</p>
     <div class="contact-grid">
-      <a class="contact-card c-whatsapp" href="tel:+51900376462"><div class="contact-card-icon"><i class="fa-solid fa-phone"></i></div><div><strong>Teléfono / WhatsApp</strong><span>+51 900 376 462</span></div></a>
-      <a class="contact-card c-blue" href="mailto:smartdeskapps@smartdeskapps.com"><div class="contact-card-icon"><i class="fa-solid fa-envelope"></i></div><div><strong>Correo Electrónico</strong><span>smartdeskapps@smartdeskapps.com</span></div></a>
-      <a class="contact-card" href="https://www.facebook.com/profile.php?id=61594577277594" target="_blank" rel="noopener"><div class="contact-card-icon"><i class="fa-brands fa-facebook"></i></div><div><strong>Redes Sociales</strong><span>Facebook: Kaserita</span></div></a>
+      <a class="contact-card c-whatsapp" href="tel:+51900376462"><div class="contact-card-icon"><svg class="ic" viewBox="0 0 512 512" aria-hidden="true"><use href="#i-phone"/></svg></div><div><strong>Teléfono / WhatsApp</strong><span>+51 900 376 462</span></div></a>
+      <a class="contact-card c-blue" href="mailto:smartdeskapps@smartdeskapps.com"><div class="contact-card-icon"><svg class="ic" viewBox="0 0 512 512" aria-hidden="true"><use href="#i-envelope"/></svg></div><div><strong>Correo Electrónico</strong><span>smartdeskapps@smartdeskapps.com</span></div></a>
+      <a class="contact-card" href="https://www.facebook.com/profile.php?id=61594577277594" target="_blank" rel="noopener"><div class="contact-card-icon"><svg class="ic" viewBox="0 0 512 512" aria-hidden="true"><use href="#i-facebook"/></svg></div><div><strong>Redes Sociales</strong><span>Facebook: Kaserita</span></div></a>
     </div>
   </section>
 
   <section class="section">
     <div class="legal-links">
-      <a href="/terminos"><i class="fa-solid fa-file-contract"></i> Términos y condiciones</a>
-      <a href="/terminos-delivery"><i class="fa-solid fa-motorcycle"></i> Términos de KaseritaDelivery</a>
-      <a href="/privacidad"><i class="fa-solid fa-shield-halved"></i> Política de privacidad y cookies</a>
-      <a href="/reclamos"><i class="fa-solid fa-book"></i> Libro de Reclamaciones</a>
+      <a href="/terminos"><svg class="ic" viewBox="0 0 384 512" aria-hidden="true"><use href="#i-file-contract"/></svg> Términos y condiciones</a>
+      <a href="/terminos-delivery"><svg class="ic" viewBox="0 0 640 512" aria-hidden="true"><use href="#i-motorcycle"/></svg> Términos de KaseritaDelivery</a>
+      <a href="/privacidad"><svg class="ic" viewBox="0 0 512 512" aria-hidden="true"><use href="#i-shield-halved"/></svg> Política de privacidad y cookies</a>
+      <a href="/reclamos"><svg class="ic" viewBox="0 0 448 512" aria-hidden="true"><use href="#i-book"/></svg> Libro de Reclamaciones</a>
     </div>
   </section>
 
@@ -534,7 +537,7 @@
 <div class="cta-bar" id="ctaBar"><span>Desde <strong>S/ 30</strong> al mes<br>Sin contrato</span><a href="/registro" data-cta="barra">Crear mi cuenta</a></div>
 
 <a class="whatsapp-float" href="https://wa.me/51900376462?text=Hola%2C%20quiero%20saber%20m%C3%A1s%20sobre%20Kaserita" target="_blank" rel="noopener" aria-label="Escríbenos por WhatsApp">
-  <i class="fa-brands fa-whatsapp"></i>
+  <svg class="ic" viewBox="0 0 448 512" aria-hidden="true"><use href="#i-whatsapp"/></svg>
 </a>
 
 <script src="/inicio.js?v=20261010"></script>
