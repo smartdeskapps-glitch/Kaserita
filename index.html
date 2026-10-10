@@ -69,6 +69,20 @@
   .mb-scene { --fit: 1; --mb-sx: 1; --mb-sy: 1; --mb-rot: 0deg; --mb-text-ty: 0px; --mb-text-op: 1; --mb-base-op: 0;
     position: relative; height: 270vh; }
   .mb-pin { position: sticky; top: 64px; height: calc(100vh - 64px); min-height: 520px; display: flex; flex-direction: column; align-items: center; justify-content: flex-start; padding: 14px 0 16px; }
+  /* Cuadricula de fondo con onda al tocar (inicio.js crea las ondas) */
+  @property --r { syntax: "<length>"; inherits: false; initial-value: 0px; }
+  .mb-ondas { position: absolute; top: 0; bottom: 0; left: 50%; width: 100vw; margin-left: -50vw; z-index: 0; overflow: hidden; pointer-events: none;
+    background-image: linear-gradient(rgba(124,58,237,.09) 1px, transparent 1px), linear-gradient(90deg, rgba(124,58,237,.09) 1px, transparent 1px);
+    background-size: 44px 44px;
+    -webkit-mask-image: radial-gradient(ellipse 75% 70% at 50% 45%, #000 25%, transparent 100%); mask-image: radial-gradient(ellipse 75% 70% at 50% 45%, #000 25%, transparent 100%); }
+  .mb-onda { position: absolute; inset: 0;
+    background-image: linear-gradient(rgba(124,58,237,.5) 1px, transparent 1px), linear-gradient(90deg, rgba(124,58,237,.5) 1px, transparent 1px);
+    background-size: 44px 44px;
+    -webkit-mask-image: radial-gradient(circle at var(--x) var(--y), transparent calc(var(--r) - 70px), #000 var(--r), transparent calc(var(--r) + 70px));
+            mask-image: radial-gradient(circle at var(--x) var(--y), transparent calc(var(--r) - 70px), #000 var(--r), transparent calc(var(--r) + 70px));
+    animation: mb-onda 1.7s cubic-bezier(.3,.45,.45,1) forwards; }
+  @keyframes mb-onda { 0% { --r: 0px; opacity: 1; } 55% { opacity: 1; } 100% { --r: 900px; opacity: 0; } }
+  .mb-head, .mb-fit, .mb-strip { position: relative; z-index: 1; }
   .mb-head { text-align: center; transform: translateY(var(--mb-text-ty)); opacity: var(--mb-text-op); will-change: transform, opacity; }
   .mb-head.mb-head-off { visibility: hidden; }
   .mb-title { font-family: var(--font-display); font-weight: 800; letter-spacing: -0.02em; font-size: clamp(24px, 5vw, 34px); line-height: 1.15; text-align: center; margin: 0 0 8px; }
@@ -337,6 +351,7 @@
   <section class="mb-section" id="macbook" aria-label="Así se ve Kaserita en la laptop">
     <div class="mb-scene" id="mbScene">
      <div class="mb-pin" id="mbPin">
+      <div class="mb-ondas" id="mbOndas" aria-hidden="true"></div>
       <div class="mb-head" id="mbHead">
         <h1 class="mb-title" id="mbTitle">Todo tu negocio en <em>una sola pantalla</em></h1>
         <p class="mb-lead">El punto de venta para bodegas y tiendas, sin cuadernos ni cuentas a mano: caja, inventario y fiado desde tu celular o laptop.</p>

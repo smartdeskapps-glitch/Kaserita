@@ -89,6 +89,14 @@
     // en celular aparece la barra fija con el mismo boton.
     // Al irse el texto, la laptop sube a ocupar su lugar.
     s.setProperty('--mb-fit-ty', (reducido ? 0 : -(altoCab - 24) * tramo(p, 0.08, 0.3, 0, 1)).toFixed(1) + 'px');
+    // Con la pantalla ya abierta, bajo la laptop queda el resto de la altura
+    // fija (la escena es tan alta como la ventana). Se recoge para que la
+    // siguiente seccion no quede lejos: abajo de la pantalla sobran ~40 px.
+    if (pin && !reducido) {
+      var fondoPantalla = fit.offsetTop - (altoCab - 24) + 444 * (sFinal / 1.5) * ajuste;
+      var sobra = Math.max(0, pin.clientHeight - fondoPantalla - 40);
+      scene.style.marginBottom = (-sobra).toFixed(0) + 'px';
+    }
     var oculto = opTexto < 0.04;
     if (cab) cab.classList.toggle('mb-head-off', oculto);
     var barra = document.getElementById('ctaBar');
@@ -102,6 +110,26 @@
   window.addEventListener('scroll', pedir, { passive: true });
   window.addEventListener('resize', pedir);
   dibujar();
+})();
+
+// Onda sobre la cuadricula de fondo: al tocar un punto libre de la escena.
+// Solo en pantallas anchas y sin "reducir movimiento" (en celular queda fija).
+(function () {
+  var escena = document.getElementById('mbScene');
+  var capa = document.getElementById('mbOndas');
+  if (!escena || !capa) return;
+  var quieta = window.matchMedia('(max-width: 899px), (prefers-reduced-motion: reduce)');
+  escena.addEventListener('pointerdown', function (e) {
+    if (quieta.matches || e.target.closest('a, button, input, label')) return;
+    var r = capa.getBoundingClientRect();
+    var onda = document.createElement('i');
+    onda.className = 'mb-onda';
+    onda.style.setProperty('--x', (e.clientX - r.left) + 'px');
+    onda.style.setProperty('--y', (e.clientY - r.top) + 'px');
+    onda.addEventListener('animationend', function () { onda.remove(); });
+    while (capa.children.length > 3) capa.removeChild(capa.firstChild);
+    capa.appendChild(onda);
+  });
 })();
 
 // Las tarjetas de la fila (pantallas angostas) aparecen al entrar en vista.
