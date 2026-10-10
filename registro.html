@@ -79,6 +79,20 @@
   }
   .eyebrow-w, .hero-sub, .trust-row { display: none; }
   .hero-woman { display: none; }
+  /* Celular: el titulo a la izquierda y la emprendedora asomando a la derecha,
+     parada sobre el selector de planes, delante de un arco claro. */
+  @media (max-width: 899px) {
+    .hero-grid { grid-template-columns: minmax(0, 1fr) 108px; column-gap: 8px; }
+    .hero-copy { align-self: center; padding-bottom: 10px; }
+    .hero-copy h1 { font-size: 25px; }
+    .hero-woman { display: block; position: relative; grid-column: 2; grid-row: 1; width: 108px; height: 128px; margin-top: 4px; overflow: hidden; border-radius: 54px 54px 18px 18px; }
+    .hero-woman::before {
+      content: ""; position: absolute; left: 0; right: 0; bottom: 0; top: 0;
+      border-radius: 999px 999px 0 0; background: linear-gradient(180deg, #efe6ff 0%, #cdb6fb 100%);
+    }
+    .hero-woman img { position: absolute; left: 50%; top: 12px; height: 190px; width: auto; transform: translateX(-50%); display: block; }
+    .panel { grid-column: 1 / -1; }
+  }
 
   .panel { margin-top: 0; }
   .seg { display: grid; gap: 4px; background: rgba(255,255,255,.14); border-radius: 999px; padding: 4px; margin-top: 16px; }
