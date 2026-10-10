@@ -78,6 +78,7 @@
     font-size: 23px; line-height: 1.15; text-wrap: balance;
   }
   .eyebrow-w, .hero-sub, .trust-row { display: none; }
+  .hero-woman { display: none; }
 
   .panel { margin-top: 0; }
   .seg { display: grid; gap: 4px; background: rgba(255,255,255,.14); border-radius: 999px; padding: 4px; margin-top: 16px; }
@@ -265,6 +266,18 @@
     .sec-faq .faq-q { font-size: 13px; padding: 12px 16px; }
     .sec-faq .faq-a p { font-size: 12.5px; padding: 0 16px 13px; }
         }
+  /* Pantallas anchas: la emprendedora de Kaserita entre el texto y el plan,
+     parada sobre el borde de la cabecera y delante de un arco claro. */
+  @media (min-width: 1200px) {
+    .hero-in { max-width: 1240px; }
+    .hero-grid { grid-template-columns: minmax(0, 1fr) 250px 440px; gap: 28px; }
+    .hero-woman { display: block; position: relative; align-self: end; margin-bottom: -64px; width: 250px; height: 480px; }
+    .hero-woman::before {
+      content: ""; position: absolute; left: 0; right: 0; bottom: 0; height: 80%;
+      border-radius: 999px 999px 0 0; background: linear-gradient(180deg, #efe6ff 0%, #cdb6fb 100%);
+    }
+    .hero-woman img { position: absolute; left: 50%; bottom: 0; height: 100%; width: auto; transform: translateX(-50%); display: block; }
+  }
   @media (prefers-reduced-motion: reduce) {
     *, *::before, *::after { transition: none !important; animation-duration: .01ms !important; }
   }

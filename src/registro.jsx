@@ -180,6 +180,10 @@ function App() {
               </ul>
             </div>
 
+            <div className="hero-woman" aria-hidden="true">
+              <img src="/registro-mujer.webp" width="505" height="1036" alt="" decoding="async" />
+            </div>
+
             <div className="panel">
               {paso === 'cargando' || !planActual ? (
                 <div className="panel-carga"><div className="spinner"></div><p>Cargando planes…</p></div>
