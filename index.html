@@ -123,6 +123,7 @@
     .mb-float-1 { --c: var(--c1, 0); --fx: 46px; left: -408px; }
     .mb-float-2 { --c: var(--c2, 0); --fx: -46px; left: 660px; }
   }
+  @media (max-width: 767px) { .mb-scene { height: 185vh; } }
   @media (prefers-reduced-motion: reduce) { .mb-sub i { animation: none; } .mb-float { --c: 1; } .mb-strip .mb-fig { opacity: 1; transform: none; transition: none; } .mb-scene { height: auto; } .mb-pin { position: static; height: auto; min-height: 0; padding: 24px 0 40px; } }
 
   /* "También desde el celular": texto + mujer con el celular de Kaserita */
@@ -173,6 +174,19 @@
     body.has-bar .whatsapp-float { bottom: 78px; }
     body.has-bar footer { padding-bottom: 90px; }
   }
+
+  .feat-list { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; }
+  .feat { display: flex; gap: 14px; align-items: flex-start; background: var(--card); border: 1.5px solid var(--line); border-radius: 16px; padding: 16px 18px; }
+  .feat-icon { width: 38px; height: 38px; border-radius: 11px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; font-size: 15px; background: var(--tint-bg, rgba(124,58,237,.1)); color: var(--tint, var(--violet)); }
+  .feat h3 { font-family: var(--font-display); font-weight: 700; font-size: 14px; margin: 0 0 3px; }
+  .feat p { font-size: 12.5px; color: var(--muted); margin: 0; line-height: 1.5; }
+  .feat.c-violet { --tint: #7c3aed; --tint-bg: rgba(124,58,237,.1); }
+  .feat.c-blue { --tint: #2563eb; --tint-bg: rgba(37,99,235,.1); }
+  .feat.c-emerald { --tint: #059669; --tint-bg: rgba(5,150,105,.1); }
+  .feat.c-amber { --tint: #d97706; --tint-bg: rgba(217,119,6,.12); }
+  .feat.c-green { --tint: #16a34a; --tint-bg: rgba(22,163,74,.1); }
+  .feat.c-rose { --tint: #e11d48; --tint-bg: rgba(225,29,72,.1); }
+  @media (max-width: 640px) { .feat-list { grid-template-columns: 1fr; gap: 10px; } }
 
   .section-wide { margin-left: calc(50% - 50vw); margin-right: calc(50% - 50vw); padding: 0 20px; }
   .eyebrow-center { display: flex; width: fit-content; margin: 0 auto 16px; }
@@ -267,7 +281,7 @@
     .step-arrow { display: none; }
   }
 
-  .contact-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
+  .contact-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
   .contact-card {
     background: var(--card); border: 1.5px solid var(--line); border-radius: 14px; padding: 14px;
     display: flex; gap: 10px; align-items: center; text-decoration: none;
@@ -283,7 +297,7 @@
   .contact-card.c-whatsapp { --tint: #16a34a; --tint-bg: rgba(37,211,102,.14); }
   .contact-card.c-blue { --tint: #2563eb; --tint-bg: rgba(37,99,235,.1); }
 
-  @media (max-width: 860px) { .contact-grid { grid-template-columns: repeat(2, 1fr); } }
+  @media (max-width: 860px) { .contact-grid { grid-template-columns: 1fr; } }
   @media (max-width: 480px) { .contact-grid { grid-template-columns: 1fr; } }
 
   .legal-links { display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; }
@@ -325,7 +339,7 @@
      <div class="mb-pin" id="mbPin">
       <div class="mb-head" id="mbHead">
         <h1 class="mb-title" id="mbTitle">Todo tu negocio en <em>una sola pantalla</em></h1>
-        <p class="mb-lead">Punto de venta para bodegas y tiendas: caja, inventario y fiado desde tu celular o laptop.</p>
+        <p class="mb-lead">El punto de venta para bodegas y tiendas, sin cuadernos ni cuentas a mano: caja, inventario y fiado desde tu celular o laptop.</p>
         <div class="mb-cta-row">
           <a class="cta-primary" href="/registro" data-cta="hero">Crear mi cuenta <i class="fa-solid fa-arrow-right"></i></a>
           <span class="mb-price">Desde <strong>S/ 30</strong> al mes · sin contrato</span>
@@ -396,7 +410,7 @@
 
   <section class="section" id="planes">
     <h2 class="section-title">Planes</h2>
-    <p class="section-sub">Pago mensual, sin contrato de permanencia.</p>
+    <p class="section-sub">Pago mensual sin contrato: si no quieres seguir, no pagas el mes siguiente. Te ayudamos a cargar tus productos al empezar.</p>
     <div class="plans">
       <div class="plan-card">
         <div class="plan-card-top">
@@ -449,66 +463,20 @@
   <section class="section">
     <h2 class="section-title">Qué ofrece Kaserita</h2>
     <p class="section-sub">Todo lo que tu negocio necesita para vender rápido y tener el control total.</p>
-    <div class="benefits">
-      <div class="benefit c-violet">
-        <div class="benefit-icon"><i class="fa-solid fa-cash-register"></i></div>
-        <h3>Caja y ventas</h3>
-        <p>Cobra en segundos por nombre o código, imprime el ticket o mándalo por WhatsApp, y lleva el control exacto de cada turno de cajero.</p>
-        <div class="benefit-tag"><i class="fa-solid fa-check"></i> Apertura y cierre de caja</div>
-      </div>
-      <div class="benefit c-blue">
-        <div class="benefit-icon"><i class="fa-solid fa-boxes-stacked"></i></div>
-        <h3>Inventario</h3>
-        <p>El stock se descuenta solo con cada venta y te avisa apenas un producto está por acabarse, para que nunca te quedes sin vender por falta de mercadería.</p>
-        <div class="benefit-tag"><i class="fa-solid fa-check"></i> Alertas de stock mínimo</div>
-      </div>
-      <div class="benefit c-rose">
-        <div class="benefit-icon"><i class="fa-solid fa-users"></i></div>
-        <h3>Clientes y fiado</h3>
-        <p>Registra las cuentas por cobrar de cada cliente y consulta cuánto y desde cuándo te debe, sin cuadernos ni memoria.</p>
-        <div class="benefit-tag"><i class="fa-solid fa-check"></i> Historial por cliente</div>
-      </div>
-      <div class="benefit c-amber">
-        <div class="benefit-icon"><i class="fa-solid fa-chart-line"></i></div>
-        <h3>Reportes</h3>
-        <p>Revisa tus ventas del día, del mes y por cajero al instante, y detecta qué productos son los que más se mueven.</p>
-        <div class="benefit-tag"><i class="fa-solid fa-check"></i> Sin sacar cuentas a mano</div>
-      </div>
-      <div class="benefit c-green">
-        <div class="benefit-icon"><i class="fa-brands fa-whatsapp"></i></div>
-        <h3>Tienda Virtual</h3>
-        <p>Activa tu catálogo online con tus fotos y precios; tus clientes arman su pedido y te llega ordenado y listo para preparar por WhatsApp.</p>
-        <div class="benefit-tag"><i class="fa-solid fa-check"></i> Incluido en POS + Tienda Virtual</div>
-      </div>
-      <div class="benefit c-emerald">
-        <div class="benefit-icon"><i class="fa-solid fa-mobile-screen"></i></div>
-        <h3>100% desde el celular</h3>
-        <p>Se instala como cualquier app, sin comprar equipos ni instalar programas — y funciona igual desde la laptop si prefieres usarla ahí.</p>
-        <div class="benefit-tag"><i class="fa-solid fa-check"></i> Acceso desde varios dispositivos</div>
-      </div>
+    <div class="feat-list">
+      <div class="feat c-violet"><div class="feat-icon"><i class="fa-solid fa-cash-register"></i></div><div><h3>Caja y ventas</h3><p>Cobra en segundos por nombre o código y lleva el control de cada turno.</p></div></div>
+      <div class="feat c-blue"><div class="feat-icon"><i class="fa-solid fa-boxes-stacked"></i></div><div><h3>Inventario</h3><p>El stock baja solo con cada venta y te avisa cuando un producto se acaba.</p></div></div>
+      <div class="feat c-rose"><div class="feat-icon"><i class="fa-solid fa-users"></i></div><div><h3>Clientes y fiado</h3><p>Quién te debe, cuánto y desde cuándo, sin cuadernos ni memoria.</p></div></div>
+      <div class="feat c-amber"><div class="feat-icon"><i class="fa-solid fa-chart-line"></i></div><div><h3>Reportes</h3><p>Ventas del día, del mes y por cajero al instante.</p></div></div>
+      <div class="feat c-emerald"><div class="feat-icon"><i class="fa-solid fa-barcode"></i></div><div><h3>Lector y ticket</h3><p>Escanea los productos con tu lector de código de barras e imprime el ticket de cada venta.</p></div></div>
+      <div class="feat c-green"><div class="feat-icon"><i class="fa-brands fa-whatsapp"></i></div><div><h3>Tienda Virtual</h3><p>Tu catálogo online: tus clientes piden y el pedido te llega ordenado por WhatsApp. Incluido en POS + Tienda Virtual.</p></div></div>
     </div>
   </section>
 
   <section class="section section-wide">
     <span class="eyebrow eyebrow-center"><i class="fa-brands fa-whatsapp"></i> KaseritaDelivery</span>
     <h2 class="section-title">Tus clientes piden desde donde estén</h2>
-    <p class="section-sub">Comparten tu link, arman su pedido con fotos y precios, y a ti te llega ordenado por WhatsApp — tú eliges cómo entregarlo.</p>
-    <div class="delivery-options">
-      <div class="delivery-option c-blue">
-        <div class="delivery-option-icon"><i class="fa-solid fa-shop"></i></div>
-        <div>
-          <h3>Retiro en tienda</h3>
-          <p>Tu cliente arma su pedido, lo confirma por WhatsApp y solo pasa a recogerlo ya armado. Cero colas, cero llamadas.</p>
-        </div>
-      </div>
-      <div class="delivery-option c-green">
-        <div class="delivery-option-icon"><i class="fa-solid fa-motorcycle"></i></div>
-        <div>
-          <h3>Delivery a domicilio</h3>
-          <p>Recibes la dirección de tu cliente y le mandas el pedido con tu propio repartidor o moto de confianza.</p>
-        </div>
-      </div>
-    </div>
+    <p class="section-sub">Comparten tu link, arman su pedido con fotos y precios, y a ti te llega ordenado por WhatsApp. Tú eliges si lo recogen en tienda o lo llevas a domicilio.</p>
     <div class="delivery-shot">
       <img src="/como-funciona-delivery.jpg" srcset="/como-funciona-delivery-780.webp 780w, /como-funciona-delivery-1200.webp 1200w" sizes="(max-width: 680px) calc(100vw - 40px), 640px" width="1254" height="1254" decoding="async" alt="Tus clientes hacen sus pedidos desde donde estén con KaseritaDelivery: pagan, eligen retiro en tienda o delivery y tú preparas el pedido." loading="lazy">
     </div>
@@ -529,8 +497,8 @@
       <div class="step-card c-2">
         <div class="step-num">2</div>
         <h3>Cargas tu catálogo</h3>
-        <p>Tus productos, precios y stock inicial — a mano o importando una lista.</p>
-        <div class="step-tag"><i class="fa-solid fa-headset"></i> Te ayudamos si tienes Excel</div>
+        <p>Tus productos, precios y stock inicial. Te ayudamos a cargarlos, a mano o desde tu lista de Excel.</p>
+        <div class="step-tag"><i class="fa-solid fa-headset"></i> Cargamos tu catálogo contigo</div>
         <i class="fa-solid fa-chevron-right step-arrow"></i>
       </div>
       <div class="step-card c-3">
@@ -549,7 +517,8 @@
     <h2 class="section-title">Preguntas frecuentes</h2>
     <p class="section-sub">Lo que más nos preguntan antes de empezar.</p>
     <div class="faq-list">
-      <details open><summary>¿Necesito instalar algo?</summary><p>No. Kaserita funciona desde el navegador, en tu celular, tablet o PC. No hay nada que descargar ni instalar.</p></details>
+      <details open><summary>¿Necesito instalar algo o tener internet?</summary><p>No hay nada que instalar: Kaserita funciona desde el navegador, en tu celular, tablet o PC. Eso sí, necesita conexión a internet, ya sea wifi o datos del celular.</p></details>
+      <details><summary>¿Funciona con lector de código de barras e impresora de tickets?</summary><p>Sí. Puedes escanear tus productos con un lector de código de barras e imprimir el ticket de cada venta en una impresora de tickets.</p></details>
       <details><summary>¿Cómo pago y cómo se activa mi cuenta?</summary><p>Eliges tu plan y se abre WhatsApp con tu mensaje. Te respondemos, te enviamos los datos de Yape o un link de pago con tarjeta para tu primer mes y activamos tu cuenta. Te pediremos los datos básicos de tu negocio: nombre, DNI y celular. Kaserita no guarda datos bancarios.</p></details>
       <details><summary>¿Cuánto cuesta después de los 3 meses de promoción?</summary><p>El plan POS + Tienda Virtual cuesta S/ 39.90 al mes en tus primeros 3 pagos y luego S/ 54.90 al mes. El Plan POS cuesta S/ 30 al mes.</p></details>
       <details><summary>¿Puedo cancelar cuando quiera?</summary><p>Sí. Es un pago por mes, sin contrato ni permanencia. Si no quieres seguir, simplemente no vuelves a pagar el mes siguiente.</p></details>
@@ -560,12 +529,11 @@
 
   <section class="section">
     <h2 class="section-title">Canales de Atención Oficial</h2>
-    <p class="section-sub">Estamos listos para resolver tus dudas y acompañar el crecimiento de tu negocio.</p>
+    <p class="section-sub">Escríbenos y resolvemos tus dudas antes de empezar.</p>
     <div class="contact-grid">
       <a class="contact-card c-whatsapp" href="tel:+51900376462"><div class="contact-card-icon"><i class="fa-solid fa-phone"></i></div><div><strong>Teléfono / WhatsApp</strong><span>+51 900 376 462</span></div></a>
       <a class="contact-card c-blue" href="mailto:smartdeskapps@smartdeskapps.com"><div class="contact-card-icon"><i class="fa-solid fa-envelope"></i></div><div><strong>Correo Electrónico</strong><span>smartdeskapps@smartdeskapps.com</span></div></a>
       <a class="contact-card" href="https://www.facebook.com/profile.php?id=61594577277594" target="_blank" rel="noopener"><div class="contact-card-icon"><i class="fa-brands fa-facebook"></i></div><div><strong>Redes Sociales</strong><span>Facebook: Kaserita</span></div></a>
-      <div class="contact-card c-blue"><div class="contact-card-icon"><i class="fa-solid fa-building"></i></div><div><strong>Operación Oficial</strong><span>100% virtual, todo el Perú</span></div></div>
     </div>
   </section>
 
