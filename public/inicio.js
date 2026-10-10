@@ -56,7 +56,11 @@
     var sFinal = movil ? 1.15 : 1.5;
     // Que la tapa abierta quepa a lo ancho y que la laptop completa quepa a lo alto.
     var porAncho = ancho / (DISENO * sFinal + 24);
-    var porAlto = pin ? (pin.clientHeight - 140) / ALTO : 1;
+    var cab = document.getElementById('mbHead');
+    var altoCab = cab ? cab.offsetHeight : 90;
+    // Para el alto se cuenta solo la pantalla abierta (444 px + margen): el teclado
+    // se desvanece al abrir y puede asomar por debajo sin estorbar.
+    var porAlto = pin ? (pin.clientHeight - altoCab - 36) / 470 : 1;
     var ajuste = Math.max(0.3, Math.min(1, porAncho, porAlto));
     var p;
     if (reducido) {
@@ -78,8 +82,18 @@
     s.setProperty('--mb-base-op', tramo(p, 0.15, 0.45, 1, 0).toFixed(3));
     s.setProperty('--c1', tramo(p, 0.5, 0.66, 0, 1).toFixed(3));
     s.setProperty('--c2', tramo(p, 0.62, 0.78, 0, 1).toFixed(3));
-    s.setProperty('--mb-text-ty', tramo(p, 0, 0.3, 0, 40).toFixed(1) + 'px');
-    s.setProperty('--mb-text-op', tramo(p, 0, 0.25, 1, 0).toFixed(3));
+    var opTexto = reducido ? 1 : tramo(p, 0, 0.25, 1, 0);
+    s.setProperty('--mb-text-ty', (reducido ? 0 : tramo(p, 0, 0.3, 0, 40)).toFixed(1) + 'px');
+    s.setProperty('--mb-text-op', opTexto.toFixed(3));
+    // Con el texto ya desvanecido, el boton de arriba no debe seguir recibiendo clics;
+    // en celular aparece la barra fija con el mismo boton.
+    // Al irse el texto, la laptop sube a ocupar su lugar.
+    s.setProperty('--mb-fit-ty', (reducido ? 0 : -(altoCab - 24) * tramo(p, 0.08, 0.3, 0, 1)).toFixed(1) + 'px');
+    var oculto = opTexto < 0.04;
+    if (cab) cab.classList.toggle('mb-head-off', oculto);
+    var barra = document.getElementById('ctaBar');
+    if (barra) barra.classList.toggle('show', oculto);
+    document.body.classList.toggle('has-bar', oculto);
   }
 
   function pedir() {
@@ -133,8 +147,11 @@
   }
 
   anotar('vista');
-  var ctas = document.querySelectorAll('a.cta-primary[href="/registro"]');
+  var ctas = document.querySelectorAll('a[href="/registro"]');
   for (var i = 0; i < ctas.length; i++) {
-    ctas[i].addEventListener('click', function () { anotar('click_crear_cuenta'); });
+    ctas[i].addEventListener('click', function (e) {
+      // El dato dice desde que boton se hizo clic (encabezado, hero, planes...).
+      anotar('click_crear_cuenta', e.currentTarget.getAttribute('data-cta'));
+    });
   }
 })();

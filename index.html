@@ -3,8 +3,8 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>Kaserita - Punto de Venta para tu negocio</title>
-<meta name="description" content="Kaserita: punto de venta (caja, inventario, clientes, reportes) para negocios pequeños, con catálogo online opcional para recibir pedidos por WhatsApp." />
+<title>Kaserita - Punto de venta para bodegas y tiendas en Perú</title>
+<meta name="description" content="Kaserita: punto de venta para bodegas y tiendas en Perú. Caja, inventario, fiado y reportes desde tu celular o laptop, con catálogo online opcional para recibir pedidos por WhatsApp. Desde S/ 30 al mes." />
 <meta property="og:type" content="website" />
 <meta property="og:site_name" content="Kaserita" />
 <meta property="og:title" content="Kaserita — Tu negocio, bajo control, desde el celular" />
@@ -50,6 +50,10 @@
   .brand-name span { color: var(--violet); }
   .btn-ingresar { font-family: var(--font-display); font-weight: 700; font-size: 13.5px; color: #fff; background: var(--ink); border-radius: 999px; padding: 10px 20px; text-decoration: none; display: inline-flex; align-items: center; gap: 8px; transition: transform .12s ease; }
   .btn-ingresar:hover { transform: translateY(-1px); }
+  .head-actions { display: flex; align-items: center; gap: 16px; }
+  .link-ingresar { font-family: var(--font-display); font-weight: 700; font-size: 13.5px; color: var(--ink); text-decoration: none; padding: 8px 4px; }
+  .link-ingresar:hover { color: var(--violet); }
+  @media (max-width: 480px) { .head-actions { gap: 8px; } .btn-ingresar { padding: 9px 14px; font-size: 12.5px; } .link-ingresar { font-size: 12.5px; } }
 
   .eyebrow { display: inline-flex; align-items: center; gap: 6px; font-size: 11.5px; font-weight: 600; letter-spacing: 0.03em; text-transform: uppercase; color: var(--violet-ink); background: rgba(124,58,237,.1); border: 1px solid rgba(124,58,237,.22); padding: 5px 11px; border-radius: 999px; margin-bottom: 16px; }
   h1 { font-family: var(--font-display); font-weight: 800; letter-spacing: -0.02em; font-size: clamp(28px, 6vw, 42px); line-height: 1.12; margin: 0 0 14px; }
@@ -64,14 +68,19 @@
   .mb-section { margin: 0; }
   .mb-scene { --fit: 1; --mb-sx: 1; --mb-sy: 1; --mb-rot: 0deg; --mb-text-ty: 0px; --mb-text-op: 1; --mb-base-op: 0;
     position: relative; height: 270vh; }
-  .mb-pin { position: sticky; top: 64px; height: calc(100vh - 64px); min-height: 520px; display: flex; flex-direction: column; align-items: center; justify-content: center; padding-bottom: 16px; }
-  .mb-title { font-family: var(--font-display); font-weight: 800; letter-spacing: -0.02em; font-size: clamp(24px, 5vw, 34px); line-height: 1.15; text-align: center; margin: 0 0 6px;
-    transform: translateY(var(--mb-text-ty)); opacity: var(--mb-text-op); will-change: transform, opacity; }
+  .mb-pin { position: sticky; top: 64px; height: calc(100vh - 64px); min-height: 520px; display: flex; flex-direction: column; align-items: center; justify-content: flex-start; padding: 14px 0 16px; }
+  .mb-head { text-align: center; transform: translateY(var(--mb-text-ty)); opacity: var(--mb-text-op); will-change: transform, opacity; }
+  .mb-head.mb-head-off { visibility: hidden; }
+  .mb-title { font-family: var(--font-display); font-weight: 800; letter-spacing: -0.02em; font-size: clamp(24px, 5vw, 34px); line-height: 1.15; text-align: center; margin: 0 0 8px; }
+  .mb-lead { font-size: 15px; color: var(--muted); max-width: 52ch; margin: 0 auto 16px; line-height: 1.5; }
+  .mb-cta-row { display: flex; align-items: center; justify-content: center; flex-wrap: wrap; gap: 8px 16px; margin-bottom: 14px; }
+  .mb-price { font-size: 13px; color: var(--muted); }
+  .mb-price strong { color: var(--ink); font-family: var(--font-display); }
   .mb-title em { font-style: normal; color: var(--violet); }
-  .mb-sub { font-size: 13.5px; color: var(--muted); text-align: center; margin: 0 0 34px; transform: translateY(var(--mb-text-ty)); opacity: var(--mb-text-op); }
+  .mb-sub { font-size: 13px; color: var(--muted); text-align: center; margin: 0 0 22px; }
   .mb-sub i { margin-left: 6px; animation: mb-bounce 1.4s ease-in-out infinite; display: inline-block; }
   @keyframes mb-bounce { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(3px); } }
-  .mb-fit { width: 512px; height: calc(var(--mb-h, 544px) * var(--fit)); flex-shrink: 0; }
+  .mb-fit { transform: translateY(var(--mb-fit-ty, 0px)); width: 512px; height: calc(var(--mb-h, 544px) * var(--fit)); flex-shrink: 0; }
   .mb-laptop { width: 512px; transform: scale(var(--fit)); transform-origin: top center; isolation: isolate; }
   .mb-lidwrap { position: relative; perspective: 800px; }
   .mb-lid-spacer { height: 192px; width: 512px; }
@@ -139,6 +148,30 @@
     .cel-text > p { margin-left: auto; margin-right: auto; }
     .cel-list { align-items: flex-start; max-width: 360px; margin-left: auto; margin-right: auto; text-align: left; }
     .cel-visual { max-width: 390px; }
+  }
+
+  .faq-list { max-width: 720px; margin: 0 auto; display: flex; flex-direction: column; gap: 10px; }
+  .faq-list details { background: var(--card); border: 1.5px solid var(--line); border-radius: 14px; padding: 0 18px; }
+  .faq-list details[open] { border-color: rgba(124,58,237,.3); }
+  .faq-list summary { cursor: pointer; list-style: none; padding: 16px 28px 16px 0; position: relative; font-family: var(--font-display); font-weight: 700; font-size: 14px; }
+  .faq-list summary::-webkit-details-marker { display: none; }
+  .faq-list summary::after { content: "+"; position: absolute; right: 2px; top: 50%; transform: translateY(-50%); font-size: 20px; font-weight: 600; color: var(--violet); line-height: 1; }
+  .faq-list details[open] summary::after { content: "–"; }
+  .faq-list summary:focus-visible { outline: 2px solid var(--violet); outline-offset: 2px; border-radius: 8px; }
+  .faq-list details p { margin: 0 0 16px; font-size: 13.5px; color: var(--muted); line-height: 1.6; }
+
+  /* Barra fija para celular: aparece cuando el boton de arriba ya no esta a la vista */
+  .cta-bar { display: none; }
+  @media (max-width: 767px) {
+    .cta-bar { display: flex; position: fixed; left: 0; right: 0; bottom: 0; z-index: 45; align-items: center; justify-content: space-between; gap: 12px;
+      padding: 10px 16px calc(10px + env(safe-area-inset-bottom)); background: rgba(255,255,255,.96); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
+      border-top: 1px solid var(--line); box-shadow: 0 -10px 24px -16px rgba(28,21,35,.3); transform: translateY(110%); transition: transform .25s ease; }
+    .cta-bar.show { transform: none; }
+    .cta-bar span { font-size: 12.5px; color: var(--muted); line-height: 1.3; }
+    .cta-bar span strong { color: var(--ink); font-family: var(--font-display); font-size: 14px; }
+    .cta-bar a { font-family: var(--font-display); font-weight: 700; font-size: 13.5px; color: #fff; text-decoration: none; background: linear-gradient(120deg, var(--blue), var(--violet)); border-radius: 12px; padding: 11px 18px; white-space: nowrap; }
+    body.has-bar .whatsapp-float { bottom: 78px; }
+    body.has-bar footer { padding-bottom: 90px; }
   }
 
   .section-wide { margin-left: calc(50% - 50vw); margin-right: calc(50% - 50vw); padding: 0 20px; }
@@ -281,14 +314,24 @@
     <a class="brand" href="/" aria-label="Kaserita - inicio">
       <img class="brand-logo" src="/logo-blanco.webp" width="600" height="470" alt="Kaserita" fetchpriority="high">
     </a>
-    <a class="btn-ingresar" href="/pos">Ingresar <i class="fa-solid fa-arrow-right"></i></a>
+    <nav class="head-actions" aria-label="Acceso">
+      <a class="link-ingresar" href="/pos">Ingresar</a>
+      <a class="btn-ingresar" href="/registro" data-cta="encabezado">Crear mi cuenta</a>
+    </nav>
   </header>
 
   <section class="mb-section" id="macbook" aria-label="Así se ve Kaserita en la laptop">
     <div class="mb-scene" id="mbScene">
      <div class="mb-pin" id="mbPin">
-      <h1 class="mb-title" id="mbTitle">Todo tu negocio en <em>una sola pantalla</em></h1>
-      <p class="mb-sub" id="mbSub">Desliza y mira cómo se abre tu punto de venta <i class="fa-solid fa-arrow-down"></i></p>
+      <div class="mb-head" id="mbHead">
+        <h1 class="mb-title" id="mbTitle">Todo tu negocio en <em>una sola pantalla</em></h1>
+        <p class="mb-lead">Punto de venta para bodegas y tiendas: caja, inventario y fiado desde tu celular o laptop.</p>
+        <div class="mb-cta-row">
+          <a class="cta-primary" href="/registro" data-cta="hero">Crear mi cuenta <i class="fa-solid fa-arrow-right"></i></a>
+          <span class="mb-price">Desde <strong>S/ 30</strong> al mes · sin contrato</span>
+        </div>
+        <p class="mb-sub" id="mbSub">Desliza y mira cómo se abre tu punto de venta <i class="fa-solid fa-arrow-down"></i></p>
+      </div>
       <div class="mb-fit" id="mbFit">
         <div class="mb-laptop" id="mbLaptop">
           <div class="mb-lidwrap">
@@ -339,7 +382,7 @@
         <li><span class="plan-check"><i class="fa-solid fa-check"></i></span> Se instala en tu pantalla de inicio como una app más</li>
         <li><span class="plan-check"><i class="fa-solid fa-check"></i></span> La misma cuenta en el celular y en la laptop</li>
       </ul>
-      <a class="cta-primary" href="/registro">Crear mi cuenta ahora <i class="fa-solid fa-arrow-right"></i></a>
+      <a class="cta-primary" href="/registro" data-cta="celular">Crear mi cuenta ahora <i class="fa-solid fa-arrow-right"></i></a>
     </div>
     <div class="cel-visual">
       <img class="cel-woman" src="/pos-celular-mujer.webp" width="595" height="1016" loading="lazy" decoding="async" alt="Emprendedora con su delantal de Kaserita señalando el punto de venta en el celular">
@@ -349,6 +392,58 @@
         </div>
       </div>
     </div>
+  </section>
+
+  <section class="section" id="planes">
+    <h2 class="section-title">Planes</h2>
+    <p class="section-sub">Pago mensual, sin contrato de permanencia.</p>
+    <div class="plans">
+      <div class="plan-card">
+        <div class="plan-card-top">
+          <div>
+            <h3>Plan POS</h3>
+            <p class="plan-desc-tag">Gestiona tu tienda de forma rápida y sencilla.</p>
+          </div>
+          <div class="plan-card-icon"><i class="fa-solid fa-cash-register"></i></div>
+        </div>
+        <div class="plan-price-row">
+          <p class="plan-price-tag">S/ 30 <small>/mes</small></p>
+        </div>
+        <p class="plan-desc-tag">Facturación mensual simple vía Yape, tarjeta o transferencia.</p>
+        <ul>
+          <li><span class="plan-check"><i class="fa-solid fa-check"></i></span> Registro de ventas ilimitadas</li>
+          <li><span class="plan-check"><i class="fa-solid fa-check"></i></span> Control de inventario y alerta de stock</li>
+          <li><span class="plan-check"><i class="fa-solid fa-check"></i></span> Reportes básicos de cierre de caja</li>
+          <li><span class="plan-check"><i class="fa-solid fa-check"></i></span> Control de fiado y cuentas por cobrar</li>
+          <li><span class="plan-check"><i class="fa-solid fa-check"></i></span> Uso simultáneo en PC y celular</li>
+        </ul>
+        <a class="plan-btn ghost" href="/registro" data-cta="plan-pos">Elegir Plan POS <i class="fa-solid fa-arrow-right"></i></a>
+      </div>
+      <div class="plan-card destacado">
+        <span class="plan-badge-float"><i class="fa-solid fa-star"></i> Más completo · Recomendado</span>
+        <div class="plan-card-top">
+          <div>
+            <h3>POS + Tienda Virtual</h3>
+            <p class="plan-desc-tag">Permite recibir pedidos desde tu tienda física y online.</p>
+          </div>
+          <div class="plan-card-icon"><i class="fa-solid fa-bag-shopping"></i></div>
+        </div>
+        <div class="plan-price-row">
+          <p class="plan-price-tag">S/ 39.90 <small>/mes</small></p>
+          <span class="plan-price-old">S/ 54.90</span>
+        </div>
+        <p class="plan-promo-note"><i class="fa-solid fa-tag"></i> Precio promocional por los primeros 3 meses</p>
+        <ul>
+          <li class="highlight"><span class="plan-check"><i class="fa-solid fa-check"></i></span> Todo lo incluido en el Plan POS</li>
+          <li><span class="plan-check"><i class="fa-solid fa-check"></i></span> Catálogo online con tu logo y enlace propio</li>
+          <li><span class="plan-check"><i class="fa-solid fa-check"></i></span> Recepción de pedidos directo a tu WhatsApp</li>
+          <li><span class="plan-check"><i class="fa-solid fa-check"></i></span> Opciones de retiro en tienda y delivery</li>
+          <li><span class="plan-check"><i class="fa-solid fa-check"></i></span> Mayor alcance y volumen de ventas</li>
+        </ul>
+        <a class="plan-btn solid" href="/registro" data-cta="plan-completo">Probar 3 meses con descuento <i class="fa-solid fa-arrow-right"></i></a>
+      </div>
+    </div>
+    <p class="plan-note">Precios sujetos a promociones vigentes.</p>
   </section>
 
   <section class="section">
@@ -420,58 +515,6 @@
   </section>
 
   <section class="section">
-    <h2 class="section-title">Planes</h2>
-    <p class="section-sub">Pago mensual, sin contrato de permanencia.</p>
-    <div class="plans">
-      <div class="plan-card">
-        <div class="plan-card-top">
-          <div>
-            <h3>Plan POS</h3>
-            <p class="plan-desc-tag">Gestiona tu tienda de forma rápida y sencilla.</p>
-          </div>
-          <div class="plan-card-icon"><i class="fa-solid fa-cash-register"></i></div>
-        </div>
-        <div class="plan-price-row">
-          <p class="plan-price-tag">S/ 30 <small>/mes</small></p>
-        </div>
-        <p class="plan-desc-tag">Facturación mensual simple vía Yape, tarjeta o transferencia.</p>
-        <ul>
-          <li><span class="plan-check"><i class="fa-solid fa-check"></i></span> Registro de ventas ilimitadas</li>
-          <li><span class="plan-check"><i class="fa-solid fa-check"></i></span> Control de inventario y alerta de stock</li>
-          <li><span class="plan-check"><i class="fa-solid fa-check"></i></span> Reportes básicos de cierre de caja</li>
-          <li><span class="plan-check"><i class="fa-solid fa-check"></i></span> Control de fiado y cuentas por cobrar</li>
-          <li><span class="plan-check"><i class="fa-solid fa-check"></i></span> Uso simultáneo en PC y celular</li>
-        </ul>
-        <a class="plan-btn ghost" href="/registro">Elegir Plan POS <i class="fa-solid fa-arrow-right"></i></a>
-      </div>
-      <div class="plan-card destacado">
-        <span class="plan-badge-float"><i class="fa-solid fa-star"></i> Más completo · Recomendado</span>
-        <div class="plan-card-top">
-          <div>
-            <h3>POS + Tienda Virtual</h3>
-            <p class="plan-desc-tag">Permite recibir pedidos desde tu tienda física y online.</p>
-          </div>
-          <div class="plan-card-icon"><i class="fa-solid fa-bag-shopping"></i></div>
-        </div>
-        <div class="plan-price-row">
-          <p class="plan-price-tag">S/ 39.90 <small>/mes</small></p>
-          <span class="plan-price-old">S/ 54.90</span>
-        </div>
-        <p class="plan-promo-note"><i class="fa-solid fa-tag"></i> Precio promocional por los primeros 3 meses</p>
-        <ul>
-          <li class="highlight"><span class="plan-check"><i class="fa-solid fa-check"></i></span> Todo lo incluido en el Plan POS</li>
-          <li><span class="plan-check"><i class="fa-solid fa-check"></i></span> Catálogo online con tu logo y enlace propio</li>
-          <li><span class="plan-check"><i class="fa-solid fa-check"></i></span> Recepción de pedidos directo a tu WhatsApp</li>
-          <li><span class="plan-check"><i class="fa-solid fa-check"></i></span> Opciones de retiro en tienda y delivery</li>
-          <li><span class="plan-check"><i class="fa-solid fa-check"></i></span> Mayor alcance y volumen de ventas</li>
-        </ul>
-        <a class="plan-btn solid" href="/registro">Probar 3 meses con descuento <i class="fa-solid fa-arrow-right"></i></a>
-      </div>
-    </div>
-    <p class="plan-note">Precios sujetos a promociones vigentes.</p>
-  </section>
-
-  <section class="section">
     <span class="eyebrow eyebrow-center"><i class="fa-solid fa-flag-checkered"></i> Comienza hoy mismo</span>
     <h2 class="section-title">Empieza en 3 pasos</h2>
     <p class="section-sub">No necesitas ser un experto en tecnología — es tan fácil como mandar un mensaje.</p>
@@ -479,7 +522,7 @@
       <div class="step-card">
         <div class="step-num">1</div>
         <h3>Activas tu cuenta</h3>
-        <p>Nos escribes por WhatsApp, eliges tu plan y pagas el primer mes por Yape o con tarjeta.</p>
+        <p>Eliges tu plan y nos escribes por WhatsApp. Pagas el primer mes por Yape o con tarjeta y activamos tu cuenta.</p>
         <div class="step-tag"><i class="fa-solid fa-clock"></i> Toma menos de 2 minutos</div>
         <i class="fa-solid fa-chevron-right step-arrow"></i>
       </div>
@@ -498,7 +541,20 @@
       </div>
     </div>
     <div class="steps-cta">
-      <a class="cta-primary" href="/registro">Crear mi cuenta ahora <i class="fa-solid fa-arrow-right"></i></a>
+      <a class="cta-primary" href="/registro" data-cta="pasos">Crear mi cuenta ahora <i class="fa-solid fa-arrow-right"></i></a>
+    </div>
+  </section>
+
+  <section class="section" id="preguntas">
+    <h2 class="section-title">Preguntas frecuentes</h2>
+    <p class="section-sub">Lo que más nos preguntan antes de empezar.</p>
+    <div class="faq-list">
+      <details open><summary>¿Necesito instalar algo?</summary><p>No. Kaserita funciona desde el navegador, en tu celular, tablet o PC. No hay nada que descargar ni instalar.</p></details>
+      <details><summary>¿Cómo pago y cómo se activa mi cuenta?</summary><p>Eliges tu plan y se abre WhatsApp con tu mensaje. Te respondemos, te enviamos los datos de Yape o un link de pago con tarjeta para tu primer mes y activamos tu cuenta. Te pediremos los datos básicos de tu negocio: nombre, DNI y celular. Kaserita no guarda datos bancarios.</p></details>
+      <details><summary>¿Cuánto cuesta después de los 3 meses de promoción?</summary><p>El plan POS + Tienda Virtual cuesta S/ 39.90 al mes en tus primeros 3 pagos y luego S/ 54.90 al mes. El Plan POS cuesta S/ 30 al mes.</p></details>
+      <details><summary>¿Puedo cancelar cuando quiera?</summary><p>Sí. Es un pago por mes, sin contrato ni permanencia. Si no quieres seguir, simplemente no vuelves a pagar el mes siguiente.</p></details>
+      <details><summary>¿Cobran comisión por mis ventas?</summary><p>No. Solo pagas la suscripción mensual de tu plan.</p></details>
+      <details><summary>¿Kaserita emite boletas o facturas electrónicas de SUNAT?</summary><p>No. Kaserita no está conectado con SUNAT: es una herramienta para gestionar tu negocio (ventas, inventario, caja y clientes), no un sistema de facturación electrónica.</p></details>
     </div>
   </section>
 
@@ -528,6 +584,8 @@
     <p class="foot-ruc">Kaserita © 2026 — hecho para negocios peruanos</p>
   </footer>
 </div>
+
+<div class="cta-bar" id="ctaBar"><span>Desde <strong>S/ 30</strong> al mes<br>Sin contrato</span><a href="/registro" data-cta="barra">Crear mi cuenta</a></div>
 
 <a class="whatsapp-float" href="https://wa.me/51900376462?text=Hola%2C%20quiero%20saber%20m%C3%A1s%20sobre%20Kaserita" target="_blank" rel="noopener" aria-label="Escríbenos por WhatsApp">
   <i class="fa-brands fa-whatsapp"></i>
