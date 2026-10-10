@@ -20,7 +20,7 @@
       ]
     },
     {
-      "source": "/(hero-nueva.jpg|hero-nueva-800.webp|hero-nueva-1200.webp|hero-nueva-1600.webp|como-funciona-delivery.jpg|como-funciona-delivery-780.webp|como-funciona-delivery-1200.webp|como-funciona-delivery-1536.webp|og-image.jpg|logo-blanco.webp|logo-blanco-wordmark.png|icon-192.png|icon-512.png|icon.svg)",
+      "source": "/(hero-nueva.jpg|hero-nueva-800.webp|hero-nueva-1200.webp|hero-nueva-1600.webp|como-funciona-delivery.jpg|como-funciona-delivery-780.webp|como-funciona-delivery-1200.webp|como-funciona-delivery-1536.webp|pos-pantalla.webp|pos-celular-mujer.webp|pos-celular-pantalla.webp|pos-dashboard.webp|pos-cuentas.webp|og-image.jpg|logo-blanco.webp|logo-blanco-wordmark.png|icon-192.png|icon-512.png|icon.svg)",
       "headers": [
         { "key": "Cache-Control", "value": "public, max-age=86400, stale-while-revalidate=604800" }
       ]
