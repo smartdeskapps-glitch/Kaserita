@@ -273,7 +273,7 @@
     .hero-grid { grid-template-columns: minmax(0, 1fr) 250px 440px; gap: 28px; }
     .hero-woman { display: block; position: relative; align-self: end; margin-bottom: -64px; width: 250px; height: 480px; }
     .hero-woman::before {
-      content: ""; position: absolute; left: 0; right: 0; bottom: 0; height: 80%;
+      content: ""; position: absolute; left: 0; right: 0; bottom: 0; height: calc(100% + 18px);
       border-radius: 999px 999px 0 0; background: linear-gradient(180deg, #efe6ff 0%, #cdb6fb 100%);
     }
     .hero-woman img { position: absolute; left: 50%; bottom: 0; height: 100%; width: auto; transform: translateX(-50%); display: block; }
