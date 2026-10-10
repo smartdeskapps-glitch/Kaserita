@@ -41,7 +41,7 @@ function Faq() {
   const preguntas = [
     { q: '¿Necesito instalar algo o tener internet?', a: 'No hay nada que instalar: Kaserita funciona desde el navegador, en tu celular, tablet o PC. Eso sí, necesita conexión a internet, ya sea wifi o datos del celular.' },
     { q: '¿Funciona con lector de código de barras e impresora de tickets?', a: 'Sí. Puedes escanear tus productos con un lector de código de barras e imprimir el ticket de cada venta en una impresora de tickets.' },
-    { q: '¿Cómo pago y cómo se activa mi cuenta?', a: 'Eliges tu plan y se abre WhatsApp con tu mensaje. Te respondemos, te enviamos los datos de Yape o un link de pago con tarjeta para tu primer mes y activamos tu cuenta. Te pediremos los datos básicos de tu negocio: nombre, DNI y celular. Kaserita no guarda datos bancarios.' },
+    { q: '¿Cómo pago y cómo se activa mi cuenta?', a: 'Eliges tu plan y se abre WhatsApp con tu mensaje. Te respondemos, te enviamos un link de pago de Izipay para tu primer mes, donde puedes pagar con Yape, Plin o tarjeta, y activamos tu cuenta. Te pediremos los datos básicos de tu negocio: nombre, DNI y celular. Kaserita no guarda datos bancarios.' },
     { q: '¿Puedo cancelar cuando quiera?', a: 'Sí. Es un pago por mes, sin contrato ni permanencia. Si no quieres seguir, simplemente no vuelves a pagar el mes siguiente.' },
     { q: '¿Cobran comisión por mis ventas?', a: 'No. Solo pagas la suscripción mensual de tu plan.' },
     { q: '¿Puedo empezar con Punto de Venta y sumar el catálogo después?', a: 'Sí, puedes arrancar con el plan que necesites hoy y ampliarlo más adelante sin perder tus productos ni tu historial de ventas.' },
@@ -172,7 +172,7 @@ function App() {
           <div className="hero-grid">
             <div className="hero-copy">
               <h1>Elige cómo quieres vender</h1>
-              <p className="hero-sub">Escríbenos por WhatsApp con tu plan, paga el primer mes por Yape o con tarjeta y activamos tu cuenta.</p>
+              <p className="hero-sub">Escríbenos por WhatsApp con tu plan, paga el primer mes mediante link de pago Izipay (Yape/Plin/tarjeta) y activamos tu cuenta.</p>
               <ul className="trust-row">
                 <li><IconCheck /> Sin contrato</li>
                 <li><IconCheck /> Sin comisiones por tus ventas</li>
@@ -219,7 +219,7 @@ function App() {
                       <IconWhatsApp /> Continuar por WhatsApp
                     </a>
                   </div>
-                  <p className="fine fine-d">Se abre WhatsApp con tu plan. Ten a la mano el nombre de tu negocio, tu DNI y tu celular. Pagas por Yape o con tarjeta y activamos tu cuenta.</p>
+                  <p className="fine fine-d">Se abre WhatsApp con tu plan. Ten a la mano el nombre de tu negocio, tu DNI y tu celular. Pagas mediante link de pago Izipay (Yape/Plin/tarjeta) y activamos tu cuenta.</p>
                   <p className="fine fine-d fine-alt">¿No se abre WhatsApp? Escríbenos al <a href="tel:+51900376462">+51 900 376 462</a>.</p>
                 </>
               )}
@@ -229,7 +229,7 @@ function App() {
       </header>
 
       <main className="main">
-        <p className="fine fine-m">Se abre WhatsApp con tu plan. Ten a la mano el nombre de tu negocio, tu DNI y tu celular. Pagas por Yape o con tarjeta y activamos tu cuenta. No guardamos datos bancarios.</p>
+        <p className="fine fine-m">Se abre WhatsApp con tu plan. Ten a la mano el nombre de tu negocio, tu DNI y tu celular. Pagas mediante link de pago Izipay (Yape/Plin/tarjeta) y activamos tu cuenta. No guardamos datos bancarios.</p>
         <p className="fine fine-m fine-alt">¿No se abre WhatsApp? Escríbenos al <a href="tel:+51900376462">+51 900 376 462</a>.</p>
 
         <section className="sec">
