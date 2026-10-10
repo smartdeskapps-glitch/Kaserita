@@ -36,6 +36,41 @@ const Marca = () => (
   </a>
 );
 
+// Fondo de la cabecera: cuadricula tenue. En pantallas grandes, al tocar un
+// punto libre sale una onda que ilumina las lineas (solo si no hay
+// "reducir movimiento" y no en celular, para cuidar la bateria).
+function Ondas() {
+  const capa = React.useRef(null);
+  const [ondas, setOndas] = useState([]);
+
+  useEffect(() => {
+    const cabecera = capa.current?.parentElement;
+    if (!cabecera) return undefined;
+    const alTocar = (e) => {
+      if (e.target.closest('a, button, input, label')) return;
+      if (window.matchMedia('(max-width: 899px), (prefers-reduced-motion: reduce)').matches) return;
+      const r = capa.current.getBoundingClientRect();
+      const onda = { id: Date.now() + Math.random(), x: e.clientX - r.left, y: e.clientY - r.top };
+      setOndas((previas) => [...previas.slice(-3), onda]);
+    };
+    cabecera.addEventListener('pointerdown', alTocar);
+    return () => cabecera.removeEventListener('pointerdown', alTocar);
+  }, []);
+
+  return (
+    <div className="ondas" ref={capa} aria-hidden="true">
+      {ondas.map((o) => (
+        <i
+          key={o.id}
+          className="onda"
+          style={{ '--x': `${o.x}px`, '--y': `${o.y}px` }}
+          onAnimationEnd={() => setOndas((previas) => previas.filter((p) => p.id !== o.id))}
+        />
+      ))}
+    </div>
+  );
+}
+
 function Faq() {
   const [abierto, setAbierto] = useState(0);
   const preguntas = [
@@ -153,6 +188,7 @@ function App() {
   return (
     <>
       <header className="hero">
+        <Ondas />
         <div className="hero-in">
           <div className="topbar">
             <Marca />
