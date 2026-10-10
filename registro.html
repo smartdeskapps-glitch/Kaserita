@@ -24,9 +24,9 @@
     --violet-ink: #5b21b6;
     --blue: #2563eb;
     --soft: #f4eefe;
-    --soft2: #ece0fd;
+
     --wa: #1fa855;
-    --wa-ink: #0f7a3a;
+
     --emerald: #059669;
     --emerald-bg: #ecfdf5;
     --font-display: 'Plus Jakarta Sans', system-ui, sans-serif;
@@ -77,14 +77,6 @@
   .topbar { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 16px; }
   .brand { display: flex; align-items: center; gap: 10px; text-decoration: none; }
   .brand-logo { height: 50px; width: auto; display: block; }
-  .brand-mark {
-    width: 34px; height: 34px; border-radius: 10px; flex-shrink: 0;
-    background: rgba(255,255,255,.18);
-    display: flex; align-items: center; justify-content: center;
-  }
-  .brand-mark svg { width: 18px; height: 18px; }
-  .brand-name { font-family: var(--font-display); font-weight: 800; font-size: 17px; letter-spacing: -0.01em; }
-  .brand-name span { color: #d8c4ff; }
   .chip {
     display: inline-flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 600;
     background: rgba(255,255,255,.16); color: #fff; border-radius: 999px; padding: 6px 11px;
@@ -100,7 +92,7 @@
     font-family: var(--font-display); font-weight: 800; letter-spacing: -0.015em;
     font-size: 23px; line-height: 1.15; text-wrap: balance;
   }
-  .eyebrow-w, .hero-sub, .trust-row { display: none; }
+  .hero-sub, .trust-row { display: none; }
   .hero-woman { display: none; }
   /* Celular: el titulo a la izquierda y la emprendedora asomando a la derecha,
      parada sobre el selector de planes, delante de un arco claro. */
@@ -183,12 +175,6 @@
   .mini b { display: block; font-family: var(--font-display); font-size: 13px; }
   .mini span { display: block; font-size: 11.5px; color: var(--muted); margin-top: 3px; line-height: 1.35; }
 
-  .benefits { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
-  .benefit { background: var(--card); border: 1.5px solid var(--line); border-radius: 16px; padding: 16px; }
-  .benefit-icon { width: 34px; height: 34px; border-radius: 10px; background: rgba(124,58,237,.1); color: var(--violet); display: flex; align-items: center; justify-content: center; margin-bottom: 10px; font-size: 17px; }
-  .benefit h3 { font-family: var(--font-display); font-weight: 700; font-size: 13.5px; margin-bottom: 4px; }
-  .benefit p { font-size: 12px; color: var(--muted); line-height: 1.45; }
-
   .faq { display: flex; flex-direction: column; gap: 10px; max-width: 760px; }
   .faq-item { background: var(--card); border: 1.5px solid var(--line); border-radius: 14px; overflow: hidden; }
   .faq-q { width: 100%; background: none; border: none; padding: 14px 15px; display: flex; align-items: center; justify-content: space-between; gap: 10px; text-align: left; font-family: var(--font-display); font-weight: 700; font-size: 13px; color: var(--ink); cursor: pointer; }
@@ -197,7 +183,6 @@
   .faq-a { max-height: 0; overflow: hidden; transition: max-height .2s ease; }
   .faq-item.open .faq-a { max-height: 340px; }
   .faq-a p { padding: 0 15px 14px; font-size: 12.5px; color: var(--muted); line-height: 1.55; }
-
 
   /* Preguntas frecuentes: bloque discreto, mas chico que el resto de las secciones */
   .sec-faq .sec-title { font-size: 16px; }
@@ -214,9 +199,6 @@
 
   /* ---------- Estado "ya tienes una bodega" ---------- */
   .wrap-min { max-width: 520px; margin: 0 auto; padding: 24px 18px 48px; }
-  .topbar-light .brand-mark { background: linear-gradient(135deg, var(--blue), var(--violet)); }
-  .topbar-light .brand-name { color: var(--ink); }
-  .topbar-light .brand-name span { color: var(--violet); }
   .card { background: var(--card); border: 1.5px solid var(--line); border-radius: 20px; padding: 22px; }
   .card h2 { font-family: var(--font-display); font-weight: 800; font-size: 21px; margin-bottom: 6px; letter-spacing: -0.01em; }
   .screen-sub { font-size: 13px; color: var(--muted); margin-bottom: 18px; line-height: 1.5; }
@@ -239,10 +221,6 @@
     .topbar { margin-bottom: 8px; }
     .brand-logo { height: 58px; }
     .hero-grid { grid-template-columns: 1.05fr .95fr; gap: 64px; align-items: center; margin-top: 44px; }
-    .eyebrow-w {
-      display: inline-flex; font-size: 12px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase;
-      background: rgba(255,255,255,.16); border-radius: 999px; padding: 6px 13px; margin-bottom: 18px;
-    }
     .hero-copy h1 { font-size: 50px; line-height: 1.05; letter-spacing: -0.025em; }
     .hero-sub { display: block; font-size: 17px; line-height: 1.55; opacity: .92; margin-top: 16px; max-width: 42ch; }
     .trust-row { display: flex; flex-direction: column; gap: 10px; list-style: none; padding: 0; margin-top: 26px; }
@@ -295,10 +273,6 @@
     .dot { width: 46px; height: 46px; font-size: 20px; margin-bottom: 12px; }
     .mini b { font-size: 16px; }
     .mini span { font-size: 13.5px; margin-top: 5px; }
-    .benefits { grid-template-columns: repeat(4, 1fr); gap: 16px; }
-    .benefit { padding: 22px; border-radius: 20px; }
-    .benefit h3 { font-size: 15px; }
-    .benefit p { font-size: 13px; }
     .sec-faq .sec-title { font-size: 18px; }
     .sec-faq .faq-q { font-size: 13px; padding: 12px 16px; }
     .sec-faq .faq-a p { font-size: 12.5px; padding: 0 16px 13px; }
