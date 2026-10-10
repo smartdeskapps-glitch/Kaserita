@@ -143,17 +143,8 @@
 
   .section-wide { margin-left: calc(50% - 50vw); margin-right: calc(50% - 50vw); padding: 0 20px; }
   .eyebrow-center { display: flex; width: fit-content; margin: 0 auto 16px; }
-  .wide-shot { max-width: 1240px; margin: 0 auto; overflow-x: auto; border-radius: 18px; position: relative; }
-  .wide-shot img { display: block; width: 100%; min-width: 780px; height: auto; border-radius: 18px; }
-  .wide-shot-hint {
-    display: none; position: absolute; top: 0; right: 0; bottom: 0; width: 56px; border-radius: 0 18px 18px 0;
-    background: linear-gradient(90deg, transparent, rgba(28,21,35,.35));
-    align-items: center; justify-content: center; color: #fff; font-size: 15px; pointer-events: none;
-  }
-  @media (max-width: 780px) { .wide-shot-hint { display: flex; } }
-  @keyframes wide-shot-nudge { 0%, 100% { transform: translateX(0); } 50% { transform: translateX(-4px); } }
-  .wide-shot-hint i { animation: wide-shot-nudge 1.3s ease-in-out infinite; }
-  .wide-shot.scrolled .wide-shot-hint { display: none; }
+  .delivery-shot { max-width: 640px; margin: 0 auto; }
+  .delivery-shot img { display: block; width: 100%; height: auto; border-radius: 22px; box-shadow: 0 30px 60px -34px rgba(28,21,35,.4); }
 
   .delivery-options { display: grid; grid-template-columns: repeat(2, 1fr); gap: 14px; max-width: 900px; margin: 0 auto 22px; }
   .delivery-option { background: var(--card); border: 1.5px solid var(--line); border-radius: 16px; padding: 18px; display: flex; gap: 13px; align-items: flex-start; text-align: left; }
@@ -423,9 +414,8 @@
         </div>
       </div>
     </div>
-    <div class="wide-shot" id="wideShot">
-      <img src="/como-funciona-delivery.jpg" srcset="/como-funciona-delivery-780.webp 780w, /como-funciona-delivery-1200.webp 1200w, /como-funciona-delivery-1536.webp 1536w" sizes="(max-width: 1240px) max(780px, 100vw), 1240px" width="1536" height="1024" decoding="async" alt="Tus clientes hacen sus pedidos desde donde estén con KaseritaDelivery, y tú eliges retiro en tienda o delivery." loading="lazy">
-      <div class="wide-shot-hint"><i class="fa-solid fa-chevron-right"></i></div>
+    <div class="delivery-shot">
+      <img src="/como-funciona-delivery.jpg" srcset="/como-funciona-delivery-780.webp 780w, /como-funciona-delivery-1200.webp 1200w" sizes="(max-width: 680px) calc(100vw - 40px), 640px" width="1254" height="1254" decoding="async" alt="Tus clientes hacen sus pedidos desde donde estén con KaseritaDelivery: pagan, eligen retiro en tienda o delivery y tú preparas el pedido." loading="lazy">
     </div>
   </section>
 

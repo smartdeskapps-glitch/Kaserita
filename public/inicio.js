@@ -8,14 +8,6 @@
   onScroll();
 })();
 
-(function () {
-  var wideShot = document.getElementById('wideShot');
-  if (!wideShot) return;
-  wideShot.addEventListener('scroll', function () {
-    if (wideShot.scrollLeft > 12) wideShot.classList.add('scrolled');
-  }, { passive: true });
-})();
-
 // MacBook que se abre con el scroll. Mismos puntos de animación que el
 // componente "MacBook Scroll" de Aceternity, pero sin React ni framer-motion
 // (la portada es HTML plano y así no carga librerías de más).
