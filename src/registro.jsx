@@ -31,21 +31,21 @@ const IconCheck = () => (
 );
 
 const Marca = () => (
-  <div className="brand">
-    <div className="brand-mark"><svg viewBox="0 0 24 24" fill="none"><path d="M4 9L12 4l8 5v9a1 1 0 01-1 1h-4v-6H9v6H5a1 1 0 01-1-1V9z" fill="#fff" /></svg></div>
-    <div className="brand-name">Kaser<span>ita</span></div>
-  </div>
+  <a className="brand" href="/" aria-label="Kaserita - inicio">
+    <img className="brand-logo" src="/logo-blanco.webp" width="600" height="470" alt="Kaserita" />
+  </a>
 );
 
 function Faq() {
   const [abierto, setAbierto] = useState(0);
   const preguntas = [
-    { q: '¿Necesito instalar algo?', a: 'No. Kaserita funciona desde el navegador, en tu celular, tablet o PC. No hay nada que descargar ni instalar.' },
-    { q: '¿Cómo pago?', a: 'Por Yape o con tarjeta. Al continuar se abre WhatsApp con tu plan; te respondemos, te enviamos los datos de Yape o un link de pago con tarjeta para tu primer mes y activamos tu cuenta. Kaserita no guarda datos bancarios.' },
+    { q: '¿Necesito instalar algo o tener internet?', a: 'No hay nada que instalar: Kaserita funciona desde el navegador, en tu celular, tablet o PC. Eso sí, necesita conexión a internet, ya sea wifi o datos del celular.' },
+    { q: '¿Funciona con lector de código de barras e impresora de tickets?', a: 'Sí. Puedes escanear tus productos con un lector de código de barras e imprimir el ticket de cada venta en una impresora de tickets.' },
+    { q: '¿Cómo pago y cómo se activa mi cuenta?', a: 'Eliges tu plan y se abre WhatsApp con tu mensaje. Te respondemos, te enviamos los datos de Yape o un link de pago con tarjeta para tu primer mes y activamos tu cuenta. Te pediremos los datos básicos de tu negocio: nombre, DNI y celular. Kaserita no guarda datos bancarios.' },
     { q: '¿Puedo cancelar cuando quiera?', a: 'Sí. Es un pago por mes, sin contrato ni permanencia. Si no quieres seguir, simplemente no vuelves a pagar el mes siguiente.' },
     { q: '¿Cobran comisión por mis ventas?', a: 'No. Solo pagas la suscripción mensual de tu plan.' },
     { q: '¿Puedo empezar con Punto de Venta y sumar el catálogo después?', a: 'Sí, puedes arrancar con el plan que necesites hoy y ampliarlo más adelante sin perder tus productos ni tu historial de ventas.' },
-    { q: '¿Qué necesito para activar mi cuenta?', a: 'Solo escribirnos por WhatsApp. Te pediremos los datos básicos de tu negocio (nombre, DNI y celular) y el pago de tu primer mes.' },
+    { q: '¿Kaserita emite boletas o facturas electrónicas de SUNAT?', a: 'No. Kaserita no está conectado con SUNAT: es una herramienta para gestionar tu negocio (ventas, inventario, caja y clientes), no un sistema de facturación electrónica.' },
   ];
   return (
     <div className="faq">
@@ -76,6 +76,7 @@ function App() {
   const [sesionGoogle, setSesionGoogle] = useState(null);
   const [planes, setPlanes] = useState([]);
   const [planElegido, setPlanElegido] = useState(null);
+  const [negocio, setNegocio] = useState('');
 
   useEffect(() => { anotarEvento('vista'); }, []);
 
@@ -107,18 +108,21 @@ function App() {
 
   const planActual = planes.find((p) => p.id === planElegido);
 
-  // Abre WhatsApp con el plan elegido y el precio de la promo (si tiene).
-  const continuarPorWhatsApp = () => {
-    if (!planActual) return;
-    anotarEvento('click_whatsapp', planActual.nombre);
+  // Mensaje con el plan elegido, el precio de la promo (si tiene) y, si lo
+  // escribió, el nombre del negocio. Es un enlace normal (no window.open) para
+  // que no lo bloquee el navegador y se pueda abrir en otra pestaña.
+  const urlWhatsApp = (() => {
+    if (!planActual) return '#';
     const lineas = ['Hola, quiero crear mi cuenta en Kaserita.', `Plan: ${planActual.nombre}`];
     if (planActual.precio_soles_promo != null) {
       lineas.push(`Promo: ${dinero(precioHoy(planActual))} al mes en mis primeros ${planActual.meses_promo} pagos (después ${dinero(planActual.precio_soles)}).`);
     } else {
       lineas.push(`Precio: ${dinero(precioHoy(planActual))} al mes.`);
     }
-    window.open(`https://wa.me/${WHATSAPP_ALTAS}?text=${encodeURIComponent(lineas.join('\n'))}`, '_blank', 'noopener,noreferrer');
-  };
+    if (negocio.trim()) lineas.push(`Mi negocio: ${negocio.trim()}`);
+    return `https://wa.me/${WHATSAPP_ALTAS}?text=${encodeURIComponent(lineas.join('\n'))}`;
+  })();
+  const alContinuar = () => { if (planActual) anotarEvento('click_whatsapp', planActual.nombre); };
 
   const pie = (
     <footer>
@@ -167,7 +171,6 @@ function App() {
 
           <div className="hero-grid">
             <div className="hero-copy">
-              <span className="eyebrow-w">Para tu negocio</span>
               <h1>Elige cómo quieres vender</h1>
               <p className="hero-sub">Escríbenos por WhatsApp con tu plan, paga el primer mes por Yape o con tarjeta y activamos tu cuenta.</p>
               <ul className="trust-row">
@@ -207,12 +210,17 @@ function App() {
                       <li key={b}><IconCheck /> {b}</li>
                     ))}
                   </ul>
+                  <label className="field">
+                    <span>Nombre de tu negocio <em>(opcional)</em></span>
+                    <input type="text" value={negocio} maxLength={60} autoComplete="organization" placeholder="Ej. Bodega San Luis" onChange={(e) => setNegocio(e.target.value)} />
+                  </label>
                   <div className="cta-row">
-                    <button type="button" className="cta" onClick={continuarPorWhatsApp}>
+                    <a className="cta" href={urlWhatsApp} target="_blank" rel="noopener noreferrer" onClick={alContinuar}>
                       <IconWhatsApp /> Continuar por WhatsApp
-                    </button>
+                    </a>
                   </div>
-                  <p className="fine fine-d">Se abre WhatsApp con tu plan. Pagas por Yape o con tarjeta y activamos tu cuenta.</p>
+                  <p className="fine fine-d">Se abre WhatsApp con tu plan. Ten a la mano el nombre de tu negocio, tu DNI y tu celular. Pagas por Yape o con tarjeta y activamos tu cuenta.</p>
+                  <p className="fine fine-d fine-alt">¿No se abre WhatsApp? Escríbenos al <a href="tel:+51900376462">+51 900 376 462</a>.</p>
                 </>
               )}
             </div>
@@ -221,7 +229,8 @@ function App() {
       </header>
 
       <main className="main">
-        <p className="fine fine-m">Se abre WhatsApp con tu plan. Pagas por Yape o con tarjeta y activamos tu cuenta. No guardamos datos bancarios.</p>
+        <p className="fine fine-m">Se abre WhatsApp con tu plan. Ten a la mano el nombre de tu negocio, tu DNI y tu celular. Pagas por Yape o con tarjeta y activamos tu cuenta. No guardamos datos bancarios.</p>
+        <p className="fine fine-m fine-alt">¿No se abre WhatsApp? Escríbenos al <a href="tel:+51900376462">+51 900 376 462</a>.</p>
 
         <section className="sec">
           <h2 className="sec-title">Cómo funciona</h2>
@@ -234,7 +243,7 @@ function App() {
             <div className="mini">
               <div className="dot"><svg className="ic" viewBox="0 0 16 16"><rect x="4" y="1.8" width="8" height="12.4" rx="2" /><path d="M7 12h2" /></svg></div>
               <b>Pagas</b>
-              <span>Solo el primer mes, por Yape o con tarjeta</span>
+              <span>Mediante link de pago Izipay (Yape/Plin/tarjeta)</span>
             </div>
             <div className="mini">
               <div className="dot"><IconCheck /></div>
@@ -244,50 +253,11 @@ function App() {
           </div>
         </section>
 
-        <section className="sec">
-          <h2 className="sec-title">Todo lo que tu negocio necesita</h2>
-          <p className="sec-sub">Pensado para el día a día de un negocio peruano, sin vueltas.</p>
-          <div className="benefits">
-            <div className="benefit">
-              <div className="benefit-icon"><svg className="ic" viewBox="0 0 16 16"><rect x="2" y="6" width="12" height="8" rx="1.5" /><path d="M5 6V4a3 3 0 016 0v2" /></svg></div>
-              <h3>Caja en segundos</h3>
-              <p>Cobra e imprime o comparte el ticket sin vueltas ni papeleo.</p>
-            </div>
-            <div className="benefit">
-              <div className="benefit-icon"><svg className="ic" viewBox="0 0 16 16"><circle cx="8" cy="8" r="6.3" /><path d="M2 8h12M8 1.7c1.6 1.8 2.5 4 2.5 6.3s-.9 4.5-2.5 6.3c-1.6-1.8-2.5-4-2.5-6.3S6.4 3.5 8 1.7z" /></svg></div>
-              <h3>Catálogo online</h3>
-              <p>Tu propia vitrina para recibir pedidos por WhatsApp.</p>
-            </div>
-            <div className="benefit">
-              <div className="benefit-icon"><svg className="ic" viewBox="0 0 16 16"><path d="M2 13V9M6 13V5M10 13V7M14 13V3" /></svg></div>
-              <h3>Reportes claros</h3>
-              <p>Mira cuánto vendiste hoy y qué productos se mueven más.</p>
-            </div>
-            <div className="benefit">
-              <div className="benefit-icon"><svg className="ic" viewBox="0 0 16 16"><circle cx="6" cy="5.5" r="2.3" /><path d="M1.5 14c0-2.5 2-4 4.5-4s4.5 1.5 4.5 4" /><circle cx="12" cy="6" r="1.8" /><path d="M10.8 10.3c1.8.3 3.2 1.6 3.2 3.7" /></svg></div>
-              <h3>Varios cajeros</h3>
-              <p>Suma cajeros con su propio PIN y controla cada turno.</p>
-            </div>
-          </div>
+        <section className="sec sec-faq">
+          <h2 className="sec-title">Preguntas frecuentes</h2>
+          <p className="sec-sub">Lo que más preguntan antes de empezar.</p>
+          <Faq />
         </section>
-
-        <div className="cierre">
-          <section className="sec">
-            <h2 className="sec-title">Preguntas frecuentes</h2>
-            <p className="sec-sub">Lo que más preguntan antes de empezar.</p>
-            <Faq />
-          </section>
-
-          <section className="sec cierre-cta">
-            <div className="cta-banner">
-              <h3>¿List@ para activar tu negocio?</h3>
-              <p>Elige tu plan arriba y escríbenos: te respondemos por WhatsApp.</p>
-              <button type="button" className="cta" disabled={!planActual} onClick={continuarPorWhatsApp}>
-                <IconWhatsApp /> Continuar por WhatsApp
-              </button>
-            </div>
-          </section>
-        </div>
 
         {pie}
       </main>
