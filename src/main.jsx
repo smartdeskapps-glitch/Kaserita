@@ -3053,6 +3053,24 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
         };
       }, [pedidosRetirar]);
 
+      // Listos (o en camino) que todavía no están en el carrito: ya armados,
+      // falta cobrarlos. Sin esto, después de "Marcar listo" -- o de vaciar el
+      // carrito con el pedido cargado -- no quedaba ningún aviso de que el
+      // pedido seguía ahí esperando.
+      const pedidosListosSinCargar = useMemo(
+        () => pedidosRetirarPorTab.listo.filter((p) => !pedidosCargadosAlCarrito.some((c) => c.id === p.id)).length,
+        [pedidosRetirarPorTab, pedidosCargadosAlCarrito]
+      );
+
+      // Abre "Pedidos por retirar" en la pestaña donde hay algo que hacer.
+      const abrirPedidosRetirar = () => {
+        if (pedidosPorRetirarPendientes > 0) setTabPedidosRetirar('pendiente');
+        else if (pedidosListosSinCargar > 0) setTabPedidosRetirar('listo');
+        setModalPedidosRetirar(true);
+        cargarPedidosRetirar();
+        setMostrarResumenMobile(true);
+      };
+
       // Filtro de fecha del historial de "Pedidos por retirar" -- ordenado
       // más nuevo primero, así que "hoy" siempre queda arriba de por sí; el
       // filtro solo recorta cuánto atrás se muestra.
@@ -4122,8 +4140,23 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
       // ==========================================
       // VENTAS EN ESPERA (PARK SALES)
       // ==========================================
+      // Al vaciar o pausar el carrito con un pedido de delivery cargado, el
+      // pedido no se borra: vuelve a su cola. Se avisa para que no parezca
+      // perdido.
+      const avisarPedidosDevueltos = () => {
+        if (pedidosCargadosAlCarrito.length === 0) return;
+        const codigos = pedidosCargadosAlCarrito.map((p) => p.codigoCorto).join(', ');
+        notificar(
+          pedidosCargadosAlCarrito.length === 1
+            ? `El pedido ${codigos} no se perdió: sigue en «Pedidos por retirar» para volver a cargarlo.`
+            : `Los pedidos ${codigos} no se perdieron: siguen en «Pedidos por retirar» para volver a cargarlos.`,
+          'info'
+        );
+      };
+
       const aparcarVentaActual = () => {
         if (carrito.length === 0) return;
+        avisarPedidosDevueltos();
         const nuevaVentaEspera = {
           id: Date.now(),
           hora: new Date().toLocaleTimeString('es-PE', { hour: '2-digit', minute: '2-digit' }),
@@ -4143,6 +4176,16 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
         // el pedido se cierra a mano con "Ya retiró".
         setPedidosCargadosAlCarrito([]);
       };
+
+      // Si el carrito queda vacío por otro camino (quitando los productos uno
+      // por uno), el pedido también se desvincula: si no, su tarjeta seguía
+      // diciendo "en el carrito" y ya no ofrecía "Cargar al carrito".
+      useEffect(() => {
+        if (carrito.length === 0 && pedidosCargadosAlCarrito.length > 0) {
+          avisarPedidosDevueltos();
+          setPedidosCargadosAlCarrito([]);
+        }
+      }, [carrito.length, pedidosCargadosAlCarrito.length]);
 
       const recuperarVentaEspera = (index) => {
         const v = ventasEnEspera[index];
@@ -8196,14 +8239,18 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
                       <i className="fa-solid fa-magnifying-glass"></i>
                     </button>
                     <button
-                      onClick={() => { setModalPedidosRetirar(true); cargarPedidosRetirar(); setMostrarResumenMobile(true); }}
+                      onClick={abrirPedidosRetirar}
                       title="Pedidos por retirar (clientes con cuenta)"
                       className="relative flex items-center justify-center w-10 h-10 shrink-0 bg-white hover:bg-[#f4eefe] text-stone-700 text-xs font-semibold rounded-full border border-[#d6bdfa]/60 transition"
                     >
                       <i className="fa-solid fa-bell-concierge"></i>
-                      {pedidosPorRetirarPendientes > 0 && (
+                      {pedidosPorRetirarPendientes > 0 ? (
                         <span className="absolute -top-1.5 -right-1.5 w-4 h-4 flex items-center justify-center bg-rose-600 text-white text-[9px] font-bold rounded-full animate-pulse">
                           {pedidosPorRetirarPendientes > 9 ? '9+' : pedidosPorRetirarPendientes}
+                        </span>
+                      ) : pedidosListosSinCargar > 0 && (
+                        <span className="absolute -top-1.5 -right-1.5 w-4 h-4 flex items-center justify-center bg-emerald-600 text-white text-[9px] font-bold rounded-full">
+                          {pedidosListosSinCargar > 9 ? '9+' : pedidosListosSinCargar}
                         </span>
                       )}
                     </button>
@@ -8756,7 +8803,7 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
                 )}
                 {carrito.length > 0 && (
                   <button
-                    onClick={() => { setCarrito([]); setDescuentoTipo(null); setDescuentoValor(''); setMostrarPago(false); reiniciarClienteYMedioPago(); setPedidosCargadosAlCarrito([]); }}
+                    onClick={() => { avisarPedidosDevueltos(); setCarrito([]); setDescuentoTipo(null); setDescuentoValor(''); setMostrarPago(false); reiniciarClienteYMedioPago(); setPedidosCargadosAlCarrito([]); }}
                     className="px-3.5 py-1.5 rounded-full bg-rose-50 hover:bg-rose-100 text-xs text-rose-700 font-semibold transition"
                   >
                     Vaciar
@@ -8769,9 +8816,25 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
                 de la lista de ítems, no solo como badge en un botón, para que
                 no se pierda de vista mientras el cajero sigue atendiendo el
                 carrito normal. */}
+            {pedidosPorRetirarPendientes === 0 && pedidosListosSinCargar > 0 && (
+              <button
+                onClick={abrirPedidosRetirar}
+                className="shrink-0 mx-3 mt-2.5 flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl bg-emerald-50 border border-emerald-200 hover:bg-emerald-100 transition text-left"
+              >
+                <span className="flex items-center justify-center w-7 h-7 rounded-full bg-emerald-600 text-white shrink-0">
+                  <i className="fa-solid fa-bell-concierge text-xs"></i>
+                </span>
+                <span className="flex-1 text-xs font-bold text-emerald-800">
+                  {pedidosListosSinCargar === 1
+                    ? '1 pedido listo, falta entregarlo y cobrarlo'
+                    : `${pedidosListosSinCargar} pedidos listos, falta entregarlos y cobrarlos`}
+                </span>
+                <i className="fa-solid fa-chevron-right text-xs text-emerald-600"></i>
+              </button>
+            )}
             {pedidosPorRetirarPendientes > 0 && (
               <button
-                onClick={() => { setModalPedidosRetirar(true); cargarPedidosRetirar(); setMostrarResumenMobile(true); }}
+                onClick={abrirPedidosRetirar}
                 className="shrink-0 mx-3 mt-2.5 flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl bg-amber-50 border border-amber-200 hover:bg-amber-100 transition text-left"
               >
                 <span className="relative flex items-center justify-center w-7 h-7 rounded-full bg-amber-500 text-white shrink-0">
