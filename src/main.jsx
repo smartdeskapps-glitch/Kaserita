@@ -9170,6 +9170,19 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
                 { grupo: 'Entradas', etiqueta: 'Combos', icono: 'fa-gift', accion: abrirModalCombos },
                 { grupo: 'Entradas', etiqueta: 'Importar del Catálogo Maestro', icono: 'fa-book', accion: abrirImportarMaestro },
               ] : []),
+              // El manual solo lo sirve /api/manual a quien tiene sesión: antes de abrirlo se
+              // renueva el token por si venció, y la pestaña se abre primero para que el
+              // navegador no la bloquee como ventana emergente.
+              !esModoDemo && {
+                grupo: 'Cuenta', etiqueta: 'Manual de uso', icono: 'fa-circle-question',
+                accion: () => {
+                  const pestana = window.open('', '_blank');
+                  Promise.resolve(sbClient?.auth.getSession()).catch(() => {}).finally(() => {
+                    if (pestana) pestana.location.href = '/manual';
+                    else window.open('/manual', '_blank');
+                  });
+                }
+              },
               (sesion?.usuario?.rol === 'dueno' && esAdmin && !esModoDemo && cuentaConPinDueno) && {
                 grupo: 'Cuenta', etiqueta: 'Cambiar mi PIN', icono: 'fa-key',
                 insignia: !pinDuenoReforzado ? 'Recomendado' : '', tono: 'amber',

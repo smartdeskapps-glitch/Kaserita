@@ -2,6 +2,9 @@
   "buildCommand": "npm test && npm run build",
   "installCommand": "npm install",
   "outputDirectory": "dist",
+  "functions": {
+    "api/manual.js": { "includeFiles": "manual-privado/**" }
+  },
   "headers": [
     {
       "source": "/(.*)",
@@ -30,6 +33,12 @@
       "headers": [
         { "key": "Cache-Control", "value": "public, max-age=3600, stale-while-revalidate=86400" }
       ]
+    },
+    {
+      "source": "/manual/(.*)\\.js",
+      "headers": [
+        { "key": "Cache-Control", "value": "public, max-age=86400, stale-while-revalidate=604800" }
+      ]
     }
   ],
   "redirects": [
@@ -43,6 +52,7 @@
   ],
   "rewrites": [
     { "source": "/pos", "destination": "/pos.html" },
+    { "source": "/manual", "destination": "/manual/index.html" },
     { "source": "/registro", "destination": "/registro.html" },
     { "source": "/privacidad", "destination": "/privacidad.html" },
     { "source": "/terminos", "destination": "/terminos.html" },
