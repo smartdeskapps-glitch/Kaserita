@@ -645,8 +645,10 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
             </h3>
           </div>
 
-          <div className="mt-auto flex items-baseline justify-between gap-2 px-1 pt-2 pb-1.5">
-            <div className="flex items-center gap-1.5 flex-wrap min-w-0">
+          {/* Si el precio y el stock no caben en una línea (tarjeta angosta), el
+              stock baja debajo del precio en vez de montarse encima. */}
+          <div className="mt-auto flex flex-wrap items-baseline justify-between gap-x-2 gap-y-0.5 px-1 pt-2 pb-1.5">
+            <div className="flex items-center gap-1.5 flex-wrap max-w-full">
               <span className="text-[22px] font-bold text-stone-900 tabular-nums tracking-tight whitespace-nowrap">
                 <small className="text-[12px] font-semibold text-stone-500 mr-0.5">S/</small>{Number(prod.precio_venta).toFixed(2)}
               </span>
