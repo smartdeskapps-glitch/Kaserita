@@ -2046,6 +2046,9 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
         });
         if (!ok) return;
         setProcesandoPedidoRetirarId(pedido.id);
+        // Para que el aviso en vivo (más abajo) no lo anuncie como
+        // "el cliente canceló" si el evento llega antes que esta respuesta.
+        canceladosDesdeAquiRef.current.add(pedido.id);
         try {
           const { error } = await sbClient.rpc('cancelar_seguimiento_pedido', { p_id: pedido.id });
           if (error) throw error;
@@ -2061,7 +2064,14 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
       // Aviso en vivo: mientras haya sesión de bodega, escucha si entra un
       // pedido nuevo (Realtime de Supabase, filtrado por RLS a la propia
       // bodega igual que cualquier otra consulta) y suena + avisa, esté o
-      // no abierta la pantalla de "Pedidos por retirar".
+      // no abierta la pantalla de "Pedidos por retirar". También escucha
+      // los cambios de estado: si el cliente cancela desde la tienda, el
+      // pedido sale de la cola y del contador de pendientes sin recargar.
+      const pedidosRetirarRef = useRef(pedidosRetirar);
+      pedidosRetirarRef.current = pedidosRetirar;
+      const pedidosCargadosRef = useRef(pedidosCargadosAlCarrito);
+      pedidosCargadosRef.current = pedidosCargadosAlCarrito;
+      const canceladosDesdeAquiRef = useRef(new Set());
       useEffect(() => {
         if (esModoDemo || !sbClient || !sesion?.bodega?.id) return;
         const canal = sbClient
@@ -2073,6 +2083,25 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
               sonarAvisoPedidoNuevo();
               notificar(`Nuevo pedido${payload.new.tipo_entrega === 'domicilio' ? ' a domicilio' : ''}: ${payload.new.codigo_corto}`, 'success');
               setPedidosRetirar((prev) => (prev.some((p) => p.id === payload.new.id) ? prev : [...prev, payload.new]));
+            }
+          )
+          .on(
+            'postgres_changes',
+            { event: 'UPDATE', schema: 'public', table: 'pedidos_seguimiento', filter: `bodega_id=eq.${sesion.bodega.id}` },
+            (payload) => {
+              const n = payload.new;
+              if (!n?.id) return;
+              const antes = pedidosRetirarRef.current.find((p) => p.id === n.id);
+              setPedidosRetirar((prev) => prev.map((p) => (p.id === n.id ? { ...p, ...n } : p)));
+              if (n.estado !== 'cancelado' || !antes || antes.estado === 'cancelado') return;
+              if (canceladosDesdeAquiRef.current.delete(n.id)) return;
+              if (pedidosCargadosRef.current.some((c) => c.id === n.id)) {
+                // Ya no se cierra al cobrar: el pedido no existe más.
+                setPedidosCargadosAlCarrito((prev) => prev.filter((c) => c.id !== n.id));
+                notificar(`El cliente canceló el pedido ${n.codigo_corto}, que está en el carrito. Quita esos productos antes de cobrar.`, 'error');
+              } else {
+                notificar(`El cliente canceló el pedido ${n.codigo_corto}.`, 'info');
+              }
             }
           )
           .subscribe();
