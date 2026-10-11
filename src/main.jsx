@@ -1920,6 +1920,23 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
         }
       };
 
+      // Productos que forman un combo de un pedido de delivery, con la
+      // cantidad total a preparar (por combo × combos pedidos). Los pedidos
+      // nuevos traen el desglose guardado (migration_40); los anteriores lo
+      // toman del combo tal como está ahora.
+      const desgloseComboPedido = (it) => {
+        if (!it?.combo_id) return [];
+        const base = Array.isArray(it.componentes)
+          ? it.componentes
+          : (combos.find((c) => c.id === it.combo_id)?.combos_items || []).map((ci) => ({
+              descripcion: ci.productos?.descripcion,
+              cantidad: ci.cantidad,
+            }));
+        return base
+          .filter((c) => c.descripcion)
+          .map((c) => ({ descripcion: c.descripcion, cantidad: Number(c.cantidad || 0) * Number(it.cantidad || 0) }));
+      };
+
       // Abre WhatsApp con el pedido ya armado (referencia, teléfono, monto a
       // cobrar y el enlace de la ubicación) para mandárselo al repartidor. Si
       // el negocio guardó el número de su repartidor va directo a ese chat;
@@ -1930,7 +1947,10 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
         const total = subtotal + envio;
         const medio = { efectivo: 'efectivo', yape_plin: 'Yape / Plin', tarjeta: 'tarjeta' }[p.medio_pago] || p.medio_pago || '';
         const pagaCon = Number(p.paga_con || 0);
-        const lineas = (p.items || []).map((it) => `${it.cantidad}x ${it.descripcion}`);
+        const lineas = (p.items || []).flatMap((it) => [
+          `${it.cantidad}x ${it.descripcion}`,
+          ...desgloseComboPedido(it).map((c) => `   - ${c.cantidad}x ${c.descripcion}`),
+        ]);
         const mensaje = [
           `Pedido a domicilio · ${p.codigo_corto}`,
           `Cliente: ${p.cliente_nombre || '-'} · ${p.telefono_contacto || '-'}`,
@@ -8490,16 +8510,30 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
                       </div>
 
                       <div className="divide-y divide-stone-100 border-y border-stone-100">
-                        {(p.items || []).map((it, i) => (
-                          <div key={i} className="flex items-baseline justify-between gap-3 py-1.5 text-xs">
-                            <span className="text-stone-500 truncate">
-                              <span className="text-stone-400">{it.cantidad} ×</span> {it.descripcion}
-                            </span>
-                            <span className="text-stone-500 tabular-nums shrink-0">
-                              {(Number(it.cantidad || 0) * Number(it.precio_venta || 0)).toFixed(2)}
-                            </span>
-                          </div>
-                        ))}
+                        {(p.items || []).map((it, i) => {
+                          const desglose = desgloseComboPedido(it);
+                          return (
+                            <div key={i} className="py-1.5 text-xs">
+                              <div className="flex items-baseline justify-between gap-3">
+                                <span className="text-stone-500 truncate">
+                                  <span className="text-stone-400">{it.cantidad} ×</span> {it.descripcion}
+                                </span>
+                                <span className="text-stone-500 tabular-nums shrink-0">
+                                  {(Number(it.cantidad || 0) * Number(it.precio_venta || 0)).toFixed(2)}
+                                </span>
+                              </div>
+                              {desglose.length > 0 && (
+                                <ul className="mt-1 ml-1 pl-2.5 border-l-2 border-stone-100 space-y-0.5">
+                                  {desglose.map((c, j) => (
+                                    <li key={j} className="text-[11px] text-stone-400 truncate">
+                                      <span className="tabular-nums">{c.cantidad} ×</span> {c.descripcion}
+                                    </li>
+                                  ))}
+                                </ul>
+                              )}
+                            </div>
+                          );
+                        })}
                       </div>
 
                       {esDomicilioPedido && (
