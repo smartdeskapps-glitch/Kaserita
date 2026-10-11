@@ -14,7 +14,7 @@ PRIVADO = os.path.join(RAIZ, 'manual-privado')
 PUBLICO = os.path.join(RAIZ, 'public', 'manual')           # solo el cascaron y manual.js
 from PIL import Image
 DIMS = {f[:-5]: Image.open(os.path.join(IMAGENES, f)).size for f in os.listdir(IMAGENES) if f.endswith('.webp')}
-VERSION = '20261012'
+VERSION = '20261013'
 
 
 def plano(t):
@@ -24,8 +24,8 @@ def plano(t):
 
 def img(nombre, alt, ancha=False):
     w, h = DIMS[nombre]
-    return ('<img data-n="%s" alt="%s" width="%d" height="%d" decoding="async">'
-            % (nombre, html.escape(alt, quote=True), w, h))
+    return ('<img data-n="%s" alt="%s" width="%d" height="%d" style="aspect-ratio:%d/%d" decoding="async">'
+            % (nombre, html.escape(alt, quote=True), w, h, w, h))
 
 
 def bloque(b, tema_id, idx):

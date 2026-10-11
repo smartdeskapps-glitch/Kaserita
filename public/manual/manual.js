@@ -170,7 +170,7 @@
           actual = li;
           var caja = indice.getBoundingClientRect();
           var r = li.getBoundingClientRect();
-          if (r.top < caja.top + 60 || r.bottom > caja.bottom - 20) li.scrollIntoView({ block: 'center' });
+          if (r.top < caja.top + 60 || r.bottom > caja.bottom - 20) indice.scrollTop += (r.top - caja.top) - caja.height / 2 + r.height / 2;
         });
       }, { rootMargin: '-80px 0px -65% 0px' });
       $$('.tema[id]').forEach(function (t) { obs.observe(t); });
