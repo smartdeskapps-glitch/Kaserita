@@ -2046,6 +2046,22 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
           const { error } = await sbClient.rpc('marcar_pedido_retirado', { p_codigo_corto: pedido.codigo_corto });
           if (error) throw error;
           setPedidosRetirar((prev) => prev.map((p) => (p.id === pedido.id ? { ...p, estado: 'retirado' } : p)));
+          // Los productos de este pedido ya se cobraron y entregaron: si seguían
+          // en el carrito, un cobro por descuido los vendería dos veces. Solo se
+          // vacía cuando el carrito es exactamente este pedido (si hay otro
+          // pedido cargado, sus productos están mezclados y no se separan).
+          const soloEste = pedidosCargadosAlCarrito.length === 1 && pedidosCargadosAlCarrito[0].id === pedido.id;
+          if (soloEste) {
+            setPedidosCargadosAlCarrito([]);
+            setCarrito([]);
+            setDescuentoTipo(null);
+            setDescuentoValor('');
+            setMostrarPago(false);
+            reiniciarClienteYMedioPago();
+          } else if (pedidosCargadosAlCarrito.some((c) => c.id === pedido.id)) {
+            setPedidosCargadosAlCarrito((prev) => prev.filter((c) => c.id !== pedido.id));
+            notificar('Quita del carrito los productos de este pedido: ya se entregaron.', 'info');
+          }
           notificar(`Pedido ${pedido.codigo_corto} marcado como retirado.`, 'success');
         } catch (err) {
           notificar(err.message || 'No se pudo marcar el pedido.', 'error');
@@ -4173,7 +4189,7 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
         // Al pausar se desvincula cualquier pedido de "Pedidos por retirar"
         // que estuviera cargado -- sigue disponible en su cola por si esta
         // venta en espera nunca se retoma; si se retoma y cobra más tarde,
-        // el pedido se cierra a mano con "Ya retiró".
+        // el pedido se cierra a mano: "Cargar al carrito" y "Confirmar retiro".
         setPedidosCargadosAlCarrito([]);
       };
 
