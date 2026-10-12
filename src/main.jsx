@@ -4203,6 +4203,26 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
         }
       }, [carrito.length, pedidosCargadosAlCarrito.length]);
 
+      // En pantallas bajas la barra fija de "Total a cobrar" tapa los campos de
+      // monto (Paga con / Monto en tarjeta) y había que adivinar que se podía
+      // desplazar. Al elegir Efectivo o Mixto se sube solo ese panel; se mueve
+      // el contenedor con scroll y no la página (scrollIntoView podía correrla).
+      useEffect(() => {
+        if (!mostrarPago || (medioPago !== 'EFECTIVO' && medioPago !== 'MIXTO')) return undefined;
+        const t = setTimeout(() => {
+          const el = document.querySelector('[data-campo-pago]');
+          if (!el) return;
+          let cont = el.parentElement;
+          while (cont && !(cont.scrollHeight > cont.clientHeight + 1 && /(auto|scroll)/.test(getComputedStyle(cont).overflowY))) {
+            cont = cont.parentElement;
+          }
+          if (!cont) return;
+          const top = el.getBoundingClientRect().top - cont.getBoundingClientRect().top + cont.scrollTop - 8;
+          cont.scrollTo({ top: Math.max(0, top), behavior: 'smooth' });
+        }, 80);
+        return () => clearTimeout(t);
+      }, [medioPago, mostrarPago]);
+
       const recuperarVentaEspera = (index) => {
         const v = ventasEnEspera[index];
         if (!v) return;
@@ -9011,7 +9031,7 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
               </div>
 
               {medioPago === 'EFECTIVO' && (
-                <div className="bg-[#f4eefe] border border-[#efe6fc] rounded-[22px] p-3.5">
+                <div data-campo-pago className="bg-[#f4eefe] border border-[#efe6fc] rounded-[22px] p-3.5">
                   <label className="text-xs font-semibold text-[#4d04b0] block mb-2">Paga con</label>
                   <div className="flex items-center gap-2">
                     <div className="flex-1 h-14 flex items-center gap-1.5 px-4 rounded-[18px] bg-white ring-1 ring-[#6105dc]/10 focus-within:ring-2 focus-within:ring-[#6105dc]/40">
@@ -9109,7 +9129,7 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
               )}
 
               {medioPago === 'MIXTO' && (
-                <div className="bg-[#f4eefe] border border-[#efe6fc] rounded-[22px] p-3.5">
+                <div data-campo-pago className="bg-[#f4eefe] border border-[#efe6fc] rounded-[22px] p-3.5">
                   <label className="text-xs font-semibold text-[#4d04b0] block mb-2">Monto en tarjeta / otro</label>
                   <div className="flex items-center gap-2">
                     <div className="flex-1 h-[50px] flex items-center gap-1.5 px-4 rounded-[18px] bg-white ring-1 ring-[#6105dc]/10 focus-within:ring-2 focus-within:ring-[#6105dc]/40">
