@@ -941,6 +941,14 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
       const [periodoComisiones, setPeriodoComisiones] = useState('hoy');
       const [filasComisiones, setFilasComisiones] = useState([]);
       const [cargandoComisiones, setCargandoComisiones] = useState(false);
+      // Barbería con agenda: horario semanal de cada barbero y citas por día.
+      const [barberosConHorario, setBarberosConHorario] = useState(() => new Set());
+      const [modalHorario, setModalHorario] = useState(null); // { barbero, dias: [...] }
+      const [guardandoHorario, setGuardandoHorario] = useState(false);
+      const [modalAgenda, setModalAgenda] = useState(false);
+      const [fechaAgenda, setFechaAgenda] = useState('');
+      const [citasAgenda, setCitasAgenda] = useState([]);
+      const [cargandoAgenda, setCargandoAgenda] = useState(false);
       const [cargandoCajerosGestion, setCargandoCajerosGestion] = useState(false);
       const [mostrarFormNuevoCajero, setMostrarFormNuevoCajero] = useState(false);
       const [formNuevoCajero, setFormNuevoCajero] = useState({ nombre: '', dni: '', rol: 'cajero', pin: '' });
@@ -2187,6 +2195,10 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
             .order('nombre', { ascending: true });
           if (error) throw error;
           setCajerosGestion(data || []);
+          if (esBarberia) {
+            const { data: horarios } = await sbClient.from('barbero_horarios').select('barbero_id').eq('bodega_id', bodegaId);
+            setBarberosConHorario(new Set((horarios || []).map((h) => h.barbero_id)));
+          }
         } catch (err) {
           notificar(`No se pudo cargar la lista de cajeros: ${err.message}`, 'error');
         } finally {
@@ -2271,6 +2283,129 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
       const abrirComisiones = () => {
         setModalComisiones(true);
         cargarComisiones(periodoComisiones);
+      };
+
+      // Barbería con agenda: horario semanal de un barbero. En pantalla cada día
+      // tiene una hora de inicio, una de fin y un descanso opcional; en la base
+      // se guarda como bloques (un descanso parte el día en dos bloques).
+      const DIAS_AGENDA = [[1, 'Lunes'], [2, 'Martes'], [3, 'Miércoles'], [4, 'Jueves'], [5, 'Viernes'], [6, 'Sábado'], [0, 'Domingo']];
+
+      const abrirHorarioBarbero = async (barbero) => {
+        if (!sbClient || esModoDemo) return;
+        const { data, error } = await sbClient
+          .from('barbero_horarios')
+          .select('dia, desde, hasta')
+          .eq('barbero_id', barbero.id)
+          .order('desde', { ascending: true });
+        if (error) {
+          notificar(`No se pudo cargar el horario: ${error.message}`, 'error');
+          return;
+        }
+        const hhmm = (t) => String(t).slice(0, 5);
+        const sinHorario = (data || []).length === 0;
+        const dias = DIAS_AGENDA.map(([dia, nombre]) => {
+          const bloques = (data || []).filter((b) => b.dia === dia);
+          if (bloques.length === 0) {
+            // Sin horario cargado se propone lunes a sábado de 9 a 20 para editar.
+            return { dia, nombre, activo: sinHorario && dia !== 0, desde: '09:00', hasta: '20:00', descansoDesde: '', descansoHasta: '' };
+          }
+          return {
+            dia, nombre, activo: true,
+            desde: hhmm(bloques[0].desde),
+            hasta: hhmm(bloques[bloques.length - 1].hasta),
+            descansoDesde: bloques.length > 1 ? hhmm(bloques[0].hasta) : '',
+            descansoHasta: bloques.length > 1 ? hhmm(bloques[1].desde) : ''
+          };
+        });
+        setModalHorario({ barbero, dias });
+      };
+
+      const cambiarDiaHorario = (dia, cambios) => {
+        setModalHorario((prev) => prev && { ...prev, dias: prev.dias.map((d) => (d.dia === dia ? { ...d, ...cambios } : d)) });
+      };
+
+      // Copia el horario del primer día activo a todos los demás días activos.
+      const copiarHorarioADias = () => {
+        setModalHorario((prev) => {
+          if (!prev) return prev;
+          const base = prev.dias.find((d) => d.activo);
+          if (!base) return prev;
+          return { ...prev, dias: prev.dias.map((d) => (d.activo ? { ...d, desde: base.desde, hasta: base.hasta, descansoDesde: base.descansoDesde, descansoHasta: base.descansoHasta } : d)) };
+        });
+      };
+
+      const guardarHorarioBarbero = async () => {
+        if (!modalHorario || !sbClient || esModoDemo) return;
+        const bloques = [];
+        for (const d of modalHorario.dias.filter((x) => x.activo)) {
+          if (!d.desde || !d.hasta || d.hasta <= d.desde) {
+            notificar(`${d.nombre}: la hora de fin debe ser después de la de inicio.`, 'error');
+            return;
+          }
+          if (d.descansoDesde || d.descansoHasta) {
+            if (!(d.descansoDesde && d.descansoHasta && d.descansoDesde > d.desde && d.descansoHasta > d.descansoDesde && d.descansoHasta < d.hasta)) {
+              notificar(`${d.nombre}: el descanso debe tener inicio y fin, dentro del horario.`, 'error');
+              return;
+            }
+            bloques.push({ dia: d.dia, desde: d.desde, hasta: d.descansoDesde }, { dia: d.dia, desde: d.descansoHasta, hasta: d.hasta });
+          } else {
+            bloques.push({ dia: d.dia, desde: d.desde, hasta: d.hasta });
+          }
+        }
+        setGuardandoHorario(true);
+        try {
+          const { error } = await sbClient.rpc('guardar_horario_barbero', { p_barbero: modalHorario.barbero.id, p_bloques: bloques });
+          if (error) throw error;
+          setBarberosConHorario((prev) => {
+            const sig = new Set(prev);
+            if (bloques.length > 0) sig.add(modalHorario.barbero.id); else sig.delete(modalHorario.barbero.id);
+            return sig;
+          });
+          notificar(`Horario de ${modalHorario.barbero.nombre} guardado.`, 'success');
+          setModalHorario(null);
+        } catch (err) {
+          notificar(`No se pudo guardar el horario: ${err.message}`, 'error');
+        } finally {
+          setGuardandoHorario(false);
+        }
+      };
+
+      // Agenda de citas de un día, por barbero.
+      const cargarAgenda = async (fecha) => {
+        if (!sbClient || !bodegaId || esModoDemo || !fecha) { setCitasAgenda([]); return; }
+        setCargandoAgenda(true);
+        try {
+          const [a, m, d] = fecha.split('-').map(Number);
+          const desde = new Date(a, m - 1, d);
+          const hasta = new Date(a, m - 1, d + 1);
+          const [resCitas, resBarberos] = await Promise.all([
+            sbClient
+              .from('citas')
+              .select('id, barbero_id, inicio, fin, pedidos_seguimiento(codigo_corto, cliente_nombre, items, estado)')
+              .eq('bodega_id', bodegaId)
+              .gte('inicio', desde.toISOString())
+              .lt('inicio', hasta.toISOString())
+              .order('inicio', { ascending: true }),
+            sbClient.from('cajeros').select('id, nombre').eq('bodega_id', bodegaId).order('nombre', { ascending: true })
+          ]);
+          if (resCitas.error) throw resCitas.error;
+          if (resBarberos.error) throw resBarberos.error;
+          const nombres = new Map((resBarberos.data || []).map((b) => [b.id, b.nombre]));
+          setCitasAgenda((resCitas.data || []).map((c) => ({ ...c, barbero: nombres.get(c.barbero_id) || 'Barbero' })));
+        } catch (err) {
+          notificar(`No se pudo cargar la agenda: ${err.message}`, 'error');
+          setCitasAgenda([]);
+        } finally {
+          setCargandoAgenda(false);
+        }
+      };
+
+      const abrirAgenda = () => {
+        const hoy = new Date();
+        const iso = `${hoy.getFullYear()}-${String(hoy.getMonth() + 1).padStart(2, '0')}-${String(hoy.getDate()).padStart(2, '0')}`;
+        setFechaAgenda(iso);
+        setModalAgenda(true);
+        cargarAgenda(iso);
       };
 
       // Crea el acceso de un nuevo empleado: un registro en 'usuarios' (para
@@ -5630,7 +5765,8 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
         setFormEditarProducto({
           ...datosFormularioDesdeProducto(prod),
           stock_actual: prod.stock_actual != null ? String(prod.stock_actual) : '',
-          visible_en_tienda: prod.visible_en_tienda !== false
+          visible_en_tienda: prod.visible_en_tienda !== false,
+          duracion_min: prod.duracion_min != null ? String(prod.duracion_min) : ''
         });
         setModalEditarProducto(true);
       }, []);
@@ -5653,6 +5789,14 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
           notificar('El stock no puede ser negativo.', 'error');
           return;
         }
+        // Barbería: un servicio (sin stock) puede llevar su duración en minutos para la agenda.
+        const duracionServicio = esBarberia && formEditarProducto.stock_actual === '' && String(formEditarProducto.duracion_min || '').trim() !== ''
+          ? Number(formEditarProducto.duracion_min)
+          : null;
+        if (duracionServicio !== null && !(Number.isInteger(duracionServicio) && duracionServicio >= 5 && duracionServicio <= 480)) {
+          notificar('La duración debe ser un número entero de minutos, entre 5 y 480.', 'error');
+          return;
+        }
         setGuardandoEdicionProducto(true);
         try {
           const payload = {
@@ -5670,7 +5814,7 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
             es_destacado: !!formEditarProducto.es_destacado,
             // Solo barbería: esconder el producto de la tienda online sin desactivarlo
             // (productos.visible_en_tienda, ver migration_43 de KaseritaDelivery).
-            ...(esBarberia ? { visible_en_tienda: formEditarProducto.visible_en_tienda !== false } : {}),
+            ...(esBarberia ? { visible_en_tienda: formEditarProducto.visible_en_tienda !== false, duracion_min: duracionServicio } : {}),
             ...normalizarCamposPack(formEditarProducto)
           };
           if (esModoDemo) {
@@ -9481,6 +9625,7 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
                 !esBarberia && { grupo: 'Administración', etiqueta: 'Cuentas por Pagar', icono: 'fa-file-invoice', accion: abrirCuentasPorPagar },
                 { grupo: 'Administración', etiqueta: esBarberia ? 'Barberos' : 'Cajeros y Empleados', icono: 'fa-user-group', accion: abrirGestionCajeros },
                 esBarberia && { grupo: 'Administración', etiqueta: 'Comisiones de barberos', icono: 'fa-percent', accion: abrirComisiones },
+                esBarberia && { grupo: 'Administración', etiqueta: 'Agenda de citas', icono: 'fa-calendar-days', accion: abrirAgenda },
                 { grupo: 'Administración', etiqueta: 'Registro de actividad', icono: 'fa-clipboard-check', accion: abrirAuditoria },
                 { grupo: 'Administración', etiqueta: 'Mi Link de Pedidos', icono: 'fa-share-nodes', accion: abrirModalDelivery },
                 { grupo: 'Entradas', etiqueta: esBarberia ? 'Registrar Servicios y Productos' : 'Registrar Productos', icono: 'fa-boxes-stacked', accion: () => setModalInventarioInicial(true) },
@@ -11312,6 +11457,22 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
                     </span>
                   </label>
                 )}
+                {esBarberia && formEditarProducto.stock_actual === '' && (
+                  <div className="p-2.5 rounded-xl border border-stone-200 bg-white">
+                    <label className="text-xs font-bold text-stone-800 block mb-1">Duración del servicio (minutos):</label>
+                    <input
+                      type="number"
+                      min="5"
+                      max="480"
+                      step="5"
+                      placeholder="30"
+                      value={formEditarProducto.duracion_min ?? ''}
+                      onChange={(e) => setFormEditarProducto({ ...formEditarProducto, duracion_min: e.target.value })}
+                      className="w-28 bg-white border border-stone-200/70 shadow-sm rounded-xl px-3 py-1.5 text-xs text-stone-900"
+                    />
+                    <p className="text-[10px] text-stone-500 mt-1">Sirve para la agenda de reservas: bloquea ese tiempo del barbero. Si lo dejas vacío cuenta 30 minutos.</p>
+                  </div>
+                )}
                 <div className="space-y-2.5">
                   <div>
                     <label className="text-xs text-stone-600 block mb-1">Descripción / Nombre:</label>
@@ -12583,6 +12744,16 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
                                   ))}
                                 </div>
                               )}
+                              {esBarberia && c.activo && (
+                                <button
+                                  onClick={() => abrirHorarioBarbero(c)}
+                                  title="Días y horas en que atiende; las citas de la tienda online se reservan dentro de este horario"
+                                  className="mt-1.5 flex items-center gap-1.5 text-[11px] font-semibold text-[#4d04b0] hover:underline"
+                                >
+                                  <i className="fa-regular fa-calendar"></i>
+                                  Horario de atención · {barberosConHorario.has(c.id) ? 'configurado' : 'sin horario'}
+                                </button>
+                              )}
                             </div>
                             <div className="flex items-center gap-1.5 shrink-0">
                               {c.rol === 'administrador' && (
@@ -12678,6 +12849,105 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
                       </div>
                       <p className="text-[11px] text-stone-500">Cada barbero tiene un % por cortes y servicios y otro por productos. Se cambian en "Barberos".</p>
                     </>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Modal: horario de atención de un barbero (agenda de reservas) */}
+          {modalHorario && esBarberia && (
+            <div className="fixed inset-0 bg-stone-900/30 backdrop-blur-sm flex items-center justify-center z-[60] p-4">
+              <div className="bg-white border border-stone-200 rounded-[28px] max-w-lg w-full shadow-2xl max-h-[92vh] flex flex-col overflow-hidden">
+                <div className="flex items-center justify-between gap-2 px-5 pt-4 pb-1 shrink-0">
+                  <h3 className="text-lg font-bold text-stone-900 flex items-center gap-2"><i className="fa-regular fa-calendar text-[#6105dc]"></i> Horario de {modalHorario.barbero.nombre}</h3>
+                  <button aria-label="Cerrar" onClick={() => setModalHorario(null)} className="text-stone-600 hover:text-stone-900 shrink-0"><i className="fa-solid fa-xmark"></i></button>
+                </div>
+                <p className="px-5 pb-2 text-[11px] text-stone-500 shrink-0">
+                  Marca los días que atiende y su horario. El descanso es opcional (por ejemplo, el almuerzo). Cuando un barbero tiene horario, la tienda online muestra horas libres y solo ofrece a los barberos con horario.
+                </p>
+                <div className="px-5 pb-3 overflow-y-auto space-y-2">
+                  {modalHorario.dias.map((d) => (
+                    <div key={d.dia} className={`p-2.5 border rounded-xl ${d.activo ? 'bg-stone-50 border-stone-200' : 'bg-white border-stone-100'}`}>
+                      <label className="flex items-center gap-2 text-xs font-bold text-stone-800 cursor-pointer">
+                        <input type="checkbox" checked={d.activo} onChange={(e) => cambiarDiaHorario(d.dia, { activo: e.target.checked })} className="w-3.5 h-3.5" />
+                        {d.nombre}
+                        {!d.activo && <span className="font-normal text-stone-400">No atiende</span>}
+                      </label>
+                      {d.activo && (
+                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mt-2">
+                          {[['desde', 'Desde'], ['hasta', 'Hasta'], ['descansoDesde', 'Descanso desde'], ['descansoHasta', 'Descanso hasta']].map(([campo, etiqueta]) => (
+                            <label key={campo} className="flex flex-col gap-0.5 text-[10px] text-stone-500">
+                              {etiqueta}
+                              <input
+                                type="time"
+                                value={d[campo]}
+                                onChange={(e) => cambiarDiaHorario(d.dia, { [campo]: e.target.value })}
+                                className="px-2 py-1.5 border border-stone-200 rounded-lg text-xs text-stone-800 bg-white"
+                              />
+                            </label>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+                <div className="flex gap-2 px-5 pb-4 pt-1 shrink-0">
+                  <button onClick={copiarHorarioADias} className="px-3 py-2 bg-[#f4eefe] hover:bg-[#ece0fd] text-[#4d04b0] text-xs font-semibold rounded-full">
+                    Copiar el primer día a los demás
+                  </button>
+                  <button onClick={guardarHorarioBarbero} disabled={guardandoHorario} className="flex-1 py-2 bg-[#6105dc] hover:bg-[#4d04b0] disabled:opacity-60 text-white font-bold text-xs rounded-full shadow">
+                    {guardandoHorario ? 'Guardando...' : 'Guardar horario'}
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Modal: agenda de citas por día (solo cuentas de barbería) */}
+          {modalAgenda && esBarberia && (
+            <div className="fixed inset-0 bg-stone-900/30 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+              <div className="bg-white border border-stone-200 rounded-[28px] max-w-lg w-full shadow-2xl max-h-[92vh] flex flex-col overflow-hidden">
+                <div className="flex items-center justify-between gap-2 px-5 pt-4 pb-2 shrink-0">
+                  <h3 className="text-lg font-bold text-stone-900 flex items-center gap-2"><i className="fa-solid fa-calendar-days text-[#6105dc]"></i> Agenda de citas</h3>
+                  <button aria-label="Cerrar" onClick={() => setModalAgenda(false)} className="text-stone-600 hover:text-stone-900 shrink-0"><i className="fa-solid fa-xmark"></i></button>
+                </div>
+                <div className="px-5 pb-3 shrink-0">
+                  <input
+                    type="date"
+                    value={fechaAgenda}
+                    onChange={(e) => { setFechaAgenda(e.target.value); cargarAgenda(e.target.value); }}
+                    className="px-3 py-1.5 border border-stone-200 rounded-xl text-xs text-stone-800 bg-white"
+                  />
+                </div>
+                <div className="px-5 pb-4 overflow-y-auto space-y-3">
+                  {cargandoAgenda ? (
+                    <p className="text-xs text-stone-500 text-center py-6">Cargando...</p>
+                  ) : citasAgenda.length === 0 ? (
+                    <p className="text-xs text-stone-500 text-center py-6">No hay citas para este día.</p>
+                  ) : (
+                    [...new Set(citasAgenda.map((c) => c.barbero))].map((nombreBarbero) => (
+                      <div key={nombreBarbero}>
+                        <p className="text-xs font-bold text-stone-800 mb-1.5">{nombreBarbero}</p>
+                        <div className="space-y-1.5">
+                          {citasAgenda.filter((c) => c.barbero === nombreBarbero).map((c) => {
+                            const hora = (iso) => new Date(iso).toLocaleTimeString('es-PE', { hour: '2-digit', minute: '2-digit', hour12: false });
+                            const seg = c.pedidos_seguimiento || {};
+                            const servicios = (seg.items || []).map((it) => `${it.cantidad} × ${String(it.descripcion || '').replace(/^Combo: /, '')}`).join(', ');
+                            return (
+                              <div key={c.id} className="flex items-start gap-3 p-2.5 bg-stone-50 border border-stone-200 rounded-xl">
+                                <p className="text-xs font-bold text-[#4d04b0] tabular-nums shrink-0 pt-0.5">{hora(c.inicio)}–{hora(c.fin)}</p>
+                                <div className="min-w-0">
+                                  <p className="text-xs font-semibold text-stone-800 truncate">{seg.cliente_nombre || 'Cliente'}</p>
+                                  <p className="text-[11px] text-stone-500 truncate">{servicios}</p>
+                                  <p className="text-[10px] text-stone-400"><span className="font-mono">{seg.codigo_corto}</span>{seg.estado === 'retirado' ? ' · atendida' : ''}</p>
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    ))
                   )}
                 </div>
               </div>
