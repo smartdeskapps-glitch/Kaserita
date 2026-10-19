@@ -5223,6 +5223,15 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
         });
       };
 
+      // Stock con el que nace un producto nuevo. Bodega: siempre 0 (entra luego
+      // por "Entrada de Mercadería"). Barbería: "servicio" = null (sin
+      // seguimiento, nunca se agota) y "producto" = la cantidad que escribió.
+      const stockInicialDeFila = (f) => {
+        if (!esBarberia) return 0;
+        if (f.tipoItem === 'producto') return Math.max(0, Number(f.stock_inicial) || 0);
+        return null;
+      };
+
       const guardarInventarioInicial = async () => {
         const filasNuevas = filasInventario.filter((f) => !f.productoExistenteId && f.descripcion.trim() && f.precio_venta);
         const filasExistentes = filasInventario.filter((f) => f.productoExistenteId);
@@ -5259,7 +5268,7 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
                 precio_costo: Number(f.precio_costo) || 0,
                 precio_venta: Number(f.precio_venta) || 0,
                 unidad: f.unidad === 'KG' ? 'KG' : 'UND',
-                stock_actual: 0,
+                stock_actual: stockInicialDeFila(f),
                 activo: true,
                 ...normalizarCamposPack(f)
               }));
@@ -5297,8 +5306,10 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
                 unidad: f.unidad === 'KG' ? 'KG' : 'UND',
                 // Este formulario ya solo crea/actualiza la ficha del producto
                 // (maestro) -- el stock siempre entra después por "Entrada de
-                // Mercadería", así que un producto nuevo arranca en 0.
-                stock_actual: 0,
+                // Mercadería", así que un producto nuevo arranca en 0. Excepción:
+                // en una barbería no existe esa pantalla, así que aquí se elige
+                // servicio (sin stock, null) o producto (con su cantidad inicial).
+                stock_actual: stockInicialDeFila(f),
                 ...normalizarCamposPack(f)
               }));
               const { error } = await sbClient.from('productos').insert(payloadNuevos);
@@ -9759,7 +9770,7 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
                     </div>
                     <button onClick={() => setModalInventarioInicial(false)} aria-label="Cerrar" className="w-8 h-8 flex items-center justify-center rounded-full text-stone-400 hover:text-stone-600 hover:bg-stone-100 transition-colors shrink-0"><i className="fa-solid fa-xmark"></i></button>
                   </div>
-                  <p className="mt-2 text-xs text-stone-500 leading-snug">Crea o actualiza la ficha de tus productos (precio, categoría, EAN/SKU). La cantidad se carga después desde "Entrada de Mercadería".</p>
+                  <p className="mt-2 text-xs text-stone-500 leading-snug">Crea o actualiza la ficha de tus productos (precio, categoría, EAN/SKU). {esBarberia ? 'Elige si es un servicio (sin stock) o un producto (con la cantidad que tienes).' : 'La cantidad se carga después desde "Entrada de Mercadería".'}</p>
                 </div>
 
                 <div className="flex-1 overflow-y-auto space-y-2.5 p-4 sm:p-5">
@@ -10097,6 +10108,38 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
                             <option value="KG">Peso (KG) — balanza</option>
                           </select>
                         </div>
+
+                      {/* Solo barbería: un servicio (corte, barba) no tiene stock; un
+                          producto (pomada, shampoo) sí y se cuenta desde aquí. */}
+                      {esBarberia && !esExistente && (
+                        <div className="space-y-1.5">
+                          <label className="block text-xs font-semibold text-stone-700">¿Qué estás registrando?</label>
+                          <div className="grid grid-cols-2 gap-2">
+                            {[['servicio', 'Servicio', 'Sin stock (corte, barba…)'], ['producto', 'Producto', 'Con stock (pomada…)']].map(([valor, titulo, ayuda]) => (
+                              <button
+                                key={valor}
+                                type="button"
+                                onClick={() => actualizarFilaInventario(idx, 'tipoItem', valor)}
+                                className={`text-left p-2.5 rounded-xl border-2 transition ${(fila.tipoItem || 'servicio') === valor ? 'border-orange-500 bg-orange-50' : 'border-stone-200 bg-stone-50 hover:bg-white'}`}
+                              >
+                                <span className="block text-sm font-bold text-stone-800">{titulo}</span>
+                                <span className="block text-[11px] text-stone-500">{ayuda}</span>
+                              </button>
+                            ))}
+                          </div>
+                          {fila.tipoItem === 'producto' && (
+                            <div>
+                              <label className="block text-xs font-semibold text-stone-700 mt-2">Cantidad que tienes ahora</label>
+                              <input
+                                type="number" min="0" step="1" placeholder="Ej: 12"
+                                value={fila.stock_inicial || ''}
+                                onChange={(e) => actualizarFilaInventario(idx, 'stock_inicial', e.target.value)}
+                                className={`w-full ${claseCampoNormal}`}
+                              />
+                            </div>
+                          )}
+                        </div>
+                      )}
 
                       {/* Venta por pack: la misma bolsa de stock sirve para vender el
                           pack cerrado o unidades sueltas si se abre -- se descuenta en
