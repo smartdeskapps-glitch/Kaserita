@@ -2225,7 +2225,7 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
           const [resVentas, resBarberos] = await Promise.all([
             sbClient
               .from('ventas')
-              .select('id, barbero_id, ventas_detalle(subtotal, productos(stock_actual))')
+              .select('id, barbero_id, ventas_detalle(subtotal, combo_id, productos(stock_actual))')
               .eq('bodega_id', bodegaId)
               .eq('anulada', false)
               .not('barbero_id', 'is', null)
@@ -2236,7 +2236,7 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
           if (resBarberos.error) throw resBarberos.error;
           const porBarbero = new Map((resBarberos.data || []).map((b) => [b.id, {
             // El dueño no cobra comisión (es el dueño del negocio), aunque atienda.
-            id: b.id, nombre: b.nombre, esDueno: b.rol === 'dueno', pct: b.rol === 'dueno' ? 0 : (Number(b.comision_pct) || 0), pctProductos: b.rol === 'dueno' ? 0 : (Number(b.comision_productos_pct) || 0), atenciones: 0, servicios: 0, cantServicios: 0, productos: 0
+            id: b.id, nombre: b.nombre, esDueno: b.rol === 'dueno', pct: b.rol === 'dueno' ? 0 : (Number(b.comision_pct) || 0), pctProductos: b.rol === 'dueno' ? 0 : (Number(b.comision_productos_pct) || 0), atenciones: 0, servicios: 0, cantServicios: 0, productos: 0, insumosCombo: 0
           }]));
           (resVentas.data || []).forEach((v) => {
             const fila = porBarbero.get(v.barbero_id);
@@ -2245,6 +2245,9 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
             (v.ventas_detalle || []).forEach((d) => {
               const esServicio = d.productos && (d.productos.stock_actual === null || d.productos.stock_actual === undefined);
               if (esServicio) { fila.servicios += Number(d.subtotal) || 0; fila.cantServicios += 1; }
+              // Dentro de un combo (ej. tinte + aplicación) solo comisiona la
+              // parte de servicio: el producto/insumo del combo no comisiona.
+              else if (d.combo_id) fila.insumosCombo += Number(d.subtotal) || 0;
               else fila.productos += Number(d.subtotal) || 0;
             });
           });
@@ -3209,14 +3212,18 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
           (c.combos_items || []).forEach((ci) => {
             const pr = enVivo.get(ci.producto_id) || ci.productos;
             const req = Number(ci.cantidad) || 1;
-            const stock = pr && pr.activo !== false ? Number(pr.stock_actual) || 0 : 0;
+            // Barbería: un servicio (sin stock) dentro de un combo, como la
+            // "Aplicación de tinte", siempre está disponible. En una bodega,
+            // sin stock sigue contando como 0, igual que antes.
+            const sinSeguimiento = esBarberia && pr && (pr.stock_actual === null || pr.stock_actual === undefined);
+            const stock = pr && pr.activo !== false ? (sinSeguimiento ? Infinity : Number(pr.stock_actual) || 0) : 0;
             if (stock < req) faltan.push(pr?.descripcion || '(producto eliminado)');
             unidades = Math.min(unidades, Math.floor(stock / req));
           });
           mapa.set(c.id, { disponible: faltan.length === 0, faltan, unidades });
         });
         return mapa;
-      }, [combos, productos]);
+      }, [combos, productos, esBarberia]);
 
       // Qué productos son parte de algún combo activo -- para poder
       // avisarlo en su propia tarjeta del catálogo normal (ver ProductoCard
@@ -9459,7 +9466,7 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
                 { grupo: 'Entradas', etiqueta: esBarberia ? 'Registrar Servicios y Productos' : 'Registrar Productos', icono: 'fa-boxes-stacked', accion: () => setModalInventarioInicial(true) },
                 !esBarberia && { grupo: 'Entradas', etiqueta: 'Entrada de Mercadería', icono: 'fa-truck-ramp-box', accion: () => setModalEntradaMercaderia(true) },
                 !esBarberia && { grupo: 'Entradas', etiqueta: 'Levantamiento de Inventario', icono: 'fa-clipboard-list', accion: () => setModalLevantamiento(true) },
-                !esBarberia && { grupo: 'Entradas', etiqueta: 'Combos', icono: 'fa-gift', accion: abrirModalCombos },
+                { grupo: 'Entradas', etiqueta: 'Combos', icono: 'fa-gift', accion: abrirModalCombos },
                 !esBarberia && { grupo: 'Entradas', etiqueta: 'Importar del Catálogo Maestro', icono: 'fa-book', accion: abrirImportarMaestro },
               ] : []),
               // El manual solo lo sirve /api/manual a quien tiene sesión: antes de abrirlo se
@@ -12626,6 +12633,9 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
                           <p className="text-xs text-stone-500">
                             Productos S/ {f.productos.toFixed(2)}{f.esDueno ? '' : ` × ${f.pctProductos}% = S/ ${f.comisionProductos.toFixed(2)}`}
                           </p>
+                          {f.insumosCombo > 0 && (
+                            <p className="text-xs text-stone-400">Productos dentro de combos S/ {f.insumosCombo.toFixed(2)} (sin comisión)</p>
+                          )}
                         </div>
                       ))}
                       <div className="flex items-baseline justify-between gap-2 px-1 pt-1 text-sm font-bold text-stone-900">
