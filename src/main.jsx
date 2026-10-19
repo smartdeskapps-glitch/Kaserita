@@ -5626,7 +5626,8 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
         setProductoEditando(prod);
         setFormEditarProducto({
           ...datosFormularioDesdeProducto(prod),
-          stock_actual: prod.stock_actual != null ? String(prod.stock_actual) : ''
+          stock_actual: prod.stock_actual != null ? String(prod.stock_actual) : '',
+          visible_en_tienda: prod.visible_en_tienda !== false
         });
         setModalEditarProducto(true);
       }, []);
@@ -5664,6 +5665,9 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
             fotos_extra: formEditarProducto.fotos_extra && formEditarProducto.fotos_extra.length ? formEditarProducto.fotos_extra : null,
             descripcion_larga: formEditarProducto.descripcion_larga.trim() || null,
             es_destacado: !!formEditarProducto.es_destacado,
+            // Solo barbería: esconder el producto de la tienda online sin desactivarlo
+            // (productos.visible_en_tienda, ver migration_43 de KaseritaDelivery).
+            ...(esBarberia ? { visible_en_tienda: formEditarProducto.visible_en_tienda !== false } : {}),
             ...normalizarCamposPack(formEditarProducto)
           };
           if (esModoDemo) {
@@ -11278,6 +11282,20 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
                     <span className="block text-[10px] text-stone-500">Aparece en el carrusel de destacados de tu tienda online. Puedes marcar varios productos.</span>
                   </span>
                 </label>
+                {esBarberia && (
+                  <label className={`flex items-start gap-2.5 p-2.5 rounded-xl border cursor-pointer transition ${formEditarProducto.visible_en_tienda === false ? 'bg-amber-50 border-amber-200' : 'bg-white border-stone-200'}`}>
+                    <input
+                      type="checkbox"
+                      checked={formEditarProducto.visible_en_tienda !== false}
+                      onChange={(e) => setFormEditarProducto({ ...formEditarProducto, visible_en_tienda: e.target.checked })}
+                      className="w-3.5 h-3.5 mt-0.5 shrink-0"
+                    />
+                    <span>
+                      <span className="block text-xs font-bold text-stone-800">Mostrar en la tienda online</span>
+                      <span className="block text-[10px] text-stone-500">Desmárcalo para esconderlo de la tienda sin desactivarlo (por ejemplo, un insumo que solo va dentro de un combo).</span>
+                    </span>
+                  </label>
+                )}
                 <div className="space-y-2.5">
                   <div>
                     <label className="text-xs text-stone-600 block mb-1">Descripción / Nombre:</label>
