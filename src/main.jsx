@@ -8737,6 +8737,18 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
                         })}
                       </div>
 
+                      {p.cita_fecha && (
+                        <div className="rounded-lg bg-[#f4eefe] px-3 py-2 text-xs">
+                          <p className="font-semibold text-[#4d04b0] capitalize">
+                            Cita: {(() => {
+                              const [a, m, d] = String(p.cita_fecha).split('-').map(Number);
+                              return new Date(a, m - 1, d).toLocaleDateString('es-PE', { weekday: 'long', day: 'numeric', month: 'long' });
+                            })()} · {p.cita_hora}
+                          </p>
+                          <p className="text-stone-500">Barbero: {p.cita_barbero || 'Cualquiera'}</p>
+                        </div>
+                      )}
+
                       {esDomicilioPedido && (
                         <div className="rounded-lg bg-[#f4eefe] px-3 py-2 space-y-1 text-xs">
                           <div className="flex items-center justify-between gap-2">
