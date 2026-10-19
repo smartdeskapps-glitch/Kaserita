@@ -27,6 +27,18 @@ grant select (comision_pct) on public.cajeros to authenticated;
 revoke insert (comision_pct), update (comision_pct) on public.cajeros from anon;
 grant update (comision_pct) on public.cajeros to authenticated;
 
+-- Dos porcentajes por barbero: comision_pct = sobre los SERVICIOS (cortes...)
+-- y comision_productos_pct = sobre los PRODUCTOS que ayuda a vender.
+alter table public.cajeros add column if not exists comision_productos_pct numeric(5,2) not null default 0;
+do $$
+begin
+  alter table public.cajeros add constraint cajeros_comision_productos_pct_check check (comision_productos_pct >= 0 and comision_productos_pct <= 100);
+exception
+  when duplicate_object then null;
+end $$;
+grant select (comision_productos_pct), update (comision_productos_pct) on public.cajeros to authenticated;
+revoke insert (comision_productos_pct), update (comision_productos_pct) on public.cajeros from anon;
+
 create or replace function public.registrar_venta(
   p_venta jsonb,
   p_detalles jsonb,

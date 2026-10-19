@@ -2179,7 +2179,7 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
         try {
           const { data, error } = await sbClient
             .from('cajeros')
-            .select(esBarberia ? 'id, bodega_id, nombre, dni, rol, activo, comision_pct' : 'id, bodega_id, nombre, dni, rol, activo')
+            .select(esBarberia ? 'id, bodega_id, nombre, dni, rol, activo, comision_pct, comision_productos_pct' :'id, bodega_id, nombre, dni, rol, activo')
             .eq('bodega_id', bodegaId)
             .order('nombre', { ascending: true });
           if (error) throw error;
@@ -2191,22 +2191,24 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
         }
       };
 
-      // Barbería: guarda el % de comisión de un barbero (0 a 100).
-      const guardarComisionBarbero = async (barbero, texto) => {
+      // Barbería: guarda un % de comisión de un barbero (0 a 100). `campo` es
+      // comision_pct (cortes y servicios) o comision_productos_pct (productos).
+      const guardarComisionBarbero = async (barbero, texto, campo = 'comision_pct') => {
+        if (campo !== 'comision_pct' && campo !== 'comision_productos_pct') return;
         const pct = Number(texto);
         if (!Number.isFinite(pct) || pct < 0 || pct > 100) {
           notificar('La comisión debe estar entre 0 y 100.', 'error');
           return;
         }
-        if (Number(barbero.comision_pct) === pct) return;
+        if (Number(barbero[campo]) === pct) return;
         if (!sbClient || esModoDemo) return;
-        const { error } = await sbClient.from('cajeros').update({ comision_pct: pct }).eq('id', barbero.id);
+        const { error } = await sbClient.from('cajeros').update({ [campo]: pct }).eq('id', barbero.id);
         if (error) {
           notificar(`No se pudo guardar la comisión: ${error.message}`, 'error');
           return;
         }
-        setCajerosGestion((prev) => prev.map((c) => (c.id === barbero.id ? { ...c, comision_pct: pct } : c)));
-        notificar(`Comisión de ${barbero.nombre}: ${pct}%.`, 'success');
+        setCajerosGestion((prev) => prev.map((c) => (c.id === barbero.id ? { ...c, [campo]: pct } : c)));
+        notificar(`Comisión de ${barbero.nombre} por ${campo === 'comision_pct' ? 'servicios' : 'productos'}: ${pct}%.`, 'success');
       };
 
       // Barbería: lo vendido por cada barbero en el período. La comisión se
@@ -2228,13 +2230,13 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
               .eq('anulada', false)
               .not('barbero_id', 'is', null)
               .gte('fecha_hora', desde.toISOString()),
-            sbClient.from('cajeros').select('id, nombre, rol, comision_pct').eq('bodega_id', bodegaId).order('nombre', { ascending: true })
+            sbClient.from('cajeros').select('id, nombre, rol, comision_pct, comision_productos_pct').eq('bodega_id', bodegaId).order('nombre', { ascending: true })
           ]);
           if (resVentas.error) throw resVentas.error;
           if (resBarberos.error) throw resBarberos.error;
           const porBarbero = new Map((resBarberos.data || []).map((b) => [b.id, {
             // El dueño no cobra comisión (es el dueño del negocio), aunque atienda.
-            id: b.id, nombre: b.nombre, esDueno: b.rol === 'dueno', pct: b.rol === 'dueno' ? 0 : (Number(b.comision_pct) || 0), atenciones: 0, servicios: 0, cantServicios: 0, productos: 0
+            id: b.id, nombre: b.nombre, esDueno: b.rol === 'dueno', pct: b.rol === 'dueno' ? 0 : (Number(b.comision_pct) || 0), pctProductos: b.rol === 'dueno' ? 0 : (Number(b.comision_productos_pct) || 0), atenciones: 0, servicios: 0, cantServicios: 0, productos: 0
           }]));
           (resVentas.data || []).forEach((v) => {
             const fila = porBarbero.get(v.barbero_id);
@@ -2246,7 +2248,12 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
               else fila.productos += Number(d.subtotal) || 0;
             });
           });
-          setFilasComisiones([...porBarbero.values()].map((f) => ({ ...f, comision: +(f.servicios * f.pct / 100).toFixed(2) })));
+          setFilasComisiones([...porBarbero.values()].map((f) => ({
+            ...f,
+            comisionServicios: +(f.servicios * f.pct / 100).toFixed(2),
+            comisionProductos: +(f.productos * f.pctProductos / 100).toFixed(2),
+            comision: +((f.servicios * f.pct / 100) + (f.productos * f.pctProductos / 100)).toFixed(2)
+          })));
         } catch (err) {
           notificar(`No se pudo cargar las comisiones: ${err.message}`, 'error');
           setFilasComisiones([]);
@@ -12518,21 +12525,25 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
                                 {c.nombre} {!c.activo && <span className="text-rose-600 font-sans">(Inactivo)</span>}
                               </p>
                               <p className="text-xs text-stone-500 capitalize">DNI: {c.dni} · {c.rol}</p>
+                              {esBarberia && c.rol !== 'dueno' && (
+                                <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mt-1.5">
+                                  {[['comision_pct', 'Cortes y servicios', 'Porcentaje que gana cuando hace un servicio (corte, barba...)'], ['comision_productos_pct', 'Productos', 'Porcentaje que gana cuando ayuda a vender un producto (pomada, shampoo...)']].map(([campo, etiqueta, ayuda]) => (
+                                    <label key={campo} className="flex items-center gap-1 text-[11px] text-stone-500" title={ayuda}>
+                                      {etiqueta}
+                                      <input
+                                        key={`${c.id}-${campo}-${c[campo]}`}
+                                        type="number" min="0" max="100" step="1"
+                                        defaultValue={c[campo] ?? 0}
+                                        onBlur={(e) => guardarComisionBarbero(c, e.target.value, campo)}
+                                        className="w-14 px-1.5 py-1 border border-stone-200 rounded-lg text-xs text-stone-800 text-right"
+                                      />
+                                      %
+                                    </label>
+                                  ))}
+                                </div>
+                              )}
                             </div>
                             <div className="flex items-center gap-1.5 shrink-0">
-                              {esBarberia && c.rol !== 'dueno' && (
-                                <label className="flex items-center gap-1 text-[11px] text-stone-500" title="Porcentaje de comisión sobre los servicios que hace">
-                                  Comisión
-                                  <input
-                                    key={`${c.id}-${c.comision_pct}`}
-                                    type="number" min="0" max="100" step="1"
-                                    defaultValue={c.comision_pct ?? 0}
-                                    onBlur={(e) => guardarComisionBarbero(c, e.target.value)}
-                                    className="w-14 px-1.5 py-1 border border-stone-200 rounded-lg text-xs text-stone-800 text-right"
-                                  />
-                                  %
-                                </label>
-                              )}
                               {c.rol === 'administrador' && (
                                 <button
                                   onClick={() => { setModalPinCajero(c); setNuevoPinCajero(''); }}
@@ -12607,7 +12618,13 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
                               : <p className="text-sm font-extrabold text-[#4d04b0] tabular-nums">Comisión S/ {f.comision.toFixed(2)}</p>}
                           </div>
                           <p className="text-xs text-stone-500 mt-1">
-                            {f.atenciones} {f.atenciones === 1 ? 'atención' : 'atenciones'} · Servicios S/ {f.servicios.toFixed(2)}{f.esDueno ? '' : ` (${f.pct}%)`} · Productos S/ {f.productos.toFixed(2)}
+                            {f.atenciones} {f.atenciones === 1 ? 'atención' : 'atenciones'}
+                          </p>
+                          <p className="text-xs text-stone-500">
+                            Cortes y servicios S/ {f.servicios.toFixed(2)}{f.esDueno ? '' : ` × ${f.pct}% = S/ ${f.comisionServicios.toFixed(2)}`}
+                          </p>
+                          <p className="text-xs text-stone-500">
+                            Productos S/ {f.productos.toFixed(2)}{f.esDueno ? '' : ` × ${f.pctProductos}% = S/ ${f.comisionProductos.toFixed(2)}`}
                           </p>
                         </div>
                       ))}
@@ -12615,7 +12632,7 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
                         <span>Total a pagar en comisiones</span>
                         <span className="tabular-nums">S/ {filasComisiones.reduce((a, f) => a + f.comision, 0).toFixed(2)}</span>
                       </div>
-                      <p className="text-[11px] text-stone-500">La comisión se calcula solo sobre los servicios; los productos se muestran aparte y no comisionan. El % de cada barbero se cambia en "Barberos".</p>
+                      <p className="text-[11px] text-stone-500">Cada barbero tiene un % por cortes y servicios y otro por productos. Se cambian en "Barberos".</p>
                     </>
                   )}
                 </div>
