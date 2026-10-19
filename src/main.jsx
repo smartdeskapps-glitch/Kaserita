@@ -12432,7 +12432,7 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
               <div className="bg-gradient-to-br from-[#f4effc] via-[#f9f8fb] to-[#f5f4f8] border border-white/80 rounded-[28px] max-w-md w-full p-5 shadow-2xl space-y-3 max-h-[90vh] flex flex-col">
                 <div className="flex justify-between items-center shrink-0">
                   <h3 className="text-lg font-bold text-stone-900 flex items-center gap-2">
-                    <i className="fa-solid fa-user-group text-orange-600"></i> Cajeros y Empleados
+                    <i className="fa-solid fa-user-group text-orange-600"></i> {esBarberia ? 'Barberos' : 'Cajeros y Empleados'}
                   </h3>
                   <button aria-label="Cerrar" onClick={() => setModalGestionCajeros(false)} className="w-8 h-8 rounded-full bg-white/70 hover:bg-white text-stone-500 hover:text-stone-900 shadow-sm"><i className="fa-solid fa-xmark"></i></button>
                 </div>

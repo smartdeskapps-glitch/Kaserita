@@ -21,6 +21,12 @@ exception
   when duplicate_object then null;
 end $$;
 
+-- cajeros tiene permisos POR COLUMNA (para esconder pin_seguridad): sin este
+-- grant, leer comision_pct da "permission denied for table cajeros".
+grant select (comision_pct) on public.cajeros to authenticated;
+revoke insert (comision_pct), update (comision_pct) on public.cajeros from anon;
+grant update (comision_pct) on public.cajeros to authenticated;
+
 create or replace function public.registrar_venta(
   p_venta jsonb,
   p_detalles jsonb,
