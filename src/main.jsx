@@ -936,6 +936,11 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
       const [montoApertura, setMontoApertura] = useState('100.00');
       const [modalGestionCajeros, setModalGestionCajeros] = useState(false);
       const [cajerosGestion, setCajerosGestion] = useState([]);
+      // Barbería: reporte de comisiones por barbero (ver abrirComisiones).
+      const [modalComisiones, setModalComisiones] = useState(false);
+      const [periodoComisiones, setPeriodoComisiones] = useState('hoy');
+      const [filasComisiones, setFilasComisiones] = useState([]);
+      const [cargandoComisiones, setCargandoComisiones] = useState(false);
       const [cargandoCajerosGestion, setCargandoCajerosGestion] = useState(false);
       const [mostrarFormNuevoCajero, setMostrarFormNuevoCajero] = useState(false);
       const [formNuevoCajero, setFormNuevoCajero] = useState({ nombre: '', dni: '', rol: 'cajero', pin: '' });
@@ -1364,6 +1369,8 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
       // "Cobrar" -- así el carrito queda limpio y solo se ve lo esencial.
       const [mostrarPago, setMostrarPago] = useState(false);
       const [medioPago, setMedioPago] = useState('EFECTIVO');
+      // Barbería: quién atendió la venta que se está armando (cajeros.id).
+      const [barberoVentaId, setBarberoVentaId] = useState(null);
       // 'PORCENTAJE' | 'MONTO' | null (null = sin descuento en esta venta)
       const [descuentoTipo, setDescuentoTipo] = useState(null);
       const [descuentoValor, setDescuentoValor] = useState('');
@@ -2172,7 +2179,7 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
         try {
           const { data, error } = await sbClient
             .from('cajeros')
-            .select('id, bodega_id, nombre, dni, rol, activo')
+            .select(esBarberia ? 'id, bodega_id, nombre, dni, rol, activo, comision_pct' : 'id, bodega_id, nombre, dni, rol, activo')
             .eq('bodega_id', bodegaId)
             .order('nombre', { ascending: true });
           if (error) throw error;
@@ -2182,6 +2189,74 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
         } finally {
           setCargandoCajerosGestion(false);
         }
+      };
+
+      // Barbería: guarda el % de comisión de un barbero (0 a 100).
+      const guardarComisionBarbero = async (barbero, texto) => {
+        const pct = Number(texto);
+        if (!Number.isFinite(pct) || pct < 0 || pct > 100) {
+          notificar('La comisión debe estar entre 0 y 100.', 'error');
+          return;
+        }
+        if (Number(barbero.comision_pct) === pct) return;
+        if (!sbClient || esModoDemo) return;
+        const { error } = await sbClient.from('cajeros').update({ comision_pct: pct }).eq('id', barbero.id);
+        if (error) {
+          notificar(`No se pudo guardar la comisión: ${error.message}`, 'error');
+          return;
+        }
+        setCajerosGestion((prev) => prev.map((c) => (c.id === barbero.id ? { ...c, comision_pct: pct } : c)));
+        notificar(`Comisión de ${barbero.nombre}: ${pct}%.`, 'success');
+      };
+
+      // Barbería: lo vendido por cada barbero en el período. La comisión se
+      // calcula solo sobre los SERVICIOS (ítems sin stock, como el corte); lo que
+      // vende de productos (pomada, shampoo) se muestra aparte y no comisiona.
+      const cargarComisiones = async (periodo) => {
+        if (!sbClient || !bodegaId || esModoDemo) { setFilasComisiones([]); return; }
+        setCargandoComisiones(true);
+        try {
+          const hoy = new Date();
+          const desde = new Date(hoy.getFullYear(), hoy.getMonth(), hoy.getDate());
+          if (periodo === 'semana') desde.setDate(desde.getDate() - ((desde.getDay() + 6) % 7));
+          if (periodo === 'mes') desde.setDate(1);
+          const [resVentas, resBarberos] = await Promise.all([
+            sbClient
+              .from('ventas')
+              .select('id, barbero_id, ventas_detalle(subtotal, productos(stock_actual))')
+              .eq('bodega_id', bodegaId)
+              .eq('anulada', false)
+              .not('barbero_id', 'is', null)
+              .gte('fecha_hora', desde.toISOString()),
+            sbClient.from('cajeros').select('id, nombre, comision_pct').eq('bodega_id', bodegaId).order('nombre', { ascending: true })
+          ]);
+          if (resVentas.error) throw resVentas.error;
+          if (resBarberos.error) throw resBarberos.error;
+          const porBarbero = new Map((resBarberos.data || []).map((b) => [b.id, {
+            id: b.id, nombre: b.nombre, pct: Number(b.comision_pct) || 0, atenciones: 0, servicios: 0, cantServicios: 0, productos: 0
+          }]));
+          (resVentas.data || []).forEach((v) => {
+            const fila = porBarbero.get(v.barbero_id);
+            if (!fila) return;
+            fila.atenciones += 1;
+            (v.ventas_detalle || []).forEach((d) => {
+              const esServicio = d.productos && (d.productos.stock_actual === null || d.productos.stock_actual === undefined);
+              if (esServicio) { fila.servicios += Number(d.subtotal) || 0; fila.cantServicios += 1; }
+              else fila.productos += Number(d.subtotal) || 0;
+            });
+          });
+          setFilasComisiones([...porBarbero.values()].map((f) => ({ ...f, comision: +(f.servicios * f.pct / 100).toFixed(2) })));
+        } catch (err) {
+          notificar(`No se pudo cargar las comisiones: ${err.message}`, 'error');
+          setFilasComisiones([]);
+        } finally {
+          setCargandoComisiones(false);
+        }
+      };
+
+      const abrirComisiones = () => {
+        setModalComisiones(true);
+        cargarComisiones(periodoComisiones);
       };
 
       // Crea el acceso de un nuevo empleado: un registro en 'usuarios' (para
@@ -7117,6 +7192,11 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
           notificar('Monto recibido insuficiente.', 'error');
           return;
         }
+        // Barbería: cada cobro lleva el barbero que atendió (de él sale la comisión).
+        if (esBarberia && !esModoDemo && !barberoVentaId) {
+          notificar('Elige el barbero que atendió antes de cobrar.', 'error');
+          return;
+        }
 
         // Validación de crédito: Saldo actual + Venta <= Límite
         if (medioPago === 'CREDITO') {
@@ -7217,7 +7297,9 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
               descuento_monto: montoDescuento,
               utilidad_total: +utilidadTotal.toFixed(2),
               monto_efectivo: medioPago === 'MIXTO' ? montoEfectivoMixto : 0,
-              monto_otro: medioPago === 'MIXTO' ? montoOtroMixto : 0
+              monto_otro: medioPago === 'MIXTO' ? montoOtroMixto : 0,
+              // Solo barbería (ventas.barbero_id, ver barbero_en_ventas.sql).
+              ...(esBarberia && barberoVentaId ? { barbero_id: barberoVentaId } : {})
             };
 
             // Un combo es UNA línea en el carrito pero se cobra/descuenta como
@@ -7467,6 +7549,7 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
           setCampoTeclado(null);
           setMostrarPago(false);
           reiniciarClienteYMedioPago();
+          setBarberoVentaId(null);
           // Cierra la hoja del carrito (mobile): que la venta exitosa vuelva
           // al catálogo en vez de dejar ver el carrito ya vacío detrás.
           setMostrarResumenMobile(false);
@@ -8902,6 +8985,26 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
               </button>
             )}
 
+            {/* Solo barbería: quién atendió. Se elige antes de cobrar y se limpia
+                después de cada venta. */}
+            {esBarberia && (
+              <div className="shrink-0 mx-3 mt-2.5">
+                <p className="text-[11px] font-semibold text-stone-500 mb-1">Barbero que atendió</p>
+                <div className="flex flex-wrap gap-1.5">
+                  {listaCajeros.filter((c) => c.activo !== false).map((c) => (
+                    <button
+                      key={c.id}
+                      type="button"
+                      onClick={() => setBarberoVentaId(barberoVentaId === c.id ? null : c.id)}
+                      className={`px-3 py-1.5 rounded-full text-xs font-semibold transition ${barberoVentaId === c.id ? 'bg-[#6105dc] text-white' : 'bg-[#f4eefe] text-[#4d04b0] hover:bg-[#ece0fd]'}`}
+                    >
+                      {c.nombre}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
             {/* Lista Ítems */}
             <div className="flex-1 overflow-y-auto p-2.5 pb-16 space-y-1.5 hide-scrollbar">
               {carrito.length === 0 ? (
@@ -9342,6 +9445,7 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
                 { grupo: 'Administración', etiqueta: 'Dashboard de Ventas', icono: 'fa-chart-pie', accion: abrirDashboard },
                 !esBarberia && { grupo: 'Administración', etiqueta: 'Cuentas por Pagar', icono: 'fa-file-invoice', accion: abrirCuentasPorPagar },
                 { grupo: 'Administración', etiqueta: esBarberia ? 'Barberos' : 'Cajeros y Empleados', icono: 'fa-user-group', accion: abrirGestionCajeros },
+                esBarberia && { grupo: 'Administración', etiqueta: 'Comisiones de barberos', icono: 'fa-percent', accion: abrirComisiones },
                 { grupo: 'Administración', etiqueta: 'Registro de actividad', icono: 'fa-clipboard-check', accion: abrirAuditoria },
                 { grupo: 'Administración', etiqueta: 'Mi Link de Pedidos', icono: 'fa-share-nodes', accion: abrirModalDelivery },
                 { grupo: 'Entradas', etiqueta: esBarberia ? 'Registrar Servicios y Productos' : 'Registrar Productos', icono: 'fa-boxes-stacked', accion: () => setModalInventarioInicial(true) },
@@ -12398,7 +12502,7 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
                       onClick={() => setMostrarFormNuevoCajero(true)}
                       className="w-full py-2.5 bg-white/70 hover:bg-[#ece0fd] text-stone-600 text-xs font-semibold rounded-full border border-stone-300 border-dashed flex items-center justify-center gap-1.5 shrink-0 shadow-sm"
                     >
-                      <i className="fa-solid fa-user-plus"></i> Agregar Nuevo Cajero
+                      <i className="fa-solid fa-user-plus"></i> {esBarberia ? 'Agregar Nuevo Barbero' : 'Agregar Nuevo Cajero'}
                     </button>
                     <div className="flex-1 overflow-y-auto space-y-1.5">
                       {cargandoCajerosGestion ? (
@@ -12415,6 +12519,19 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
                               <p className="text-xs text-stone-500 capitalize">DNI: {c.dni} · {c.rol}</p>
                             </div>
                             <div className="flex items-center gap-1.5 shrink-0">
+                              {esBarberia && (
+                                <label className="flex items-center gap-1 text-[11px] text-stone-500" title="Porcentaje de comisión sobre los servicios que hace">
+                                  Comisión
+                                  <input
+                                    key={`${c.id}-${c.comision_pct}`}
+                                    type="number" min="0" max="100" step="1"
+                                    defaultValue={c.comision_pct ?? 0}
+                                    onBlur={(e) => guardarComisionBarbero(c, e.target.value)}
+                                    className="w-14 px-1.5 py-1 border border-stone-200 rounded-lg text-xs text-stone-800 text-right"
+                                  />
+                                  %
+                                </label>
+                              )}
                               {c.rol === 'administrador' && (
                                 <button
                                   onClick={() => { setModalPinCajero(c); setNuevoPinCajero(''); }}
@@ -12450,6 +12567,55 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
                     </div>
                   </>
                 )}
+              </div>
+            </div>
+          )}
+
+          {/* Modal: Comisiones de barberos (solo cuentas de barbería) */}
+          {modalComisiones && esBarberia && (
+            <div className="fixed inset-0 bg-stone-900/30 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+              <div className="bg-white border border-stone-200 rounded-[28px] max-w-lg w-full shadow-2xl max-h-[92vh] flex flex-col overflow-hidden">
+                <div className="flex items-center justify-between gap-2 px-5 pt-4 pb-2 shrink-0">
+                  <h3 className="text-lg font-bold text-stone-900 flex items-center gap-2"><i className="fa-solid fa-percent text-[#6105dc]"></i> Comisiones de barberos</h3>
+                  <button aria-label="Cerrar" onClick={() => setModalComisiones(false)} className="text-stone-600 hover:text-stone-900 shrink-0"><i className="fa-solid fa-xmark"></i></button>
+                </div>
+                <div className="px-5 pb-3 flex gap-1.5 shrink-0">
+                  {[['hoy', 'Hoy'], ['semana', 'Esta semana'], ['mes', 'Este mes']].map(([valor, etiqueta]) => (
+                    <button
+                      key={valor}
+                      onClick={() => { setPeriodoComisiones(valor); cargarComisiones(valor); }}
+                      className={`px-3.5 py-1.5 rounded-full text-xs font-semibold transition ${periodoComisiones === valor ? 'bg-[#6105dc] text-white' : 'bg-[#f4eefe] text-[#4d04b0] hover:bg-[#ece0fd]'}`}
+                    >
+                      {etiqueta}
+                    </button>
+                  ))}
+                </div>
+                <div className="px-5 pb-4 overflow-y-auto space-y-2">
+                  {cargandoComisiones ? (
+                    <p className="text-xs text-stone-500 text-center py-6">Cargando...</p>
+                  ) : filasComisiones.length === 0 ? (
+                    <p className="text-xs text-stone-500 text-center py-6">Sin barberos o sin ventas en este período.</p>
+                  ) : (
+                    <>
+                      {filasComisiones.map((f) => (
+                        <div key={f.id} className="p-3 bg-stone-50 border border-stone-200 rounded-2xl">
+                          <div className="flex items-baseline justify-between gap-2">
+                            <p className="text-sm font-bold text-stone-900">{f.nombre}</p>
+                            <p className="text-sm font-extrabold text-[#4d04b0] tabular-nums">Comisión S/ {f.comision.toFixed(2)}</p>
+                          </div>
+                          <p className="text-xs text-stone-500 mt-1">
+                            {f.atenciones} {f.atenciones === 1 ? 'atención' : 'atenciones'} · Servicios S/ {f.servicios.toFixed(2)} ({f.pct}%) · Productos S/ {f.productos.toFixed(2)}
+                          </p>
+                        </div>
+                      ))}
+                      <div className="flex items-baseline justify-between gap-2 px-1 pt-1 text-sm font-bold text-stone-900">
+                        <span>Total a pagar en comisiones</span>
+                        <span className="tabular-nums">S/ {filasComisiones.reduce((a, f) => a + f.comision, 0).toFixed(2)}</span>
+                      </div>
+                      <p className="text-[11px] text-stone-500">La comisión se calcula solo sobre los servicios; los productos se muestran aparte y no comisionan. El % de cada barbero se cambia en "Barberos".</p>
+                    </>
+                  )}
+                </div>
               </div>
             </div>
           )}
