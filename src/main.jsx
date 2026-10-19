@@ -803,7 +803,7 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
       const [cargandoAdminLogin, setCargandoAdminLogin] = useState(false);
       const [bodegasAdmin, setBodegasAdmin] = useState([]);
       const [cargandoBodegasAdmin, setCargandoBodegasAdmin] = useState(false);
-      const [formNuevaBodega, setFormNuevaBodega] = useState({ correo: '', nombreBodega: '', nombreDueno: '', dias: '30', telefono: '', planId: '', monto: '', medio: 'yape', mostrarCatalogoMaestro: true, permitirSubirFotos: true });
+      const [formNuevaBodega, setFormNuevaBodega] = useState({ correo: '', nombreBodega: '', nombreDueno: '', dias: '30', telefono: '', planId: '', monto: '', medio: 'yape', mostrarCatalogoMaestro: true, permitirSubirFotos: true, rubro: 'bodega' });
       const [guardandoNuevaBodega, setGuardandoNuevaBodega] = useState(false);
 
       // --- Bodega & Cajeros ---
