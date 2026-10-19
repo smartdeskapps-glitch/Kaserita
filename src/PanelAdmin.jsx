@@ -12,6 +12,14 @@ const MEDIOS_PAGO = [
   ['efectivo', 'Efectivo'], ['transferencia', 'Transferencia'], ['otro', 'Otro'],
 ];
 
+// Rubros de negocio (bodegas.tipo_negocio, ver tipo_negocio_barberia.sql). Para
+// sumar uno nuevo: agregarlo aqui, a la restriccion bodegas_tipo_negocio_check y
+// a lo que cambia en el POS (esBarberia en main.jsx).
+const RUBROS_NEGOCIO = [
+  { valor: 'bodega', etiqueta: 'Bodega / minimarket', ayuda: 'POS con inventario, compras, proveedores y combos.' },
+  { valor: 'barberia', etiqueta: 'Barbería', ayuda: 'Servicios sin stock y productos de venta; sin módulos de mercadería; empleados como Barberos.' },
+];
+
 // Panel del super-administrador: crea bodegas (el unico lugar donde se
 // puede crear una, ver panel_admin.sql) y controla su vigencia. No usa
 // "sesion" (esa es la de dueno/cajero de una bodega) -- entra con su
@@ -101,9 +109,18 @@ const MEDIOS_PAGO = [
             }
           }
 
-          const avisoTotal = `${avisoPlan}${avisoPago}`;
+          // Rubro: la creación deja 'bodega' por defecto; si el admin eligió otro,
+          // se aplica aquí (tipo_negocio_barberia.sql). Si falta ese SQL, avisa.
+          let avisoRubro = '';
+          const rubroElegido = formNuevaBodega.rubro || 'bodega';
+          if (rubroElegido !== 'bodega' && bodegaNuevaId) {
+            const { error: errRubro } = await sbClient.from('bodegas').update({ tipo_negocio: rubroElegido }).eq('id', bodegaNuevaId);
+            if (errRubro) avisoRubro = ' Ojo: no se pudo aplicar el rubro; cámbialo a mano en la base (columna tipo_negocio).';
+          }
+
+          const avisoTotal = `${avisoPlan}${avisoPago}${avisoRubro}`;
           notificar(`Bodega creada${planElegido ? ` (${planElegido.nombre})` : ''}. El dueño entra con "Continuar con Google" usando ${correo}.${avisoTotal}`, avisoTotal ? 'error' : 'success');
-          setFormNuevaBodega({ correo: '', nombreBodega: '', nombreDueno: '', dias: '30', telefono: '', planId: '', monto: '', medio: 'yape', mostrarCatalogoMaestro: true, permitirSubirFotos: true });
+          setFormNuevaBodega({ correo: '', nombreBodega: '', nombreDueno: '', dias: '30', telefono: '', planId: '', monto: '', medio: 'yape', mostrarCatalogoMaestro: true, permitirSubirFotos: true, rubro: 'bodega' });
           setModalNueva(false);
           cargarBodegas();
         } catch (err) {
@@ -1560,6 +1577,17 @@ const MEDIOS_PAGO = [
                     className="w-full bg-stone-50 border border-stone-200 rounded-lg px-3 py-2 text-sm text-stone-900"
                   />
                 </div>
+              </div>
+              <div>
+                <label className="text-xs text-stone-600 block mb-1">Rubro del negocio:</label>
+                <select
+                  value={formNuevaBodega.rubro || 'bodega'}
+                  onChange={(e) => setFormNuevaBodega({ ...formNuevaBodega, rubro: e.target.value })}
+                  className="w-full bg-stone-50 border border-stone-200 rounded-lg px-3 py-2 text-sm text-stone-900"
+                >
+                  {RUBROS_NEGOCIO.map((r) => <option key={r.valor} value={r.valor}>{r.etiqueta}</option>)}
+                </select>
+                <p className="text-[11px] text-stone-500 mt-1">{(RUBROS_NEGOCIO.find((r) => r.valor === (formNuevaBodega.rubro || 'bodega')) || RUBROS_NEGOCIO[0]).ayuda}</p>
               </div>
               {planesAdmin.length > 0 && (
                 <div>

@@ -803,7 +803,7 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
       const [cargandoAdminLogin, setCargandoAdminLogin] = useState(false);
       const [bodegasAdmin, setBodegasAdmin] = useState([]);
       const [cargandoBodegasAdmin, setCargandoBodegasAdmin] = useState(false);
-      const [formNuevaBodega, setFormNuevaBodega] = useState({ correo: '', nombreBodega: '', nombreDueno: '', dias: '30', telefono: '', planId: '', monto: '', medio: 'yape', mostrarCatalogoMaestro: true, permitirSubirFotos: true });
+      const [formNuevaBodega, setFormNuevaBodega] = useState({ correo: '', nombreBodega: '', nombreDueno: '', dias: '30', telefono: '', planId: '', monto: '', medio: 'yape', mostrarCatalogoMaestro: true, permitirSubirFotos: true, rubro: 'bodega' });
       const [guardandoNuevaBodega, setGuardandoNuevaBodega] = useState(false);
 
       // --- Bodega & Cajeros ---
@@ -838,6 +838,11 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
       // sesión en el dispositivo -- para dar permisos según quién opera la caja.
       const rolActivo = (cajeroSeleccionado?.rol || usuarioActivo?.rol || 'cajero').toLowerCase();
       const esAdmin = rolActivo === 'dueno' || rolActivo === 'administrador';
+      // Cuenta de barbería (bodegas.tipo_negocio, ver tipo_negocio_barberia.sql):
+      // mismos módulos de caja, pero sin los de mercadería y con "Barberos" en
+      // vez de "Cajeros y Empleados". Cualquier otro valor (o la columna aún
+      // inexistente) se comporta como bodega, igual que antes.
+      const esBarberia = sesion?.bodega?.tipo_negocio === 'barberia';
 
       // --- Productos & Búsqueda ---
       const [productos, setProductos] = useState([]);
@@ -9320,19 +9325,19 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
               { grupo: 'Ventas y caja', etiqueta: 'Historial', icono: 'fa-receipt', accion: abrirHistorialDelDia },
               { grupo: 'Ventas y caja', etiqueta: 'Clientes', icono: 'fa-users', accion: abrirGestionClientes },
               { grupo: 'Inventario', etiqueta: 'Ver Stock', icono: 'fa-table-list', tono: cantidadStockBajo > 0 ? 'amber' : undefined, insignia: cantidadStockBajo > 0 ? `${cantidadStockBajo} por reponer` : '', accion: () => { setVerStockFiltro('todos'); setModalVerStock(true); } },
-              { grupo: 'Inventario', etiqueta: 'Toma de Inventario', icono: 'fa-clipboard-check', accion: abrirTomaInventario },
+              !esBarberia && { grupo: 'Inventario', etiqueta: 'Toma de Inventario', icono: 'fa-clipboard-check', accion: abrirTomaInventario },
               { grupo: 'Inventario', etiqueta: 'Registrar Merma', icono: 'fa-box', accion: () => setModalMerma(true) },
               ...(esAdmin ? [
                 { grupo: 'Administración', etiqueta: 'Dashboard de Ventas', icono: 'fa-chart-pie', accion: abrirDashboard },
-                { grupo: 'Administración', etiqueta: 'Cuentas por Pagar', icono: 'fa-file-invoice', accion: abrirCuentasPorPagar },
-                { grupo: 'Administración', etiqueta: 'Cajeros y Empleados', icono: 'fa-user-group', accion: abrirGestionCajeros },
+                !esBarberia && { grupo: 'Administración', etiqueta: 'Cuentas por Pagar', icono: 'fa-file-invoice', accion: abrirCuentasPorPagar },
+                { grupo: 'Administración', etiqueta: esBarberia ? 'Barberos' : 'Cajeros y Empleados', icono: 'fa-user-group', accion: abrirGestionCajeros },
                 { grupo: 'Administración', etiqueta: 'Registro de actividad', icono: 'fa-clipboard-check', accion: abrirAuditoria },
                 { grupo: 'Administración', etiqueta: 'Mi Link de Pedidos', icono: 'fa-share-nodes', accion: abrirModalDelivery },
-                { grupo: 'Entradas', etiqueta: 'Registrar Productos', icono: 'fa-boxes-stacked', accion: () => setModalInventarioInicial(true) },
-                { grupo: 'Entradas', etiqueta: 'Entrada de Mercadería', icono: 'fa-truck-ramp-box', accion: () => setModalEntradaMercaderia(true) },
-                { grupo: 'Entradas', etiqueta: 'Levantamiento de Inventario', icono: 'fa-clipboard-list', accion: () => setModalLevantamiento(true) },
-                { grupo: 'Entradas', etiqueta: 'Combos', icono: 'fa-gift', accion: abrirModalCombos },
-                { grupo: 'Entradas', etiqueta: 'Importar del Catálogo Maestro', icono: 'fa-book', accion: abrirImportarMaestro },
+                { grupo: 'Entradas', etiqueta: esBarberia ? 'Registrar Servicios y Productos' : 'Registrar Productos', icono: 'fa-boxes-stacked', accion: () => setModalInventarioInicial(true) },
+                !esBarberia && { grupo: 'Entradas', etiqueta: 'Entrada de Mercadería', icono: 'fa-truck-ramp-box', accion: () => setModalEntradaMercaderia(true) },
+                !esBarberia && { grupo: 'Entradas', etiqueta: 'Levantamiento de Inventario', icono: 'fa-clipboard-list', accion: () => setModalLevantamiento(true) },
+                !esBarberia && { grupo: 'Entradas', etiqueta: 'Combos', icono: 'fa-gift', accion: abrirModalCombos },
+                !esBarberia && { grupo: 'Entradas', etiqueta: 'Importar del Catálogo Maestro', icono: 'fa-book', accion: abrirImportarMaestro },
               ] : []),
               // El manual solo lo sirve /api/manual a quien tiene sesión: antes de abrirlo se
               // renueva el token por si venció, y la pestaña se abre primero para que el
