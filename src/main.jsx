@@ -1892,6 +1892,9 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
           const { data, error } = await sbClient
             .from('pedidos_seguimiento')
             .select('*')
+            // Solo los de esta bodega: si el dueño también compra como cliente
+            // con la misma cuenta, sus pedidos de otras tiendas no deben verse acá.
+            .eq('bodega_id', sesion.bodega.id)
             .order('creado_en', { ascending: false })
             .limit(200);
           if (error) throw error;
