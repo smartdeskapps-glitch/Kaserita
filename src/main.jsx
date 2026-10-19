@@ -2228,12 +2228,13 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
               .eq('anulada', false)
               .not('barbero_id', 'is', null)
               .gte('fecha_hora', desde.toISOString()),
-            sbClient.from('cajeros').select('id, nombre, comision_pct').eq('bodega_id', bodegaId).order('nombre', { ascending: true })
+            sbClient.from('cajeros').select('id, nombre, rol, comision_pct').eq('bodega_id', bodegaId).order('nombre', { ascending: true })
           ]);
           if (resVentas.error) throw resVentas.error;
           if (resBarberos.error) throw resBarberos.error;
           const porBarbero = new Map((resBarberos.data || []).map((b) => [b.id, {
-            id: b.id, nombre: b.nombre, pct: Number(b.comision_pct) || 0, atenciones: 0, servicios: 0, cantServicios: 0, productos: 0
+            // El dueño no cobra comisión (es el dueño del negocio), aunque atienda.
+            id: b.id, nombre: b.nombre, esDueno: b.rol === 'dueno', pct: b.rol === 'dueno' ? 0 : (Number(b.comision_pct) || 0), atenciones: 0, servicios: 0, cantServicios: 0, productos: 0
           }]));
           (resVentas.data || []).forEach((v) => {
             const fila = porBarbero.get(v.barbero_id);
@@ -12519,7 +12520,7 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
                               <p className="text-xs text-stone-500 capitalize">DNI: {c.dni} · {c.rol}</p>
                             </div>
                             <div className="flex items-center gap-1.5 shrink-0">
-                              {esBarberia && (
+                              {esBarberia && c.rol !== 'dueno' && (
                                 <label className="flex items-center gap-1 text-[11px] text-stone-500" title="Porcentaje de comisión sobre los servicios que hace">
                                   Comisión
                                   <input
@@ -12601,10 +12602,12 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
                         <div key={f.id} className="p-3 bg-stone-50 border border-stone-200 rounded-2xl">
                           <div className="flex items-baseline justify-between gap-2">
                             <p className="text-sm font-bold text-stone-900">{f.nombre}</p>
-                            <p className="text-sm font-extrabold text-[#4d04b0] tabular-nums">Comisión S/ {f.comision.toFixed(2)}</p>
+                            {f.esDueno
+                              ? <p className="text-xs font-semibold text-stone-500">Dueño · sin comisión</p>
+                              : <p className="text-sm font-extrabold text-[#4d04b0] tabular-nums">Comisión S/ {f.comision.toFixed(2)}</p>}
                           </div>
                           <p className="text-xs text-stone-500 mt-1">
-                            {f.atenciones} {f.atenciones === 1 ? 'atención' : 'atenciones'} · Servicios S/ {f.servicios.toFixed(2)} ({f.pct}%) · Productos S/ {f.productos.toFixed(2)}
+                            {f.atenciones} {f.atenciones === 1 ? 'atención' : 'atenciones'} · Servicios S/ {f.servicios.toFixed(2)}{f.esDueno ? '' : ` (${f.pct}%)`} · Productos S/ {f.productos.toFixed(2)}
                           </p>
                         </div>
                       ))}
