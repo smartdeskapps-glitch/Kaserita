@@ -8739,10 +8739,11 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
 
                       {p.cita_fecha && (
                         <div className="rounded-lg bg-[#f4eefe] px-3 py-2 text-xs">
-                          <p className="font-semibold text-[#4d04b0] capitalize">
+                          <p className="font-semibold text-[#4d04b0]">
                             Cita: {(() => {
                               const [a, m, d] = String(p.cita_fecha).split('-').map(Number);
-                              return new Date(a, m - 1, d).toLocaleDateString('es-PE', { weekday: 'long', day: 'numeric', month: 'long' });
+                              const t = new Date(a, m - 1, d).toLocaleDateString('es-PE', { weekday: 'long', day: 'numeric', month: 'long' });
+                              return t.charAt(0).toUpperCase() + t.slice(1);
                             })()} · {p.cita_hora}
                           </p>
                           <p className="text-stone-500">Barbero: {p.cita_barbero || 'Cualquiera'}</p>
