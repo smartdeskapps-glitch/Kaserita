@@ -17,6 +17,7 @@ import { valorAuditoria, describirAuditoria } from './lib/auditoria.js';
 import { antiguedadTurno } from './lib/turnos.js';
 import { iniciarMonitoreo, reportarError } from './monitoreo.js';
 import { estadoDeudor, coberturaPago, restoPrimeraBoleta } from './lib/deudas.js';
+import { fechasDeRango, resumenVentas, isoLocal } from './lib/historial.js';
 import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCombo, margenCombo, expandirLineaCombo, detalleComboTicket } from './lib/combos.js';
 
 
@@ -525,6 +526,19 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
         </div>
       );
     }
+
+    // Cómo se ve cada medio de pago en el historial: nombre, color del anillo,
+    // degradado del ícono y el ícono. CREDITO se muestra como "Fiado".
+    const MEDIOS_HISTORIAL = {
+      EFECTIVO: { n: 'Efectivo', c: '#22b573', g: 'linear-gradient(160deg,#3ed592,#16a05f)', i: 'fa-money-bill-wave' },
+      YAPE: { n: 'Yape', c: '#7c3aed', g: 'linear-gradient(160deg,#a06bff,#6d28d9)', i: 'fa-mobile-screen' },
+      PLIN: { n: 'Plin', c: '#17b8d4', g: 'linear-gradient(160deg,#45d3ea,#0f9bb8)', i: 'fa-mobile-screen' },
+      TARJETA: { n: 'Tarjeta', c: '#f59e0b', g: 'linear-gradient(160deg,#ffc24d,#e08a00)', i: 'fa-credit-card' },
+      CREDITO: { n: 'Fiado', c: '#f43f5e', g: 'linear-gradient(160deg,#ff6d86,#dc2447)', i: 'fa-hand-holding-dollar' },
+      MIXTO: { n: 'Mixto', c: '#64748b', g: 'linear-gradient(160deg,#8796aa,#566377)', i: 'fa-shuffle' },
+      OTRO: { n: 'Otros', c: '#a3aec0', g: 'linear-gradient(160deg,#b4bfd0,#8693a8)', i: 'fa-receipt' }
+    };
+    const medioHistorial = (k) => MEDIOS_HISTORIAL[k] || { ...MEDIOS_HISTORIAL.OTRO, n: k || 'Otro' };
 
     // Montos del Dashboard con separador de miles (1,752.90) y siempre 2 decimales.
     const formatoSoles = (n) => Number(n || 0).toLocaleString('es-PE', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -1433,6 +1447,13 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
       const [fechaInicioHistorial, setFechaInicioHistorial] = useState(fechaHoyISO());
       const [fechaFinHistorial, setFechaFinHistorial] = useState(fechaHoyISO());
       const [busquedaBoletaHistorial, setBusquedaBoletaHistorial] = useState('');
+      // Selector de rango ('hoy' | 'ayer' | '7' | 'mes' | 'fechas'), filtro por
+      // medio de pago ('todos' | medio | 'anul'), venta abierta en la hoja de
+      // la boleta y menú de filtros.
+      const [rangoHistorial, setRangoHistorial] = useState('hoy');
+      const [filtroPagoHistorial, setFiltroPagoHistorial] = useState('todos');
+      const [ventaHistorialSel, setVentaHistorialSel] = useState(null);
+      const [menuFiltroHistorial, setMenuFiltroHistorial] = useState(false);
 
       // --- Módulo: Dashboard de Ventas (solo Administrador) ---
       const [modalDashboard, setModalDashboard] = useState(false);
@@ -6900,7 +6921,23 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
         setFechaInicioHistorial(hoy);
         setFechaFinHistorial(hoy);
         setBusquedaBoletaHistorial('');
+        setRangoHistorial('hoy');
+        setFiltroPagoHistorial('todos');
+        setVentaHistorialSel(null);
+        setMenuFiltroHistorial(false);
         cargarHistorialPorRango(hoy, hoy);
+      };
+
+      // Atajos de rango del historial: cambian las fechas y recargan solos.
+      // "Fechas" deja elegir el rango a mano (se recarga al cambiar cada fecha).
+      const fijarRangoHistorial = (clave) => {
+        setRangoHistorial(clave);
+        setVentaHistorialSel(null);
+        if (clave === 'fechas') return;
+        const { desde, hasta } = fechasDeRango(clave);
+        setFechaInicioHistorial(desde);
+        setFechaFinHistorial(hasta);
+        cargarHistorialPorRango(desde, hasta);
       };
 
       // ==========================================
@@ -15438,149 +15475,243 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
           )}
 
           {/* Modal: Historial de Ventas (mismo estilo que el Dashboard) */}
+          {/* Modal: Historial de ventas (estilo cristal) */}
           {modalHistorial && (() => {
-            const activas = ventasDelDia.filter(v => !v.anulada);
-            const totalGeneral = activas.reduce((a, c) => a + Number(c.total_venta), 0);
-            const totalEfectivo = activas.filter(v => v.medio_pago === 'EFECTIVO').reduce((a, c) => a + Number(c.total_venta), 0);
-            const totalGanancia = activas.reduce((a, c) => a + Number(c.utilidad_total || 0), 0);
-            const filtradas = ventasDelDia.filter(v => v.nro_boleta.toLowerCase().includes(busquedaBoletaHistorial.trim().toLowerCase()));
-            const tile = 'bg-white/70 border border-white/80 rounded-2xl shadow-sm px-3 py-2.5 min-w-0';
+            const L = ventasDelDia;
+            const R = resumenVentas(L);
+            const dinero = (v) => `S/ ${formatoSoles(Number(v) || 0)}`;
+            const normaliza = (t) => String(t || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+            const qh = normaliza(busquedaBoletaHistorial.trim());
+            const cuenta = (k) => (k === 'todos' ? L.length : k === 'anul' ? L.filter((v) => v.anulada).length : L.filter((v) => v.medio_pago === k && !v.anulada).length);
+            const filtradas = L.filter((v) => (filtroPagoHistorial === 'todos' || (filtroPagoHistorial === 'anul' ? v.anulada : (v.medio_pago === filtroPagoHistorial && !v.anulada)))
+              && (!qh || normaliza(v.nro_boleta).includes(qh) || normaliza(v.clientes?.nombre_completo).includes(qh)
+                || (v.ventas_detalle || []).some((d) => normaliza(d.descripcion || d.productos?.descripcion).includes(qh))));
+            const partes = (v) => { const e = Math.floor(v); return { ent: e.toLocaleString('es-PE'), cent: String(Math.round((v - e) * 100)).padStart(2, '0') }; };
+            const tot = partes(R.total);
+            const mayuscula = (t) => t.charAt(0).toUpperCase() + t.slice(1);
+            const deISO = (iso) => { const [a, m, d] = String(iso).split('-').map(Number); return new Date(a, (m || 1) - 1, d || 1); };
+            const hoyD = new Date();
+            const claveHoy = isoLocal(hoyD);
+            const ayerD = new Date(hoyD.getFullYear(), hoyD.getMonth(), hoyD.getDate() - 1);
+            const claveAyer = isoLocal(ayerD);
+            const nombreDia = (clave) => (clave === claveHoy ? 'Hoy' : clave === claveAyer ? 'Ayer' : mayuscula(deISO(clave).toLocaleDateString('es-PE', { weekday: 'long', day: 'numeric', month: 'long' })));
+            const subtitulo = (() => {
+              const largo = (d) => mayuscula(d.toLocaleDateString('es-PE', { weekday: 'long', day: 'numeric', month: 'long' }));
+              if (fechaInicioHistorial === fechaFinHistorial) return largo(deISO(fechaInicioHistorial));
+              const corto = (d) => d.toLocaleDateString('es-PE', { day: 'numeric', month: 'short' });
+              return `${corto(deISO(fechaInicioHistorial))} – ${corto(deISO(fechaFinHistorial))}`;
+            })();
+            // Anillo de medios de pago
+            const medios = Object.entries(R.porMedio).sort((a, b) => b[1] - a[1]);
+            const totMedios = medios.reduce((a, b) => a + b[1], 0) || 1;
+            const CIRC = 2 * Math.PI * 50;
+            let acumulado = 0;
+            const arcos = medios.map(([k, v]) => {
+              const fr = v / totMedios;
+              const largo = Math.max(0, fr * CIRC - (medios.length > 1 ? 7 : 0));
+              const off = -acumulado * CIRC;
+              acumulado += fr;
+              return <circle key={k} cx="60" cy="60" r="50" stroke={medioHistorial(k).c} strokeDasharray={`${largo} ${CIRC}`} strokeDashoffset={off} />;
+            });
+            // Ventas por hora (al menos de 8 a 19; se amplía si se vendió fuera de ese horario)
+            const horasConVentas = Object.keys(R.porHora).map(Number);
+            const hMin = Math.min(8, ...horasConVentas);
+            const hMax = Math.max(19, ...horasConVentas);
+            const horas = [];
+            for (let h = hMin; h <= hMax; h++) horas.push(h);
+            const maxHora = Math.max(1, ...horas.map((h) => R.porHora[h] || 0));
+            const horaFuerte = horas.reduce((a, h) => ((R.porHora[h] || 0) > (R.porHora[a] || 0) ? h : a), hMin);
+            // Lista agrupada por día
+            const dias = [];
+            filtradas.forEach((v) => {
+              const clave = isoLocal(new Date(v.fecha_hora));
+              const g = dias.find((x) => x.clave === clave);
+              if (g) g.ventas.push(v); else dias.push({ clave, ventas: [v] });
+            });
+            const sel = ventaHistorialSel ? L.find((v) => v.id === ventaHistorialSel) : null;
+            const cerrar = () => { setModalHistorial(false); setVentaHistorialSel(null); setMenuFiltroHistorial(false); };
+            const rangos = [['hoy', 'Hoy'], ['ayer', 'Ayer'], ['7', '7 días'], ['mes', 'Mes'], ['fechas', 'Fechas']];
+            const idxRango = Math.max(0, rangos.findIndex(([k]) => k === rangoHistorial));
+            const opcionesMenu = ['EFECTIVO', 'YAPE', 'PLIN', 'TARJETA', 'CREDITO', 'MIXTO'].filter((k) => cuenta(k) > 0);
+
+            const filaVenta = (v) => {
+              const p = medioHistorial(v.medio_pago);
+              const hora = new Date(v.fecha_hora).toLocaleTimeString('es-PE', { hour: '2-digit', minute: '2-digit', hour12: false });
+              return (
+                <button type="button" key={v.id} onClick={() => { setVentaHistorialSel(v.id); setMenuFiltroHistorial(false); }} className={`hv-row ${v.anulada ? 'anul' : ''}`}>
+                  <span className="hv-pmi" style={{ background: p.g }}><i className={`fa-solid ${p.i}`}></i></span>
+                  <span className="t"><b>{v.clientes?.nombre_completo || 'Cliente'}</b><span>{hora} · {v.nro_boleta}{v.anulada && <em style={{ fontStyle: 'normal', color: 'var(--hv-bad)', fontWeight: 700 }}> · Anulada</em>}</span></span>
+                  <span className="r"><b>{dinero(v.total_venta)}</b><span>{p.n}</span></span>
+                  <span className="chev"><i className="fa-solid fa-chevron-right"></i></span>
+                </button>
+              );
+            };
+
             return (
-              <div className="fixed inset-0 bg-stone-900/30 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-                <div className="bg-gradient-to-br from-[#f4effc] via-[#f9f8fb] to-[#f5f4f8] rounded-[28px] max-w-2xl w-full max-h-[92vh] flex flex-col shadow-2xl border border-white/80">
-                  <div className="p-5 pb-3 shrink-0 space-y-3">
-                    <div className="flex justify-between items-center">
-                      <h3 className="text-lg font-bold text-stone-900 flex items-center gap-2">
-                        <span className="w-8 h-8 rounded-xl bg-[#ece0fd] text-[#6105dc] flex items-center justify-center text-sm"><i className="fa-solid fa-receipt"></i></span>
-                        Historial de ventas
-                      </h3>
-                      <button aria-label="Cerrar" onClick={() => setModalHistorial(false)} className="w-8 h-8 rounded-full bg-white/70 hover:bg-white text-stone-500 hover:text-stone-900 shadow-sm"><i className="fa-solid fa-xmark"></i></button>
+              <div className="fixed inset-0 bg-stone-900/30 backdrop-blur-sm flex items-center justify-center z-50 p-2 sm:p-4">
+                <div className="hv-win">
+                  <div className="hv-mesh"></div>
+                  <div className="hv-scroller">
+                    <div className="hv-top">
+                      <div className="hv-grow"><h1>Historial</h1><p>{subtitulo}</p></div>
+                      <div className="hv-tbtns">
+                        {esAdmin && <button type="button" className="hv-gbtn" title="Cierres de caja" aria-label="Cierres de caja" onClick={() => { cerrar(); abrirHistorialCierres(); }}><i className="fa-solid fa-lock"></i></button>}
+                        <button type="button" className="hv-gbtn" aria-label="Cerrar" onClick={cerrar}><i className="fa-solid fa-xmark"></i></button>
+                      </div>
                     </div>
 
-                    {esAdmin && (
-                      <PestanasModal pestanas={[
-                        { texto: 'Ventas de hoy', activa: true },
-                        { texto: 'Cierres de caja', onClick: () => { setModalHistorial(false); abrirHistorialCierres(); } },
-                      ]} />
+                    <div className="hv-seg">
+                      <span className="hv-th" style={{ width: `calc((100% - 6px) / ${rangos.length})`, transform: `translateX(${idxRango * 100}%)` }}></span>
+                      {rangos.map(([k, t]) => <button type="button" key={k} className={rangoHistorial === k ? 'on' : ''} onClick={() => fijarRangoHistorial(k)}>{t}</button>)}
+                    </div>
+                    {rangoHistorial === 'fechas' && (
+                      <div className="hv-dates">
+                        <input type="date" aria-label="Desde" value={fechaInicioHistorial} onChange={(e) => { setFechaInicioHistorial(e.target.value); if (e.target.value) cargarHistorialPorRango(e.target.value, fechaFinHistorial); }} />
+                        <span>a</span>
+                        <input type="date" aria-label="Hasta" value={fechaFinHistorial} onChange={(e) => { setFechaFinHistorial(e.target.value); if (e.target.value) cargarHistorialPorRango(fechaInicioHistorial, e.target.value); }} />
+                      </div>
                     )}
 
-                    <div className="flex flex-wrap items-end gap-2">
-                      <div>
-                        <label className="text-xs text-stone-600 block mb-1">Desde:</label>
-                        <input
-                          type="date"
-                          value={fechaInicioHistorial}
-                          onChange={(e) => setFechaInicioHistorial(e.target.value)}
-                          className="bg-white border border-stone-200/70 shadow-sm rounded-full px-3 py-1.5 text-xs text-stone-900"
-                        />
-                      </div>
-                      <div>
-                        <label className="text-xs text-stone-600 block mb-1">Hasta:</label>
-                        <input
-                          type="date"
-                          value={fechaFinHistorial}
-                          onChange={(e) => setFechaFinHistorial(e.target.value)}
-                          className="bg-white border border-stone-200/70 shadow-sm rounded-full px-3 py-1.5 text-xs text-stone-900"
-                        />
-                      </div>
-                      <button
-                        onClick={() => cargarHistorialPorRango(fechaInicioHistorial, fechaFinHistorial)}
-                        className="px-4 py-1.5 bg-[#6105dc] hover:bg-[#4d04b0] text-white text-xs font-semibold rounded-full shadow-sm"
-                      >
-                        Buscar
-                      </button>
-                      <button
-                        onClick={abrirHistorialDelDia}
-                        className="px-4 py-1.5 bg-white/70 hover:bg-[#ece0fd] text-stone-600 hover:text-[#4d04b0] text-xs font-semibold rounded-full shadow-sm transition"
-                      >
-                        Hoy
-                      </button>
-                    </div>
-
-                    <div className="flex items-center gap-2">
-                      <div className="relative flex-1 min-w-0">
-                        <i className="fa-solid fa-magnifying-glass absolute left-3.5 top-1/2 -translate-y-1/2 text-stone-400 text-xs"></i>
-                        <input
-                          type="text"
-                          placeholder="Buscar N° de boleta..."
-                          value={busquedaBoletaHistorial}
-                          onChange={(e) => setBusquedaBoletaHistorial(e.target.value)}
-                          className="w-full bg-white border border-stone-200/70 shadow-sm rounded-full pl-9 pr-3 py-2 text-xs text-stone-900 focus:outline-none focus:ring-2 focus:ring-[#d6bdfa]"
-                        />
-                      </div>
-                      {esAdmin && ventasDelDia.length > 0 && (
-                        <button
-                          onClick={exportarVentasExcel}
-                          className="px-4 py-2 bg-white/70 hover:bg-[#ece0fd] text-stone-600 hover:text-[#4d04b0] text-xs font-semibold rounded-full shadow-sm flex items-center gap-1.5 transition shrink-0"
-                          title="Exportar a Excel"
-                        >
-                          <i className="fa-solid fa-file-excel"></i> Excel
-                        </button>
-                      )}
-                    </div>
-                  </div>
-
-                  <div className="px-5 pb-5 overflow-y-auto hide-scrollbar space-y-3">
-                    <div className={`grid grid-cols-2 ${esAdmin ? 'sm:grid-cols-4' : 'sm:grid-cols-3'} gap-2`}>
-                      <div className={tile}>
-                        <span className="text-[11px] text-stone-500 block">Ventas</span>
-                        <span className="text-xl font-bold text-stone-900 whitespace-nowrap">{activas.length}</span>
-                      </div>
-                      <div className={tile}>
-                        <span className="text-[11px] text-stone-500 block">Efectivo</span>
-                        <span className="text-xl font-bold text-stone-900 whitespace-nowrap">S/ {formatoSoles(totalEfectivo)}</span>
-                      </div>
-                      {esAdmin && (
-                        <div className={tile}>
-                          <span className="text-[11px] text-stone-500 block">Ganancia</span>
-                          <span className="text-xl font-bold text-emerald-600 whitespace-nowrap">S/ {formatoSoles(totalGanancia)}</span>
-                        </div>
-                      )}
-                      <div className="bg-[#f4eefe] border border-[#d6bdfa] rounded-2xl shadow-sm px-3 py-2.5 min-w-0">
-                        <span className="text-[11px] text-[#6105dc] block">Total general</span>
-                        <span className="text-xl font-bold text-[#4d04b0] whitespace-nowrap">S/ {formatoSoles(totalGeneral)}</span>
-                      </div>
-                    </div>
-
-                    <div className="bg-white/60 backdrop-blur-xl border border-white/80 rounded-3xl shadow-[0_10px_40px_-14px_rgba(97,5,220,0.18)] p-2 max-h-72 overflow-y-auto hide-scrollbar space-y-1">
-                      {cargandoHistorial ? (
-                        <p className="text-xs text-center py-8 text-stone-500">Cargando ventas...</p>
-                      ) : filtradas.length === 0 ? (
-                        <p className="text-xs text-center py-8 text-stone-500">No hay ventas en ese rango.</p>
-                      ) : (
-                        filtradas.map(v => (
-                          <div key={v.id} className={`flex justify-between items-center gap-3 px-3 py-2.5 rounded-2xl text-xs hover:bg-[#f4eefe] transition ${v.anulada ? 'opacity-50' : ''}`}>
-                            <div className="min-w-0">
-                              <p className="font-bold text-stone-900 font-mono truncate">
-                                {v.nro_boleta} <span className="ml-1 px-2 py-0.5 rounded-full bg-[#ece0fd] text-[#4d04b0] font-sans font-semibold text-[10px]">{v.medio_pago}</span>
-                                {v.anulada && <span className="ml-1 px-2 py-0.5 rounded-full bg-rose-100 text-rose-600 font-sans font-semibold text-[10px]">ANULADA</span>}
-                              </p>
-                              <p className="text-[11px] text-stone-500 mt-0.5">{new Date(v.fecha_hora).toLocaleString('es-PE', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })} · {v.clientes?.nombre_completo || 'Cliente'}</p>
+                    {cargandoHistorial && L.length === 0 ? (
+                      <div className="hv-empty"><b>Cargando ventas...</b></div>
+                    ) : (
+                      <>
+                        {R.n > 0 && (
+                          <div className="hv-cards">
+                            <div className="hv-card">
+                              <div className="hv-eyebrow"><i className="fa-solid fa-bag-shopping"></i> Total vendido</div>
+                              <div className="hv-big"><small>S/</small>{tot.ent}<sup>.{tot.cent}</sup></div>
+                              <div className="hv-sub2">{R.n} venta{R.n === 1 ? '' : 's'}{R.anuladas > 0 ? ` · ${R.anuladas} anulada${R.anuladas === 1 ? '' : 's'}` : ''}</div>
+                              <div className="hv-mini">
+                                <div><span>Promedio</span><b>{dinero(R.ticket)}</b></div>
+                                {esAdmin && <div className="ok"><span>Ganancia</span><b>{dinero(R.utilidad)}</b></div>}
+                                {esAdmin && <div><span>Margen</span><b>{R.total ? Math.round((R.utilidad / R.total) * 100) : 0}%</b></div>}
+                              </div>
                             </div>
-                            <div className="flex items-center gap-2 shrink-0">
-                              <span className={`font-bold text-sm text-stone-900 whitespace-nowrap ${v.anulada ? 'line-through' : ''}`}>S/ {formatoSoles(Number(v.total_venta))}</span>
-                              <button
-                                onClick={() => setReciboReimpresion(v)}
-                                className="w-8 h-8 rounded-full bg-white hover:bg-[#ece0fd] text-stone-600 hover:text-[#4d04b0] shadow-sm transition"
-                                title="Reimprimir boleta"
-                              >
-                                <i className="fa-solid fa-print"></i>
-                              </button>
-                              {!v.anulada && esAdmin && (
-                                <button
-                                  onClick={() => anularVentaHoy(v)}
-                                  className="px-3 h-8 rounded-full bg-rose-50 hover:bg-rose-100 text-rose-600 font-semibold shadow-sm transition"
-                                  title="Anular venta"
-                                >
-                                  Anular
-                                </button>
-                              )}
+                            <div className="hv-card">
+                              <div className="hv-eyebrow"><i className="fa-solid fa-chart-pie"></i> Cómo te pagaron</div>
+                              <div className="hv-ringwrap">
+                                <div className="hv-ring">
+                                  <svg viewBox="0 0 120 120"><circle cx="60" cy="60" r="50" stroke="rgba(120,100,170,.14)" />{arcos}</svg>
+                                  <div className="c"><b>{medios.length}</b><span>medio{medios.length === 1 ? '' : 's'}</span></div>
+                                </div>
+                                <div className="hv-leg">
+                                  {medios.slice(0, 4).map(([k, v]) => <div key={k}><i style={{ background: medioHistorial(k).c }}></i><span>{medioHistorial(k).n}</span><b>{Math.round((v / totMedios) * 100)}%</b></div>)}
+                                </div>
+                              </div>
+                            </div>
+                            <div className="hv-card wide">
+                              <div className="hv-eyebrow"><i className="fa-solid fa-chart-column"></i> Ventas por hora</div>
+                              <div className="hv-bars">
+                                {horas.map((h) => (
+                                  <div key={h} className={`b ${h === horaFuerte && R.porHora[h] ? 'pk' : ''}`}><i style={{ height: `${Math.max(6, ((R.porHora[h] || 0) / maxHora) * 100)}%` }}></i><span>{h % 2 === 0 ? h : ''}</span></div>
+                                ))}
+                              </div>
+                              {R.porHora[horaFuerte] > 0 && <div className="hv-peak">Hora fuerte: <b>{horaFuerte}:00 – {horaFuerte + 1}:00</b> con {dinero(R.porHora[horaFuerte])}</div>}
                             </div>
                           </div>
-                        ))
-                      )}
+                        )}
+
+                        {dias.length > 0 ? dias.map((g) => {
+                          const vigentes = g.ventas.filter((v) => !v.anulada);
+                          return (
+                            <div key={g.clave}>
+                              <div className="hv-sec"><h2>{nombreDia(g.clave)}</h2><span>{vigentes.length} venta{vigentes.length === 1 ? '' : 's'} · {dinero(vigentes.reduce((a, v) => a + (Number(v.total_venta) || 0), 0))}</span></div>
+                              <div className="hv-group">{g.ventas.map(filaVenta)}</div>
+                            </div>
+                          );
+                        }) : (
+                          <div className="hv-empty">
+                            <div className="eico"><i className="fa-solid fa-receipt"></i></div>
+                            <b>{L.length ? 'Nada coincide' : 'Sin ventas'}</b>
+                            {L.length ? 'Prueba con otra palabra o quita el filtro.' : 'No hay ventas en este rango. Prueba con otras fechas.'}
+                          </div>
+                        )}
+                      </>
+                    )}
+                  </div>
+
+                  <div className="hv-dock">
+                    <div className="hv-dockin">
+                      <label className="hv-sbar"><i className="fa-solid fa-magnifying-glass"></i><input type="text" autoComplete="off" placeholder="Buscar boleta, cliente o producto" value={busquedaBoletaHistorial} onChange={(e) => setBusquedaBoletaHistorial(e.target.value)} /></label>
+                      <button type="button" className="hv-fbtn" aria-label="Filtros" onClick={() => setMenuFiltroHistorial((m) => !m)}><i className="fa-solid fa-sliders"></i>{filtroPagoHistorial !== 'todos' && <i className="dotn"></i>}</button>
                     </div>
                   </div>
+
+                  {menuFiltroHistorial && (
+                    <>
+                      <div className="hv-scrim clear" onClick={() => setMenuFiltroHistorial(false)}></div>
+                      <div className="hv-menu">
+                        <h4>Medio de pago</h4>
+                        <button type="button" className={`hv-mi ${filtroPagoHistorial === 'todos' ? 'on' : ''}`} onClick={() => { setFiltroPagoHistorial('todos'); setMenuFiltroHistorial(false); }}><i className="gi fa-solid fa-receipt"></i>Todas las ventas<span className="n">{cuenta('todos')}</span><i className="ck fa-solid fa-check"></i></button>
+                        {opcionesMenu.map((k) => (
+                          <button type="button" key={k} className={`hv-mi ${filtroPagoHistorial === k ? 'on' : ''}`} onClick={() => { setFiltroPagoHistorial(k); setMenuFiltroHistorial(false); }}><i className="d" style={{ background: medioHistorial(k).c }}></i>{medioHistorial(k).n}<span className="n">{cuenta(k)}</span><i className="ck fa-solid fa-check"></i></button>
+                        ))}
+                        <hr />
+                        <button type="button" className={`hv-mi ${filtroPagoHistorial === 'anul' ? 'on' : ''}`} onClick={() => { setFiltroPagoHistorial('anul'); setMenuFiltroHistorial(false); }}><i className="gi fa-solid fa-triangle-exclamation"></i>Anuladas<span className="n">{cuenta('anul')}</span><i className="ck fa-solid fa-check"></i></button>
+                        {esAdmin && L.length > 0 && (
+                          <>
+                            <hr />
+                            <button type="button" className="hv-mi" onClick={() => { setMenuFiltroHistorial(false); exportarVentasExcel(); }}><i className="gi fa-solid fa-file-excel"></i>Exportar a Excel</button>
+                          </>
+                        )}
+                      </div>
+                    </>
+                  )}
+
+                  {sel && (() => {
+                    const p = medioHistorial(sel.medio_pago);
+                    const t = partes(Number(sel.total_venta) || 0);
+                    const descuento = Number(sel.descuento_monto) || 0;
+                    const cajeroDe = listaCajeros.find((c) => c.id === sel.cajero_id);
+                    const f = new Date(sel.fecha_hora);
+                    const claveVenta = isoLocal(f);
+                    const cuando = `${claveVenta === claveHoy ? 'Hoy' : claveVenta === claveAyer ? 'Ayer' : f.toLocaleDateString('es-PE', { day: 'numeric', month: 'long' })}, ${f.toLocaleTimeString('es-PE', { hour: '2-digit', minute: '2-digit', hour12: false })}`;
+                    const lineas = sel.ventas_detalle || [];
+                    return (
+                      <>
+                        <div className="hv-scrim" onClick={() => setVentaHistorialSel(null)}></div>
+                        <div className="hv-sheet">
+                          <div className="grab"></div>
+                          <div className="sc">
+                            <div className="hv-shtop"><button type="button" className="hv-gbtn" aria-label="Cerrar" onClick={() => setVentaHistorialSel(null)}><i className="fa-solid fa-xmark"></i></button></div>
+                            <div className={`hv-hero ${sel.anulada ? 'anul' : ''}`}>
+                              <div className="hv-pmi" style={{ background: p.g }}><i className={`fa-solid ${p.i}`}></i></div>
+                              <div className="amt"><small>S/</small>{t.ent}<small>.{t.cent}</small></div>
+                              <p>{sel.clientes?.nombre_completo || 'Cliente'} · {sel.nro_boleta}</p>
+                              <span className={`st ${sel.anulada ? 'bad' : ''}`}><i className={`fa-solid ${sel.anulada ? 'fa-triangle-exclamation' : 'fa-check'}`}></i> {sel.anulada ? 'Anulada' : 'Venta completada'}</span>
+                            </div>
+                            <div className="hv-lg">
+                              <div className="hv-li"><span className="k">Fecha</span><span className="v">{cuando}</span></div>
+                              {cajeroDe && <div className="hv-li"><span className="k">Atendió</span><span className="v">{cajeroDe.nombre}</span></div>}
+                              <div className="hv-li"><span className="k">Pagó con</span><span className="v">{p.n}{sel.medio_pago === 'MIXTO' && <small>{dinero(sel.monto_efectivo)} efectivo · {dinero(sel.monto_otro)} otro</small>}</span></div>
+                              {esAdmin && <div className="hv-li green"><span className="k">Ganancia</span><span className="v">{dinero(sel.utilidad_total)}</span></div>}
+                            </div>
+                            <div className="hv-lg">
+                              {lineas.length === 0 && <div className="hv-li"><span className="k">Sin detalle de productos</span></div>}
+                              {lineas.map((d, i) => (
+                                <div key={d.id || i} className="hv-li it"><span className="q">{Number(d.cantidad)}×</span><span className="d">{d.descripcion || d.productos?.descripcion || 'Producto'}<small>{dinero(d.precio_unitario)} c/u</small></span><span className="v">{dinero(d.subtotal)}</span></div>
+                              ))}
+                              {descuento > 0 && (
+                                <>
+                                  <div className="hv-li"><span className="k">Subtotal</span><span className="v">{dinero((Number(sel.total_venta) || 0) + descuento)}</span></div>
+                                  <div className="hv-li green"><span className="k">Descuento</span><span className="v">− {dinero(descuento)}</span></div>
+                                </>
+                              )}
+                              <div className="hv-li tot"><span className="k">Total</span><span className="v">{dinero(sel.total_venta)}</span></div>
+                            </div>
+                            {sel.anulada && (
+                              <div className="hv-lg"><div className="hv-note"><i className="fa-solid fa-triangle-exclamation"></i><span><b>Boleta anulada.</b> Motivo: {sel.motivo_anulacion || 'Sin motivo especificado'}. El stock se repuso{sel.medio_pago === 'CREDITO' ? ' y la deuda del cliente se revirtió' : ''}.</span></div></div>
+                            )}
+                          </div>
+                          <div className="hv-sfoot">
+                            <button type="button" className="hv-btnp" onClick={() => setReciboReimpresion(sel)}><i className="fa-solid fa-print"></i> Reimprimir boleta</button>
+                            {esAdmin && !sel.anulada && <button type="button" className="hv-btns" onClick={() => anularVentaHoy(sel)}>Anular</button>}
+                          </div>
+                        </div>
+                      </>
+                    );
+                  })()}
                 </div>
               </div>
             );
