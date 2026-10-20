@@ -2400,6 +2400,26 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
         }
       };
 
+      // Alarga o acorta una cita ya reservada (ej. un tinte que toma más tiempo).
+      // El servidor revisa que no choque con la siguiente cita del barbero.
+      const ajustarDuracionCita = async (cita, texto) => {
+        const minutos = Number(texto);
+        const actual = Math.round((new Date(cita.fin) - new Date(cita.inicio)) / 60000);
+        if (!Number.isInteger(minutos) || minutos < 5 || minutos > 480 || minutos % 5 !== 0) {
+          notificar('La duración debe ser de 5 a 480 minutos, de 5 en 5.', 'error');
+          cargarAgenda(fechaAgenda);
+          return;
+        }
+        if (minutos === actual || !sbClient || esModoDemo) return;
+        const { error } = await sbClient.rpc('ajustar_duracion_cita', { p_cita: cita.id, p_minutos: minutos });
+        if (error) {
+          notificar(error.message || 'No se pudo ajustar la cita.', 'error');
+        } else {
+          notificar(`Cita ajustada a ${minutos} minutos.`, 'success');
+        }
+        cargarAgenda(fechaAgenda);
+      };
+
       const abrirAgenda = () => {
         const hoy = new Date();
         const iso = `${hoy.getFullYear()}-${String(hoy.getMonth() + 1).padStart(2, '0')}-${String(hoy.getDate()).padStart(2, '0')}`;
@@ -5460,9 +5480,24 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
         return null;
       };
 
+      // Barbería: minutos que dura un servicio nuevo (vacío = se usan 30 en la agenda).
+      const duracionInicialDeFila = (f) => {
+        if (!esBarberia || f.tipoItem === 'producto') return null;
+        const texto = String(f.duracion_min ?? '').trim();
+        return texto === '' ? null : Number(texto);
+      };
+
       const guardarInventarioInicial = async () => {
         const filasNuevas = filasInventario.filter((f) => !f.productoExistenteId && f.descripcion.trim() && f.precio_venta);
         const filasExistentes = filasInventario.filter((f) => f.productoExistenteId);
+        const duracionInvalida = filasNuevas.some((f) => {
+          const d = duracionInicialDeFila(f);
+          return d !== null && !(Number.isInteger(d) && d >= 5 && d <= 480);
+        });
+        if (duracionInvalida) {
+          notificar('La duración del servicio debe ser un número entero de minutos, entre 5 y 480.', 'error');
+          return;
+        }
 
         if (filasNuevas.length === 0 && filasExistentes.length === 0) {
           notificar('Completa al menos un producto con descripción y precio de venta, o selecciona uno existente.', 'error');
@@ -5538,6 +5573,7 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
                 // en una barbería no existe esa pantalla, así que aquí se elige
                 // servicio (sin stock, null) o producto (con su cantidad inicial).
                 stock_actual: stockInicialDeFila(f),
+                ...(esBarberia ? { duracion_min: duracionInicialDeFila(f) } : {}),
                 ...normalizarCamposPack(f)
               }));
               const { error } = await sbClient.from('productos').insert(payloadNuevos);
@@ -10411,6 +10447,18 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
                               </button>
                             ))}
                           </div>
+                          {fila.tipoItem !== 'producto' && (
+                            <div>
+                              <label className="block text-xs font-semibold text-stone-700 mt-2">Duración (minutos)</label>
+                              <input
+                                type="number" min="5" max="480" step="5" placeholder="Ej: 30"
+                                value={fila.duracion_min || ''}
+                                onChange={(e) => actualizarFilaInventario(idx, 'duracion_min', e.target.value)}
+                                className={`w-full ${claseCampoNormal}`}
+                              />
+                              <p className="text-[11px] text-stone-500 mt-1">Sirve para la agenda de reservas. Si la dejas vacía cuenta 30 minutos.</p>
+                            </div>
+                          )}
                           {fila.tipoItem === 'producto' && (
                             <div>
                               <label className="block text-xs font-semibold text-stone-700 mt-2">Cantidad que tienes ahora</label>
@@ -12942,6 +12990,17 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
                                   <p className="text-[11px] text-stone-500 truncate">{servicios}</p>
                                   <p className="text-[10px] text-stone-400"><span className="font-mono">{seg.codigo_corto}</span>{seg.estado === 'retirado' ? ' · atendida' : ''}</p>
                                 </div>
+                                <label className="ml-auto shrink-0 flex items-center gap-1 text-[10px] text-stone-500" title="Cambia cuánto dura esta cita (por ejemplo, si el tinte toma más tiempo)">
+                                  Dura
+                                  <input
+                                    key={`${c.id}-${c.fin}`}
+                                    type="number" min="5" max="480" step="5"
+                                    defaultValue={Math.round((new Date(c.fin) - new Date(c.inicio)) / 60000)}
+                                    onBlur={(e) => ajustarDuracionCita(c, e.target.value)}
+                                    className="w-14 px-1.5 py-1 border border-stone-200 rounded-lg text-xs text-stone-800 text-right"
+                                  />
+                                  min
+                                </label>
                               </div>
                             );
                           })}
