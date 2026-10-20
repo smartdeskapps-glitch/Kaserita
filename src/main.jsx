@@ -870,6 +870,13 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
       const [formCombo, setFormCombo] = useState(null);
       const [guardandoCombo, setGuardandoCombo] = useState(false);
       const [busquedaProductoCombo, setBusquedaProductoCombo] = useState('');
+      // Lista de combos: filtro por estado y buscador; editor: foto del
+      // formulario al abrirlo (para saber si hay cambios) y fila resaltada
+      // del buscador de productos.
+      const [filtroCombos, setFiltroCombos] = useState('todos');
+      const [busquedaCombos, setBusquedaCombos] = useState('');
+      const [formComboOriginal, setFormComboOriginal] = useState('');
+      const [resaltadoProductoCombo, setResaltadoProductoCombo] = useState(0);
 
       // --- Categorías (vienen de Supabase: globales para todas las bodegas +
       // las propias que cada bodega haya agregado, visibles solo para ella) ---
@@ -2822,39 +2829,92 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
         }
       };
 
+      // Foto del estado del formulario: sirve para saber si hay cambios sin
+      // guardar (al salir, y para activar "Guardar cambios").
+      const snapshotCombo = (f) => JSON.stringify({
+        id: f.id || null,
+        nombre: f.nombre,
+        descripcion: f.descripcion,
+        precio_venta: String(f.precio_venta),
+        activo: !!f.activo,
+        items: (f.items || []).map((it) => [it.producto_id, it.cantidad])
+      });
+
       const abrirModalCombos = () => {
         setModalCombos(true);
         setComboEditando(null);
         setFormCombo(null);
         setBusquedaProductoCombo('');
+        setFiltroCombos('todos');
+        setBusquedaCombos('');
         cargarCombos();
       };
 
       const nuevoCombo = () => {
+        const f = comboVacio();
         setComboEditando(null);
-        setFormCombo(comboVacio());
+        setFormCombo(f);
+        setFormComboOriginal(snapshotCombo(f));
         setBusquedaProductoCombo('');
+        setResaltadoProductoCombo(0);
       };
 
+      const formDesdeCombo = (combo) => ({
+        id: combo.id,
+        nombre: combo.nombre,
+        descripcion: combo.descripcion || '',
+        precio_venta: (Number(combo.precio_venta) || 0).toFixed(2),
+        activo: combo.activo,
+        items: (combo.combos_items || []).map((ci) => ({
+          producto_id: ci.producto_id,
+          descripcion: ci.productos?.descripcion || '(producto eliminado)',
+          cod_ean: ci.productos?.cod_ean || '',
+          precio_venta: Number(ci.productos?.precio_venta) || 0,
+          precio_costo: Number(ci.productos?.precio_costo) || 0,
+          foto_url: ci.productos?.foto_url || '',
+          categoria: ci.productos?.categoria || '',
+          cantidad: Number(ci.cantidad)
+        })),
+        precioTocado: true
+      });
+
       const editarCombo = (combo) => {
+        const f = formDesdeCombo(combo);
         setComboEditando(combo);
-        setFormCombo({
-          id: combo.id,
-          nombre: combo.nombre,
-          descripcion: combo.descripcion || '',
-          precio_venta: String(combo.precio_venta),
-          activo: combo.activo,
-          items: (combo.combos_items || []).map((ci) => ({
-            producto_id: ci.producto_id,
-            descripcion: ci.productos?.descripcion || '(producto eliminado)',
-            cod_ean: ci.productos?.cod_ean || '',
-            precio_venta: Number(ci.productos?.precio_venta) || 0,
-            precio_costo: Number(ci.productos?.precio_costo) || 0,
-            cantidad: Number(ci.cantidad)
-          })),
-          precioTocado: true
-        });
+        setFormCombo(f);
+        setFormComboOriginal(snapshotCombo(f));
         setBusquedaProductoCombo('');
+        setResaltadoProductoCombo(0);
+      };
+
+      // Abre una copia del combo para ajustarla: queda pausada y sin guardar
+      // hasta que la persona la revise.
+      const duplicarCombo = (combo) => {
+        const f = { ...formDesdeCombo(combo), id: null, nombre: `${combo.nombre} (copia)`, activo: false };
+        setComboEditando(null);
+        setFormCombo(f);
+        setFormComboOriginal('');
+        setBusquedaProductoCombo('');
+        setResaltadoProductoCombo(0);
+      };
+
+      // Sale del editor; si hay cambios sin guardar, pregunta antes.
+      const cerrarEditorCombo = async () => {
+        if (formCombo && snapshotCombo(formCombo) !== formComboOriginal) {
+          const ok = await pedirConfirmacion({ titulo: 'Tienes cambios sin guardar', mensaje: 'Si sales ahora, se pierden.', textoBoton: 'Salir sin guardar', peligroso: true });
+          if (!ok) return false;
+        }
+        setFormCombo(null);
+        setComboEditando(null);
+        return true;
+      };
+
+      const cerrarModalCombos = async () => {
+        if (formCombo) {
+          const ok = await cerrarEditorCombo();
+          if (!ok) return;
+        }
+        setModalCombos(false);
       };
 
       // Suma de los precios de venta normales de cada producto del combo
@@ -2891,12 +2951,15 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
               cod_ean: producto.cod_ean || '',
               precio_venta: Number(producto.precio_venta) || 0,
               precio_costo: Number(producto.precio_costo) || 0,
+              foto_url: producto.foto_url || '',
+              categoria: producto.categoria || '',
               cantidad: 1
             }];
           }
           return actualizarItemsYPrecio(prev, nuevosItems);
         });
         setBusquedaProductoCombo('');
+        setResaltadoProductoCombo(0);
       };
 
       const actualizarCantidadItemCombo = (producto_id, cantidad) => {
@@ -2920,6 +2983,11 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
           if (suma <= 0) return prev;
           return { ...prev, precioTocado: true, precio_venta: (suma * (1 - pct / 100)).toFixed(2) };
         });
+      };
+
+      // Deja un precio exacto (sin descuento o un precio redondo sugerido).
+      const aplicarPrecioCombo = (valor) => {
+        setFormCombo((prev) => (prev ? { ...prev, precioTocado: true, precio_venta: Number(valor).toFixed(2) } : prev));
       };
 
       const guardarCombo = async () => {
@@ -10819,225 +10887,395 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
           })()}
 
           {/* Modal: Combos */}
-          {modalCombos && (
-            <div className="fixed inset-0 bg-stone-900/30 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-              <div className="bg-gradient-to-br from-[#f4effc] via-[#f9f8fb] to-[#f5f4f8] border border-white/80 rounded-[28px] max-w-lg w-full p-5 shadow-2xl space-y-3 max-h-[90vh] flex flex-col">
-                <div className="flex justify-between items-start shrink-0">
-                  <div>
-                    <h3 className="text-lg font-bold text-stone-900 flex items-center gap-2">
-                      <span className="w-7 h-7 rounded-[9px] bg-[#f4eefe] flex items-center justify-center shrink-0"><i className="fa-solid fa-gift text-sm text-[#6105dc]"></i></span> Combos
-                    </h3>
-                    <p className="text-xs text-stone-600 mt-0.5">Paquetes de varios productos a un precio especial. Al venderse, descuentan el stock real de cada producto que los compone.</p>
-                  </div>
-                  <button aria-label="Cerrar" onClick={() => { setModalCombos(false); setFormCombo(null); }} className="text-stone-600 hover:text-stone-900 shrink-0"><i className="fa-solid fa-xmark"></i></button>
-                </div>
+          {modalCombos && (() => {
+            const dinero = (v) => `S/ ${(Number(v) || 0).toFixed(2)}`;
+            const norm = (s) => String(s || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
+            const unidadesDe = (n) => `${n} combo${n === 1 ? '' : 's'}`;
+            const inputBase = 'w-full h-11 bg-stone-50/70 border-[1.5px] border-stone-200 rounded-[14px] px-3.5 text-sm text-stone-900 placeholder:text-stone-400 outline-none focus:border-[#6105dc] focus:bg-white focus:ring-4 focus:ring-[#6105dc]/15 transition';
+            const etiquetaCampo = 'flex items-center justify-between gap-2 text-[12.5px] font-semibold text-stone-800 mb-1.5';
+            const chipClase = (activo) => `inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[12.5px] font-semibold border-[1.5px] transition ${activo ? 'border-[#6105dc] bg-[#f4eefe] text-[#4d04b0] ring-2 ring-[#6105dc]/15' : 'border-stone-200 bg-white text-stone-600 hover:bg-[#f4eefe] hover:border-[#e4d6fb]'}`;
+            const panelClase = 'bg-white border border-stone-100 rounded-[22px] p-4 sm:p-5 shadow-sm';
+            const miniatura = (url, categoria, tam = 'w-10 h-10') => (
+              <span className={`block ${tam} rounded-[13px] overflow-hidden shrink-0 border-2 border-white ring-1 ring-stone-200 bg-white`}><FotoProducto fotoUrl={url} categoria={categoria} className="w-full h-full" iconClassName="text-sm" /></span>
+            );
+            const vivo = (id) => productos.find((p) => p.id === id);
+            // Estado de un combo ya guardado: en venta, sin stock (se apaga
+            // y se enciende solo) o pausado a mano.
+            const estadoDe = (combo) => {
+              const e = estadoCombos.get(combo.id);
+              if ((combo.activo || combo.apagado_auto) && e?.disponible === false) return 'sinstock';
+              return combo.activo ? 'venta' : 'pausado';
+            };
 
-                {!formCombo ? (
-                  <>
-                    <button
-                      onClick={nuevoCombo}
-                      className="w-full py-2.5 bg-[#6105dc] hover:bg-[#4d04b0] text-white text-sm font-bold rounded-full shadow flex items-center justify-center gap-1.5 shrink-0"
-                    >
-                      <i className="fa-solid fa-plus"></i> Nuevo Combo
-                    </button>
-                    <div className="flex-1 overflow-y-auto space-y-2 pr-1">
-                      {cargandoCombos ? (
-                        <p className="text-xs text-center py-8 text-stone-500">Cargando combos...</p>
-                      ) : combos.length === 0 ? (
-                        <p className="text-xs text-center py-8 text-stone-500">Todavía no tienes combos. Crea el primero arriba.</p>
-                      ) : (
-                        combos.map((combo) => (
-                          <div key={combo.id} className={`p-3 rounded-xl border ${combo.activo ? 'bg-white border-stone-200' : 'bg-stone-100 border-stone-200 opacity-70'}`}>
-                            <div className="flex items-start justify-between gap-2">
-                              <div className="min-w-0">
-                                <p className="text-sm font-bold text-stone-900 truncate">{combo.nombre}</p>
-                                <p className="text-[11px] text-stone-500 truncate">
-                                  {(combo.combos_items || []).length} producto{(combo.combos_items || []).length === 1 ? '' : 's'} · S/ {Number(combo.precio_venta).toFixed(2)}
-                                </p>
-                                {(() => {
-                                  const costo = (combo.combos_items || []).reduce((acc, ci) => acc + (Number(ci.productos?.precio_costo) || 0) * Number(ci.cantidad), 0);
-                                  const precio = Number(combo.precio_venta) || 0;
-                                  if (!(costo > 0) || !(precio > 0)) return null;
-                                  const margen = margenCombo(precio, costo).margenPct;
-                                  const color = margen < 0 ? 'text-rose-600' : margen < 10 ? 'text-amber-600' : 'text-emerald-600';
-                                  return <p className={`text-[11px] font-semibold ${color}`}>Ganancia S/ {(precio - costo).toFixed(2)} · margen {margen.toFixed(margen < 10 ? 1 : 0)}%{margen < 10 ? ' (bajo)' : ''}</p>;
-                                })()}
-                                {(combo.activo || combo.apagado_auto) && estadoCombos.get(combo.id)?.disponible === false && (
-                                  <p className="text-[11px] font-semibold text-rose-600 truncate">Apagado por falta de stock: {estadoCombos.get(combo.id).faltan.join(', ')}. Se enciende solo al reponer.</p>
-                                )}
-                              </div>
-                              <div className="flex items-center gap-2 shrink-0">
-                                <Interruptor activo={combo.activo} onClick={() => alternarActivoCombo(combo)} etiqueta="" title={combo.activo ? 'Activo (visible para vender)' : 'Inactivo'} />
-                                <button onClick={() => editarCombo(combo)} className="w-7 h-7 flex items-center justify-center text-stone-500 hover:text-orange-600" title="Editar">
-                                  <i className="fa-solid fa-pen text-xs"></i>
-                                </button>
-                                <button onClick={() => eliminarCombo(combo)} className="w-7 h-7 flex items-center justify-center text-stone-500 hover:text-rose-600" title="Eliminar">
-                                  <i className="fa-solid fa-trash-can text-xs"></i>
-                                </button>
-                              </div>
+            // ----- Editor -----
+            if (formCombo) {
+              const f = formCombo;
+              const precio = Number(f.precio_venta) || 0;
+              const suma = precioNormalCombo(f);
+              const costo = costoNormalCombo(f);
+              const ahorro = suma > 0 && precio > 0 ? (1 - precio / suma) * 100 : 0;
+              const m = margenCombo(precio, costo);
+              // Cuántos combos alcanza a armar el stock de hoy (los servicios
+              // de una barbería, que no llevan stock, no limitan).
+              let maxCombos = Infinity;
+              const faltan = [];
+              f.items.forEach((it) => {
+                const pr = vivo(it.producto_id);
+                const sinSeguimiento = esBarberia && pr && (pr.stock_actual === null || pr.stock_actual === undefined);
+                const stock = pr ? (sinSeguimiento ? Infinity : Number(pr.stock_actual) || 0) : 0;
+                if (stock < it.cantidad) faltan.push(it.descripcion);
+                maxCombos = Math.min(maxCombos, Math.floor(stock / it.cantidad));
+              });
+              const errores = [];
+              if (!f.nombre.trim()) errores.push('Ponle un nombre');
+              if (f.items.length === 0) errores.push('Agrega al menos un producto');
+              if (!(precio > 0)) errores.push('Pon el precio del combo');
+              const hayCambios = snapshotCombo(f) !== formComboOriginal;
+              const rapidos = [5, 10, 15].map((pct) => ({ pct, valor: suma * (1 - pct / 100) }));
+              const redondos = [];
+              if (suma > 0) {
+                [Math.floor(suma * 0.95) + 0.9, Math.floor(suma * 0.9) + 0.9].forEach((v) => { if (v > 0 && v < suma && !redondos.includes(v)) redondos.push(v); });
+              }
+              const q = norm(busquedaProductoCombo.trim());
+              const encontrados = q
+                ? productos.filter((p) => norm(p.descripcion).includes(q) || String(p.cod_ean || '').toLowerCase().includes(q) || String(p.sku || '').toLowerCase().includes(q)).slice(0, 6)
+                : [];
+              const idxRes = Math.min(resaltadoProductoCombo, Math.max(0, encontrados.length - 1));
+              const teclasBusqueda = (e) => {
+                if (e.key === 'ArrowDown') { e.preventDefault(); setResaltadoProductoCombo(Math.min(idxRes + 1, encontrados.length - 1)); }
+                else if (e.key === 'ArrowUp') { e.preventDefault(); setResaltadoProductoCombo(Math.max(idxRes - 1, 0)); }
+                else if (e.key === 'Enter') {
+                  e.preventDefault();
+                  const porCodigo = buscarProductoPorCodigo(busquedaProductoCombo);
+                  if (porCodigo) agregarProductoAFormCombo(porCodigo.producto);
+                  else if (encontrados[idxRes]) agregarProductoAFormCombo(encontrados[idxRes]);
+                }
+                else if (e.key === 'Escape' && busquedaProductoCombo) { e.stopPropagation(); setBusquedaProductoCombo(''); }
+              };
+              const pvFotos = f.items.slice(0, 3);
+
+              return (
+                <div className="fixed inset-0 bg-stone-900/30 backdrop-blur-sm flex items-center justify-center z-50 p-2 sm:p-4">
+                  <div className="bg-gradient-to-br from-[#f4effc] via-[#f9f8fb] to-[#f5f4f8] border border-white/80 rounded-[28px] max-w-4xl w-full shadow-2xl h-[95vh] max-h-[800px] flex flex-col overflow-hidden">
+
+                    <div className="bg-white border-b border-stone-100 px-4 sm:px-5 py-3.5 shrink-0 flex items-center gap-3">
+                      <button type="button" onClick={cerrarEditorCombo} className="inline-flex items-center gap-1.5 text-[12.5px] font-bold text-stone-500 hover:text-stone-800 hover:bg-stone-100 rounded-lg px-2 py-1.5 shrink-0"><i className="fa-solid fa-chevron-left text-[10px]"></i> Combos</button>
+                      <div className="min-w-0 flex-1">
+                        <h3 className="text-[17px] sm:text-lg font-extrabold text-stone-900 tracking-tight leading-tight truncate">{f.id ? (f.nombre.trim() || 'Combo sin nombre') : 'Nuevo combo'}</h3>
+                        <p className="hidden sm:block text-[12.5px] text-stone-500 mt-0.5">{f.id ? 'Edita lo que incluye y su precio.' : 'Elige qué incluye y ponle un precio especial.'}</p>
+                      </div>
+                      <button aria-label="Cerrar" onClick={cerrarEditorCombo} className="w-8 h-8 flex items-center justify-center rounded-full text-stone-400 hover:text-stone-600 hover:bg-stone-100 transition-colors shrink-0"><i className="fa-solid fa-xmark"></i></button>
+                    </div>
+
+                    <div className="flex-1 overflow-y-auto p-3.5 sm:p-5 grid gap-4 md:gap-5 md:grid-cols-[minmax(0,1fr)_290px] content-start">
+                      <div className="min-w-0 space-y-4">
+
+                        <div className={panelClase}>
+                          <h4 className="text-base font-extrabold text-stone-900 tracking-tight">Datos del combo</h4>
+                          <p className="text-[12.5px] text-stone-500 mt-0.5 mb-4">Cómo se llama y cómo lo verán tus clientes.</p>
+                          <div className="space-y-3.5">
+                            <div>
+                              <label className={etiquetaCampo}><span>Nombre del combo <span className="text-rose-500">*</span></span></label>
+                              <input type="text" autoFocus={!f.id} autoComplete="off" placeholder={esBarberia ? 'Ej: Corte + Barba' : 'Ej: Combo Desayuno'} value={f.nombre} onChange={(e) => setFormCombo({ ...f, nombre: e.target.value })} className={inputBase} />
+                            </div>
+                            <div>
+                              <label className={etiquetaCampo}><span>Descripción</span><span className="text-stone-400 font-normal">opcional</span></label>
+                              <input type="text" autoComplete="off" placeholder={esBarberia ? 'Ej: El clásico de los sábados' : 'Ej: Pan, leche y café para empezar el día'} value={f.descripcion} onChange={(e) => setFormCombo({ ...f, descripcion: e.target.value })} className={inputBase} />
                             </div>
                           </div>
-                        ))
-                      )}
-                    </div>
-                  </>
-                ) : (
-                  <div className="flex-1 overflow-y-auto space-y-3 pr-1">
-                    <div>
-                      <label className="text-xs font-semibold text-stone-600 block mb-1">Nombre del combo *</label>
-                      <input
-                        type="text"
-                        placeholder="Ej: Combo Desayuno"
-                        value={formCombo.nombre}
-                        onChange={(e) => setFormCombo({ ...formCombo, nombre: e.target.value })}
-                        className="w-full bg-white border border-stone-200/70 shadow-sm rounded-xl px-3 py-1.5 text-sm text-stone-900"
-                      />
-                    </div>
-                    <div>
-                      <label className="text-xs font-semibold text-stone-600 block mb-1">Descripción (opcional)</label>
-                      <input
-                        type="text"
-                        placeholder="Ej: Pan, leche y huevos para empezar el día"
-                        value={formCombo.descripcion}
-                        onChange={(e) => setFormCombo({ ...formCombo, descripcion: e.target.value })}
-                        className="w-full bg-white border border-stone-200/70 shadow-sm rounded-xl px-3 py-1.5 text-sm text-stone-900"
-                      />
-                    </div>
+                        </div>
 
-                    <div>
-                      <label className="text-xs font-semibold text-stone-600 block mb-1">Productos del combo *</label>
-                      <div className="relative">
-                        <input
-                          type="text"
-                          placeholder="Buscar producto para agregar..."
-                          value={busquedaProductoCombo}
-                          onChange={(e) => setBusquedaProductoCombo(e.target.value)}
-                          className="w-full bg-white border border-stone-200/70 shadow-sm rounded-xl px-3 py-1.5 text-sm text-stone-900"
-                        />
-                        {busquedaProductoCombo.trim() && (
-                          <div className="absolute z-10 top-full left-0 right-0 mt-1 bg-white border border-stone-300 rounded-lg shadow-xl overflow-hidden max-h-48 overflow-y-auto">
-                            {productos
-                              .filter((p) => p.descripcion.toLowerCase().includes(busquedaProductoCombo.trim().toLowerCase()) || (p.cod_ean || '').includes(busquedaProductoCombo.trim()))
-                              .slice(0, 8)
-                              .map((p) => (
-                                <button
-                                  type="button"
-                                  key={p.id}
-                                  onClick={() => agregarProductoAFormCombo(p)}
-                                  className="w-full text-left px-3 py-2 text-xs text-stone-800 hover:bg-stone-100 flex items-center justify-between gap-2"
-                                >
-                                  <span className="truncate">{p.descripcion}</span>
-                                  <span className="text-stone-500 shrink-0">S/ {Number(p.precio_venta).toFixed(2)}</span>
-                                </button>
-                              ))}
-                            {productos.filter((p) => p.descripcion.toLowerCase().includes(busquedaProductoCombo.trim().toLowerCase())).length === 0 && (
-                              <p className="px-3 py-2 text-xs text-stone-400">Sin resultados.</p>
-                            )}
+                        <div className={panelClase}>
+                          <h4 className="text-base font-extrabold text-stone-900 tracking-tight">Qué incluye</h4>
+                          <p className="text-[12.5px] text-stone-500 mt-0.5 mb-4">Busca {esBarberia ? 'servicios o productos' : 'productos'} y ajusta cuántos lleva cada uno.</p>
+                          <div className="relative">
+                            <i className="fa-solid fa-magnifying-glass absolute left-4 top-1/2 -translate-y-1/2 text-stone-300 text-[15px] pointer-events-none"></i>
+                            <input type="text" autoComplete="off" placeholder="Buscar para agregar…" value={busquedaProductoCombo} onChange={(e) => { setBusquedaProductoCombo(e.target.value); setResaltadoProductoCombo(0); }} onKeyDown={teclasBusqueda} className="w-full h-12 bg-stone-50/70 border-[1.5px] border-stone-200 rounded-2xl pl-10 pr-4 text-sm text-stone-900 placeholder:text-stone-300 outline-none focus:border-[#6105dc] focus:bg-white focus:ring-4 focus:ring-[#6105dc]/15 transition" />
                           </div>
-                        )}
-                      </div>
-                    </div>
+                          {q && (
+                            <div className="mt-2 border-[1.5px] border-[#e4d6fb] rounded-2xl bg-white overflow-hidden shadow-lg shadow-[#6105dc]/10">
+                              {encontrados.length === 0 && <p className="px-3.5 py-3.5 text-[13px] text-stone-500">No encontré «{busquedaProductoCombo.trim()}». Prueba con otro nombre.</p>}
+                              {encontrados.map((p, i) => {
+                                const ya = f.items.find((it) => it.producto_id === p.id);
+                                const s = p.stock_actual === null || p.stock_actual === undefined ? null : Number(p.stock_actual);
+                                return (
+                                  <button type="button" key={p.id} onClick={() => agregarProductoAFormCombo(p)} className={`w-full flex items-center gap-3 text-left px-3 py-2 border-b border-stone-100 last:border-b-0 hover:bg-[#fcfaff] ${i === idxRes ? 'bg-[#fcfaff]' : 'bg-white'}`}>
+                                    <span className="w-[38px] h-[38px] rounded-xl overflow-hidden shrink-0 border border-stone-100"><FotoProducto fotoUrl={p.foto_url} categoria={p.categoria} className="w-full h-full" iconClassName="text-sm" /></span>
+                                    <span className="min-w-0 flex-1">
+                                      <span className="block text-[13px] font-bold text-stone-900 leading-tight truncate">{p.descripcion}</span>
+                                      <span className="block text-[11.5px] text-stone-500 mt-0.5">{dinero(p.precio_venta)}{s === null ? (esBarberia ? ' · servicio' : '') : s <= 0 ? ' · sin stock' : ` · ${s} en stock`}</span>
+                                    </span>
+                                    <span className="text-xs font-bold text-[#4d04b0] flex items-center gap-1 shrink-0">{ya ? `Ya lleva ${ya.cantidad} · sumar otro` : 'Agregar'} <i className="fa-solid fa-plus text-[10px]"></i></span>
+                                  </button>
+                                );
+                              })}
+                            </div>
+                          )}
+                          {f.items.length === 0 ? (
+                            <div className="mt-3 border-2 border-dashed border-[#e1d8f3] rounded-[18px] py-5 px-4 text-center text-[13px] text-stone-500">
+                              <b className="block text-stone-900 mb-0.5">Aún no agregaste {esBarberia ? 'nada' : 'productos'}</b>
+                              Escribe arriba para buscar y añadir {esBarberia ? 'servicios o productos' : 'productos'}.
+                            </div>
+                          ) : (
+                            <div className="mt-3 grid grid-cols-[minmax(0,1fr)] gap-2">
+                              {f.items.map((it) => {
+                                const pr = vivo(it.producto_id);
+                                const sinSeguimiento = esBarberia && pr && (pr.stock_actual === null || pr.stock_actual === undefined);
+                                const stock = pr ? (sinSeguimiento ? null : Number(pr.stock_actual) || 0) : 0;
+                                const corto = stock !== null && stock < it.cantidad;
+                                return (
+                                  <div key={it.producto_id} className={`flex flex-wrap items-center gap-x-3 gap-y-2 rounded-2xl border-[1.5px] px-3 py-2.5 ${corto ? 'border-amber-300 bg-amber-50/60' : 'border-stone-100 bg-white'}`}>
+                                    <span className="w-[38px] h-[38px] rounded-xl overflow-hidden shrink-0 border border-stone-100"><FotoProducto fotoUrl={pr?.foto_url || it.foto_url} categoria={pr?.categoria || it.categoria} className="w-full h-full" iconClassName="text-sm" /></span>
+                                    <span className="min-w-0 flex-1 basis-[140px]">
+                                      <span className="block text-[13px] font-bold text-stone-900 leading-tight">{it.descripcion}</span>
+                                      <span className="block text-[11.5px] text-stone-500 mt-0.5">
+                                        {dinero(it.precio_venta)} c/u{stock === null ? ' · servicio' : ` · ${stock} en stock`}
+                                        {stock !== null && stock < 1 && <b className="text-rose-600"> · sin stock</b>}
+                                        {stock !== null && stock >= 1 && corto && <b className="text-amber-700"> · solo alcanza para {stock}</b>}
+                                      </span>
+                                    </span>
+                                    <span className="flex items-center bg-[#f1eef9] rounded-xl shrink-0">
+                                      <button type="button" aria-label="Menos" onClick={() => actualizarCantidadItemCombo(it.producto_id, it.cantidad - 1)} className="w-8 h-[34px] rounded-xl text-[#4d04b0] hover:bg-[#e6def7]"><i className="fa-solid fa-minus text-[11px]"></i></button>
+                                      <b className="min-w-[26px] text-center text-sm font-extrabold">{it.cantidad}</b>
+                                      <button type="button" aria-label="Más" onClick={() => actualizarCantidadItemCombo(it.producto_id, it.cantidad + 1)} className="w-8 h-[34px] rounded-xl text-[#4d04b0] hover:bg-[#e6def7]"><i className="fa-solid fa-plus text-[11px]"></i></button>
+                                    </span>
+                                    <span className="text-sm font-extrabold text-stone-900 min-w-[64px] text-right shrink-0">{dinero(it.precio_venta * it.cantidad)}</span>
+                                    <button type="button" aria-label="Quitar" title="Quitar" onClick={() => quitarItemCombo(it.producto_id)} className="w-[30px] h-[30px] rounded-lg text-stone-300 hover:text-rose-600 hover:bg-rose-50 grid place-items-center shrink-0"><i className="fa-solid fa-xmark text-sm"></i></button>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          )}
+                        </div>
 
-                    {formCombo.items.length > 0 && (
-                      <div className="bg-white border border-stone-200 rounded-xl p-1.5 divide-y divide-stone-100">
-                        {formCombo.items.map((it) => (
-                          <div key={it.producto_id} className="flex items-center gap-2.5 py-2 px-1">
-                            <span className="w-7 h-7 rounded-full bg-[#f4eefe] flex items-center justify-center shrink-0">
-                              <i className="fa-solid fa-box text-xs text-[#6105dc]"></i>
-                            </span>
-                            <span className="flex-1 min-w-0 text-xs font-medium text-stone-800 truncate">{it.descripcion}</span>
-                            <input
-                              type="number"
-                              min="1"
-                              step="1"
-                              value={it.cantidad}
-                              onChange={(e) => actualizarCantidadItemCombo(it.producto_id, e.target.value)}
-                              className="w-14 bg-stone-100 border border-stone-200 rounded px-2 py-1 text-xs text-stone-900 text-center"
-                            />
-                            <span className="text-[11px] font-semibold text-stone-600 w-16 shrink-0 text-right">S/ {(it.precio_venta * it.cantidad).toFixed(2)}</span>
-                            <button aria-label="Cerrar" onClick={() => quitarItemCombo(it.producto_id)} className="w-6 h-6 flex items-center justify-center text-stone-400 hover:text-rose-600 shrink-0">
-                              <i className="fa-solid fa-xmark text-xs"></i>
-                            </button>
+                        <div className={panelClase}>
+                          <h4 className="text-base font-extrabold text-stone-900 tracking-tight">Precio del combo</h4>
+                          <p className="text-[12.5px] text-stone-500 mt-0.5 mb-4">Si lo dejas sin tocar, es la suma de lo que incluye. Bájalo para dar un descuento.</p>
+                          <div className="flex items-baseline gap-2.5 border-2 border-stone-200 rounded-[20px] bg-stone-50/70 px-4 sm:px-[18px] py-3 focus-within:border-[#6105dc] focus-within:bg-white focus-within:ring-[5px] focus-within:ring-[#6105dc]/15 transition">
+                            <span className="text-[22px] font-extrabold text-stone-300">S/</span>
+                            <input type="number" min="0" step="0.10" inputMode="decimal" placeholder="0.00" aria-label="Precio del combo" value={f.precio_venta} onChange={(e) => setFormCombo({ ...f, precioTocado: true, precio_venta: e.target.value })} className="w-full min-w-0 bg-transparent outline-none border-0 text-[32px] sm:text-[38px] font-extrabold tracking-tight text-stone-900 placeholder:text-stone-300" />
+                            {suma > 0 && <span className="hidden sm:block text-xs font-semibold text-stone-500 whitespace-nowrap">{ahorro > 0.5 && <s className="text-stone-300 mr-1">{dinero(suma)} ·</s>} suma {dinero(suma)}</span>}
                           </div>
-                        ))}
-                      </div>
-                    )}
+                          {suma > 0 && (
+                            <>
+                              <div className="flex flex-wrap items-center gap-2 mt-3">
+                                <span className="text-xs font-semibold text-stone-500 mr-0.5">Descuento rápido</span>
+                                <button type="button" onClick={() => aplicarPrecioCombo(suma)} className={`px-3 py-1.5 rounded-xl border-[1.5px] text-[12.5px] font-bold transition ${Math.abs(precio - suma) < 0.005 ? 'border-[#6105dc] bg-[#f4eefe] text-[#4d04b0]' : 'border-stone-200 bg-white hover:bg-[#f4eefe] hover:border-[#e4d6fb]'}`}>Sin descuento</button>
+                                {rapidos.map((r) => <button key={r.pct} type="button" onClick={() => aplicarDescuentoRapidoCombo(r.pct)} className={`px-3 py-1.5 rounded-xl border-[1.5px] text-[12.5px] font-bold transition ${Math.abs(precio - r.valor) < 0.005 ? 'border-[#6105dc] bg-[#f4eefe] text-[#4d04b0]' : 'border-stone-200 bg-white hover:bg-[#f4eefe] hover:border-[#e4d6fb]'}`}>-{r.pct}%</button>)}
+                              </div>
+                              {redondos.length > 0 && (
+                                <div className="flex flex-wrap items-center gap-2 mt-2">
+                                  <span className="text-xs font-semibold text-stone-500 mr-0.5">Precio redondo</span>
+                                  {redondos.map((v) => <button key={v} type="button" onClick={() => aplicarPrecioCombo(v)} className={`px-3 py-1.5 rounded-xl border-[1.5px] text-[12.5px] font-bold transition ${Math.abs(precio - v) < 0.005 ? 'border-[#6105dc] bg-[#f4eefe] text-[#4d04b0]' : 'border-stone-200 bg-white hover:bg-[#f4eefe] hover:border-[#e4d6fb]'}`}>{dinero(v)}</button>)}
+                                </div>
+                              )}
+                              {ahorro > 0.5 && <p className="text-[11.5px] text-stone-500 mt-2.5">Tu cliente ahorra <b>{dinero(suma - precio)}</b> ({Math.round(ahorro)}%).</p>}
+                              {precio > suma + 0.005 && <p className="text-[11.5px] text-stone-500 mt-2.5">El combo sale más caro que comprar por separado ({dinero(suma)}).</p>}
+                            </>
+                          )}
+                          {suma > 0 && costo > 0 && precio > 0 && (
+                            <div className="mt-4 border border-stone-100 rounded-[18px] bg-[#fcfaff] p-3.5 sm:p-4">
+                              {(() => {
+                                const total = Math.max(precio, costo);
+                                const wCosto = Math.min(100, costo / total * 100);
+                                const wGana = m.perdida ? 100 - wCosto : Math.max(0, (precio - costo) / total * 100);
+                                const colorGana = m.perdida ? 'bg-rose-500' : m.bajo ? 'bg-amber-500' : 'bg-emerald-500';
+                                return (
+                                  <>
+                                    <div className="flex h-3.5 rounded-full overflow-hidden bg-[#ece7f5]"><i className="block h-full bg-[#b9b0d6]" style={{ width: `${wCosto}%` }}></i><i className={`block h-full ${colorGana}`} style={{ width: `${wGana}%` }}></i></div>
+                                    <div className="grid grid-cols-3 gap-2 sm:gap-2.5 mt-3">
+                                      <div><span className="flex items-center gap-1.5 text-[11.5px] font-semibold text-stone-500"><i className="w-[9px] h-[9px] rounded-[3px] bg-[#b9b0d6] inline-block"></i>Te cuesta</span><b className="block text-[15px] font-extrabold mt-0.5">{dinero(costo)}</b></div>
+                                      <div><span className="flex items-center gap-1.5 text-[11.5px] font-semibold text-stone-500"><i className={`w-[9px] h-[9px] rounded-[3px] inline-block ${colorGana}`}></i>{m.perdida ? 'Pierdes' : 'Ganas'}</span><b className={`block text-[15px] font-extrabold mt-0.5 ${m.perdida ? 'text-rose-600' : m.bajo ? 'text-amber-700' : 'text-emerald-600'}`}>{dinero(Math.abs(m.ganancia))}</b></div>
+                                      <div><span className="flex items-center gap-1.5 text-[11.5px] font-semibold text-stone-500"><i className="w-[9px] h-[9px] rounded-[3px] bg-[#6105dc] inline-block"></i>Margen</span><b className="block text-[15px] font-extrabold mt-0.5">{m.margenPct.toFixed(m.margenPct < 10 ? 1 : 0)}%</b></div>
+                                    </div>
+                                    {m.perdida
+                                      ? <div className="flex gap-2 items-start rounded-[14px] bg-rose-50 text-rose-600 px-3 py-2.5 text-xs leading-snug mt-3"><i className="fa-solid fa-triangle-exclamation mt-0.5"></i><span>El precio ({dinero(precio)}) es menor que lo que te cuestan estos productos ({dinero(costo)}). Estarías vendiendo a pérdida.</span></div>
+                                      : m.bajo
+                                        ? <div className="flex gap-2 items-start rounded-[14px] bg-amber-50 text-amber-700 px-3 py-2.5 text-xs leading-snug mt-3"><i className="fa-solid fa-triangle-exclamation mt-0.5"></i><span>Margen muy bajo. Revisa el precio para no trabajar casi gratis.</span></div>
+                                        : <div className="flex gap-2 items-start rounded-[14px] bg-emerald-50 text-emerald-700 px-3 py-2.5 text-xs leading-snug mt-3"><i className="fa-solid fa-circle-check mt-0.5"></i><span>Buen margen: ganas {dinero(m.ganancia)} por cada combo que vendas.</span></div>}
+                                  </>
+                                );
+                              })()}
+                            </div>
+                          )}
+                          {suma > 0 && !(costo > 0) && precio > 0 && (
+                            <div className="flex gap-2 items-start rounded-[14px] bg-[#f4eefe] text-[#4d04b0] px-3 py-2.5 text-xs leading-snug mt-4"><i className="fa-solid fa-circle-info mt-0.5"></i><span>{esBarberia ? 'Los servicios no tienen costo cargado, así que no puedo calcular tu ganancia.' : 'Estos productos no tienen costo cargado, así que no puedo calcular tu ganancia.'}</span></div>
+                          )}
+                        </div>
 
-                    <div className="grid grid-cols-2 gap-2">
-                      <div>
-                        <label className="text-xs font-semibold text-stone-600 block mb-1">Precio del combo (S/) *</label>
-                        <input
-                          type="number"
-                          step="0.10"
-                          placeholder="0.00"
-                          value={formCombo.precio_venta}
-                          onChange={(e) => setFormCombo({ ...formCombo, precioTocado: true, precio_venta: e.target.value })}
-                          className="w-full bg-white border border-stone-200/70 shadow-sm rounded-full px-3 py-1.5 text-sm font-bold text-stone-900"
-                        />
-                      </div>
-                      <div className={`flex flex-col justify-center rounded-lg px-3 py-1.5 ${precioNormalCombo(formCombo) > 0 && Number(formCombo.precio_venta) > 0 ? 'bg-emerald-50' : 'bg-stone-100'}`}>
-                        <span className="text-[11px] text-stone-500">Precio sumado: S/ {precioNormalCombo(formCombo).toFixed(2)}</span>
-                        {precioNormalCombo(formCombo) > 0 && Number(formCombo.precio_venta) > 0 && (
-                          <span className="text-sm font-bold text-emerald-700">
-                            Ahorro: {(100 - (Number(formCombo.precio_venta) / precioNormalCombo(formCombo)) * 100).toFixed(0)}%
+                        <button type="button" role="switch" aria-checked={f.activo} onClick={() => setFormCombo({ ...f, activo: !f.activo })} className={`w-full flex items-center justify-between gap-3 text-left rounded-[18px] border-[1.5px] px-4 py-3 transition ${f.activo ? 'border-[#6105dc] bg-[#fcfaff]' : 'border-stone-200 bg-white hover:bg-stone-50'}`}>
+                          <span>
+                            <span className="block text-[13.5px] font-bold text-stone-800">En venta</span>
+                            <span className="block text-xs text-stone-500 leading-snug mt-0.5">{f.activo ? 'Aparece en la caja para vender. Se pausa solo si falta stock y se enciende al reponer.' : 'Pausado: no aparece en la caja.'}</span>
                           </span>
+                          <span className={`relative w-[42px] h-6 rounded-full shrink-0 transition-colors ${f.activo ? 'bg-[#6105dc]' : 'bg-stone-300'}`}><span className={`absolute top-[3px] left-[3px] w-[18px] h-[18px] rounded-full bg-white shadow transition-transform ${f.activo ? 'translate-x-[18px]' : ''}`}></span></span>
+                        </button>
+                      </div>
+
+                      <div className="min-w-0 md:sticky md:top-0 md:self-start order-first md:order-none">
+                        <p className="hidden md:block text-[11px] font-bold tracking-[0.07em] uppercase text-stone-500 mb-2">Así lo verá el cajero</p>
+                        <div className="hidden md:block bg-white border border-stone-100 rounded-[22px] p-3.5 shadow-lg shadow-[#3c1478]/10">
+                          <div className="grid grid-cols-3 gap-1.5 mb-2.5">
+                            {pvFotos.length === 0
+                              ? <span className="aspect-square rounded-2xl bg-[#f4eefe] grid place-items-center text-[#6105dc]/40 text-2xl"><i className="fa-solid fa-gift"></i></span>
+                              : pvFotos.map((it) => (
+                                <span key={it.producto_id} className="relative aspect-square rounded-2xl overflow-hidden border border-stone-100">
+                                  <FotoProducto fotoUrl={vivo(it.producto_id)?.foto_url || it.foto_url} categoria={vivo(it.producto_id)?.categoria || it.categoria} className="w-full h-full" iconClassName="text-xl" />
+                                  {it.cantidad > 1 && <em className="absolute right-1 bottom-1 not-italic bg-[#6105dc] text-white rounded-full text-[10px] font-extrabold px-1.5">×{it.cantidad}</em>}
+                                </span>
+                              ))}
+                          </div>
+                          {ahorro > 0.5 && <span className="inline-block bg-[#ffc81a] text-stone-900 text-[10.5px] font-extrabold rounded-full px-2.5 py-0.5">Ahorras {Math.round(ahorro)}%</span>}
+                          <h5 className="mt-2 text-[15px] font-extrabold leading-tight text-stone-900">{f.nombre.trim() || 'Nombre del combo'}</h5>
+                          {f.descripcion.trim() && <p className="text-xs text-stone-500 leading-snug mt-0.5">{f.descripcion.trim()}</p>}
+                          {f.items.length > 0 && (
+                            <ul className="mt-2.5 space-y-1 text-xs text-stone-800">
+                              {f.items.map((it) => <li key={it.producto_id} className="flex gap-1.5"><b className="text-[#4d04b0] min-w-[22px]">{it.cantidad}×</b><span>{it.descripcion}</span></li>)}
+                            </ul>
+                          )}
+                          <div className="flex items-baseline justify-between mt-3 pt-2.5 border-t border-dashed border-stone-200">
+                            <span>{ahorro > 0.5 && <s className="text-xs font-semibold text-stone-300 mr-1.5">{dinero(suma)}</s>}<strong className="text-2xl font-extrabold tracking-tight">{dinero(precio)}</strong></span>
+                          </div>
+                          <div className={`mt-2.5 h-9 rounded-xl text-white font-bold text-[12.5px] grid place-items-center ${f.activo ? 'bg-[#6105dc]' : 'bg-[#d9d2ea]'}`}>{f.activo ? 'Agregar al carrito' : 'Pausado'}</div>
+                        </div>
+                        {f.items.length > 0 && (
+                          maxCombos === Infinity
+                            ? <div className="mt-3 rounded-2xl bg-[#f1eef9] text-stone-500 px-3.5 py-3 text-[12.5px] leading-snug flex gap-2.5 items-start"><i className="fa-solid fa-circle-info mt-0.5"></i><span>Solo incluye servicios: siempre está disponible.</span></div>
+                            : maxCombos === 0
+                              ? <div className="mt-3 rounded-2xl bg-rose-50 text-rose-600 px-3.5 py-3 text-[12.5px] leading-snug flex gap-2.5 items-start"><i className="fa-solid fa-triangle-exclamation mt-0.5"></i><span>Hoy no se puede vender: falta stock de <b>{faltan.join(', ')}</b>.</span></div>
+                              : <div className="mt-3 rounded-2xl bg-emerald-50 text-emerald-700 px-3.5 py-3 text-[12.5px] leading-snug flex gap-2.5 items-start"><i className="fa-solid fa-box mt-0.5"></i><span>Con tu stock de hoy puedes armar <b className="text-[15px]">{maxCombos}</b> combo{maxCombos === 1 ? '' : 's'}.</span></div>
                         )}
                       </div>
                     </div>
 
-                    {precioNormalCombo(formCombo) > 0 && (
-                      <div className="flex items-center gap-1.5">
-                        <span className="text-[11px] text-stone-500 shrink-0">Descuento rápido:</span>
-                        {[5, 10, 15].map((pct) => (
-                          <button
-                            key={pct}
-                            type="button"
-                            onClick={() => aplicarDescuentoRapidoCombo(pct)}
-                            className="px-2.5 py-1 text-[11px] font-semibold bg-stone-200 hover:bg-[#f4eefe] hover:text-[#6105dc] text-stone-700 rounded-lg transition"
-                          >
-                            -{pct}%
-                          </button>
-                        ))}
-                      </div>
-                    )}
-
-                    {costoNormalCombo(formCombo) > 0 && Number(formCombo.precio_venta) > 0 && Number(formCombo.precio_venta) < costoNormalCombo(formCombo) && (
-                      <p className="text-xs font-semibold text-rose-600 bg-rose-50 border border-rose-200 rounded-lg px-3 py-2 flex items-center gap-1.5">
-                        <i className="fa-solid fa-triangle-exclamation"></i>
-                        El precio (S/ {Number(formCombo.precio_venta).toFixed(2)}) es menor al costo de estos productos (S/ {costoNormalCombo(formCombo).toFixed(2)}) -- estarías vendiendo a pérdida.
-                      </p>
-                    )}
-
-                    {costoNormalCombo(formCombo) > 0 && Number(formCombo.precio_venta) >= costoNormalCombo(formCombo) && (() => {
-                      const precio = Number(formCombo.precio_venta);
-                      const { ganancia, margenPct: margen, bajo } = margenCombo(precio, costoNormalCombo(formCombo));
-                      return (
-                        <p className={`text-xs font-semibold rounded-lg px-3 py-2 flex items-center gap-1.5 border ${bajo ? 'text-amber-700 bg-amber-50 border-amber-200' : 'text-emerald-700 bg-emerald-50 border-emerald-200'}`}>
-                          <i className={`fa-solid ${bajo ? 'fa-triangle-exclamation' : 'fa-circle-check'}`}></i>
-                          Ganancia por combo: S/ {ganancia.toFixed(2)} (margen {margen.toFixed(margen < 10 ? 1 : 0)}%){bajo ? ' -- margen muy bajo, revisa el precio.' : ''}
-                        </p>
-                      );
-                    })()}
-
-                    <Interruptor activo={formCombo.activo} onClick={() => setFormCombo({ ...formCombo, activo: !formCombo.activo })} etiqueta="Combo activo (visible para vender)" />
-
-                    <div className="flex gap-2 pt-1 shrink-0">
-                      <button onClick={() => setFormCombo(null)} className="flex-1 py-2.5 bg-white/70 hover:bg-[#ece0fd] text-stone-600 text-sm font-semibold rounded-full shadow-sm">
-                        Cancelar
-                      </button>
-                      <button
-                        onClick={guardarCombo}
-                        disabled={guardandoCombo}
-                        className="flex-1 py-2.5 bg-[#6105dc] hover:bg-[#4d04b0] disabled:opacity-60 text-white font-bold text-sm rounded-full shadow"
-                      >
-                        {guardandoCombo ? 'Guardando...' : 'Guardar Combo'}
+                    <div className="shrink-0 bg-white border-t border-stone-100 px-4 sm:px-5 py-3 flex items-center gap-2.5 shadow-[0_-8px_24px_-14px_rgba(40,10,90,0.18)]">
+                      <button type="button" onClick={cerrarEditorCombo} className="h-[46px] px-4 sm:px-5 rounded-[14px] text-stone-500 hover:text-stone-800 hover:bg-stone-100 font-bold text-[13.5px]">Cancelar</button>
+                      <span className="flex-1"></span>
+                      <span className={`hidden md:flex items-center text-xs ${errores.length ? 'text-stone-500' : 'text-[#4d04b0] font-semibold'}`}>{errores.length ? errores.join(' · ') : hayCambios ? 'Hay cambios sin guardar' : 'Todo en orden'}</span>
+                      <button type="button" onClick={guardarCombo} disabled={guardandoCombo || errores.length > 0 || (!!f.id && !hayCambios)} className="h-[46px] px-4 sm:px-5 rounded-[14px] bg-[#6105dc] hover:bg-[#4d04b0] disabled:bg-[#d9d2ea] disabled:shadow-none disabled:cursor-not-allowed text-white font-bold text-[13.5px] shadow-lg shadow-[#6105dc]/30 inline-flex items-center justify-center gap-2 transition">
+                        <i className="fa-solid fa-check text-xs"></i><span>{guardandoCombo ? 'Guardando...' : (f.id ? 'Guardar cambios' : 'Guardar combo')}</span>
                       </button>
                     </div>
                   </div>
-                )}
+                </div>
+              );
+            }
+
+            // ----- Lista -----
+            const filas = combos.map((c) => ({ c, est: estadoDe(c) }));
+            const nVenta = filas.filter((x) => x.est === 'venta').length;
+            const nSin = filas.filter((x) => x.est === 'sinstock').length;
+            const nPausa = filas.filter((x) => x.est === 'pausado').length;
+            const qLista = norm(busquedaCombos.trim());
+            const visibles = filas.filter((x) => (filtroCombos === 'todos' || x.est === filtroCombos) && (!qLista || norm(x.c.nombre).includes(qLista)));
+
+            return (
+              <div className="fixed inset-0 bg-stone-900/30 backdrop-blur-sm flex items-center justify-center z-50 p-2 sm:p-4">
+                <div className="bg-gradient-to-br from-[#f4effc] via-[#f9f8fb] to-[#f5f4f8] border border-white/80 rounded-[28px] max-w-4xl w-full shadow-2xl h-[95vh] max-h-[800px] flex flex-col overflow-hidden">
+
+                  <div className="bg-white border-b border-stone-100 px-4 sm:px-5 py-3.5 shrink-0 flex items-center gap-3">
+                    <span className="w-11 h-11 rounded-[14px] bg-[#f4eefe] text-[#6105dc] grid place-items-center text-xl shrink-0"><i className="fa-solid fa-gift"></i></span>
+                    <div className="min-w-0 flex-1">
+                      <h3 className="text-[17px] sm:text-lg font-extrabold text-stone-900 tracking-tight leading-tight">Combos</h3>
+                      <p className="hidden sm:block text-[12.5px] text-stone-500 mt-0.5">Paquetes de varios {esBarberia ? 'servicios y productos' : 'productos'} a un precio especial. Al venderse, descuentan el stock de cada producto que incluyen.</p>
+                    </div>
+                    <button type="button" onClick={nuevoCombo} className="h-10 px-4 rounded-[14px] bg-[#6105dc] hover:bg-[#4d04b0] text-white font-bold text-[13px] shadow-lg shadow-[#6105dc]/30 inline-flex items-center gap-2 shrink-0"><i className="fa-solid fa-plus text-xs"></i><span>Nuevo<span className="hidden sm:inline"> combo</span></span></button>
+                    <button aria-label="Cerrar" onClick={cerrarModalCombos} className="w-8 h-8 flex items-center justify-center rounded-full text-stone-400 hover:text-stone-600 hover:bg-stone-100 transition-colors shrink-0"><i className="fa-solid fa-xmark"></i></button>
+                  </div>
+
+                  <div className="flex-1 overflow-y-auto p-3.5 sm:p-5">
+                    <div className="grid grid-cols-3 gap-2 sm:gap-3 mb-4">
+                      <div className="bg-white border border-stone-100 rounded-[18px] px-3 sm:px-3.5 py-2.5 sm:py-3"><b className="block text-xl sm:text-2xl font-extrabold leading-tight">{nVenta}</b><span className="text-[11px] sm:text-xs font-semibold text-stone-500">En venta ahora</span></div>
+                      <div className="bg-white border border-stone-100 rounded-[18px] px-3 sm:px-3.5 py-2.5 sm:py-3"><b className={`block text-xl sm:text-2xl font-extrabold leading-tight ${nSin ? 'text-amber-700' : ''}`}>{nSin}</b><span className="text-[11px] sm:text-xs font-semibold text-stone-500">Sin stock</span></div>
+                      <div className="bg-white border border-stone-100 rounded-[18px] px-3 sm:px-3.5 py-2.5 sm:py-3"><b className="block text-xl sm:text-2xl font-extrabold leading-tight">{nPausa}</b><span className="text-[11px] sm:text-xs font-semibold text-stone-500">Pausados</span></div>
+                    </div>
+                    <div className="flex flex-wrap items-center gap-2.5 mb-3.5">
+                      <div className="relative flex-1 min-w-[170px]">
+                        <i className="fa-solid fa-magnifying-glass absolute left-3.5 top-1/2 -translate-y-1/2 text-stone-300 text-sm pointer-events-none"></i>
+                        <input type="text" autoComplete="off" placeholder="Buscar combo…" value={busquedaCombos} onChange={(e) => setBusquedaCombos(e.target.value)} className="w-full h-[42px] bg-white border-[1.5px] border-stone-200 rounded-[14px] pl-9 pr-3.5 text-sm text-stone-900 placeholder:text-stone-300 outline-none focus:border-[#6105dc] focus:ring-4 focus:ring-[#6105dc]/15" />
+                      </div>
+                      <div className="flex flex-wrap gap-2">
+                        {[['todos', 'Todos', filas.length], ['venta', 'En venta', nVenta], ['sinstock', 'Sin stock', nSin], ['pausado', 'Pausados', nPausa]].map(([k, t, n]) => (
+                          <button key={k} type="button" onClick={() => setFiltroCombos(k)} className={chipClase(filtroCombos === k)}>{t} <span className={`text-[10.5px] rounded-full px-1.5 ${filtroCombos === k ? 'bg-[#6105dc] text-white' : 'bg-[#f1eef9] text-stone-500'}`}>{n}</span></button>
+                        ))}
+                      </div>
+                    </div>
+
+                    {cargandoCombos ? (
+                      <p className="text-[13px] text-center py-10 text-stone-500">Cargando combos...</p>
+                    ) : combos.length === 0 ? (
+                      <div className="text-center max-w-xs mx-auto py-8 text-[13.5px] text-stone-500 leading-snug">
+                        <div className="w-[72px] h-[72px] rounded-3xl bg-[#f4eefe] text-[#6105dc] grid place-items-center text-[32px] mx-auto mb-3"><i className="fa-solid fa-gift"></i></div>
+                        <b className="block text-base text-stone-900 mb-0.5">Todavía no tienes combos</b>
+                        Junta varios {esBarberia ? 'servicios y productos' : 'productos'} en un paquete a precio especial. Toca «Nuevo combo» para crear el primero.
+                      </div>
+                    ) : visibles.length === 0 ? (
+                      <p className="text-center py-8 text-[13.5px] text-stone-500"><b className="block text-stone-900">Ningún combo coincide</b>Prueba con otro filtro o con otra palabra.</p>
+                    ) : (
+                      <div className="grid gap-3.5 sm:grid-cols-2">
+                        {visibles.map(({ c: combo, est }) => {
+                          const items = combo.combos_items || [];
+                          const suma = items.reduce((acc, ci) => acc + (Number(ci.productos?.precio_venta) || 0) * Number(ci.cantidad), 0);
+                          const costo = items.reduce((acc, ci) => acc + (Number(ci.productos?.precio_costo) || 0) * Number(ci.cantidad), 0);
+                          const precio = Number(combo.precio_venta) || 0;
+                          const ahorro = suma > 0 ? (1 - precio / suma) * 100 : 0;
+                          const mc = costo > 0 && precio > 0 ? margenCombo(precio, costo) : null;
+                          const e = estadoCombos.get(combo.id);
+                          const enVenta = est === 'venta';
+                          return (
+                            <div key={combo.id} className={`rounded-[22px] border p-4 flex flex-col gap-2.5 transition-shadow hover:shadow-lg hover:shadow-[#3c1478]/10 ${enVenta ? 'bg-white border-stone-100' : 'bg-[#fbfaff] border-stone-100'}`}>
+                              <div className={`flex flex-col gap-2.5 ${enVenta ? '' : 'opacity-60'}`}>
+                                <div className="flex items-start gap-3">
+                                  <div className="flex shrink-0">
+                                    {items.slice(0, 3).map((ci, i) => (
+                                      <span key={ci.id || i} className={i > 0 ? '-ml-3' : ''}>{miniatura(vivo(ci.producto_id)?.foto_url || ci.productos?.foto_url, vivo(ci.producto_id)?.categoria || ci.productos?.categoria)}</span>
+                                    ))}
+                                    {items.length > 3 && <span className="-ml-3 w-10 h-10 rounded-[13px] border-2 border-white ring-1 ring-stone-200 bg-[#6105dc] text-white grid place-items-center text-xs font-extrabold">+{items.length - 3}</span>}
+                                  </div>
+                                  <div className="min-w-0">
+                                    <h5 className="text-base font-extrabold text-stone-900 tracking-tight leading-tight">{combo.nombre}</h5>
+                                    <p className="text-xs text-stone-500 leading-snug mt-0.5">{items.map((ci) => `${Number(ci.cantidad) > 1 ? `${Number(ci.cantidad)}× ` : ''}${ci.productos?.descripcion || '(producto eliminado)'}`).join(' · ')}</p>
+                                  </div>
+                                </div>
+                                <div className="flex items-baseline gap-2 flex-wrap">
+                                  <strong className="text-2xl font-extrabold text-[#4d04b0] tracking-tight">{dinero(precio)}</strong>
+                                  {suma > precio + 0.005 && <s className="text-[12.5px] font-semibold text-stone-300">{dinero(suma)}</s>}
+                                </div>
+                                {(mc || ahorro > 0.5) && (
+                                  <div className="flex flex-wrap gap-1.5">
+                                    {mc && (mc.perdida
+                                      ? <span className="text-[11px] font-bold rounded-full px-2.5 py-0.5 bg-rose-50 text-rose-600">Pérdida {dinero(-mc.ganancia)}</span>
+                                      : <span className={`text-[11px] font-bold rounded-full px-2.5 py-0.5 ${mc.bajo ? 'bg-amber-50 text-amber-700' : 'bg-emerald-50 text-emerald-700'}`}>Ganas {dinero(mc.ganancia)} · {mc.margenPct.toFixed(mc.margenPct < 10 ? 1 : 0)}%</span>)}
+                                    {ahorro > 0.5 && <span className="text-[11px] font-bold rounded-full px-2.5 py-0.5 bg-[#f4eefe] text-[#4d04b0]">Cliente ahorra {Math.round(ahorro)}%</span>}
+                                  </div>
+                                )}
+                              </div>
+                              {est === 'sinstock' && (
+                                <div className="flex gap-2 items-start rounded-xl bg-rose-50 text-rose-600 px-2.5 py-2 text-xs leading-snug"><i className="fa-solid fa-triangle-exclamation mt-0.5"></i><span>Pausado por falta de stock: {(e?.faltan || []).join(', ')}. Se enciende solo al reponer.</span></div>
+                              )}
+                              {enVenta && e && Number.isFinite(e.unidades) && (
+                                <div className="flex gap-2 items-start rounded-xl bg-[#f4eefe] text-[#4d04b0] px-2.5 py-2 text-xs leading-snug"><i className="fa-solid fa-box mt-0.5"></i><span>Con tu stock puedes vender hasta <b>{unidadesDe(e.unidades)}</b>.</span></div>
+                              )}
+                              <div className="flex items-center gap-1.5 mt-auto pt-2.5 border-t border-stone-100">
+                                <button type="button" role="switch" aria-checked={enVenta} onClick={() => (est === 'sinstock' ? notificar('Se enciende solo cuando repongas el stock.', 'info') : alternarActivoCombo(combo))} className="flex items-center gap-2.5 text-[12.5px] font-bold text-stone-700">
+                                  <span className={`relative w-[38px] h-[22px] rounded-full shrink-0 transition-colors ${enVenta ? 'bg-[#6105dc]' : 'bg-stone-300'}`}><span className={`absolute top-[3px] left-[3px] w-4 h-4 rounded-full bg-white shadow transition-transform ${enVenta ? 'translate-x-4' : ''}`}></span></span>
+                                  {enVenta ? 'En venta' : est === 'sinstock' ? 'Pausado por stock' : 'Pausado'}
+                                </button>
+                                <span className="flex-1"></span>
+                                <button type="button" onClick={() => duplicarCombo(combo)} title="Duplicar" aria-label="Duplicar" className="w-[34px] h-[34px] rounded-[10px] text-stone-400 hover:text-[#4d04b0] hover:bg-[#f4eefe] grid place-items-center"><i className="fa-regular fa-copy text-sm"></i></button>
+                                <button type="button" onClick={() => editarCombo(combo)} title="Editar" aria-label="Editar" className="w-[34px] h-[34px] rounded-[10px] text-stone-400 hover:text-[#4d04b0] hover:bg-[#f4eefe] grid place-items-center"><i className="fa-solid fa-pen text-sm"></i></button>
+                                <button type="button" onClick={() => eliminarCombo(combo)} title="Eliminar" aria-label="Eliminar" className="w-[34px] h-[34px] rounded-[10px] text-stone-400 hover:text-rose-600 hover:bg-rose-50 grid place-items-center"><i className="fa-solid fa-trash-can text-sm"></i></button>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
+                </div>
               </div>
-            </div>
-          )}
+            );
+          })()}
 
           {/* Modal: Registrar Merma */}
           {modalMerma && (() => {
