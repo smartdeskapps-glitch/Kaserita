@@ -10,7 +10,7 @@ import {
   estiloCategoria, categoriaDesdeTexto, FotoProducto, MiniInterruptor,
 } from './PanelAdminCompartido.jsx';
 import { esDniValido, esDocumentoValido, esRucValido, esMontoNoNegativo } from './lib/validaciones.js';
-import { efectivoEntrante, desgloseMediosPago, diferenciaArqueo } from './lib/arqueo.js';
+import { efectivoEntrante, desgloseMediosPago, diferenciaArqueo, totalConteo, DENOMINACIONES } from './lib/arqueo.js';
 import { calcularDescuento } from './lib/descuentos.js';
 import { resumirVentasPeriodo, agruparVentasPorDia, calcularCambioPct } from './lib/dashboard.js';
 import { valorAuditoria, describirAuditoria } from './lib/auditoria.js';
@@ -450,21 +450,77 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
     function DesgloseMediosPago({ desglose }) {
       if (!desglose) return null;
       const filas = [
-        { label: 'Yape', valor: desglose.YAPE },
-        { label: 'Plin', valor: desglose.PLIN },
-        { label: 'Tarjeta', valor: desglose.TARJETA },
-        { label: 'Crédito', valor: desglose.CREDITO },
-        { label: 'Tarjeta/Otro (de ventas Mixtas)', valor: desglose.MIXTO_OTRO }
+        { label: 'Yape', valor: desglose.YAPE, color: '#7c3aed' },
+        { label: 'Plin', valor: desglose.PLIN, color: '#06b6d4' },
+        { label: 'Tarjeta', valor: desglose.TARJETA, color: '#f59e0b' },
+        { label: 'Crédito', valor: desglose.CREDITO, color: '#64748b' },
+        { label: 'Tarjeta/Otro (de ventas Mixtas)', valor: desglose.MIXTO_OTRO, color: '#94a3b8' }
       ].filter((f) => f.valor > 0);
       if (filas.length === 0) return null;
       return (
-        <div className="bg-stone-50 border border-stone-200 rounded-xl p-3 text-left text-xs text-stone-600 space-y-1">
-          <p className="font-semibold text-stone-500">Otros medios de pago (informativo, no es efectivo):</p>
+        <div className="mt-3.5 bg-[#fcfaff] border border-stone-100 rounded-[18px] px-3.5 py-1 text-left text-xs text-stone-600">
+          <p className="font-semibold text-stone-500 py-2 leading-snug">Otros medios de pago: no es efectivo. Cruza estos montos con tu app de Yape o tu POS de tarjeta.</p>
           {filas.map((f) => (
-            <div key={f.label} className="flex justify-between">
-              <span>{f.label}:</span><span>S/ {f.valor.toFixed(2)}</span>
+            <div key={f.label} className="flex justify-between items-center py-1.5 border-t border-dashed border-[#e4d6fb]">
+              <span className="flex items-center"><i className="w-[9px] h-[9px] rounded-[3px] inline-block mr-2" style={{ background: f.color }}></i>{f.label}</span>
+              <b className="text-stone-800">S/ {f.valor.toFixed(2)}</b>
             </div>
           ))}
+        </div>
+      );
+    }
+
+    // Fecha corta para mostrar cuándo pasó algo: "hoy 08:02", "ayer 21:30" o "17/10 18:40".
+    const etiquetaCuandoTurno = (iso) => {
+      const d = new Date(iso);
+      if (Number.isNaN(d.getTime())) return '';
+      const hoy = new Date();
+      const ayer = new Date();
+      ayer.setDate(hoy.getDate() - 1);
+      const hora = d.toLocaleTimeString('es-PE', { hour: '2-digit', minute: '2-digit' });
+      if (d.toDateString() === hoy.toDateString()) return `hoy ${hora}`;
+      if (d.toDateString() === ayer.toDateString()) return `ayer ${hora}`;
+      return `${d.toLocaleDateString('es-PE', { day: '2-digit', month: '2-digit' })} ${hora}`;
+    };
+
+    // Calculadora de billetes y monedas para abrir/cerrar caja: solo ayuda a
+    // sumar -- lo que se guarda sigue siendo el total que queda en el campo
+    // de monto. Es un componente aparte (no dentro de PosApp) para que no se
+    // vuelva a crear en cada render y los campos no pierdan el foco.
+    const COLOR_BILLETE = { 200: '#b45309', 100: '#2563eb', 50: '#a21caf', 20: '#d97706', 10: '#059669' };
+    function ContadorEfectivo({ conteo, onChange }) {
+      const cambiar = (d, n) => onChange({ ...conteo, [d]: Math.max(0, Math.floor(n) || 0) });
+      const fila = (d) => {
+        const n = Math.max(0, Math.floor(Number(conteo[d])) || 0);
+        const esBillete = d >= 10;
+        return (
+          <div key={d} className="flex items-center gap-2.5 py-[7px] border-b border-dashed border-[#e4d6fb] last:border-b-0">
+            <span className="flex items-center gap-2 text-[13px] font-bold min-w-[88px]">
+              {esBillete
+                ? <span className="w-[34px] h-5 rounded-[5px] grid place-items-center text-[9px] font-extrabold text-white shrink-0" style={{ background: COLOR_BILLETE[d] }}>S/</span>
+                : <span className="w-[22px] h-[22px] mx-1.5 rounded-full grid place-items-center text-[9px] font-extrabold bg-[#e4d6fb] text-[#4d04b0] shrink-0">¢</span>}
+              {d >= 1 ? `S/ ${d}` : d.toFixed(2)}
+            </span>
+            <span className="ml-auto flex items-center bg-[#f1eef9] rounded-[11px]">
+              <button type="button" aria-label={`Menos ${d}`} onClick={() => cambiar(d, n - 1)} className="w-[30px] h-[30px] rounded-[11px] text-[#4d04b0] hover:bg-[#e6def7] grid place-items-center"><i className="fa-solid fa-minus text-[11px]"></i></button>
+              <input type="number" min="0" inputMode="numeric" value={n || ''} placeholder="0" aria-label={`Cantidad de ${d}`} onChange={(e) => cambiar(d, Number(e.target.value))} className="w-[38px] h-[30px] bg-transparent border-0 text-center font-extrabold text-sm outline-none p-0 [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none" />
+              <button type="button" aria-label={`Más ${d}`} onClick={() => cambiar(d, n + 1)} className="w-[30px] h-[30px] rounded-[11px] text-[#4d04b0] hover:bg-[#e6def7] grid place-items-center"><i className="fa-solid fa-plus text-[11px]"></i></button>
+            </span>
+            <span className={`min-w-[70px] text-right text-[12.5px] font-bold ${n ? 'text-stone-900' : 'text-stone-400'}`}>S/ {(n * d).toFixed(2)}</span>
+          </div>
+        );
+      };
+      const etiqueta = 'text-[11px] font-bold text-stone-500 tracking-[0.06em] uppercase';
+      return (
+        <div className="mt-1.5 border border-stone-100 rounded-[18px] bg-[#fcfaff] px-3.5 py-1.5">
+          <p className={`${etiqueta} pt-2 pb-0.5`}>Billetes</p>
+          {DENOMINACIONES.filter((d) => d >= 10).map(fila)}
+          <p className={`${etiqueta} pt-2.5 pb-0.5`}>Monedas</p>
+          {DENOMINACIONES.filter((d) => d < 10).map(fila)}
+          <div className="flex justify-between items-center pt-2.5 pb-1.5 mt-1 border-t border-[#e4d6fb] text-[12.5px] font-bold">
+            <span>Total contado <b className="text-base font-extrabold ml-1.5">S/ {totalConteo(conteo).toFixed(2)}</b></span>
+            <button type="button" onClick={() => onChange({})} className="text-xs font-bold text-stone-500 hover:text-stone-900 hover:bg-stone-100 rounded-lg px-1.5 py-1">Limpiar</button>
+          </div>
         </div>
       );
     }
@@ -1018,6 +1074,11 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
       const [modalCierreCaja, setModalCierreCaja] = useState(false);
       const [montoConteoEfectivo, setMontoConteoEfectivo] = useState('');
       const [resumenCierre, setResumenCierre] = useState(null);
+      // Calculadora de billetes y monedas (apertura y cierre de caja), y el
+      // monto con el que se cerró la última caja (atajo al abrir una nueva).
+      const [conteoEfectivo, setConteoEfectivo] = useState({});
+      const [conteoAbierto, setConteoAbierto] = useState(false);
+      const [ultimoCierre, setUltimoCierre] = useState(null);
       // Detalle de cuánto debería haber en caja, calculado al abrir el
       // modal de cierre (antes de que el cajero cuente e ingrese el monto).
       const [arqueoEsperado, setArqueoEsperado] = useState(null);
@@ -7338,20 +7399,80 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
         return desgloseMediosPago(vts);
       };
 
+      // Cambia el conteo de billetes y monedas y deja el total en el campo de
+      // monto (el de apertura o el del cierre, según `setMonto`).
+      const cambiarConteo = (nuevo, setMonto) => {
+        setConteoEfectivo(nuevo);
+        const total = totalConteo(nuevo);
+        setMonto(total > 0 ? String(total) : '');
+      };
+
+      // Cuántas ventas lleva el turno y cuánto se vendió en total (todos los
+      // medios de pago) -- solo para mostrar en el cierre.
+      const calcularResumenVentasTurno = async () => {
+        if (!turnoActivo) return { n: 0, total: 0 };
+        const vts = esModoDemo
+          ? ventasDemoRef.current.filter((v) => v.turno_caja_id === turnoActivo.id && !v.anulada)
+          : (sbClient ? (await sbClient
+              .from('ventas')
+              .select('total_venta')
+              .eq('turno_caja_id', turnoActivo.id)
+              .eq('anulada', false)).data : null);
+        const lista = Array.isArray(vts) ? vts : [];
+        return { n: lista.length, total: lista.reduce((acc, v) => acc + (Number(v.total_venta) || 0), 0) };
+      };
+
       // Abre el modal de cierre ya mostrando cuánto debería haber en caja,
       // para que el cajero sepa qué buscar antes de contar el efectivo.
       const abrirCierreCaja = async () => {
         setModalCierreCaja(true);
         setMontoConteoEfectivo('');
+        setConteoEfectivo({});
+        setConteoAbierto(false);
         setArqueoEsperado(null);
         if (!turnoActivo) return;
         const montoIni = Number(turnoActivo.monto_inicial) || 0;
-        const [ventasEfectivo, desglose] = await Promise.all([
+        const [ventasEfectivo, desglose, resumenVentas] = await Promise.all([
           calcularVentasEfectivoTurno(),
-          calcularDesgloseMedioPagoTurno()
+          calcularDesgloseMedioPagoTurno(),
+          calcularResumenVentasTurno()
         ]);
-        setArqueoEsperado({ inicio: montoIni, ventas: ventasEfectivo, esperado: +(montoIni + ventasEfectivo).toFixed(2), desglose });
+        setArqueoEsperado({
+          inicio: montoIni,
+          ventas: ventasEfectivo,
+          esperado: +(montoIni + ventasEfectivo).toFixed(2),
+          desglose,
+          cantidadVentas: resumenVentas.n,
+          totalVendido: resumenVentas.total
+        });
       };
+
+      // Al abrir el modal de apertura: conteo en blanco y, si hay, el monto
+      // con el que se cerró la última caja (atajo "lo que quedó al cerrar").
+      useEffect(() => {
+        if (!modalTurno) return undefined;
+        setConteoEfectivo({});
+        setConteoAbierto(false);
+        if (esModoDemo || !sbClient || !bodegaId) { setUltimoCierre(null); return undefined; }
+        let vigente = true;
+        (async () => {
+          try {
+            const { data } = await sbClient
+              .from('turnos_caja')
+              .select('monto_final_real, fecha_cierre')
+              .eq('bodega_id', bodegaId)
+              .not('fecha_cierre', 'is', null)
+              .order('fecha_cierre', { ascending: false })
+              .limit(1);
+            const t = data && data[0];
+            if (vigente) setUltimoCierre(t && t.monto_final_real !== null && t.monto_final_real !== undefined ? { monto: Number(t.monto_final_real), fecha: t.fecha_cierre } : null);
+          } catch (err) {
+            if (vigente) setUltimoCierre(null);
+          }
+        })();
+        return () => { vigente = false; };
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+      }, [modalTurno]);
 
       useEffect(() => {
         if (cierreAlRetomar && turnoActivo) {
@@ -7360,6 +7481,24 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
         }
       // eslint-disable-next-line react-hooks/exhaustive-deps
       }, [cierreAlRetomar, turnoActivo]);
+
+      // Si lo contado no coincide con lo esperado, pide confirmar antes de
+      // cerrar (la diferencia queda registrada en el historial de cierres).
+      const confirmarCierreConArqueo = async () => {
+        if (arqueoEsperado) {
+          const dif = diferenciaArqueo(montoConteoEfectivo, arqueoEsperado.esperado);
+          if (dif !== 0) {
+            const ok = await pedirConfirmacion({
+              titulo: `${dif > 0 ? 'Sobran' : 'Faltan'} S/ ${Math.abs(dif).toFixed(2)}: ¿cerrar igual?`,
+              mensaje: `Debería haber S/ ${arqueoEsperado.esperado.toFixed(2)} y contaste S/ ${(parseFloat(montoConteoEfectivo) || 0).toFixed(2)}. Al cerrar, la diferencia queda registrada en el historial de cierres.`,
+              textoBoton: 'Cerrar de todos modos',
+              peligroso: true
+            });
+            if (!ok) return;
+          }
+        }
+        handleCierreConArqueo();
+      };
 
       const handleCierreConArqueo = async () => {
         if (!turnoActivo) return;
@@ -7399,12 +7538,15 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
           esperado,
           real: montoReal,
           diferencia: dif,
-          desglose
+          desglose,
+          cajero: turnoActivo.cajeros?.nombre || cajeroSeleccionado?.nombre || '',
+          cerradoEn: new Date().toISOString()
         });
 
         setModalCierreCaja(false);
         setTurnoActivo(null);
         setMontoConteoEfectivo('');
+        setConteoEfectivo({});
       };
 
       // Historial de turnos ya cerrados (arqueos pasados).
@@ -15296,114 +15438,218 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
           })()}
 
           {/* Modal: Cierre de Caja con Arqueo */}
-          {modalCierreCaja && (
-            <div className="fixed inset-0 bg-stone-900/30 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-              <div className="bg-gradient-to-br from-[#f4effc] via-[#f9f8fb] to-[#f5f4f8] border border-white/80 rounded-[28px] max-w-sm w-full p-5 shadow-2xl space-y-3 text-center">
-                <h3 className="text-lg font-bold text-stone-900"><i className="fa-solid fa-lock mr-1.5"></i> Cierre de Turno y Arqueo de Caja</h3>
+          {modalCierreCaja && (() => {
+            const dinero = (v) => `S/ ${(Number(v) || 0).toFixed(2)}`;
+            const f = arqueoEsperado;
+            const montoVacio = montoConteoEfectivo === '';
+            const conteoActivo = totalConteo(conteoEfectivo) > 0;
+            const dif = f && !montoVacio ? diferenciaArqueo(montoConteoEfectivo, f.esperado) : null;
+            const edad = turnoActivo ? antiguedadTurno(turnoActivo.fecha_apertura) : null;
+            const nombreCajero = turnoActivo?.cajeros?.nombre || cajeroSeleccionado?.nombre || 'Cajero';
+            const cuando = turnoActivo?.fecha_apertura ? new Date(turnoActivo.fecha_apertura).toLocaleString('es-PE', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }) : '';
+            const resultado = dif === null
+              ? { clase: 'bg-[#f1eef9] text-stone-500', icono: 'fa-coins', titulo: 'Escribe lo que contaste', texto: 'Te diré si cuadra con lo que debería haber.' }
+              : dif === 0
+                ? { clase: 'bg-emerald-50 text-emerald-600', icono: 'fa-check', titulo: 'Cuadra perfecto', texto: 'Lo que contaste es justo lo que debería haber.' }
+                : dif > 0
+                  ? { clase: 'bg-[#eaf1ff] text-blue-600', icono: 'fa-arrow-up', titulo: `Sobran ${dinero(dif)}`, texto: 'Hay más efectivo del esperado. Revisa si diste de menos en algún vuelto o si falta registrar una venta.' }
+                  : { clase: 'bg-rose-50 text-rose-600', icono: 'fa-arrow-down', titulo: `Faltan ${dinero(-dif)}`, texto: 'Hay menos efectivo del esperado. Vuelve a contar los billetes y revisa los vueltos antes de cerrar.' };
+            return (
+              <div className="fixed inset-0 bg-stone-900/30 backdrop-blur-sm flex items-center justify-center z-50 p-2 sm:p-4">
+                <div className="bg-gradient-to-br from-[#f4effc] via-[#f9f8fb] to-[#f5f4f8] border border-white/80 rounded-[28px] max-w-3xl w-full shadow-2xl max-h-[94vh] flex flex-col overflow-hidden">
+                  <div className="bg-white border-b border-stone-100 px-4 sm:px-5 py-3.5 shrink-0 flex items-center gap-3">
+                    <span className="w-11 h-11 rounded-[14px] bg-stone-900 text-white grid place-items-center text-xl shrink-0"><i className="fa-solid fa-lock"></i></span>
+                    <div className="min-w-0 flex-1">
+                      <h3 className="text-[17px] sm:text-lg font-extrabold text-stone-900 tracking-tight leading-tight">Cerrar turno</h3>
+                      <p className="hidden sm:block text-[12.5px] text-stone-500 mt-0.5 truncate">Caja de {nombreCajero}{cuando && edad ? ` · abierta el ${cuando} (${edad.etiqueta})` : ''}</p>
+                    </div>
+                    <button aria-label="Cerrar" onClick={() => setModalCierreCaja(false)} className="w-8 h-8 flex items-center justify-center rounded-full text-stone-400 hover:text-stone-600 hover:bg-stone-100 transition-colors shrink-0"><i className="fa-solid fa-xmark"></i></button>
+                  </div>
 
-                {!arqueoEsperado ? (
-                  <p className="text-xs text-stone-500 py-2">Calculando cuánto debería haber en caja...</p>
-                ) : (
-                  <div className="bg-stone-50 border border-stone-200 rounded-xl p-3 text-left text-xs text-stone-700 space-y-1">
-                    <div className="flex justify-between"><span>Fondo Inicial:</span><span>S/ {arqueoEsperado.inicio.toFixed(2)}</span></div>
-                    <div className="flex justify-between"><span>+ Ventas en Efectivo:</span><span>S/ {arqueoEsperado.ventas.toFixed(2)}</span></div>
-                    <div className="border-t border-stone-200 pt-1 flex justify-between font-bold text-stone-900">
-                      <span>= Deberías tener:</span><span className="text-orange-600">S/ {arqueoEsperado.esperado.toFixed(2)}</span>
+                  <div className="flex-1 min-h-0 overflow-y-auto p-3.5 sm:p-5">
+                    {edad?.antiguo && (
+                      <div className="flex gap-2.5 items-start rounded-[14px] bg-amber-50 text-amber-700 px-3 py-2.5 text-xs leading-snug mb-4"><i className="fa-solid fa-triangle-exclamation mt-0.5"></i><span>Esta caja lleva abierta {edad.etiqueta.replace('hace ', '')}: el arqueo suma las ventas de todo ese tiempo. Cuenta con cuidado y ciérrala hoy.</span></div>
+                    )}
+                    <div className="grid gap-4 md:grid-cols-2 items-start">
+                      <div className="bg-white border border-stone-100 rounded-[22px] p-4 sm:p-[18px]">
+                        {!f ? (
+                          <p className="text-[13px] text-stone-500 py-6 text-center">Calculando cuánto debería haber en caja...</p>
+                        ) : (
+                          <>
+                            <div className="flex flex-wrap gap-2 mb-3">
+                              <span className="text-[11px] font-bold rounded-full px-2.5 py-0.5 bg-[#f1eef9] text-stone-500">{f.cantidadVentas} venta{f.cantidadVentas === 1 ? '' : 's'}</span>
+                              <span className="text-[11px] font-bold rounded-full px-2.5 py-0.5 bg-[#f1eef9] text-stone-500">{dinero(f.totalVendido)} vendido</span>
+                            </div>
+                            <div className="flex justify-between items-baseline py-[7px] text-[13px]"><span className="font-semibold text-stone-500">Fondo inicial</span><b>{dinero(f.inicio)}</b></div>
+                            <div className="flex justify-between items-baseline py-[7px] text-[13px]"><span className="font-semibold text-stone-500">+ Ventas en efectivo</span><b>{dinero(f.ventas)}</b></div>
+                            <div className="flex justify-between items-baseline pt-3 mt-1.5 border-t-2 border-dashed border-[#e4d6fb]"><span className="font-bold text-[13px]">Deberías tener</span><b className="text-[28px] font-extrabold text-[#4d04b0] tracking-tight leading-none">{dinero(f.esperado)}</b></div>
+                          </>
+                        )}
+                        <DesgloseMediosPago desglose={f?.desglose} />
+                      </div>
+
+                      <div className="bg-white border border-stone-100 rounded-[22px] p-4 sm:p-[18px]">
+                        <h4 className="text-[15px] font-extrabold text-stone-900 tracking-tight">Cuenta tu efectivo</h4>
+                        <p className="text-[12.5px] text-stone-500 mt-0.5 mb-3.5">Cuenta todo el dinero que tienes físicamente en la caja.</p>
+                        <div className="flex items-baseline gap-2.5 border-2 border-stone-200 rounded-[20px] bg-stone-50/70 px-4 sm:px-[18px] py-3 focus-within:border-[#6105dc] focus-within:bg-white focus-within:ring-[5px] focus-within:ring-[#6105dc]/15 transition">
+                          <span className="text-[22px] font-extrabold text-stone-300">S/</span>
+                          <input type="number" min="0" step="0.50" inputMode="decimal" placeholder="0.00" aria-label="Efectivo contado" autoFocus readOnly={conteoActivo} value={montoConteoEfectivo} onChange={(e) => setMontoConteoEfectivo(e.target.value)} className="w-full min-w-0 bg-transparent outline-none border-0 text-[32px] sm:text-[38px] font-extrabold tracking-tight text-stone-900 placeholder:text-stone-300" />
+                        </div>
+                        <button type="button" onClick={() => setConteoAbierto((v) => !v)} className="mt-3 inline-flex items-center gap-2 text-[12.5px] font-bold text-[#4d04b0] hover:bg-[#f4eefe] rounded-lg px-1 py-1.5">
+                          <i className="fa-solid fa-coins text-sm"></i> Contar billetes y monedas <i className={`fa-solid fa-chevron-down text-[10px] transition-transform ${conteoAbierto ? 'rotate-180' : ''}`}></i>
+                        </button>
+                        {conteoAbierto && <ContadorEfectivo conteo={conteoEfectivo} onChange={(n) => cambiarConteo(n, setMontoConteoEfectivo)} />}
+                        {conteoActivo && (
+                          <p className="mt-2 text-[11.5px] text-stone-500">El monto se calcula con tu conteo. <button type="button" onClick={() => setConteoEfectivo({})} className="font-bold text-[#4d04b0]">Escribirlo a mano</button></p>
+                        )}
+                        <div className={`mt-3.5 rounded-[18px] px-4 py-3.5 flex gap-3 items-center ${resultado.clase}`}>
+                          <span className="w-10 h-10 rounded-full bg-white/70 grid place-items-center text-lg shrink-0"><i className={`fa-solid ${resultado.icono}`}></i></span>
+                          <div><b className="block text-[17px] font-extrabold leading-tight">{resultado.titulo}</b><small className="block text-xs mt-0.5 leading-snug">{resultado.texto}</small></div>
+                        </div>
+                      </div>
                     </div>
                   </div>
-                )}
 
-                <DesgloseMediosPago desglose={arqueoEsperado?.desglose} />
-
-                <p className="text-xs text-stone-700">Cuenta todo el dinero en efectivo que tienes físicamente en la caja e ingrésalo:</p>
-                <input
-                  type="number"
-                  step="0.50"
-                  placeholder="0.00"
-                  value={montoConteoEfectivo}
-                  onChange={(e) => setMontoConteoEfectivo(e.target.value)}
-                  className="w-full bg-stone-50 border border-stone-200 rounded-xl p-2.5 text-center text-xl font-black text-orange-600 focus:outline-none"
-                  autoFocus
-                />
-                {arqueoEsperado && montoConteoEfectivo !== '' && (
-                  <p className={`text-xs font-bold ${+(parseFloat(montoConteoEfectivo) - arqueoEsperado.esperado).toFixed(2) === 0 ? 'text-emerald-600' : 'text-rose-600'}`}>
-                    {(() => {
-                      const dif = +((parseFloat(montoConteoEfectivo) || 0) - arqueoEsperado.esperado).toFixed(2);
-                      return dif === 0 ? (<><i className="fa-solid fa-circle-check mr-1"></i>Cuadra perfecto</>) : dif > 0 ? `Sobran S/ ${dif.toFixed(2)}` : `Faltan S/ ${Math.abs(dif).toFixed(2)}`;
-                    })()}
-                  </p>
-                )}
-                <div className="flex gap-2 pt-2">
-                  <button onClick={() => setModalCierreCaja(false)} className="flex-1 py-2 bg-white/70 text-xs font-semibold rounded-full shadow-sm">Cancelar</button>
-                  <button onClick={handleCierreConArqueo} className="flex-1 py-2 bg-rose-600 hover:bg-rose-500 text-white text-xs font-bold rounded-full shadow">Confirmar Cierre</button>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* Modal: Resumen de Arqueo */}
-          {resumenCierre && (
-            <div className="fixed inset-0 bg-stone-900/30 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-              <div className="bg-gradient-to-br from-[#f4effc] via-[#f9f8fb] to-[#f5f4f8] border border-white/80 rounded-[28px] max-w-sm w-full p-5 shadow-2xl space-y-3 text-center">
-                <h3 className="text-lg font-bold text-stone-900"><i className="fa-solid fa-chart-simple mr-1.5"></i> Resumen del Turno</h3>
-                <div className="bg-stone-50 p-3 rounded-xl border border-stone-100 text-xs space-y-1.5 text-left font-mono">
-                  <div className="flex justify-between"><span>Fondo Inicial:</span><span>S/ {resumenCierre.inicio.toFixed(2)}</span></div>
-                  <div className="flex justify-between"><span>+ Efectivo recibido:</span><span>S/ {resumenCierre.ventas.toFixed(2)}</span></div>
-                  <div className="border-t border-stone-100 pt-1 flex justify-between font-bold"><span>= Debería haber:</span><span>S/ {resumenCierre.esperado.toFixed(2)}</span></div>
-                  <div className="flex justify-between text-orange-600 font-bold"><span>Tú contaste:</span><span>S/ {resumenCierre.real.toFixed(2)}</span></div>
-                  <div className={`border-t border-stone-100 pt-1 flex justify-between font-black text-sm ${resumenCierre.diferencia === 0 ? 'text-orange-600' : resumenCierre.diferencia > 0 ? 'text-blue-600' : 'text-rose-600'}`}>
-                    <span>Diferencia:</span><span>{resumenCierre.diferencia === 0 ? (<><i className="fa-solid fa-circle-check mr-1"></i>Cuadre Perfecto</>) : `S/ ${resumenCierre.diferencia.toFixed(2)}`}</span>
+                  <div className="shrink-0 bg-white border-t border-stone-100 px-4 sm:px-5 py-3 flex items-center gap-2.5 shadow-[0_-8px_24px_-14px_rgba(40,10,90,0.18)]">
+                    <button type="button" onClick={() => setModalCierreCaja(false)} className="h-[46px] px-4 sm:px-5 rounded-[14px] text-stone-500 hover:text-stone-800 hover:bg-stone-100 font-bold text-[13.5px]">Cancelar</button>
+                    <span className="flex-1"></span>
+                    <span className="hidden md:block text-xs text-stone-500">{montoVacio ? 'Escribe lo que contaste para cerrar' : ''}</span>
+                    <button type="button" onClick={confirmarCierreConArqueo} disabled={montoVacio || !f} className="h-[46px] px-5 rounded-[14px] bg-stone-900 hover:bg-black disabled:bg-[#cfc8e4] disabled:cursor-not-allowed text-white font-bold text-[13.5px] inline-flex items-center justify-center gap-2 transition">
+                      <i className="fa-solid fa-lock text-xs"></i> Cerrar turno
+                    </button>
                   </div>
                 </div>
-                <DesgloseMediosPago desglose={resumenCierre.desglose} />
-                <button onClick={() => setResumenCierre(null)} className="w-full py-2.5 bg-stone-900 text-white font-bold text-xs rounded-full">Entendido</button>
               </div>
-            </div>
-          )}
+            );
+          })()}
+
+          {/* Modal: Resumen de Arqueo */}
+          {resumenCierre && (() => {
+            const dinero = (v) => `S/ ${(Number(v) || 0).toFixed(2)}`;
+            const d = resumenCierre.diferencia;
+            const tono = d === 0 ? { fondo: 'bg-emerald-50 text-emerald-600', num: 'text-emerald-600', icono: 'fa-check' } : d > 0 ? { fondo: 'bg-[#eaf1ff] text-blue-600', num: 'text-blue-600', icono: 'fa-arrow-up' } : { fondo: 'bg-rose-50 text-rose-600', num: 'text-rose-600', icono: 'fa-arrow-down' };
+            const titulo = d === 0 ? 'Turno cerrado: cuadra perfecto' : d > 0 ? `Turno cerrado: sobran ${dinero(d)}` : `Turno cerrado: faltan ${dinero(-d)}`;
+            return (
+              <div className="fixed inset-0 bg-stone-900/30 backdrop-blur-sm flex items-center justify-center z-50 p-2 sm:p-4">
+                <div className="bg-gradient-to-br from-[#f4effc] via-[#f9f8fb] to-[#f5f4f8] border border-white/80 rounded-[28px] max-w-md w-full shadow-2xl max-h-[94vh] flex flex-col overflow-hidden">
+                  <div className="bg-white border-b border-stone-100 px-4 sm:px-5 py-3.5 shrink-0 flex items-center gap-3">
+                    <span className="w-11 h-11 rounded-[14px] bg-[#f4eefe] text-[#6105dc] grid place-items-center text-xl shrink-0"><i className="fa-solid fa-chart-simple"></i></span>
+                    <div className="min-w-0 flex-1">
+                      <h3 className="text-[17px] sm:text-lg font-extrabold text-stone-900 tracking-tight leading-tight">Resumen del turno</h3>
+                      {resumenCierre.cajero && <p className="text-[12.5px] text-stone-500 mt-0.5 truncate">Caja de {resumenCierre.cajero}{resumenCierre.cerradoEn ? ` · cerrada ${etiquetaCuandoTurno(resumenCierre.cerradoEn)}` : ''}</p>}
+                    </div>
+                    <button aria-label="Cerrar" onClick={() => setResumenCierre(null)} className="w-8 h-8 flex items-center justify-center rounded-full text-stone-400 hover:text-stone-600 hover:bg-stone-100 transition-colors shrink-0"><i className="fa-solid fa-xmark"></i></button>
+                  </div>
+                  <div className="flex-1 min-h-0 overflow-y-auto p-4 sm:p-5">
+                    <div className="text-center pt-1 pb-1">
+                      <div className={`w-[84px] h-[84px] rounded-full grid place-items-center mx-auto mb-3 text-[34px] ${tono.fondo}`}><i className={`fa-solid ${tono.icono}`}></i></div>
+                      <h4 className="text-[22px] font-extrabold text-stone-900 tracking-tight leading-tight">{titulo}</h4>
+                      <p className="text-[13.5px] text-stone-500 mt-1 mb-3.5 max-w-xs mx-auto leading-snug">{d === 0 ? 'Lo contado coincide con lo esperado.' : 'La diferencia quedó registrada en el historial de cierres.'}</p>
+                    </div>
+                    <div className="bg-white border border-stone-100 rounded-[22px] p-4 sm:p-[18px]">
+                      <div className="flex justify-between items-baseline py-[7px] text-[13px]"><span className="font-semibold text-stone-500">Fondo inicial</span><b>{dinero(resumenCierre.inicio)}</b></div>
+                      <div className="flex justify-between items-baseline py-[7px] text-[13px]"><span className="font-semibold text-stone-500">+ Efectivo recibido</span><b>{dinero(resumenCierre.ventas)}</b></div>
+                      <div className="flex justify-between items-baseline py-[7px] text-[13px]"><span className="font-semibold text-stone-500">= Debería haber</span><b>{dinero(resumenCierre.esperado)}</b></div>
+                      <div className="flex justify-between items-baseline py-[7px] text-[13px]"><span className="font-semibold text-stone-500">Tú contaste</span><b>{dinero(resumenCierre.real)}</b></div>
+                      <div className="flex justify-between items-baseline pt-3 mt-1.5 border-t-2 border-dashed border-[#e4d6fb]"><span className="font-bold text-[13px]">Diferencia</span><b className={`text-[28px] font-extrabold tracking-tight leading-none ${tono.num}`}>{d === 0 ? 'S/ 0.00' : `${d > 0 ? '+' : '−'}${dinero(Math.abs(d))}`}</b></div>
+                      <DesgloseMediosPago desglose={resumenCierre.desglose} />
+                    </div>
+                  </div>
+                  <div className="shrink-0 bg-white border-t border-stone-100 px-4 sm:px-5 py-3 flex items-center gap-2.5 shadow-[0_-8px_24px_-14px_rgba(40,10,90,0.18)]">
+                    <button type="button" onClick={() => { setResumenCierre(null); abrirHistorialCierres(); }} className="h-[46px] px-4 rounded-[14px] bg-[#f4eefe] hover:bg-[#ece0fd] text-[#4d04b0] font-bold text-[13px] inline-flex items-center gap-2"><i className="fa-solid fa-clock-rotate-left text-xs"></i><span>Ver<span className="hidden sm:inline"> historial de</span> cierres</span></button>
+                    <span className="flex-1"></span>
+                    <button type="button" onClick={() => setResumenCierre(null)} className="h-[46px] px-6 rounded-[14px] bg-[#6105dc] hover:bg-[#4d04b0] text-white font-bold text-[13.5px] shadow-lg shadow-[#6105dc]/30">Listo</button>
+                  </div>
+                </div>
+              </div>
+            );
+          })()}
 
           {/* Modal: Apertura Turno */}
-          {modalTurno && (
-            <div className="fixed inset-0 bg-stone-900/30 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-              <div className="bg-gradient-to-br from-[#f4effc] via-[#f9f8fb] to-[#f5f4f8] border border-white/80 rounded-[28px] max-w-md w-full p-6 shadow-2xl space-y-4">
-                <h2 className="text-base font-bold text-stone-900"><i className="fa-solid fa-cash-register mr-1.5"></i> Apertura de Turno de Caja</h2>
-                <div>
-                  <label className="text-xs font-semibold text-stone-700 block mb-1">Cajero:</label>
-                  <select
-                    value={cajeroSeleccionado?.id || ''}
-                    onChange={(e) => elegirCajeroTurno(listaCajeros.find(c => c.id === e.target.value))}
-                    className="w-full bg-stone-50 border border-stone-200 rounded-xl px-3 py-2 text-xs text-stone-900"
-                  >
-                    {listaCajeros.map(c => (
-                      <option key={c.id} value={c.id}>{c.nombre} ({c.rol || 'Cajero'})</option>
-                    ))}
-                  </select>
-                  {esAdmin && (
-                    <button
-                      type="button"
-                      onClick={() => { setModalTurno(false); abrirGestionCajeros(); setMostrarFormNuevoCajero(true); }}
-                      className="text-[11px] font-semibold text-orange-600 hover:text-orange-700 mt-1"
-                    >
-                      + No está en la lista, agregarlo
+          {modalTurno && (() => {
+            const dinero = (v) => `S/ ${(Number(v) || 0).toFixed(2)}`;
+            const montoNum = parseFloat(montoApertura);
+            const montoInvalido = montoApertura === '' || !(montoNum >= 0);
+            const conteoActivo = totalConteo(conteoEfectivo) > 0;
+            const elegido = cajeroSeleccionado || listaCajeros[0];
+            const iniciales = (n) => String(n || '?').trim().split(/\s+/).slice(0, 2).map((w) => w[0]).join('').toUpperCase();
+            const esElevado = (c) => c.rol === 'administrador' || c.rol === 'dueno';
+            const fijarMonto = (v) => { setConteoEfectivo({}); setMontoApertura(String(v)); };
+            const atajo = (activo) => `px-3 py-1.5 rounded-xl border-[1.5px] text-[12.5px] font-bold transition ${activo ? 'border-[#6105dc] bg-[#f4eefe] text-[#4d04b0]' : 'border-stone-200 bg-white hover:bg-[#f4eefe] hover:border-[#e4d6fb]'}`;
+            const esIgual = (v) => !conteoActivo && !montoInvalido && montoNum === v;
+            return (
+              <div className="fixed inset-0 bg-stone-900/30 backdrop-blur-sm flex items-center justify-center z-50 p-2 sm:p-4">
+                <div className="bg-gradient-to-br from-[#f4effc] via-[#f9f8fb] to-[#f5f4f8] border border-white/80 rounded-[28px] max-w-md w-full shadow-2xl max-h-[94vh] flex flex-col overflow-hidden">
+                  <div className="bg-white border-b border-stone-100 px-4 sm:px-5 py-3.5 shrink-0 flex items-center gap-3">
+                    <span className="w-11 h-11 rounded-[14px] bg-[#f4eefe] text-[#6105dc] grid place-items-center text-xl shrink-0"><i className="fa-solid fa-cash-register"></i></span>
+                    <div className="min-w-0 flex-1">
+                      <h3 className="text-[17px] sm:text-lg font-extrabold text-stone-900 tracking-tight leading-tight">Abrir turno</h3>
+                      <p className="text-[12.5px] text-stone-500 mt-0.5 leading-snug">Elige quién atiende y con cuánto efectivo empieza la caja.</p>
+                    </div>
+                    <button aria-label="Cerrar" onClick={() => setModalTurno(false)} className="w-8 h-8 flex items-center justify-center rounded-full text-stone-400 hover:text-stone-600 hover:bg-stone-100 transition-colors shrink-0"><i className="fa-solid fa-xmark"></i></button>
+                  </div>
+
+                  <div className="flex-1 min-h-0 overflow-y-auto p-4 sm:p-5 space-y-5">
+                    <div>
+                      <label className="flex items-center justify-between gap-2 text-[12.5px] font-semibold text-stone-800 mb-2"><span>¿Quién abre la caja?</span></label>
+                      <div className="grid gap-2">
+                        {listaCajeros.map((c) => {
+                          const activo = elegido?.id === c.id;
+                          return (
+                            <button type="button" key={c.id} onClick={() => elegirCajeroTurno(c)} className={`flex items-center gap-3 w-full text-left rounded-2xl border-[1.5px] bg-white px-3 py-2.5 transition hover:bg-[#fcfaff] hover:border-[#e4d6fb] ${activo ? 'border-[#6105dc] bg-[#fcfaff] ring-[3px] ring-[#6105dc]/15' : 'border-stone-100'}`}>
+                              <span className={`w-[38px] h-[38px] rounded-full grid place-items-center text-[13px] font-extrabold shrink-0 ${esElevado(c) ? 'bg-gradient-to-br from-[#ffd45c] to-[#f0a500] text-stone-900' : 'bg-gradient-to-br from-[#8a3df2] to-[#4d04b0] text-white'}`}>{iniciales(c.nombre)}</span>
+                              <span className="min-w-0 flex-1">
+                                <span className="block text-[13.5px] font-bold text-stone-900 leading-tight truncate">{c.nombre}</span>
+                                <span className="block text-[11.5px] text-stone-500 capitalize">{c.rol || 'Cajero'}</span>
+                              </span>
+                              <span className={`w-[22px] h-[22px] rounded-full border-2 grid place-items-center text-white text-xs shrink-0 ${activo ? 'bg-[#6105dc] border-[#6105dc]' : 'border-stone-300'}`}>{activo && <i className="fa-solid fa-check text-[10px]"></i>}</span>
+                            </button>
+                          );
+                        })}
+                      </div>
+                      {esAdmin && (
+                        <button type="button" onClick={() => { setModalTurno(false); abrirGestionCajeros(); setMostrarFormNuevoCajero(true); }} className="mt-2 inline-flex items-center gap-1.5 text-[12.5px] font-bold text-[#4d04b0] hover:bg-[#f4eefe] rounded-lg px-1 py-1.5">
+                          <i className="fa-solid fa-plus text-[10px]"></i> Agregar a alguien que no está en la lista
+                        </button>
+                      )}
+                    </div>
+
+                    <div>
+                      <label className="flex items-center justify-between gap-2 text-[12.5px] font-semibold text-stone-800 mb-2"><span>Efectivo con el que empieza la caja</span><span className="text-stone-400 font-normal">fondo inicial</span></label>
+                      <div className="flex items-baseline gap-2.5 border-2 border-stone-200 rounded-[20px] bg-stone-50/70 px-4 sm:px-[18px] py-3 focus-within:border-[#6105dc] focus-within:bg-white focus-within:ring-[5px] focus-within:ring-[#6105dc]/15 transition">
+                        <span className="text-[22px] font-extrabold text-stone-300">S/</span>
+                        <input type="number" min="0" step="0.50" inputMode="decimal" placeholder="0.00" aria-label="Monto inicial" readOnly={conteoActivo} value={montoApertura} onChange={(e) => setMontoApertura(e.target.value)} className="w-full min-w-0 bg-transparent outline-none border-0 text-[32px] sm:text-[38px] font-extrabold tracking-tight text-stone-900 placeholder:text-stone-300" />
+                      </div>
+                      <div className="flex flex-wrap gap-2 mt-2.5">
+                        {[0, 50, 100, 200].map((v) => <button type="button" key={v} onClick={() => fijarMonto(v)} className={atajo(esIgual(v))}>{v === 0 ? 'Sin fondo' : `S/ ${v}`}</button>)}
+                        {ultimoCierre && ![0, 50, 100, 200].includes(ultimoCierre.monto) && (
+                          <button type="button" onClick={() => fijarMonto(ultimoCierre.monto)} className={`${atajo(esIgual(ultimoCierre.monto))} border-dashed`}>Lo que quedó al cerrar <small className="font-medium text-stone-500 ml-1">{dinero(ultimoCierre.monto)} · {etiquetaCuandoTurno(ultimoCierre.fecha)}</small></button>
+                        )}
+                      </div>
+                      {ultimoCierre && [0, 50, 100, 200].includes(ultimoCierre.monto) && (
+                        <p className="mt-2 text-[11.5px] text-stone-500">La última caja se cerró con {dinero(ultimoCierre.monto)} ({etiquetaCuandoTurno(ultimoCierre.fecha)}).</p>
+                      )}
+                      <button type="button" onClick={() => setConteoAbierto((v) => !v)} className="mt-3 inline-flex items-center gap-2 text-[12.5px] font-bold text-[#4d04b0] hover:bg-[#f4eefe] rounded-lg px-1 py-1.5">
+                        <i className="fa-solid fa-coins text-sm"></i> Contar billetes y monedas <i className={`fa-solid fa-chevron-down text-[10px] transition-transform ${conteoAbierto ? 'rotate-180' : ''}`}></i>
+                      </button>
+                      {conteoAbierto && <ContadorEfectivo conteo={conteoEfectivo} onChange={(n) => cambiarConteo(n, setMontoApertura)} />}
+                      {conteoActivo && (
+                        <p className="mt-2 text-[11.5px] text-stone-500">El monto se calcula con tu conteo. <button type="button" onClick={() => setConteoEfectivo({})} className="font-bold text-[#4d04b0]">Escribirlo a mano</button></p>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="shrink-0 bg-white border-t border-stone-100 px-4 sm:px-5 py-3 flex items-center gap-2.5 shadow-[0_-8px_24px_-14px_rgba(40,10,90,0.18)]">
+                    <button type="button" onClick={() => setModalTurno(false)} className="h-[46px] px-4 sm:px-5 rounded-[14px] text-stone-500 hover:text-stone-800 hover:bg-stone-100 font-bold text-[13.5px]">Cancelar</button>
+                    <span className="flex-1 text-right text-xs text-stone-500 hidden sm:block">{montoInvalido ? 'Escribe con cuánto efectivo empieza la caja' : `${elegido?.nombre || ''} · empieza con ${dinero(montoNum)}`}</span>
+                    <button type="button" onClick={handleAbrirTurno} disabled={montoInvalido} className="h-[46px] px-5 rounded-[14px] bg-[#6105dc] hover:bg-[#4d04b0] disabled:bg-[#d9d2ea] disabled:shadow-none disabled:cursor-not-allowed text-white font-bold text-[13.5px] shadow-lg shadow-[#6105dc]/30 inline-flex items-center justify-center gap-2 transition ml-auto sm:ml-0">
+                      <i className="fa-solid fa-check text-xs"></i> Abrir turno
                     </button>
-                  )}
-                </div>
-                <div>
-                  <label className="text-xs font-semibold text-stone-700 block mb-1">Monto Inicial (S/):</label>
-                  <input
-                    type="number"
-                    step="1.00"
-                    value={montoApertura}
-                    onChange={(e) => setMontoApertura(e.target.value)}
-                    className="w-full bg-stone-50 border border-stone-200 rounded-xl p-2.5 text-lg font-bold text-stone-900"
-                  />
-                </div>
-                <div className="flex gap-2">
-                  <button onClick={() => setModalTurno(false)} className="flex-1 py-2 bg-white/70 text-xs font-semibold rounded-full shadow-sm">Cancelar</button>
-                  <button onClick={handleAbrirTurno} className="flex-1 py-2 bg-stone-900 text-white text-xs font-bold rounded-full shadow">Confirmar y Abrir</button>
+                  </div>
                 </div>
               </div>
-            </div>
-          )}
+            );
+          })()}
 
           {/* Modal: confirmar PIN antes de operar como un Administrador que
               no es quien inició sesión -- sin esto, elegir ese nombre en el
@@ -15452,61 +15698,53 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
               todos los dispositivos entran con el mismo usuario y el
               cajero autoseleccionado por DNI no necesariamente es quien de
               verdad está frente a este dispositivo. */}
-          {cajasAbiertasAviso && (
-            <div className="fixed inset-0 bg-stone-900/30 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-              <div className="bg-gradient-to-br from-[#f4effc] via-[#f9f8fb] to-[#f5f4f8] border border-white/80 rounded-[28px] max-w-md w-full p-6 shadow-2xl space-y-4">
-                <div className="text-center">
-                  <div className="w-14 h-14 mx-auto bg-orange-100 rounded-full flex items-center justify-center">
-                    <i className="fa-solid fa-cash-register text-orange-600 text-xl"></i>
-                  </div>
-                  <h2 className="text-base font-bold text-stone-900 mt-3">
-                    {cajasAbiertasAviso.length === 1 ? 'Ya hay una caja abierta' : `Ya hay ${cajasAbiertasAviso.length} cajas abiertas`}
-                  </h2>
-                  <p className="text-xs text-stone-500 mt-1">
-                    Elige con cuál vas a trabajar en este dispositivo, o abre una caja nueva y separada.
-                  </p>
-                </div>
-
-                <div className="space-y-2">
-                  {cajasAbiertasAviso.map((t) => (
-                    <div key={t.id} className="bg-white border border-stone-200 rounded-xl p-3 flex items-center justify-between gap-3">
-                      <div className="min-w-0">
-                        <p className="text-xs font-bold text-stone-800 truncate">
-                          {t.cajeros?.nombre || 'Cajero'}{t.es_propia && <span className="text-orange-600"> (tú)</span>}
-                        </p>
-                        <p className="text-[11px] text-stone-500">
-                          Desde el {new Date(t.fecha_apertura).toLocaleString('es-PE', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}
-                          {' '}· S/ {Number(t.monto_inicial || 0).toFixed(2)} inicial
-                        </p>
-                        {antiguedadTurno(t.fecha_apertura).antiguo && (
-                          <p className="text-[11px] font-semibold text-amber-700 mt-0.5">
-                            <i className="fa-solid fa-triangle-exclamation mr-1"></i>Abierta {antiguedadTurno(t.fecha_apertura).etiqueta}: conviene cerrarla.
-                          </p>
-                        )}
-                      </div>
-                      <div className="shrink-0 flex flex-col gap-1.5">
-                        <button onClick={() => unirseACaja(t)} className="px-3 py-2 bg-stone-900 hover:bg-stone-800 text-white text-xs font-bold rounded-lg">
-                          Usar esta caja
-                        </button>
-                        {antiguedadTurno(t.fecha_apertura).antiguo && (
-                          <button onClick={() => { unirseACaja(t); setCierreAlRetomar(true); }} className="px-3 py-1.5 bg-amber-100 hover:bg-amber-200 text-amber-800 text-xs font-bold rounded-lg">
-                            Cerrar esta caja
-                          </button>
-                        )}
-                      </div>
+          {cajasAbiertasAviso && (() => {
+            const iniciales = (n) => String(n || '?').trim().split(/\s+/).slice(0, 2).map((w) => w[0]).join('').toUpperCase();
+            return (
+              <div className="fixed inset-0 bg-stone-900/30 backdrop-blur-sm flex items-center justify-center z-50 p-2 sm:p-4">
+                <div className="bg-gradient-to-br from-[#f4effc] via-[#f9f8fb] to-[#f5f4f8] border border-white/80 rounded-[28px] max-w-lg w-full shadow-2xl max-h-[94vh] flex flex-col overflow-hidden">
+                  <div className="bg-white border-b border-stone-100 px-4 sm:px-5 py-3.5 shrink-0 flex items-center gap-3">
+                    <span className="w-11 h-11 rounded-[14px] bg-[#f4eefe] text-[#6105dc] grid place-items-center text-xl shrink-0"><i className="fa-solid fa-cash-register"></i></span>
+                    <div className="min-w-0 flex-1">
+                      <h3 className="text-[17px] sm:text-lg font-extrabold text-stone-900 tracking-tight leading-tight">
+                        {cajasAbiertasAviso.length === 1 ? 'Ya hay una caja abierta' : `Ya hay ${cajasAbiertasAviso.length} cajas abiertas`}
+                      </h3>
+                      <p className="text-[12.5px] text-stone-500 mt-0.5 leading-snug">Elige con cuál vas a trabajar en este dispositivo, o abre una caja nueva y separada.</p>
                     </div>
-                  ))}
-                </div>
+                  </div>
 
-                <button
-                  onClick={abrirCajaNueva}
-                  className="w-full py-2.5 bg-orange-500 hover:bg-orange-400 text-white text-xs font-bold rounded-full shadow flex items-center justify-center gap-1.5"
-                >
-                  <i className="fa-solid fa-plus"></i> Abrir otra caja
-                </button>
+                  <div className="flex-1 min-h-0 overflow-y-auto p-4 sm:p-5 grid gap-2.5 content-start">
+                    {cajasAbiertasAviso.map((t, i) => {
+                      const edad = antiguedadTurno(t.fecha_apertura);
+                      const nombre = t.cajeros?.nombre || 'Cajero';
+                      return (
+                        <div key={t.id} className={`rounded-[20px] border-[1.5px] p-3.5 flex gap-3 items-start ${edad.antiguo ? 'border-amber-300 bg-amber-50/60' : 'border-stone-100 bg-white'}`}>
+                          <span className={`w-[38px] h-[38px] rounded-full grid place-items-center text-[13px] font-extrabold shrink-0 ${i % 2 ? 'bg-gradient-to-br from-[#ffd45c] to-[#f0a500] text-stone-900' : 'bg-gradient-to-br from-[#8a3df2] to-[#4d04b0] text-white'}`}>{iniciales(nombre)}</span>
+                          <div className="min-w-0 flex-1">
+                            <p className="text-sm font-bold text-stone-900 truncate">{nombre}{t.es_propia && <span className="text-[#6105dc]"> · tú</span>}</p>
+                            <p className="text-xs text-stone-500 mt-0.5 leading-snug">Desde {etiquetaCuandoTurno(t.fecha_apertura)} · S/ {Number(t.monto_inicial || 0).toFixed(2)} de fondo inicial</p>
+                            {edad.antiguo && (
+                              <div className="flex gap-2 items-start rounded-xl bg-amber-100/70 text-amber-800 px-2.5 py-2 text-xs leading-snug mt-2.5"><i className="fa-solid fa-triangle-exclamation mt-0.5"></i><span>Abierta {edad.etiqueta}. Si sigues con ella, el cierre sumará las ventas de todo ese tiempo. Conviene cerrarla.</span></div>
+                            )}
+                            <div className="flex flex-wrap gap-2 mt-2.5">
+                              <button type="button" onClick={() => unirseACaja(t)} className="h-[38px] px-3.5 rounded-xl bg-[#6105dc] hover:bg-[#4d04b0] text-white text-[12.5px] font-bold shadow-md shadow-[#6105dc]/25">Usar esta caja</button>
+                              {edad.antiguo && (
+                                <button type="button" onClick={() => { unirseACaja(t); setCierreAlRetomar(true); }} className="h-[38px] px-3.5 rounded-xl bg-amber-100 hover:bg-amber-200 text-amber-800 text-[12.5px] font-bold">Cerrar esta caja</button>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+
+                  <div className="shrink-0 bg-white border-t border-stone-100 px-4 sm:px-5 py-3 shadow-[0_-8px_24px_-14px_rgba(40,10,90,0.18)]">
+                    <button type="button" onClick={abrirCajaNueva} className="w-full h-[46px] rounded-[14px] bg-[#f4eefe] hover:bg-[#ece0fd] text-[#4d04b0] font-bold text-[13.5px] inline-flex items-center justify-center gap-2"><i className="fa-solid fa-plus text-xs"></i> Abrir otra caja</button>
+                  </div>
+                </div>
               </div>
-            </div>
-          )}
+            );
+          })()}
 
           {/* Aviso: tu caja sigue abierta de un día anterior */}
           {avisoTurnoViejo && (

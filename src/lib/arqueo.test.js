@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { efectivoEntrante, desgloseMediosPago, esperadoEnCaja, diferenciaArqueo } from './arqueo.js';
+import { efectivoEntrante, desgloseMediosPago, esperadoEnCaja, diferenciaArqueo, totalConteo } from './arqueo.js';
 
 const venta = (medio_pago, total_venta, extra = {}) => ({ medio_pago, total_venta, ...extra });
 
@@ -67,5 +67,19 @@ describe('diferenciaArqueo', () => {
   });
   it('un conteo vacío cuenta como 0', () => {
     expect(diferenciaArqueo('', 100)).toBe(-100);
+  });
+});
+
+describe('totalConteo', () => {
+  it('suma billetes y monedas por su cantidad', () => {
+    expect(totalConteo({ 200: 2, 50: 1, 20: 1, 5: 3, 0.5: 1 })).toBe(485.5);
+  });
+  it('las monedas chicas no arrastran decimales', () => {
+    expect(totalConteo({ 0.1: 3, 0.2: 1 })).toBe(0.5);
+  });
+  it('un conteo vacío, null o con cantidades inválidas vale 0', () => {
+    expect(totalConteo({})).toBe(0);
+    expect(totalConteo(null)).toBe(0);
+    expect(totalConteo({ 100: -2, 50: 'x' })).toBe(0);
   });
 });

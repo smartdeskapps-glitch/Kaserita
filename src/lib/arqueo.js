@@ -34,3 +34,16 @@ export const esperadoEnCaja = (montoInicial, ventas) =>
 // Positivo = sobra dinero, negativo = falta.
 export const diferenciaArqueo = (contado, esperado) =>
   redondear2((parseFloat(contado) || 0) - (Number(esperado) || 0));
+
+// Billetes y monedas que se cuentan al abrir o cerrar la caja (de mayor a menor).
+export const DENOMINACIONES = [200, 100, 50, 20, 10, 5, 2, 1, 0.5, 0.2, 0.1];
+
+// Total de un conteo { [denominación]: cantidad }. Se suma en céntimos enteros
+// para que 0.1 + 0.2 no arrastre decimales de coma flotante.
+export const totalConteo = (conteo) => {
+  const centimos = DENOMINACIONES.reduce((acc, d) => {
+    const cantidad = Math.max(0, Math.floor(Number(conteo && conteo[d])) || 0);
+    return acc + Math.round(d * 100) * cantidad;
+  }, 0);
+  return centimos / 100;
+};
