@@ -30,9 +30,16 @@ const IconCheck = () => (
   <svg className="ic" viewBox="0 0 16 16" aria-hidden="true"><path d="M3 8.5l3 3 7-7" /></svg>
 );
 
-const Marca = () => (
+// `claro`: la marca va sobre fondo claro (logo a color); si no, sobre el morado de la cabecera (logo blanco).
+const Marca = ({ claro = false }) => (
   <a className="brand" href="/" aria-label="Kaserita - inicio">
-    <img className="brand-logo" src="/logo-blanco.webp" width="600" height="470" alt="Kaserita" />
+    <img
+      className="brand-logo"
+      src={claro ? '/logo-horizontal-color.svg' : '/logo-horizontal-sobre-morado.svg'}
+      width="2068"
+      height="642"
+      alt="Kaserita"
+    />
   </a>
 );
 
@@ -171,7 +178,7 @@ function App() {
   if (paso === 'ya-tiene') {
     return (
       <div className="wrap-min">
-        <div className="topbar topbar-light"><Marca /></div>
+        <div className="topbar topbar-light"><Marca claro /></div>
         <div className="card">
           <div className="center-block">
             <div className="success-badge"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M3 8.5l3.5 3.5L13 5" /></svg></div>

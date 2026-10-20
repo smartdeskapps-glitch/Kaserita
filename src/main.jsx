@@ -8052,9 +8052,9 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
             >
 
               <img
-                src="/logo-blanco.webp"
-                width="600"
-                height="470"
+                src="/logo-vertical-sobre-morado.svg"
+                width="975"
+                height="907"
                 alt="Kaserita"
                 className="relative w-52 md:w-64 h-auto mb-6"
                 style={{ animation: 'auth-panel-in 0.5s ease' }}

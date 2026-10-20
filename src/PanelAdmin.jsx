@@ -978,7 +978,7 @@ const RUBROS_NEGOCIO = [
           <header className="shrink-0 bg-stone-900 text-white px-5 py-4 flex items-center justify-between">
             <div className="flex items-center gap-2.5">
               <div className="h-8 px-2.5 bg-gradient-to-br from-blue-600 to-violet-600 rounded-lg flex items-center justify-center shrink-0">
-                <img src="/logo-blanco-wordmark.png" alt="Kaserita" className="h-3.5 w-auto" />
+                <img src="/logo-horizontal-sobre-morado.svg" alt="Kaserita" className="h-5 w-auto" />
               </div>
               <div>
                 <h1 className="text-sm font-black leading-tight">Panel de Administrador</h1>
