@@ -1335,6 +1335,15 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
       // Mercadería" -- null cuando el mini-formulario está cerrado.
       const [nuevoProductoInlineCompra, setNuevoProductoInlineCompra] = useState(null);
       const [guardandoProductoInlineCompra, setGuardandoProductoInlineCompra] = useState(false);
+      // Buscador de la entrada: texto, filtro ('todos' | 'bajo'), fila resaltada
+      // con el teclado, productos creados en esta misma entrada (su costo no
+      // se compara con uno anterior) y la pantalla final tras confirmar.
+      const [busquedaCompra, setBusquedaCompra] = useState('');
+      const [filtroCompra, setFiltroCompra] = useState('todos');
+      const [resaltadoCompra, setResaltadoCompra] = useState(0);
+      const [idsNuevosCompra, setIdsNuevosCompra] = useState([]);
+      const [guardandoEntrada, setGuardandoEntrada] = useState(false);
+      const [entradaRegistrada, setEntradaRegistrada] = useState(null);
 
       // --- Módulo: Historial de Ventas (por rango de fechas) ---
       const [modalHistorial, setModalHistorial] = useState(false);
@@ -3992,6 +4001,18 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
           return;
         }
 
+        if (modoEscaner === 'entrada-mercaderia') {
+          const encontrado = buscarProductoPorCodigo(codigoLimpio);
+          if (encontrado) {
+            elegirProductoEntrada(encontrado.producto, encontrado.esPack);
+            notificar(`Producto encontrado: ${encontrado.producto.descripcion}`, 'success');
+          } else {
+            notificar(`Código ${codigoLimpio} no encontrado en el catálogo.`, 'error');
+          }
+          setModalEscaner(false);
+          return;
+        }
+
         if (modoEscaner === 'merma') {
           const encontrado = buscarProductoPorCodigo(codigoLimpio);
           if (encontrado) {
@@ -6359,7 +6380,9 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
             // Se agrega al catálogo en memoria al toque -- no hay que
             // esperar un refetch completo solo para poder seleccionarlo.
             setProductos((prev) => [...prev, nuevoProd]);
-            setCompraItemTemp((prev) => ({ ...prev, productoId: nuevoProd.id }));
+            setIdsNuevosCompra((prev) => [...prev, nuevoProd.id]);
+            setCompraItemTemp({ productoId: nuevoProd.id, cantidad: '', costoUnitario: payload.precio_costo > 0 ? String(payload.precio_costo) : '', tipo: 'UNIDAD' });
+            setBusquedaCompra('');
           }
           setNuevoProductoInlineCompra(null);
           notificar(`Producto "${payload.descripcion}" creado. Ya lo puedes agregar a la entrada.`, 'success');
@@ -6370,42 +6393,112 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
         }
       };
 
+      // Arma una línea de la entrada a partir de lo que escribe la persona:
+      // cantidad y costo "por pack" o "por unidad". El proveedor a veces
+      // entrega en packs cerrados (ej: 10 packs de 6) pero el stock siempre se
+      // guarda en unidades sueltas -- por eso se convierte aquí, así el
+      // usuario solo escribe "10 packs" y no tiene que calcular a mano que
+      // son 60 unidades.
+      const armarLineaEntrada = (prod, esPack, cant, costo) => {
+        const unidadesPorPack = Number(prod.unidades_por_pack) || 1;
+        const pack = esPack && unidadesPorPack > 1;
+        return {
+          productoId: prod.id,
+          descripcion: prod.descripcion,
+          cantidad: cant,
+          cantidadStock: pack ? cant * unidadesPorPack : cant,
+          esPack: pack,
+          unidadesPorPack,
+          costoUnitario: pack ? costo / unidadesPorPack : costo,
+          costoIngresado: costo,
+          subtotal: +(cant * costo).toFixed(2)
+        };
+      };
+
+      // Elige un producto del buscador (o del escáner): deja listo el costo
+      // del último que se pagó, para que solo haya que escribir la cantidad.
+      const elegirProductoEntrada = (prod, esPack = false) => {
+        const uds = Number(prod.unidades_por_pack) || 1;
+        const pack = esPack && uds > 1;
+        const costo = Number(prod.precio_costo) || 0;
+        setCompraItemTemp({
+          productoId: prod.id,
+          cantidad: '',
+          costoUnitario: costo > 0 ? String(Math.round((pack ? costo * uds : costo) * 100) / 100) : '',
+          tipo: pack ? 'PACK' : 'UNIDAD'
+        });
+        setBusquedaCompra('');
+        setNuevoProductoInlineCompra(null);
+      };
+
+      // Al pasar de "unidades sueltas" a "packs" el costo escrito se convierte
+      // (y al revés), para que siga siendo el mismo precio.
+      const cambiarTipoEntrada = (tipo) => {
+        const prod = productos.find((p) => p.id === compraItemTemp.productoId);
+        if (!prod || tipo === compraItemTemp.tipo) return;
+        const uds = Number(prod.unidades_por_pack) || 1;
+        const c = Number(compraItemTemp.costoUnitario) || 0;
+        const costoNuevo = c > 0 ? String(Math.round((tipo === 'PACK' ? c * uds : c / uds) * 100) / 100) : compraItemTemp.costoUnitario;
+        setCompraItemTemp({ ...compraItemTemp, tipo, costoUnitario: costoNuevo });
+      };
+
+      const abrirProductoNuevoEntrada = (nombre) => {
+        setNuevoProductoInlineCompra({
+          descripcion: nombre,
+          categoria: categoriasDB.includes('Abarrotes') ? 'Abarrotes' : (categoriasDB[0] || 'General'),
+          precio_costo: '',
+          precio_venta: '',
+          unidad: 'UND'
+        });
+      };
+
       const agregarItemEntradaMercaderia = () => {
         const prod = productos.find(p => p.id === compraItemTemp.productoId);
         const cant = Number(compraItemTemp.cantidad) || 0;
-        if (!prod || !compraItemTemp.costoUnitario || cant <= 0) {
+        const costo = Number(compraItemTemp.costoUnitario) || 0;
+        if (!prod || costo <= 0 || cant <= 0) {
           notificar('Selecciona producto, cantidad y costo unitario.', 'error');
           return;
         }
-        const unidadesPorPack = Number(prod.unidades_por_pack) || 1;
-        const esPack = compraItemTemp.tipo === 'PACK' && unidadesPorPack > 1;
-        const costo = Number(compraItemTemp.costoUnitario) || 0;
-        // El proveedor a veces entrega en packs cerrados (ej: 10 packs de 6)
-        // pero el stock siempre se guarda en unidades sueltas -- por eso se
-        // convierte aquí, así el usuario solo escribe "10 packs" y no tiene
-        // que calcular a mano que son 60 unidades.
-        const cantidadStock = esPack ? cant * unidadesPorPack : cant;
-        const costoPorUnidad = esPack ? costo / unidadesPorPack : costo;
-        const sub = +(cant * costo).toFixed(2);
-
-        setCompraItems(prev => [
-          ...prev,
-          {
-            productoId: prod.id,
-            descripcion: prod.descripcion,
-            cantidad: cant,
-            cantidadStock,
-            esPack,
-            unidadesPorPack,
-            costoUnitario: costoPorUnidad,
-            subtotal: sub
-          }
-        ]);
+        const esPack = compraItemTemp.tipo === 'PACK';
+        const linea = armarLineaEntrada(prod, esPack, cant, costo);
+        setCompraItems(prev => {
+          // Si ya está la misma línea (mismo producto, forma de entrega y
+          // costo), se suma la cantidad en vez de repetirla.
+          const i = prev.findIndex((it) => it.productoId === prod.id && it.esPack === linea.esPack && it.costoIngresado === costo);
+          if (i < 0) return [...prev, linea];
+          return prev.map((it, k) => (k === i ? armarLineaEntrada(prod, esPack, Math.round((it.cantidad + cant) * 100) / 100, costo) : it));
+        });
         setCompraItemTemp({ productoId: '', cantidad: '', costoUnitario: '', tipo: 'UNIDAD' });
+        setBusquedaCompra('');
+        notificar(`${prod.descripcion} añadido a la entrada`, 'success');
+      };
+
+      // Corrige la cantidad o el costo de una línea ya añadida.
+      const editarLineaEntrada = (idx, campo, valor) => {
+        setCompraItems(prev => prev.map((it, k) => {
+          if (k !== idx) return it;
+          const prod = productos.find((p) => p.id === it.productoId) || { id: it.productoId, descripcion: it.descripcion, unidades_por_pack: it.unidadesPorPack };
+          const cant = campo === 'cantidad' ? Math.max(0, Number(valor) || 0) : it.cantidad;
+          const costo = campo === 'costo' ? Math.max(0, Number(valor) || 0) : it.costoIngresado;
+          return armarLineaEntrada(prod, it.esPack, cant, costo);
+        }));
       };
 
       const quitarItemEntradaMercaderia = (idx) => {
         setCompraItems(prev => prev.filter((_, i) => i !== idx));
+      };
+
+      // Deja la entrada en blanco (sin cerrar el módulo).
+      const vaciarEntradaMercaderia = () => {
+        setCompraItems([]);
+        setCompraCabecera({ proveedor: '', ruc: '', nroComprobante: '' });
+        setCompraItemTemp({ productoId: '', cantidad: '', costoUnitario: '', tipo: 'UNIDAD' });
+        setNuevoProductoInlineCompra(null);
+        setBusquedaCompra('');
+        setFiltroCompra('todos');
+        setResaltadoCompra(0);
+        setIdsNuevosCompra([]);
       };
 
       // Cierra el modal descartando lo que no se haya confirmado -- si no se
@@ -6413,19 +6506,79 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
       // productos ya agregados de la vez anterior, y se pueden duplicar.
       const cerrarModalEntradaMercaderia = () => {
         setModalEntradaMercaderia(false);
-        setCompraItems([]);
-        setCompraCabecera({ proveedor: '', ruc: '', nroComprobante: '' });
-        setCompraItemTemp({ productoId: '', cantidad: '', costoUnitario: '', tipo: 'UNIDAD' });
-        setNuevoProductoInlineCompra(null);
+        setEntradaRegistrada(null);
+        vaciarEntradaMercaderia();
+      };
+
+      // Cierra con aviso si hay algo anotado que todavía no se confirmó.
+      const pedirCerrarEntrada = async () => {
+        const hayAlgo = compraItems.length > 0 || compraCabecera.proveedor.trim() || compraCabecera.nroComprobante.trim();
+        if (hayAlgo) {
+          const ok = await pedirConfirmacion({
+            titulo: '¿Descartar esta entrada?',
+            mensaje: compraItems.length > 0
+              ? `Anotaste ${compraItems.length} producto${compraItems.length === 1 ? '' : 's'} que todavía no se confirmaron. Si sales ahora, se pierden.`
+              : 'Si sales ahora, se pierden los datos escritos.',
+            textoBoton: 'Descartar',
+            peligroso: true
+          });
+          if (!ok) return;
+        }
+        cerrarModalEntradaMercaderia();
+      };
+
+      // Abre el módulo y, si hace falta, trae los nombres de proveedores
+      // para sugerirlos al escribir (los mismos de "Cuentas por Pagar").
+      const abrirEntradaMercaderia = async () => {
+        setEntradaRegistrada(null);
+        setModalEntradaMercaderia(true);
+        if (sbClient && bodegaId && proveedoresLista.length === 0) {
+          try {
+            const { data } = await sbClient.from('proveedores').select('*').eq('bodega_id', bodegaId).order('saldo_actual', { ascending: false });
+            if (data) setProveedoresLista(data);
+          } catch (err) {
+            console.warn(err);
+          }
+        }
       };
 
       const guardarEntradaMercaderia = async () => {
+        if (guardandoEntrada) return;
         if (compraItems.length === 0) {
           notificar('Agrega productos a la compra.', 'error');
           return;
         }
+        if (compraItems.some((i) => !(i.cantidad > 0) || !(i.costoIngresado > 0))) {
+          notificar('Revisa las líneas: la cantidad y el costo deben ser mayores a 0.', 'error');
+          return;
+        }
         const totalCompra = compraItems.reduce((acc, i) => acc + i.subtotal, 0);
+        const unidadesTotal = compraItems.reduce((acc, i) => acc + Number(i.cantidadStock ?? i.cantidad), 0);
+        const subidas = compraItems.filter((it) => {
+          const prod = productos.find((p) => p.id === it.productoId);
+          const prev = prod && !idsNuevosCompra.includes(prod.id) ? Number(prod.precio_costo) || 0 : 0;
+          return prev > 0 && (it.costoUnitario - prev) / prev >= 0.10;
+        }).length;
+        const ok = await pedirConfirmacion({
+          titulo: '¿Confirmar la entrada?',
+          mensaje: `Se sumarán ${Math.round(unidadesTotal * 100) / 100} unidades al stock de ${compraItems.length} producto${compraItems.length > 1 ? 's' : ''} y se guardará el costo nuevo. Total de la compra: S/ ${totalCompra.toFixed(2)}.${subidas ? ` ${subidas} producto${subidas > 1 ? 's' : ''} subió de costo más de 10%.` : ''}`,
+          textoBoton: 'Sí, confirmar'
+        });
+        if (!ok) return;
+        // Foto de cómo queda el stock, para la pantalla final.
+        const resumen = {
+          proveedor: compraCabecera.proveedor.trim(),
+          comprobante: compraCabecera.nroComprobante.trim() || 'Se asignó uno automático',
+          total: totalCompra,
+          unidades: unidadesTotal,
+          lineas: compraItems.map((it) => {
+            const prod = productos.find((p) => p.id === it.productoId);
+            const antes = !prod || prod.stock_actual === null || prod.stock_actual === undefined || prod.stock_actual === '' ? null : Number(prod.stock_actual);
+            return { descripcion: it.descripcion, unidad: prod?.unidad, antes, despues: (antes || 0) + Number(it.cantidadStock ?? it.cantidad) };
+          })
+        };
 
+        setGuardandoEntrada(true);
         try {
           if (esModoDemo) {
             if (catalogoDemoRef.current) {
@@ -6495,11 +6648,13 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
             }));
           }
 
-          cerrarModalEntradaMercaderia();
+          vaciarEntradaMercaderia();
+          setEntradaRegistrada(resumen);
           cargarProductos();
-          notificar(`¡Entrada de mercadería por S/ ${totalCompra.toFixed(2)} registrada!`, 'success');
         } catch (err) {
           notificar(`Error al registrar la entrada: ${err.message}`, 'error');
+        } finally {
+          setGuardandoEntrada(false);
         }
       };
 
@@ -9681,7 +9836,7 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
                 { grupo: 'Administración', etiqueta: 'Registro de actividad', icono: 'fa-clipboard-check', accion: abrirAuditoria },
                 { grupo: 'Administración', etiqueta: 'Mi Link de Pedidos', icono: 'fa-share-nodes', accion: abrirModalDelivery },
                 { grupo: 'Entradas', etiqueta: esBarberia ? 'Registrar Servicios y Productos' : 'Registrar Productos', icono: 'fa-boxes-stacked', accion: () => setModalInventarioInicial(true) },
-                !esBarberia && { grupo: 'Entradas', etiqueta: 'Entrada de Mercadería', icono: 'fa-truck-ramp-box', accion: () => setModalEntradaMercaderia(true) },
+                !esBarberia && { grupo: 'Entradas', etiqueta: 'Entrada de Mercadería', icono: 'fa-truck-ramp-box', accion: abrirEntradaMercaderia },
                 !esBarberia && { grupo: 'Entradas', etiqueta: 'Levantamiento de Inventario', icono: 'fa-clipboard-list', accion: () => setModalLevantamiento(true) },
                 { grupo: 'Entradas', etiqueta: 'Combos', icono: 'fa-gift', accion: abrirModalCombos },
                 !esBarberia && { grupo: 'Entradas', etiqueta: 'Importar del Catálogo Maestro', icono: 'fa-book', accion: abrirImportarMaestro },
@@ -12158,199 +12313,386 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
           )}
 
           {/* Modal: Entrada de Mercadería (Compras) */}
-          {modalEntradaMercaderia && (
-            <div className="fixed inset-0 bg-stone-900/30 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-              <div className="bg-gradient-to-br from-[#f4effc] via-[#f9f8fb] to-[#f5f4f8] border border-white/80 rounded-[28px] max-w-lg w-full p-5 shadow-2xl space-y-3 max-h-[90vh] overflow-y-auto">
-                <div className="flex justify-between items-center">
-                  <h3 className="text-lg font-bold text-stone-900"><i className="fa-solid fa-truck-ramp-box mr-1.5"></i> Entrada de Mercadería (Compras)</h3>
-                  <button aria-label="Cerrar" onClick={cerrarModalEntradaMercaderia} className="w-8 h-8 rounded-full bg-white/70 hover:bg-white text-stone-500 hover:text-stone-900 shadow-sm"><i className="fa-solid fa-xmark"></i></button>
-                </div>
+          {modalEntradaMercaderia && (() => {
+            const BAJO = 5;
+            const norm = (s) => String(s || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
+            const dinero = (v) => `S/ ${(Number(v) || 0).toFixed(2)}`;
+            const fmtQ = (v, u) => `${Math.round((Number(v) || 0) * 100) / 100}${u === 'KG' ? ' kg' : ''}`;
+            const stockDe = (p) => (p.stock_actual === null || p.stock_actual === undefined || p.stock_actual === '') ? null : Number(p.stock_actual);
+            const esBajo = (p) => { const s = stockDe(p); return s !== null && s <= BAJO; };
+            const textoStock = (p) => { const s = stockDe(p); return s === null ? 'Sin control de stock' : `${fmtQ(s, p.unidad)} en stock`; };
+            // Lo que pasa con un producto al recibirlo: cuántas unidades suma al
+            // stock, cuánto cambia el costo y cuánto gana al venderlo.
+            const calc = (p, esPack, cant, costoIngresado) => {
+              const f = esPack ? (Number(p.unidades_por_pack) || 1) : 1;
+              const unidades = cant * f;
+              const costoUnit = costoIngresado / f;
+              const costoPrev = idsNuevosCompra.includes(p.id) ? 0 : (Number(p.precio_costo) || 0);
+              const pv = Number(p.precio_venta) || 0;
+              const stockPrev = stockDe(p);
+              return {
+                f, unidades, costoUnit, subtotal: cant * costoIngresado, costoPrev, pv, stockPrev,
+                stockNuevo: (stockPrev || 0) + unidades,
+                delta: costoPrev > 0 ? (costoUnit - costoPrev) / costoPrev : null,
+                margen: pv > 0 ? (pv - costoUnit) / pv : null
+              };
+            };
+            const avisosDe = (c) => {
+              if (c.costoUnit > 0 && c.pv > 0 && c.costoUnit >= c.pv) return [{ tipo: 'bad', texto: `El costo (${dinero(c.costoUnit)}) es igual o mayor que el precio de venta (${dinero(c.pv)}). Vas a vender a pérdida.` }];
+              if (c.delta !== null && c.delta >= 0.10) return [{ tipo: 'warn', texto: `El costo subió ${Math.round(c.delta * 100)}%. Revisa si quieres actualizar el precio de venta.` }];
+              return [];
+            };
+            const etiquetaDelta = (d) => {
+              if (d === null) return <span className="inline-flex items-center gap-1 text-[11px] font-bold rounded-full px-2 py-0.5 bg-[#f1eef9] text-stone-500">costo nuevo</span>;
+              if (Math.abs(d) < 0.005) return <span className="inline-flex items-center gap-1 text-[11px] font-bold rounded-full px-2 py-0.5 bg-[#f1eef9] text-stone-500">igual que antes</span>;
+              return d > 0
+                ? <span className="inline-flex items-center gap-1 text-[11px] font-bold rounded-full px-2 py-0.5 bg-amber-50 text-amber-700"><i className="fa-solid fa-arrow-up text-[9px]"></i>{Math.round(d * 100)}%</span>
+                : <span className="inline-flex items-center gap-1 text-[11px] font-bold rounded-full px-2 py-0.5 bg-emerald-50 text-emerald-700"><i className="fa-solid fa-arrow-down text-[9px]"></i>{Math.abs(Math.round(d * 100))}%</span>;
+            };
 
-                <div className="grid grid-cols-2 gap-2">
-                  <input
-                    type="text"
-                    placeholder="Proveedor / Distribuidor"
-                    value={compraCabecera.proveedor}
-                    onChange={(e) => setCompraCabecera({ ...compraCabecera, proveedor: e.target.value })}
-                    className="bg-white border border-stone-200/70 shadow-sm rounded-xl px-2.5 py-1.5 text-xs text-stone-900"
-                  />
-                  <input
-                    type="text"
-                    placeholder="N° Factura / Guía"
-                    value={compraCabecera.nroComprobante}
-                    onChange={(e) => setCompraCabecera({ ...compraCabecera, nroComprobante: e.target.value })}
-                    className="bg-white border border-stone-200/70 shadow-sm rounded-xl px-2.5 py-1.5 text-xs text-stone-900"
-                  />
-                </div>
+            const sel = productos.find((p) => p.id === compraItemTemp.productoId) || null;
+            const creando = nuevoProductoInlineCompra;
+            const nLineas = compraItems.length;
+            const totalCompra = compraItems.reduce((a, c) => a + c.subtotal, 0);
+            const unidadesTotal = compraItems.reduce((a, c) => a + Number(c.cantidadStock ?? c.cantidad), 0);
+            const lineaInvalida = compraItems.some((i) => !(i.cantidad > 0) || !(i.costoIngresado > 0));
+            const nBajos = productos.filter(esBajo).length;
 
-                {/* Agregar Ítem */}
-                <div className="p-3 bg-stone-50 rounded-xl border border-stone-200 space-y-2">
-                  <span className="text-xs font-bold text-amber-600 block">Agregar Producto a la Entrada:</span>
-                  {(() => {
-                    const prodSel = productos.find(p => p.id === compraItemTemp.productoId);
-                    const unidadesPorPack = Number(prodSel?.unidades_por_pack) || 1;
-                    const tieneP = unidadesPorPack > 1;
-                    const esPack = tieneP && compraItemTemp.tipo === 'PACK';
-                    return (
-                    <div className="grid grid-cols-3 gap-2">
-                      <select
-                        value={compraItemTemp.productoId}
-                        onChange={(e) => {
-                          if (e.target.value === '__nuevo__') {
-                            setNuevoProductoInlineCompra({ descripcion: '', categoria: 'Abarrotes', precio_costo: '', precio_venta: '', unidad: 'UND' });
-                            return;
-                          }
-                          setCompraItemTemp({ ...compraItemTemp, productoId: e.target.value, tipo: 'UNIDAD' });
-                        }}
-                        className="col-span-3 bg-white border border-stone-200/70 shadow-sm rounded-xl px-2.5 py-1.5 text-xs text-stone-900"
-                      >
-                        <option value="">-- Seleccionar Producto --</option>
-                        {productos.map(p => (
-                          <option key={p.id} value={p.id}>{p.descripcion}</option>
-                        ))}
-                        <option value="__nuevo__">+ Nuevo producto...</option>
-                      </select>
-                      {nuevoProductoInlineCompra && (
-                        <div className="col-span-3 p-2.5 bg-amber-50 border border-amber-200 rounded-lg space-y-2">
-                          <span className="text-xs font-bold text-amber-700 block">Crear producto rápido:</span>
-                          <input
-                            type="text"
-                            placeholder="Descripción *"
-                            value={nuevoProductoInlineCompra.descripcion}
-                            onChange={(e) => setNuevoProductoInlineCompra({ ...nuevoProductoInlineCompra, descripcion: e.target.value })}
-                            className="w-full bg-white border border-stone-200/70 shadow-sm rounded-xl px-2.5 py-1.5 text-xs text-stone-900"
-                          />
-                          <div className="grid grid-cols-2 gap-2">
-                            <select
-                              value={nuevoProductoInlineCompra.categoria}
-                              onChange={(e) => setNuevoProductoInlineCompra({ ...nuevoProductoInlineCompra, categoria: e.target.value })}
-                              className="bg-white border border-stone-200/70 shadow-sm rounded-xl px-2.5 py-1.5 text-xs text-stone-900"
-                            >
-                              {categoriasDB.map(c => <option key={c} value={c}>{c}</option>)}
-                            </select>
-                            <select
-                              value={nuevoProductoInlineCompra.unidad}
-                              onChange={(e) => setNuevoProductoInlineCompra({ ...nuevoProductoInlineCompra, unidad: e.target.value })}
-                              className="bg-white border border-stone-200/70 shadow-sm rounded-xl px-2.5 py-1.5 text-xs text-stone-900"
-                            >
-                              <option value="UND">Se vende por Unidad (UND)</option>
-                              <option value="KG">Se vende por Peso (KG) — balanza</option>
-                            </select>
-                            <input
-                              type="number"
-                              step="0.10"
-                              placeholder="Precio costo (S/)"
-                              value={nuevoProductoInlineCompra.precio_costo}
-                              onChange={(e) => setNuevoProductoInlineCompra({ ...nuevoProductoInlineCompra, precio_costo: e.target.value })}
-                              className="bg-white border border-stone-200/70 shadow-sm rounded-xl px-2.5 py-1.5 text-xs text-stone-900"
-                            />
-                            <input
-                              type="number"
-                              step="0.10"
-                              placeholder="Precio venta (S/) *"
-                              value={nuevoProductoInlineCompra.precio_venta}
-                              onChange={(e) => setNuevoProductoInlineCompra({ ...nuevoProductoInlineCompra, precio_venta: e.target.value })}
-                              className="bg-white border border-stone-200/70 shadow-sm rounded-xl px-2.5 py-1.5 text-xs text-stone-900"
-                            />
+            const q = norm(busquedaCompra.trim());
+            let lista = productos.filter((p) => filtroCompra !== 'bajo' || esBajo(p));
+            if (q) {
+              lista = lista.filter((p) => norm(p.descripcion).includes(q) || norm(p.categoria).includes(q) || String(p.cod_ean || '').toLowerCase().includes(q) || String(p.sku || '').toLowerCase().includes(q));
+            } else {
+              lista = [...lista].sort((a, b) => (esBajo(a) ? 0 : 1) - (esBajo(b) ? 0 : 1) || (stockDe(a) ?? 1e9) - (stockDe(b) ?? 1e9) || String(a.descripcion).localeCompare(String(b.descripcion)));
+            }
+            const visibles = lista.slice(0, 40);
+            const idxRes = Math.min(resaltadoCompra, Math.max(0, visibles.length - 1));
+            const teclasBusqueda = (e) => {
+              if (e.key === 'ArrowDown') { e.preventDefault(); setResaltadoCompra(Math.min(idxRes + 1, visibles.length - 1)); }
+              else if (e.key === 'ArrowUp') { e.preventDefault(); setResaltadoCompra(Math.max(idxRes - 1, 0)); }
+              else if (e.key === 'Enter') {
+                e.preventDefault();
+                const porCodigo = buscarProductoPorCodigo(busquedaCompra);
+                if (porCodigo) elegirProductoEntrada(porCodigo.producto, porCodigo.esPack);
+                else if (visibles[idxRes]) elegirProductoEntrada(visibles[idxRes]);
+                else if (busquedaCompra.trim()) abrirProductoNuevoEntrada(busquedaCompra.trim());
+              }
+            };
+
+            const inputBase = 'w-full h-11 bg-stone-50/70 border-[1.5px] border-stone-200 rounded-[14px] px-3.5 text-sm text-stone-900 placeholder:text-stone-400 outline-none focus:border-[#6105dc] focus:bg-white focus:ring-4 focus:ring-[#6105dc]/15 transition';
+            const etiquetaCampo = 'flex items-center justify-between gap-2 text-[12.5px] font-semibold text-stone-800 mb-1.5';
+            const segClase = (activo) => `rounded-[11px] py-2.5 px-2 text-[13px] font-bold transition text-center ${activo ? 'bg-white text-[#4d04b0] shadow-sm' : 'text-stone-500 hover:text-stone-700'}`;
+            const chipClase = (activo) => `inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[12.5px] font-semibold border-[1.5px] transition ${activo ? 'border-[#6105dc] bg-[#f4eefe] text-[#4d04b0] ring-2 ring-[#6105dc]/15' : 'border-stone-200 bg-white text-stone-600 hover:bg-[#f4eefe] hover:border-[#e4d6fb]'}`;
+            const claveBloque = 'bg-white border border-stone-100 rounded-[22px] p-4 shadow-sm flex flex-col md:min-h-0';
+            const sugeridos = proveedoresLista
+              .map((p) => p.nombre)
+              .filter((n) => n && norm(n).includes(norm(compraCabecera.proveedor)) && norm(n) !== norm(compraCabecera.proveedor))
+              .slice(0, 3);
+
+            // ----- Izquierda: elegir producto, cantidad y costo -----
+            const panelAgregar = (() => {
+              if (creando) {
+                const pcN = Number(creando.precio_costo) || 0;
+                const pvN = Number(creando.precio_venta) || 0;
+                return (
+                  <>
+                    <button type="button" onClick={() => setNuevoProductoInlineCompra(null)} className="self-start inline-flex items-center gap-1.5 text-[12.5px] font-bold text-stone-500 hover:text-stone-800 hover:bg-stone-100 rounded-lg px-2 py-1 -ml-1 mb-2"><i className="fa-solid fa-chevron-left text-[10px]"></i> Volver a la búsqueda</button>
+                    <h4 className="text-base font-extrabold text-stone-900 tracking-tight">Producto nuevo</h4>
+                    <p className="text-[12.5px] text-stone-500 mt-0.5 mb-3">Solo lo esencial para seguir con la entrada. El código y los demás datos los completas luego en «Editar producto».</p>
+                    <div className="space-y-3.5 md:flex-1 md:min-h-0 md:overflow-y-auto">
+                      <div>
+                        <label className={etiquetaCampo}><span>Nombre <span className="text-rose-500">*</span></span></label>
+                        <input type="text" autoFocus autoComplete="off" value={creando.descripcion} onChange={(e) => setNuevoProductoInlineCompra({ ...creando, descripcion: e.target.value })} className={inputBase} />
+                      </div>
+                      <div className="grid grid-cols-2 gap-3">
+                        <div>
+                          <label className={etiquetaCampo}><span>Categoría</span></label>
+                          <select value={creando.categoria} onChange={(e) => setNuevoProductoInlineCompra({ ...creando, categoria: e.target.value })} className={inputBase}>
+                            {categoriasDB.map((c) => <option key={c} value={c}>{c}</option>)}
+                          </select>
+                        </div>
+                        <div>
+                          <label className={etiquetaCampo}><span>Se vende por</span></label>
+                          <div className="grid grid-cols-2 bg-[#f1eef9] rounded-[14px] p-1 gap-1">
+                            <button type="button" onClick={() => setNuevoProductoInlineCompra({ ...creando, unidad: 'UND' })} className={segClase(creando.unidad === 'UND')}>Unidad</button>
+                            <button type="button" onClick={() => setNuevoProductoInlineCompra({ ...creando, unidad: 'KG' })} className={segClase(creando.unidad === 'KG')}>Peso (kg)</button>
                           </div>
-                          <div className="grid grid-cols-2 gap-2">
-                            <button
-                              type="button"
-                              onClick={() => setNuevoProductoInlineCompra(null)}
-                              className="bg-stone-200 hover:bg-stone-300 text-stone-700 font-bold text-xs rounded-lg py-1.5"
-                            >
-                              Cancelar
-                            </button>
-                            <button
-                              type="button"
-                              onClick={crearProductoInlineCompra}
-                              disabled={guardandoProductoInlineCompra}
-                              className="bg-violet-600 hover:bg-violet-500 disabled:opacity-50 text-white font-bold text-xs rounded-lg py-1.5"
-                            >
-                              {guardandoProductoInlineCompra ? 'Creando...' : 'Crear y usar'}
-                            </button>
+                        </div>
+                      </div>
+                      <div className="grid grid-cols-2 gap-3">
+                        <div>
+                          <label className={etiquetaCampo}><span>Costo</span><span className="text-stone-400 font-normal">{creando.unidad === 'KG' ? 'por kilo' : 'por unidad'}</span></label>
+                          <div className="relative"><span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[13px] font-bold text-stone-300">S/</span><input type="number" step="0.01" min="0" inputMode="decimal" placeholder="0.00" value={creando.precio_costo} onChange={(e) => setNuevoProductoInlineCompra({ ...creando, precio_costo: e.target.value })} className={`${inputBase} pl-9 font-bold`} /></div>
+                        </div>
+                        <div>
+                          <label className={etiquetaCampo}><span>Precio de venta <span className="text-rose-500">*</span></span></label>
+                          <div className="relative"><span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[13px] font-bold text-stone-300">S/</span><input type="number" step="0.01" min="0" inputMode="decimal" placeholder="0.00" value={creando.precio_venta} onChange={(e) => setNuevoProductoInlineCompra({ ...creando, precio_venta: e.target.value })} className={`${inputBase} pl-9 font-bold`} /></div>
+                        </div>
+                      </div>
+                      {pcN > 0 && pvN > 0 && (pvN > pcN
+                        ? <div className="flex gap-2 items-start rounded-[14px] bg-[#f4eefe] text-[#4d04b0] px-3 py-2.5 text-xs leading-snug"><i className="fa-solid fa-circle-info mt-0.5"></i><span>Ganas {dinero(pvN - pcN)} por cada {creando.unidad === 'KG' ? 'kilo' : 'unidad'} ({Math.round((pvN - pcN) / pvN * 100)}%).</span></div>
+                        : <div className="flex gap-2 items-start rounded-[14px] bg-rose-50 text-rose-600 px-3 py-2.5 text-xs leading-snug"><i className="fa-solid fa-triangle-exclamation mt-0.5"></i><span>El precio de venta es menor o igual al costo.</span></div>)}
+                    </div>
+                    <button type="button" onClick={crearProductoInlineCompra} disabled={guardandoProductoInlineCompra} className="mt-3 w-full h-[46px] rounded-[14px] bg-[#6105dc] hover:bg-[#4d04b0] disabled:opacity-50 text-white font-bold text-[13.5px] shadow-lg shadow-[#6105dc]/30 inline-flex items-center justify-center gap-2">
+                      <i className="fa-solid fa-check"></i>{guardandoProductoInlineCompra ? 'Creando...' : 'Crear y usar en la entrada'}
+                    </button>
+                  </>
+                );
+              }
+
+              if (sel) {
+                const uds = Number(sel.unidades_por_pack) || 1;
+                const tieneP = uds > 1;
+                const esPack = tieneP && compraItemTemp.tipo === 'PACK';
+                const cant = Number(compraItemTemp.cantidad) || 0;
+                const costoIn = Number(compraItemTemp.costoUnitario) || 0;
+                const c = calc(sel, esPack, cant, costoIn);
+                const listo = cant > 0 && costoIn > 0;
+                const avisos = costoIn > 0 ? avisosDe(c) : [];
+                const alEnter = (e) => { if (e.key === 'Enter') { e.preventDefault(); agregarItemEntradaMercaderia(); } };
+                const costoPrevVisible = c.costoPrev > 0;
+                return (
+                  <>
+                    <button type="button" onClick={() => setCompraItemTemp({ productoId: '', cantidad: '', costoUnitario: '', tipo: 'UNIDAD' })} className="self-start inline-flex items-center gap-1.5 text-[12.5px] font-bold text-stone-500 hover:text-stone-800 hover:bg-stone-100 rounded-lg px-2 py-1 -ml-1 mb-2"><i className="fa-solid fa-chevron-left text-[10px]"></i> Elegir otro producto</button>
+                    <div className="flex items-center gap-3 mb-3.5">
+                      <div className="w-[54px] h-[54px] rounded-2xl overflow-hidden shrink-0 border border-stone-200"><FotoProducto fotoUrl={sel.foto_url} categoria={sel.categoria} className="w-full h-full" iconClassName="text-xl" /></div>
+                      <div className="min-w-0">
+                        <h4 className="text-base font-extrabold text-stone-900 tracking-tight leading-tight">{sel.descripcion}</h4>
+                        <p className="text-xs text-stone-500 mt-0.5">{sel.categoria || 'Sin categoría'} · {textoStock(sel)} · precio de venta {dinero(sel.precio_venta)}</p>
+                      </div>
+                    </div>
+                    <div className="space-y-3.5 md:flex-1 md:min-h-0 md:overflow-y-auto">
+                      {tieneP && (
+                        <div>
+                          <label className={etiquetaCampo}><span>¿Cómo te llegó?</span></label>
+                          <div className="grid grid-cols-2 bg-[#f1eef9] rounded-[14px] p-1 gap-1">
+                            <button type="button" onClick={() => cambiarTipoEntrada('UNIDAD')} className={segClase(!esPack)}>Unidades sueltas</button>
+                            <button type="button" onClick={() => cambiarTipoEntrada('PACK')} className={segClase(esPack)}>Packs o cajas<small className="block text-[11px] font-medium opacity-80">de {uds} unidades</small></button>
                           </div>
                         </div>
                       )}
-                      {tieneP && (
-                        <select
-                          value={compraItemTemp.tipo}
-                          onChange={(e) => setCompraItemTemp({ ...compraItemTemp, tipo: e.target.value })}
-                          className="col-span-3 bg-white border border-stone-200/70 shadow-sm rounded-xl px-2.5 py-1.5 text-xs text-stone-900"
-                        >
-                          <option value="UNIDAD">Llega por unidad suelta</option>
-                          <option value="PACK">Llega por pack/caja (x{unidadesPorPack})</option>
-                        </select>
-                      )}
-                      <input
-                        type="number"
-                        placeholder={esPack ? 'Cantidad de packs' : 'Cantidad'}
-                        value={compraItemTemp.cantidad}
-                        onChange={(e) => setCompraItemTemp({ ...compraItemTemp, cantidad: e.target.value })}
-                        className="bg-white border border-stone-200/70 shadow-sm rounded-xl px-2 py-1 text-xs text-stone-900"
-                      />
-                      <input
-                        type="number"
-                        step="0.10"
-                        placeholder={esPack ? 'Costo por pack' : 'Costo Unit.'}
-                        value={compraItemTemp.costoUnitario}
-                        onChange={(e) => setCompraItemTemp({ ...compraItemTemp, costoUnitario: e.target.value })}
-                        className="bg-white border border-stone-200/70 shadow-sm rounded-xl px-2 py-1 text-xs text-stone-900"
-                      />
-                      <button
-                        type="button"
-                        onClick={agregarItemEntradaMercaderia}
-                        className="bg-violet-600 hover:bg-violet-500 text-white font-bold text-xs rounded-lg py-1"
-                      >
-                        + Añadir
-                      </button>
-                      {esPack && compraItemTemp.cantidad && (
-                        <span className="col-span-3 text-[11px] text-stone-500">
-                          = {(Number(compraItemTemp.cantidad) || 0) * unidadesPorPack} unidades en stock
-                        </span>
-                      )}
-                    </div>
-                    );
-                  })()}
-                </div>
-
-                {/* Lista de Ítems Comprados */}
-                <div className="max-h-40 overflow-y-auto space-y-1">
-                  {compraItems.map((it, idx) => (
-                    <div key={idx} className="flex justify-between items-center text-xs bg-stone-50 p-2 rounded-lg border border-stone-100">
-                      <span>
-                        {it.cantidad}{it.esPack ? ` pack${it.cantidad > 1 ? 's' : ''} x${it.unidadesPorPack}` : 'x'} {it.descripcion}
-                        {it.esPack && <span className="text-stone-500"> (={it.cantidadStock} und)</span>}
-                        {' '}(S/ {it.costoUnitario.toFixed(2)}/und)
-                      </span>
-                      <div className="flex items-center gap-2">
-                        <span className="font-bold text-orange-600">S/ {it.subtotal.toFixed(2)}</span>
-                        <button
-                          type="button"
-                          onClick={() => quitarItemEntradaMercaderia(idx)}
-                          className="text-stone-400 hover:text-rose-600 transition"
-                          title="Quitar esta línea"
-                        >
-                          <i className="fa-solid fa-trash-can"></i>
-                        </button>
+                      <div className="grid grid-cols-2 gap-3">
+                        <div>
+                          <label className={etiquetaCampo}><span>{esPack ? 'Cantidad de packs' : (sel.unidad === 'KG' ? 'Kilos recibidos' : 'Cantidad')} <span className="text-rose-500">*</span></span></label>
+                          <div className="flex items-center gap-1.5">
+                            <button type="button" aria-label="Menos" onClick={() => setCompraItemTemp({ ...compraItemTemp, cantidad: String(Math.max(0, Math.round(((Number(compraItemTemp.cantidad) || 0) - 1) * 100) / 100)) })} className="w-11 h-11 shrink-0 rounded-[13px] border-[1.5px] border-stone-200 bg-white text-[#4d04b0] hover:bg-[#f4eefe]"><i className="fa-solid fa-minus text-xs"></i></button>
+                            <input type="number" autoFocus min="0" step={sel.unidad === 'KG' ? '0.1' : '1'} inputMode="decimal" placeholder="0" value={compraItemTemp.cantidad} onChange={(e) => setCompraItemTemp({ ...compraItemTemp, cantidad: e.target.value })} onKeyDown={alEnter} className={`${inputBase} text-center font-bold text-base px-1 min-w-0`} />
+                            <button type="button" aria-label="Más" onClick={() => setCompraItemTemp({ ...compraItemTemp, cantidad: String(Math.round(((Number(compraItemTemp.cantidad) || 0) + 1) * 100) / 100) })} className="w-11 h-11 shrink-0 rounded-[13px] border-[1.5px] border-stone-200 bg-white text-[#4d04b0] hover:bg-[#f4eefe]"><i className="fa-solid fa-plus text-xs"></i></button>
+                          </div>
+                        </div>
+                        <div>
+                          <label className={etiquetaCampo}><span>{esPack ? 'Costo por pack' : (sel.unidad === 'KG' ? 'Costo por kilo' : 'Costo por unidad')} <span className="text-rose-500">*</span></span></label>
+                          <div className="relative"><span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[13px] font-bold text-stone-300">S/</span><input type="number" min="0" step="0.01" inputMode="decimal" placeholder="0.00" value={compraItemTemp.costoUnitario} onChange={(e) => setCompraItemTemp({ ...compraItemTemp, costoUnitario: e.target.value })} onKeyDown={alEnter} className={`${inputBase} pl-9 font-bold text-base`} /></div>
+                        </div>
+                      </div>
+                      {avisos.map((a, i) => (
+                        <div key={i} className={`flex gap-2 items-start rounded-[14px] px-3 py-2.5 text-xs leading-snug ${a.tipo === 'bad' ? 'bg-rose-50 text-rose-600' : 'bg-amber-50 text-amber-700'}`}><i className="fa-solid fa-triangle-exclamation mt-0.5"></i><span>{a.texto}</span></div>
+                      ))}
+                      <div className="border border-stone-100 rounded-[18px] bg-[#fcfaff] px-3.5 divide-y divide-dashed divide-[#e4d6fb]">
+                        {esPack && cant > 0 && (
+                          <div className="flex items-center justify-between gap-2 py-2.5 text-[12.5px]"><span className="font-semibold text-stone-500">Equivale a</span><b>{cant} × {uds} = {fmtQ(c.unidades, sel.unidad)} und</b></div>
+                        )}
+                        <div className="flex items-center justify-between gap-2 py-2.5 text-[12.5px]"><span className="font-semibold text-stone-500">Stock</span><b>{c.stockPrev === null ? 'Sin control' : fmtQ(c.stockPrev, sel.unidad)} <span className="text-stone-300 font-semibold">→</span> {cant > 0 ? fmtQ(c.stockNuevo, sel.unidad) : '—'}</b></div>
+                        <div className="flex items-center justify-between gap-2 py-2.5 text-[12.5px] flex-wrap"><span className="font-semibold text-stone-500">Costo{esPack ? ' por unidad' : ''}</span><b className="flex items-center gap-1.5 flex-wrap justify-end">{costoPrevVisible && <s className="text-stone-300 font-semibold">{dinero(c.costoPrev)}</s>}{costoIn > 0 ? dinero(c.costoUnit) : '—'}{costoIn > 0 && etiquetaDelta(c.delta)}</b></div>
+                        {costoIn > 0 && c.margen !== null && (
+                          <div className="flex items-center justify-between gap-2 py-2.5 text-[12.5px]"><span className="font-semibold text-stone-500">Ganancia al vender a {dinero(c.pv)}</span><b className="flex items-center gap-1.5">{dinero(c.pv - c.costoUnit)}<span className={`text-[11px] font-bold rounded-full px-2 py-0.5 ${c.margen < 0.1 ? 'bg-amber-50 text-amber-700' : 'bg-emerald-50 text-emerald-700'}`}>{Math.round(c.margen * 100)}%</span></b></div>
+                        )}
+                        <div className="flex items-center justify-between gap-2 py-2.5 text-[12.5px]"><span className="font-semibold text-stone-500">Subtotal</span><b className="text-[15px] font-extrabold">{dinero(c.subtotal)}</b></div>
                       </div>
                     </div>
-                  ))}
-                </div>
+                    <button type="button" onClick={agregarItemEntradaMercaderia} disabled={!listo} className="mt-3 w-full h-[46px] rounded-[14px] bg-[#6105dc] hover:bg-[#4d04b0] disabled:bg-[#d9d2ea] disabled:shadow-none text-white font-bold text-[13.5px] shadow-lg shadow-[#6105dc]/30 inline-flex items-center justify-center gap-2 transition">
+                      <i className="fa-solid fa-plus text-xs"></i> Añadir a la entrada
+                    </button>
+                    <p className="text-[11.5px] text-stone-400 text-center mt-1.5">Enter también lo añade</p>
+                  </>
+                );
+              }
 
-                <div className="flex justify-between items-center pt-2 border-t border-stone-200">
-                  <span className="font-bold text-sm">Total Compra:</span>
-                  <span className="font-black text-lg text-orange-600">
-                    S/ {compraItems.reduce((a, c) => a + c.subtotal, 0).toFixed(2)}
-                  </span>
-                </div>
+              return (
+                <>
+                  <h4 className="text-base font-extrabold text-stone-900 tracking-tight">Agregar productos</h4>
+                  <p className="text-[12.5px] text-stone-500 mt-0.5 mb-3">Busca por nombre o escanea el código de barras.</p>
+                  {nLineas > 0 && (
+                    <button type="button" onClick={() => document.getElementById('entrada-lista')?.scrollIntoView({ behavior: 'smooth', block: 'start' })} className="md:hidden flex items-center gap-2 w-full rounded-[14px] border-[1.5px] border-[#e4d6fb] bg-[#f4eefe] text-[#4d04b0] px-3.5 py-2.5 text-[12.5px] font-bold mb-3 text-left">
+                      <span className="flex-1">{nLineas} producto{nLineas > 1 ? 's' : ''} · {dinero(totalCompra)}</span>Ver la entrada <i className="fa-solid fa-arrow-down text-[10px]"></i>
+                    </button>
+                  )}
+                  <div className="relative">
+                    <i className="fa-solid fa-magnifying-glass absolute left-4 top-1/2 -translate-y-1/2 text-stone-300 text-[15px] pointer-events-none"></i>
+                    <input type="text" autoFocus autoComplete="off" placeholder="Ej: leche, arroz, 775…" value={busquedaCompra} onChange={(e) => { setBusquedaCompra(e.target.value); setResaltadoCompra(0); }} onKeyDown={teclasBusqueda} className="w-full h-[50px] bg-stone-50/70 border-[1.5px] border-stone-200 rounded-2xl pl-11 pr-[118px] text-[15px] text-stone-900 placeholder:text-stone-300 outline-none focus:border-[#6105dc] focus:bg-white focus:ring-4 focus:ring-[#6105dc]/15 transition" />
+                    <button type="button" onClick={() => { setModoEscaner('entrada-mercaderia'); setMetodoForzado(null); setModalEscaner(true); }} title="Escanear con la cámara" className="absolute right-1.5 top-1.5 bottom-1.5 px-3 rounded-[11px] border border-[#e4d6fb] bg-[#f4eefe] text-[#4d04b0] hover:bg-[#ece0fd] text-[12.5px] font-bold inline-flex items-center gap-1.5"><i className="fa-solid fa-camera text-xs"></i> Escanear</button>
+                  </div>
+                  <div className="flex flex-wrap gap-2 my-3">
+                    <button type="button" onClick={() => { setFiltroCompra('todos'); setResaltadoCompra(0); }} className={chipClase(filtroCompra === 'todos')}>Todos</button>
+                    <button type="button" onClick={() => { setFiltroCompra('bajo'); setResaltadoCompra(0); }} className={chipClase(filtroCompra === 'bajo')}>Por reponer <span className={`text-[10.5px] rounded-full px-1.5 ${filtroCompra === 'bajo' ? 'bg-[#6105dc] text-white' : 'bg-amber-50 text-amber-700'}`}>{nBajos}</span></button>
+                  </div>
+                  <div className="grid grid-cols-[minmax(0,1fr)] gap-1.5 max-h-80 overflow-y-auto md:max-h-none md:flex-1 md:min-h-0 content-start">
+                    {visibles.map((p, i) => {
+                      const s = stockDe(p);
+                      return (
+                        <button key={p.id} type="button" onClick={() => elegirProductoEntrada(p)} className={`flex items-center gap-3 w-full text-left rounded-2xl border-[1.5px] bg-white px-3 py-2 transition hover:bg-[#fcfaff] hover:border-[#e4d6fb] ${i === idxRes ? 'border-[#6105dc] ring-2 ring-[#6105dc]/15' : 'border-stone-100'}`}>
+                          <span className="w-[42px] h-[42px] rounded-[13px] overflow-hidden shrink-0 border border-stone-100"><FotoProducto fotoUrl={p.foto_url} categoria={p.categoria} className="w-full h-full" iconClassName="text-base" /></span>
+                          <span className="min-w-0 flex-1">
+                            <span className="block text-[13.5px] font-bold text-stone-900 leading-tight truncate">{p.descripcion}</span>
+                            <span className="block text-[11.5px] text-stone-500 mt-0.5">{textoStock(p)} · último costo {dinero(p.precio_costo)}{p.unidad === 'KG' ? ' /kg' : ''}</span>
+                          </span>
+                          {s !== null && s <= 0 && <span className="text-[11px] font-bold rounded-full px-2.5 py-0.5 bg-rose-50 text-rose-600 whitespace-nowrap">Sin stock</span>}
+                          {s !== null && s > 0 && s <= BAJO && <span className="text-[11px] font-bold rounded-full px-2.5 py-0.5 bg-amber-50 text-amber-700 whitespace-nowrap">Quedan {fmtQ(s, p.unidad)}</span>}
+                        </button>
+                      );
+                    })}
+                    {busquedaCompra.trim() && (
+                      <button type="button" onClick={() => abrirProductoNuevoEntrada(busquedaCompra.trim())} className="flex items-center gap-3 w-full text-left rounded-2xl border-[1.5px] border-dashed border-[#e4d6fb] bg-[#fcfaff] px-3 py-2 hover:bg-[#f4eefe] transition">
+                        <span className="w-[42px] h-[42px] rounded-[13px] shrink-0 bg-[#6105dc] text-white grid place-items-center"><i className="fa-solid fa-plus"></i></span>
+                        <span className="min-w-0 flex-1"><span className="block text-[13.5px] font-bold text-stone-900 leading-tight truncate">Crear «{busquedaCompra.trim()}» como producto nuevo</span><span className="block text-[11.5px] text-stone-500 mt-0.5">Lo creas aquí mismo y sigues con la entrada</span></span>
+                      </button>
+                    )}
+                    {!busquedaCompra.trim() && visibles.length === 0 && <p className="text-center text-[13px] text-stone-400 py-6">{filtroCompra === 'bajo' ? 'No hay productos por reponer.' : 'Aún no tienes productos registrados.'}</p>}
+                    {lista.length > visibles.length && <p className="text-center text-[11.5px] text-stone-400 py-1">Hay {lista.length - visibles.length} más. Escribe para afinar la búsqueda.</p>}
+                  </div>
+                </>
+              );
+            })();
 
-                <button onClick={guardarEntradaMercaderia} className="w-full py-2.5 bg-[#6105dc] hover:bg-[#4d04b0] text-white font-bold text-xs rounded-full shadow">
-                  Confirmar Entrada de Mercadería
-                </button>
+            // ----- Derecha: la entrada (proveedor, líneas, total) -----
+            const panelEntrada = (
+              <>
+                <h4 className="text-base font-extrabold text-stone-900 tracking-tight">La entrada</h4>
+                <p className="text-[12.5px] text-stone-500 mt-0.5 mb-3">{nLineas ? `${nLineas} producto${nLineas > 1 ? 's' : ''} para recibir` : 'Aquí verás lo que vas anotando.'}</p>
+                <div className="grid sm:grid-cols-2 md:grid-cols-1 xl:grid-cols-2 gap-3">
+                  <div>
+                    <label className={etiquetaCampo}><span>Proveedor</span><span className="text-stone-400 font-normal">opcional</span></label>
+                    <input type="text" autoComplete="off" placeholder="Ej: Distribuidora Andina" value={compraCabecera.proveedor} onChange={(e) => setCompraCabecera({ ...compraCabecera, proveedor: e.target.value })} className={inputBase} />
+                  </div>
+                  <div>
+                    <label className={etiquetaCampo}><span>N° factura o guía</span><span className="text-stone-400 font-normal">opcional</span></label>
+                    <input type="text" autoComplete="off" placeholder="F001-0234" value={compraCabecera.nroComprobante} onChange={(e) => setCompraCabecera({ ...compraCabecera, nroComprobante: e.target.value })} className={inputBase} />
+                  </div>
+                </div>
+                {sugeridos.length > 0 && (
+                  <div className="flex flex-wrap gap-1.5 mt-2">
+                    {sugeridos.map((n) => <button key={n} type="button" onClick={() => setCompraCabecera({ ...compraCabecera, proveedor: n })} className="px-2.5 py-1 rounded-full border-[1.5px] border-stone-200 bg-white text-xs font-semibold text-stone-600 hover:bg-[#f4eefe] hover:border-[#e4d6fb]">{n}</button>)}
+                  </div>
+                )}
+                <div className="h-px bg-stone-100 my-3.5"></div>
+                <div className="md:flex-1 md:min-h-0 md:overflow-y-auto -mx-1 px-1">
+                  {nLineas === 0 ? (
+                    <div className="text-center py-6 px-3 text-[13px] text-stone-500 leading-snug">
+                      <div className="w-[60px] h-[60px] rounded-[20px] bg-[#f4eefe] text-[#6105dc] grid place-items-center text-2xl mx-auto mb-2.5"><i className="fa-solid fa-box-open"></i></div>
+                      <b className="block text-[15px] text-stone-900 mb-0.5">Todavía no hay productos</b>
+                      Busca uno, pon cuánto llegó y a qué costo.
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-[minmax(0,1fr)] gap-2">
+                      {compraItems.map((it, idx) => {
+                        const p = productos.find((x) => x.id === it.productoId);
+                        if (!p) return null;
+                        const c = calc(p, it.esPack, it.cantidad, it.costoIngresado);
+                        const av = avisosDe(c);
+                        const invalida = !(it.cantidad > 0) || !(it.costoIngresado > 0);
+                        const unidadCant = it.esPack ? 'packs' : (p.unidad === 'KG' ? 'kg' : 'und');
+                        const unidadCosto = it.esPack ? 'x pack' : (p.unidad === 'KG' ? 'x kg' : 'x und');
+                        const commit = (campo) => (e) => { const v = e.target.value; if (Number(v) !== (campo === 'cantidad' ? it.cantidad : it.costoIngresado)) editarLineaEntrada(idx, campo, v); };
+                        const alEnter = (e) => { if (e.key === 'Enter') e.target.blur(); };
+                        const estilo = invalida || av.some((a) => a.tipo === 'bad') ? 'border-rose-300 bg-rose-50' : av.length ? 'border-amber-300 bg-amber-50/60' : 'border-stone-100 bg-white';
+                        return (
+                          <div key={`${it.productoId}-${idx}`} id={idx === nLineas - 1 ? 'entrada-ultima' : undefined} className={`rounded-2xl border-[1.5px] px-3 py-2.5 ${estilo}`}>
+                            <div className="flex items-center gap-2.5">
+                              <span className="w-[34px] h-[34px] rounded-[11px] overflow-hidden shrink-0 border border-stone-100"><FotoProducto fotoUrl={p.foto_url} categoria={p.categoria} className="w-full h-full" iconClassName="text-sm" /></span>
+                              <span className="flex-1 min-w-0 text-[13px] font-bold text-stone-900 leading-tight">{it.descripcion}</span>
+                              <button type="button" onClick={() => quitarItemEntradaMercaderia(idx)} title="Quitar esta línea" aria-label="Quitar esta línea" className="w-[30px] h-[30px] rounded-lg text-stone-300 hover:text-rose-600 hover:bg-rose-50 grid place-items-center shrink-0"><i className="fa-solid fa-trash-can text-sm"></i></button>
+                            </div>
+                            <div className="grid grid-cols-[78px_minmax(0,1fr)_auto] gap-2 items-center mt-2.5">
+                              <div className="relative">
+                                <input key={`q-${idx}-${it.cantidad}`} type="number" min="0" step={p.unidad === 'KG' ? '0.1' : '1'} inputMode="decimal" defaultValue={it.cantidad} onBlur={commit('cantidad')} onKeyDown={alEnter} aria-label="Cantidad" className="w-full h-9 rounded-[11px] border-[1.5px] border-stone-200 bg-white text-[13px] font-bold text-center pl-2 pr-8 outline-none focus:border-[#6105dc] focus:ring-4 focus:ring-[#6105dc]/15" />
+                                <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[10.5px] font-semibold text-stone-400 pointer-events-none">{unidadCant}</span>
+                              </div>
+                              <div className="relative">
+                                <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-[11.5px] font-bold text-stone-300">S/</span>
+                                <input key={`c-${idx}-${it.costoIngresado}`} type="number" min="0" step="0.01" inputMode="decimal" defaultValue={it.costoIngresado} onBlur={commit('costo')} onKeyDown={alEnter} aria-label={it.esPack ? 'Costo por pack' : 'Costo por unidad'} className="w-full h-9 rounded-[11px] border-[1.5px] border-stone-200 bg-white text-[13px] font-bold pl-7 pr-12 outline-none focus:border-[#6105dc] focus:ring-4 focus:ring-[#6105dc]/15" />
+                                <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[10.5px] font-semibold text-stone-400 pointer-events-none">{unidadCosto}</span>
+                              </div>
+                              <span className="text-sm font-extrabold text-stone-900 whitespace-nowrap">{dinero(c.subtotal)}</span>
+                            </div>
+                            <div className="flex items-center gap-1.5 flex-wrap mt-2 text-[11.5px] text-stone-500">
+                              {it.esPack && <><span>= <b className="text-stone-800">{fmtQ(c.unidades, p.unidad)}{p.unidad === 'KG' ? '' : ' und'}</b></span><span>·</span></>}
+                              <span>Stock <b className="text-stone-800">{c.stockPrev === null ? 'sin control' : fmtQ(c.stockPrev, p.unidad)}</b> → <b className="text-stone-800">{fmtQ(c.stockNuevo, p.unidad)}</b></span>
+                              {it.costoIngresado > 0 && etiquetaDelta(c.delta)}
+                            </div>
+                            {invalida
+                              ? <p className="text-[11.5px] font-semibold text-rose-600 mt-1.5">Pon una cantidad y un costo mayores a 0.</p>
+                              : av.map((a, i) => <p key={i} className={`flex gap-1.5 items-start text-[11.5px] font-semibold mt-1.5 ${a.tipo === 'bad' ? 'text-rose-600' : 'text-amber-700'}`}><i className="fa-solid fa-triangle-exclamation mt-0.5"></i><span>{a.texto}</span></p>)}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+                <div className="mt-3 pt-3 border-t border-stone-100 shrink-0">
+                  <div className="flex justify-between items-baseline"><span className="text-[12.5px] font-semibold text-stone-500">Total de la compra</span><strong className="text-[28px] font-extrabold text-[#4d04b0] tracking-tight leading-none">{dinero(totalCompra)}</strong></div>
+                  <p className="text-[11.5px] text-stone-500 mt-1">{nLineas ? `${nLineas} producto${nLineas > 1 ? 's' : ''} · ${Math.round(unidadesTotal * 100) / 100} unidades en total` : 'S/ 0.00 hasta que añadas productos'}</p>
+                </div>
+              </>
+            );
+
+            const fin = entradaRegistrada;
+            return (
+              <div className="fixed inset-0 bg-stone-900/30 backdrop-blur-sm flex items-center justify-center z-50 p-2 sm:p-4">
+                <div className="bg-gradient-to-br from-[#f4effc] via-[#f9f8fb] to-[#f5f4f8] border border-white/80 rounded-[28px] max-w-4xl w-full shadow-2xl h-[95vh] max-h-[800px] flex flex-col overflow-hidden">
+
+                  <div className="bg-white border-b border-stone-100 px-4 sm:px-5 py-3.5 shrink-0 flex items-center gap-3">
+                    <span className="w-11 h-11 rounded-[14px] bg-[#f4eefe] text-[#6105dc] grid place-items-center text-xl shrink-0"><i className="fa-solid fa-truck-ramp-box"></i></span>
+                    <div className="min-w-0">
+                      <h3 className="text-[17px] sm:text-lg font-extrabold text-stone-900 tracking-tight leading-tight">Entrada de mercadería</h3>
+                      <p className="hidden sm:block text-[12.5px] text-stone-500 mt-0.5">Anota lo que te dejó el proveedor. El stock y el costo se actualizan al confirmar.</p>
+                    </div>
+                    <button onClick={fin ? cerrarModalEntradaMercaderia : pedirCerrarEntrada} aria-label="Cerrar" className="ml-auto w-8 h-8 flex items-center justify-center rounded-full text-stone-400 hover:text-stone-600 hover:bg-stone-100 transition-colors shrink-0"><i className="fa-solid fa-xmark"></i></button>
+                  </div>
+
+                  {fin ? (
+                    <div className="flex-1 overflow-y-auto grid place-items-center p-5">
+                      <div className="text-center max-w-md w-full">
+                        <div className="w-[84px] h-[84px] rounded-full bg-emerald-50 text-emerald-600 grid place-items-center text-4xl mx-auto mb-3.5"><i className="fa-solid fa-check"></i></div>
+                        <h4 className="text-[22px] font-extrabold text-stone-900 tracking-tight">Entrada registrada</h4>
+                        <p className="text-[13.5px] text-stone-500 mt-1 mb-4">El stock y los costos ya están al día.</p>
+                        <div className="bg-white border border-stone-100 rounded-[20px] px-4 py-1.5 text-left mb-4 divide-y divide-dashed divide-stone-200">
+                          <div className="flex justify-between gap-3 py-2.5 text-[13px]"><span className="text-stone-500">Proveedor</span><b className="text-right">{fin.proveedor || 'Sin proveedor'}</b></div>
+                          <div className="flex justify-between gap-3 py-2.5 text-[13px]"><span className="text-stone-500">Comprobante</span><b className="text-right">{fin.comprobante}</b></div>
+                          <div className="flex justify-between gap-3 py-2.5 text-[13px]"><span className="text-stone-500">Productos</span><b className="text-right">{fin.lineas.length} · {Math.round(fin.unidades * 100) / 100} unidades</b></div>
+                          <div className="flex justify-between gap-3 py-2.5 text-[13px] items-baseline"><span className="text-stone-500">Total de la compra</span><b className="text-base font-extrabold">{dinero(fin.total)}</b></div>
+                        </div>
+                        <details className="text-left mb-5">
+                          <summary className="cursor-pointer text-[12.5px] font-bold text-[#4d04b0] py-1">Ver cómo quedó el stock</summary>
+                          <div className="bg-white border border-stone-100 rounded-[20px] px-4 py-1.5 mt-2 divide-y divide-dashed divide-stone-200">
+                            {fin.lineas.map((l, i) => <div key={i} className="flex justify-between gap-3 py-2.5 text-[13px]"><span className="text-stone-500 min-w-0 truncate">{l.descripcion}</span><b className="text-right whitespace-nowrap">{l.antes === null ? 'Sin control' : fmtQ(l.antes, l.unidad)} → {fmtQ(l.despues, l.unidad)}</b></div>)}
+                          </div>
+                        </details>
+                        <div className="flex gap-2 justify-center flex-wrap">
+                          <button type="button" onClick={() => setEntradaRegistrada(null)} className="h-[46px] px-5 rounded-[14px] bg-[#f4eefe] hover:bg-[#ece0fd] text-[#4d04b0] font-bold text-[13.5px] inline-flex items-center gap-2"><i className="fa-solid fa-plus text-xs"></i> Registrar otra entrada</button>
+                          <button type="button" onClick={cerrarModalEntradaMercaderia} className="h-[46px] px-6 rounded-[14px] bg-[#6105dc] hover:bg-[#4d04b0] text-white font-bold text-[13.5px] shadow-lg shadow-[#6105dc]/30">Listo</button>
+                        </div>
+                      </div>
+                    </div>
+                  ) : (
+                    <>
+                      <div className="flex-1 min-h-0 overflow-y-auto md:overflow-hidden p-3.5 sm:p-5 grid gap-4 md:grid-cols-[minmax(0,1fr)_380px] md:grid-rows-1 content-start">
+                        <div className={`${claveBloque} min-w-0`}>{panelAgregar}</div>
+                        <div id="entrada-lista" className={`${claveBloque} min-w-0`}>{panelEntrada}</div>
+                      </div>
+                      <div className="shrink-0 bg-white border-t border-stone-100 px-4 sm:px-5 py-3 flex items-center gap-2.5 shadow-[0_-8px_24px_-14px_rgba(40,10,90,0.18)]">
+                        <button type="button" onClick={pedirCerrarEntrada} className="h-[46px] px-4 sm:px-5 rounded-[14px] text-stone-500 hover:text-stone-800 hover:bg-stone-100 font-bold text-[13.5px]">Cancelar</button>
+                        <span className="flex-1"></span>
+                        <span className={`hidden md:flex items-center text-xs ${nLineas ? 'text-[#4d04b0] font-semibold' : 'text-stone-500'}`}>{nLineas ? `${nLineas} producto${nLineas > 1 ? 's' : ''} · ${dinero(totalCompra)}` : 'Añade al menos un producto para confirmar'}</span>
+                        <button type="button" onClick={guardarEntradaMercaderia} disabled={!nLineas || lineaInvalida || guardandoEntrada} className="h-[46px] px-4 sm:px-5 rounded-[14px] bg-[#6105dc] hover:bg-[#4d04b0] disabled:bg-[#d9d2ea] disabled:shadow-none disabled:cursor-not-allowed text-white font-bold text-[13.5px] shadow-lg shadow-[#6105dc]/30 inline-flex items-center justify-center gap-2 transition">
+                          <i className="fa-solid fa-check text-xs"></i><span>{guardandoEntrada ? 'Guardando...' : <>Confirmar<span className="hidden sm:inline"> entrada</span>{nLineas ? ` · ${dinero(totalCompra)}` : ''}</>}</span>
+                        </button>
+                      </div>
+                    </>
+                  )}
+                </div>
               </div>
-            </div>
-          )}
+            );
+          })()}
 
           {/* Modal: Cobrar Deudas / Créditos */}
           {modalCobrarDeudas && (
