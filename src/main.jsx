@@ -8052,7 +8052,7 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
             >
 
               <img
-                src="/logo-vertical-sobre-morado.svg"
+                src="/logo-vertical-color.svg"
                 width="975"
                 height="907"
                 alt="Kaserita"
