@@ -4767,7 +4767,7 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
             setDniCliente(cLocal.dni);
             // En Modo Demo Local se agrega siempre a la lista (sin importar
             // desde qué modal se creó) para que luego aparezca tanto en
-            // "Clientes" como en "Cuentas por Cobrar" si queda con deuda.
+            // "Clientes" como en "Fiados" si queda con deuda.
             if (modalGestionClientes || esModoDemo) {
               setClientesLista((prev) => [...prev, cLocal].sort((a, b) => (a.nombre_completo || '').localeCompare(b.nombre_completo || '')));
             }
@@ -7277,7 +7277,7 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
             ? clientesDeuda.map((c) => ({ Cliente: c.nombre_completo || c.dni, DNI: c.dni, 'Deuda': Number(c.saldo_actual) }))
             : [{ Cliente: 'Sin clientes con deuda pendiente', DNI: '', Deuda: 0 }]
         );
-        XLSX.utils.book_append_sheet(libro, hojaCobrar, 'Cuentas por Cobrar');
+        XLSX.utils.book_append_sheet(libro, hojaCobrar, 'Fiados');
 
         const hojaPagar = XLSX.utils.json_to_sheet(
           proveedoresDeudaDash.length > 0
@@ -10093,7 +10093,7 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
               turnoActivo
                 ? { grupo: '', etiqueta: 'Cerrar Caja', icono: 'fa-lock', tono: 'rose', accion: abrirCierreCaja }
                 : { grupo: '', etiqueta: 'Abrir Turno', icono: 'fa-bolt', tono: 'primario', soloMovil: true, accion: () => setModalTurno(true) },
-              { grupo: 'Ventas y caja', etiqueta: 'Cuentas por Cobrar', icono: 'fa-hand-holding-dollar', accion: abrirModuloCobroDeudas },
+              { grupo: 'Ventas y caja', etiqueta: 'Fiados', buscar: 'cuentas por cobrar deudas credito', icono: 'fa-hand-holding-dollar', accion: abrirModuloCobroDeudas },
               { grupo: 'Ventas y caja', etiqueta: 'Historial', icono: 'fa-receipt', accion: abrirHistorialDelDia },
               { grupo: 'Ventas y caja', etiqueta: 'Clientes', icono: 'fa-users', accion: abrirGestionClientes },
               { grupo: 'Inventario', etiqueta: 'Ver Stock', icono: 'fa-table-list', tono: cantidadStockBajo > 0 ? 'amber' : undefined, insignia: cantidadStockBajo > 0 ? `${cantidadStockBajo} por reponer` : '', accion: () => { setVerStockFiltro('todos'); setModalVerStock(true); } },
@@ -10141,7 +10141,7 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
             // Sin tildes ni mayúsculas para que "inventario" encuentre "Mercadería", etc.
             const normalizar = (t) => String(t || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
             const q = normalizar(busquedaMenu).trim();
-            const visibles = q ? opcionesMenu.filter((o) => normalizar(`${o.etiqueta} ${o.grupo}`).includes(q)) : opcionesMenu;
+            const visibles = q ? opcionesMenu.filter((o) => normalizar(`${o.etiqueta} ${o.grupo} ${o.buscar || ''}`).includes(q)) : opcionesMenu;
             const activo = Math.min(indiceMenu, Math.max(visibles.length - 1, 0));
             const cerrarMenu = () => setMenuMas(false);
             const ejecutar = (o) => { if (!o) return; o.accion(); cerrarMenu(); };
@@ -13318,7 +13318,7 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
                     {deudorSeleccionado && <button type="button" onClick={volverALista} className="md:hidden inline-flex items-center gap-1.5 text-[12.5px] font-bold text-stone-500 hover:text-stone-800 hover:bg-stone-100 rounded-lg px-2 py-1.5 shrink-0"><i className="fa-solid fa-chevron-left text-[10px]"></i> Clientes</button>}
                     <span className="w-11 h-11 rounded-[14px] bg-[#f4eefe] text-[#6105dc] grid place-items-center text-xl shrink-0"><i className="fa-solid fa-hand-holding-dollar"></i></span>
                     <div className="min-w-0 flex-1">
-                      <h3 className="text-[17px] sm:text-lg font-extrabold text-stone-900 tracking-tight leading-tight">Cuentas por cobrar</h3>
+                      <h3 className="text-[17px] sm:text-lg font-extrabold text-stone-900 tracking-tight leading-tight">Fiados</h3>
                       <p className="hidden sm:block text-[12.5px] text-stone-500 mt-0.5">Lo que tus clientes te deben a crédito. Elige a quién cobrarle y registra su pago.</p>
                     </div>
                     <button aria-label="Cerrar" onClick={cerrar} className="w-8 h-8 flex items-center justify-center rounded-full text-stone-400 hover:text-stone-600 hover:bg-stone-100 transition-colors shrink-0"><i className="fa-solid fa-xmark"></i></button>
@@ -15375,7 +15375,7 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
                       <section className="bg-white/60 backdrop-blur-xl border border-white/80 rounded-3xl shadow-[0_10px_40px_-14px_rgba(97,5,220,0.18)] p-5">
                         <div className="flex items-start justify-between gap-3">
                           <div>
-                            <h4 className="text-sm font-semibold text-stone-800">Cuentas por cobrar</h4>
+                            <h4 className="text-sm font-semibold text-stone-800">Fiados</h4>
                             <p className={`text-2xl font-medium tracking-tight tabular-nums mt-1.5 ${dashStats.totalDeuda > 0 ? 'text-rose-600' : 'text-stone-900'}`}>S/ {formatoSoles(dashStats.totalDeuda)}</p>
                           </div>
                           <span className={`text-[11px] font-semibold px-3 py-1 rounded-full ${dashStats.numDeudores > 0 ? 'bg-rose-50 text-rose-600' : 'bg-emerald-50 text-emerald-600'}`}>

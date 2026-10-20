@@ -52,7 +52,7 @@ GRUPOS.append(('empieza', 'Empieza aquí', [
          bloques=[
              ('fig', 'pos-menu-mas-1', 'Menú de opciones, parte superior', [
                  '<b>Buscar una opción.</b> Escribe para filtrar el menú.',
-                 '<b>Cuentas por Cobrar.</b> Lo que te deben tus clientes a crédito.',
+                 '<b>Fiados.</b> Lo que te deben tus clientes a crédito.',
                  '<b>Historial.</b> Las boletas de hoy o de otras fechas; desde aquí también anulas una venta.',
                  '<b>Ver Stock.</b> Todo tu catálogo con sus cantidades. La insignia («2 por reponer») te avisa cuándo toca comprar.',
                  '<b>Toma de Inventario.</b> Cuenta lo que hay en el local y ajusta el sistema.',
@@ -71,7 +71,7 @@ GRUPOS.append(('empieza', 'Empieza aquí', [
                  '<b>Cerrar Sesión.</b> Sal del POS en ese equipo.',
              ], 'modal'),
              ('p', 'Arriba de todo, según tu caja, verás también «Abrir Turno» o «Cerrar Caja». Falta mostrar «Clientes», «Dashboard de Ventas» y «Cuentas por Pagar», que están en el mismo menú.'),
-             ('aviso', 'No todos ven todas las opciones. Un <b>cajero</b> solo ve lo necesario para vender: caja, cuentas por cobrar, historial, clientes, ver stock, toma de inventario y merma. El <b>administrador</b> y el <b>dueño</b> ven además el dashboard, las entradas, los combos, los cajeros, el registro de actividad y Mi Link de Pedidos.'),
+             ('aviso', 'No todos ven todas las opciones. Un <b>cajero</b> solo ve lo necesario para vender: caja, fiados, historial, clientes, ver stock, toma de inventario y merma. El <b>administrador</b> y el <b>dueño</b> ven además el dashboard, las entradas, los combos, los cajeros, el registro de actividad y Mi Link de Pedidos.'),
          ]),
 ]))
 
@@ -142,7 +142,7 @@ GRUPOS.append(('caja', 'Caja y ventas', [
                  'En el panel de pago elige <b>Crédito</b>.',
                  'Si no hay cliente asignado, toca <b>Cambiar</b> y selecciónalo.',
                  'Revisa su límite de crédito y presiona <b>Registrar venta a crédito</b>.',
-                 'Cuando el cliente venga a pagar, regístralo en <b>Cuentas por Cobrar</b>.',
+                 'Cuando el cliente venga a pagar, regístralo en <b>Fiados</b>.',
              ]),
          ]),
     dict(id='venta-exitosa', titulo='La boleta y qué hacer después',
@@ -224,7 +224,7 @@ GRUPOS.append(('clientes', 'Clientes y deudas', [
                  '<b>Guardar Cliente.</b>',
              ], 'modal'),
          ]),
-    dict(id='cuentas-cobrar', titulo='Cuentas por cobrar',
+    dict(id='cuentas-cobrar', titulo='Fiados',
          intro='Aquí cobras las deudas de tus clientes: ves cuánto te deben, qué boletas están pendientes y registras sus pagos.',
          bloques=[
              ('fig', 'cobrar-lista', 'Total por cobrar', [
@@ -427,7 +427,7 @@ GRUPOS.append(('negocio', 'Negocio y control', [
              ], 'modal'),
              ('fig', 'dash-3', 'Ventas por mes y deudas', [
                  '<b>Ventas por mes.</b> Todo el año de un vistazo, con tu mejor mes y el promedio.',
-                 '<b>Cuentas por cobrar.</b> Lo que te deben tus clientes y quiénes son.',
+                 '<b>Fiados.</b> Lo que te deben tus clientes y quiénes son.',
                  '<b>Cuentas por pagar.</b> Lo que debes a tus proveedores.',
              ], 'modal'),
          ]),
@@ -652,5 +652,5 @@ FAQ = [
     ('¿Puedo cambiar el link de mi tienda?', 'No. El link es fijo para que los QR y los afiches que ya imprimiste sigan funcionando.'),
     ('¿Cómo sé qué productos reponer?', 'Abre <b>≡ → Ver Stock</b> y usa el filtro «Stock bajo»: son los que están cerca o por debajo del mínimo. También lo ves en la insignia del menú («2 por reponer»).'),
     ('¿Dónde veo cuánto estoy ganando?', 'En <b>≡ → Dashboard de Ventas</b> (opción de administración). Muestra la utilidad, el costo y el margen del período que elijas.'),
-    ('Un cliente quiere pagar su deuda', 'Abre <b>≡ → Cuentas por Cobrar</b>, toca al cliente y registra su pago. Puede abonar una parte o todo («Pagar todo» / «Mitad»).'),
+    ('Un cliente quiere pagar su deuda', 'Abre <b>≡ → Fiados</b>, toca al cliente y registra su pago. Puede abonar una parte o todo («Pagar todo» / «Mitad»).'),
 ]
