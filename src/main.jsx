@@ -8059,6 +8059,7 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
                 className="relative w-52 md:w-64 h-auto mb-6"
                 style={{ animation: 'auth-panel-in 0.5s ease' }}
               />
+              <p className="lema-kaserita relative" style={{ animation: 'auth-panel-in 0.5s ease' }}>Tu negocio <b>bajo</b> control</p>
 
             </div>
 
@@ -8412,7 +8413,7 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
           <div className="flex-1 flex flex-col overflow-hidden">
             <header className="flex items-center justify-between mx-3 mt-3 px-2 md:px-3 py-2 gap-3">
               <div className="flex items-center gap-3 min-w-0 max-w-full pl-1">
-                <span className="text-[19px] md:text-[22px] font-extrabold tracking-tight shrink-0 bg-gradient-to-r from-[#8a3df2] via-[#6105dc] to-[#4d04b0] bg-clip-text text-transparent">Kaserita</span>
+                <img src="/logo-horizontal-color.svg" width="2068" height="642" alt="Kaserita" className="h-7 md:h-8 w-auto shrink-0" />
                 <span className="w-px h-[30px] bg-[#6105dc]/20 shrink-0"></span>
                 <div className="min-w-0">
                   <h1 className="text-sm md:text-[15px] font-bold text-[#1c1830] leading-tight tracking-tight truncate">{bodegaNombre}</h1>
