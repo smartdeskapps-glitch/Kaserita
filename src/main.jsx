@@ -16,6 +16,7 @@ import { resumirVentasPeriodo, agruparVentasPorDia, calcularCambioPct } from './
 import { valorAuditoria, describirAuditoria } from './lib/auditoria.js';
 import { antiguedadTurno } from './lib/turnos.js';
 import { iniciarMonitoreo, reportarError } from './monitoreo.js';
+import { estadoDeudor, coberturaPago, restoPrimeraBoleta } from './lib/deudas.js';
 import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCombo, margenCombo, expandirLineaCombo, detalleComboTicket } from './lib/combos.js';
 
 
@@ -1125,6 +1126,18 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
       const [cargandoDetalleDeudor, setCargandoDetalleDeudor] = useState(false);
       const [montoAbonoDeuda, setMontoAbonoDeuda] = useState('');
       const [mostrarHistorialCompletoDeuda, setMostrarHistorialCompletoDeuda] = useState(false);
+      // Lista de deudores: buscador, filtro ('todos' | 'venc' | 'lim'), orden
+      // ('deuda' | 'antigua'), boletas a crédito de todos los deudores (para
+      // saber quién tiene deuda vencida; null si no se pudieron cargar
+      // completas), pagos recientes del cliente elegido y la pantalla
+      // "Pago registrado".
+      const [busquedaDeudores, setBusquedaDeudores] = useState('');
+      const [filtroDeudores, setFiltroDeudores] = useState('todos');
+      const [ordenDeudores, setOrdenDeudores] = useState('deuda');
+      const [boletasDeudores, setBoletasDeudores] = useState(null);
+      const [cargandoDeudores, setCargandoDeudores] = useState(false);
+      const [pagosRecientes, setPagosRecientes] = useState([]);
+      const [pagoRegistrado, setPagoRegistrado] = useState(null);
 
       // --- Cuentas por Pagar (deuda de la bodega con proveedores) ---
       const [modalCuentasPagar, setModalCuentasPagar] = useState(false);
@@ -3606,28 +3619,15 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
           .slice(0, 8);
       }, [productos, conteoFisicoBusqueda]);
 
-      // Como los abonos se descuentan del saldo total del cliente (no boleta por
-      // boleta), acá se marcan como "pagadas" las boletas más antiguas hasta
-      // cubrir lo ya abonado, asumiendo que los pagos cubren primero la deuda
-      // más vieja (FIFO). Así el detalle refleja lo que realmente se debe, no
-      // el total histórico de todo lo comprado a crédito.
-      const boletasDeudorConEstado = useMemo(() => {
-        if (!deudorSeleccionado) return [];
-        const diasCredito = Number(deudorSeleccionado.dias_credito) || 30;
-        const ordenadasAsc = [...boletasDeudor].sort((a, b) => new Date(a.fecha_hora) - new Date(b.fecha_hora));
-        const totalHistorico = ordenadasAsc.reduce((acc, b) => acc + Number(b.total_venta), 0);
-        const montoYaPagado = Math.max(0, +(totalHistorico - Number(deudorSeleccionado.saldo_actual)).toFixed(2));
-        let acumulado = 0;
-        const ahora = Date.now();
-        const conEstado = ordenadasAsc.map((b) => {
-          acumulado += Number(b.total_venta);
-          const pagada = acumulado <= montoYaPagado + 0.01;
-          const diasTranscurridos = Math.floor((ahora - new Date(b.fecha_hora).getTime()) / 86400000);
-          const diasVencido = diasTranscurridos - diasCredito;
-          return { ...b, pagada, vencida: !pagada && diasVencido > 0, diasVencido };
-        });
-        return conEstado.sort((a, b) => new Date(b.fecha_hora) - new Date(a.fecha_hora));
+      // Estado de la deuda del cliente elegido (boletas pagadas, pendientes y
+      // vencidas). La regla -- los abonos cubren primero las boletas más
+      // antiguas -- vive en lib/deudas.js.
+      const estadoDeudorSel = useMemo(() => {
+        if (!deudorSeleccionado) return null;
+        return estadoDeudor({ saldo: deudorSeleccionado.saldo_actual, diasCredito: deudorSeleccionado.dias_credito }, boletasDeudor);
       }, [boletasDeudor, deudorSeleccionado]);
+
+      const boletasDeudorConEstado = useMemo(() => (estadoDeudorSel ? estadoDeudorSel.boletas : []), [estadoDeudorSel]);
 
       const boletasPendientesDeuda = useMemo(
         () => boletasDeudorConEstado.filter((b) => !b.pagada),
@@ -4782,15 +4782,20 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
       };
 
       // Cargar deudores
-      const abrirModuloCobroDeudas = async () => {
-        setModalCobrarDeudas(true);
+      // Trae los clientes con deuda y, aparte, sus boletas a crédito para
+      // saber cuáles tienen deuda vencida. Si las boletas llegan cortadas por
+      // el tope de filas del servidor, no se usan (mejor no mostrar el
+      // vencimiento que mostrarlo mal).
+      const recargarDeudores = async () => {
         if (esModoDemo) {
           // No hay servidor real del que traer deudores -- se calculan a
           // partir de los clientes creados en esta misma demo.
           setClientesDeudores(clientesLista.filter((c) => (Number(c.saldo_actual) || 0) > 0).sort((a, b) => (Number(b.saldo_actual) || 0) - (Number(a.saldo_actual) || 0)));
+          setBoletasDeudores(null);
           return;
         }
         if (sbClient && bodegaId) {
+          setCargandoDeudores(true);
           try {
             const { data } = await sbClient
               .from('clientes')
@@ -4799,10 +4804,55 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
               .gt('saldo_actual', 0)
               .order('saldo_actual', { ascending: false });
 
-            setClientesDeudores(data || []);
+            const lista = data || [];
+            setClientesDeudores(lista);
+
+            let porCliente = {};
+            let completo = lista.length > 0;
+            for (let i = 0; i < lista.length && completo; i += 40) {
+              const { data: boletas, error } = await sbClient
+                .from('ventas')
+                .select('id, cliente_id, total_venta, fecha_hora')
+                .in('cliente_id', lista.slice(i, i + 40).map((c) => c.id))
+                .eq('medio_pago', 'CREDITO')
+                .eq('anulada', false)
+                .limit(1000);
+              if (error || !boletas || boletas.length >= 1000) { completo = false; break; }
+              boletas.forEach((b) => { (porCliente[b.cliente_id] = porCliente[b.cliente_id] || []).push(b); });
+            }
+            setBoletasDeudores(completo ? porCliente : null);
           } catch (err) {
             console.warn(err);
+          } finally {
+            setCargandoDeudores(false);
           }
+        }
+      };
+
+      const abrirModuloCobroDeudas = async () => {
+        setModalCobrarDeudas(true);
+        setDeudorSeleccionado(null);
+        setPagoRegistrado(null);
+        setBoletasDeudor([]);
+        setBusquedaDeudores('');
+        setFiltroDeudores('todos');
+        setOrdenDeudores('deuda');
+        await recargarDeudores();
+      };
+
+      // Últimos pagos que hizo el cliente (los que ya se guardan en
+      // pagos_credito al registrar un abono).
+      const cargarPagosRecientes = async (cliente) => {
+        try {
+          const { data } = await sbClient
+            .from('pagos_credito')
+            .select('monto_pagado, fecha, cajero_id')
+            .eq('cliente_id', cliente.id)
+            .order('fecha', { ascending: false })
+            .limit(3);
+          setPagosRecientes(data || []);
+        } catch (err) {
+          console.warn(err);
         }
       };
 
@@ -5048,11 +5098,14 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
 
       // Al elegir un deudor, cargar el detalle de sus boletas a crédito pendientes
       const seleccionarDeudor = async (cliente) => {
+        setPagoRegistrado(null);
         setDeudorSeleccionado(cliente);
-        setMontoAbonoDeuda(String(cliente.saldo_actual));
+        setMontoAbonoDeuda(Number(cliente.saldo_actual).toFixed(2));
         setBoletasDeudor([]);
         setMostrarHistorialCompletoDeuda(false);
+        setPagosRecientes([]);
         if (!sbClient) return;
+        cargarPagosRecientes(cliente);
         setCargandoDetalleDeudor(true);
         try {
           const { data, error } = await sbClient
@@ -5374,6 +5427,10 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
         }
 
         const saldoAnterior = Number(deudorSeleccionado.saldo_actual) || 0;
+        if (abono > saldoAnterior + 0.004) {
+          notificar('El monto es mayor que la deuda. Ajústalo al saldo del cliente.', 'error');
+          return;
+        }
         let nuevoSaldo = Math.max(0, +(saldoAnterior - abono).toFixed(2));
 
         if (sbClient && !esModoDemo) {
@@ -5423,8 +5480,13 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
         notificar(`¡Pago de S/ ${abono.toFixed(2)} registrado! Saldo restante: S/ ${nuevoSaldo.toFixed(2)}`, 'success');
         setMontoAbonoDeuda('');
         setBoletasDeudor([]);
-        setDeudorSeleccionado(null);
-        abrirModuloCobroDeudas();
+        // Se muestra "Pago registrado" con el cliente aún elegido; la lista
+        // se actualiza al toque y, con servidor, se vuelve a leer de fondo.
+        setPagoRegistrado({ id: deudorSeleccionado.id, nombre: deudorSeleccionado.nombre_completo, abono, antes: saldoAnterior, despues: nuevoSaldo });
+        setClientesDeudores((prev) => prev
+          .map((c) => (c.id === deudorSeleccionado.id ? { ...c, saldo_actual: nuevoSaldo } : c))
+          .filter((c) => (Number(c.saldo_actual) || 0) > 0.004));
+        if (!esModoDemo) recargarDeudores();
       };
 
       // ==========================================
@@ -13075,178 +13137,265 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
           })()}
 
           {/* Modal: Cobrar Deudas / Créditos */}
-          {modalCobrarDeudas && (
-            <div className="fixed inset-0 bg-stone-900/30 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-              <div className="bg-gradient-to-br from-[#f4effc] via-[#f9f8fb] to-[#f5f4f8] border border-white/80 rounded-[28px] max-w-md w-full p-5 shadow-2xl space-y-3 max-h-[90vh] overflow-y-auto hide-scrollbar">
-                <div className="flex justify-between items-center">
-                  <h3 className="text-lg font-bold text-stone-900 flex items-center gap-2.5">
-                    <span className="w-8 h-8 rounded-xl bg-[#ece0fd] text-[#6105dc] flex items-center justify-center"><IconoTrazo nombre="hand" className="w-4 h-4" /></span>
-                    Cuentas por cobrar
-                  </h3>
-                  <button aria-label="Cerrar" onClick={() => setModalCobrarDeudas(false)} className="w-8 h-8 rounded-full bg-white/75 hover:bg-white text-stone-500 hover:text-stone-900 shadow-sm flex items-center justify-center"><IconoTrazo nombre="x" className="w-3.5 h-3.5" /></button>
-                </div>
+          {modalCobrarDeudas && (() => {
+            const dinero = (v) => `S/ ${formatoSoles(Number(v) || 0)}`;
+            const iniciales = (n) => String(n || '?').trim().split(/\s+/).slice(0, 2).map((w) => w[0]).join('').toUpperCase();
+            const conEstado = boletasDeudores !== null;
+            const estadoDe = (cl) => (conEstado ? estadoDeudor({ saldo: cl.saldo_actual, diasCredito: cl.dias_credito }, boletasDeudores[cl.id] || []) : null);
+            const usoLimite = (cl) => ((Number(cl.limite_credito) || 0) > 0 ? (Number(cl.saldo_actual) || 0) / Number(cl.limite_credito) : 0);
+            const filas = clientesDeudores.map((cl) => ({ cl, e: estadoDe(cl), uso: usoLimite(cl) }));
+            const totalPorCobrar = filas.reduce((a, x) => a + (Number(x.cl.saldo_actual) || 0), 0);
+            const totalVencido = filas.reduce((a, x) => a + (x.e ? x.e.vencidoMonto : 0), 0);
+            const nVencidos = filas.filter((x) => x.e && x.e.vencidas.length > 0).length;
+            const nCercaLimite = filas.filter((x) => x.uso >= 0.8).length;
+            const qd = busquedaDeudores.trim().toLowerCase();
+            const visibles = filas
+              .filter((x) => (filtroDeudores === 'todos' || (filtroDeudores === 'venc' && x.e && x.e.vencidas.length > 0) || (filtroDeudores === 'lim' && x.uso >= 0.8))
+                && (!qd || String(x.cl.nombre_completo || '').toLowerCase().includes(qd) || String(x.cl.dni || '').includes(qd)))
+              .sort(ordenDeudores === 'antigua' && conEstado
+                ? (a, b) => (b.e.masVieja ? b.e.masVieja.diasTranscurridos : 0) - (a.e.masVieja ? a.e.masVieja.diasTranscurridos : 0)
+                : (a, b) => (Number(b.cl.saldo_actual) || 0) - (Number(a.cl.saldo_actual) || 0));
+            const chipClase = (activo) => `inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold border-[1.5px] transition ${activo ? 'border-[#6105dc] bg-[#f4eefe] text-[#4d04b0] ring-2 ring-[#6105dc]/15' : 'border-stone-200 bg-white text-stone-600 hover:bg-[#f4eefe] hover:border-[#e4d6fb]'}`;
+            const barraLimite = (uso) => (uso >= 1 ? 'bg-rose-500' : uso >= 0.8 ? 'bg-amber-500' : 'bg-emerald-500');
+            const cerrar = () => { setModalCobrarDeudas(false); setDeudorSeleccionado(null); setBoletasDeudor([]); setPagoRegistrado(null); };
+            const volverALista = () => { setDeudorSeleccionado(null); setBoletasDeudor([]); setPagoRegistrado(null); };
 
-                {deudorSeleccionado ? (() => {
-                  const iniciales = (n) => String(n || '?').trim().split(/\s+/).slice(0, 2).map((w) => w[0]).join('').toUpperCase();
-                  const saldoDeudor = Number(deudorSeleccionado.saldo_actual) || 0;
-                  const abono = parseFloat(montoAbonoDeuda) || 0;
-                  const restante = saldoDeudor - abono;
-                  const lista = mostrarHistorialCompletoDeuda ? boletasDeudorConEstado : boletasPendientesDeuda;
-                  return (
-                  <div className="space-y-3">
-                    <button onClick={() => { setDeudorSeleccionado(null); setBoletasDeudor([]); }} className="inline-flex items-center gap-1 text-[13px] font-semibold text-[#6105dc] hover:text-[#4d04b0] transition">
-                      <IconoTrazo nombre="back" className="w-3.5 h-3.5" /> Todos los clientes
-                    </button>
-
-                    <div className="bg-white/65 border border-white/90 rounded-[22px] px-4 py-3.5 flex items-center gap-3">
-                      <span className="w-11 h-11 rounded-full bg-[#ece0fd] text-[#6105dc] font-bold text-[15px] flex items-center justify-center shrink-0">{iniciales(deudorSeleccionado.nombre_completo)}</span>
-                      <div className="min-w-0">
-                        <p className="text-base font-bold text-stone-900 tracking-tight truncate">{deudorSeleccionado.nombre_completo}</p>
-                        <p className="text-xs text-stone-400">DNI {deudorSeleccionado.dni}</p>
-                      </div>
-                      <div className="ml-auto text-right shrink-0">
-                        <p className="text-[11px] font-semibold text-stone-400">Deuda actual</p>
-                        <p className="text-2xl font-bold tracking-tight text-rose-600 tabular-nums leading-tight">
-                          <small className="text-xs font-semibold mr-0.5">S/</small>{formatoSoles(saldoDeudor)}
-                        </p>
-                      </div>
-                    </div>
-
-                    {/* Detalle de boletas: por defecto solo lo que aún se debe */}
-                    <div className="bg-white/65 border border-white/90 rounded-[22px] px-4 py-3.5">
-                      <div className="flex items-baseline justify-between gap-2 mb-1.5">
-                        <p className="text-[11px] font-bold text-stone-400 uppercase tracking-wider">
-                          {mostrarHistorialCompletoDeuda ? 'Historial completo de compras' : 'Boletas pendientes'}
-                        </p>
-                        {boletasDeudorConEstado.some((b) => b.pagada) && (
-                          <button
-                            type="button"
-                            onClick={() => setMostrarHistorialCompletoDeuda((v) => !v)}
-                            className="text-xs font-semibold text-[#6105dc] hover:text-[#4d04b0] shrink-0"
-                          >
-                            {mostrarHistorialCompletoDeuda ? 'Ver solo pendientes' : `Ver historial completo (${boletasDeudorConEstado.length})`}
-                          </button>
-                        )}
-                      </div>
-                      <div className="max-h-48 overflow-y-auto hide-scrollbar">
-                        {cargandoDetalleDeudor ? (
-                          <p className="text-xs text-stone-500 text-center py-4">Cargando...</p>
-                        ) : boletasDeudorConEstado.length === 0 ? (
-                          <p className="text-xs text-stone-500 text-center py-4">Sin boletas a crédito registradas.</p>
-                        ) : lista.length === 0 ? (
-                          <p className="text-xs text-emerald-600 text-center py-4">No hay boletas pendientes.</p>
-                        ) : (
-                          lista.map((b) => (
-                            <div key={b.id} className={`py-2.5 border-b border-[#6105dc]/10 last:border-0 ${b.pagada ? 'opacity-50' : ''}`}>
-                              <div className="flex justify-between items-center gap-2">
-                                <span className="text-[12.5px] font-bold text-stone-900 tabular-nums">
-                                  {b.nro_boleta}
-                                  {b.pagada && <span className="ml-1.5 text-[10.5px] font-bold text-emerald-600">Pagada</span>}
-                                  {b.vencida && <span className="ml-1.5 text-[10.5px] font-bold text-rose-700 bg-rose-50 rounded-full px-2 py-0.5">Vencida hace {b.diasVencido} d</span>}
-                                </span>
-                                <span className="text-[13.5px] font-bold text-[#6105dc] tabular-nums whitespace-nowrap">S/ {formatoSoles(b.total_venta)}</span>
-                              </div>
-                              <p className="text-xs text-stone-400 mt-0.5 leading-snug">
-                                {new Date(b.fecha_hora).toLocaleDateString('es-PE')} ·{' '}
-                                {(b.ventas_detalle || []).map(d => `${d.productos?.descripcion || 'Producto'} x${d.cantidad}`).join(', ') || 'Sin detalle'}
-                              </p>
-                            </div>
-                          ))
-                        )}
-                      </div>
-                    </div>
-
-                    {/* Estado de cuenta: PDF y WhatsApp */}
-                    <div className="grid grid-cols-2 gap-2">
-                      <button
-                        onClick={descargarEstadoCuenta}
-                        className="flex items-center justify-center gap-1.5 py-2.5 bg-white hover:bg-[#f4eefe] text-stone-800 text-[12.5px] font-semibold rounded-full ring-1 ring-[#6105dc]/10 hover:ring-[#d6bdfa] transition whitespace-nowrap"
-                      >
-                        <IconoTrazo nombre="pdf" className="w-[15px] h-[15px] text-[#6105dc]" /> Descargar PDF
-                      </button>
-                      <button
-                        onClick={() => enviarEstadoCuentaWhatsApp(deudorSeleccionado)}
-                        className="flex items-center justify-center gap-1.5 py-2.5 bg-white hover:bg-[#f4eefe] text-stone-800 text-[12.5px] font-semibold rounded-full ring-1 ring-[#6105dc]/10 hover:ring-[#d6bdfa] transition whitespace-nowrap"
-                      >
-                        <IconoTrazo nombre="chat" className="w-[15px] h-[15px] text-[#6105dc]" /> Enviar por WhatsApp
-                      </button>
-                    </div>
-
-                    <div className="bg-white/65 border border-white/90 rounded-[22px] px-4 py-3.5">
-                      <label htmlFor="monto-abono-deuda" className="text-xs font-semibold text-stone-500 block mb-2">Monto a abonar</label>
-                      <div className="flex items-center gap-2 bg-white rounded-full pl-4 pr-2 py-1.5 ring-1 ring-[#6105dc]/10 focus-within:ring-2 focus-within:ring-[#d6bdfa]">
-                        <span className="text-sm font-semibold text-stone-400">S/</span>
-                        <input
-                          id="monto-abono-deuda"
-                          type="number"
-                          inputMode="decimal"
-                          step="0.10"
-                          placeholder="0.00"
-                          value={montoAbonoDeuda}
-                          onChange={(e) => setMontoAbonoDeuda(e.target.value)}
-                          className="flex-1 min-w-0 bg-transparent text-[22px] font-bold tracking-tight text-stone-900 tabular-nums focus:outline-none"
-                        />
-                        <div className="flex gap-1.5 shrink-0">
-                          <button type="button" onClick={() => setMontoAbonoDeuda(saldoDeudor.toFixed(2))} className="text-[11.5px] font-semibold text-[#4d04b0] bg-[#f4eefe] hover:bg-[#ece0fd] rounded-full px-3 py-1.5 transition whitespace-nowrap">Pagar todo</button>
-                          <button type="button" onClick={() => setMontoAbonoDeuda((saldoDeudor / 2).toFixed(2))} className="text-[11.5px] font-semibold text-[#4d04b0] bg-[#f4eefe] hover:bg-[#ece0fd] rounded-full px-3 py-1.5 transition">Mitad</button>
-                        </div>
-                      </div>
-                      <div className="flex justify-between text-[12.5px] text-stone-400 mt-2 px-1">
-                        <span>Saldo después del pago</span>
-                        <b className={`tabular-nums ${restante < 0 ? 'text-rose-600' : restante === 0 && abono > 0 ? 'text-emerald-600' : 'text-stone-900'}`}>
-                          {restante < 0 ? 'Excede la deuda' : `S/ ${formatoSoles(restante)}`}
-                        </b>
-                      </div>
-                    </div>
-
-                    <button onClick={procesarPagoDeudaCliente} className="w-full py-3 bg-[#6105dc] hover:bg-[#4d04b0] active:scale-[0.98] text-white font-semibold text-[14.5px] rounded-full flex items-center justify-center gap-2 transition">
-                      <IconoTrazo nombre="check" className="w-4 h-4" grosor={2.4} /> Registrar pago de deuda
-                    </button>
+            // ----- Columna de la derecha: el cliente elegido -----
+            const detalle = (() => {
+              if (!deudorSeleccionado) {
+                return (
+                  <div className="m-auto text-center text-[13.5px] text-stone-500 leading-snug max-w-[260px] p-5">
+                    <div className="w-16 h-16 rounded-[20px] bg-[#f4eefe] text-[#6105dc] grid place-items-center text-[28px] mx-auto mb-2.5"><i className="fa-solid fa-hand-holding-dollar"></i></div>
+                    <b className="block text-[15px] text-stone-900 mb-0.5">Elige un cliente</b>
+                    Verás sus boletas pendientes y podrás registrar un pago.
                   </div>
-                  );
-                })() : (
-                  <div className="space-y-3">
-                    {clientesDeudores.length === 0 ? (
-                      <p className="text-xs text-emerald-600 text-center py-6">No hay clientes con deuda pendiente.</p>
-                    ) : (
+                );
+              }
+              if (pagoRegistrado) {
+                const siguiente = [...clientesDeudores].filter((c) => c.id !== pagoRegistrado.id).sort((a, b) => (Number(b.saldo_actual) || 0) - (Number(a.saldo_actual) || 0))[0];
+                return (
+                  <div className="flex-1 min-h-0 overflow-y-auto p-5">
+                    <div className="text-center max-w-sm mx-auto py-8">
+                      <div className="w-[84px] h-[84px] rounded-full bg-emerald-50 text-emerald-600 grid place-items-center text-4xl mx-auto mb-3.5"><i className="fa-solid fa-check"></i></div>
+                      <h4 className="text-[22px] font-extrabold text-stone-900 tracking-tight">Pago registrado</h4>
+                      <p className="text-[13.5px] text-stone-500 mt-1 mb-3.5 leading-snug">{pagoRegistrado.nombre} {pagoRegistrado.despues <= 0.004 ? 'quedó sin deuda.' : `sigue debiendo ${dinero(pagoRegistrado.despues)}.`}</p>
+                      <div className="bg-white border border-stone-100 rounded-[20px] px-4 py-1 text-left mb-4 divide-y divide-dashed divide-stone-200">
+                        <div className="flex justify-between gap-3 py-2.5 text-[13px]"><span className="text-stone-500">Deuda anterior</span><b>{dinero(pagoRegistrado.antes)}</b></div>
+                        <div className="flex justify-between gap-3 py-2.5 text-[13px]"><span className="text-stone-500">Pago recibido</span><b className="text-emerald-600">+ {dinero(pagoRegistrado.abono)}</b></div>
+                        <div className="flex justify-between gap-3 py-2.5 text-[13px] items-baseline"><span className="text-stone-500">Deuda actual</span><b className="text-base font-extrabold">{dinero(pagoRegistrado.despues)}</b></div>
+                      </div>
+                      <div className="grid gap-2">
+                        {siguiente && <button type="button" onClick={() => seleccionarDeudor(siguiente)} className="w-full h-[46px] rounded-[14px] bg-[#6105dc] hover:bg-[#4d04b0] text-white font-bold text-[13.5px] shadow-lg shadow-[#6105dc]/30 inline-flex items-center justify-center gap-2">Siguiente cliente <i className="fa-solid fa-chevron-right text-[10px]"></i></button>}
+                        <button type="button" onClick={volverALista} className="w-full h-[46px] rounded-[14px] bg-[#f4eefe] hover:bg-[#ece0fd] text-[#4d04b0] font-bold text-[13.5px]">Volver a la lista</button>
+                      </div>
+                    </div>
+                  </div>
+                );
+              }
+
+              const cl = deudorSeleccionado;
+              const e = estadoDeudorSel;
+              const saldo = Number(cl.saldo_actual) || 0;
+              const abono = parseFloat(montoAbonoDeuda) || 0;
+              const excede = abono > saldo + 0.004;
+              const restante = Math.max(0, +(saldo - abono).toFixed(2));
+              const cob = coberturaPago(e, Math.min(abono, saldo));
+              const limite = Number(cl.limite_credito) || 0;
+              const uso = limite > 0 ? saldo / limite : 0;
+              const lista = mostrarHistorialCompletoDeuda ? e.boletas : e.pendientesAsc;
+              const v0 = e.vencidas[0];
+              const atajo = (activo) => `px-3 py-1.5 rounded-xl border-[1.5px] text-[12.5px] font-bold transition ${activo ? 'border-[#6105dc] bg-[#f4eefe] text-[#4d04b0]' : 'border-stone-200 bg-white hover:bg-[#f4eefe] hover:border-[#e4d6fb]'}`;
+              const restoAntigua = restoPrimeraBoleta(e);
+              return (
+                <div className="flex-1 min-h-0 overflow-y-auto p-4 sm:p-5 flex flex-col">
+                  <div className="order-1 flex flex-wrap items-center gap-3 mb-3.5">
+                    <span className={`w-[52px] h-[52px] rounded-full grid place-items-center text-[17px] font-extrabold shrink-0 ${v0 ? 'bg-rose-50 text-rose-600' : 'bg-[#f4eefe] text-[#6105dc]'}`}>{iniciales(cl.nombre_completo)}</span>
+                    <div className="min-w-0 flex-1 basis-[160px]">
+                      <h4 className="text-[19px] font-extrabold text-stone-900 tracking-tight leading-tight truncate">{cl.nombre_completo}</h4>
+                      <p className="text-[12.5px] text-stone-500 mt-0.5 flex flex-wrap gap-x-2.5">DNI {cl.dni}<span>{cl.telefono || 'Sin teléfono'}</span><span>Plazo {Number(cl.dias_credito) || 30} días</span></p>
+                    </div>
+                    <div className="flex gap-2 w-full sm:w-auto">
+                      <button type="button" onClick={descargarEstadoCuenta} className="flex-1 sm:flex-none h-9 px-3.5 rounded-xl bg-white border-[1.5px] border-stone-200 hover:border-[#e4d6fb] hover:bg-[#f4eefe] text-[12.5px] font-bold inline-flex items-center justify-center gap-1.5"><IconoTrazo nombre="pdf" className="w-[15px] h-[15px] text-[#6105dc]" /> PDF</button>
+                      <button type="button" onClick={() => enviarEstadoCuentaWhatsApp(cl)} className="flex-1 sm:flex-none h-9 px-3.5 rounded-xl bg-white border-[1.5px] border-stone-200 hover:border-[#e4d6fb] hover:bg-[#f4eefe] text-[12.5px] font-bold inline-flex items-center justify-center gap-1.5"><IconoTrazo nombre="chat" className="w-[15px] h-[15px] text-[#6105dc]" /> WhatsApp</button>
+                    </div>
+                  </div>
+
+                  <div className="order-2 bg-white border border-stone-100 rounded-[22px] p-4 sm:px-[18px] mb-3.5">
+                    <div className="flex items-baseline justify-between gap-2.5 flex-wrap"><span className="text-xs font-bold text-stone-500">Deuda actual</span><strong className="text-[28px] sm:text-[32px] font-extrabold tracking-tight text-rose-600 leading-tight tabular-nums">{dinero(saldo)}</strong></div>
+                    {limite > 0 && (
                       <>
-                        <div className="bg-white/65 border border-white/90 rounded-[22px] px-4 py-3 flex items-center justify-between">
-                          <div>
-                            <p className="text-xs font-semibold text-stone-400">Total por cobrar</p>
-                            <p className="text-2xl font-bold tracking-tight text-rose-600 tabular-nums">
-                              <small className="text-[13px] font-semibold mr-0.5">S/</small>{formatoSoles(clientesDeudores.reduce((a, c) => a + (Number(c.saldo_actual) || 0), 0))}
-                            </p>
-                          </div>
-                          <span className="text-xs font-semibold text-[#4d04b0] bg-[#ece0fd] rounded-full px-3 py-1.5">
-                            {clientesDeudores.length} {clientesDeudores.length === 1 ? 'cliente' : 'clientes'}
-                          </span>
-                        </div>
-                        <div className="max-h-72 overflow-y-auto hide-scrollbar space-y-2">
-                          {clientesDeudores.map(cl => (
-                            <button
-                              key={cl.id}
-                              type="button"
-                              onClick={() => seleccionarDeudor(cl)}
-                              className="w-full flex items-center gap-3 px-3.5 py-3 bg-white/65 hover:bg-[#f4eefe] border border-white/90 rounded-[20px] text-left transition"
-                            >
-                              <span className="w-[38px] h-[38px] rounded-full bg-[#ece0fd] text-[#6105dc] font-bold text-[13px] flex items-center justify-center shrink-0">
-                                {String(cl.nombre_completo || '?').trim().split(/\s+/).slice(0, 2).map((w) => w[0]).join('').toUpperCase()}
-                              </span>
-                              <span className="flex-1 min-w-0">
-                                <span className="block text-sm font-semibold text-stone-900 truncate">{cl.nombre_completo}</span>
-                                <span className="block text-xs text-stone-400">DNI {cl.dni}</span>
-                              </span>
-                              <span className="text-[13px] font-bold text-rose-600 bg-rose-50 rounded-full px-3 py-1 tabular-nums whitespace-nowrap">S/ {formatoSoles(cl.saldo_actual)}</span>
-                            </button>
-                          ))}
-                        </div>
+                        <div className="h-[9px] rounded-full bg-[#ece7f5] overflow-hidden mt-3"><i className={`block h-full transition-all ${barraLimite(uso)}`} style={{ width: `${Math.min(100, uso * 100)}%` }}></i></div>
+                        <div className="flex justify-between flex-wrap gap-x-2 text-[11.5px] font-semibold text-stone-500 mt-1.5"><span>Usa {dinero(saldo)} de {dinero(limite)} de crédito ({Math.round(uso * 100)}%)</span><span>Disponible {dinero(Math.max(0, limite - saldo))}</span></div>
                       </>
                     )}
+                    {v0 && (
+                      <div className="flex gap-2.5 items-start rounded-[14px] bg-rose-50 text-rose-600 px-3 py-2.5 text-xs leading-snug mt-3"><i className="fa-solid fa-triangle-exclamation mt-0.5"></i><span><b>{dinero(e.vencidoMonto)} vencido.</b> La boleta {v0.nro_boleta} pasó su plazo hace {v0.diasVencido} día{v0.diasVencido > 1 ? 's' : ''}.</span></div>
+                    )}
                   </div>
-                )}
+
+                  <div className="order-3 bg-white border-[1.5px] border-[#e4d6fb] rounded-[22px] p-4 sm:px-[18px] shadow-lg shadow-[#6105dc]/10 mb-3.5">
+                    <h5 className="text-[14.5px] font-extrabold text-stone-900 mb-2.5">Registrar pago</h5>
+                    <div className={`flex items-baseline gap-2.5 border-2 rounded-[20px] px-4 py-2.5 transition ${excede ? 'border-rose-400 bg-rose-50' : 'border-stone-200 bg-stone-50/70 focus-within:border-[#6105dc] focus-within:bg-white focus-within:ring-[5px] focus-within:ring-[#6105dc]/15'}`}>
+                      <span className="text-[20px] font-extrabold text-stone-300">S/</span>
+                      <input type="number" min="0" step="0.10" inputMode="decimal" placeholder="0.00" aria-label="Monto a abonar" value={montoAbonoDeuda} onChange={(ev) => setMontoAbonoDeuda(ev.target.value)} className="w-full min-w-0 bg-transparent outline-none border-0 text-[30px] sm:text-[34px] font-extrabold tracking-tight text-stone-900 placeholder:text-stone-300 tabular-nums" />
+                    </div>
+                    <div className="flex flex-wrap gap-2 mt-2.5">
+                      <button type="button" onClick={() => setMontoAbonoDeuda(saldo.toFixed(2))} className={atajo(Math.abs(abono - saldo) < 0.005)}>Pagar todo</button>
+                      <button type="button" onClick={() => setMontoAbonoDeuda((saldo / 2).toFixed(2))} className={atajo(Math.abs(abono - saldo / 2) < 0.005)}>Mitad</button>
+                      {e.pendientesAsc.length > 1 && restoAntigua > 0 && <button type="button" onClick={() => setMontoAbonoDeuda(restoAntigua.toFixed(2))} className={atajo(Math.abs(abono - restoAntigua) < 0.005)}>Boleta más antigua {dinero(restoAntigua)}</button>}
+                    </div>
+                    <div className={`mt-3 flex justify-between items-center gap-2.5 rounded-[14px] px-3.5 py-2.5 text-[12.5px] font-semibold ${excede ? 'bg-rose-50 text-rose-600' : abono > 0 && restante === 0 ? 'bg-emerald-50 text-emerald-600' : 'bg-[#f7f4fc] text-stone-500'}`}>
+                      <span>{excede ? 'El monto excede la deuda' : 'Saldo después del pago'}</span>
+                      <b className={`text-base font-extrabold tabular-nums ${excede ? 'text-rose-600' : abono > 0 && restante === 0 ? 'text-emerald-600' : 'text-stone-900'}`}>{dinero(excede ? saldo : restante)}</b>
+                    </div>
+                    {abono > 0 && !excede && e.pendientesAsc.length > 0 && (
+                      <p className="mt-2 text-[11.5px] font-semibold text-stone-500">{cob.cubiertas === 0 ? 'No alcanza para cubrir una boleta completa; queda como pago a cuenta.' : `Cubre ${cob.cubiertas} de ${e.pendientesAsc.length} boleta${e.pendientesAsc.length > 1 ? 's' : ''} pendiente${e.pendientesAsc.length > 1 ? 's' : ''} (las más antiguas primero).`}</p>
+                    )}
+                    <button type="button" onClick={procesarPagoDeudaCliente} disabled={!(abono > 0) || excede} className="mt-3.5 w-full h-[46px] rounded-[14px] bg-[#6105dc] hover:bg-[#4d04b0] disabled:bg-[#d9d2ea] disabled:shadow-none disabled:cursor-not-allowed text-white font-bold text-[13.5px] shadow-lg shadow-[#6105dc]/30 inline-flex items-center justify-center gap-2 transition">
+                      <i className="fa-solid fa-check text-xs"></i> {abono > 0 && !excede ? `Registrar pago de ${dinero(abono)}` : 'Registrar pago'}
+                    </button>
+                  </div>
+
+                  <div className="order-4 bg-white border border-stone-100 rounded-[22px] p-4 sm:px-[18px] mb-3.5">
+                    <div className="flex items-baseline justify-between gap-2 mb-1.5">
+                      <h5 className="text-[14.5px] font-extrabold text-stone-900">{mostrarHistorialCompletoDeuda ? 'Historial de compras a crédito' : 'Boletas pendientes'}</h5>
+                      {e.boletas.some((b) => b.pagada) && (
+                        <button type="button" onClick={() => setMostrarHistorialCompletoDeuda((x) => !x)} className="text-xs font-bold text-[#4d04b0] hover:bg-[#f4eefe] rounded-lg px-1.5 py-1 shrink-0">
+                          {mostrarHistorialCompletoDeuda ? 'Ver solo pendientes' : `Ver historial completo (${e.boletas.length})`}
+                        </button>
+                      )}
+                    </div>
+                    {cargandoDetalleDeudor ? (
+                      <p className="text-xs text-stone-500 text-center py-4">Cargando...</p>
+                    ) : e.boletas.length === 0 ? (
+                      <p className="text-xs text-stone-500 text-center py-4">Sin boletas a crédito registradas.</p>
+                    ) : lista.length === 0 ? (
+                      <p className="text-xs text-emerald-600 text-center py-4">No hay boletas pendientes.</p>
+                    ) : (
+                      lista.map((b) => {
+                        const cubre = !b.pagada && abono > 0 && !excede && cob.ids.includes(b.id);
+                        return (
+                          <div key={b.id} className={`flex gap-2.5 py-2.5 border-b border-stone-100 last:border-0 ${b.pagada ? 'opacity-50' : ''}`}>
+                            <span className={`w-[22px] h-[22px] rounded-full border-2 grid place-items-center text-white text-xs shrink-0 mt-px transition ${b.pagada || cubre ? 'bg-emerald-500 border-emerald-500' : 'border-stone-300'}`}>{(b.pagada || cubre) && <i className="fa-solid fa-check text-[10px]"></i>}</span>
+                            <div className="min-w-0 flex-1">
+                              <div className="flex justify-between items-baseline gap-2">
+                                <span className="text-[13px] font-bold text-stone-900 flex items-center gap-1.5 flex-wrap tabular-nums">
+                                  {b.nro_boleta}
+                                  {b.pagada && <span className="text-[11px] font-bold rounded-full px-2 py-0.5 bg-emerald-50 text-emerald-600">Pagada</span>}
+                                  {b.vencida && <span className="text-[11px] font-bold rounded-full px-2 py-0.5 bg-rose-50 text-rose-600">Vencida hace {b.diasVencido} d</span>}
+                                </span>
+                                <span className={`text-sm font-extrabold tabular-nums whitespace-nowrap ${b.pagada ? 'line-through' : ''}`}>{dinero(b.total_venta)}</span>
+                              </div>
+                              <p className="text-[11.5px] text-stone-500 mt-0.5 leading-snug">
+                                {new Date(b.fecha_hora).toLocaleDateString('es-PE')} · {(b.ventas_detalle || []).map((d) => `${d.productos?.descripcion || 'Producto'} x${d.cantidad}`).join(', ') || 'Sin detalle'}
+                              </p>
+                            </div>
+                          </div>
+                        );
+                      })
+                    )}
+                  </div>
+
+                  {pagosRecientes.length > 0 && (
+                    <div className="order-5 bg-white border border-stone-100 rounded-[22px] p-4 sm:px-[18px] mb-3.5">
+                      <h5 className="text-[14.5px] font-extrabold text-stone-900 mb-1.5">Pagos recientes</h5>
+                      {pagosRecientes.map((p, i) => (
+                        <div key={i} className="flex justify-between gap-2.5 py-2 border-b border-dashed border-stone-200 last:border-0 text-[12.5px]">
+                          <span className="text-stone-500">{etiquetaCuandoTurno(p.fecha)}{listaCajeros.find((c) => c.id === p.cajero_id) ? ` · ${listaCajeros.find((c) => c.id === p.cajero_id).nombre}` : ''}</span>
+                          <b className="text-emerald-600 tabular-nums">+ {dinero(p.monto_pagado)}</b>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              );
+            })();
+
+            return (
+              <div className="fixed inset-0 bg-stone-900/30 backdrop-blur-sm flex items-center justify-center z-50 p-2 sm:p-4">
+                <div className="bg-gradient-to-br from-[#f4effc] via-[#f9f8fb] to-[#f5f4f8] border border-white/80 rounded-[28px] max-w-5xl w-full shadow-2xl h-[95vh] max-h-[800px] flex flex-col overflow-hidden">
+                  <div className="bg-white border-b border-stone-100 px-4 sm:px-5 py-3.5 shrink-0 flex items-center gap-3">
+                    {deudorSeleccionado && <button type="button" onClick={volverALista} className="md:hidden inline-flex items-center gap-1.5 text-[12.5px] font-bold text-stone-500 hover:text-stone-800 hover:bg-stone-100 rounded-lg px-2 py-1.5 shrink-0"><i className="fa-solid fa-chevron-left text-[10px]"></i> Clientes</button>}
+                    <span className="w-11 h-11 rounded-[14px] bg-[#f4eefe] text-[#6105dc] grid place-items-center text-xl shrink-0"><i className="fa-solid fa-hand-holding-dollar"></i></span>
+                    <div className="min-w-0 flex-1">
+                      <h3 className="text-[17px] sm:text-lg font-extrabold text-stone-900 tracking-tight leading-tight">Cuentas por cobrar</h3>
+                      <p className="hidden sm:block text-[12.5px] text-stone-500 mt-0.5">Lo que tus clientes te deben a crédito. Elige a quién cobrarle y registra su pago.</p>
+                    </div>
+                    <button aria-label="Cerrar" onClick={cerrar} className="w-8 h-8 flex items-center justify-center rounded-full text-stone-400 hover:text-stone-600 hover:bg-stone-100 transition-colors shrink-0"><i className="fa-solid fa-xmark"></i></button>
+                  </div>
+
+                  {clientesDeudores.length === 0 && !deudorSeleccionado ? (
+                    <div className="flex-1 grid place-items-center p-6">
+                      {cargandoDeudores ? (
+                        <p className="text-[13px] text-stone-500">Cargando clientes con deuda...</p>
+                      ) : (
+                        <div className="text-center max-w-xs text-[13.5px] text-stone-500 leading-snug">
+                          <div className="w-[72px] h-[72px] rounded-3xl bg-emerald-50 text-emerald-600 grid place-items-center text-[32px] mx-auto mb-3"><i className="fa-solid fa-check"></i></div>
+                          <b className="block text-base text-stone-900 mb-0.5">No hay clientes con deuda</b>
+                          Todo está cobrado. Cuando vendas a crédito, el cliente aparecerá aquí.
+                        </div>
+                      )}
+                    </div>
+                  ) : (
+                    <div className="flex-1 min-h-0 grid md:grid-cols-[350px_minmax(0,1fr)]">
+                      <div className={`${deudorSeleccionado ? 'hidden md:flex' : 'flex'} flex-col min-h-0 md:border-r border-stone-100 bg-white/55`}>
+                        <div className="px-4 pt-4 pb-1">
+                          <span className="text-xs font-bold text-stone-500">Total por cobrar</span>
+                          <strong className="block text-[30px] font-extrabold tracking-tight text-stone-900 leading-tight tabular-nums">{dinero(totalPorCobrar)}</strong>
+                          <div className="flex flex-wrap gap-2 mt-2">
+                            <span className="text-[11px] font-bold rounded-full px-2.5 py-0.5 bg-[#f1eef9] text-stone-500">{clientesDeudores.length} {clientesDeudores.length === 1 ? 'cliente' : 'clientes'}</span>
+                            {conEstado && (totalVencido > 0
+                              ? <span className="text-[11px] font-bold rounded-full px-2.5 py-0.5 bg-rose-50 text-rose-600">{dinero(totalVencido)} vencido</span>
+                              : <span className="text-[11px] font-bold rounded-full px-2.5 py-0.5 bg-emerald-50 text-emerald-600">Nada vencido</span>)}
+                          </div>
+                        </div>
+                        <div className="px-4 pt-3 pb-2">
+                          <div className="relative">
+                            <i className="fa-solid fa-magnifying-glass absolute left-3.5 top-1/2 -translate-y-1/2 text-stone-300 text-sm pointer-events-none"></i>
+                            <input type="text" autoComplete="off" placeholder="Buscar por nombre o DNI…" value={busquedaDeudores} onChange={(ev) => setBusquedaDeudores(ev.target.value)} className="w-full h-10 bg-white border-[1.5px] border-stone-200 rounded-[14px] pl-9 pr-3 text-[13.5px] text-stone-900 placeholder:text-stone-300 outline-none focus:border-[#6105dc] focus:ring-4 focus:ring-[#6105dc]/15" />
+                          </div>
+                          <div className="flex flex-wrap gap-1.5 mt-2.5">
+                            <button type="button" onClick={() => setFiltroDeudores('todos')} className={chipClase(filtroDeudores === 'todos')}>Todos <span className={`text-[10.5px] rounded-full px-1.5 ${filtroDeudores === 'todos' ? 'bg-[#6105dc] text-white' : 'bg-[#f1eef9] text-stone-500'}`}>{filas.length}</span></button>
+                            {conEstado && <button type="button" onClick={() => setFiltroDeudores('venc')} className={chipClase(filtroDeudores === 'venc')}>Vencidos <span className={`text-[10.5px] rounded-full px-1.5 ${filtroDeudores === 'venc' ? 'bg-[#6105dc] text-white' : 'bg-[#f1eef9] text-stone-500'}`}>{nVencidos}</span></button>}
+                            <button type="button" onClick={() => setFiltroDeudores('lim')} className={chipClase(filtroDeudores === 'lim')}>Cerca del límite <span className={`text-[10.5px] rounded-full px-1.5 ${filtroDeudores === 'lim' ? 'bg-[#6105dc] text-white' : 'bg-[#f1eef9] text-stone-500'}`}>{nCercaLimite}</span></button>
+                          </div>
+                        </div>
+                        <div className="flex justify-between items-center px-4 pb-2 text-[11.5px] font-semibold text-stone-500">
+                          <span>{visibles.length} resultado{visibles.length === 1 ? '' : 's'}</span>
+                          {conEstado && <button type="button" onClick={() => setOrdenDeudores((o) => (o === 'deuda' ? 'antigua' : 'deuda'))} className="font-bold text-[#4d04b0] hover:bg-[#f4eefe] rounded-lg px-1.5 py-0.5">Orden: {ordenDeudores === 'deuda' ? 'mayor deuda' : 'más antigua'}</button>}
+                        </div>
+                        <div className="flex-1 min-h-0 overflow-y-auto px-2.5 pb-3 grid gap-1.5 content-start">
+                          {visibles.length === 0 && <p className="text-center text-[13px] text-stone-500 py-8 px-4"><b className="block text-stone-900">Nadie coincide</b>Prueba con otro filtro o nombre.</p>}
+                          {visibles.map(({ cl, e, uso }) => {
+                            const venc = e && e.vencidas.length > 0;
+                            const pend = e ? e.pendientesAsc.length : 0;
+                            return (
+                              <button type="button" key={cl.id} onClick={() => seleccionarDeudor(cl)} className={`flex items-center gap-2.5 w-full text-left rounded-2xl border-[1.5px] bg-white px-2.5 py-2.5 transition hover:bg-[#fcfaff] hover:border-[#e4d6fb] ${deudorSeleccionado?.id === cl.id ? 'border-[#6105dc] bg-[#fcfaff] ring-[3px] ring-[#6105dc]/15' : 'border-transparent'}`}>
+                                <span className={`w-10 h-10 rounded-full grid place-items-center text-[13px] font-extrabold shrink-0 ${venc ? 'bg-rose-50 text-rose-600' : 'bg-[#f4eefe] text-[#6105dc]'}`}>{iniciales(cl.nombre_completo)}</span>
+                                <span className="min-w-0 flex-1">
+                                  <span className="block text-[13.5px] font-bold text-stone-900 leading-tight truncate">{cl.nombre_completo}</span>
+                                  <span className={`block text-[11.5px] mt-0.5 ${venc ? 'text-rose-600' : 'text-stone-500'}`}>
+                                    {e
+                                      ? (venc ? <><b>Vencida hace {e.vencidas[0].diasVencido} d</b> · {pend} boleta{pend === 1 ? '' : 's'}</> : e.masVieja ? `Debe desde hace ${e.masVieja.diasTranscurridos} d · ${pend} boleta${pend === 1 ? '' : 's'}` : 'Sin boletas a crédito')
+                                      : `DNI ${cl.dni}`}
+                                  </span>
+                                </span>
+                                <span className="text-right shrink-0">
+                                  <strong className="block text-[14.5px] font-extrabold tracking-tight tabular-nums">{dinero(cl.saldo_actual)}</strong>
+                                  {(Number(cl.limite_credito) || 0) > 0 && <span className="block w-14 h-1 rounded-full bg-[#ece7f5] mt-1.5 ml-auto overflow-hidden"><i className={`block h-full ${barraLimite(uso)}`} style={{ width: `${Math.min(100, uso * 100)}%` }}></i></span>}
+                                </span>
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </div>
+                      <div className={`${deudorSeleccionado ? 'flex' : 'hidden md:flex'} flex-col min-h-0`}>{detalle}</div>
+                    </div>
+                  )}
+                </div>
               </div>
-            </div>
-          )}
+            );
+          })()}
 
           {/* Modal: Cuentas por Pagar (proveedores) */}
           {modalCuentasPagar && (
