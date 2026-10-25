@@ -289,12 +289,12 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
 
     function ReciboImprimible({ bodega, boleta, fecha, cliente, medioPago, items, total, anulada, subtotal, descuento }) {
       const etiqueta = { fontSize: 9, fontWeight: 700, letterSpacing: 1, textTransform: 'uppercase' };
-      const festones = Array.from({ length: 16 }, (_, i) => `a6 6 0 0 0 12 0`).join(' ');
       return (
         <div id="recibo-imprimible" className="sr-only" style={{ fontWeight: 700, textAlign: 'center' }}>
           <div style={{ border: '2px solid #000', borderRadius: 4, padding: '5px 8px', margin: '0 auto 6px', display: 'inline-block' }}>
             <div style={{ fontWeight: 900, fontSize: 18, letterSpacing: 0.3 }}>{bodega}</div>
           </div>
+          <div style={{ fontSize: 14, fontWeight: 900 }}>¡Gracias por su compra!</div>
           <div style={{ fontSize: 12 }}>Tu boleta se emitió correctamente</div>
           {anulada && <div style={{ fontWeight: 900, fontSize: 14, marginTop: 3 }}>*** ANULADA ***</div>}
 
@@ -350,11 +350,6 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
             Documento sin valor tributario.
             <br />No válido como comprobante de pago ante SUNAT. Solo informativo.
           </div>
-          <div style={{ fontSize: 13, fontWeight: 900, marginTop: 8 }}>¡Gracias por su compra!</div>
-          {/* Borde inferior en festón, como el papel de la pantalla */}
-          <svg viewBox="0 0 192 8" width="100%" height="12" preserveAspectRatio="none" style={{ display: 'block', marginTop: 8 }} aria-hidden="true">
-            <path d={`M0 0 ${festones}`} fill="none" stroke="#000" strokeWidth="1.6" />
-          </svg>
         </div>
       );
     }
@@ -8276,7 +8271,7 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
       // Genera la boleta como PDF con formato de ticket angosto (80mm),
       // igual al que se usaría en una impresora térmica. Mismo diseño que la
       // pantalla de venta exitosa: líneas de corte punteadas con muescas a los
-      // lados, boleta y fecha en dos columnas, y borde inferior en festón.
+      // lados y boleta y fecha en dos columnas.
       const generarPDFBoleta = async (venta) => {
         await asegurarJsPDF();
         const { jsPDF } = window.jspdf;
@@ -8306,6 +8301,9 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
         doc.setFontSize(11);
         doc.text(bodegaNombre, 40, y, { align: 'center' });
         y += 5;
+        doc.setFontSize(9);
+        doc.text('¡Gracias por su compra!', 40, y, { align: 'center' });
+        y += 4.5;
         doc.setFont(undefined, 'normal');
         doc.setFontSize(7.5);
         doc.text('Tu boleta se emitió correctamente', 40, y, { align: 'center' });
@@ -8376,15 +8374,6 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
           72
         );
         doc.text(disclaimer, 40, y, { align: 'center' });
-        y += disclaimer.length * 3.2 + 4;
-
-        doc.setFont(undefined, 'bold');
-        doc.setFontSize(9);
-        doc.text('¡Gracias por su compra!', 40, y, { align: 'center' });
-
-        // Borde inferior en festón: semicírculos blancos con contorno sobre el borde del papel.
-        doc.setFillColor(255, 255, 255);
-        for (let x = 6; x < 80; x += 12) doc.circle(x, alto, 4.5, 'FD');
 
         return doc;
       };
@@ -8457,6 +8446,7 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
         cmd(0x1B, 0x45, 0x01); // negrita on
         texto(bodegaNombre); salto();
         cmd(0x1B, 0x45, 0x00); // negrita off
+        texto('Gracias por su compra!'); salto();
         texto('Tu boleta se emitio correctamente'); salto();
         cmd(0x1B, 0x61, 0x00); // izquierda
         texto('- '.repeat(ANCHO / 2)); salto();
@@ -8486,8 +8476,7 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
 
         cmd(0x1B, 0x61, 0x01);
         texto('Documento sin valor tributario.'); salto();
-        texto('Solo informativo.'); salto();
-        texto('Gracias por su compra!'); salto(4);
+        texto('Solo informativo.'); salto(4);
 
         return new Uint8Array(bytes);
       };
