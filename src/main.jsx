@@ -287,62 +287,91 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
       );
     }
 
-    function ReciboImprimible({ bodega, boleta, fecha, cliente, medioPago, items, total, anulada, subtotal, descuento }) {
+    // Boleta impresa (térmica 58/80 mm): en blanco y negro, con el mismo orden de la
+    // pantalla de venta exitosa. Las líneas que no tienen dato (dirección, teléfono,
+    // cajero, recibido/vuelto) simplemente no se imprimen.
+    function ReciboImprimible({ bodega, direccion, telefono, boleta, fecha, cliente, cajero, medioPago, recibido, items, total, anulada, subtotal, descuento }) {
       const etiqueta = { fontSize: 9, fontWeight: 700, letterSpacing: 1, textTransform: 'uppercase' };
+      const fila = { display: 'flex', justifyContent: 'space-between', gap: 6 };
+      const tabla = { display: 'grid', gridTemplateColumns: '26px 1fr 62px', gap: 4 };
+      const medio = String(medioPago || '');
+      const medioLindo = medio.charAt(0).toUpperCase() + medio.slice(1).toLowerCase();
+      const unidades = items.reduce((a, it) => a + (Number(it.cantidad) || 0), 0);
+      const vuelto = Number(recibido) >= Number(total) ? Number(recibido) - Number(total) : 0;
       return (
         <div id="recibo-imprimible" className="sr-only" style={{ fontWeight: 700, textAlign: 'center' }}>
-          <div style={{ border: '2px solid #000', borderRadius: 4, padding: '5px 8px', margin: '0 auto 6px', display: 'inline-block' }}>
+          <div style={{ border: '2px solid #000', borderRadius: 4, padding: '5px 8px', margin: '0 auto 4px', display: 'inline-block' }}>
             <div style={{ fontWeight: 900, fontSize: 18, letterSpacing: 0.3 }}>{bodega}</div>
           </div>
-          <div style={{ fontSize: 14, fontWeight: 900 }}>¡Gracias por su compra!</div>
-          <div style={{ fontSize: 12 }}>Tu boleta se emitió correctamente</div>
+          {(direccion || telefono) && (
+            <div style={{ fontSize: 11, lineHeight: 1.3 }}>
+              {direccion && <div>{direccion}</div>}
+              {telefono && <div>Tel. {telefono}</div>}
+            </div>
+          )}
+          <div style={{ fontSize: 14, fontWeight: 900, marginTop: 6 }}>¡Gracias por su compra!</div>
+          <div style={{ fontSize: 11 }}>Tu boleta se emitió correctamente</div>
           {anulada && <div style={{ fontWeight: 900, fontSize: 14, marginTop: 3 }}>*** ANULADA ***</div>}
 
           <CorteTicket />
-          <div style={{ display: 'flex', justifyContent: 'space-between', textAlign: 'left' }}>
+          <div style={{ ...fila, textAlign: 'left' }}>
             <div>
               <div style={etiqueta}>Boleta</div>
-              <div style={{ fontSize: 14 }}>{boleta}</div>
+              <div style={{ fontSize: 15 }}>{boleta}</div>
             </div>
             <div style={{ textAlign: 'right' }}>
               <div style={etiqueta}>Fecha y hora</div>
               <div style={{ fontSize: 12 }}>{fecha}</div>
             </div>
           </div>
-          <div style={{ border: '2px solid #000', borderRadius: 8, padding: '4px 8px', marginTop: 6, textAlign: 'left', display: 'flex', justifyContent: 'space-between', fontSize: 12 }}>
-            <span>{cliente}</span>
-            <span>{medioPago}</span>
+          <div style={{ textAlign: 'left', fontSize: 11, marginTop: 6 }}>
+            <div>Cliente: {cliente}</div>
+            {cajero && <div>Atendido por: {cajero}</div>}
           </div>
 
           <CorteTicket />
-          <div style={{ textAlign: 'left' }}>
+          <div style={{ textAlign: 'left', fontSize: 12 }}>
+            <div style={{ ...tabla, ...etiqueta, borderBottom: '2px solid #000', paddingBottom: 3, marginBottom: 4 }}>
+              <span>Cant</span><span>Producto</span><span style={{ textAlign: 'right' }}>Importe</span>
+            </div>
             {items.map((it, i) => (
-              <div key={i} style={{ marginBottom: 5 }}>
-                <div style={{ fontSize: 13 }}>{it.descripcion}</div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12 }}>
-                  <span>{it.cantidad} {it.unidad || 'UND'} x S/ {Number(it.precioUnitario || 0).toFixed(2)}</span>
-                  <span>S/ {Number(it.subtotal).toFixed(2)}</span>
-                </div>
-                {detalleComboTicket(it).map((l, k) => (
-                  <div key={k} style={{ fontSize: 11, paddingLeft: 8 }}>- {l}</div>
-                ))}
+              <div key={i} style={{ ...tabla, marginBottom: 5 }}>
+                <span>{it.cantidad}</span>
+                <span>
+                  {it.descripcion}
+                  <span style={{ display: 'block', fontSize: 10 }}>{Number(it.precioUnitario || 0).toFixed(2)} c/u{it.unidad && it.unidad !== 'UND' ? ` (${it.unidad})` : ''}</span>
+                  {detalleComboTicket(it).map((l, k) => (
+                    <span key={k} style={{ display: 'block', fontSize: 10, paddingLeft: 2 }}>· {l}</span>
+                  ))}
+                </span>
+                <span style={{ textAlign: 'right' }}>{Number(it.subtotal).toFixed(2)}</span>
               </div>
             ))}
           </div>
           <div style={{ borderTop: '2px dashed #000', margin: '6px 0' }}></div>
+          <div style={{ ...etiqueta, textAlign: 'left' }}>{unidades} {unidades === 1 ? 'artículo' : 'artículos'}</div>
           {descuento > 0 && (
             <>
-              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12 }}>
-                <span>Subtotal:</span><span>S/ {Number(subtotal).toFixed(2)}</span>
+              <div style={{ ...fila, fontSize: 12 }}>
+                <span>Subtotal</span><span>S/ {Number(subtotal).toFixed(2)}</span>
               </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12 }}>
-                <span>Descuento:</span><span>- S/ {Number(descuento).toFixed(2)}</span>
+              <div style={{ ...fila, fontSize: 12 }}>
+                <span>Descuento</span><span>- S/ {Number(descuento).toFixed(2)}</span>
               </div>
             </>
           )}
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginTop: 4, textAlign: 'left' }}>
+          <div style={{ ...fila, alignItems: 'baseline', marginTop: 4, textAlign: 'left' }}>
             <span style={etiqueta}>Monto</span>
-            <span style={{ fontSize: 22, fontWeight: 900 }}>S/ {Number(total).toFixed(2)}</span>
+            <span style={{ fontSize: 24, fontWeight: 900 }}>S/ {Number(total).toFixed(2)}</span>
+          </div>
+          <div style={{ border: '2px solid #000', borderRadius: 8, padding: '4px 8px', marginTop: 6, textAlign: 'left', fontSize: 12 }}>
+            <div style={fila}><span>Pago</span><span>{medioLindo}</span></div>
+            {Number(recibido) > 0 && (
+              <>
+                <div style={fila}><span>Recibido</span><span>S/ {Number(recibido).toFixed(2)}</span></div>
+                <div style={fila}><span>Vuelto</span><span>S/ {vuelto.toFixed(2)}</span></div>
+              </>
+            )}
           </div>
 
           <CorteTicket />
@@ -923,6 +952,8 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
       // escribir en el servidor -- todo se simula solo en el estado local.
       const esModoDemo = bodegaId === BODEGA_DEMO_ID;
       const bodegaNombre = sesion?.bodega?.nombre || 'Mi Bodega';
+      const bodegaDireccion = sesion?.bodega?.direccion || '';
+      const bodegaTelefono = sesion?.bodega?.telefono || '';
       const usuarioActivo = sesion?.usuario || null;
       // Identifica "esta es mi propia fila en cajeros": lo normal es
       // comparar por DNI, pero un dueño creado por correo (sin DNI, entra con
@@ -8234,6 +8265,7 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
             cajero: cajeroSeleccionado?.nombre || usuarioActivo?.nombre || 'Cajero',
             fecha: new Date().toLocaleTimeString(),
             fecha_hora: new Date().toISOString(),
+            recibido: medioPago === 'EFECTIVO' && parseFloat(montoRecibido) > 0 ? parseFloat(montoRecibido) : 0,
             offline: seVendioOffline
           };
 
@@ -8269,23 +8301,28 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
       };
 
       // Genera la boleta como PDF con formato de ticket angosto (80mm),
-      // igual al que se usaría en una impresora térmica. Mismo diseño que la
-      // pantalla de venta exitosa: líneas de corte punteadas con muescas a los
-      // lados y boleta y fecha en dos columnas.
+      // igual al que se usaría en una impresora térmica. Mismo orden que la boleta
+      // impresa: negocio, boleta y fecha, tabla de productos, monto y pago.
       const generarPDFBoleta = async (venta) => {
         await asegurarJsPDF();
         const { jsPDF } = window.jspdf;
         const items = venta.items || [];
-        const alturaEstimada = 84 + items.length * 9 + items.reduce((a, it) => a + detalleComboTicket(it).length * 3.6, 0) + (venta.descuento > 0 ? 10 : 0);
-        const alto = Math.max(110, alturaEstimada);
-        const doc = new jsPDF({ unit: 'mm', format: [80, alto] });
+        const recibido = Number(venta.recibido) || 0;
+        const vuelto = recibido >= Number(venta.total_venta) ? recibido - Number(venta.total_venta) : 0;
+        const unidades = items.reduce((a, it) => a + (Number(it.cantidad) || 0), 0);
+        const alturaEstimada = 78 + items.length * 11 + items.reduce((a, it) => a + detalleComboTicket(it).length * 3.4, 0)
+          + (venta.descuento > 0 ? 10 : 0) + (recibido > 0 ? 8 : 0) + (bodegaDireccion ? 4 : 0) + (bodegaTelefono ? 4 : 0) + (venta.cajero ? 4 : 0);
+        const doc = new jsPDF({ unit: 'mm', format: [80, Math.max(110, alturaEstimada)] });
         let y = 8;
 
+        const punteada = (x1, x2) => {
+          if (doc.setLineDashPattern) doc.setLineDashPattern([1.2, 1.2], 0);
+          doc.line(x1, y, x2, y);
+          if (doc.setLineDashPattern) doc.setLineDashPattern([], 0);
+        };
         // Línea de corte: punteada, con una muesca redonda en cada borde del papel.
         const corte = () => {
-          if (doc.setLineDashPattern) doc.setLineDashPattern([1.2, 1.2], 0);
-          doc.line(5, y, 75, y);
-          if (doc.setLineDashPattern) doc.setLineDashPattern([], 0);
+          punteada(5, 75);
           doc.setFillColor(255, 255, 255);
           doc.circle(0, y, 2.4, 'FD');
           doc.circle(80, y, 2.4, 'FD');
@@ -8301,6 +8338,12 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
         doc.setFontSize(11);
         doc.text(bodegaNombre, 40, y, { align: 'center' });
         y += 5;
+        doc.setFont(undefined, 'normal');
+        doc.setFontSize(7);
+        if (bodegaDireccion) { doc.text(doc.splitTextToSize(bodegaDireccion, 70)[0], 40, y, { align: 'center' }); y += 3.6; }
+        if (bodegaTelefono) { doc.text(`Tel. ${bodegaTelefono}`, 40, y, { align: 'center' }); y += 3.6; }
+        y += 1.4;
+        doc.setFont(undefined, 'bold');
         doc.setFontSize(9);
         doc.text('¡Gracias por su compra!', 40, y, { align: 'center' });
         y += 4.5;
@@ -8319,51 +8362,72 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
         doc.setFont(undefined, 'normal');
         doc.setFontSize(8);
         doc.text(formatoFechaHoraBoleta(venta.fecha_hora), 76, y, { align: 'right' });
-        y += 4;
-        doc.roundedRect(4, y, 72, 8, 2, 2, 'S');
-        doc.setFontSize(8);
-        doc.text(doc.splitTextToSize(String(venta.cliente), 40)[0], 7, y + 5);
-        doc.text(String(venta.medio_pago), 73, y + 5, { align: 'right' });
-        y += 13;
+        y += 5;
+        doc.setFontSize(7.5);
+        doc.text(`Cliente: ${doc.splitTextToSize(String(venta.cliente), 62)[0]}`, 4, y);
+        y += 3.8;
+        if (venta.cajero) { doc.text(`Atendido por: ${doc.splitTextToSize(String(venta.cajero), 54)[0]}`, 4, y); y += 3.8; }
+        y += 1.5;
 
         corte();
 
+        // Tabla: Cant | Producto | Importe
+        rotulo('Cant', 4, y);
+        rotulo('Producto', 12, y);
+        rotulo('Importe', 76, y, { align: 'right' });
+        y += 1.8;
+        doc.line(4, y, 76, y);
+        y += 4;
         items.forEach((it) => {
           doc.setFont(undefined, 'normal');
           doc.setFontSize(8);
-          const lineas = doc.splitTextToSize(it.descripcion, 72);
-          doc.text(lineas, 4, y);
-          y += lineas.length * 3.6 + 1;
-          doc.text(`${it.cantidad} ${it.unidad || 'UND'} x S/ ${Number(it.precioUnitario || 0).toFixed(2)}`, 4, y);
-          doc.text(`S/ ${Number(it.subtotal).toFixed(2)}`, 76, y, { align: 'right' });
-          y += 5;
-          const detalleCombo = detalleComboTicket(it);
-          detalleCombo.forEach((l) => {
-            doc.setFontSize(7);
-            const sub = doc.splitTextToSize(`- ${l}`, 68);
-            doc.text(sub, 7, y);
-            y += sub.length * 3.2;
-            doc.setFontSize(8);
+          doc.text(String(it.cantidad), 4, y);
+          const lineas = doc.splitTextToSize(it.descripcion, 48);
+          doc.text(lineas, 12, y);
+          doc.text(Number(it.subtotal).toFixed(2), 76, y, { align: 'right' });
+          y += lineas.length * 3.6;
+          doc.setFontSize(6.5);
+          doc.text(`${Number(it.precioUnitario || 0).toFixed(2)} c/u${it.unidad && it.unidad !== 'UND' ? ` (${it.unidad})` : ''}`, 12, y);
+          y += 3.2;
+          detalleComboTicket(it).forEach((l) => {
+            const sub = doc.splitTextToSize(`· ${l}`, 46);
+            doc.text(sub, 13, y);
+            y += sub.length * 3;
           });
-          if (detalleCombo.length > 0) y += 2;
+          y += 2;
         });
 
-        if (doc.setLineDashPattern) doc.setLineDashPattern([1.2, 1.2], 0);
-        doc.line(4, y, 76, y);
-        if (doc.setLineDashPattern) doc.setLineDashPattern([], 0);
-        y += 5;
+        punteada(4, 76);
+        y += 4;
+        rotulo(`${unidades} ${unidades === 1 ? 'artículo' : 'artículos'}`, 4, y);
+        y += 4;
 
+        doc.setFont(undefined, 'normal');
         doc.setFontSize(8);
         if (venta.descuento > 0) {
-          doc.text('Subtotal:', 4, y); doc.text(`S/ ${venta.subtotal.toFixed(2)}`, 76, y, { align: 'right' }); y += 4;
-          doc.text('Descuento:', 4, y); doc.text(`-S/ ${venta.descuento.toFixed(2)}`, 76, y, { align: 'right' }); y += 5;
+          doc.text('Subtotal', 4, y); doc.text(`S/ ${venta.subtotal.toFixed(2)}`, 76, y, { align: 'right' }); y += 4;
+          doc.text('Descuento', 4, y); doc.text(`-S/ ${venta.descuento.toFixed(2)}`, 76, y, { align: 'right' }); y += 5;
         }
 
         rotulo('Monto', 4, y);
         doc.setFont(undefined, 'bold');
         doc.setFontSize(14);
         doc.text(`S/ ${venta.total_venta.toFixed(2)}`, 76, y, { align: 'right' });
-        y += 8;
+        y += 5;
+
+        // Recuadro del pago (y recibido / vuelto si fue en efectivo)
+        const filasPago = recibido > 0 ? 3 : 1;
+        doc.roundedRect(4, y, 72, filasPago * 4 + 3, 2, 2, 'S');
+        doc.setFont(undefined, 'normal');
+        doc.setFontSize(8);
+        const medioPagoTxt = String(venta.medio_pago || '');
+        let yy = y + 4.2;
+        doc.text('Pago', 7, yy); doc.text(medioPagoTxt.charAt(0).toUpperCase() + medioPagoTxt.slice(1).toLowerCase(), 73, yy, { align: 'right' });
+        if (recibido > 0) {
+          yy += 4; doc.text('Recibido', 7, yy); doc.text(`S/ ${recibido.toFixed(2)}`, 73, yy, { align: 'right' });
+          yy += 4; doc.text('Vuelto', 7, yy); doc.text(`S/ ${vuelto.toFixed(2)}`, 73, yy, { align: 'right' });
+        }
+        y += filasPago * 4 + 8;
 
         corte();
 
@@ -8433,46 +8497,66 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
       const aTextoImprimible = (s) => (s || '').normalize('NFD').replace(/[^\x00-\x7F]/g, '');
 
       // Arma el ticket en comandos ESC/POS crudos (texto + alineación +
-      // negrita), igual de angosto que el PDF/ticket impreso.
+      // negrita), igual de angosto que el PDF/ticket impreso y con el mismo orden.
       const construirTicketEscPos = (venta) => {
         const bytes = [];
         const cmd = (...arr) => bytes.push(...arr);
         const texto = (s) => { for (const ch of aTextoImprimible(s)) bytes.push(ch.charCodeAt(0) & 0xFF); };
         const salto = (n = 1) => { for (let i = 0; i < n; i++) bytes.push(0x0A); };
         const ANCHO = 32; // caracteres por línea en una ticketera de 58mm
+        const lineaPunteada = () => { texto('- '.repeat(ANCHO / 2)); salto(); };
+        // Dos columnas: texto a la izquierda y valor pegado a la derecha.
+        const dosColumnas = (izq, der) => {
+          const i = aTextoImprimible(izq), d = aTextoImprimible(der);
+          texto(i + ' '.repeat(Math.max(1, ANCHO - i.length - d.length)) + d); salto();
+        };
+        const recibido = Number(venta.recibido) || 0;
+        const unidades = (venta.items || []).reduce((a, it) => a + (Number(it.cantidad) || 0), 0);
 
         cmd(0x1B, 0x40); // inicializar
         cmd(0x1B, 0x61, 0x01); // centrado
         cmd(0x1B, 0x45, 0x01); // negrita on
         texto(bodegaNombre); salto();
         cmd(0x1B, 0x45, 0x00); // negrita off
+        if (bodegaDireccion) { texto(bodegaDireccion.slice(0, ANCHO)); salto(); }
+        if (bodegaTelefono) { texto(`Tel. ${bodegaTelefono}`); salto(); }
+        cmd(0x1B, 0x45, 0x01);
         texto('Gracias por su compra!'); salto();
+        cmd(0x1B, 0x45, 0x00);
         texto('Tu boleta se emitio correctamente'); salto();
         cmd(0x1B, 0x61, 0x00); // izquierda
-        texto('- '.repeat(ANCHO / 2)); salto();
-        texto(`BOLETA        ${venta.nro_boleta}`); salto();
-        texto(`FECHA Y HORA  ${formatoFechaHoraBoleta(venta.fecha_hora)}`); salto();
-        texto(`CLIENTE       ${venta.cliente}`); salto();
-        texto('- '.repeat(ANCHO / 2)); salto();
+        lineaPunteada();
+        dosColumnas('BOLETA', String(venta.nro_boleta));
+        dosColumnas('FECHA Y HORA', formatoFechaHoraBoleta(venta.fecha_hora));
+        texto(`Cliente: ${venta.cliente}`.slice(0, ANCHO)); salto();
+        if (venta.cajero) { texto(`Atendido por: ${venta.cajero}`.slice(0, ANCHO)); salto(); }
+        lineaPunteada();
 
+        // Tabla: CANT PRODUCTO ... IMPORTE
+        dosColumnas('CANT PRODUCTO', 'IMPORTE');
         (venta.items || []).forEach((it) => {
-          texto(it.descripcion); salto();
-          const izq = `${it.cantidad} ${it.unidad || 'UND'} x ${Number(it.precioUnitario || 0).toFixed(2)}`;
-          const der = `S/ ${Number(it.subtotal).toFixed(2)}`;
-          const espacios = Math.max(1, ANCHO - izq.length - der.length);
-          texto(izq + ' '.repeat(espacios) + der); salto();
-          detalleComboTicket(it).forEach((l) => { texto('  - ' + l.slice(0, ANCHO - 4)); salto(); });
+          const importe = Number(it.subtotal).toFixed(2);
+          const nombre = aTextoImprimible(it.descripcion).slice(0, ANCHO - 4 - importe.length - 1);
+          dosColumnas(`${String(it.cantidad).padEnd(3)} ${nombre}`, importe);
+          texto(`    ${Number(it.precioUnitario || 0).toFixed(2)} c/u`); salto();
+          detalleComboTicket(it).forEach((l) => { texto('    - ' + l.slice(0, ANCHO - 6)); salto(); });
         });
 
-        texto('- '.repeat(ANCHO / 2)); salto();
+        lineaPunteada();
+        texto(`${unidades} ${unidades === 1 ? 'articulo' : 'articulos'}`); salto();
         if (venta.descuento > 0) {
-          texto(`Subtotal:${' '.repeat(Math.max(1, ANCHO - 9 - 12))}S/ ${venta.subtotal.toFixed(2)}`); salto();
-          texto(`Descuento:${' '.repeat(Math.max(1, ANCHO - 10 - 12))}-S/ ${venta.descuento.toFixed(2)}`); salto();
+          dosColumnas('Subtotal', `S/ ${venta.subtotal.toFixed(2)}`);
+          dosColumnas('Descuento', `-S/ ${venta.descuento.toFixed(2)}`);
         }
         cmd(0x1B, 0x45, 0x01);
-        texto(`MONTO: S/ ${venta.total_venta.toFixed(2)}`); salto();
+        dosColumnas('MONTO', `S/ ${venta.total_venta.toFixed(2)}`);
         cmd(0x1B, 0x45, 0x00);
-        texto(`Pago: ${venta.medio_pago}`); salto(2);
+        dosColumnas('Pago', String(venta.medio_pago || ''));
+        if (recibido > 0) {
+          dosColumnas('Recibido', `S/ ${recibido.toFixed(2)}`);
+          dosColumnas('Vuelto', `S/ ${(recibido >= Number(venta.total_venta) ? recibido - Number(venta.total_venta) : 0).toFixed(2)}`);
+        }
+        lineaPunteada();
 
         cmd(0x1B, 0x61, 0x01);
         texto('Documento sin valor tributario.'); salto();
@@ -16085,6 +16169,10 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
               </div>
               <ReciboImprimible
                 bodega={bodegaNombre}
+                direccion={bodegaDireccion}
+                telefono={bodegaTelefono}
+                cajero={ventaCompletada.cajero}
+                recibido={ventaCompletada.recibido}
                 boleta={ventaCompletada.nro_boleta}
                 fecha={formatoFechaHoraBoleta(ventaCompletada.fecha_hora)}
                 cliente={ventaCompletada.cliente}
@@ -16143,6 +16231,8 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
               </div>
               <ReciboImprimible
                 bodega={bodegaNombre}
+                direccion={bodegaDireccion}
+                telefono={bodegaTelefono}
                 boleta={reciboReimpresion.nro_boleta}
                 fecha={formatoFechaHoraBoleta(reciboReimpresion.fecha_hora)}
                 cliente={reciboReimpresion.clientes?.nombre_completo || 'Cliente'}
