@@ -8339,13 +8339,15 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
           doc.text(`${it.cantidad} ${it.unidad || 'UND'} x S/ ${Number(it.precioUnitario || 0).toFixed(2)}`, 4, y);
           doc.text(`S/ ${Number(it.subtotal).toFixed(2)}`, 76, y, { align: 'right' });
           y += 5;
-          detalleComboTicket(it).forEach((l) => {
+          const detalleCombo = detalleComboTicket(it);
+          detalleCombo.forEach((l) => {
             doc.setFontSize(7);
             const sub = doc.splitTextToSize(`- ${l}`, 68);
             doc.text(sub, 7, y);
             y += sub.length * 3.2;
             doc.setFontSize(8);
           });
+          if (detalleCombo.length > 0) y += 2;
         });
 
         if (doc.setLineDashPattern) doc.setLineDashPattern([1.2, 1.2], 0);
