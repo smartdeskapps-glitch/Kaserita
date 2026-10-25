@@ -259,19 +259,62 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
       );
     }
 
+    // "25 oct 2026 · 11:22" -- fecha y hora de la boleta (para la pantalla de venta
+    // exitosa, la boleta impresa y la ticketera).
+    function formatoFechaHoraBoleta(iso) {
+      const d = iso ? new Date(iso) : new Date();
+      const fecha = d.toLocaleDateString('es-PE', { day: 'numeric', month: 'short', year: 'numeric' }).replace(/\./g, '');
+      const hora = d.toLocaleTimeString('es-PE', { hour: '2-digit', minute: '2-digit', hour12: false });
+      return `${fecha} · ${hora}`;
+    }
+
+    // Confeti que salta del visto al emitir la boleta: [color, x, y, tamaño].
+    const CONFETI_BOLETA = [
+      ['#ffc81a', -46, -30, 8], ['#8a3df2', 46, -34, 7], ['#ff7aa2', -58, 6, 6],
+      ['#34d399', 56, 10, 7], ['#6105dc', -30, -52, 6], ['#f59e0b', 30, -54, 6],
+    ];
+    const ICONO_MEDIO_PAGO = { EFECTIVO: 'efectivo', YAPE: 'movil', PLIN: 'movil', TARJETA: 'tarjeta', CREDITO: 'credito', MIXTO: 'mixto' };
+
+    // Línea de corte del ticket impreso: punteada, con las dos muescas redondas de
+    // los lados (hechas con bordes, que sí salen en cualquier ticketera).
+    function CorteTicket() {
+      const muesca = { position: 'absolute', top: -7, width: 7, height: 14, border: '2px solid #000', background: '#fff' };
+      return (
+        <div style={{ position: 'relative', margin: '10px 0', borderTop: '2px dashed #000' }}>
+          <span style={{ ...muesca, left: -6, borderLeft: 'none', borderRadius: '0 14px 14px 0' }}></span>
+          <span style={{ ...muesca, right: -6, borderRight: 'none', borderRadius: '14px 0 0 14px' }}></span>
+        </div>
+      );
+    }
+
     function ReciboImprimible({ bodega, boleta, fecha, cliente, medioPago, items, total, anulada, subtotal, descuento }) {
-      const lineaSolida = { borderTop: '2px solid #000', margin: '6px 0' };
+      const etiqueta = { fontSize: 9, fontWeight: 700, letterSpacing: 1, textTransform: 'uppercase' };
+      const festones = Array.from({ length: 16 }, (_, i) => `a6 6 0 0 0 12 0`).join(' ');
       return (
         <div id="recibo-imprimible" className="sr-only" style={{ fontWeight: 700, textAlign: 'center' }}>
           <div style={{ border: '2px solid #000', borderRadius: 4, padding: '5px 8px', margin: '0 auto 6px', display: 'inline-block' }}>
             <div style={{ fontWeight: 900, fontSize: 18, letterSpacing: 0.3 }}>{bodega}</div>
           </div>
-          <div style={{ fontSize: 12 }}>Boleta: {boleta}</div>
-          <div style={{ fontSize: 12 }}>{fecha}</div>
-          <div style={{ fontSize: 12 }}>Cliente: {cliente}</div>
+          <div style={{ fontSize: 12 }}>Tu boleta se emitió correctamente</div>
           {anulada && <div style={{ fontWeight: 900, fontSize: 14, marginTop: 3 }}>*** ANULADA ***</div>}
 
-          <div style={lineaSolida}></div>
+          <CorteTicket />
+          <div style={{ display: 'flex', justifyContent: 'space-between', textAlign: 'left' }}>
+            <div>
+              <div style={etiqueta}>Boleta</div>
+              <div style={{ fontSize: 14 }}>{boleta}</div>
+            </div>
+            <div style={{ textAlign: 'right' }}>
+              <div style={etiqueta}>Fecha y hora</div>
+              <div style={{ fontSize: 12 }}>{fecha}</div>
+            </div>
+          </div>
+          <div style={{ border: '2px solid #000', borderRadius: 8, padding: '4px 8px', marginTop: 6, textAlign: 'left', display: 'flex', justifyContent: 'space-between', fontSize: 12 }}>
+            <span>{cliente}</span>
+            <span>{medioPago}</span>
+          </div>
+
+          <CorteTicket />
           <div style={{ textAlign: 'left' }}>
             {items.map((it, i) => (
               <div key={i} style={{ marginBottom: 5 }}>
@@ -286,7 +329,7 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
               </div>
             ))}
           </div>
-          <div style={lineaSolida}></div>
+          <div style={{ borderTop: '2px dashed #000', margin: '6px 0' }}></div>
           {descuento > 0 && (
             <>
               <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12 }}>
@@ -297,19 +340,21 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
               </div>
             </>
           )}
-          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12 }}>
-            <span>Medio de pago:</span><span>{medioPago}</span>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginTop: 4, textAlign: 'left' }}>
+            <span style={etiqueta}>Monto</span>
+            <span style={{ fontSize: 22, fontWeight: 900 }}>S/ {Number(total).toFixed(2)}</span>
           </div>
-          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 18, fontWeight: 900, marginTop: 4 }}>
-            <span>TOTAL</span><span>S/ {Number(total).toFixed(2)}</span>
-          </div>
-          <div style={lineaSolida}></div>
 
+          <CorteTicket />
           <div style={{ fontSize: 10, lineHeight: 1.3 }}>
             Documento sin valor tributario.
             <br />No válido como comprobante de pago ante SUNAT. Solo informativo.
           </div>
           <div style={{ fontSize: 13, fontWeight: 900, marginTop: 8 }}>¡Gracias por su compra!</div>
+          {/* Borde inferior en festón, como el papel de la pantalla */}
+          <svg viewBox="0 0 192 8" width="100%" height="12" preserveAspectRatio="none" style={{ display: 'block', marginTop: 8 }} aria-hidden="true">
+            <path d={`M0 0 ${festones}`} fill="none" stroke="#000" strokeWidth="1.6" />
+          </svg>
         </div>
       );
     }
@@ -8193,6 +8238,7 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
             telefono: clienteActual?.telefono || '',
             cajero: cajeroSeleccionado?.nombre || usuarioActivo?.nombre || 'Cajero',
             fecha: new Date().toLocaleTimeString(),
+            fecha_hora: new Date().toISOString(),
             offline: seVendioOffline
           };
 
@@ -8228,27 +8274,64 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
       };
 
       // Genera la boleta como PDF con formato de ticket angosto (80mm),
-      // igual al que se usaría en una impresora térmica.
+      // igual al que se usaría en una impresora térmica. Mismo diseño que la
+      // pantalla de venta exitosa: líneas de corte punteadas con muescas a los
+      // lados, boleta y fecha en dos columnas, y borde inferior en festón.
       const generarPDFBoleta = async (venta) => {
         await asegurarJsPDF();
         const { jsPDF } = window.jspdf;
         const items = venta.items || [];
-        const alturaEstimada = 58 + items.length * 9 + items.reduce((a, it) => a + detalleComboTicket(it).length * 3.6, 0) + (venta.descuento > 0 ? 10 : 0);
-        const doc = new jsPDF({ unit: 'mm', format: [80, Math.max(100, alturaEstimada)] });
+        const alturaEstimada = 84 + items.length * 9 + items.reduce((a, it) => a + detalleComboTicket(it).length * 3.6, 0) + (venta.descuento > 0 ? 10 : 0);
+        const alto = Math.max(110, alturaEstimada);
+        const doc = new jsPDF({ unit: 'mm', format: [80, alto] });
         let y = 8;
+
+        // Línea de corte: punteada, con una muesca redonda en cada borde del papel.
+        const corte = () => {
+          if (doc.setLineDashPattern) doc.setLineDashPattern([1.2, 1.2], 0);
+          doc.line(5, y, 75, y);
+          if (doc.setLineDashPattern) doc.setLineDashPattern([], 0);
+          doc.setFillColor(255, 255, 255);
+          doc.circle(0, y, 2.4, 'FD');
+          doc.circle(80, y, 2.4, 'FD');
+          y += 5;
+        };
+        const rotulo = (txt, x, yy, opciones) => {
+          doc.setFont(undefined, 'bold');
+          doc.setFontSize(6);
+          doc.text(txt.toUpperCase(), x, yy, opciones);
+        };
 
         doc.setFont(undefined, 'bold');
         doc.setFontSize(11);
         doc.text(bodegaNombre, 40, y, { align: 'center' });
-        y += 6;
+        y += 5;
+        doc.setFont(undefined, 'normal');
+        doc.setFontSize(7.5);
+        doc.text('Tu boleta se emitió correctamente', 40, y, { align: 'center' });
+        y += 5;
+
+        corte();
+        rotulo('Boleta', 4, y);
+        rotulo('Fecha y hora', 76, y, { align: 'right' });
+        y += 4;
+        doc.setFont(undefined, 'bold');
+        doc.setFontSize(9);
+        doc.text(String(venta.nro_boleta), 4, y);
         doc.setFont(undefined, 'normal');
         doc.setFontSize(8);
-        doc.text(`Boleta: ${venta.nro_boleta}`, 40, y, { align: 'center' }); y += 4;
-        doc.text(venta.fecha || new Date().toLocaleString('es-PE'), 40, y, { align: 'center' }); y += 4;
-        doc.text(`Cliente: ${venta.cliente}`, 40, y, { align: 'center' }); y += 5;
-        doc.line(4, y, 76, y); y += 5;
+        doc.text(formatoFechaHoraBoleta(venta.fecha_hora), 76, y, { align: 'right' });
+        y += 4;
+        doc.roundedRect(4, y, 72, 8, 2, 2, 'S');
+        doc.setFontSize(8);
+        doc.text(doc.splitTextToSize(String(venta.cliente), 40)[0], 7, y + 5);
+        doc.text(String(venta.medio_pago), 73, y + 5, { align: 'right' });
+        y += 13;
+
+        corte();
 
         items.forEach((it) => {
+          doc.setFont(undefined, 'normal');
           doc.setFontSize(8);
           const lineas = doc.splitTextToSize(it.descripcion, 72);
           doc.text(lineas, 4, y);
@@ -8265,25 +8348,26 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
           });
         });
 
-        doc.line(4, y, 76, y); y += 5;
+        if (doc.setLineDashPattern) doc.setLineDashPattern([1.2, 1.2], 0);
+        doc.line(4, y, 76, y);
+        if (doc.setLineDashPattern) doc.setLineDashPattern([], 0);
+        y += 5;
 
+        doc.setFontSize(8);
         if (venta.descuento > 0) {
           doc.text('Subtotal:', 4, y); doc.text(`S/ ${venta.subtotal.toFixed(2)}`, 76, y, { align: 'right' }); y += 4;
           doc.text('Descuento:', 4, y); doc.text(`-S/ ${venta.descuento.toFixed(2)}`, 76, y, { align: 'right' }); y += 5;
         }
 
+        rotulo('Monto', 4, y);
         doc.setFont(undefined, 'bold');
-        doc.setFontSize(10);
-        doc.text('TOTAL:', 4, y);
+        doc.setFontSize(14);
         doc.text(`S/ ${venta.total_venta.toFixed(2)}`, 76, y, { align: 'right' });
-        y += 6;
+        y += 8;
+
+        corte();
 
         doc.setFont(undefined, 'normal');
-        doc.setFontSize(8);
-        doc.text(`Pago: ${venta.medio_pago}`, 4, y);
-        y += 6;
-        doc.line(4, y, 76, y); y += 5;
-
         doc.setFontSize(7);
         const disclaimer = doc.splitTextToSize(
           'Documento sin valor tributario. No válido como comprobante de pago ante SUNAT. Solo informativo.',
@@ -8295,6 +8379,10 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
         doc.setFont(undefined, 'bold');
         doc.setFontSize(9);
         doc.text('¡Gracias por su compra!', 40, y, { align: 'center' });
+
+        // Borde inferior en festón: semicírculos blancos con contorno sobre el borde del papel.
+        doc.setFillColor(255, 255, 255);
+        for (let x = 6; x < 80; x += 12) doc.circle(x, alto, 4.5, 'FD');
 
         return doc;
       };
@@ -8367,11 +8455,13 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
         cmd(0x1B, 0x45, 0x01); // negrita on
         texto(bodegaNombre); salto();
         cmd(0x1B, 0x45, 0x00); // negrita off
-        texto(`Boleta: ${venta.nro_boleta}`); salto();
-        texto(venta.fecha || new Date().toLocaleString('es-PE')); salto();
-        texto(`Cliente: ${venta.cliente}`); salto();
+        texto('Tu boleta se emitio correctamente'); salto();
         cmd(0x1B, 0x61, 0x00); // izquierda
-        texto('-'.repeat(ANCHO)); salto();
+        texto('- '.repeat(ANCHO / 2)); salto();
+        texto(`BOLETA        ${venta.nro_boleta}`); salto();
+        texto(`FECHA Y HORA  ${formatoFechaHoraBoleta(venta.fecha_hora)}`); salto();
+        texto(`CLIENTE       ${venta.cliente}`); salto();
+        texto('- '.repeat(ANCHO / 2)); salto();
 
         (venta.items || []).forEach((it) => {
           texto(it.descripcion); salto();
@@ -8382,13 +8472,13 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
           detalleComboTicket(it).forEach((l) => { texto('  - ' + l.slice(0, ANCHO - 4)); salto(); });
         });
 
-        texto('-'.repeat(ANCHO)); salto();
+        texto('- '.repeat(ANCHO / 2)); salto();
         if (venta.descuento > 0) {
           texto(`Subtotal:${' '.repeat(Math.max(1, ANCHO - 9 - 12))}S/ ${venta.subtotal.toFixed(2)}`); salto();
           texto(`Descuento:${' '.repeat(Math.max(1, ANCHO - 10 - 12))}-S/ ${venta.descuento.toFixed(2)}`); salto();
         }
         cmd(0x1B, 0x45, 0x01);
-        texto(`TOTAL: S/ ${venta.total_venta.toFixed(2)}`); salto();
+        texto(`MONTO: S/ ${venta.total_venta.toFixed(2)}`); salto();
         cmd(0x1B, 0x45, 0x00);
         texto(`Pago: ${venta.medio_pago}`); salto(2);
 
@@ -15934,75 +16024,78 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
             </div>
           )}
 
-          {/* Modal: Boleta Emitida */}
+          {/* Modal: Boleta Emitida -- ticket con muescas y borde en festón */}
           {ventaCompletada && (
-            <div className="fixed inset-0 bg-stone-900/30 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-              <div className="bg-gradient-to-br from-[#f4effc] via-[#f9f8fb] to-[#f5f4f8] border border-white/80 rounded-[28px] max-w-sm w-full p-5 pt-6 shadow-2xl text-center">
-                <div className="w-[60px] h-[60px] mx-auto rounded-full bg-[#6105dc] text-white flex items-center justify-center ring-8 ring-[#6105dc]/10">
-                  <IconoTrazo nombre="check" className="w-7 h-7" grosor={2.6} />
-                </div>
-                <h3 className="text-[22px] font-bold tracking-tight text-stone-900 mt-4">¡Venta exitosa!</h3>
-                <span className="inline-block mt-1.5 text-xs font-semibold text-[#6105dc] bg-[#ece0fd] px-3 py-1 rounded-full tabular-nums">
-                  Boleta {ventaCompletada.nro_boleta}
-                </span>
-                {ventaCompletada.offline && (
-                  <div className="mt-2.5 text-xs text-amber-700 bg-amber-50 rounded-2xl px-3 py-2 flex items-start gap-2 text-left leading-snug">
-                    <IconoTrazo nombre="cloud" className="w-4 h-4 shrink-0 mt-px" />
-                    <span>Guardada sin conexión. Se sincronizará sola cuando vuelva el internet.</span>
-                  </div>
-                )}
-                <div className="bg-white rounded-[20px] px-3.5 py-1.5 text-left mt-4 text-[13.5px]">
-                  <div className="flex justify-between items-baseline gap-3 py-2.5 border-b border-stone-100">
-                    <span className="text-stone-400">Pago</span>
-                    <b className="font-semibold text-stone-900">{String(ventaCompletada.medio_pago || '').charAt(0) + String(ventaCompletada.medio_pago || '').slice(1).toLowerCase()}</b>
-                  </div>
-                  <div className="flex justify-between items-baseline gap-3 py-2.5 border-b border-stone-100">
-                    <span className="text-stone-400">Cliente</span>
-                    <b className="font-semibold text-stone-900 text-right">{ventaCompletada.cliente}</b>
-                  </div>
-                  {ventaCompletada.descuento > 0 && (
-                    <>
-                      <div className="flex justify-between items-baseline gap-3 py-2.5 border-b border-stone-100">
-                        <span className="text-stone-400">Subtotal</span>
-                        <b className="font-semibold text-stone-900 tabular-nums">S/ {formatoSoles(ventaCompletada.subtotal)}</b>
+            <div className="fixed inset-0 bg-stone-900/30 backdrop-blur-sm z-50 overflow-y-auto">
+              <div className="min-h-full flex items-center justify-center p-4">
+                <div className="bol-ticket">
+                  <div className="bol-a">
+                    <div className="bol-ok">
+                      <span className="bol-ok-c"><IconoTrazo nombre="check" className="w-7 h-7" grosor={2.6} /></span>
+                      {CONFETI_BOLETA.map(([color, x, y, t], i) => (
+                        <i key={i} style={{ background: color, width: t, height: t, left: `calc(50% - ${t / 2}px)`, top: `calc(50% - ${t / 2}px)`, '--x': `${x}px`, '--y': `${y}px`, animationDelay: `${0.45 + i * 0.04}s` }}></i>
+                      ))}
+                    </div>
+                    <h3>¡Venta exitosa!</h3>
+                    <p className="bol-sub">Tu boleta se emitió correctamente</p>
+                    {ventaCompletada.offline && (
+                      <div className="bol-off">
+                        <IconoTrazo nombre="cloud" className="w-4 h-4 shrink-0 mt-px" />
+                        <span>Guardada sin conexión. Se sincronizará sola cuando vuelva el internet.</span>
                       </div>
-                      <div className="flex justify-between items-baseline gap-3 py-2.5 border-b border-stone-100">
-                        <span className="text-stone-400">Descuento</span>
-                        <b className="font-semibold text-rose-600 tabular-nums">− S/ {formatoSoles(ventaCompletada.descuento)}</b>
+                    )}
+                  </div>
+                  <div className="bol-b">
+                    <div className="bol-g">
+                      <div>
+                        <small>Boleta</small>
+                        <b>{ventaCompletada.nro_boleta}</b>
                       </div>
-                    </>
-                  )}
-                  <div className="flex justify-between items-baseline pt-3 pb-2">
-                    <span className="text-[13px] font-semibold text-stone-400">Total</span>
-                    <b className="text-[30px] font-bold tracking-tight text-stone-900 tabular-nums">
-                      <small className="text-sm font-semibold text-stone-500 mr-1">S/</small>{formatoSoles(ventaCompletada.total_venta)}
-                    </b>
+                      <div className="bol-der">
+                        <small>Monto</small>
+                        <b className="bol-monto"><s>S/</s>{formatoSoles(ventaCompletada.total_venta)}</b>
+                      </div>
+                      {ventaCompletada.descuento > 0 && (
+                        <div className="bol-desc">
+                          <span>Subtotal <b>S/ {formatoSoles(ventaCompletada.subtotal)}</b></span>
+                          <span className="bol-neg">Descuento − S/ {formatoSoles(ventaCompletada.descuento)}</span>
+                        </div>
+                      )}
+                      <div className="bol-fecha">
+                        <small>Fecha y hora</small>
+                        <b>{formatoFechaHoraBoleta(ventaCompletada.fecha_hora)}</b>
+                      </div>
+                    </div>
+                    <div className="bol-cli">
+                      <span className="bol-mp"><IconoTrazo nombre={ICONO_MEDIO_PAGO[String(ventaCompletada.medio_pago || '').toUpperCase()] || 'efectivo'} className="w-5 h-5" /></span>
+                      <div className="min-w-0">
+                        <b>{ventaCompletada.cliente}</b>
+                        <span>{String(ventaCompletada.medio_pago || '').charAt(0) + String(ventaCompletada.medio_pago || '').slice(1).toLowerCase()}</span>
+                      </div>
+                    </div>
+                    <button onClick={() => setVentaCompletada(null)} className="bol-nv">
+                      Nueva venta
+                    </button>
+                    <div className="bol-sec">
+                      <button onClick={() => window.print()}>
+                        <IconoTrazo nombre="print" className="w-[15px] h-[15px]" /> Imprimir
+                      </button>
+                      <button onClick={() => enviarBoletaWhatsApp(ventaCompletada)}>
+                        <IconoTrazo nombre="chat" className="w-[15px] h-[15px]" /> WhatsApp
+                      </button>
+                      {typeof navigator !== 'undefined' && navigator.bluetooth && (
+                        <button onClick={() => imprimirBoletaBluetooth(ventaCompletada)}>
+                          <IconoTrazo nombre="bluetooth" className="w-[15px] h-[15px]" /> Ticketera
+                        </button>
+                      )}
+                    </div>
                   </div>
                 </div>
-                <button onClick={() => setVentaCompletada(null)} className="w-full mt-3.5 py-3.5 bg-[#6105dc] hover:bg-[#4d04b0] active:scale-[0.98] text-white font-semibold text-[15px] rounded-full transition">
-                  Nueva venta
-                </button>
-                <div className="flex gap-2 mt-2.5">
-                  <button onClick={() => window.print()} className="flex-1 flex items-center justify-center gap-1.5 py-2.5 bg-white hover:bg-[#f4eefe] text-stone-800 font-semibold text-[12.5px] rounded-full ring-1 ring-[#6105dc]/10 hover:ring-[#d6bdfa] transition whitespace-nowrap">
-                    <IconoTrazo nombre="print" className="w-[15px] h-[15px] text-[#6105dc]" /> Imprimir
-                  </button>
-                  <button onClick={() => enviarBoletaWhatsApp(ventaCompletada)} className="flex-1 flex items-center justify-center gap-1.5 py-2.5 bg-white hover:bg-[#f4eefe] text-stone-800 font-semibold text-[12.5px] rounded-full ring-1 ring-[#6105dc]/10 hover:ring-[#d6bdfa] transition whitespace-nowrap">
-                    <IconoTrazo nombre="chat" className="w-[15px] h-[15px] text-[#6105dc]" /> WhatsApp
-                  </button>
-                </div>
-                {typeof navigator !== 'undefined' && navigator.bluetooth && (
-                  <button
-                    onClick={() => imprimirBoletaBluetooth(ventaCompletada)}
-                    className="w-full mt-2 flex items-center justify-center gap-1.5 py-2.5 bg-white hover:bg-[#f4eefe] text-stone-800 font-semibold text-[12.5px] rounded-full ring-1 ring-[#6105dc]/10 hover:ring-[#d6bdfa] transition"
-                  >
-                    <IconoTrazo nombre="bluetooth" className="w-[15px] h-[15px] text-[#6105dc]" /> Ticketera Bluetooth
-                  </button>
-                )}
               </div>
               <ReciboImprimible
                 bodega={bodegaNombre}
                 boleta={ventaCompletada.nro_boleta}
-                fecha={new Date().toLocaleString('es-PE')}
+                fecha={formatoFechaHoraBoleta(ventaCompletada.fecha_hora)}
                 cliente={ventaCompletada.cliente}
                 medioPago={ventaCompletada.medio_pago}
                 items={ventaCompletada.items || []}
@@ -16060,7 +16153,7 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
               <ReciboImprimible
                 bodega={bodegaNombre}
                 boleta={reciboReimpresion.nro_boleta}
-                fecha={new Date(reciboReimpresion.fecha_hora).toLocaleString('es-PE')}
+                fecha={formatoFechaHoraBoleta(reciboReimpresion.fecha_hora)}
                 cliente={reciboReimpresion.clientes?.nombre_completo || 'Cliente'}
                 medioPago={reciboReimpresion.medio_pago}
                 items={(reciboReimpresion.ventas_detalle || []).map(d => ({
