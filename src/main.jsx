@@ -627,6 +627,24 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
     }
 
 
+    // Tono del panel de la tarjeta según la categoría: las categorías las pone
+    // cada negocio, así que el tono sale de un hash estable del nombre (la misma
+    // categoría siempre queda del mismo color). Sin categoría: lila de marca.
+    const TONOS_TARJETA = [
+      { t: '#ece0fd', td: '#6a3fc4' },
+      { t: '#dfeafd', td: '#3b66b8' },
+      { t: '#fde8d6', td: '#c0662a' },
+      { t: '#fff1c7', td: '#a97c10' },
+      { t: '#dcf3e6', td: '#238458' },
+      { t: '#fde3ea', td: '#c0405f' },
+    ];
+    function tonoCategoria(categoria) {
+      if (!categoria) return TONOS_TARJETA[0];
+      let h = 0;
+      for (const ch of String(categoria).toLowerCase()) h = (h * 31 + ch.charCodeAt(0)) >>> 0;
+      return TONOS_TARJETA[h % TONOS_TARJETA.length];
+    }
+
     // Tarjeta de producto de la grilla principal, memoizada: como el catálogo
     // puede tener cientos de tarjetas, sin esto cualquier cambio de estado en
     // PosApp (escribir en el buscador, tocar el carrito, un aviso, etc.)
@@ -638,95 +656,90 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
       const hayStock = stock !== null && stock !== undefined;
       const sinStock = hayStock && Number(stock) <= 0;
       const stockBajo = hayStock && !sinStock && Number(stock) <= Number(prod.stock_min || 5);
+      const tono = tonoCategoria(prod.categoria);
+      // Franja inferior del panel: un solo lugar para el aviso que importa.
+      const aviso = sinStock
+        ? { texto: 'Sin stock', clase: 'kc-banda-bad', icono: 'fa-triangle-exclamation' }
+        : stockBajo
+          ? { texto: `Quedan ${stock}`, clase: 'kc-banda-warn', icono: 'fa-triangle-exclamation' }
+          : prod.es_destacado
+            ? { texto: 'Destacado en Delivery', clase: '', icono: 'fa-star' }
+            : null;
       return (
         <div
           role="button"
           tabIndex={0}
           onClick={() => onSelect(prod)}
           onKeyDown={(e) => { if (e.key === 'Enter') onSelect(prod); }}
-          className={`relative text-left rounded-[28px] p-2.5 flex flex-col border border-white/80 transition-all duration-500 ease-out hover:scale-[1.025] active:scale-[0.975] group cursor-pointer ${
-            enCarrito > 0
-              ? 'bg-gradient-to-br from-[#d9f5e5] to-[#f6fffa]'
-              : 'bg-gradient-to-br from-[#f1eafd] to-[#fbfaff]'
-          }`}
+          className={`kc kc-pos group ${enCarrito > 0 ? 'kc-en' : ''}`}
+          style={{ '--t': tono.t, '--td': tono.td }}
         >
-          {/* Marco fijo: todas las fotos entran en el mismo cuadro, sin
-              recortarse, sea alta como una botella o cuadrada como una bolsa. */}
-          <div className="relative w-full aspect-[4/3] rounded-[20px] overflow-hidden bg-white ring-1 ring-black/5">
-            {prod.foto_url ? (
-              <img
-                src={prod.foto_url}
-                alt=""
-                loading="lazy"
-                className={`w-full h-full object-contain p-2 transition-transform duration-500 group-hover:scale-105 ${sinStock ? 'opacity-40 grayscale' : ''}`}
-              />
-            ) : (
-              <FotoProducto
-                fotoUrl=""
-                categoria={prod.categoria}
-                className={`w-full h-full ${sinStock ? 'opacity-40 grayscale' : ''}`}
-                iconClassName="text-4xl opacity-90"
-              />
-            )}
-            {esAdmin && (
-              <button
-                type="button"
-                onClick={(e) => { e.stopPropagation(); onEdit(prod); }}
-                className="absolute bottom-2 right-2 w-7 h-7 flex items-center justify-center bg-white/80 hover:bg-white backdrop-blur text-stone-500 hover:text-[#6105dc] rounded-full shadow-sm opacity-0 group-hover:opacity-100 focus:opacity-100 [@media(hover:none)]:opacity-100 transition"
-                title="Editar producto"
-              >
-                <i className="fa-solid fa-pen text-[10px]"></i>
-              </button>
-            )}
-            {tieneCombo && (
-              <button
-                type="button"
-                onClick={(e) => { e.stopPropagation(); onVerCombo?.(prod); }}
-                className="absolute top-2 left-2 w-7 h-7 flex items-center justify-center text-[11px] text-white bg-[#6105dc] hover:bg-[#4d04b0] rounded-full"
-                title="Este producto es parte de un combo -- toca para verlo"
-              >
-                <i className="fa-solid fa-gift"></i>
-              </button>
-            )}
-            {enCarrito > 0 && (
-              <span className="absolute top-2 right-2 text-[11px] font-bold text-white bg-emerald-600 pl-2 pr-2.5 py-1 rounded-full flex items-center gap-1 tabular-nums">
-                <i className="fa-solid fa-check text-[10px]"></i> {enCarrito}
-              </span>
-            )}
+          <div className="kc-fw">
+            {/* Marco fijo: todas las fotos entran en el mismo cuadro, sin
+                recortarse, sea alta como una botella o cuadrada como una bolsa. */}
+            <div className="kc-panel">
+              {prod.foto_url ? (
+                <div className={`kc-foto ${sinStock ? 'kc-foto-sin' : ''}`}>
+                  <img src={prod.foto_url} alt="" loading="lazy" />
+                </div>
+              ) : (
+                <FotoProducto
+                  fotoUrl=""
+                  categoria={prod.categoria}
+                  className={`w-full h-full ${sinStock ? 'opacity-40 grayscale' : ''}`}
+                  iconClassName="text-4xl opacity-90"
+                />
+              )}
+              {aviso && (
+                <div className={`kc-banda ${aviso.clase}`}>
+                  <i className={`fa-solid ${aviso.icono}`}></i>
+                  {aviso.texto}
+                </div>
+              )}
+              {esAdmin && (
+                <button
+                  type="button"
+                  onClick={(e) => { e.stopPropagation(); onEdit(prod); }}
+                  className="kc-edit"
+                  title="Editar producto"
+                >
+                  <i className="fa-solid fa-pen"></i>
+                </button>
+              )}
+            </div>
+            <div className="kc-precio"><small>S/</small>{Number(prod.precio_venta).toFixed(2)}</div>
+            <div className="kc-top">
+              {enCarrito > 0 && (
+                <span className="kc-enc"><i className="fa-solid fa-check"></i> {enCarrito}</span>
+              )}
+              {tieneCombo && (
+                <button
+                  type="button"
+                  onClick={(e) => { e.stopPropagation(); onVerCombo?.(prod); }}
+                  className="kc-circ kc-circ-combo"
+                  title="Este producto es parte de un combo -- toca para verlo"
+                >
+                  <i className="fa-solid fa-gift"></i>
+                </button>
+              )}
+            </div>
           </div>
 
-          <div className="px-1 pt-2.5 flex flex-col gap-px min-w-0">
-            <p className="text-[11px] font-semibold text-black/45 truncate">{prod.categoria || 'General'}</p>
-            <h3 className="text-sm font-semibold text-stone-900 line-clamp-2 leading-snug break-words">
-              {prod.descripcion}
-            </h3>
-          </div>
-
-          {/* Si el precio y el stock no caben en una línea (tarjeta angosta), el
-              stock baja debajo del precio en vez de montarse encima. */}
-          <div className="mt-auto flex flex-wrap items-baseline justify-between gap-x-2 gap-y-0.5 px-1 pt-2 pb-1.5">
-            <div className="flex items-center gap-1.5 flex-wrap max-w-full">
-              <span className="text-[22px] font-bold text-stone-900 tabular-nums tracking-tight whitespace-nowrap">
-                <small className="text-[12px] font-semibold text-stone-500 mr-0.5">S/</small>{Number(prod.precio_venta).toFixed(2)}
-              </span>
-              {prod.es_destacado && (
-                <span className="text-[9px] text-[#6105dc]" title="Destacado en Delivery"><i className="fa-solid fa-star"></i></span>
-              )}
-              {prod.unidad === 'KG' && (
-                <span className="text-[10px] font-bold text-stone-600 bg-white/70 px-1.5 py-0.5 rounded-full">KG</span>
-              )}
+          <div className="kc-body">
+            <h3>{prod.descripcion}</h3>
+            <div className="kc-chips">
+              <span className="kc-chip">{prod.categoria || 'General'}</span>
+              {prod.unidad === 'KG' && <span className="kc-chip">Por KG</span>}
               {Number(prod.unidades_por_pack) > 1 && (
-                <span className="text-[10px] font-bold text-stone-600 bg-white/70 px-1.5 py-0.5 rounded-full flex items-center gap-1">
-                  <i className="fa-solid fa-boxes-packing"></i> x{prod.unidades_por_pack}
+                <span className="kc-chip"><i className="fa-solid fa-boxes-packing"></i> x{prod.unidades_por_pack}</span>
+              )}
+              {hayStock && (
+                <span className={`kc-chip kc-chip-stock ${sinStock ? 'kc-sin' : stockBajo ? 'kc-bajo' : ''}`}>
+                  <i className="kc-dot"></i>
+                  {sinStock ? 'Sin stock' : stockBajo ? `Quedan ${stock}` : `${stock} disp.`}
                 </span>
               )}
             </div>
-            {hayStock && (
-              <span className={`text-xs flex items-center gap-1.5 shrink-0 ${sinStock ? 'text-rose-600' : stockBajo ? 'text-amber-700' : 'text-stone-600'}`}>
-                <i className={`w-1.5 h-1.5 rounded-full ${sinStock ? 'bg-rose-500' : stockBajo ? 'bg-amber-500' : 'bg-emerald-500'}`}></i>
-                {sinStock ? 'Sin stock' : stockBajo ? `Quedan ${stock}` : `${stock} disp.`}
-              </span>
-            )}
           </div>
         </div>
       );

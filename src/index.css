@@ -177,3 +177,178 @@
   to { opacity: 1; transform: none; }
 }
 @media (prefers-reduced-motion: reduce) { .kd-hoja { animation: none; } }
+
+/* Tarjeta de producto del catálogo del POS: panel de color por categoría,
+   precio en una muesca arriba a la derecha y franja inferior para avisos
+   (Sin stock, Quedan N, Destacado). La foto se funde con el panel (multiply)
+   para que las fotos de catálogo con fondo blanco no dejen una caja blanca.
+   Misma tarjeta que la tienda de Delivery, sin botón: se toca toda. */
+.kc {
+  container-type: inline-size;
+  container-name: kc;
+  position: relative;
+  background: #fff;
+  border-radius: 26px;
+  padding: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  box-shadow: 0 0 0 1px #efe6fc, 0 10px 24px -16px rgba(97, 5, 220, 0.28);
+}
+.kc-pos { cursor: pointer; text-align: left; transition: transform 0.25s ease, box-shadow 0.25s ease; }
+.kc-pos:hover { transform: translateY(-2px); }
+.kc-pos:active { transform: scale(0.98); }
+.kc-en { box-shadow: 0 0 0 1.5px #86d4ad, 0 10px 24px -16px rgba(5, 150, 105, 0.35); }
+.kc-fw { position: relative; }
+.kc-panel {
+  position: relative;
+  aspect-ratio: 4 / 3.5;
+  border-radius: 20px;
+  background: var(--t);
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding-bottom: 22px;
+}
+.kc-en .kc-panel { --t: #d9f2e4; --td: #1f8a5b; }
+.kc-foto {
+  width: 78%;
+  height: 78%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  mix-blend-mode: multiply;
+  transition: transform 0.5s ease;
+}
+.kc-pos:hover .kc-foto { transform: scale(1.05); }
+.kc-foto img { width: 100%; height: 100%; object-fit: contain; }
+.kc-foto-sin { opacity: 0.4; filter: grayscale(1); }
+.kc-banda {
+  position: absolute;
+  left: 0; right: 0; bottom: 0;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  background: var(--td);
+  color: #fff;
+  font-size: 10.5px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+.kc-banda-warn { background: #b45309; }
+.kc-banda-bad { background: #be123c; }
+.kc-banda i { font-size: 10px; }
+.kc-precio {
+  position: absolute;
+  top: 0; right: 0;
+  background: #fff;
+  padding: 6px 4px 8px 12px;
+  border-bottom-left-radius: 18px;
+  font-weight: 800;
+  font-size: 17px;
+  line-height: 1;
+  letter-spacing: -0.01em;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  color: #1c1830;
+}
+.kc-precio small { font-size: 10.5px; font-weight: 700; color: #78729a; margin-right: 2px; }
+/* La muesca: el panel dobla hacia adentro donde el precio lo corta. */
+.kc-precio::before {
+  content: "";
+  position: absolute;
+  right: 100%; top: 0;
+  width: 16px; height: 16px;
+  background: radial-gradient(circle at 0 100%, transparent 15.5px, #fff 16px);
+}
+.kc-top { position: absolute; top: 8px; left: 8px; display: flex; gap: 6px; align-items: center; }
+.kc-enc {
+  background: #059669;
+  color: #fff;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 4px 10px 4px 8px;
+  border-radius: 9999px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-variant-numeric: tabular-nums;
+}
+.kc-enc i { font-size: 9px; }
+.kc-circ {
+  width: 28px; height: 28px;
+  border-radius: 9999px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  box-shadow: 0 1px 3px rgba(40, 20, 80, 0.15);
+}
+.kc-circ-combo { background: #6105dc; color: #fff; }
+.kc-circ-combo:hover { background: #4d04b0; }
+.kc-edit {
+  position: absolute;
+  bottom: 30px; right: 8px;
+  width: 28px; height: 28px;
+  border-radius: 9999px;
+  background: rgba(255, 255, 255, 0.85);
+  color: #78729a;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 10px;
+  box-shadow: 0 1px 3px rgba(40, 20, 80, 0.15);
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+.kc-pos:hover .kc-edit, .kc-edit:focus { opacity: 1; }
+.kc-edit:hover { background: #fff; color: #6105dc; }
+@media (hover: none) { .kc-edit { opacity: 1; } }
+.kc-body { padding: 0 4px 2px; display: flex; flex-direction: column; gap: 7px; }
+.kc-body h3 {
+  margin: 0;
+  font-size: 14.5px;
+  font-weight: 700;
+  line-height: 1.22;
+  color: #1c1830;
+  min-height: 35px;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  word-break: break-word;
+}
+.kc-chips { display: flex; flex-wrap: wrap; gap: 5px; }
+.kc-chip {
+  font-size: 10.5px;
+  font-weight: 600;
+  padding: 3px 9px;
+  border-radius: 9999px;
+  background: var(--t);
+  color: var(--td);
+  white-space: nowrap;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+.kc-dot { width: 6px; height: 6px; border-radius: 9999px; background: #10b981; }
+.kc-bajo .kc-dot { background: #f59e0b; }
+.kc-sin .kc-dot { background: #f43f5e; }
+@container kc (max-width: 150px) {
+  .kc-chips { display: none; }
+  /* En el POS el stock se queda aunque la tarjeta sea angosta: el cajero lo mira. */
+  .kc-pos .kc-chips { display: flex; }
+  .kc-pos .kc-chip:not(.kc-chip-stock) { display: none; }
+  .kc { padding: 6px; border-radius: 22px; }
+  .kc-panel { padding-bottom: 18px; border-radius: 16px; }
+  .kc-precio { font-size: 14px; padding: 5px 3px 7px 9px; border-bottom-left-radius: 14px; }
+  .kc-precio small { display: none; }
+  .kc-body h3 { font-size: 12.5px; min-height: 30px; }
+  .kc-banda { height: 20px; font-size: 9.5px; }
+}
