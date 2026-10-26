@@ -287,6 +287,40 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
       );
     }
 
+    // Imprime la boleta en una ventana propia y del tamaño justo: 80 mm de ancho y el
+    // largo exacto de la boleta. Así la ticketera no gasta papel de más (antes salía
+    // una hoja larga con la boleta chica arriba) ni achica el texto para que quepa.
+    function imprimirBoletaTermica() {
+      const origen = document.getElementById('recibo-imprimible');
+      if (!origen) { window.print(); return; }
+      const marco = document.createElement('iframe');
+      marco.setAttribute('aria-hidden', 'true');
+      marco.style.cssText = 'position:fixed;left:-9999px;top:0;width:80mm;height:10px;border:0;opacity:0;pointer-events:none;';
+      document.body.appendChild(marco);
+      const doc = marco.contentDocument;
+      doc.open();
+      doc.write('<!doctype html><html><head><meta charset="utf-8"><title>Boleta</title><style>'
+        + '*{box-sizing:border-box}html,body{margin:0;padding:0;background:#fff}'
+        + 'body{width:80mm;padding:2mm 4mm 8mm;font-family:"Courier New",monospace;color:#000;-webkit-print-color-adjust:exact;print-color-adjust:exact}'
+        + '#recibo-imprimible{width:100%;font-weight:700;text-align:center}'
+        + '</style></head><body></body></html>');
+      doc.close();
+      const copia = doc.importNode(origen, true);
+      copia.removeAttribute('class');
+      copia.removeAttribute('style');
+      copia.style.cssText = 'font-weight:700;text-align:center;width:100%';
+      doc.body.appendChild(copia);
+      const altoMm = Math.ceil((doc.documentElement.scrollHeight * 25.4) / 96) + 2;
+      const estilo = doc.createElement('style');
+      estilo.textContent = `@page{size:80mm ${altoMm}mm;margin:0}`;
+      doc.head.appendChild(estilo);
+      const quitar = () => { try { marco.remove(); } catch (e) { /* ya no está */ } };
+      marco.contentWindow.onafterprint = quitar;
+      marco.contentWindow.focus();
+      marco.contentWindow.print();
+      setTimeout(quitar, 60000);
+    }
+
     // Mensajes de error para la persona: si el sistema devolvió un texto claro en español
     // se muestra; si es un texto técnico (en inglés o de la base de datos) se cambia por
     // un aviso corto, y el detalle queda solo en la consola.
@@ -16260,7 +16294,7 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
                       Nueva venta
                     </button>
                     <div className="bol-sec">
-                      <button onClick={() => window.print()}>
+                      <button onClick={imprimirBoletaTermica}>
                         <IconoTrazo nombre="print" className="w-[15px] h-[15px]" /> Imprimir
                       </button>
                       <button onClick={() => enviarBoletaWhatsApp(ventaCompletada)}>
@@ -16333,7 +16367,7 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
                   </div>
                 </div>
                 <div className="flex gap-2">
-                  <button onClick={() => window.print()} className="flex-1 py-2 bg-stone-200 text-stone-900 font-bold text-xs rounded-xl"><i className="fa-solid fa-print mr-1"></i> Imprimir</button>
+                  <button onClick={imprimirBoletaTermica} className="flex-1 py-2 bg-stone-200 text-stone-900 font-bold text-xs rounded-xl"><i className="fa-solid fa-print mr-1"></i> Imprimir</button>
                   <button onClick={() => setReciboReimpresion(null)} className="flex-1 py-2 bg-stone-900 text-white font-bold text-xs rounded-xl shadow">Cerrar</button>
                 </div>
               </div>
