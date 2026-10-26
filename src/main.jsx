@@ -14442,7 +14442,7 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
                         )}
                       </div>
 
-                      {seccionDelivery('donde', 'ubicacion', 'Dónde y cuándo', `${direccionDelivery.trim() || 'Sin dirección'} · ${resumenHorarioDelivery(horarioDelivery)}`, (
+                      {seccionDelivery('donde', 'ubicacion', 'Ubicación y horarios', `${direccionDelivery.trim() || 'Sin dirección'} · ${resumenHorarioDelivery(horarioDelivery)}`, (
                         <>
                           <div>
                             <label className="text-[12.5px] font-semibold text-stone-700 block mb-1.5">Dirección de tu negocio</label>
@@ -14455,7 +14455,6 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
                                 className="w-full min-w-0 bg-transparent text-sm text-stone-900 placeholder:text-[#a9a3b8] focus:outline-none"
                               />
                             </div>
-                            <p className="text-[11.5px] text-stone-400 mt-1.5 leading-snug">Así tus clientes saben de dónde les vas a mandar el pedido.</p>
                           </div>
 
                           <div>
