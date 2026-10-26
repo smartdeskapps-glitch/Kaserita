@@ -287,6 +287,20 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
       );
     }
 
+    // Mensajes de error para la persona: si el sistema devolvió un texto claro en español
+    // se muestra; si es un texto técnico (en inglés o de la base de datos) se cambia por
+    // un aviso corto, y el detalle queda solo en la consola.
+    const TEXTO_TECNICO = /(violates|constraint|duplicate key|jwt|relation |column |function |permission denied|row-level|null value|syntax|fetch|network|timeout|failed|exception|undefined|\bpg|pgrst|supabase|postgres|schema|cannot|could not|invalid|already exists|\bnull\b)/i;
+    function mensajeError(err, base) {
+      const generico = 'No se pudo completar la acción';
+      const limpio = String(base || generico).replace(/[\s.:]+$/, '');
+      const m = String(err && err.message ? err.message : '').trim();
+      const claro = m.length > 8 && /^[¡¿A-ZÁÉÍÓÚ]/.test(m) && /[áéíóúñ¿¡]|\b(no|el|la|los|las|tu|tus|ya|de|que|para|se|elige|ingresa)\b/i.test(m) && !TEXTO_TECNICO.test(m);
+      if (claro) return limpio === generico ? m : `${limpio}: ${m}`;
+      if (err) console.warn(limpio, err);
+      return `${limpio}. Revisa tu conexión e inténtalo de nuevo.`;
+    }
+
     // Boleta impresa (térmica 58/80 mm): en blanco y negro, con el mismo orden de la
     // pantalla de venta exitosa. Las líneas que no tienen dato (dirección, teléfono,
     // cajero, recibido/vuelto) simplemente no se imprimen.
@@ -588,7 +602,7 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
           <p className={`${etiqueta} pt-2.5 pb-0.5`}>Monedas</p>
           {DENOMINACIONES.filter((d) => d < 10).map(fila)}
           <div className="flex justify-between items-center pt-2.5 pb-1.5 mt-1 border-t border-[#e4d6fb] text-[12.5px] font-bold">
-            <span>Total contado <b className="text-base font-extrabold ml-1.5">S/ {totalConteo(conteo).toFixed(2)}</b></span>
+            <span>Total contado en caja <b className="text-base font-extrabold ml-1.5">S/ {totalConteo(conteo).toFixed(2)}</b></span>
             <button type="button" onClick={() => onChange({})} className="text-xs font-bold text-stone-500 hover:text-stone-900 hover:bg-stone-100 rounded-lg px-1.5 py-1">Limpiar</button>
           </div>
         </div>
@@ -1286,7 +1300,7 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
           const { data } = sbClient.storage.from('Productos').getPublicUrl(ruta);
           setFormEditarProducto((prev) => ({ ...prev, foto_url: `${data.publicUrl}?t=${Date.now()}` }));
         } catch (err) {
-          notificar(`No se pudo subir la foto: ${err.message}`, 'error');
+          notificar(mensajeError(err, 'No se pudo subir la foto'), 'error');
         } finally {
           setSubiendoFotoProducto(false);
         }
@@ -1316,7 +1330,7 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
           const { data } = sbClient.storage.from('Productos').getPublicUrl(ruta);
           setFormEditarProducto((prev) => ({ ...prev, fotos_extra: [...(prev.fotos_extra || []), `${data.publicUrl}?t=${Date.now()}`] }));
         } catch (err) {
-          notificar(`No se pudo subir la foto: ${err.message}`, 'error');
+          notificar(mensajeError(err, 'No se pudo subir la foto'), 'error');
         } finally {
           setSubiendoFotoExtra(false);
         }
@@ -1467,7 +1481,7 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
       // Paso del stepper de "Registrar Productos" (1 producto, 2 precio, 3 revisar).
       const [pasoInventario, setPasoInventario] = useState(1);
 
-      // --- Módulo: Importar del Catálogo Maestro -- banco de productos que
+      // --- Módulo: Importar productos de Kaserita -- banco de productos que
       // administra Kaserita (descripción + categoría + foto); la bodega
       // busca uno y le pone su propio precio/costo/stock antes de sumarlo
       // a su inventario. No existe en Modo Demo (no hay sesión real). ---
@@ -1631,7 +1645,7 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
           setFormPinDueno({ actual: '', nuevo: '', repetir: '' });
           notificar('PIN actualizado. Usalo la próxima vez que inicies sesión.', 'success');
         } catch (err) {
-          notificar(`No se pudo cambiar el PIN: ${err.message}`, 'error');
+          notificar(mensajeError(err, 'No se pudo cambiar el PIN'), 'error');
         } finally {
           setCambiandoPinDueno(false);
         }
@@ -1922,7 +1936,7 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
           notificar(`Aviso en camino a ${data} cliente${data === 1 ? '' : 's'}.`, 'success');
           await cargarResumenAvisos();
         } catch (err) {
-          notificar(err.message || 'No se pudo enviar el aviso.', 'error');
+          notificar(mensajeError(err, 'No se pudo enviar el aviso.'), 'error');
         } finally {
           setEnviandoAviso(false);
         }
@@ -2035,7 +2049,7 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
           const { data } = sbClient.storage.from('Productos').getPublicUrl(ruta);
           setLogoUrlDelivery(`${data.publicUrl}?t=${Date.now()}`);
         } catch (err) {
-          notificar(`No se pudo subir el logo: ${err.message}`, 'error');
+          notificar(mensajeError(err, 'No se pudo subir el logo'), 'error');
         } finally {
           setSubiendoLogoDelivery(false);
         }
@@ -2048,7 +2062,7 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
         }
         const slugLimpio = normalizarSlugDelivery(slugDelivery);
         if (deliveryHabilitado && !slugLimpio) {
-          notificar('Elige un link antes de activar el catálogo público.', 'error');
+          notificar('Elige un link antes de mostrar tu tienda al público.', 'error');
           return;
         }
         const aNumero = (t) => Math.max(0, parseFloat(String(t).replace(',', '.')) || 0);
@@ -2098,7 +2112,7 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
               p_horario_atencion: horarioDelivery,
             });
             if (errBodega) {
-              if (errBodega.code === '23505') throw new Error('Ese link ya lo está usando otra bodega. Contactá al administrador para que te asigne otro.');
+              if (errBodega.code === '23505') throw new Error('Ese link ya lo usa otra tienda. Escribe a soporte de Kaserita para que te asignen otro.');
               throw errBodega;
             }
             if (sesion?.usuario?.rol === 'dueno' && telefonoLimpio !== (sesion?.usuario?.telefono || '')) {
@@ -2130,7 +2144,7 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
           setSlugDelivery(slugLimpio);
           notificar('Listo, tu link de pedidos quedó actualizado.', 'success');
         } catch (err) {
-          notificar(err.message || 'No se pudo guardar los cambios.', 'error');
+          notificar(mensajeError(err, 'No se pudo guardar los cambios.'), 'error');
         } finally {
           setGuardandoDelivery(false);
         }
@@ -2155,7 +2169,7 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
           if (error) throw error;
           setPedidosRetirar(data || []);
         } catch (err) {
-          notificar(err.message || 'No se pudieron cargar los pedidos por retirar.', 'error');
+          notificar(mensajeError(err, 'No se pudieron cargar los pedidos por retirar.'), 'error');
         } finally {
           setCargandoPedidosRetirar(false);
         }
@@ -2169,7 +2183,7 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
           setPedidosRetirar((prev) => prev.map((p) => (p.id === id ? { ...p, estado: 'listo' } : p)));
           notificar('Pedido marcado como listo. El cliente ya lo puede ver.', 'success');
         } catch (err) {
-          notificar(err.message || 'No se pudo marcar el pedido.', 'error');
+          notificar(mensajeError(err, 'No se pudo marcar el pedido.'), 'error');
         } finally {
           setMarcandoListoId(null);
         }
@@ -2184,7 +2198,7 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
           setPedidosRetirar((prev) => prev.map((p) => (p.id === id ? { ...p, estado: 'en_camino' } : p)));
           notificar('Pedido en camino. El cliente ya lo ve así.', 'success');
         } catch (err) {
-          notificar(err.message || 'No se pudo marcar el pedido.', 'error');
+          notificar(mensajeError(err, 'No se pudo marcar el pedido.'), 'error');
         } finally {
           setProcesandoPedidoRetirarId(null);
         }
@@ -2334,7 +2348,7 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
           }
           notificar(`Pedido ${pedido.codigo_corto} marcado como retirado.`, 'success');
         } catch (err) {
-          notificar(err.message || 'No se pudo marcar el pedido.', 'error');
+          notificar(mensajeError(err, 'No se pudo marcar el pedido.'), 'error');
         } finally {
           setProcesandoPedidoRetirarId(null);
         }
@@ -2361,7 +2375,7 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
           setPedidosRetirar((prev) => prev.map((p) => (p.id === pedido.id ? { ...p, estado: 'cancelado' } : p)));
           notificar(`Pedido ${pedido.codigo_corto} eliminado.`, 'success');
         } catch (err) {
-          notificar(err.message || 'No se pudo eliminar el pedido.', 'error');
+          notificar(mensajeError(err, 'No se pudo eliminar el pedido.'), 'error');
         } finally {
           setProcesandoPedidoRetirarId(null);
         }
@@ -2447,7 +2461,7 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
             setBarberosConHorario(new Set((horarios || []).map((h) => h.barbero_id)));
           }
         } catch (err) {
-          notificar(`No se pudo cargar la lista de cajeros: ${err.message}`, 'error');
+          notificar(mensajeError(err, 'No se pudo cargar la lista de cajeros'), 'error');
         } finally {
           setCargandoCajerosGestion(false);
         }
@@ -2466,7 +2480,7 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
         if (!sbClient || esModoDemo) return;
         const { error } = await sbClient.from('cajeros').update({ [campo]: pct }).eq('id', barbero.id);
         if (error) {
-          notificar(`No se pudo guardar la comisión: ${error.message}`, 'error');
+          notificar(mensajeError(error, 'No se pudo guardar la comisión'), 'error');
           return;
         }
         setCajerosGestion((prev) => prev.map((c) => (c.id === barbero.id ? { ...c, [campo]: pct } : c)));
@@ -2520,7 +2534,7 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
             comision: +((f.servicios * f.pct / 100) + (f.productos * f.pctProductos / 100)).toFixed(2)
           })));
         } catch (err) {
-          notificar(`No se pudo cargar las comisiones: ${err.message}`, 'error');
+          notificar(mensajeError(err, 'No se pudo cargar las comisiones'), 'error');
           setFilasComisiones([]);
         } finally {
           setCargandoComisiones(false);
@@ -2545,7 +2559,7 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
           .eq('barbero_id', barbero.id)
           .order('desde', { ascending: true });
         if (error) {
-          notificar(`No se pudo cargar el horario: ${error.message}`, 'error');
+          notificar(mensajeError(error, 'No se pudo cargar el horario'), 'error');
           return;
         }
         const hhmm = (t) => String(t).slice(0, 5);
@@ -2611,7 +2625,7 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
           notificar(`Horario de ${modalHorario.barbero.nombre} guardado.`, 'success');
           setModalHorario(null);
         } catch (err) {
-          notificar(`No se pudo guardar el horario: ${err.message}`, 'error');
+          notificar(mensajeError(err, 'No se pudo guardar el horario'), 'error');
         } finally {
           setGuardandoHorario(false);
         }
@@ -2640,7 +2654,7 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
           const nombres = new Map((resBarberos.data || []).map((b) => [b.id, b.nombre]));
           setCitasAgenda((resCitas.data || []).map((c) => ({ ...c, barbero: nombres.get(c.barbero_id) || 'Barbero' })));
         } catch (err) {
-          notificar(`No se pudo cargar la agenda: ${err.message}`, 'error');
+          notificar(mensajeError(err, 'No se pudo cargar la agenda'), 'error');
           setCitasAgenda([]);
         } finally {
           setCargandoAgenda(false);
@@ -2660,7 +2674,7 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
         if (minutos === actual || !sbClient || esModoDemo) return;
         const { error } = await sbClient.rpc('ajustar_duracion_cita', { p_cita: cita.id, p_minutos: minutos });
         if (error) {
-          notificar(error.message || 'No se pudo ajustar la cita.', 'error');
+          notificar(mensajeError(error, 'No se pudo ajustar la cita.'), 'error');
         } else {
           notificar(`Cita ajustada a ${minutos} minutos.`, 'success');
         }
@@ -2731,7 +2745,7 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
           setMostrarFormNuevoCajero(false);
           notificar(`¡"${nombre}" agregado! Ya aparece en la lista para elegir al abrir turno.`, 'success');
         } catch (err) {
-          notificar(`Error al registrar: ${err.message}`, 'error');
+          notificar(mensajeError(err, 'Error al registrar'), 'error');
         } finally {
           setGuardandoNuevoCajero(false);
         }
@@ -2764,7 +2778,7 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
           }
           notificar(nuevoEstado ? `${cajero.nombre} reactivado.` : `${cajero.nombre} desactivado.`, 'info');
         } catch (err) {
-          notificar(`Error: ${err.message}`, 'error');
+          notificar(mensajeError(err, 'No se pudo completar la acción'), 'error');
         }
       };
 
@@ -2789,7 +2803,7 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
           if (err.code === '23503') {
             notificar(`No se puede eliminar a ${cajero.nombre}: tiene ventas registradas a su nombre. Usa "Desactivar" en su lugar.`, 'error');
           } else {
-            notificar(`Error: ${err.message}`, 'error');
+            notificar(mensajeError(err, 'No se pudo completar la acción'), 'error');
           }
         }
       };
@@ -2834,7 +2848,7 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
             notificar('PIN incorrecto.', 'error');
           }
         } catch (err) {
-          notificar(err.message, 'error');
+          notificar(mensajeError(err), 'error');
         } finally {
           setVerificandoPinCajero(false);
         }
@@ -2866,7 +2880,7 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
           setModalPinCajero(null);
           setNuevoPinCajero('');
         } catch (err) {
-          notificar(`Error: ${err.message}`, 'error');
+          notificar(mensajeError(err, 'No se pudo completar la acción'), 'error');
         } finally {
           setGuardandoPinCajero(false);
         }
@@ -2967,7 +2981,7 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
             });
           } catch (err) {
             setProductos([]);
-            notificar(`No se pudo cargar el catálogo: ${err.message}`, 'error');
+            notificar(mensajeError(err, 'No se pudieron cargar tus productos'), 'error');
           } finally {
             setCargandoProductos(false);
           }
@@ -3049,7 +3063,7 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
           setCombos(data || []);
         } catch (err) {
           setCombos([]);
-          notificar(`No se pudieron cargar los combos: ${err.message}`, 'error');
+          notificar(mensajeError(err, 'No se pudieron cargar los combos'), 'error');
         } finally {
           setCargandoCombos(false);
         }
@@ -3264,7 +3278,7 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
           setComboEditando(null);
           cargarCombos();
         } catch (err) {
-          notificar(`No se pudo guardar el combo: ${err.message}`, 'error');
+          notificar(mensajeError(err, 'No se pudo guardar el combo'), 'error');
         } finally {
           setGuardandoCombo(false);
         }
@@ -3283,7 +3297,7 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
           if (error) throw error;
           setCombos((prev) => prev.map((c) => (c.id === combo.id ? { ...c, activo: !combo.activo, apagado_auto: false } : c)));
         } catch (err) {
-          notificar(`No se pudo actualizar el combo: ${err.message}`, 'error');
+          notificar(mensajeError(err, 'No se pudo actualizar el combo'), 'error');
         }
       };
 
@@ -3301,7 +3315,7 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
           setCombos((prev) => prev.filter((c) => c.id !== combo.id));
           notificar('Combo eliminado.', 'info');
         } catch (err) {
-          notificar(`No se pudo eliminar el combo: ${err.message}`, 'error');
+          notificar(mensajeError(err, 'No se pudo eliminar el combo'), 'error');
         }
       };
 
@@ -3542,7 +3556,7 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
           setCategoriasDB((prev) => [...prev, limpio]);
           asignar(limpio);
         } catch (err) {
-          notificar(`No se pudo guardar la categoría: ${err.message}`, 'error');
+          notificar(mensajeError(err, 'No se pudo guardar la categoría'), 'error');
         }
       };
 
@@ -4288,7 +4302,7 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
             elegirProductoEntrada(encontrado.producto, encontrado.esPack);
             notificar(`Producto encontrado: ${encontrado.producto.descripcion}`, 'success');
           } else {
-            notificar(`Código ${codigoLimpio} no encontrado en el catálogo.`, 'error');
+            notificar(`Código ${codigoLimpio} no encontrado en tus productos.`, 'error');
           }
           setModalEscaner(false);
           return;
@@ -4299,7 +4313,7 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
           if (encontrado) {
             elegirProductoMerma(encontrado.producto);
           } else {
-            notificar(`Código ${codigoLimpio} no encontrado en el catálogo.`, 'error');
+            notificar(`Código ${codigoLimpio} no encontrado en tus productos.`, 'error');
           }
           setModalEscaner(false);
           return;
@@ -4324,7 +4338,7 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
             setProductoEscaneadoId(encontrado.producto.id);
           } else {
             setProductoEscaneadoId(null);
-            notificar(`Código ${codigoLimpio} no encontrado en el catálogo.`, 'error');
+            notificar(`Código ${codigoLimpio} no encontrado en tus productos.`, 'error');
           }
           return;
         }
@@ -4335,7 +4349,7 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
           setLevantamientoResultado(encontrado || 'no-encontrado');
           setLevantamientoPacks('');
           setLevantamientoSueltas('');
-          if (!encontrado) notificar(`Código ${codigoLimpio} no encontrado en el catálogo.`, 'error');
+          if (!encontrado) notificar(`Código ${codigoLimpio} no encontrado en tus productos.`, 'error');
           setModalEscaner(false);
           return;
         }
@@ -4347,7 +4361,7 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
           setListaEscaneada((prev) => [claveEsc, ...prev.filter((c) => c !== claveEsc)].slice(0, 6));
         } else {
           setModalEscaner(false);
-          notificar(`Código ${codigoLimpio} no encontrado en el catálogo.`, 'error');
+          notificar(`Código ${codigoLimpio} no encontrado en tus productos.`, 'error');
         }
       };
 
@@ -4929,7 +4943,7 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
           setFormCliente({ dni: '', nombre: '', telefono: '', correo: '', limiteCredito: '300.00' });
           notificar(`¡Cliente "${nombre}" registrado con éxito!`, 'success');
         } catch (err) {
-          notificar(`Error: ${err.message}`, 'error');
+          notificar(mensajeError(err, 'No se pudo completar la acción'), 'error');
         }
       };
 
@@ -5026,7 +5040,7 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
             setProveedoresLista(data || []);
           } catch (err) {
             console.warn(err);
-            notificar(`No se pudo cargar los proveedores: ${err.message}`, 'error');
+            notificar(mensajeError(err, 'No se pudo cargar los proveedores'), 'error');
           }
         }
       };
@@ -5070,7 +5084,7 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
           setFormProveedor({ nombre: '', ruc: '', telefono: '', saldoInicial: '' });
           notificar(`Proveedor "${nombre}" registrado.`, 'success');
         } catch (err) {
-          notificar(`Error al registrar el proveedor: ${err.message}`, 'error');
+          notificar(mensajeError(err, 'Error al registrar el proveedor'), 'error');
         }
       };
 
@@ -5113,7 +5127,7 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
             'success'
           );
         } catch (err) {
-          notificar(`Error al registrar el movimiento: ${err.message}`, 'error');
+          notificar(mensajeError(err, 'Error al registrar el movimiento'), 'error');
         }
       };
 
@@ -5137,7 +5151,7 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
           if (error) throw error;
           setClientesLista(data || []);
         } catch (err) {
-          notificar(`No se pudo cargar la lista de clientes: ${err.message}`, 'error');
+          notificar(mensajeError(err, 'No se pudo cargar la lista de clientes'), 'error');
         } finally {
           setCargandoClientes(false);
         }
@@ -5167,7 +5181,7 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
           if (error) throw error;
           setClientesLista(data || []);
         } catch (err) {
-          notificar(`No se pudo cargar la lista de clientes: ${err.message}`, 'error');
+          notificar(mensajeError(err, 'No se pudo cargar la lista de clientes'), 'error');
         } finally {
           setCargandoClientes(false);
         }
@@ -5188,7 +5202,7 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
           // Cliente real, ya viene de la base de datos.
           setClienteActual(c);
         } else {
-          // "Cliente Varios / Desconocido": es un objeto local sin id todavía
+          // "Cliente sin registrar": es un objeto local sin id todavía
           // (nunca se guardó en la BD). Se busca/crea su fila real, igual
           // que al escribir el DNI a mano, para que la venta pueda
           // registrarse (ventas.cliente_id no admite NULL).
@@ -5200,7 +5214,7 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
         const filas = clientesLista.map((c) => ({
           DNI: c.dni,
           Nombre: c.nombre_completo,
-          Telefono: c.telefono || '',
+          'Teléfono': c.telefono || '',
           Correo: c.correo || '',
           'Limite de Credito': Number(c.limite_credito || 0),
           'Saldo Actual (Deuda)': Number(c.saldo_actual || 0)
@@ -5242,7 +5256,7 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
           setClienteEditando(null);
           notificar('Cliente actualizado.', 'success');
         } catch (err) {
-          notificar(`Error al guardar: ${err.message}`, 'error');
+          notificar(mensajeError(err, 'Error al guardar'), 'error');
         } finally {
           setGuardandoEdicionCliente(false);
         }
@@ -5597,7 +5611,7 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
 
             if (errSaldo) {
               console.warn('Error al actualizar el saldo del cliente:', errSaldo);
-              notificar(`No se pudo registrar el pago en el servidor (${errSaldo.message}). Avisa al soporte.`, 'error');
+              notificar(`No se pudo registrar el pago en el servidor. Avisa al soporte.`, 'error');
               return;
             }
             if (saldoRpc != null) nuevoSaldo = Number(saldoRpc);
@@ -5613,7 +5627,7 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
             if (errPago) console.warn('No se pudo registrar el historial de pago:', errPago.message);
           } catch (err) {
             console.error(err);
-            notificar(`No se pudo registrar el pago: ${err.message}`, 'error');
+            notificar(mensajeError(err, 'No se pudo registrar el pago'), 'error');
             return;
           }
         }
@@ -5687,7 +5701,7 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
           const { data } = sbClient.storage.from('Productos').getPublicUrl(ruta);
           actualizarFilaInventario(idx, 'foto_url', `${data.publicUrl}?t=${Date.now()}`);
         } catch (err) {
-          notificar(`No se pudo subir la foto: ${err.message}`, 'error');
+          notificar(mensajeError(err, 'No se pudo subir la foto'), 'error');
         } finally {
           setSubiendoFotoFilaIdx(null);
         }
@@ -5985,7 +5999,7 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
           if (filasExistentes.length > 0) partes.push(`${filasExistentes.length} actualizado(s)`);
           notificar(`¡Listo! ${partes.join(' y ')}.`, 'success');
         } catch (err) {
-          notificar(`Error al guardar el inventario: ${err.message}`, 'error');
+          notificar(mensajeError(err, 'Error al guardar el inventario'), 'error');
         } finally {
           setGuardandoInventario(false);
         }
@@ -6063,7 +6077,7 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
             if (diferencia !== 0) {
               const { error: errAjuste } = await sbClient.rpc('ajustar_stock', { p_producto_id: producto.id, p_delta: diferencia });
               if (errAjuste) {
-                notificar(`Se guardó el conteo, pero no se pudo ajustar el stock (${errAjuste.message}).`, 'error');
+                notificar(`Se guardó el conteo, pero no se pudo ajustar el stock.`, 'error');
                 setGuardandoLevantamiento(false);
                 return;
               }
@@ -6073,7 +6087,7 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
           notificar(`${producto.descripcion}: ${totalContado} unidades registradas.`, 'success');
           cerrarResultadoLevantamiento();
         } catch (err) {
-          notificar(`Error al guardar el conteo: ${err.message}`, 'error');
+          notificar(mensajeError(err, 'Error al guardar el conteo'), 'error');
         } finally {
           setGuardandoLevantamiento(false);
         }
@@ -6082,7 +6096,7 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
       // ==========================================
       // IMPORTAR DEL CATÁLOGO MAESTRO
       // ==========================================
-      // Se reutiliza tanto al abrir "Importar del Catálogo Maestro" como al
+      // Se reutiliza tanto al abrir "Importar productos de Kaserita" como al
       // abrir "Registrar Productos" (ahí sugiere categoría + foto mientras
       // se escribe la descripción, ver sugerenciasParaFila).
       const cargarCatalogoMaestroDisponible = useCallback(() => {
@@ -6159,7 +6173,7 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
           cargarProductos(busqueda);
           setProductoMaestroSeleccionado(null);
         } catch (err) {
-          notificar(`No se pudo importar: ${err.message}`, 'error');
+          notificar(mensajeError(err, 'No se pudo importar'), 'error');
         } finally {
           setGuardandoImportMaestro(false);
         }
@@ -6227,7 +6241,7 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
             fotos_extra: formEditarProducto.fotos_extra && formEditarProducto.fotos_extra.length ? formEditarProducto.fotos_extra : null,
             descripcion_larga: formEditarProducto.descripcion_larga.trim() || null,
             es_destacado: !!formEditarProducto.es_destacado,
-            // Solo barbería: esconder el producto de la tienda online sin desactivarlo
+            // Solo barbería: esconder el producto de la tienda en línea sin desactivarlo
             // (productos.visible_en_tienda, ver migration_43 de KaseritaDelivery).
             ...(esBarberia ? { visible_en_tienda: formEditarProducto.visible_en_tienda !== false, duracion_min: duracionServicio } : {}),
             ...normalizarCamposPack(formEditarProducto)
@@ -6247,7 +6261,7 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
           cargarProductos(busqueda);
           notificar('Producto actualizado.', 'success');
         } catch (err) {
-          notificar(`Error al guardar: ${err.message}`, 'error');
+          notificar(mensajeError(err, 'Error al guardar'), 'error');
         } finally {
           setGuardandoEdicionProducto(false);
         }
@@ -6256,8 +6270,8 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
       const desactivarProducto = async () => {
         if (!productoEditando) return;
         const ok = await pedirConfirmacion({
-          titulo: 'Quitar producto del catálogo',
-          mensaje: `¿Quitar "${productoEditando.descripcion}" del catálogo? No se borra tu historial de ventas, solo deja de aparecer para vender.`,
+          titulo: 'Quitar producto',
+          mensaje: `¿Quitar "${productoEditando.descripcion}" de tus productos? No se borra tu historial de ventas, solo deja de aparecer para vender.`,
           textoBoton: 'Quitar producto',
           peligroso: true
         });
@@ -6274,9 +6288,9 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
           setModalEditarProducto(false);
           setProductoEditando(null);
           cargarProductos(busqueda);
-          notificar('Producto quitado del catálogo.', 'info');
+          notificar('Producto quitado de tus productos.', 'info');
         } catch (err) {
-          notificar(`Error al quitar el producto: ${err.message}`, 'error');
+          notificar(mensajeError(err, 'Error al quitar el producto'), 'error');
         }
       };
 
@@ -6344,12 +6358,12 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
           cerrarModalMerma();
           cargarProductos(busqueda);
           if (errorAjusteStock) {
-            notificar(`Merma registrada, pero el stock no se pudo ajustar (${errorAjusteStock.message}). Revísalo en "Ver Stock".`, 'error');
+            notificar(`Merma registrada, pero el stock no se pudo ajustar. Revísalo en "Ver Stock".`, 'error');
           } else {
             notificar(`Merma registrada: ${cant} x ${prod.descripcion} (S/ ${totalCosto.toFixed(2)}).`, 'info');
           }
         } catch (err) {
-          notificar(`Error al registrar la merma: ${err.message}`, 'error');
+          notificar(mensajeError(err, 'Error al registrar la merma'), 'error');
         } finally {
           setGuardandoMerma(false);
         }
@@ -6614,7 +6628,7 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
           cargarProductos();
           notificar(`Toma de inventario guardada: ${filas.length} producto(s) verificado(s).`, 'success');
         } catch (err) {
-          notificar(`Error al guardar la toma de inventario: ${err.message}`, 'error');
+          notificar(mensajeError(err, 'Error al guardar la toma de inventario'), 'error');
         } finally {
           setGuardandoTomaInventario(false);
         }
@@ -6640,7 +6654,7 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
           if (error) throw error;
           setHistorialInventario(data || []);
         } catch (err) {
-          notificar(`No se pudo cargar el historial: ${err.message}`, 'error');
+          notificar(mensajeError(err, 'No se pudo cargar el historial'), 'error');
         } finally {
           setCargandoHistorialInventario(false);
         }
@@ -6730,7 +6744,7 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
           setNuevoProductoInlineCompra(null);
           notificar(`Producto "${payload.descripcion}" creado. Ya lo puedes agregar a la entrada.`, 'success');
         } catch (err) {
-          notificar(`Error al crear el producto: ${err.message}`, 'error');
+          notificar(mensajeError(err, 'Error al crear el producto'), 'error');
         } finally {
           setGuardandoProductoInlineCompra(false);
         }
@@ -6995,7 +7009,7 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
           setEntradaRegistrada(resumen);
           cargarProductos();
         } catch (err) {
-          notificar(`Error al registrar la entrada: ${err.message}`, 'error');
+          notificar(mensajeError(err, 'Error al registrar la entrada'), 'error');
         } finally {
           setGuardandoEntrada(false);
         }
@@ -7037,7 +7051,7 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
             setVentasDelDia(data || []);
           } catch (err) {
             console.warn(err);
-            notificar(`No se pudo cargar el historial: ${err.message}`, 'error');
+            notificar(mensajeError(err, 'No se pudo cargar el historial'), 'error');
           } finally {
             setCargandoHistorial(false);
           }
@@ -7233,7 +7247,7 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
             }
           } catch (err) {
             console.warn(err);
-            notificar(`No se pudo cargar el dashboard: ${err.message}`, 'error');
+            notificar(mensajeError(err, 'No se pudo cargar el dashboard'), 'error');
           } finally {
             setCargandoDashboard(false);
           }
@@ -7385,7 +7399,7 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
             }
           }
         } catch (err) {
-          notificar(`No se pudo preparar el Excel: ${err.message}`, 'error');
+          notificar(mensajeError(err, 'No se pudo preparar el Excel'), 'error');
           return;
         }
         const libro = XLSX.utils.book_new();
@@ -7415,9 +7429,9 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
         XLSX.utils.book_append_sheet(libro, hojaDias, 'Ventas por Dia');
 
         const hojaMedios = XLSX.utils.json_to_sheet(
-          dashStats.porMedio.map((m) => ({ 'Medio de Pago': m.medio, 'Porcentaje': +m.pct.toFixed(1), Total: m.total }))
+          dashStats.porMedio.map((m) => ({ 'Medio de pago': m.medio, 'Porcentaje': +m.pct.toFixed(1), Total: m.total }))
         );
-        XLSX.utils.book_append_sheet(libro, hojaMedios, 'Metodos de Pago');
+        XLSX.utils.book_append_sheet(libro, hojaMedios, 'Métodos de pago');
 
         const hojaProductos = XLSX.utils.json_to_sheet(
           dashStats.topProductos.map((p) => ({ Producto: p.descripcion, Cantidad: p.cantidad, Monto: p.monto, Utilidad: p.utilidad }))
@@ -7447,7 +7461,7 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
           const base = {
             Boleta: v.nro_boleta,
             'Fecha y Hora': new Date(v.fecha_hora).toLocaleString('es-PE'),
-            'Medio de Pago': v.medio_pago,
+            'Medio de pago': v.medio_pago,
             Estado: v.anulada ? 'Anulada' : 'Válida'
           };
           if (detalles.length === 0) {
@@ -7476,7 +7490,7 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
           Boleta: v.nro_boleta,
           Fecha: new Date(v.fecha_hora).toLocaleString('es-PE'),
           Cliente: v.clientes?.nombre_completo || 'Desconocido',
-          'Medio de Pago': v.medio_pago,
+          'Medio de pago': v.medio_pago,
           Total: Number(v.total_venta),
           Utilidad: Number(v.utilidad_total || 0),
           Estado: v.anulada ? 'Anulada' : 'Válida'
@@ -7544,7 +7558,7 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
                 p_cliente_id: venta.cliente_id,
                 p_delta: -Number(venta.total_venta)
               });
-              if (errSaldo) throw new Error(`No se pudo revertir la deuda del cliente: ${errSaldo.message}`);
+              if (errSaldo) throw new Error('No se pudo revertir la deuda del cliente.');
             }
 
             // Soft-delete: se marca como anulada en vez de borrarla, para conservar el historial
@@ -7569,7 +7583,7 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
           cargarProductos(busqueda); // refresca el stock repuesto en el catálogo
           notificar(`Boleta ${venta.nro_boleta} anulada correctamente.`, 'info');
         } catch (err) {
-          notificar(`Error al anular: ${err.message}`, 'error');
+          notificar(mensajeError(err, 'Error al anular'), 'error');
         }
       };
 
@@ -7739,7 +7753,7 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
               .eq('id', turnoActivo.id);
             if (error) {
               console.warn('Error al cerrar el turno en la base de datos:', error);
-              notificar(`El cierre se calculó bien, pero no se guardó en el servidor (${error.message}). Avisa al soporte.`, 'error');
+              notificar(`El cierre se calculó bien, pero no se guardó en el servidor. Avisa al soporte.`, 'error');
             }
           } catch (err) {
             console.error(err);
@@ -7782,7 +7796,7 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
           if (error) throw error;
           setCierresCaja(data || []);
         } catch (err) {
-          notificar(`No se pudo cargar el historial de cierres: ${err.message}`, 'error');
+          notificar(mensajeError(err, 'No se pudo cargar el historial de cierres'), 'error');
         } finally {
           setCargandoCierres(false);
         }
@@ -7957,7 +7971,7 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
             // corta acá y se deja reintentar.
             if (error && enLinea) {
               console.warn('Error al abrir turno en la base de datos:', error);
-              notificar(`No se pudo abrir el turno en el servidor (${error.message}). Intenta de nuevo.`, 'error');
+              notificar(`No se pudo abrir el turno en el servidor. Intenta de nuevo.`, 'error');
               return;
             }
             if (error) {
@@ -8261,7 +8275,7 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
               const { error: detErr } = await sbClient.from('ventas_detalle').insert(payloadDetalles);
               if (detErr) {
                 console.error('Error al guardar el detalle de la venta:', detErr);
-                notificar(`Venta registrada, pero el detalle de productos no se guardó: ${detErr.message}`, 'error');
+                notificar(`Venta registrada, pero el detalle de productos no se guardó. Avisa a soporte.`, 'error');
               }
 
               // Si es crédito, actualizar saldo (ajuste atómico: no se pisa
@@ -8273,7 +8287,7 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
                 });
                 if (errSaldoCredito) {
                   console.warn('Error al actualizar la deuda del cliente:', errSaldoCredito);
-                  notificar(`Venta registrada, pero no se pudo actualizar la deuda del cliente (${errSaldoCredito.message}). Avisa al soporte.`, 'error');
+                  notificar(`Venta registrada, pero no se pudo actualizar la deuda del cliente. Avisa al soporte.`, 'error');
                 }
               }
 
@@ -8358,10 +8372,10 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
           if (/^Stock insuficiente/.test(err.message || '')) {
             // La base rechazó la venta completa (no se guardó nada): se muestra
             // cuánto queda y se refresca el catálogo con el stock real.
-            notificar(err.message, 'error');
+            notificar(mensajeError(err), 'error');
             cargarProductos(busqueda);
           } else {
-            notificar(`Error al registrar venta: ${err.message}`, 'error');
+            notificar(mensajeError(err, 'Error al registrar venta'), 'error');
           }
         } finally {
           setProcesandoVenta(false);
@@ -8672,7 +8686,7 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
         } catch (err) {
           if (err?.name === 'NotFoundError') return; // el cajero canceló la selección
           console.warn(err);
-          notificar(`No se pudo imprimir por Bluetooth: ${err.message}`, 'error');
+          notificar(mensajeError(err, 'No se pudo imprimir por Bluetooth'), 'error');
         }
       };
 
@@ -8844,14 +8858,14 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
                     guardarSesion({ usuario, bodega: bodega || { id: usuario.bodega_id, nombre: 'Mi Bodega' } });
                     notificar(`¡Bienvenido ${usuario.nombre}!`, 'success');
                   } catch (err) {
-                    notificar(err.message, 'error');
+                    notificar(mensajeError(err), 'error');
                   } finally {
                     setCargandoAuth(false);
                   }
                 }} className="space-y-5">
                   {mostrarAccesoPin && (<>
                   <div>
-                    <label className="text-[11px] font-bold text-stone-400 uppercase tracking-wide">DNI del Usuario</label>
+                    <label className="text-[11px] font-bold text-stone-400 uppercase tracking-wide">Tu DNI</label>
                     <div className="relative mt-1">
                       <i className="fa-solid fa-user absolute left-3 top-1/2 -translate-y-1/2 text-stone-400 text-sm"></i>
                       <input
@@ -8868,7 +8882,7 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
                   </div>
                   <div>
                     <div className="flex items-center justify-between">
-                      <label className="text-[11px] font-bold text-stone-400 uppercase tracking-wide">PIN de Acceso</label>
+                      <label className="text-[11px] font-bold text-stone-400 uppercase tracking-wide">PIN de acceso</label>
                       <button
                         type="button"
                         onClick={() => notificar('Pídele a la persona a cargo (dueño/administrador) que te genere un PIN nuevo.', 'info')}
@@ -8903,7 +8917,7 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
                     disabled={cargandoAuth}
                     className="w-full py-3.5 bg-stone-900 hover:bg-stone-800 text-white font-black text-sm uppercase rounded-full transition shadow-lg shadow-stone-900/30 disabled:opacity-50 flex items-center justify-center gap-2"
                   >
-                    {cargandoAuth ? 'Verificando...' : (<>Ingresar al Sistema <i className="fa-solid fa-arrow-right"></i></>)}
+                    {cargandoAuth ? 'Verificando...' : (<>Entrar <i className="fa-solid fa-arrow-right"></i></>)}
                   </button>
                   <div className="flex items-center gap-3">
                     <div className="flex-1 h-px bg-stone-200"></div>
@@ -8945,7 +8959,7 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
                     setAdminSesion(admin);
                     notificar(`Bienvenido, ${admin.nombre || 'Administrador'}.`, 'success');
                   } catch (err) {
-                    notificar(err.message, 'error');
+                    notificar(mensajeError(err), 'error');
                   } finally {
                     setCargandoAdminLogin(false);
                   }
@@ -9025,7 +9039,7 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
                 <i className="fa-solid fa-lock text-2xl text-rose-600"></i>
               </div>
               <div>
-                <h2 className="text-lg font-black text-stone-900">Cuenta Vencida</h2>
+                <h2 className="text-lg font-black text-stone-900">Tu cuenta venció</h2>
                 <p className="text-xs text-stone-500 mt-1">
                   El acceso de <strong>{bodegaNombre}</strong> está desactivado
                   {sesion.bodega.activa === false
@@ -9033,7 +9047,7 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
                     : sesion.bodega.activa_hasta
                     ? ` desde el ${new Date(`${sesion.bodega.activa_hasta}T00:00:00`).toLocaleDateString('es-PE')}`
                     : ''}.
-                  Contacta al administrador para renovarlo.
+                  Escribe a soporte de Kaserita para renovarlo.
                 </p>
               </div>
               <button onClick={cerrarSesion} className="w-full py-3 bg-stone-900 hover:bg-stone-800 text-white font-bold text-sm rounded-xl">
@@ -10357,7 +10371,7 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
                 !esBarberia && { grupo: 'Entradas', etiqueta: 'Entrada de Mercadería', icono: 'fa-truck-ramp-box', accion: abrirEntradaMercaderia },
                 !esBarberia && { grupo: 'Entradas', etiqueta: 'Levantamiento de Inventario', icono: 'fa-clipboard-list', accion: () => setModalLevantamiento(true) },
                 { grupo: 'Entradas', etiqueta: 'Combos', icono: 'fa-gift', accion: abrirModalCombos },
-                !esBarberia && { grupo: 'Entradas', etiqueta: 'Importar del Catálogo Maestro', icono: 'fa-book', accion: abrirImportarMaestro },
+                !esBarberia && { grupo: 'Entradas', etiqueta: 'Importar productos de Kaserita', icono: 'fa-book', accion: abrirImportarMaestro },
               ] : []),
               // El manual solo lo sirve /api/manual a quien tiene sesión: antes de abrirlo se
               // renueva el token por si venció, y la pestaña se abre primero para que el
@@ -10851,7 +10865,7 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
                     </span>
                     <div className="min-w-0">
                       <h3 className="text-[17px] font-extrabold text-stone-900 tracking-tight leading-tight">{esBarberia ? 'Registrar Servicios y Productos' : 'Registrar Productos'}</h3>
-                      <p className="hidden sm:block text-xs text-stone-500">Crea la ficha en 3 pasos rápidos.</p>
+                      <p className="hidden sm:block text-xs text-stone-500">Crea el producto en 3 pasos rápidos.</p>
                     </div>
                     <button onClick={() => setModalInventarioInicial(false)} aria-label="Cerrar" className="ml-auto w-8 h-8 flex items-center justify-center rounded-full text-stone-400 hover:text-stone-600 hover:bg-stone-100 transition-colors shrink-0"><i className="fa-solid fa-xmark"></i></button>
                   </div>
@@ -10924,7 +10938,7 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
 
                           {!esServicio && (
                             <div>
-                              <label className={etiqueta}><span>Código EAN / de barras</span><span className="text-stone-400 font-normal">opcional</span></label>
+                              <label className={etiqueta}><span>Código de barras</span><span className="text-stone-400 font-normal">opcional</span></label>
                               <div className="relative">
                                 <input
                                   type="text"
@@ -10950,15 +10964,15 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
 
                           {esExistente && (
                             <div className="flex items-center justify-between gap-2 bg-emerald-50 border border-emerald-200 text-emerald-800 rounded-[14px] px-3 py-2.5 text-[12.5px] font-semibold">
-                              <span><i className="fa-solid fa-circle-check mr-1.5"></i>Ya está en tu catálogo: se actualizará su ficha</span>
-                              <button type="button" onClick={() => desvincularFilaInventario(idx)} className="underline text-xs shrink-0">Quitar vínculo</button>
+                              <span><i className="fa-solid fa-circle-check mr-1.5"></i>Ya está en tus productos: se actualizará</span>
+                              <button type="button" onClick={() => desvincularFilaInventario(idx)} className="underline text-xs shrink-0">Desvincular</button>
                             </div>
                           )}
 
                           <div className="relative">
                             <label className={etiqueta}>
                               <span>{esBarberia ? 'Nombre' : 'Nombre del producto'} <span className="text-rose-500">*</span></span>
-                              {!esBarberia && <span className="inline-flex items-center gap-1 text-[11px] font-bold text-[#6105dc]"><i className="fa-solid fa-wand-magic-sparkles"></i> Catálogo sugerido</span>}
+                              {!esBarberia && <span className="inline-flex items-center gap-1 text-[11px] font-bold text-[#6105dc]"><i className="fa-solid fa-wand-magic-sparkles"></i> Sugeridos por Kaserita</span>}
                             </label>
                             <input
                               type="text"
@@ -10972,7 +10986,7 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
                             {(sugerencias.length > 0 || sugerenciasMaestro.length > 0) && (
                               <div className="absolute z-20 top-full left-0 right-0 mt-1 bg-white border border-stone-200 rounded-2xl shadow-xl overflow-hidden max-h-60 overflow-y-auto">
                                 {sugerencias.length > 0 && (
-                                  <div className="px-3.5 pt-2 pb-1 text-[10px] font-bold text-stone-500 uppercase tracking-wide bg-stone-50">En tu catálogo</div>
+                                  <div className="px-3.5 pt-2 pb-1 text-[10px] font-bold text-stone-500 uppercase tracking-wide bg-stone-50">Tus productos</div>
                                 )}
                                 {sugerencias.map((s) => (
                                   <button type="button" key={`propio-${s.id}`} onClick={() => vincularProductoExistenteEnFila(idx, s)} className="w-full text-left px-3.5 py-2 text-[13px] text-stone-800 hover:bg-[#f4eefe] flex items-center gap-2">
@@ -10982,7 +10996,7 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
                                   </button>
                                 ))}
                                 {sugerenciasMaestro.length > 0 && (
-                                  <div className="px-3.5 pt-2 pb-1 text-[10px] font-bold text-stone-500 uppercase tracking-wide bg-stone-50">Del catálogo maestro</div>
+                                  <div className="px-3.5 pt-2 pb-1 text-[10px] font-bold text-stone-500 uppercase tracking-wide bg-stone-50">Productos de Kaserita</div>
                                 )}
                                 {sugerenciasMaestro.map((s) => (
                                   <button type="button" key={`maestro-${s.id}`} onClick={() => usarSugerenciaMaestraEnFila(idx, s)} className="w-full text-left px-3.5 py-2 text-[13px] text-stone-800 hover:bg-[#f4eefe] flex items-center gap-2">
@@ -11108,7 +11122,7 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
                                   <input type="number" min="5" max="480" step="5" placeholder="Otra" value={fila.duracion_min || ''} onChange={(e) => actualizarFilaInventario(idx, 'duracion_min', e.target.value)} className="w-24 h-9 bg-stone-50/70 border border-stone-200 rounded-xl px-3 text-xs" />
                                   <span className="text-[11px] text-stone-500">minutos · vacío = 30</span>
                                 </div>
-                                {!duracionOk && <p className="text-[11px] text-rose-600 mt-1">Debe ser un entero entre 5 y 480.</p>}
+                                {!duracionOk && <p className="text-[11px] text-rose-600 mt-1">Escribe un número de 5 a 480 minutos.</p>}
                               </div>
                             ) : esProductoBarberia ? (
                               <div>
@@ -11188,7 +11202,7 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
                                     </p>
                                   )}
                                   <div>
-                                    <label className="text-[11px] font-semibold text-stone-500 block mb-1">Código EAN del pack (opcional)</label>
+                                    <label className="text-[11px] font-semibold text-stone-500 block mb-1">Código de barras del pack (opcional)</label>
                                     <div className="relative">
                                       <input type="text" placeholder="Si ya existe, se vincula solo" value={fila.cod_ean_pack} onChange={(e) => actualizarCodigoEanPackFila(idx, e.target.value)} className={`${inputBase} pr-10`} />
                                       <button type="button" onClick={() => abrirEscanerParaFilaInventario(idx, 'cod_ean_pack')} className="absolute right-1.5 top-1/2 -translate-y-1/2 w-8 h-8 flex items-center justify-center text-stone-600 hover:text-[#6105dc] transition" title="Escanear código de barras del pack">
@@ -11224,7 +11238,7 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
                         <div className="space-y-4">
                           <div>
                             <h4 className="text-[17px] font-extrabold text-stone-900 tracking-tight">Revisa y guarda</h4>
-                            <p className="text-[12.5px] text-stone-500 mt-0.5">Así queda la ficha. Puedes volver a cualquier paso para corregir.</p>
+                            <p className="text-[12.5px] text-stone-500 mt-0.5">Así queda el producto. Puedes volver a cualquier paso para corregir.</p>
                           </div>
                           <div className="flex items-center gap-3.5 p-3.5 rounded-[18px] bg-[#f4eefe]">
                             <FotoProducto fotoUrl={fila.foto_url} categoria={fila.categoria} className="w-16 h-16 rounded-2xl shrink-0 bg-white" iconClassName="text-2xl" />
@@ -11253,18 +11267,18 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
                             ))}
                           </div>
                           <div>
-                            <label className={etiqueta}><span>SKU interno <span className="text-stone-400 font-normal">opcional</span></span><span className="text-[10px] font-bold rounded-full px-2 py-0.5 bg-[#f4eefe] text-[#4d04b0]">Auto</span></label>
+                            <label className={etiqueta}><span>Código interno <span className="text-stone-400 font-normal">opcional</span></span><span className="text-[10px] font-bold rounded-full px-2 py-0.5 bg-[#f4eefe] text-[#4d04b0]">Auto</span></label>
                             <input type="text" placeholder="Se genera solo si lo dejas vacío" value={fila.sku} onChange={(e) => actualizarFilaInventario(idx, 'sku', e.target.value)} className={inputBase} />
                           </div>
                           {incompletas > 0 ? (
                             <div className="flex gap-2 items-start bg-amber-50 border border-amber-200 rounded-xl px-3 py-2.5 text-xs text-amber-800 leading-snug">
                               <i className="fa-solid fa-triangle-exclamation mt-0.5"></i>
-                              <span>{incompletas === 1 ? 'Hay 1 ficha de esta carga sin precio' : `Hay ${incompletas} fichas de esta carga sin precio`}: no se guardará hasta que la completes (tócala arriba).</span>
+                              <span>{incompletas === 1 ? 'Hay 1 producto de esta carga sin precio' : `Hay ${incompletas} productos de esta carga sin precio`}: no se guardará hasta que la completes (tócala arriba).</span>
                             </div>
                           ) : (
                             <div className="flex gap-2 items-start bg-[#f4eefe] rounded-xl px-3 py-2.5 text-xs text-[#4d04b0] leading-snug">
                               <i className="fa-solid fa-circle-info mt-0.5"></i>
-                              <span>{listos.length > 0 ? <>Ya tienes <b>{listos.length}</b> ficha{listos.length === 1 ? '' : 's'} lista{listos.length === 1 ? '' : 's'} en esta carga. Se guardan todas juntas.</> : <>¿Tienes más? Usa <b>Guardar y agregar otro</b>: te dejamos la misma categoría para ir más rápido.</>}</span>
+                              <span>{listos.length > 0 ? <>Ya tienes <b>{listos.length}</b> producto{listos.length === 1 ? '' : 's'} listo{listos.length === 1 ? '' : 's'} en esta carga. Se guardan todas juntas.</> : <>¿Tienes más? Usa <b>Guardar y agregar otro</b>: te dejamos la misma categoría para ir más rápido.</>}</span>
                             </div>
                           )}
                         </div>
@@ -11291,7 +11305,7 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
                       </div>
                     </div>
                     <div className="mt-3 md:mt-3.5">
-                      <div className="flex justify-between text-xs font-bold text-stone-700 mb-1.5"><span className="hidden md:inline">Ficha completa</span><span className="ml-auto md:ml-0">{completitud}%</span></div>
+                      <div className="flex justify-between text-xs font-bold text-stone-700 mb-1.5"><span className="hidden md:inline">Producto completo</span><span className="ml-auto md:ml-0">{completitud}%</span></div>
                       <div className="h-2 rounded-full bg-[#e8e3f4] overflow-hidden"><div className="h-full rounded-full bg-gradient-to-r from-[#8a3df2] to-[#6105dc] transition-all duration-500" style={{ width: `${completitud}%` }}></div></div>
                       <ul className="hidden md:grid gap-1.5 mt-2.5 text-xs">
                         {checklist.map(([texto, ok]) => (
@@ -11755,7 +11769,7 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
                     <IconoTrazo nombre="warn" className="w-[19px] h-[19px]" />
                   </span>
                   <div className="flex-1 min-w-0">
-                    <h3 className="text-[19px] font-bold tracking-tight text-stone-900 leading-tight">Registrar merma</h3>
+                    <h3 className="text-[19px] font-bold tracking-tight text-stone-900 leading-tight">Registrar pérdida</h3>
                     <p className="text-xs text-stone-500 mt-0.5 leading-snug">Vencidos, rotos, robados o perdidos. Se descuenta del stock.</p>
                   </div>
                   <button onClick={cerrarModalMerma} className="w-9 h-9 rounded-full bg-white ring-1 ring-[#6105dc]/10 hover:bg-[#f4eefe] text-stone-500 flex items-center justify-center transition shrink-0" aria-label="Cerrar">
@@ -11915,7 +11929,7 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
                   disabled={guardandoMerma || !prodMerma || cantMerma <= 0}
                   className="w-full h-[54px] rounded-full bg-[#6105dc] hover:bg-[#4d04b0] disabled:bg-[#ebe8f1] disabled:text-[#8b869a] disabled:cursor-not-allowed text-white font-semibold text-base transition"
                 >
-                  {guardandoMerma ? 'Guardando...' : 'Registrar merma'}
+                  {guardandoMerma ? 'Guardando...' : 'Registrar pérdida'}
                 </button>
               </div>
             </div>
@@ -12304,7 +12318,7 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
 
           {/* Modal: Editar / Desactivar Producto */}
           {modalEditarProducto && formEditarProducto && (() => {
-            // Editar producto con pestañas (General, Precio y stock, Tienda online) y panel de
+            // Editar producto con pestañas (General, Precio y stock, Tienda en línea) y panel de
             // "cambios sin guardar" que compara con formEditarOriginal (el formulario al abrir).
             const f = formEditarProducto;
             const o = formEditarOriginal || formEditarProducto;
@@ -12359,7 +12373,7 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
             });
             const tieneCambios = cambios.length > 0;
             const pestana = tabEditarProducto;
-            const pestanas = [['general', 'General'], ['precio', esServicio ? 'Precio y duración' : 'Precio y stock'], ['tienda', 'Tienda online']];
+            const pestanas = [['general', 'General'], ['precio', esServicio ? 'Precio y duración' : 'Precio y stock'], ['tienda', 'Tienda en línea']];
 
             const cerrar = async () => {
               if (tieneCambios) {
@@ -12454,7 +12468,7 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
                       return (
                         <button key={id} type="button" role="tab" aria-selected={pestana === id} onClick={() => setTabEditarProducto(id)} className={`relative px-3 sm:px-4 pt-2.5 pb-3 text-[13px] sm:text-[13.5px] font-bold whitespace-nowrap flex items-center gap-2 rounded-t-xl ${pestana === id ? 'text-[#4d04b0]' : 'text-stone-500 hover:text-stone-800'}`}>
                           {titulo}
-                          {conError ? <span className="w-2 h-2 rounded-full bg-rose-500 ring-[3px] ring-rose-500/15" title="Revisa este apartado"></span> : nCambios > 0 ? <span className="w-2 h-2 rounded-full bg-[#6105dc] ring-[3px] ring-[#6105dc]/15" title={`${nCambios} cambio${nCambios > 1 ? 's' : ''} sin guardar`}></span> : null}
+                          {conError ? <span className="w-2 h-2 rounded-full bg-rose-500 ring-[3px] ring-rose-500/15" title="Falta completar algo en esta pestaña"></span> : nCambios > 0 ? <span className="w-2 h-2 rounded-full bg-[#6105dc] ring-[3px] ring-[#6105dc]/15" title={`${nCambios} cambio${nCambios > 1 ? 's' : ''} sin guardar`}></span> : null}
                           {pestana === id && <span className="absolute left-3 right-3 -bottom-px h-[3px] rounded bg-[#6105dc]"></span>}
                         </button>
                       );
@@ -12471,7 +12485,6 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
                         <>
                           <div>
                             <h4 className="text-[17px] font-extrabold text-stone-900 tracking-tight">Datos del producto</h4>
-                            <p className="text-[12.5px] text-stone-500 mt-0.5">Lo básico para reconocerlo en la caja y en la tienda.</p>
                           </div>
                           <div>
                             <label className={etiqueta}><span>{esBarberia ? 'Nombre' : 'Nombre del producto'} <span className="text-rose-500">*</span></span></label>
@@ -12499,12 +12512,12 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
                           </div>
                           {!esServicio && (
                             <div>
-                              <label className={etiqueta}><span>Código EAN / de barras</span><span className="text-stone-400 font-normal">opcional</span></label>
+                              <label className={etiqueta}><span>Código de barras</span><span className="text-stone-400 font-normal">opcional</span></label>
                               <input type="text" inputMode="numeric" value={f.cod_ean} onChange={(e) => setF('cod_ean', e.target.value)} className={inputBase} />
                             </div>
                           )}
                           <div>
-                            <label className={etiqueta}><span>SKU <span className="text-stone-400 font-normal">código interno</span></span></label>
+                            <label className={etiqueta}><span>Código interno</span></label>
                             <input type="text" value={f.sku} onChange={(e) => setF('sku', e.target.value)} className={inputBase} />
                           </div>
                           <div>
@@ -12640,7 +12653,7 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
                                     <p className="text-[11.5px] text-stone-500">= S/ {(Number(f.precio_venta_pack) / Number(f.unidades_por_pack)).toFixed(2)} por unidad dentro del pack (vs. S/ {pv.toFixed(2)} por unidad suelta)</p>
                                   )}
                                   <div>
-                                    <label className="text-[11px] font-semibold text-stone-500 block mb-1">Código EAN del pack (opcional, si es distinto al de la unidad)</label>
+                                    <label className="text-[11px] font-semibold text-stone-500 block mb-1">Código de barras del pack (opcional, si es distinto al de la unidad)</label>
                                     <div className="relative">
                                       <input type="text" placeholder="Si ya existe, se vincula solo" value={f.cod_ean_pack} onChange={(e) => setF('cod_ean_pack', e.target.value)} className={`${inputBase} pr-10`} />
                                       <button type="button" onClick={() => { setModoEscaner('editar-pack-ean'); setMetodoForzado(null); setModalEscaner(true); }} className="absolute right-1.5 top-1/2 -translate-y-1/2 w-8 h-8 flex items-center justify-center text-stone-600 hover:text-[#6105dc] transition" title="Escanear código de barras del pack">
@@ -12659,17 +12672,17 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
                       {pestana === 'tienda' && (
                         <>
                           <div>
-                            <h4 className="text-[17px] font-extrabold text-stone-900 tracking-tight">En tu tienda online</h4>
+                            <h4 className="text-[17px] font-extrabold text-stone-900 tracking-tight">En tu tienda en línea</h4>
                             <p className="text-[12.5px] text-stone-500 mt-0.5">Cómo se muestra este producto a tus clientes en Kaserita Delivery.</p>
                           </div>
                           <div className="space-y-2.5">
-                            {interruptor2({ activo: !!f.es_destacado, onClick: () => setF('es_destacado', !f.es_destacado), icono: "fa-star", titulo: "Destacar en Kaserita Delivery", detalle: "Aparece en el carrusel de destacados de tu tienda online. Puedes marcar varios productos." })}
-                            {esBarberia && interruptor2({ activo: f.visible_en_tienda !== false, onClick: () => setF('visible_en_tienda', f.visible_en_tienda === false), aviso: f.visible_en_tienda === false, icono: "fa-eye", titulo: "Mostrar en la tienda online", detalle: f.visible_en_tienda === false ? 'Oculto: lo puedes vender en caja y usarlo en combos, pero no aparece en la tienda.' : 'Los clientes lo ven y lo pueden pedir.' })}
+                            {interruptor2({ activo: !!f.es_destacado, onClick: () => setF('es_destacado', !f.es_destacado), icono: "fa-star", titulo: "Destacar en Kaserita Delivery", detalle: "Aparece en el carrusel de destacados de tu tienda en línea. Puedes marcar varios productos." })}
+                            {esBarberia && interruptor2({ activo: f.visible_en_tienda !== false, onClick: () => setF('visible_en_tienda', f.visible_en_tienda === false), aviso: f.visible_en_tienda === false, icono: "fa-eye", titulo: "Mostrar en la tienda en línea", detalle: f.visible_en_tienda === false ? 'Oculto: lo puedes vender en caja y usarlo en combos, pero no aparece en la tienda.' : 'Los clientes lo ven y lo pueden pedir.' })}
                           </div>
                           {!fotoDeshabilitada && (
                             <>
                               <div>
-                                <label className={etiqueta}><span>Descripción para la vitrina</span><span className="text-stone-400 font-normal">{(f.descripcion_larga || '').length} caracteres</span></label>
+                                <label className={etiqueta}><span>Descripción para la tienda en línea</span><span className="text-stone-400 font-normal">{(f.descripcion_larga || '').length} caracteres</span></label>
                                 <textarea
                                   value={f.descripcion_larga}
                                   onChange={(e) => setF('descripcion_larga', e.target.value)}
@@ -12745,8 +12758,8 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
 
                 {/* Pie */}
                 <div className="shrink-0 bg-white border-t border-stone-200 px-4 sm:px-5 py-3 flex items-center gap-2 sm:gap-2.5 shadow-[0_-4px_18px_rgba(15,23,42,0.06)]">
-                  <button type="button" onClick={desactivarProducto} title="Quitar del catálogo" className="h-11 px-3.5 rounded-[14px] text-sm font-bold text-rose-600 hover:bg-rose-50 transition flex items-center gap-2">
-                    <i className="fa-solid fa-trash-can text-xs"></i><span className="hidden sm:inline">Quitar del catálogo</span>
+                  <button type="button" onClick={desactivarProducto} title="Quitar de mis productos" className="h-11 px-3.5 rounded-[14px] text-sm font-bold text-rose-600 hover:bg-rose-50 transition flex items-center gap-2">
+                    <i className="fa-solid fa-trash-can text-xs"></i><span className="hidden sm:inline">Quitar de mis productos</span>
                   </button>
                   <span className="flex-1"></span>
                   <span className={`hidden sm:flex items-center gap-1.5 text-xs ${hayErrores ? 'text-rose-600' : tieneCambios ? 'text-[#4d04b0] font-semibold' : 'text-stone-500'}`}>
@@ -12762,13 +12775,13 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
             );
           })()}
 
-          {/* Modal: Importar del Catálogo Maestro */}
+          {/* Modal: Importar productos de Kaserita */}
           {modalImportarMaestro && (
             <div className="fixed inset-0 bg-stone-900/30 backdrop-blur-sm flex items-center justify-center z-50 p-4">
               <div className="bg-gradient-to-br from-[#f4effc] via-[#f9f8fb] to-[#f5f4f8] border border-white/80 rounded-[28px] max-w-lg w-full p-5 shadow-2xl space-y-3 max-h-[85vh] flex flex-col">
                 <div className="flex justify-between items-center shrink-0">
                   <h3 className="text-lg font-bold text-stone-900 flex items-center gap-2">
-                    <i className="fa-solid fa-book text-orange-600"></i> Importar del Catálogo Maestro
+                    <i className="fa-solid fa-book text-orange-600"></i> Importar productos de Kaserita
                   </h3>
                   <button aria-label="Cerrar" onClick={() => setModalImportarMaestro(false)} className="w-8 h-8 rounded-full bg-white/70 hover:bg-white text-stone-500 hover:text-stone-900 shadow-sm"><i className="fa-solid fa-xmark"></i></button>
                 </div>
@@ -12787,7 +12800,7 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
                     </div>
                     <div className="grid grid-cols-2 gap-2">
                       <div>
-                        <label className="text-xs text-stone-600 block mb-1">Precio Venta (S/):</label>
+                        <label className="text-xs text-stone-600 block mb-1">Precio de venta (S/):</label>
                         <input
                           type="number" step="0.10" required
                           value={formImportarMaestro.precio_venta}
@@ -12796,7 +12809,7 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
                         />
                       </div>
                       <div>
-                        <label className="text-xs text-stone-600 block mb-1">Precio Costo (S/):</label>
+                        <label className="text-xs text-stone-600 block mb-1">Precio de costo (S/):</label>
                         <input
                           type="number" step="0.10"
                           value={formImportarMaestro.precio_costo}
@@ -12825,7 +12838,7 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
                         </select>
                       </div>
                       <div className="col-span-2">
-                        <label className="text-xs text-stone-600 block mb-1">Código EAN (opcional):</label>
+                        <label className="text-xs text-stone-600 block mb-1">Código de barras (opcional):</label>
                         <input
                           type="text"
                           value={formImportarMaestro.cod_ean}
@@ -12852,9 +12865,9 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
                       ) : catalogoMaestroDisponibleFiltrado.length === 0 ? (
                         <p className="text-xs text-stone-500 text-center py-6">
                           {esModoDemo
-                            ? 'El catálogo maestro no está disponible en el Modo Demo.'
+                            ? 'Los productos de Kaserita no están disponibles en el modo demostración.'
                             : catalogoMaestroDisponible.length === 0
-                            ? 'El administrador todavía no cargó productos al catálogo maestro.'
+                            ? 'Kaserita todavía no cargó productos para importar.'
                             : 'No se encontraron productos con esa búsqueda.'}
                         </p>
                       ) : (
@@ -12889,7 +12902,7 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
                     <h3 className="text-lg font-bold text-stone-900 flex items-center gap-2">
                       <i className="fa-solid fa-clipboard-list text-orange-600"></i> Levantamiento de Inventario
                     </h3>
-                    <p className="text-xs text-stone-600 mt-0.5">Escanea o busca el producto, cuenta lo que tienes físicamente y listo.</p>
+                    <p className="text-xs text-stone-600 mt-0.5">Escanea o busca el producto y cuenta lo que tienes.</p>
                   </div>
                   <button aria-label="Cerrar" onClick={() => { setModalLevantamiento(false); cerrarResultadoLevantamiento(); }} className="text-stone-600 hover:text-stone-900 shrink-0"><i className="fa-solid fa-xmark"></i></button>
                 </div>
@@ -12900,7 +12913,7 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
                     <input
                       type="text"
                       autoFocus
-                      placeholder="Escanea o escribe el EAN..."
+                      placeholder="Escanea o escribe el código de barras..."
                       value={levantamientoEan}
                       onChange={(e) => setLevantamientoEan(e.target.value)}
                       onKeyDown={(e) => { if (e.key === 'Enter') buscarLevantamientoPorEan(); }}
@@ -12921,7 +12934,7 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
                     </button>
                   </div>
                   {cargandoProductos && (
-                    <p className="text-[11px] text-stone-500">Cargando catálogo de productos...</p>
+                    <p className="text-[11px] text-stone-500">Cargando productos...</p>
                   )}
                 </div>
 
@@ -13784,7 +13797,7 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
                     type="submit"
                     className="w-full py-2.5 bg-[#6105dc] hover:bg-[#4d04b0] text-white font-bold text-xs rounded-full shadow"
                   >
-                    Guardar Proveedor
+                    Guardar proveedor
                   </button>
                 </form>
               </div>
@@ -14033,7 +14046,7 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
                       onClick={() => setMostrarFormNuevoCajero(true)}
                       className="w-full py-2.5 bg-white/70 hover:bg-[#ece0fd] text-stone-600 text-xs font-semibold rounded-full border border-stone-300 border-dashed flex items-center justify-center gap-1.5 shrink-0 shadow-sm"
                     >
-                      <i className="fa-solid fa-user-plus"></i> {esBarberia ? 'Agregar Nuevo Barbero' : 'Agregar Nuevo Cajero'}
+                      <i className="fa-solid fa-user-plus"></i> {esBarberia ? 'Agregar barbero' : 'Agregar cajero'}
                     </button>
                     <div className="flex-1 overflow-y-auto space-y-1.5">
                       {cargandoCajerosGestion ? (
@@ -14068,7 +14081,7 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
                               {esBarberia && c.activo && (
                                 <button
                                   onClick={() => abrirHorarioBarbero(c)}
-                                  title="Días y horas en que atiende; las citas de la tienda online se reservan dentro de este horario"
+                                  title="Días y horas en que atiende; las citas de la tienda en línea se reservan dentro de este horario"
                                   className="mt-1.5 flex items-center gap-1.5 text-[11px] font-semibold text-[#4d04b0] hover:underline"
                                 >
                                   <i className="fa-regular fa-calendar"></i>
@@ -14185,7 +14198,7 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
                   <button aria-label="Cerrar" onClick={() => setModalHorario(null)} className="text-stone-600 hover:text-stone-900 shrink-0"><i className="fa-solid fa-xmark"></i></button>
                 </div>
                 <p className="px-5 pb-2 text-[11px] text-stone-500 shrink-0">
-                  Marca los días que atiende y su horario. El descanso es opcional (por ejemplo, el almuerzo). Cuando un barbero tiene horario, la tienda online muestra horas libres y solo ofrece a los barberos con horario.
+                  Marca los días que atiende y su horario. El descanso es opcional (por ejemplo, el almuerzo). Cuando un barbero tiene horario, la tienda en línea muestra horas libres y solo ofrece a los barberos con horario.
                 </p>
                 <div className="px-5 pb-3 overflow-y-auto space-y-2">
                   {modalHorario.dias.map((d) => (
@@ -14297,8 +14310,7 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
                   <div className="flex-1 min-w-0">
                     <h3 className="text-[19px] font-bold tracking-tight text-stone-900 leading-tight">Mi link de pedidos</h3>
                     <p className="text-xs text-stone-500 mt-0.5 leading-snug">
-                      Tus clientes entran a este link, arman su pedido y te lo mandan por WhatsApp
-                      con un código, que cargas aquí en caja para cobrar sin escribir nada a mano.
+                      Tus clientes piden desde este link y te llega el pedido por WhatsApp con un código. Ingresa ese código en caja para cobrar.
                     </p>
                   </div>
                   <button onClick={() => { setModalDelivery(false); setMostrarQRDelivery(false); }} className="w-9 h-9 rounded-full bg-white ring-1 ring-[#6105dc]/10 hover:bg-[#f4eefe] text-stone-500 flex items-center justify-center transition shrink-0" aria-label="Cerrar">
@@ -14314,7 +14326,7 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
                       </p>
                       <p className="text-xs text-amber-700">
                         Los Pedidos por WhatsApp son una función paga aparte de tu plan.
-                        Contactá al administrador para habilitarla en tu bodega.
+                        Escribe a soporte de Kaserita para habilitarla en tu bodega.
                       </p>
                     </div>
                   </div>
@@ -14362,20 +14374,20 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
                             ) : (
                               <p className="text-[11.5px] text-white/80 mt-1 leading-snug">Configura tu horario para mostrar "Abierto" o "Cerrado".</p>
                             )}
-                            <p className="text-[11px] text-white/70 mt-1">Toca el círculo para cambiar tu logo.</p>
+                            {estadoHorarioActualDelivery && <p className="text-[11px] text-white/70 mt-1">Toca el círculo para cambiar tu logo.</p>}
                           </div>
                         </div>
 
                         <div className="relative flex items-center justify-between gap-3 mt-3.5 bg-white/15 rounded-2xl px-3 py-2.5">
                           <div className="min-w-0">
-                            <p className="text-[13.5px] font-bold">Aparecer en el catálogo público</p>
-                            <p className="text-[11.5px] text-white/85">{deliveryHabilitado ? 'Visible para tus clientes' : 'Oculto: solo entra quien tenga el link'}</p>
+                            <p className="text-[13.5px] font-bold">Mostrar mi tienda al público</p>
+                            <p className="text-[11.5px] text-white/85">{deliveryHabilitado ? 'Visible para tus clientes' : 'Solo entra quien tenga tu link'}</p>
                           </div>
                           <button
                             type="button"
                             role="switch"
                             aria-checked={deliveryHabilitado}
-                            aria-label="Aparecer en el catálogo público"
+                            aria-label="Mostrar mi tienda al público"
                             onClick={() => setDeliveryHabilitado((v) => !v)}
                             className={`relative w-12 h-7 rounded-full shrink-0 transition-colors ${deliveryHabilitado ? 'bg-green-500' : 'bg-white/30'}`}
                           >
@@ -14514,7 +14526,7 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
                               <p className="text-xs text-stone-400 mt-2">Marca los días en que atiendes.</p>
                             )}
                             <p className="text-[11.5px] text-stone-400 mt-1.5 leading-snug">
-                              Así la vitrina muestra "Abierto" o "Cerrado" en tiempo real. Si no lo configuras, no se muestra ningún aviso.
+                              La tienda muestra "Abierto" o "Cerrado" según este horario.
                             </p>
                           </div>
                         </>
@@ -14630,11 +14642,10 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
                         (
                           <>
                             <p className="text-[12.5px] text-stone-600 leading-snug">
-                              Manda una notificación a los clientes que siguen o visitaron tu tienda: <strong>“¡{sesion.bodega.nombre} ya recibe pedidos!”</strong>.
-                              Se envía solo a quienes tienen los avisos activados.
+                              Avisa a quienes siguen o visitaron tu tienda: <strong>“¡{sesion.bodega.nombre} ya recibe pedidos!”</strong>.
                             </p>
                             <p className="text-[11.5px] text-stone-400 leading-snug">
-                              Máximo una vez por semana. Además, se avisa solo cuando activas tu catálogo o la entrega a domicilio.
+                              Máximo una vez por semana. También se avisa solo cuando activas tu tienda o la entrega a domicilio.
                             </p>
                             <button
                               type="button"
@@ -14700,7 +14711,7 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
                   className="rounded-lg w-full max-w-[320px] h-auto"
                 />
                 <p className="text-xs text-stone-500 text-center">
-                  Tus clientes escanean este código con la cámara de su celular para entrar directo a tu vitrina.
+                  Tus clientes escanean este código con la cámara de su celular para entrar directo a tu tienda en línea.
                 </p>
               </div>
             </div>
@@ -14717,7 +14728,7 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
                   <button aria-label="Cerrar" onClick={() => setModalAuditoria(false)} className="text-stone-500 hover:text-stone-800"><i className="fa-solid fa-xmark"></i></button>
                 </div>
                 <div className="px-4 pt-3 flex gap-1.5 flex-wrap">
-                  {[['todo', 'Todo'], ['productos', 'Precios y productos'], ['ventas', 'Ventas'], ['turnos_caja', 'Turnos'], ['cajeros', 'Empleados'], ['mermas', 'Mermas']].map(([valor, etiqueta]) => (
+                  {[['todo', 'Todo'], ['productos', 'Precios y productos'], ['ventas', 'Ventas'], ['turnos_caja', 'Turnos'], ['cajeros', 'Empleados'], ['mermas', 'Pérdidas']].map(([valor, etiqueta]) => (
                     <button
                       key={valor}
                       onClick={() => setFiltroAuditoria(valor)}
@@ -14860,7 +14871,7 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
                       <button onClick={() => setClienteEditando(null)} className="text-xs text-stone-600 underline">Volver a la lista</button>
                     </div>
                     <div>
-                      <label className="text-xs text-stone-600 block mb-1">Nombre Completo:</label>
+                      <label className="text-xs text-stone-600 block mb-1">Nombre completo:</label>
                       <input
                         type="text"
                         value={formEditarCliente.nombre_completo}
@@ -14889,7 +14900,7 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
                       </div>
                     </div>
                     <div>
-                      <label className="text-xs text-stone-600 block mb-1">Límite de Crédito (S/):</label>
+                      <label className="text-xs text-stone-600 block mb-1">Límite de crédito (S/):</label>
                       <input
                         type="number"
                         step="10"
@@ -14988,10 +14999,10 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
                 />
                 <div className="flex-1 overflow-y-auto hide-scrollbar -mx-1 px-1 space-y-2">
                   <button
-                    onClick={() => seleccionarClientePOS({ dni: '99999999', nombre_completo: 'Cliente Varios / Desconocido', saldo_actual: 0 })}
+                    onClick={() => seleccionarClientePOS({ dni: '99999999', nombre_completo: 'Cliente sin registrar', saldo_actual: 0 })}
                     className="w-full text-left px-4 py-3 bg-white/60 hover:bg-[#f4eefe] backdrop-blur-xl border border-white/80 rounded-2xl shadow-sm transition"
                   >
-                    <p className="text-sm font-semibold text-stone-900">Cliente Varios / Desconocido</p>
+                    <p className="text-sm font-semibold text-stone-900">Cliente sin registrar</p>
                     <p className="text-xs text-stone-500">Sin DNI registrado</p>
                   </button>
                   {cargandoClientes ? (
@@ -15030,7 +15041,7 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
             <div className="fixed inset-0 bg-stone-900/30 backdrop-blur-sm flex items-center justify-center z-50 p-4">
               <div className="bg-gradient-to-br from-[#f4effc] via-[#f9f8fb] to-[#f5f4f8] border border-white/80 rounded-[28px] max-w-sm w-full p-5 shadow-2xl space-y-3">
                 <div className="flex justify-between items-center">
-                  <h3 className="text-lg font-bold text-stone-900"><i className="fa-solid fa-user-plus mr-1.5"></i> Registrar Nuevo Cliente</h3>
+                  <h3 className="text-lg font-bold text-stone-900"><i className="fa-solid fa-user-plus mr-1.5"></i> Registrar cliente</h3>
                   <button aria-label="Cerrar" onClick={() => setModalNuevoCliente(false)} className="w-8 h-8 rounded-full bg-white/70 hover:bg-white text-stone-500 hover:text-stone-900 shadow-sm"><i className="fa-solid fa-xmark"></i></button>
                 </div>
                 <form onSubmit={handleGuardarNuevoCliente} className="space-y-2.5">
@@ -15045,7 +15056,7 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
                     />
                   </div>
                   <div>
-                    <label className="text-xs text-stone-600 block mb-1">Nombre Completo *</label>
+                    <label className="text-xs text-stone-600 block mb-1">Nombre completo *</label>
                     <input
                       type="text"
                       required
@@ -15075,7 +15086,7 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
                     </div>
                   </div>
                   <div>
-                    <label className="text-xs text-stone-600 block mb-1">Límite de Crédito (S/) *</label>
+                    <label className="text-xs text-stone-600 block mb-1">Límite de crédito (S/) *</label>
                     <input
                       type="number"
                       step="10"
@@ -15086,7 +15097,7 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
                     />
                   </div>
                   <button type="submit" className="w-full py-2.5 bg-[#6105dc] hover:bg-[#4d04b0] text-white font-bold text-xs rounded-full shadow mt-2">
-                    Guardar Cliente
+                    Guardar cliente
                   </button>
                 </form>
               </div>
