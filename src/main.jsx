@@ -13499,7 +13499,7 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
             );
           })()}
 
-          {/* Modal: Cobrar Deudas / Créditos */}
+          {/* Modal: Fiados (cobrar deudas / créditos) */}
           {modalCobrarDeudas && (() => {
             const dinero = (v) => `S/ ${formatoSoles(Number(v) || 0)}`;
             const iniciales = (n) => String(n || '?').trim().split(/\s+/).slice(0, 2).map((w) => w[0]).join('').toUpperCase();
@@ -13518,8 +13518,10 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
               .sort(ordenDeudores === 'antigua' && conEstado
                 ? (a, b) => (b.e.masVieja ? b.e.masVieja.diasTranscurridos : 0) - (a.e.masVieja ? a.e.masVieja.diasTranscurridos : 0)
                 : (a, b) => (Number(b.cl.saldo_actual) || 0) - (Number(a.cl.saldo_actual) || 0));
-            const chipClase = (activo) => `inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold border-[1.5px] transition ${activo ? 'border-[#6105dc] bg-[#f4eefe] text-[#4d04b0] ring-2 ring-[#6105dc]/15' : 'border-stone-200 bg-white text-stone-600 hover:bg-[#f4eefe] hover:border-[#e4d6fb]'}`;
-            const barraLimite = (uso) => (uso >= 1 ? 'bg-rose-500' : uso >= 0.8 ? 'bg-amber-500' : 'bg-emerald-500');
+            const borde = 'border-[#e7e4ef]';
+            const botonSeg = (activo) => `h-7 px-3 rounded-[7px] text-[12.5px] whitespace-nowrap flex items-center gap-1.5 transition ${activo ? 'bg-white text-stone-900 font-semibold shadow-[0_0_0_1px_#e7e4ef]' : 'text-stone-500 font-medium hover:text-stone-900'}`;
+            const colorBarra = (uso) => (uso >= 1 ? 'bg-[#c0262d]' : uso >= 0.8 ? 'bg-[#d98a14]' : 'bg-[#9d9aae]');
+            const botonBase = `h-[34px] px-3 rounded-[9px] border ${borde} bg-white hover:bg-[#f6f5f9] text-[13px] font-medium text-stone-700 inline-flex items-center justify-center gap-2 transition`;
             const cerrar = () => { setModalCobrarDeudas(false); setDeudorSeleccionado(null); setBoletasDeudor([]); setPagoRegistrado(null); };
             const volverALista = () => { setDeudorSeleccionado(null); setBoletasDeudor([]); setPagoRegistrado(null); };
 
@@ -13528,7 +13530,6 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
               if (!deudorSeleccionado) {
                 return (
                   <div className="m-auto text-center text-[13.5px] text-stone-500 leading-snug max-w-[260px] p-5">
-                    <div className="w-16 h-16 rounded-[20px] bg-[#f4eefe] text-[#6105dc] grid place-items-center text-[28px] mx-auto mb-2.5"><i className="fa-solid fa-hand-holding-dollar"></i></div>
                     <b className="block text-[15px] text-stone-900 mb-0.5">Elige un cliente</b>
                     Verás sus boletas pendientes y podrás registrar un pago.
                   </div>
@@ -13539,17 +13540,17 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
                 return (
                   <div className="flex-1 min-h-0 overflow-y-auto p-5">
                     <div className="text-center max-w-sm mx-auto py-8">
-                      <div className="w-[84px] h-[84px] rounded-full bg-emerald-50 text-emerald-600 grid place-items-center text-4xl mx-auto mb-3.5"><i className="fa-solid fa-check"></i></div>
-                      <h4 className="text-[22px] font-extrabold text-stone-900 tracking-tight">Pago registrado</h4>
-                      <p className="text-[13.5px] text-stone-500 mt-1 mb-3.5 leading-snug">{pagoRegistrado.nombre} {pagoRegistrado.despues <= 0.004 ? 'quedó sin deuda.' : `sigue debiendo ${dinero(pagoRegistrado.despues)}.`}</p>
-                      <div className="bg-white border border-stone-100 rounded-[20px] px-4 py-1 text-left mb-4 divide-y divide-dashed divide-stone-200">
-                        <div className="flex justify-between gap-3 py-2.5 text-[13px]"><span className="text-stone-500">Deuda anterior</span><b>{dinero(pagoRegistrado.antes)}</b></div>
-                        <div className="flex justify-between gap-3 py-2.5 text-[13px]"><span className="text-stone-500">Pago recibido</span><b className="text-emerald-600">+ {dinero(pagoRegistrado.abono)}</b></div>
-                        <div className="flex justify-between gap-3 py-2.5 text-[13px] items-baseline"><span className="text-stone-500">Deuda actual</span><b className="text-base font-extrabold">{dinero(pagoRegistrado.despues)}</b></div>
+                      <div className="w-16 h-16 rounded-full bg-[#e7f7ee] text-[#0f7b4a] grid place-items-center text-[28px] mx-auto mb-3.5"><i className="fa-solid fa-check"></i></div>
+                      <h4 className="text-[22px] font-bold text-stone-900 tracking-tight">Pago registrado</h4>
+                      <p className="text-[13.5px] text-stone-500 mt-1.5 mb-4 leading-snug">{pagoRegistrado.nombre} {pagoRegistrado.despues <= 0.004 ? 'quedó sin deuda.' : `sigue debiendo ${dinero(pagoRegistrado.despues)}.`}</p>
+                      <div className={`border ${borde} rounded-[10px] px-4 text-left mb-4`}>
+                        <div className="flex justify-between gap-3 py-2.5 text-[13px] border-b border-dashed border-[#e7e4ef]"><span className="text-stone-500">Deuda anterior</span><b>{dinero(pagoRegistrado.antes)}</b></div>
+                        <div className="flex justify-between gap-3 py-2.5 text-[13px] border-b border-dashed border-[#e7e4ef]"><span className="text-stone-500">Pago recibido</span><b className="text-[#0f7b4a]">+ {dinero(pagoRegistrado.abono)}</b></div>
+                        <div className="flex justify-between gap-3 py-2.5 text-[13px] items-baseline"><span className="text-stone-500">Deuda actual</span><b className="text-base">{dinero(pagoRegistrado.despues)}</b></div>
                       </div>
                       <div className="grid gap-2">
-                        {siguiente && <button type="button" onClick={() => seleccionarDeudor(siguiente)} className="w-full h-[46px] rounded-[14px] bg-[#6105dc] hover:bg-[#4d04b0] text-white font-bold text-[13.5px] shadow-lg shadow-[#6105dc]/30 inline-flex items-center justify-center gap-2">Siguiente cliente <i className="fa-solid fa-chevron-right text-[10px]"></i></button>}
-                        <button type="button" onClick={volverALista} className="w-full h-[46px] rounded-[14px] bg-[#f4eefe] hover:bg-[#ece0fd] text-[#4d04b0] font-bold text-[13.5px]">Volver a la lista</button>
+                        {siguiente && <button type="button" onClick={() => seleccionarDeudor(siguiente)} className="w-full h-[42px] rounded-[9px] bg-[#6105dc] hover:bg-[#4d04b0] text-white font-semibold text-[13.5px] inline-flex items-center justify-center gap-2 transition">Siguiente cliente <i className="fa-solid fa-chevron-right text-[10px]"></i></button>}
+                        <button type="button" onClick={volverALista} className={`w-full h-[42px] ${botonBase}`}>Volver a la lista</button>
                       </div>
                     </div>
                   </div>
@@ -13567,63 +13568,63 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
               const uso = limite > 0 ? saldo / limite : 0;
               const lista = mostrarHistorialCompletoDeuda ? e.boletas : e.pendientesAsc;
               const v0 = e.vencidas[0];
-              const atajo = (activo) => `px-3 py-1.5 rounded-xl border-[1.5px] text-[12.5px] font-bold transition ${activo ? 'border-[#6105dc] bg-[#f4eefe] text-[#4d04b0]' : 'border-stone-200 bg-white hover:bg-[#f4eefe] hover:border-[#e4d6fb]'}`;
+              const atajo = (activo) => `h-[30px] px-3 rounded-lg border text-[12.5px] transition ${activo ? 'border-[#6105dc] bg-[#f3effd] text-[#4d04b0] font-semibold' : `${borde} bg-white text-stone-700 font-medium hover:bg-[#f6f5f9]`}`;
               const restoAntigua = restoPrimeraBoleta(e);
               return (
-                <div className="flex-1 min-h-0 overflow-y-auto p-4 sm:p-5 flex flex-col">
-                  <div className="order-1 flex flex-wrap items-center gap-3 mb-3.5">
-                    <span className={`w-[52px] h-[52px] rounded-full grid place-items-center text-[17px] font-extrabold shrink-0 ${v0 ? 'bg-rose-50 text-rose-600' : 'bg-[#f4eefe] text-[#6105dc]'}`}>{iniciales(cl.nombre_completo)}</span>
+                <div className="flex-1 min-h-0 overflow-y-auto hide-scrollbar p-4 sm:p-6 flex flex-col gap-4">
+                  <div className="flex flex-wrap items-center gap-3">
+                    <span className="w-[46px] h-[46px] rounded-full bg-[#f6f5f9] text-stone-700 grid place-items-center text-[15px] font-bold shrink-0">{iniciales(cl.nombre_completo)}</span>
                     <div className="min-w-0 flex-1 basis-[160px]">
-                      <h4 className="text-[19px] font-extrabold text-stone-900 tracking-tight leading-tight truncate">{cl.nombre_completo}</h4>
+                      <h4 className="text-[18px] font-bold text-stone-900 tracking-tight leading-tight truncate">{cl.nombre_completo}</h4>
                       <p className="text-[12.5px] text-stone-500 mt-0.5 flex flex-wrap gap-x-2.5">DNI {cl.dni}<span>{cl.telefono || 'Sin teléfono'}</span><span>Plazo {Number(cl.dias_credito) || 30} días</span></p>
                     </div>
-                    <div className="flex gap-2 w-full sm:w-auto">
-                      <button type="button" onClick={descargarEstadoCuenta} className="flex-1 sm:flex-none h-9 px-3.5 rounded-xl bg-white border-[1.5px] border-stone-200 hover:border-[#e4d6fb] hover:bg-[#f4eefe] text-[12.5px] font-bold inline-flex items-center justify-center gap-1.5"><IconoTrazo nombre="pdf" className="w-[15px] h-[15px] text-[#6105dc]" /> PDF</button>
-                      <button type="button" onClick={() => enviarEstadoCuentaWhatsApp(cl)} className="flex-1 sm:flex-none h-9 px-3.5 rounded-xl bg-white border-[1.5px] border-stone-200 hover:border-[#e4d6fb] hover:bg-[#f4eefe] text-[12.5px] font-bold inline-flex items-center justify-center gap-1.5"><IconoTrazo nombre="chat" className="w-[15px] h-[15px] text-[#6105dc]" /> WhatsApp</button>
+                    <div className="flex gap-2">
+                      <button type="button" onClick={descargarEstadoCuenta} className={botonBase}><IconoTrazo nombre="pdf" className="w-[15px] h-[15px]" /> PDF</button>
+                      <button type="button" onClick={() => enviarEstadoCuentaWhatsApp(cl)} className={botonBase}><IconoTrazo nombre="chat" className="w-[15px] h-[15px]" /> WhatsApp</button>
                     </div>
                   </div>
 
-                  <div className="order-2 bg-white border border-stone-100 rounded-[22px] p-4 sm:px-[18px] mb-3.5">
-                    <div className="flex items-baseline justify-between gap-2.5 flex-wrap"><span className="text-xs font-bold text-stone-500">Deuda actual</span><strong className="text-[28px] sm:text-[32px] font-extrabold tracking-tight text-rose-600 leading-tight tabular-nums">{dinero(saldo)}</strong></div>
+                  <div className={`border ${borde} rounded-xl px-4 sm:px-[18px] py-4`}>
+                    <div className="flex items-baseline justify-between gap-2.5 flex-wrap"><span className="text-[13px] font-medium text-stone-500">Deuda actual</span><strong className="text-[28px] sm:text-[30px] font-bold tracking-tight text-[#c0262d] leading-tight tabular-nums">{dinero(saldo)}</strong></div>
                     {limite > 0 && (
                       <>
-                        <div className="h-[9px] rounded-full bg-[#ece7f5] overflow-hidden mt-3"><i className={`block h-full transition-all ${barraLimite(uso)}`} style={{ width: `${Math.min(100, uso * 100)}%` }}></i></div>
-                        <div className="flex justify-between flex-wrap gap-x-2 text-[11.5px] font-semibold text-stone-500 mt-1.5"><span>Usa {dinero(saldo)} de {dinero(limite)} de crédito ({Math.round(uso * 100)}%)</span><span>Disponible {dinero(Math.max(0, limite - saldo))}</span></div>
+                        <div className="h-1.5 rounded-full bg-[#ece9f4] overflow-hidden mt-3"><i className={`block h-full ${colorBarra(uso)}`} style={{ width: `${Math.min(100, uso * 100)}%` }}></i></div>
+                        <div className="flex justify-between flex-wrap gap-x-2 text-xs text-stone-500 mt-1.5"><span>Usa {dinero(saldo)} de {dinero(limite)} de crédito ({Math.round(uso * 100)}%)</span><span>Disponible {dinero(Math.max(0, limite - saldo))}</span></div>
                       </>
                     )}
                     {v0 && (
-                      <div className="flex gap-2.5 items-start rounded-[14px] bg-rose-50 text-rose-600 px-3 py-2.5 text-xs leading-snug mt-3"><i className="fa-solid fa-triangle-exclamation mt-0.5"></i><span><b>{dinero(e.vencidoMonto)} vencido.</b> La boleta {v0.nro_boleta} pasó su plazo hace {v0.diasVencido} día{v0.diasVencido > 1 ? 's' : ''}.</span></div>
+                      <p className="text-[12.5px] text-[#c0262d] bg-[#fdf1f1] rounded-lg px-3 py-2.5 mt-3 leading-snug"><b>{dinero(e.vencidoMonto)} vencido.</b> La boleta {v0.nro_boleta} pasó su plazo hace {v0.diasVencido} día{v0.diasVencido > 1 ? 's' : ''}.</p>
                     )}
                   </div>
 
-                  <div className="order-3 bg-white border-[1.5px] border-[#e4d6fb] rounded-[22px] p-4 sm:px-[18px] shadow-lg shadow-[#6105dc]/10 mb-3.5">
-                    <h5 className="text-[14.5px] font-extrabold text-stone-900 mb-2.5">Registrar pago</h5>
-                    <div className={`flex items-baseline gap-2.5 border-2 rounded-[20px] px-4 py-2.5 transition ${excede ? 'border-rose-400 bg-rose-50' : 'border-stone-200 bg-stone-50/70 focus-within:border-[#6105dc] focus-within:bg-white focus-within:ring-[5px] focus-within:ring-[#6105dc]/15'}`}>
-                      <span className="text-[20px] font-extrabold text-stone-300">S/</span>
-                      <input type="number" min="0" step="0.10" inputMode="decimal" placeholder="0.00" aria-label="Monto a abonar" value={montoAbonoDeuda} onChange={(ev) => setMontoAbonoDeuda(ev.target.value)} className="w-full min-w-0 bg-transparent outline-none border-0 text-[30px] sm:text-[34px] font-extrabold tracking-tight text-stone-900 placeholder:text-stone-300 tabular-nums" />
+                  <div className="border border-[#cfc3ec] rounded-xl px-4 sm:px-[18px] py-4 shadow-[0_0_0_3px_rgba(97,5,220,0.05)]">
+                    <h5 className="text-sm font-bold text-stone-900 mb-2.5">Registrar pago</h5>
+                    <label className={`flex items-center gap-2 h-[54px] border rounded-[10px] px-3.5 transition ${excede ? 'border-[#c0262d] bg-[#fdf1f1]' : `${borde} focus-within:border-[#6105dc] focus-within:shadow-[0_0_0_1px_#6105dc]`}`}>
+                      <span className="text-lg font-semibold text-stone-400">S/</span>
+                      <input type="number" min="0" step="0.10" inputMode="decimal" placeholder="0.00" aria-label="Monto a abonar" value={montoAbonoDeuda} onChange={(ev) => setMontoAbonoDeuda(ev.target.value)} className="w-full min-w-0 bg-transparent outline-none border-0 text-[26px] font-bold tracking-tight text-stone-900 placeholder:text-stone-300 tabular-nums" />
+                    </label>
+                    <div className="flex flex-wrap gap-1.5 mt-2.5">
+                      <button type="button" onClick={() => setMontoAbonoDeuda(saldo.toFixed(2))} className={atajo(abono > 0 && Math.abs(abono - saldo) < 0.005)}>Pagar todo</button>
+                      <button type="button" onClick={() => setMontoAbonoDeuda((saldo / 2).toFixed(2))} className={atajo(abono > 0 && Math.abs(abono - saldo / 2) < 0.005)}>Mitad</button>
+                      {e.pendientesAsc.length > 1 && restoAntigua > 0 && <button type="button" onClick={() => setMontoAbonoDeuda(restoAntigua.toFixed(2))} className={atajo(abono > 0 && Math.abs(abono - restoAntigua) < 0.005)}>Boleta más antigua {dinero(restoAntigua)}</button>}
                     </div>
-                    <div className="flex flex-wrap gap-2 mt-2.5">
-                      <button type="button" onClick={() => setMontoAbonoDeuda(saldo.toFixed(2))} className={atajo(Math.abs(abono - saldo) < 0.005)}>Pagar todo</button>
-                      <button type="button" onClick={() => setMontoAbonoDeuda((saldo / 2).toFixed(2))} className={atajo(Math.abs(abono - saldo / 2) < 0.005)}>Mitad</button>
-                      {e.pendientesAsc.length > 1 && restoAntigua > 0 && <button type="button" onClick={() => setMontoAbonoDeuda(restoAntigua.toFixed(2))} className={atajo(Math.abs(abono - restoAntigua) < 0.005)}>Boleta más antigua {dinero(restoAntigua)}</button>}
-                    </div>
-                    <div className={`mt-3 flex justify-between items-center gap-2.5 rounded-[14px] px-3.5 py-2.5 text-[12.5px] font-semibold ${excede ? 'bg-rose-50 text-rose-600' : abono > 0 && restante === 0 ? 'bg-emerald-50 text-emerald-600' : 'bg-[#f7f4fc] text-stone-500'}`}>
+                    <div className={`mt-3 flex justify-between items-baseline gap-2.5 rounded-[9px] px-3.5 py-2.5 text-[13px] ${excede ? 'bg-[#fdf1f1] text-[#c0262d]' : 'bg-[#f6f5f9] text-stone-500'}`}>
                       <span>{excede ? 'El monto excede la deuda' : 'Saldo después del pago'}</span>
-                      <b className={`text-base font-extrabold tabular-nums ${excede ? 'text-rose-600' : abono > 0 && restante === 0 ? 'text-emerald-600' : 'text-stone-900'}`}>{dinero(excede ? saldo : restante)}</b>
+                      <b className={`text-[17px] tracking-tight tabular-nums ${excede ? 'text-[#c0262d]' : abono > 0 && restante === 0 ? 'text-[#0f7b4a]' : 'text-stone-900'}`}>{dinero(excede ? saldo : restante)}</b>
                     </div>
                     {abono > 0 && !excede && e.pendientesAsc.length > 0 && (
-                      <p className="mt-2 text-[11.5px] font-semibold text-stone-500">{cob.cubiertas === 0 ? 'No alcanza para cubrir una boleta completa; queda como pago a cuenta.' : `Cubre ${cob.cubiertas} de ${e.pendientesAsc.length} boleta${e.pendientesAsc.length > 1 ? 's' : ''} pendiente${e.pendientesAsc.length > 1 ? 's' : ''} (las más antiguas primero).`}</p>
+                      <p className="mt-2 text-xs text-stone-500">{cob.cubiertas === 0 ? 'No alcanza para cubrir una boleta completa; queda como pago a cuenta.' : `Cubre ${cob.cubiertas} de ${e.pendientesAsc.length} boleta${e.pendientesAsc.length > 1 ? 's' : ''} pendiente${e.pendientesAsc.length > 1 ? 's' : ''} (las más antiguas primero).`}</p>
                     )}
-                    <button type="button" onClick={procesarPagoDeudaCliente} disabled={!(abono > 0) || excede} className="mt-3.5 w-full h-[46px] rounded-[14px] bg-[#6105dc] hover:bg-[#4d04b0] disabled:bg-[#d9d2ea] disabled:shadow-none disabled:cursor-not-allowed text-white font-bold text-[13.5px] shadow-lg shadow-[#6105dc]/30 inline-flex items-center justify-center gap-2 transition">
+                    <button type="button" onClick={procesarPagoDeudaCliente} disabled={!(abono > 0) || excede} className="mt-3 w-full h-11 rounded-[9px] bg-[#6105dc] hover:bg-[#4d04b0] disabled:bg-[#ebe8f1] disabled:text-[#8b869a] disabled:cursor-not-allowed text-white font-semibold text-sm inline-flex items-center justify-center gap-2 transition">
                       <i className="fa-solid fa-check text-xs"></i> {abono > 0 && !excede ? `Registrar pago de ${dinero(abono)}` : 'Registrar pago'}
                     </button>
                   </div>
 
-                  <div className="order-4 bg-white border border-stone-100 rounded-[22px] p-4 sm:px-[18px] mb-3.5">
-                    <div className="flex items-baseline justify-between gap-2 mb-1.5">
-                      <h5 className="text-[14.5px] font-extrabold text-stone-900">{mostrarHistorialCompletoDeuda ? 'Historial de compras a crédito' : 'Boletas pendientes'}</h5>
+                  <div>
+                    <div className="flex items-baseline justify-between gap-2 mb-1">
+                      <h5 className="text-sm font-bold text-stone-900">{mostrarHistorialCompletoDeuda ? 'Historial de compras a crédito' : 'Boletas pendientes'}</h5>
                       {e.boletas.some((b) => b.pagada) && (
-                        <button type="button" onClick={() => setMostrarHistorialCompletoDeuda((x) => !x)} className="text-xs font-bold text-[#4d04b0] hover:bg-[#f4eefe] rounded-lg px-1.5 py-1 shrink-0">
+                        <button type="button" onClick={() => setMostrarHistorialCompletoDeuda((x) => !x)} className="text-[12.5px] font-semibold text-[#6105dc] hover:underline shrink-0">
                           {mostrarHistorialCompletoDeuda ? 'Ver solo pendientes' : `Ver historial completo (${e.boletas.length})`}
                         </button>
                       )}
@@ -13633,26 +13634,24 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
                     ) : e.boletas.length === 0 ? (
                       <p className="text-xs text-stone-500 text-center py-4">Sin boletas a crédito registradas.</p>
                     ) : lista.length === 0 ? (
-                      <p className="text-xs text-emerald-600 text-center py-4">No hay boletas pendientes.</p>
+                      <p className="text-xs text-[#0f7b4a] text-center py-4">No hay boletas pendientes.</p>
                     ) : (
                       lista.map((b) => {
                         const cubre = !b.pagada && abono > 0 && !excede && cob.ids.includes(b.id);
                         return (
-                          <div key={b.id} className={`flex gap-2.5 py-2.5 border-b border-stone-100 last:border-0 ${b.pagada ? 'opacity-50' : ''}`}>
-                            <span className={`w-[22px] h-[22px] rounded-full border-2 grid place-items-center text-white text-xs shrink-0 mt-px transition ${b.pagada || cubre ? 'bg-emerald-500 border-emerald-500' : 'border-stone-300'}`}>{(b.pagada || cubre) && <i className="fa-solid fa-check text-[10px]"></i>}</span>
-                            <div className="min-w-0 flex-1">
-                              <div className="flex justify-between items-baseline gap-2">
-                                <span className="text-[13px] font-bold text-stone-900 flex items-center gap-1.5 flex-wrap tabular-nums">
-                                  {b.nro_boleta}
-                                  {b.pagada && <span className="text-[11px] font-bold rounded-full px-2 py-0.5 bg-emerald-50 text-emerald-600">Pagada</span>}
-                                  {b.vencida && <span className="text-[11px] font-bold rounded-full px-2 py-0.5 bg-rose-50 text-rose-600">Vencida hace {b.diasVencido} d</span>}
-                                </span>
-                                <span className={`text-sm font-extrabold tabular-nums whitespace-nowrap ${b.pagada ? 'line-through' : ''}`}>{dinero(b.total_venta)}</span>
-                              </div>
-                              <p className="text-[11.5px] text-stone-500 mt-0.5 leading-snug">
+                          <div key={b.id} className={`grid grid-cols-[20px_1fr_auto] gap-2.5 py-2.5 border-b border-[#f0eef5] last:border-0 items-start ${b.pagada ? 'opacity-50' : ''}`}>
+                            <span className={`w-[18px] h-[18px] rounded-full border-[1.5px] grid place-items-center text-white mt-0.5 transition ${b.pagada || cubre ? 'bg-[#0f7b4a] border-[#0f7b4a]' : 'border-[#bdb9cc]'}`}>{(b.pagada || cubre) && <i className="fa-solid fa-check text-[9px]"></i>}</span>
+                            <div className="min-w-0">
+                              <p className="text-[13px] flex items-center gap-2 flex-wrap">
+                                <b className="font-mono font-semibold text-stone-900">{b.nro_boleta}</b>
+                                {b.pagada && <span className="text-[11.5px] font-semibold text-[#0f7b4a]">Pagada</span>}
+                                {b.vencida && <span className="text-[11.5px] font-semibold text-[#c0262d]">Vencida hace {b.diasVencido} d</span>}
+                              </p>
+                              <p className="text-xs text-stone-500 mt-0.5 leading-snug">
                                 {new Date(b.fecha_hora).toLocaleDateString('es-PE')} · {(b.ventas_detalle || []).map((d) => `${d.productos?.descripcion || 'Producto'} x${d.cantidad}`).join(', ') || 'Sin detalle'}
                               </p>
                             </div>
+                            <span className={`text-sm font-bold tabular-nums whitespace-nowrap ${b.pagada ? 'line-through' : ''}`}>{dinero(b.total_venta)}</span>
                           </div>
                         );
                       })
@@ -13660,12 +13659,12 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
                   </div>
 
                   {pagosRecientes.length > 0 && (
-                    <div className="order-5 bg-white border border-stone-100 rounded-[22px] p-4 sm:px-[18px] mb-3.5">
-                      <h5 className="text-[14.5px] font-extrabold text-stone-900 mb-1.5">Pagos recientes</h5>
+                    <div>
+                      <h5 className="text-sm font-bold text-stone-900 mb-1">Pagos recientes</h5>
                       {pagosRecientes.map((p, i) => (
-                        <div key={i} className="flex justify-between gap-2.5 py-2 border-b border-dashed border-stone-200 last:border-0 text-[12.5px]">
+                        <div key={i} className="flex justify-between gap-2.5 py-2 border-b border-[#f0eef5] last:border-0 text-[13px]">
                           <span className="text-stone-500">{etiquetaCuandoTurno(p.fecha)}{listaCajeros.find((c) => c.id === p.cajero_id) ? ` · ${listaCajeros.find((c) => c.id === p.cajero_id).nombre}` : ''}</span>
-                          <b className="text-emerald-600 tabular-nums">+ {dinero(p.monto_pagado)}</b>
+                          <b className="text-[#0f7b4a] font-semibold tabular-nums">+ {dinero(p.monto_pagado)}</b>
                         </div>
                       ))}
                     </div>
@@ -13676,15 +13675,13 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
 
             return (
               <div className="fixed inset-0 bg-stone-900/30 backdrop-blur-sm flex items-center justify-center z-50 p-2 sm:p-4">
-                <div className="bg-gradient-to-br from-[#f4effc] via-[#f9f8fb] to-[#f5f4f8] border border-white/80 rounded-[28px] max-w-5xl w-full shadow-2xl h-[95vh] max-h-[800px] flex flex-col overflow-hidden">
-                  <div className="bg-white border-b border-stone-100 px-4 sm:px-5 py-3.5 shrink-0 flex items-center gap-3">
-                    {deudorSeleccionado && <button type="button" onClick={volverALista} className="md:hidden inline-flex items-center gap-1.5 text-[12.5px] font-bold text-stone-500 hover:text-stone-800 hover:bg-stone-100 rounded-lg px-2 py-1.5 shrink-0"><i className="fa-solid fa-chevron-left text-[10px]"></i> Clientes</button>}
-                    <span className="w-11 h-11 rounded-[14px] bg-[#f4eefe] text-[#6105dc] grid place-items-center text-xl shrink-0"><i className="fa-solid fa-hand-holding-dollar"></i></span>
-                    <div className="min-w-0 flex-1">
-                      <h3 className="text-[17px] sm:text-lg font-extrabold text-stone-900 tracking-tight leading-tight">Fiados</h3>
-                      <p className="hidden sm:block text-[12.5px] text-stone-500 mt-0.5">Lo que tus clientes te deben a crédito. Elige a quién cobrarle y registra su pago.</p>
-                    </div>
-                    <button aria-label="Cerrar" onClick={cerrar} className="w-8 h-8 flex items-center justify-center rounded-full text-stone-400 hover:text-stone-600 hover:bg-stone-100 transition-colors shrink-0"><i className="fa-solid fa-xmark"></i></button>
+                <div className="bg-white border border-black/5 rounded-2xl max-w-5xl w-full shadow-2xl h-[95vh] max-h-[760px] flex flex-col overflow-hidden">
+                  <div className={`px-4 sm:px-5 py-3.5 shrink-0 flex items-center gap-3 border-b ${borde}`}>
+                    {deudorSeleccionado && <button type="button" onClick={volverALista} className="md:hidden inline-flex items-center gap-1.5 text-[13px] font-medium text-stone-600 hover:bg-[#f6f5f9] rounded-lg px-2 py-1.5 shrink-0"><i className="fa-solid fa-arrow-left text-[11px]"></i> Clientes</button>}
+                    <h3 className="text-[17px] font-bold tracking-tight text-stone-900">Fiados</h3>
+                    <p className="hidden sm:block text-[12.5px] text-stone-500 truncate">Lo que tus clientes te deben a crédito</p>
+                    <span className="flex-1"></span>
+                    <button aria-label="Cerrar" onClick={cerrar} className="w-8 h-8 rounded-lg text-stone-500 hover:bg-[#f6f5f9] shrink-0"><i className="fa-solid fa-xmark"></i></button>
                   </div>
 
                   {clientesDeudores.length === 0 && !deudorSeleccionado ? (
@@ -13693,59 +13690,60 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
                         <p className="text-[13px] text-stone-500">Cargando clientes con deuda...</p>
                       ) : (
                         <div className="text-center max-w-xs text-[13.5px] text-stone-500 leading-snug">
-                          <div className="w-[72px] h-[72px] rounded-3xl bg-emerald-50 text-emerald-600 grid place-items-center text-[32px] mx-auto mb-3"><i className="fa-solid fa-check"></i></div>
+                          <div className="w-14 h-14 rounded-full bg-[#e7f7ee] text-[#0f7b4a] grid place-items-center text-[24px] mx-auto mb-3"><i className="fa-solid fa-check"></i></div>
                           <b className="block text-base text-stone-900 mb-0.5">No hay clientes con deuda</b>
                           Todo está cobrado. Cuando vendas a crédito, el cliente aparecerá aquí.
                         </div>
                       )}
                     </div>
                   ) : (
-                    <div className="flex-1 min-h-0 grid md:grid-cols-[350px_minmax(0,1fr)]">
-                      <div className={`${deudorSeleccionado ? 'hidden md:flex' : 'flex'} flex-col min-h-0 md:border-r border-stone-100 bg-white/55`}>
-                        <div className="px-4 pt-4 pb-1">
-                          <span className="text-xs font-bold text-stone-500">Total por cobrar</span>
-                          <strong className="block text-[30px] font-extrabold tracking-tight text-stone-900 leading-tight tabular-nums">{dinero(totalPorCobrar)}</strong>
-                          <div className="flex flex-wrap gap-2 mt-2">
-                            <span className="text-[11px] font-bold rounded-full px-2.5 py-0.5 bg-[#f1eef9] text-stone-500">{clientesDeudores.length} {clientesDeudores.length === 1 ? 'cliente' : 'clientes'}</span>
+                    <div className="flex-1 min-h-0 grid md:grid-cols-[360px_minmax(0,1fr)]">
+                      <div className={`${deudorSeleccionado ? 'hidden md:flex' : 'flex'} flex-col min-h-0 md:border-r ${borde}`}>
+                        <div className={`px-4 sm:px-[18px] pt-4 pb-3 border-b ${borde}`}>
+                          <span className="text-xs font-medium text-stone-500">Total por cobrar</span>
+                          <strong className="block text-[26px] md:text-[28px] font-bold tracking-tight text-stone-900 leading-tight tabular-nums">{dinero(totalPorCobrar)}</strong>
+                          <div className="flex flex-wrap gap-x-3.5 mt-1.5 text-[12.5px] text-stone-500">
+                            <span>{clientesDeudores.length} {clientesDeudores.length === 1 ? 'cliente' : 'clientes'}</span>
                             {conEstado && (totalVencido > 0
-                              ? <span className="text-[11px] font-bold rounded-full px-2.5 py-0.5 bg-rose-50 text-rose-600">{dinero(totalVencido)} vencido</span>
-                              : <span className="text-[11px] font-bold rounded-full px-2.5 py-0.5 bg-emerald-50 text-emerald-600">Nada vencido</span>)}
+                              ? <span className="text-[#c0262d] font-semibold">{dinero(totalVencido)} vencido</span>
+                              : <span className="text-[#0f7b4a] font-semibold">Nada vencido</span>)}
                           </div>
                         </div>
-                        <div className="px-4 pt-3 pb-2">
-                          <div className="relative">
-                            <i className="fa-solid fa-magnifying-glass absolute left-3.5 top-1/2 -translate-y-1/2 text-stone-300 text-sm pointer-events-none"></i>
-                            <input type="text" autoComplete="off" placeholder="Buscar por nombre o DNI…" value={busquedaDeudores} onChange={(ev) => setBusquedaDeudores(ev.target.value)} className="w-full h-10 bg-white border-[1.5px] border-stone-200 rounded-[14px] pl-9 pr-3 text-[13.5px] text-stone-900 placeholder:text-stone-300 outline-none focus:border-[#6105dc] focus:ring-4 focus:ring-[#6105dc]/15" />
-                          </div>
-                          <div className="flex flex-wrap gap-1.5 mt-2.5">
-                            <button type="button" onClick={() => setFiltroDeudores('todos')} className={chipClase(filtroDeudores === 'todos')}>Todos <span className={`text-[10.5px] rounded-full px-1.5 ${filtroDeudores === 'todos' ? 'bg-[#6105dc] text-white' : 'bg-[#f1eef9] text-stone-500'}`}>{filas.length}</span></button>
-                            {conEstado && <button type="button" onClick={() => setFiltroDeudores('venc')} className={chipClase(filtroDeudores === 'venc')}>Vencidos <span className={`text-[10.5px] rounded-full px-1.5 ${filtroDeudores === 'venc' ? 'bg-[#6105dc] text-white' : 'bg-[#f1eef9] text-stone-500'}`}>{nVencidos}</span></button>}
-                            <button type="button" onClick={() => setFiltroDeudores('lim')} className={chipClase(filtroDeudores === 'lim')}>Cerca del límite <span className={`text-[10.5px] rounded-full px-1.5 ${filtroDeudores === 'lim' ? 'bg-[#6105dc] text-white' : 'bg-[#f1eef9] text-stone-500'}`}>{nCercaLimite}</span></button>
+                        <div className={`px-4 sm:px-[18px] py-2.5 space-y-2.5 border-b ${borde}`}>
+                          <label className={`flex items-center gap-2 h-9 border ${borde} rounded-[9px] px-3 text-stone-400 focus-within:border-[#6105dc]`}>
+                            <i className="fa-solid fa-magnifying-glass text-xs"></i>
+                            <input type="text" autoComplete="off" placeholder="Buscar por nombre o DNI" value={busquedaDeudores} onChange={(ev) => setBusquedaDeudores(ev.target.value)} className="flex-1 min-w-0 bg-transparent text-[13px] text-stone-900 outline-none placeholder:text-stone-400" />
+                          </label>
+                          <div className="flex bg-[#f6f5f9] rounded-[9px] p-[3px] self-start w-fit max-w-full overflow-x-auto hide-scrollbar">
+                            <button type="button" onClick={() => setFiltroDeudores('todos')} className={botonSeg(filtroDeudores === 'todos')}>Todos <span className="text-[11px] text-stone-500 font-semibold">{filas.length}</span></button>
+                            {conEstado && <button type="button" onClick={() => setFiltroDeudores('venc')} className={botonSeg(filtroDeudores === 'venc')}>Vencidos <span className="text-[11px] text-stone-500 font-semibold">{nVencidos}</span></button>}
+                            <button type="button" onClick={() => setFiltroDeudores('lim')} className={botonSeg(filtroDeudores === 'lim')}>Cerca del límite <span className="text-[11px] text-stone-500 font-semibold">{nCercaLimite}</span></button>
                           </div>
                         </div>
-                        <div className="flex justify-between items-center px-4 pb-2 text-[11.5px] font-semibold text-stone-500">
+                        <div className={`flex justify-between items-center px-4 sm:px-[18px] py-2 bg-[#f6f5f9] border-b ${borde} text-xs text-stone-500`}>
                           <span>{visibles.length} resultado{visibles.length === 1 ? '' : 's'}</span>
-                          {conEstado && <button type="button" onClick={() => setOrdenDeudores((o) => (o === 'deuda' ? 'antigua' : 'deuda'))} className="font-bold text-[#4d04b0] hover:bg-[#f4eefe] rounded-lg px-1.5 py-0.5">Orden: {ordenDeudores === 'deuda' ? 'mayor deuda' : 'más antigua'}</button>}
+                          {conEstado && <button type="button" onClick={() => setOrdenDeudores((o) => (o === 'deuda' ? 'antigua' : 'deuda'))} className="font-semibold text-stone-700 hover:text-stone-900">Orden: {ordenDeudores === 'deuda' ? 'mayor deuda' : 'más antigua'}</button>}
                         </div>
-                        <div className="flex-1 min-h-0 overflow-y-auto px-2.5 pb-3 grid gap-1.5 content-start">
+                        <div className="flex-1 min-h-0 overflow-y-auto hide-scrollbar">
                           {visibles.length === 0 && <p className="text-center text-[13px] text-stone-500 py-8 px-4"><b className="block text-stone-900">Nadie coincide</b>Prueba con otro filtro o nombre.</p>}
                           {visibles.map(({ cl, e, uso }) => {
                             const venc = e && e.vencidas.length > 0;
                             const pend = e ? e.pendientesAsc.length : 0;
+                            const elegido = deudorSeleccionado?.id === cl.id;
                             return (
-                              <button type="button" key={cl.id} onClick={() => seleccionarDeudor(cl)} className={`flex items-center gap-2.5 w-full text-left rounded-2xl border-[1.5px] bg-white px-2.5 py-2.5 transition hover:bg-[#fcfaff] hover:border-[#e4d6fb] ${deudorSeleccionado?.id === cl.id ? 'border-[#6105dc] bg-[#fcfaff] ring-[3px] ring-[#6105dc]/15' : 'border-transparent'}`}>
-                                <span className={`w-10 h-10 rounded-full grid place-items-center text-[13px] font-extrabold shrink-0 ${venc ? 'bg-rose-50 text-rose-600' : 'bg-[#f4eefe] text-[#6105dc]'}`}>{iniciales(cl.nombre_completo)}</span>
-                                <span className="min-w-0 flex-1">
-                                  <span className="block text-[13.5px] font-bold text-stone-900 leading-tight truncate">{cl.nombre_completo}</span>
-                                  <span className={`block text-[11.5px] mt-0.5 ${venc ? 'text-rose-600' : 'text-stone-500'}`}>
+                              <button type="button" key={cl.id} onClick={() => seleccionarDeudor(cl)} className={`grid grid-cols-[36px_1fr_auto] gap-[11px] items-center w-full text-left px-4 sm:px-[18px] py-3 border-b border-[#f0eef5] transition ${elegido ? 'md:bg-[#f3effd] md:shadow-[inset_3px_0_0_#6105dc]' : 'hover:bg-[#fbfafd]'}`}>
+                                <span className="w-9 h-9 rounded-full bg-[#f6f5f9] text-stone-700 grid place-items-center text-[12.5px] font-bold">{iniciales(cl.nombre_completo)}</span>
+                                <span className="min-w-0">
+                                  <span className="block text-[13.5px] font-semibold text-stone-900 leading-tight truncate">{cl.nombre_completo}</span>
+                                  <span className={`block text-xs mt-0.5 truncate ${venc ? 'text-[#c0262d] font-medium' : 'text-stone-500'}`}>
                                     {e
-                                      ? (venc ? <><b>Vencida hace {e.vencidas[0].diasVencido} d</b> · {pend} boleta{pend === 1 ? '' : 's'}</> : e.masVieja ? `Debe desde hace ${e.masVieja.diasTranscurridos} d · ${pend} boleta${pend === 1 ? '' : 's'}` : 'Sin boletas a crédito')
+                                      ? (venc ? `Vencida hace ${e.vencidas[0].diasVencido} d · ${pend} boleta${pend === 1 ? '' : 's'}` : e.masVieja ? `Debe desde hace ${e.masVieja.diasTranscurridos} d · ${pend} boleta${pend === 1 ? '' : 's'}` : 'Sin boletas a crédito')
                                       : `DNI ${cl.dni}`}
                                   </span>
                                 </span>
                                 <span className="text-right shrink-0">
-                                  <strong className="block text-[14.5px] font-extrabold tracking-tight tabular-nums">{dinero(cl.saldo_actual)}</strong>
-                                  {(Number(cl.limite_credito) || 0) > 0 && <span className="block w-14 h-1 rounded-full bg-[#ece7f5] mt-1.5 ml-auto overflow-hidden"><i className={`block h-full ${barraLimite(uso)}`} style={{ width: `${Math.min(100, uso * 100)}%` }}></i></span>}
+                                  <strong className="block text-sm font-bold tabular-nums">{dinero(cl.saldo_actual)}</strong>
+                                  {(Number(cl.limite_credito) || 0) > 0 && <span className="block w-14 h-[3px] rounded-sm bg-[#ece9f4] mt-1.5 ml-auto overflow-hidden"><i className={`block h-full ${colorBarra(uso)}`} style={{ width: `${Math.min(100, uso * 100)}%` }}></i></span>}
                                 </span>
                               </button>
                             );
