@@ -1398,12 +1398,6 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
       const [guardandoMerma, setGuardandoMerma] = useState(false);
 
 
-      // --- Vista: Ver Stock (todo el catálogo, no solo lo urgente) ---
-      const [modalVerStock, setModalVerStock] = useState(false);
-      const [verStockCategoria, setVerStockCategoria] = useState('');
-      const [verStockBusqueda, setVerStockBusqueda] = useState('');
-      const [verStockFiltro, setVerStockFiltro] = useState('todos');
-
       // --- Módulo: Toma de Inventario (conteo físico vs. sistema) ---
       // Flujo en 2 pasos: "conteo" (se busca cada producto y se anota lo que
       // se contó, SIN ver el stock del sistema -- para que el conteo sea
@@ -3568,7 +3562,7 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
           cargarProductos(busqueda);
         }
         if (hayFallosDeStock) {
-          notificar('Algunas ventas offline se sincronizaron pero su stock no se pudo ajustar. Revísalo en "Ver Stock".', 'error');
+          notificar('Algunas ventas offline se sincronizaron pero su stock no se pudo ajustar. Revísalo en la búsqueda de productos.', 'error');
         }
         if (restantes.length > 0) {
           notificar(`${restantes.length} venta(s) offline no se pudieron sincronizar todavía. Se reintentará.`, 'error');
@@ -3825,32 +3819,8 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
         eanPack: (p.cod_ean_pack || '').toLowerCase()
       })), [productos]);
 
-      const cantidadStockBajo = useMemo(
-        () => productos.filter((p) => p.stock_actual != null && Number(p.stock_actual) <= Number(p.stock_min || 5)).length,
-        [productos]
-      );
-
-      // Lista de "Ver Stock": todo el catálogo, filtrable por categoría y
-      // texto, ordenado de menor a mayor stock (lo más urgente primero).
-      const estadoStock = (p) => (
-        Number(p.stock_actual) <= 0 ? 'out' : Number(p.stock_actual) <= Number(p.stock_min || 5) ? 'low' : 'ok'
-      );
-      // Productos por categoría/texto (base de los contadores de los filtros)
-      // y, de ahí, los que coinciden además con el filtro de estado elegido.
-      const productosVerStockBase = useMemo(() => {
-        const t = verStockBusqueda.trim().toLowerCase();
-        return productos
-          .filter((p) => !verStockCategoria || p.categoria === verStockCategoria)
-          .filter((p) => !t || (p.descripcion || '').toLowerCase().includes(t))
-          .sort((a, b) => Number(a.stock_actual || 0) - Number(b.stock_actual || 0));
-      }, [productos, verStockCategoria, verStockBusqueda]);
-      const productosVerStock = useMemo(
-        () => (verStockFiltro === 'todos' ? productosVerStockBase : productosVerStockBase.filter((p) => estadoStock(p) === verStockFiltro)),
-        [productosVerStockBase, verStockFiltro]
-      );
-
       // Filas visibles de "Toma de Inventario", filtradas por categoría y
-      // texto igual que "Ver Stock" -- para no tener que contar las 300
+      // texto -- para no tener que contar las 300
       // filas de una sola vez si la bodega es grande.
       const filasTomaInventarioVisibles = useMemo(() => {
         const t = tomaInventarioBusqueda.trim().toLowerCase();
@@ -6459,7 +6429,7 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
           cerrarModalMerma();
           cargarProductos(busqueda);
           if (errorAjusteStock) {
-            notificar(`Merma registrada, pero el stock no se pudo ajustar. Revísalo en "Ver Stock".`, 'error');
+            notificar(`Merma registrada, pero el stock no se pudo ajustar. Revísalo en la búsqueda de productos.`, 'error');
           } else {
             notificar(`Merma registrada: ${cant} x ${prod.descripcion} (S/ ${totalCosto.toFixed(2)}).`, 'info');
           }
@@ -6717,7 +6687,7 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
             const fallosAjuste = resultadosAjuste.filter((r) => r.error);
             if (fallosAjuste.length > 0) {
               console.warn('Error al ajustar stock en toma de inventario:', fallosAjuste);
-              notificar(`Se guardó el conteo, pero ${fallosAjuste.length} producto(s) no se pudieron ajustar. Revísalos en "Ver Stock".`, 'error');
+              notificar(`Se guardó el conteo, pero ${fallosAjuste.length} producto(s) no se pudieron ajustar. Revísalos en la búsqueda de productos.`, 'error');
             }
           }
           setModalTomaInventario(false);
@@ -8475,7 +8445,7 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
               const fallosAjusteStock = resultadosAjusteStock.filter((r) => r.error);
               if (fallosAjusteStock.length > 0) {
                 console.warn('Error al ajustar stock de la venta:', fallosAjusteStock);
-                notificar(`Venta registrada, pero el stock de ${fallosAjusteStock.length} producto(s) no se pudo actualizar. Revísalo en "Ver Stock".`, 'error');
+                notificar(`Venta registrada, pero el stock de ${fallosAjusteStock.length} producto(s) no se pudo actualizar. Revísalo en la búsqueda de productos.`, 'error');
               }
               intentoVentaRef.current = null;
               }
@@ -10534,7 +10504,6 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
               { grupo: 'Ventas y caja', etiqueta: 'Fiados', buscar: 'cuentas por cobrar deudas credito', icono: 'fa-hand-holding-dollar', accion: abrirModuloCobroDeudas },
               { grupo: 'Ventas y caja', etiqueta: 'Historial', icono: 'fa-receipt', accion: abrirHistorialDelDia },
               { grupo: 'Ventas y caja', etiqueta: 'Clientes', icono: 'fa-users', accion: abrirGestionClientes },
-              { grupo: 'Inventario', etiqueta: 'Ver Stock', icono: 'fa-table-list', tono: cantidadStockBajo > 0 ? 'amber' : undefined, insignia: cantidadStockBajo > 0 ? `${cantidadStockBajo} por reponer` : '', accion: () => { setVerStockFiltro('todos'); setModalVerStock(true); } },
               !esBarberia && { grupo: 'Inventario', etiqueta: 'Toma de Inventario', icono: 'fa-clipboard-check', accion: abrirTomaInventario },
               { grupo: 'Inventario', etiqueta: 'Registrar Merma', icono: 'fa-box', accion: () => setModalMerma(true) },
               ...(esAdmin ? [
@@ -12156,94 +12125,6 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
             </div>
             );
           })()}
-
-          {/* Modal: Ver Stock (todo el catálogo) */}
-          {modalVerStock && (
-            <div className="fixed inset-0 bg-stone-900/30 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-              <div className="bg-gradient-to-br from-[#f4effc] via-[#f9f8fb] to-[#f5f4f8] border border-white/80 rounded-[28px] max-w-2xl w-full pt-4 px-4 md:px-5 md:pt-5 shadow-2xl space-y-3 max-h-[85vh] flex flex-col overflow-hidden">
-                <div className="flex items-center gap-2.5 shrink-0">
-                  <span className="w-[38px] h-[38px] rounded-[14px] bg-[#ece0fd] text-[#6105dc] flex items-center justify-center shrink-0">
-                    <IconoTrazo nombre="caja" className="w-[19px] h-[19px]" />
-                  </span>
-                  <div className="flex-1 min-w-0">
-                    <h3 className="text-[19px] font-bold tracking-tight text-stone-900 leading-tight">Ver stock</h3>
-                    <p className="text-xs text-stone-500 mt-0.5">{productosVerStock.length} {productosVerStock.length === 1 ? 'producto' : 'productos'}</p>
-                  </div>
-                  <button onClick={() => setModalVerStock(false)} className="w-9 h-9 rounded-full bg-white ring-1 ring-[#6105dc]/10 hover:bg-[#f4eefe] text-stone-500 flex items-center justify-center transition" aria-label="Cerrar">
-                    <IconoTrazo nombre="x" className="w-[15px] h-[15px]" />
-                  </button>
-                </div>
-                <div className="flex gap-2 shrink-0">
-                  <div className="flex-1 min-w-0 h-11 flex items-center gap-2 px-3.5 rounded-full bg-white ring-1 ring-[#6105dc]/15 focus-within:ring-2 focus-within:ring-[#6105dc]/40">
-                    <IconoTrazo nombre="buscar" className="w-[17px] h-[17px] text-[#6105dc] shrink-0" />
-                    <input
-                      type="text"
-                      placeholder="Buscar producto"
-                      value={verStockBusqueda}
-                      onChange={(e) => setVerStockBusqueda(e.target.value)}
-                      className="w-full min-w-0 bg-transparent text-sm text-stone-900 placeholder:text-[#a9a3b8] focus:outline-none"
-                    />
-                  </div>
-                  <div className="relative max-w-[46%] shrink-0">
-                    <select
-                      value={verStockCategoria}
-                      onChange={(e) => setVerStockCategoria(e.target.value)}
-                      className="appearance-none h-11 w-full truncate rounded-full bg-[#f4eefe] text-[13px] font-semibold text-[#4d04b0] pl-3.5 pr-8 focus:outline-none focus:ring-2 focus:ring-[#6105dc]/40"
-                    >
-                      <option value="">Todas las categorías</option>
-                      {categoriasDB.map(c => <option key={c} value={c}>{c}</option>)}
-                    </select>
-                    <IconoTrazo nombre="abajo" className="w-3.5 h-3.5 text-[#4d04b0] absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
-                  </div>
-                </div>
-                <div className="flex gap-1.5 shrink-0 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-                  {[
-                    { id: 'todos', texto: 'Todos', n: productosVerStockBase.length },
-                    { id: 'low', texto: 'Stock bajo', n: productosVerStockBase.filter((p) => estadoStock(p) === 'low').length },
-                    { id: 'out', texto: 'Sin stock', n: productosVerStockBase.filter((p) => estadoStock(p) === 'out').length }
-                  ].map((f) => (
-                    <button
-                      key={f.id}
-                      onClick={() => setVerStockFiltro(f.id)}
-                      className={`shrink-0 flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-[12.5px] font-semibold transition ${
-                        verStockFiltro === f.id ? 'bg-[#6105dc] text-white' : 'bg-white ring-1 ring-[#6105dc]/10 text-stone-600 hover:bg-[#faf8fe]'
-                      }`}
-                    >
-                      {f.texto}
-                      <b className={`font-bold tabular-nums ${verStockFiltro === f.id ? 'text-white/75' : 'text-stone-400'}`}>{f.n}</b>
-                    </button>
-                  ))}
-                </div>
-                <div
-                  className="flex-1 overflow-y-auto space-y-1.5 -mx-4 md:-mx-5 px-4 md:px-5 pb-16 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
-                  style={{ scrollbarWidth: 'none', WebkitMaskImage: 'linear-gradient(to bottom, black calc(100% - 46px), transparent)', maskImage: 'linear-gradient(to bottom, black calc(100% - 46px), transparent)' }}
-                >
-                  {productosVerStock.length === 0 ? (
-                    <p className="text-xs text-stone-500 text-center py-8">No hay productos que coincidan.</p>
-                  ) : (
-                    productosVerStock.map((p) => {
-                      const estado = estadoStock(p);
-                      return (
-                        <div key={p.id} className="flex items-center gap-2.5 bg-white rounded-[20px] py-2.5 pl-3.5 pr-2.5 ring-1 ring-[#6105dc]/5">
-                          <div className="flex-1 min-w-0">
-                            <p className="text-[13.5px] font-semibold text-stone-900 leading-tight">{p.descripcion}</p>
-                            <p className="text-xs text-stone-400 mt-0.5">{p.categoria || 'General'} · Mínimo {p.stock_min || 5}</p>
-                          </div>
-                          <span className={`shrink-0 min-w-[52px] h-[34px] px-3 rounded-full flex items-center justify-center font-bold tabular-nums ${
-                            estado === 'out' ? 'bg-rose-100 text-rose-700 text-[12.5px]'
-                              : estado === 'low' ? 'bg-amber-100 text-amber-700 text-sm'
-                              : 'bg-[#f4eefe] text-[#4d04b0] text-sm'
-                          }`}>
-                            {estado === 'out' ? 'Sin stock' : p.stock_actual}
-                          </span>
-                        </div>
-                      );
-                    })
-                  )}
-                </div>
-              </div>
-            </div>
-          )}
 
           {/* Modal: Toma de Inventario (conteo físico vs. sistema) -- 2 pasos:
               "conteo" (se busca y anota lo contado, sin ver el stock del
