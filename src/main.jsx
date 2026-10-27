@@ -11463,6 +11463,11 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
             const etiquetaCampo = 'flex items-center justify-between gap-2 text-[12.5px] font-semibold text-stone-800 mb-1.5';
             const chipClase = (activo) => `inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[12.5px] font-semibold border-[1.5px] transition ${activo ? 'border-[#6105dc] bg-[#f4eefe] text-[#4d04b0] ring-2 ring-[#6105dc]/15' : 'border-stone-200 bg-white text-stone-600 hover:bg-[#f4eefe] hover:border-[#e4d6fb]'}`;
             const panelClase = 'bg-white border border-stone-100 rounded-[22px] p-4 sm:p-5 shadow-sm';
+            const panelP = 'bg-white border border-[#e9e6f0] rounded-2xl px-5 sm:px-6 py-5 sm:py-[22px] shadow-[0_1px_2px_rgba(20,10,50,0.03)]';
+            const labP = 'flex items-center justify-between gap-2 text-[12.5px] font-medium text-stone-700 mb-1.5';
+            const inputP = 'w-full h-11 bg-white border border-[#e9e6f0] rounded-[10px] px-3.5 text-sm text-stone-900 placeholder:text-stone-400 outline-none focus:border-[#6105dc] focus:ring-[3px] focus:ring-[#6105dc]/10 transition';
+            const chipP = (activo) => `h-8 px-3.5 rounded-lg border text-[13px] transition ${activo ? 'border-[#6105dc] bg-[#f4f0fd] text-[#4d04b0] font-semibold' : 'border-[#e9e6f0] bg-white text-stone-700 font-medium hover:bg-[#f8f7fb]'}`;
+            const chispa = (<svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor" aria-hidden="true"><path d="M12 3c.6 4.6 2.4 6.4 7 7-4.6.6-6.4 2.4-7 7-.6-4.6-2.4-6.4-7-7 4.6-.6 6.4-2.4 7-7Z" /><path d="M19 15c.3 1.8 1 2.5 2.8 2.8-1.8.3-2.5 1-2.8 2.8-.3-1.8-1-2.5-2.8-2.8 1.8-.3 2.5-1 2.8-2.8Z" /></svg>);
             const miniatura = (url, categoria, tam = 'w-10 h-10') => (
               <span className={`block ${tam} rounded-[13px] overflow-hidden shrink-0 border-2 border-white ring-1 ring-stone-200 bg-white`}><FotoProducto fotoUrl={url} categoria={categoria} className="w-full h-full" iconClassName="text-sm" /></span>
             );
@@ -11524,91 +11529,91 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
 
               return (
                 <div className="fixed inset-0 bg-stone-900/30 backdrop-blur-sm flex items-center justify-center z-50 p-2 sm:p-4">
-                  <div className="bg-gradient-to-br from-[#f4effc] via-[#f9f8fb] to-[#f5f4f8] border border-white/80 rounded-[28px] max-w-4xl w-full shadow-2xl h-[95vh] max-h-[800px] flex flex-col overflow-hidden">
+                  <div className="bg-[#f8f7fb] border border-black/5 rounded-[18px] max-w-5xl w-full shadow-2xl h-[95vh] max-h-[800px] flex flex-col overflow-hidden">
 
-                    <div className="bg-white border-b border-stone-100 px-4 sm:px-5 py-3.5 shrink-0 flex items-center gap-3">
-                      <button type="button" onClick={cerrarEditorCombo} className="inline-flex items-center gap-1.5 text-[12.5px] font-bold text-stone-500 hover:text-stone-800 hover:bg-stone-100 rounded-lg px-2 py-1.5 shrink-0"><i className="fa-solid fa-chevron-left text-[10px]"></i> Combos</button>
+                    <div className="bg-white border-b border-[#e9e6f0] px-4 sm:px-7 py-4 shrink-0 flex items-center gap-3">
+                      <button type="button" onClick={cerrarEditorCombo} className="h-9 px-3 rounded-[10px] border border-[#e9e6f0] bg-white hover:bg-[#f8f7fb] text-[13px] font-medium text-stone-700 inline-flex items-center gap-1.5 shrink-0"><i className="fa-solid fa-chevron-left text-[10px]"></i> Combos</button>
                       <div className="min-w-0 flex-1">
-                        <h3 className="text-[17px] sm:text-lg font-extrabold text-stone-900 tracking-tight leading-tight truncate">{f.id ? (f.nombre.trim() || 'Combo sin nombre') : 'Nuevo combo'}</h3>
-                        <p className="hidden sm:block text-[12.5px] text-stone-500 mt-0.5">{f.id ? 'Edita lo que incluye y su precio.' : 'Elige qué incluye y ponle un precio especial.'}</p>
+                        <h3 className="text-[19px] sm:text-[21px] font-bold text-stone-900 tracking-tight leading-tight truncate">{f.id ? (f.nombre.trim() || 'Combo sin nombre') : 'Nuevo combo'}</h3>
+                        <p className="hidden sm:block text-[13px] text-stone-500 mt-0.5">{f.id ? 'Edita lo que incluye y su precio.' : 'Elige qué incluye y ponle un precio especial.'}</p>
                       </div>
-                      <button aria-label="Cerrar" onClick={cerrarEditorCombo} className="w-8 h-8 flex items-center justify-center rounded-full text-stone-400 hover:text-stone-600 hover:bg-stone-100 transition-colors shrink-0"><i className="fa-solid fa-xmark"></i></button>
+                      <button aria-label="Cerrar" onClick={cerrarEditorCombo} className="w-9 h-9 flex items-center justify-center rounded-full text-stone-400 hover:text-stone-700 hover:bg-[#f1eef9] transition-colors shrink-0"><i className="fa-solid fa-xmark"></i></button>
                     </div>
 
-                    <div className="flex-1 overflow-y-auto p-3.5 sm:p-5 grid gap-4 md:gap-5 md:grid-cols-[minmax(0,1fr)_290px] content-start">
+                    <div className="flex-1 overflow-y-auto hide-scrollbar p-4 sm:p-7 grid gap-5 md:gap-6 md:grid-cols-[minmax(0,1fr)_310px] content-start">
                       <div className="min-w-0 space-y-4">
 
-                        <div className={panelClase}>
-                          <h4 className="text-base font-extrabold text-stone-900 tracking-tight">Datos del combo</h4>
-                          <p className="text-[12.5px] text-stone-500 mt-0.5 mb-4">Cómo se llama y cómo lo verán tus clientes.</p>
+                        <div className={panelP}>
+                          <h4 className="text-base font-semibold text-stone-900 tracking-tight">Datos del combo</h4>
+                          <p className="text-[13px] text-stone-500 mt-1 mb-[18px] leading-snug">Cómo se llama y cómo lo verán tus clientes.</p>
                           <div className="space-y-3.5">
                             <div>
-                              <label className={etiquetaCampo}><span>Nombre del combo <span className="text-rose-500">*</span></span></label>
-                              <input type="text" autoFocus={!f.id} autoComplete="off" placeholder={esBarberia ? 'Ej: Corte + Barba' : 'Ej: Combo Desayuno'} value={f.nombre} onChange={(e) => setFormCombo({ ...f, nombre: e.target.value })} className={inputBase} />
+                              <label className={labP}><span>Nombre del combo</span></label>
+                              <input type="text" autoFocus={!f.id} autoComplete="off" placeholder={esBarberia ? 'Ej: Corte + Barba' : 'Ej: Combo Desayuno'} value={f.nombre} onChange={(e) => setFormCombo({ ...f, nombre: e.target.value })} className={inputP} />
                             </div>
                             <div>
-                              <label className={etiquetaCampo}><span>Descripción</span><span className="text-stone-400 font-normal">opcional</span></label>
-                              <input type="text" autoComplete="off" placeholder={esBarberia ? 'Ej: El clásico de los sábados' : 'Ej: Pan, leche y café para empezar el día'} value={f.descripcion} onChange={(e) => setFormCombo({ ...f, descripcion: e.target.value })} className={inputBase} />
+                              <label className={labP}><span>Descripción</span><span className="text-stone-400 font-normal">opcional</span></label>
+                              <input type="text" autoComplete="off" placeholder={esBarberia ? 'Ej: El clásico de los sábados' : 'Ej: Pan, leche y café para empezar el día'} value={f.descripcion} onChange={(e) => setFormCombo({ ...f, descripcion: e.target.value })} className={inputP} />
                             </div>
                           </div>
                         </div>
 
-                        <div className={panelClase}>
-                          <h4 className="text-base font-extrabold text-stone-900 tracking-tight">Qué incluye</h4>
-                          <p className="text-[12.5px] text-stone-500 mt-0.5 mb-4">Busca {esBarberia ? 'servicios o productos' : 'productos'} y ajusta cuántos lleva cada uno.</p>
+                        <div className={panelP}>
+                          <h4 className="text-base font-semibold text-stone-900 tracking-tight">Qué incluye</h4>
+                          <p className="text-[13px] text-stone-500 mt-1 mb-[18px] leading-snug">Busca {esBarberia ? 'servicios o productos' : 'productos'} y ajusta cuántos lleva cada uno.</p>
                           <div className="relative">
-                            <i className="fa-solid fa-magnifying-glass absolute left-4 top-1/2 -translate-y-1/2 text-stone-300 text-[15px] pointer-events-none"></i>
-                            <input type="text" autoComplete="off" placeholder="Buscar para agregar…" value={busquedaProductoCombo} onChange={(e) => { setBusquedaProductoCombo(e.target.value); setResaltadoProductoCombo(0); }} onKeyDown={teclasBusqueda} className="w-full h-12 bg-stone-50/70 border-[1.5px] border-stone-200 rounded-2xl pl-10 pr-4 text-sm text-stone-900 placeholder:text-stone-300 outline-none focus:border-[#6105dc] focus:bg-white focus:ring-4 focus:ring-[#6105dc]/15 transition" />
+                            <i className="fa-solid fa-magnifying-glass absolute left-4 top-1/2 -translate-y-1/2 text-stone-400 text-[14px] pointer-events-none"></i>
+                            <input type="text" autoComplete="off" placeholder="Buscar para agregar…" value={busquedaProductoCombo} onChange={(e) => { setBusquedaProductoCombo(e.target.value); setResaltadoProductoCombo(0); }} onKeyDown={teclasBusqueda} className={`${inputP} pl-10`} />
                           </div>
                           {q && (
-                            <div className="mt-2 border-[1.5px] border-[#e4d6fb] rounded-2xl bg-white overflow-hidden shadow-lg shadow-[#6105dc]/10">
+                            <div className="mt-2 border border-[#e4d6fb] rounded-[14px] bg-white overflow-hidden shadow-lg shadow-[#6105dc]/10">
                               {encontrados.length === 0 && <p className="px-3.5 py-3.5 text-[13px] text-stone-500">No encontré «{busquedaProductoCombo.trim()}». Prueba con otro nombre.</p>}
                               {encontrados.map((p, i) => {
                                 const ya = f.items.find((it) => it.producto_id === p.id);
                                 const s = p.stock_actual === null || p.stock_actual === undefined ? null : Number(p.stock_actual);
                                 return (
-                                  <button type="button" key={p.id} onClick={() => agregarProductoAFormCombo(p)} className={`w-full flex items-center gap-3 text-left px-3 py-2 border-b border-stone-100 last:border-b-0 hover:bg-[#fcfaff] ${i === idxRes ? 'bg-[#fcfaff]' : 'bg-white'}`}>
-                                    <span className="w-[38px] h-[38px] rounded-xl overflow-hidden shrink-0 border border-stone-100"><FotoProducto fotoUrl={p.foto_url} categoria={p.categoria} className="w-full h-full" iconClassName="text-sm" /></span>
+                                  <button type="button" key={p.id} onClick={() => agregarProductoAFormCombo(p)} className={`w-full flex items-center gap-3 text-left px-3 py-2 border-b border-[#f0edf6] last:border-b-0 hover:bg-[#fbf9ff] ${i === idxRes ? 'bg-[#fbf9ff]' : 'bg-white'}`}>
+                                    <span className="w-[40px] h-[40px] rounded-[10px] overflow-hidden shrink-0 bg-gradient-to-br from-[#f6f4fb] to-[#e9e5f3] [&_img]:object-contain [&_img]:mix-blend-multiply"><FotoProducto fotoUrl={p.foto_url} categoria={p.categoria} className="w-full h-full" iconClassName="text-sm" /></span>
                                     <span className="min-w-0 flex-1">
-                                      <span className="block text-[13px] font-bold text-stone-900 leading-tight truncate">{p.descripcion}</span>
-                                      <span className="block text-[11.5px] text-stone-500 mt-0.5">{dinero(p.precio_venta)}{s === null ? (esBarberia ? ' · servicio' : '') : s <= 0 ? ' · sin stock' : ` · ${s} en stock`}</span>
+                                      <span className="block text-[13px] font-semibold text-stone-900 leading-tight truncate">{p.descripcion}</span>
+                                      <span className="block text-xs text-stone-500 mt-0.5">{dinero(p.precio_venta)}{s === null ? (esBarberia ? ' · servicio' : '') : s <= 0 ? ' · sin stock' : ` · ${s} en stock`}</span>
                                     </span>
-                                    <span className="text-xs font-bold text-[#4d04b0] flex items-center gap-1 shrink-0">{ya ? `Ya lleva ${ya.cantidad} · sumar otro` : 'Agregar'} <i className="fa-solid fa-plus text-[10px]"></i></span>
+                                    <span className="text-xs font-semibold text-[#4d04b0] flex items-center gap-1 shrink-0">{ya ? `Ya lleva ${ya.cantidad} · sumar otro` : 'Agregar'} <i className="fa-solid fa-plus text-[10px]"></i></span>
                                   </button>
                                 );
                               })}
                             </div>
                           )}
                           {f.items.length === 0 ? (
-                            <div className="mt-3 border-2 border-dashed border-[#e1d8f3] rounded-[18px] py-5 px-4 text-center text-[13px] text-stone-500">
+                            <div className="mt-3.5 border border-dashed border-[#d9d2ea] rounded-[14px] py-6 px-4 text-center text-[13px] text-stone-500">
                               <b className="block text-stone-900 mb-0.5">Aún no agregaste {esBarberia ? 'nada' : 'productos'}</b>
                               Escribe arriba para buscar y añadir {esBarberia ? 'servicios o productos' : 'productos'}.
                             </div>
                           ) : (
-                            <div className="mt-3 grid grid-cols-[minmax(0,1fr)] gap-2">
+                            <div className="mt-3.5">
                               {f.items.map((it) => {
                                 const pr = vivo(it.producto_id);
                                 const sinSeguimiento = esBarberia && pr && (pr.stock_actual === null || pr.stock_actual === undefined);
                                 const stock = pr ? (sinSeguimiento ? null : Number(pr.stock_actual) || 0) : 0;
                                 const corto = stock !== null && stock < it.cantidad;
                                 return (
-                                  <div key={it.producto_id} className={`flex flex-wrap items-center gap-x-3 gap-y-2 rounded-2xl border-[1.5px] px-3 py-2.5 ${corto ? 'border-amber-300 bg-amber-50/60' : 'border-stone-100 bg-white'}`}>
-                                    <span className="w-[38px] h-[38px] rounded-xl overflow-hidden shrink-0 border border-stone-100"><FotoProducto fotoUrl={pr?.foto_url || it.foto_url} categoria={pr?.categoria || it.categoria} className="w-full h-full" iconClassName="text-sm" /></span>
+                                  <div key={it.producto_id} className="flex flex-wrap items-center gap-x-3.5 gap-y-2 py-3 border-t border-[#f0edf6]">
+                                    <span className="w-12 h-12 rounded-[10px] overflow-hidden shrink-0 bg-gradient-to-br from-[#f6f4fb] to-[#e9e5f3] [&_img]:object-contain [&_img]:mix-blend-multiply"><FotoProducto fotoUrl={pr?.foto_url || it.foto_url} categoria={pr?.categoria || it.categoria} className="w-full h-full" iconClassName="text-base" /></span>
                                     <span className="min-w-0 flex-1 basis-[140px]">
-                                      <span className="block text-[13px] font-bold text-stone-900 leading-tight">{it.descripcion}</span>
-                                      <span className="block text-[11.5px] text-stone-500 mt-0.5">
+                                      <span className="block text-[14px] font-semibold text-stone-900 leading-tight">{it.descripcion}</span>
+                                      <span className="block text-[12.5px] text-stone-500 mt-0.5">
                                         {dinero(it.precio_venta)} c/u{stock === null ? ' · servicio' : ` · ${stock} en stock`}
-                                        {stock !== null && stock < 1 && <b className="text-rose-600"> · sin stock</b>}
-                                        {stock !== null && stock >= 1 && corto && <b className="text-amber-700"> · solo alcanza para {stock}</b>}
+                                        {stock !== null && stock < 1 && <b className="text-[#c0262d] font-semibold"> · sin stock</b>}
+                                        {stock !== null && stock >= 1 && corto && <b className="text-[#a15c07] font-semibold"> · solo alcanza para {stock}</b>}
                                       </span>
                                     </span>
-                                    <span className="flex items-center bg-[#f1eef9] rounded-xl shrink-0">
-                                      <button type="button" aria-label="Menos" onClick={() => actualizarCantidadItemCombo(it.producto_id, it.cantidad - 1)} className="w-8 h-[34px] rounded-xl text-[#4d04b0] hover:bg-[#e6def7]"><i className="fa-solid fa-minus text-[11px]"></i></button>
-                                      <b className="min-w-[26px] text-center text-sm font-extrabold">{it.cantidad}</b>
-                                      <button type="button" aria-label="Más" onClick={() => actualizarCantidadItemCombo(it.producto_id, it.cantidad + 1)} className="w-8 h-[34px] rounded-xl text-[#4d04b0] hover:bg-[#e6def7]"><i className="fa-solid fa-plus text-[11px]"></i></button>
+                                    <span className="inline-flex items-center border border-[#e9e6f0] rounded-[9px] shrink-0">
+                                      <button type="button" aria-label="Menos" onClick={() => actualizarCantidadItemCombo(it.producto_id, it.cantidad - 1)} className="w-[30px] h-8 rounded-[8px] text-stone-700 hover:bg-[#f8f7fb]"><i className="fa-solid fa-minus text-[10px]"></i></button>
+                                      <b className="min-w-[24px] text-center text-[13.5px] font-semibold tabular-nums">{it.cantidad}</b>
+                                      <button type="button" aria-label="Más" onClick={() => actualizarCantidadItemCombo(it.producto_id, it.cantidad + 1)} className="w-[30px] h-8 rounded-[8px] text-stone-700 hover:bg-[#f8f7fb]"><i className="fa-solid fa-plus text-[10px]"></i></button>
                                     </span>
-                                    <span className="text-sm font-extrabold text-stone-900 min-w-[64px] text-right shrink-0">{dinero(it.precio_venta * it.cantidad)}</span>
-                                    <button type="button" aria-label="Quitar" title="Quitar" onClick={() => quitarItemCombo(it.producto_id)} className="w-[30px] h-[30px] rounded-lg text-stone-300 hover:text-rose-600 hover:bg-rose-50 grid place-items-center shrink-0"><i className="fa-solid fa-xmark text-sm"></i></button>
+                                    <span className="text-sm font-semibold text-stone-900 min-w-[64px] text-right shrink-0 tabular-nums">{dinero(it.precio_venta * it.cantidad)}</span>
+                                    <button type="button" aria-label="Quitar" title="Quitar" onClick={() => quitarItemCombo(it.producto_id)} className="w-7 h-7 rounded-[7px] text-stone-300 hover:text-[#c0262d] hover:bg-[#fdf1f1] grid place-items-center shrink-0"><i className="fa-solid fa-xmark text-sm"></i></button>
                                   </div>
                                 );
                               })}
@@ -11616,112 +11621,119 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
                           )}
                         </div>
 
-                        <div className={panelClase}>
-                          <h4 className="text-base font-extrabold text-stone-900 tracking-tight">Precio del combo</h4>
-                          <p className="text-[12.5px] text-stone-500 mt-0.5 mb-4">Si lo dejas sin tocar, es la suma de lo que incluye. Bájalo para dar un descuento.</p>
-                          <div className="flex items-baseline gap-2.5 border-2 border-stone-200 rounded-[20px] bg-stone-50/70 px-4 sm:px-[18px] py-3 focus-within:border-[#6105dc] focus-within:bg-white focus-within:ring-[5px] focus-within:ring-[#6105dc]/15 transition">
-                            <span className="text-[22px] font-extrabold text-stone-300">S/</span>
-                            <input type="number" min="0" step="0.10" inputMode="decimal" placeholder="0.00" aria-label="Precio del combo" value={f.precio_venta} onChange={(e) => setFormCombo({ ...f, precioTocado: true, precio_venta: e.target.value })} className="w-full min-w-0 bg-transparent outline-none border-0 text-[32px] sm:text-[38px] font-extrabold tracking-tight text-stone-900 placeholder:text-stone-300" />
-                            {suma > 0 && <span className="hidden sm:block text-xs font-semibold text-stone-500 whitespace-nowrap">{ahorro > 0.5 && <s className="text-stone-300 mr-1">{dinero(suma)} ·</s>} suma {dinero(suma)}</span>}
-                          </div>
+                        <div className={panelP}>
+                          <h4 className="text-base font-semibold text-stone-900 tracking-tight">Precio del combo</h4>
+                          <p className="text-[13px] text-stone-500 mt-1 mb-[18px] leading-snug">Si lo dejas sin tocar, es la suma de lo que incluye. Bájalo para dar un descuento.</p>
+                          <label className="flex items-baseline gap-2.5 border border-[#e9e6f0] rounded-xl px-[18px] py-3 focus-within:border-[#6105dc] focus-within:ring-[3px] focus-within:ring-[#6105dc]/10 transition cursor-text">
+                            <span className="text-[22px] font-medium text-stone-400">S/</span>
+                            <input type="number" min="0" step="0.10" inputMode="decimal" placeholder="0.00" aria-label="Precio del combo" value={f.precio_venta} onChange={(e) => setFormCombo({ ...f, precioTocado: true, precio_venta: e.target.value })} className="w-full min-w-0 bg-transparent outline-none border-0 text-[34px] sm:text-[40px] font-bold tracking-tight text-stone-900 placeholder:text-stone-300 tabular-nums" />
+                            {suma > 0 && <span className="hidden sm:block text-[13px] text-stone-500 whitespace-nowrap">suma {dinero(suma)}</span>}
+                          </label>
                           {suma > 0 && (
                             <>
-                              <div className="flex flex-wrap items-center gap-2 mt-3">
-                                <span className="text-xs font-semibold text-stone-500 mr-0.5">Descuento rápido</span>
-                                <button type="button" onClick={() => aplicarPrecioCombo(suma)} className={`px-3 py-1.5 rounded-xl border-[1.5px] text-[12.5px] font-bold transition ${Math.abs(precio - suma) < 0.005 ? 'border-[#6105dc] bg-[#f4eefe] text-[#4d04b0]' : 'border-stone-200 bg-white hover:bg-[#f4eefe] hover:border-[#e4d6fb]'}`}>Sin descuento</button>
-                                {rapidos.map((r) => <button key={r.pct} type="button" onClick={() => aplicarDescuentoRapidoCombo(r.pct)} className={`px-3 py-1.5 rounded-xl border-[1.5px] text-[12.5px] font-bold transition ${Math.abs(precio - r.valor) < 0.005 ? 'border-[#6105dc] bg-[#f4eefe] text-[#4d04b0]' : 'border-stone-200 bg-white hover:bg-[#f4eefe] hover:border-[#e4d6fb]'}`}>-{r.pct}%</button>)}
+                              <div className="flex flex-wrap items-center gap-2 mt-3.5">
+                                <span className="text-[12.5px] text-stone-500 mr-1">Descuento rápido</span>
+                                <button type="button" onClick={() => aplicarPrecioCombo(suma)} className={chipP(Math.abs(precio - suma) < 0.005)}>Sin descuento</button>
+                                {rapidos.map((r) => <button key={r.pct} type="button" onClick={() => aplicarDescuentoRapidoCombo(r.pct)} className={chipP(Math.abs(precio - r.valor) < 0.005)}>-{r.pct}%</button>)}
                               </div>
                               {redondos.length > 0 && (
                                 <div className="flex flex-wrap items-center gap-2 mt-2">
-                                  <span className="text-xs font-semibold text-stone-500 mr-0.5">Precio redondo</span>
-                                  {redondos.map((v) => <button key={v} type="button" onClick={() => aplicarPrecioCombo(v)} className={`px-3 py-1.5 rounded-xl border-[1.5px] text-[12.5px] font-bold transition ${Math.abs(precio - v) < 0.005 ? 'border-[#6105dc] bg-[#f4eefe] text-[#4d04b0]' : 'border-stone-200 bg-white hover:bg-[#f4eefe] hover:border-[#e4d6fb]'}`}>{dinero(v)}</button>)}
+                                  <span className="text-[12.5px] text-stone-500 mr-1">Precio redondo</span>
+                                  {redondos.map((v) => <button key={v} type="button" onClick={() => aplicarPrecioCombo(v)} className={chipP(Math.abs(precio - v) < 0.005)}>{dinero(v)}</button>)}
                                 </div>
                               )}
-                              {ahorro > 0.5 && <p className="text-[11.5px] text-stone-500 mt-2.5">Tu cliente ahorra <b>{dinero(suma - precio)}</b> ({Math.round(ahorro)}%).</p>}
-                              {precio > suma + 0.005 && <p className="text-[11.5px] text-stone-500 mt-2.5">El combo sale más caro que comprar por separado ({dinero(suma)}).</p>}
+                              {ahorro > 0.5 && <p className="text-[13px] text-stone-500 mt-3">Tu cliente ahorra <b className="text-stone-900">{dinero(suma - precio)}</b> ({Math.round(ahorro)}%).</p>}
+                              {precio > suma + 0.005 && <p className="text-[13px] text-stone-500 mt-3">El combo sale más caro que comprar por separado ({dinero(suma)}).</p>}
                             </>
                           )}
                           {suma > 0 && costo > 0 && precio > 0 && (
-                            <div className="mt-4 border border-stone-100 rounded-[18px] bg-[#fcfaff] p-3.5 sm:p-4">
+                            <div className="mt-[18px] pt-[18px] border-t border-[#f0edf6]">
                               {(() => {
                                 const total = Math.max(precio, costo);
                                 const wCosto = Math.min(100, costo / total * 100);
                                 const wGana = m.perdida ? 100 - wCosto : Math.max(0, (precio - costo) / total * 100);
-                                const colorGana = m.perdida ? 'bg-rose-500' : m.bajo ? 'bg-amber-500' : 'bg-emerald-500';
+                                const colorGana = m.perdida ? 'bg-[#c0262d]' : m.bajo ? 'bg-[#d98a14]' : 'bg-[#0f7b4a]';
+                                const textoGana = m.perdida ? 'text-[#c0262d]' : m.bajo ? 'text-[#a15c07]' : 'text-[#0f7b4a]';
                                 return (
                                   <>
-                                    <div className="flex h-3.5 rounded-full overflow-hidden bg-[#ece7f5]"><i className="block h-full bg-[#b9b0d6]" style={{ width: `${wCosto}%` }}></i><i className={`block h-full ${colorGana}`} style={{ width: `${wGana}%` }}></i></div>
-                                    <div className="grid grid-cols-3 gap-2 sm:gap-2.5 mt-3">
-                                      <div><span className="flex items-center gap-1.5 text-[11.5px] font-semibold text-stone-500"><i className="w-[9px] h-[9px] rounded-[3px] bg-[#b9b0d6] inline-block"></i>Te cuesta</span><b className="block text-[15px] font-extrabold mt-0.5">{dinero(costo)}</b></div>
-                                      <div><span className="flex items-center gap-1.5 text-[11.5px] font-semibold text-stone-500"><i className={`w-[9px] h-[9px] rounded-[3px] inline-block ${colorGana}`}></i>{m.perdida ? 'Pierdes' : 'Ganas'}</span><b className={`block text-[15px] font-extrabold mt-0.5 ${m.perdida ? 'text-rose-600' : m.bajo ? 'text-amber-700' : 'text-emerald-600'}`}>{dinero(Math.abs(m.ganancia))}</b></div>
-                                      <div><span className="flex items-center gap-1.5 text-[11.5px] font-semibold text-stone-500"><i className="w-[9px] h-[9px] rounded-[3px] bg-[#6105dc] inline-block"></i>Margen</span><b className="block text-[15px] font-extrabold mt-0.5">{m.margenPct.toFixed(m.margenPct < 10 ? 1 : 0)}%</b></div>
+                                    <div className="flex h-2 rounded overflow-hidden bg-[#ece9f4]"><i className="block h-full bg-[#c9c2de]" style={{ width: `${wCosto}%` }}></i><i className={`block h-full ${colorGana}`} style={{ width: `${wGana}%` }}></i></div>
+                                    <div className="grid grid-cols-3 gap-3.5 mt-3.5">
+                                      <div><span className="block text-[12.5px] text-stone-500">Te cuesta</span><b className="block text-[19px] font-bold tracking-tight mt-0.5 tabular-nums">{dinero(costo)}</b></div>
+                                      <div><span className="block text-[12.5px] text-stone-500">{m.perdida ? 'Pierdes' : 'Ganas'}</span><b className={`block text-[19px] font-bold tracking-tight mt-0.5 tabular-nums ${textoGana}`}>{dinero(Math.abs(m.ganancia))}</b></div>
+                                      <div><span className="block text-[12.5px] text-stone-500">Margen</span><b className="block text-[19px] font-bold tracking-tight mt-0.5 tabular-nums">{m.margenPct.toFixed(m.margenPct < 10 ? 1 : 0)}%</b></div>
                                     </div>
                                     {m.perdida
-                                      ? <div className="flex gap-2 items-start rounded-[14px] bg-rose-50 text-rose-600 px-3 py-2.5 text-xs leading-snug mt-3"><i className="fa-solid fa-triangle-exclamation mt-0.5"></i><span>El precio ({dinero(precio)}) es menor que lo que te cuestan estos productos ({dinero(costo)}). Estarías vendiendo a pérdida.</span></div>
+                                      ? <p className="mt-3.5 text-[13px] rounded-[9px] px-3 py-2.5 leading-snug bg-[#fdf1f1] text-[#c0262d]">El precio ({dinero(precio)}) es menor que lo que te cuestan estos productos ({dinero(costo)}). Estarías vendiendo a pérdida.</p>
                                       : m.bajo
-                                        ? <div className="flex gap-2 items-start rounded-[14px] bg-amber-50 text-amber-700 px-3 py-2.5 text-xs leading-snug mt-3"><i className="fa-solid fa-triangle-exclamation mt-0.5"></i><span>Margen muy bajo. Revisa el precio para no trabajar casi gratis.</span></div>
-                                        : <div className="flex gap-2 items-start rounded-[14px] bg-emerald-50 text-emerald-700 px-3 py-2.5 text-xs leading-snug mt-3"><i className="fa-solid fa-circle-check mt-0.5"></i><span>Buen margen: ganas {dinero(m.ganancia)} por cada combo que vendas.</span></div>}
+                                        ? <p className="mt-3.5 text-[13px] rounded-[9px] px-3 py-2.5 leading-snug bg-[#fdf5e8] text-[#a15c07]">Margen muy bajo. Revisa el precio para no trabajar casi gratis.</p>
+                                        : <p className="mt-3.5 text-[13px] rounded-[9px] px-3 py-2.5 leading-snug bg-[#eef8f2] text-[#0f7b4a]">Buen margen: ganas {dinero(m.ganancia)} por cada combo que vendas.</p>}
                                   </>
                                 );
                               })()}
                             </div>
                           )}
                           {suma > 0 && !(costo > 0) && precio > 0 && (
-                            <div className="flex gap-2 items-start rounded-[14px] bg-[#f4eefe] text-[#4d04b0] px-3 py-2.5 text-xs leading-snug mt-4"><i className="fa-solid fa-circle-info mt-0.5"></i><span>{esBarberia ? 'Los servicios no tienen costo cargado, así que no puedo calcular tu ganancia.' : 'Estos productos no tienen costo cargado, así que no puedo calcular tu ganancia.'}</span></div>
+                            <p className="mt-[18px] text-[13px] rounded-[9px] px-3 py-2.5 leading-snug bg-[#f4f0fd] text-[#4d04b0]">{esBarberia ? 'Los servicios no tienen costo cargado, así que no puedo calcular tu ganancia.' : 'Estos productos no tienen costo cargado, así que no puedo calcular tu ganancia.'}</p>
                           )}
                         </div>
 
-                        <button type="button" role="switch" aria-checked={f.activo} onClick={() => setFormCombo({ ...f, activo: !f.activo })} className={`w-full flex items-center justify-between gap-3 text-left rounded-[18px] border-[1.5px] px-4 py-3 transition ${f.activo ? 'border-[#6105dc] bg-[#fcfaff]' : 'border-stone-200 bg-white hover:bg-stone-50'}`}>
+                        <div className="flex items-center justify-between gap-4 bg-white border border-[#e9e6f0] rounded-2xl px-5 py-4">
                           <span>
-                            <span className="block text-[13.5px] font-bold text-stone-800">En venta</span>
-                            <span className="block text-xs text-stone-500 leading-snug mt-0.5">{f.activo ? 'Aparece en la caja para vender. Se pausa solo si falta stock y se enciende al reponer.' : 'Pausado: no aparece en la caja.'}</span>
+                            <span className="block text-sm font-semibold text-stone-900">En venta</span>
+                            <span className="block text-[13px] text-stone-500 leading-snug mt-0.5">{f.activo ? 'Aparece en la caja para vender. Se pausa solo si falta stock y se enciende al reponer.' : 'Pausado: no aparece en la caja.'}</span>
                           </span>
-                          <span className={`relative w-[42px] h-6 rounded-full shrink-0 transition-colors ${f.activo ? 'bg-[#6105dc]' : 'bg-stone-300'}`}><span className={`absolute top-[3px] left-[3px] w-[18px] h-[18px] rounded-full bg-white shadow transition-transform ${f.activo ? 'translate-x-[18px]' : ''}`}></span></span>
-                        </button>
+                          <span className="flex items-center gap-2.5 shrink-0">
+                            <span className={`text-[13px] font-semibold ${f.activo ? 'text-[#0f7b4a]' : 'text-stone-500'}`}>{f.activo ? 'Activo' : 'Pausado'}</span>
+                            <button type="button" role="switch" aria-checked={f.activo} aria-label="En venta" onClick={() => setFormCombo({ ...f, activo: !f.activo })} className={`kz-sw ${f.activo ? 'on' : ''}`}><i></i></button>
+                          </span>
+                        </div>
                       </div>
 
                       <div className="min-w-0 md:sticky md:top-0 md:self-start order-first md:order-none">
-                        <p className="hidden md:block text-[11px] font-bold tracking-[0.07em] uppercase text-stone-500 mb-2">Así lo verá el cajero</p>
-                        <div className="hidden md:block bg-white border border-stone-100 rounded-[22px] p-3.5 shadow-lg shadow-[#3c1478]/10">
-                          <div className="grid grid-cols-3 gap-1.5 mb-2.5">
+                        <p className="hidden md:block text-[12.5px] font-medium text-stone-500 mb-2.5">Así lo verá el cajero</p>
+                        <div className="hidden md:block bg-white border border-[#e9e6f0] rounded-[18px] overflow-hidden shadow-[0_18px_40px_-22px_rgba(20,10,50,0.35)]">
+                          <div className={`relative grid gap-[2px] bg-[#e9e6f0] h-[118px] ${pvFotos.length >= 3 ? 'grid-cols-3' : pvFotos.length === 2 ? 'grid-cols-2' : 'grid-cols-1'}`}>
                             {pvFotos.length === 0
-                              ? <span className="aspect-square rounded-2xl bg-[#f4eefe] grid place-items-center text-[#6105dc]/40 text-2xl"><i className="fa-solid fa-gift"></i></span>
+                              ? <span className="grid place-items-center bg-gradient-to-br from-[#f6f4fb] to-[#e9e5f3] text-[#9a94b3] text-3xl"><i className="fa-solid fa-gift"></i></span>
                               : pvFotos.map((it) => (
-                                <span key={it.producto_id} className="relative aspect-square rounded-2xl overflow-hidden border border-stone-100">
+                                <span key={it.producto_id} className="relative bg-gradient-to-br from-[#f6f4fb] to-[#e9e5f3] overflow-hidden [&_img]:object-contain [&_img]:mix-blend-multiply [&_img]:p-2">
                                   <FotoProducto fotoUrl={vivo(it.producto_id)?.foto_url || it.foto_url} categoria={vivo(it.producto_id)?.categoria || it.categoria} className="w-full h-full" iconClassName="text-xl" />
-                                  {it.cantidad > 1 && <em className="absolute right-1 bottom-1 not-italic bg-[#6105dc] text-white rounded-full text-[10px] font-extrabold px-1.5">×{it.cantidad}</em>}
+                                  {it.cantidad > 1 && <em className="absolute right-1.5 bottom-1.5 not-italic bg-[#14121c] text-white rounded-full text-[10.5px] font-bold px-1.5">×{it.cantidad}</em>}
                                 </span>
                               ))}
+                            {ahorro > 0.5 && <span className="absolute left-3 top-3 bg-[#ffc81a] text-[#14121c] text-[11.5px] font-bold rounded-full px-2.5 py-0.5 shadow-md">Ahorras {Math.round(ahorro)}%</span>}
                           </div>
-                          {ahorro > 0.5 && <span className="inline-block bg-[#ffc81a] text-stone-900 text-[10.5px] font-extrabold rounded-full px-2.5 py-0.5">Ahorras {Math.round(ahorro)}%</span>}
-                          <h5 className="mt-2 text-[15px] font-extrabold leading-tight text-stone-900">{f.nombre.trim() || 'Nombre del combo'}</h5>
-                          {f.descripcion.trim() && <p className="text-xs text-stone-500 leading-snug mt-0.5">{f.descripcion.trim()}</p>}
-                          {f.items.length > 0 && (
-                            <ul className="mt-2.5 space-y-1 text-xs text-stone-800">
-                              {f.items.map((it) => <li key={it.producto_id} className="flex gap-1.5"><b className="text-[#4d04b0] min-w-[22px]">{it.cantidad}×</b><span>{it.descripcion}</span></li>)}
-                            </ul>
-                          )}
-                          <div className="flex items-baseline justify-between mt-3 pt-2.5 border-t border-dashed border-stone-200">
-                            <span>{ahorro > 0.5 && <s className="text-xs font-semibold text-stone-300 mr-1.5">{dinero(suma)}</s>}<strong className="text-2xl font-extrabold tracking-tight">{dinero(precio)}</strong></span>
+                          <div className="px-[18px] pt-4 pb-[18px]">
+                            <h5 className="text-[15.5px] font-semibold tracking-tight text-stone-900 leading-tight">{f.nombre.trim() || 'Nombre del combo'}</h5>
+                            {f.descripcion.trim() && <p className="text-[12.5px] text-stone-500 leading-snug mt-1">{f.descripcion.trim()}</p>}
+                            {f.items.length > 0 && (
+                              <ul className="mt-2.5 text-[13px] text-stone-700">
+                                {f.items.map((it) => <li key={it.producto_id} className="flex gap-2 py-0.5"><b className="text-[#6105dc] min-w-[22px] font-semibold">{it.cantidad}×</b><span>{it.descripcion}</span></li>)}
+                              </ul>
+                            )}
+                            <div className="flex items-baseline gap-2 mt-3 pt-3 border-t border-dashed border-[#e9e6f0]">
+                              <strong className="text-[26px] font-bold tracking-tight tabular-nums">{dinero(precio)}</strong>
+                              {ahorro > 0.5 && <s className="text-[13px] text-stone-400">{dinero(suma)}</s>}
+                            </div>
+                            <div className={`mt-3.5 h-11 grid place-items-center text-[13.5px] font-semibold ${f.activo ? 'kz-pri !pointer-events-none' : 'rounded-full bg-[#ebe8f1] text-[#8b869a]'}`}>{f.activo ? 'Agregar al carrito' : 'Pausado'}</div>
                           </div>
-                          <div className={`mt-2.5 h-9 rounded-xl text-white font-bold text-[12.5px] grid place-items-center ${f.activo ? 'bg-[#6105dc]' : 'bg-[#d9d2ea]'}`}>{f.activo ? 'Agregar al carrito' : 'Pausado'}</div>
                         </div>
                         {f.items.length > 0 && (
                           maxCombos === Infinity
-                            ? <div className="mt-3 rounded-2xl bg-[#f1eef9] text-stone-500 px-3.5 py-3 text-[12.5px] leading-snug flex gap-2.5 items-start"><i className="fa-solid fa-circle-info mt-0.5"></i><span>Solo incluye servicios: siempre está disponible.</span></div>
+                            ? <p className="mt-3 rounded-xl bg-[#f1eef9] text-stone-600 px-3.5 py-3 text-[13px] leading-snug">Solo incluye servicios: siempre está disponible.</p>
                             : maxCombos === 0
-                              ? <div className="mt-3 rounded-2xl bg-rose-50 text-rose-600 px-3.5 py-3 text-[12.5px] leading-snug flex gap-2.5 items-start"><i className="fa-solid fa-triangle-exclamation mt-0.5"></i><span>Hoy no se puede vender: falta stock de <b>{faltan.join(', ')}</b>.</span></div>
-                              : <div className="mt-3 rounded-2xl bg-emerald-50 text-emerald-700 px-3.5 py-3 text-[12.5px] leading-snug flex gap-2.5 items-start"><i className="fa-solid fa-box mt-0.5"></i><span>Con tu stock de hoy puedes armar <b className="text-[15px]">{maxCombos}</b> combo{maxCombos === 1 ? '' : 's'}.</span></div>
+                              ? <p className="mt-3 rounded-xl bg-[#fdf1f1] text-[#c0262d] px-3.5 py-3 text-[13px] leading-snug">Hoy no se puede vender: falta stock de <b>{faltan.join(', ')}</b>.</p>
+                              : <p className="mt-3 rounded-xl bg-[#eef8f2] text-[#0f7b4a] px-3.5 py-3 text-[13px] leading-snug">Con tu stock de hoy puedes armar <b className="text-[15px]">{maxCombos}</b> combo{maxCombos === 1 ? '' : 's'}.</p>
                         )}
                       </div>
                     </div>
 
-                    <div className="shrink-0 bg-white border-t border-stone-100 px-4 sm:px-5 py-3 flex items-center gap-2.5 shadow-[0_-8px_24px_-14px_rgba(40,10,90,0.18)]">
-                      <button type="button" onClick={cerrarEditorCombo} className="h-[46px] px-4 sm:px-5 rounded-[14px] text-stone-500 hover:text-stone-800 hover:bg-stone-100 font-bold text-[13.5px]">Cancelar</button>
+                    <div className="shrink-0 bg-white border-t border-[#e9e6f0] px-4 sm:px-7 py-3.5 flex items-center gap-3">
+                      <button type="button" onClick={cerrarEditorCombo} className="h-11 px-5 rounded-full border border-[#e9e6f0] bg-white hover:bg-[#f8f7fb] text-stone-700 font-medium text-[13.5px]">Cancelar</button>
                       <span className="flex-1"></span>
-                      <span className={`hidden md:flex items-center text-xs ${errores.length ? 'text-stone-500' : 'text-[#4d04b0] font-semibold'}`}>{errores.length ? errores.join(' · ') : hayCambios ? 'Hay cambios sin guardar' : 'Todo en orden'}</span>
-                      <button type="button" onClick={guardarCombo} disabled={guardandoCombo || errores.length > 0 || (!!f.id && !hayCambios)} className="h-[46px] px-4 sm:px-5 rounded-[14px] bg-[#6105dc] hover:bg-[#4d04b0] disabled:bg-[#d9d2ea] disabled:shadow-none disabled:cursor-not-allowed text-white font-bold text-[13.5px] shadow-lg shadow-[#6105dc]/30 inline-flex items-center justify-center gap-2 transition">
-                        <i className="fa-solid fa-check text-xs"></i><span>{guardandoCombo ? 'Guardando...' : (f.id ? 'Guardar cambios' : 'Guardar combo')}</span>
+                      <span className={`hidden md:flex items-center text-[13px] ${errores.length ? 'text-stone-500' : 'text-[#4d04b0] font-medium'}`}>{errores.length ? errores.join(' · ') : hayCambios ? 'Hay cambios sin guardar' : 'Todo en orden'}</span>
+                      <button type="button" onClick={guardarCombo} disabled={guardandoCombo || errores.length > 0 || (!!f.id && !hayCambios)} className="kz-pri h-11 px-6 text-[13.5px] font-semibold inline-flex items-center justify-center gap-2">
+                        <span>{guardandoCombo ? 'Guardando...' : (f.id ? 'Guardar cambios' : 'Guardar combo')}</span>{chispa}
                       </button>
                     </div>
                   </div>
@@ -11739,32 +11751,31 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
 
             return (
               <div className="fixed inset-0 bg-stone-900/30 backdrop-blur-sm flex items-center justify-center z-50 p-2 sm:p-4">
-                <div className="bg-gradient-to-br from-[#f4effc] via-[#f9f8fb] to-[#f5f4f8] border border-white/80 rounded-[28px] max-w-4xl w-full shadow-2xl h-[95vh] max-h-[800px] flex flex-col overflow-hidden">
+                <div className="bg-[#f8f7fb] border border-black/5 rounded-[18px] max-w-5xl w-full shadow-2xl h-[95vh] max-h-[800px] flex flex-col overflow-hidden">
 
-                  <div className="bg-white border-b border-stone-100 px-4 sm:px-5 py-3.5 shrink-0 flex items-center gap-3">
-                    <span className="w-11 h-11 rounded-[14px] bg-[#f4eefe] text-[#6105dc] grid place-items-center text-xl shrink-0"><i className="fa-solid fa-gift"></i></span>
+                  <div className="bg-white border-b border-[#e9e6f0] px-4 sm:px-7 py-4 shrink-0 flex items-center gap-3">
                     <div className="min-w-0 flex-1">
-                      <h3 className="text-[17px] sm:text-lg font-extrabold text-stone-900 tracking-tight leading-tight">Combos</h3>
-                      <p className="hidden sm:block text-[12.5px] text-stone-500 mt-0.5">Paquetes de varios {esBarberia ? 'servicios y productos' : 'productos'} a un precio especial. Al venderse, descuentan el stock de cada producto que incluyen.</p>
+                      <h3 className="text-[19px] sm:text-[21px] font-bold text-stone-900 tracking-tight leading-tight">Combos</h3>
+                      <p className="hidden sm:block text-[13px] text-stone-500 mt-1 max-w-[520px] leading-snug">Paquetes de varios {esBarberia ? 'servicios y productos' : 'productos'} a un precio especial. Al venderse, descuentan el stock de cada producto que incluyen.</p>
                     </div>
-                    <button type="button" onClick={nuevoCombo} className="h-10 px-4 rounded-[14px] bg-[#6105dc] hover:bg-[#4d04b0] text-white font-bold text-[13px] shadow-lg shadow-[#6105dc]/30 inline-flex items-center gap-2 shrink-0"><i className="fa-solid fa-plus text-xs"></i><span>Nuevo<span className="hidden sm:inline"> combo</span></span></button>
-                    <button aria-label="Cerrar" onClick={cerrarModalCombos} className="w-8 h-8 flex items-center justify-center rounded-full text-stone-400 hover:text-stone-600 hover:bg-stone-100 transition-colors shrink-0"><i className="fa-solid fa-xmark"></i></button>
+                    <button type="button" onClick={nuevoCombo} className="kz-pri h-11 px-5 text-[13.5px] font-semibold inline-flex items-center gap-2 shrink-0"><span>Nuevo<span className="hidden sm:inline"> combo</span></span>{chispa}</button>
+                    <button aria-label="Cerrar" onClick={cerrarModalCombos} className="w-9 h-9 flex items-center justify-center rounded-full text-stone-400 hover:text-stone-700 hover:bg-[#f1eef9] transition-colors shrink-0"><i className="fa-solid fa-xmark"></i></button>
                   </div>
 
-                  <div className="flex-1 overflow-y-auto p-3.5 sm:p-5">
-                    <div className="grid grid-cols-3 gap-2 sm:gap-3 mb-4">
-                      <div className="bg-white border border-stone-100 rounded-[18px] px-3 sm:px-3.5 py-2.5 sm:py-3"><b className="block text-xl sm:text-2xl font-extrabold leading-tight">{nVenta}</b><span className="text-[11px] sm:text-xs font-semibold text-stone-500">En venta ahora</span></div>
-                      <div className="bg-white border border-stone-100 rounded-[18px] px-3 sm:px-3.5 py-2.5 sm:py-3"><b className={`block text-xl sm:text-2xl font-extrabold leading-tight ${nSin ? 'text-amber-700' : ''}`}>{nSin}</b><span className="text-[11px] sm:text-xs font-semibold text-stone-500">Sin stock</span></div>
-                      <div className="bg-white border border-stone-100 rounded-[18px] px-3 sm:px-3.5 py-2.5 sm:py-3"><b className="block text-xl sm:text-2xl font-extrabold leading-tight">{nPausa}</b><span className="text-[11px] sm:text-xs font-semibold text-stone-500">Pausados</span></div>
+                  <div className="flex-1 overflow-y-auto hide-scrollbar px-4 sm:px-7 py-5 sm:py-6">
+                    <div className="flex gap-6 sm:gap-9 mb-5">
+                      <div><b className="block text-[26px] sm:text-[30px] font-bold tracking-tight leading-none">{nVenta}</b><span className="block text-[12.5px] text-stone-500 mt-1.5">En venta ahora</span></div>
+                      <div><b className={`block text-[26px] sm:text-[30px] font-bold tracking-tight leading-none ${nSin ? 'text-[#a15c07]' : ''}`}>{nSin}</b><span className="block text-[12.5px] text-stone-500 mt-1.5">Sin stock</span></div>
+                      <div><b className="block text-[26px] sm:text-[30px] font-bold tracking-tight leading-none">{nPausa}</b><span className="block text-[12.5px] text-stone-500 mt-1.5">Pausados</span></div>
                     </div>
-                    <div className="flex flex-wrap items-center gap-2.5 mb-3.5">
-                      <div className="relative flex-1 min-w-[170px]">
-                        <i className="fa-solid fa-magnifying-glass absolute left-3.5 top-1/2 -translate-y-1/2 text-stone-300 text-sm pointer-events-none"></i>
-                        <input type="text" autoComplete="off" placeholder="Buscar combo…" value={busquedaCombos} onChange={(e) => setBusquedaCombos(e.target.value)} className="w-full h-[42px] bg-white border-[1.5px] border-stone-200 rounded-[14px] pl-9 pr-3.5 text-sm text-stone-900 placeholder:text-stone-300 outline-none focus:border-[#6105dc] focus:ring-4 focus:ring-[#6105dc]/15" />
-                      </div>
-                      <div className="flex flex-wrap gap-2">
+                    <div className="flex flex-wrap items-center gap-3 mb-5">
+                      <label className="flex items-center gap-2.5 h-10 w-full sm:w-[280px] px-3.5 rounded-[10px] border border-[#e9e6f0] bg-white text-stone-400 focus-within:border-[#6105dc]">
+                        <i className="fa-solid fa-magnifying-glass text-[13px]"></i>
+                        <input type="text" autoComplete="off" placeholder="Buscar combo" value={busquedaCombos} onChange={(e) => setBusquedaCombos(e.target.value)} className="flex-1 min-w-0 bg-transparent text-[13.5px] text-stone-900 outline-none placeholder:text-stone-400" />
+                      </label>
+                      <div className="flex bg-[#ece9f4] rounded-[10px] p-[3px] max-w-full overflow-x-auto hide-scrollbar">
                         {[['todos', 'Todos', filas.length], ['venta', 'En venta', nVenta], ['sinstock', 'Sin stock', nSin], ['pausado', 'Pausados', nPausa]].map(([k, t, n]) => (
-                          <button key={k} type="button" onClick={() => setFiltroCombos(k)} className={chipClase(filtroCombos === k)}>{t} <span className={`text-[10.5px] rounded-full px-1.5 ${filtroCombos === k ? 'bg-[#6105dc] text-white' : 'bg-[#f1eef9] text-stone-500'}`}>{n}</span></button>
+                          <button key={k} type="button" onClick={() => setFiltroCombos(k)} className={`h-8 px-3.5 rounded-[8px] text-[13px] whitespace-nowrap flex items-center gap-1.5 transition ${filtroCombos === k ? 'bg-white text-stone-900 font-semibold shadow-[0_1px_3px_rgba(20,10,50,0.12)]' : 'text-stone-500 font-medium hover:text-stone-900'}`}>{t} <span className="text-[11.5px] text-stone-500 font-normal">{n}</span></button>
                         ))}
                       </div>
                     </div>
@@ -11772,15 +11783,15 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
                     {cargandoCombos ? (
                       <p className="text-[13px] text-center py-10 text-stone-500">Cargando combos...</p>
                     ) : combos.length === 0 ? (
-                      <div className="text-center max-w-xs mx-auto py-8 text-[13.5px] text-stone-500 leading-snug">
-                        <div className="w-[72px] h-[72px] rounded-3xl bg-[#f4eefe] text-[#6105dc] grid place-items-center text-[32px] mx-auto mb-3"><i className="fa-solid fa-gift"></i></div>
+                      <div className="text-center max-w-xs mx-auto py-10 text-[13.5px] text-stone-500 leading-snug">
+                        <div className="w-16 h-16 rounded-2xl bg-white border border-[#e9e6f0] text-[#6105dc] grid place-items-center text-[26px] mx-auto mb-3"><i className="fa-solid fa-gift"></i></div>
                         <b className="block text-base text-stone-900 mb-0.5">Todavía no tienes combos</b>
                         Junta varios {esBarberia ? 'servicios y productos' : 'productos'} en un paquete a precio especial. Toca «Nuevo combo» para crear el primero.
                       </div>
                     ) : visibles.length === 0 ? (
                       <p className="text-center py-8 text-[13.5px] text-stone-500"><b className="block text-stone-900">Ningún combo coincide</b>Prueba con otro filtro o con otra palabra.</p>
                     ) : (
-                      <div className="grid gap-3.5 sm:grid-cols-2">
+                      <div className="grid gap-[18px] sm:grid-cols-2 lg:grid-cols-3">
                         {visibles.map(({ c: combo, est }) => {
                           const items = combo.combos_items || [];
                           const suma = items.reduce((acc, ci) => acc + (Number(ci.productos?.precio_venta) || 0) * Number(ci.cantidad), 0);
@@ -11790,49 +11801,50 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
                           const mc = costo > 0 && precio > 0 ? margenCombo(precio, costo) : null;
                           const e = estadoCombos.get(combo.id);
                           const enVenta = est === 'venta';
+                          const fotos = items.slice(0, 3);
                           return (
-                            <div key={combo.id} className={`rounded-[22px] border p-4 flex flex-col gap-2.5 transition-shadow hover:shadow-lg hover:shadow-[#3c1478]/10 ${enVenta ? 'bg-white border-stone-100' : 'bg-[#fbfaff] border-stone-100'}`}>
-                              <div className={`flex flex-col gap-2.5 ${enVenta ? '' : 'opacity-60'}`}>
-                                <div className="flex items-start gap-3">
-                                  <div className="flex shrink-0">
-                                    {items.slice(0, 3).map((ci, i) => (
-                                      <span key={ci.id || i} className={i > 0 ? '-ml-3' : ''}>{miniatura(vivo(ci.producto_id)?.foto_url || ci.productos?.foto_url, vivo(ci.producto_id)?.categoria || ci.productos?.categoria)}</span>
-                                    ))}
-                                    {items.length > 3 && <span className="-ml-3 w-10 h-10 rounded-[13px] border-2 border-white ring-1 ring-stone-200 bg-[#6105dc] text-white grid place-items-center text-xs font-extrabold">+{items.length - 3}</span>}
-                                  </div>
-                                  <div className="min-w-0">
-                                    <h5 className="text-base font-extrabold text-stone-900 tracking-tight leading-tight">{combo.nombre}</h5>
-                                    <p className="text-xs text-stone-500 leading-snug mt-0.5">{items.map((ci) => `${Number(ci.cantidad) > 1 ? `${Number(ci.cantidad)}× ` : ''}${ci.productos?.descripcion || '(producto eliminado)'}`).join(' · ')}</p>
-                                  </div>
+                            <div key={combo.id} className="bg-white rounded-2xl border border-[#e9e6f0] shadow-[0_1px_2px_rgba(20,10,50,0.04),0_12px_28px_-18px_rgba(20,10,50,0.18)] hover:shadow-[0_1px_2px_rgba(20,10,50,0.04),0_18px_36px_-16px_rgba(20,10,50,0.28)] hover:-translate-y-px flex flex-col overflow-hidden transition">
+                              <div className={`relative grid gap-[2px] bg-[#e9e6f0] h-[132px] ${fotos.length >= 3 ? 'grid-cols-3' : fotos.length === 2 ? 'grid-cols-2' : 'grid-cols-1'} ${enVenta ? '' : 'opacity-60'}`}>
+                                {fotos.map((ci, i) => (
+                                  <span key={ci.id || i} className="relative bg-gradient-to-br from-[#f6f4fb] to-[#e9e5f3] overflow-hidden [&_img]:object-contain [&_img]:mix-blend-multiply [&_img]:p-2.5">
+                                    <FotoProducto fotoUrl={vivo(ci.producto_id)?.foto_url || ci.productos?.foto_url} categoria={vivo(ci.producto_id)?.categoria || ci.productos?.categoria} className="w-full h-full" iconClassName="text-2xl" />
+                                    {Number(ci.cantidad) > 1 && <em className="absolute right-1.5 bottom-1.5 not-italic bg-[#14121c] text-white rounded-full text-[10.5px] font-bold px-1.5">×{Number(ci.cantidad)}</em>}
+                                  </span>
+                                ))}
+                                {items.length > 3 && <em className="absolute right-3 top-3 not-italic bg-[#14121c] text-white rounded-full text-[11px] font-bold px-2 py-0.5">+{items.length - 3}</em>}
+                                {enVenta && ahorro > 0.5 && <span className="absolute left-3 top-3 bg-[#ffc81a] text-[#14121c] text-[11.5px] font-bold rounded-full px-2.5 py-0.5 shadow-md">Ahorra {Math.round(ahorro)}%</span>}
+                                {!enVenta && <span className={`absolute left-3 top-3 text-[11.5px] font-semibold rounded-full px-2.5 py-0.5 bg-white/90 ${est === 'sinstock' ? 'text-[#c0262d]' : 'text-stone-600'}`}>{est === 'sinstock' ? 'Sin stock' : 'Pausado'}</span>}
+                              </div>
+                              <div className={`px-4 pt-4 pb-3 flex flex-col gap-2 flex-1 ${enVenta ? '' : 'opacity-70'}`}>
+                                <h5 className="text-[15.5px] font-semibold text-stone-900 tracking-tight leading-tight">{combo.nombre}</h5>
+                                <p className="text-[12.5px] text-stone-500 leading-relaxed">{items.map((ci) => `${Number(ci.cantidad) > 1 ? `${Number(ci.cantidad)}× ` : ''}${ci.productos?.descripcion || '(producto eliminado)'}`).join(' · ')}</p>
+                                <div className="flex items-baseline gap-2 flex-wrap mt-0.5">
+                                  <strong className="text-2xl font-bold tracking-tight tabular-nums">{dinero(precio)}</strong>
+                                  {suma > precio + 0.005 && <s className="text-[13px] text-stone-400">{dinero(suma)}</s>}
                                 </div>
-                                <div className="flex items-baseline gap-2 flex-wrap">
-                                  <strong className="text-2xl font-extrabold text-[#4d04b0] tracking-tight">{dinero(precio)}</strong>
-                                  {suma > precio + 0.005 && <s className="text-[12.5px] font-semibold text-stone-300">{dinero(suma)}</s>}
-                                </div>
-                                {(mc || ahorro > 0.5) && (
-                                  <div className="flex flex-wrap gap-1.5">
-                                    {mc && (mc.perdida
-                                      ? <span className="text-[11px] font-bold rounded-full px-2.5 py-0.5 bg-rose-50 text-rose-600">Pérdida {dinero(-mc.ganancia)}</span>
-                                      : <span className={`text-[11px] font-bold rounded-full px-2.5 py-0.5 ${mc.bajo ? 'bg-amber-50 text-amber-700' : 'bg-emerald-50 text-emerald-700'}`}>Ganas {dinero(mc.ganancia)} · {mc.margenPct.toFixed(mc.margenPct < 10 ? 1 : 0)}%</span>)}
-                                    {ahorro > 0.5 && <span className="text-[11px] font-bold rounded-full px-2.5 py-0.5 bg-[#f4eefe] text-[#4d04b0]">Cliente ahorra {Math.round(ahorro)}%</span>}
-                                  </div>
+                                {mc && (
+                                  <p className="text-[12.5px] text-stone-500">
+                                    {mc.perdida
+                                      ? <b className="text-[#c0262d] font-semibold">Pérdida {dinero(-mc.ganancia)}</b>
+                                      : <>Ganas <b className={`font-semibold ${mc.bajo ? 'text-[#a15c07]' : 'text-[#0f7b4a]'}`}>{dinero(mc.ganancia)}</b> · {mc.margenPct.toFixed(mc.margenPct < 10 ? 1 : 0)}%</>}
+                                  </p>
+                                )}
+                                {est === 'sinstock' && (
+                                  <p className="text-[12.5px] rounded-lg bg-[#fdf1f1] text-[#c0262d] px-2.5 py-2 leading-snug">Pausado por falta de stock: {(e?.faltan || []).join(', ')}. Se enciende solo al reponer.</p>
+                                )}
+                                {enVenta && e && Number.isFinite(e.unidades) && (
+                                  <p className="text-[12.5px] text-stone-500">Con tu stock puedes vender hasta <b className="text-stone-800 font-semibold">{unidadesDe(e.unidades)}</b>.</p>
                                 )}
                               </div>
-                              {est === 'sinstock' && (
-                                <div className="flex gap-2 items-start rounded-xl bg-rose-50 text-rose-600 px-2.5 py-2 text-xs leading-snug"><i className="fa-solid fa-triangle-exclamation mt-0.5"></i><span>Pausado por falta de stock: {(e?.faltan || []).join(', ')}. Se enciende solo al reponer.</span></div>
-                              )}
-                              {enVenta && e && Number.isFinite(e.unidades) && (
-                                <div className="flex gap-2 items-start rounded-xl bg-[#f4eefe] text-[#4d04b0] px-2.5 py-2 text-xs leading-snug"><i className="fa-solid fa-box mt-0.5"></i><span>Con tu stock puedes vender hasta <b>{unidadesDe(e.unidades)}</b>.</span></div>
-                              )}
-                              <div className="flex items-center gap-1.5 mt-auto pt-2.5 border-t border-stone-100">
-                                <button type="button" role="switch" aria-checked={enVenta} onClick={() => (est === 'sinstock' ? notificar('Se enciende solo cuando repongas el stock.', 'info') : alternarActivoCombo(combo))} className="flex items-center gap-2.5 text-[12.5px] font-bold text-stone-700">
-                                  <span className={`relative w-[38px] h-[22px] rounded-full shrink-0 transition-colors ${enVenta ? 'bg-[#6105dc]' : 'bg-stone-300'}`}><span className={`absolute top-[3px] left-[3px] w-4 h-4 rounded-full bg-white shadow transition-transform ${enVenta ? 'translate-x-4' : ''}`}></span></span>
+                              <div className="flex items-center gap-1.5 pl-4 pr-3 py-2.5 border-t border-[#f0edf6]">
+                                <button type="button" role="switch" aria-checked={enVenta} onClick={() => (est === 'sinstock' ? notificar('Se enciende solo cuando repongas el stock.', 'info') : alternarActivoCombo(combo))} className="flex items-center gap-2.5 whitespace-nowrap text-[13px] font-medium text-stone-700">
+                                  <span className={`kz-sw ${enVenta ? 'on' : ''}`}><i></i></span>
                                   {enVenta ? 'En venta' : est === 'sinstock' ? 'Pausado por stock' : 'Pausado'}
                                 </button>
                                 <span className="flex-1"></span>
-                                <button type="button" onClick={() => duplicarCombo(combo)} title="Duplicar" aria-label="Duplicar" className="w-[34px] h-[34px] rounded-[10px] text-stone-400 hover:text-[#4d04b0] hover:bg-[#f4eefe] grid place-items-center"><i className="fa-regular fa-copy text-sm"></i></button>
-                                <button type="button" onClick={() => editarCombo(combo)} title="Editar" aria-label="Editar" className="w-[34px] h-[34px] rounded-[10px] text-stone-400 hover:text-[#4d04b0] hover:bg-[#f4eefe] grid place-items-center"><i className="fa-solid fa-pen text-sm"></i></button>
-                                <button type="button" onClick={() => eliminarCombo(combo)} title="Eliminar" aria-label="Eliminar" className="w-[34px] h-[34px] rounded-[10px] text-stone-400 hover:text-rose-600 hover:bg-rose-50 grid place-items-center"><i className="fa-solid fa-trash-can text-sm"></i></button>
+                                <button type="button" onClick={() => duplicarCombo(combo)} title="Duplicar" aria-label="Duplicar" className="w-8 h-8 rounded-[9px] text-stone-400 hover:text-[#6105dc] hover:bg-[#f4f0fd] grid place-items-center"><i className="fa-regular fa-copy text-[15px]"></i></button>
+                                <button type="button" onClick={() => editarCombo(combo)} title="Editar" aria-label="Editar" className="w-8 h-8 rounded-[9px] text-stone-400 hover:text-[#6105dc] hover:bg-[#f4f0fd] grid place-items-center"><i className="fa-solid fa-pen text-[14px]"></i></button>
+                                <button type="button" onClick={() => eliminarCombo(combo)} title="Eliminar" aria-label="Eliminar" className="w-8 h-8 rounded-[9px] text-stone-400 hover:text-[#c0262d] hover:bg-[#fdf1f1] grid place-items-center"><i className="fa-solid fa-trash-can text-[14px]"></i></button>
                               </div>
                             </div>
                           );
