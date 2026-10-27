@@ -13986,12 +13986,13 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
           {/* Modal: Historial de Cierres de Caja */}
           {/* Modal: Historial de cierres de caja (turnos cerrados y si cuadraron) */}
           {modalHistorialCierres && (() => {
-            const borde = 'border-[#e7e4ef]';
+            const borde = 'border-[#e9e6f0]';
             const dinero = (v) => `S/ ${formatoSoles(Math.abs(Number(v) || 0))}`;
             const difDe = (t) => Number(t.diferencia) || 0;
             const total = cierresCaja.length;
             const cuadran = cierresCaja.filter((t) => difDe(t) === 0).length;
             const conDif = total - cuadran;
+            const pctCuadran = total > 0 ? (cuadran / total) * 100 : 0;
             const acumulada = cierresCaja.reduce((a, t) => a + difDe(t), 0);
             const visibles = soloConDiferenciaCierres ? cierresCaja.filter((t) => difDe(t) !== 0) : cierresCaja;
             const grupos = [];
@@ -14008,66 +14009,78 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
             const horaApertura = (t) => (mismoDia(t.fecha_apertura, t.fecha_cierre) ? hora(t.fecha_apertura) : `${new Date(t.fecha_apertura).toLocaleDateString('es-PE', { day: 'numeric', month: 'short' }).replace(/\./g, '')}, ${hora(t.fecha_apertura)}`);
             const fechaHora = (f) => `${new Date(f).toLocaleDateString('es-PE', { day: 'numeric', month: 'short' }).replace(/\./g, '')}, ${hora(f)}`;
             const esperadoDe = (t) => Number(t.monto_inicial || 0) + Number(t.ventas_sistema || 0);
+            const duracion = (t) => {
+              const min = Math.max(0, Math.round((new Date(t.fecha_cierre) - new Date(t.fecha_apertura)) / 60000));
+              return min < 60 ? `${min} min` : `${Math.round(min / 60)} h`;
+            };
             const ATAJOS = [['hoy', 'Hoy'], ['7dias', '7 días'], ['30dias', '30 días'], ['fechas', 'Fechas']];
             const rangoTexto = `${new Date(`${fechaInicioCierres}T00:00:00`).toLocaleDateString('es-PE', { day: 'numeric', month: 'short' }).replace(/\./g, '')} – ${new Date(`${fechaFinCierres}T00:00:00`).toLocaleDateString('es-PE', { day: 'numeric', month: 'short', year: 'numeric' }).replace(/\./g, '')}`;
+            const tarjeta = `relative overflow-hidden bg-white border ${borde} rounded-[18px] px-5 py-[18px] shadow-[0_1px_2px_rgba(20,10,50,0.04),0_16px_36px_-26px_rgba(20,10,50,0.3)]`;
             const celdaDif = (t) => {
               const d = difDe(t);
-              if (d === 0) return <span className="inline-flex items-center gap-1.5 text-[13px] font-semibold text-[#0f7b4a]"><span className="w-1.5 h-1.5 rounded-full bg-[#0f7b4a]"></span>Cuadra</span>;
+              if (d === 0) return <span className="inline-flex items-center text-[13px] font-semibold rounded-full px-3 py-[3px] text-[#0f7b4a] bg-[#eef8f2]">Cuadra</span>;
               const leve = Math.abs(d) < 1;
-              return (
-                <span className={`inline-flex items-center gap-1.5 text-[13px] font-semibold tabular-nums ${leve ? 'text-[#a15c07]' : 'text-[#c0262d]'}`}>
-                  <span className={`w-1.5 h-1.5 rounded-full ${leve ? 'bg-[#d98a14]' : 'bg-[#c0262d]'}`}></span>{d > 0 ? '+' : '-'} {dinero(d)}
-                </span>
-              );
+              return <span className={`inline-flex items-center text-[13px] font-semibold rounded-full px-3 py-[3px] tabular-nums ${leve ? 'text-[#a15c07] bg-[#fdf5e8]' : 'text-[#c0262d] bg-[#fdf1f1]'}`}>{d > 0 ? '+' : '-'} {dinero(d)}</span>;
             };
             const detalleCierre = (t) => {
               const d = difDe(t);
+              const ok = d === 0;
+              const leve = Math.abs(d) < 1;
               return (
-                <div className="flex flex-col gap-4 min-h-full">
-                  <div>
-                    <p className="text-[13px] font-semibold text-stone-500">{t.cajeros?.nombre || 'Cajero'} · {etiquetaDiaHistorial(t.fecha_cierre)}</p>
-                    <p className="text-[26px] font-bold tracking-tight leading-tight mt-1 text-stone-900">{d === 0 ? 'Cuadra' : d > 0 ? `Sobran ${dinero(d)}` : `Faltan ${dinero(d)}`}</p>
-                    <p className={`text-[13px] mt-1.5 ${d === 0 ? 'text-[#0f7b4a]' : Math.abs(d) < 1 ? 'text-[#a15c07]' : 'text-[#c0262d]'}`}>
-                      {d === 0 ? 'Lo contado es igual a lo esperado.' : d > 0 ? 'Había más efectivo del esperado.' : 'Había menos efectivo del esperado.'}
-                    </p>
-                  </div>
-                  <div className="text-[13.5px]">
-                    {[
-                      ['Apertura', fechaHora(t.fecha_apertura)],
-                      ['Cierre', fechaHora(t.fecha_cierre)],
-                      ['Fondo inicial', `S/ ${formatoSoles(Number(t.monto_inicial || 0))}`],
-                      ['Ventas en efectivo', `+ S/ ${formatoSoles(Number(t.ventas_sistema || 0))}`],
-                      ['Esperado en caja', `S/ ${formatoSoles(esperadoDe(t))}`],
-                    ].map(([r, v]) => (
-                      <div key={r} className="flex justify-between gap-3 py-2.5 border-b border-[#f0eef5]">
-                        <span className="text-stone-500">{r}</span><span className="font-medium text-stone-900 tabular-nums">{v}</span>
+                <div className="flex flex-col gap-3.5">
+                  <div className={`bg-white border ${borde} rounded-[18px] shadow-[0_18px_40px_-24px_rgba(20,10,50,0.35)]`}>
+                    <div className="px-[22px] pt-[22px] pb-[18px]">
+                      <div className={`w-[60px] h-[60px] rounded-full grid place-items-center text-[26px] text-white mb-3 ${ok ? 'bg-gradient-to-br from-[#2fa972] to-[#0f7b4a] shadow-[0_14px_26px_-10px_rgba(15,123,74,0.6)]' : leve ? 'bg-gradient-to-br from-[#f0b24a] to-[#d98a14] shadow-[0_14px_26px_-10px_rgba(217,138,20,0.6)]' : 'bg-gradient-to-br from-[#e0565c] to-[#c0262d] shadow-[0_14px_26px_-10px_rgba(192,38,45,0.6)]'}`}>
+                        <i className={`fa-solid ${ok ? 'fa-check' : 'fa-circle-exclamation'}`}></i>
                       </div>
-                    ))}
-                    <div className="flex justify-between gap-3 pt-3 mt-0.5 border-t border-stone-900 font-semibold">
-                      <span>Contado</span><span className="text-[17px] font-bold tracking-tight tabular-nums">S/ {formatoSoles(Number(t.monto_final_real || 0))}</span>
+                      <p className="text-[13px] text-stone-500">{t.cajeros?.nombre || 'Cajero'} · {etiquetaDiaHistorial(t.fecha_cierre)}</p>
+                      <p className="text-[30px] font-bold tracking-[-0.04em] leading-[1.1] mt-1.5 text-stone-900">{ok ? 'Cuadra' : d > 0 ? `Sobran ${dinero(d)}` : `Faltan ${dinero(d)}`}</p>
+                      <p className={`text-[13px] mt-1.5 ${ok ? 'text-[#0f7b4a]' : leve ? 'text-[#a15c07]' : 'text-[#c0262d]'}`}>
+                        {ok ? 'Lo contado es igual a lo esperado.' : d > 0 ? 'Había más efectivo del esperado.' : 'Había menos efectivo del esperado.'}
+                      </p>
+                      <div className="h-1.5 rounded-sm bg-[#ece9f4] mt-4"><i className="block h-full rounded-sm bg-gradient-to-r from-[#9b7bf5] to-[#6b44d8]"></i></div>
+                      <div className="flex justify-between text-xs text-stone-500 mt-1.5"><span>{hora(t.fecha_apertura)}</span><span>{hora(t.fecha_cierre)} · {duracion(t)}</span></div>
+                    </div>
+                    <div className="relative mx-3.5 border-t-2 border-dashed border-[#e3dff0]">
+                      <span className={`absolute -top-[11px] -left-[25px] w-5 h-5 rounded-full bg-[#f8f7fb] border ${borde} [clip-path:inset(0_0_0_50%)]`}></span>
+                      <span className={`absolute -top-[11px] -right-[25px] w-5 h-5 rounded-full bg-[#f8f7fb] border ${borde} [clip-path:inset(0_50%_0_0)]`}></span>
+                    </div>
+                    <div className="px-[22px] pt-[18px] pb-[22px] text-[13.5px]">
+                      {[
+                        ['Apertura', fechaHora(t.fecha_apertura)],
+                        ['Cierre', fechaHora(t.fecha_cierre)],
+                        ['Fondo inicial', `S/ ${formatoSoles(Number(t.monto_inicial || 0))}`],
+                        ['Ventas en efectivo', `+ S/ ${formatoSoles(Number(t.ventas_sistema || 0))}`],
+                        ['Esperado en caja', `S/ ${formatoSoles(esperadoDe(t))}`],
+                      ].map(([r, v]) => (
+                        <div key={r} className="flex justify-between gap-3 py-[11px] border-b border-[#f3f0f8]">
+                          <span className="text-stone-500">{r}</span><span className="font-medium text-stone-900 tabular-nums">{v}</span>
+                        </div>
+                      ))}
+                      <div className="flex justify-between items-baseline gap-3 pt-[13px] mt-0.5 border-t border-stone-900 font-semibold">
+                        <span>Contado</span><span className="text-xl font-bold tracking-tight tabular-nums">S/ {formatoSoles(Number(t.monto_final_real || 0))}</span>
+                      </div>
                     </div>
                   </div>
-                  <p className="text-[12.5px] text-stone-500 bg-[#f6f5f9] rounded-[9px] px-3 py-2.5 leading-snug">Las ventas con Yape, Plin o tarjeta no cuentan en el efectivo de la caja. Se ven en el historial de ventas.</p>
+                  <p className="text-[12.5px] text-stone-500 bg-[#f1eff7] rounded-[10px] px-3.5 py-3 leading-snug">Las ventas con Yape, Plin o tarjeta no cuentan en el efectivo de la caja. Se ven en el historial de ventas.</p>
                 </div>
               );
             };
 
             return (
               <div className="fixed inset-0 bg-stone-900/30 backdrop-blur-sm flex items-center justify-center z-50 p-3 sm:p-4">
-                <div className="bg-white rounded-2xl max-w-xl lg:max-w-6xl w-full max-h-[94vh] h-[94vh] lg:h-[740px] flex flex-col shadow-2xl border border-black/5 overflow-hidden">
-                  <div className={`px-4 sm:px-5 py-3.5 shrink-0 flex flex-wrap lg:flex-nowrap items-center gap-x-3 gap-y-2 border-b ${borde}`}>
+                <div className="bg-[#f8f7fb] rounded-[18px] max-w-xl lg:max-w-6xl w-full max-h-[94vh] h-[94vh] lg:h-[780px] flex flex-col shadow-2xl border border-black/5 overflow-hidden">
+                  <div className={`bg-white px-4 sm:px-7 py-3.5 sm:py-[18px] shrink-0 flex flex-wrap lg:flex-nowrap items-center gap-x-3 gap-y-2.5 border-b ${borde}`}>
                     {elegido && (
-                      <button aria-label="Volver a la lista" onClick={() => setCierreDetalle(null)} className="lg:hidden w-8 h-8 rounded-lg text-stone-500 hover:bg-[#f6f5f9] shrink-0"><i className="fa-solid fa-arrow-left text-sm"></i></button>
+                      <button aria-label="Volver a la lista" onClick={() => setCierreDetalle(null)} className="lg:hidden h-9 pl-2.5 pr-3.5 rounded-full border border-[#e9e6f0] bg-white text-[13px] font-medium text-stone-700 inline-flex items-center gap-1 shrink-0"><i className="fa-solid fa-chevron-left text-[10px]"></i> Historial</button>
                     )}
-                    <h3 className="text-[17px] font-bold tracking-tight text-stone-900 whitespace-nowrap">
-                      {elegido ? <><span className="lg:hidden">Detalle del cierre</span><span className="hidden lg:inline">Historial de ventas</span></> : 'Historial de ventas'}
-                    </h3>
-                    <div className={`${elegido ? 'hidden lg:flex' : 'flex'} gap-1 order-last basis-full lg:order-none lg:basis-auto lg:ml-1`}>
-                      <button type="button" onClick={() => { setModalHistorialCierres(false); abrirHistorialDelDia(); }} className="h-8 px-3 rounded-lg text-[13px] font-medium text-stone-500 hover:text-stone-900">Ventas</button>
-                      <button type="button" className="h-8 px-3 rounded-lg text-[13px] font-semibold text-stone-900 bg-[#f6f5f9]">Cierres de caja</button>
+                    <h3 className={`text-xl sm:text-[21px] font-bold tracking-tight text-stone-900 whitespace-nowrap ${elegido ? 'hidden lg:block' : ''}`}>Historial de ventas</h3>
+                    <div className={`${elegido ? 'hidden lg:inline-flex' : 'inline-flex'} bg-[#ece9f4] rounded-full p-[3px] order-last basis-full lg:order-none lg:basis-auto lg:ml-2`}>
+                      <button type="button" onClick={() => { setModalHistorialCierres(false); abrirHistorialDelDia(); }} className="flex-1 lg:flex-none h-8 px-[17px] rounded-full text-[13px] font-medium text-stone-500 hover:text-stone-900">Ventas</button>
+                      <button type="button" className="flex-1 lg:flex-none h-8 px-[17px] rounded-full text-[13px] font-semibold text-stone-900 bg-white shadow-[0_1px_3px_rgba(20,10,50,0.14)] whitespace-nowrap">Cierres de caja</button>
                     </div>
                     <span className="flex-1"></span>
-                    <button aria-label="Cerrar" onClick={() => { setModalHistorialCierres(false); setCierreDetalle(null); }} className="w-8 h-8 rounded-lg text-stone-500 hover:bg-[#f6f5f9] shrink-0"><i className="fa-solid fa-xmark"></i></button>
+                    <button aria-label="Cerrar" onClick={() => { setModalHistorialCierres(false); setCierreDetalle(null); }} className="w-9 h-9 rounded-full text-stone-400 hover:text-stone-700 hover:bg-[#f1eef9] shrink-0"><i className="fa-solid fa-xmark"></i></button>
                   </div>
 
                   {elegido && (
@@ -14075,81 +14088,85 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
                   )}
 
                   <div className={`${elegido ? 'hidden lg:flex' : 'flex'} flex-1 min-h-0 flex-col`}>
-                    <div className={`px-4 sm:px-5 py-3 shrink-0 flex flex-wrap items-center gap-x-3 gap-y-2 border-b ${borde}`}>
-                      <div className="flex bg-[#f6f5f9] rounded-[9px] p-[3px] max-w-full overflow-x-auto hide-scrollbar">
+                    <div className="px-4 sm:px-7 pt-4 lg:pt-5 shrink-0 grid grid-cols-2 lg:grid-cols-[1.25fr_1fr_1fr] gap-3 lg:gap-3.5">
+                      <div className={`${tarjeta} col-span-2 lg:col-span-1`}>
+                        <span className="absolute -right-14 -top-[70px] w-[200px] h-[200px] rounded-full pointer-events-none" style={{ background: 'radial-gradient(closest-side, rgba(124,80,240,0.16), rgba(124,80,240,0))' }}></span>
+                        <span className="relative text-[13px] text-stone-500">Turnos cerrados</span>
+                        <b className="relative block text-[30px] lg:text-4xl font-bold tracking-[-0.04em] leading-[1.05] mt-1 mb-3 tabular-nums">{total}</b>
+                        <div className="relative flex h-2 rounded overflow-hidden bg-[#ece9f4] gap-0.5">
+                          {pctCuadran > 0 && <i className="block h-full bg-gradient-to-r from-[#3fbf8a] to-[#0f7b4a]" style={{ width: `${pctCuadran}%` }}></i>}
+                          {pctCuadran < 100 && total > 0 && <i className="block h-full bg-gradient-to-r from-[#e0565c] to-[#c0262d]" style={{ width: `${100 - pctCuadran}%` }}></i>}
+                        </div>
+                        <div className="relative flex flex-wrap gap-x-4 gap-y-1 mt-2.5 text-[12.5px] text-stone-500">
+                          <span className="flex items-center gap-1.5"><i className="w-2 h-2 rounded-full bg-[#0f7b4a]"></i>Cuadraron <b className="text-stone-900 font-semibold">{cuadran}</b></span>
+                          <span className="flex items-center gap-1.5"><i className="w-2 h-2 rounded-full bg-[#c0262d]"></i>Con diferencia <b className="text-stone-900 font-semibold">{conDif}</b></span>
+                        </div>
+                      </div>
+                      <div className={tarjeta}>
+                        <div className="flex items-center gap-3.5">
+                          <div className="relative w-[64px] h-[64px] lg:w-[84px] lg:h-[84px] shrink-0">
+                            <svg viewBox="0 0 90 90" className="w-full h-full -rotate-90">
+                              <circle cx="45" cy="45" r="36" fill="none" stroke="#ece9f4" strokeWidth="10" />
+                              <circle cx="45" cy="45" r="36" fill="none" stroke="#0f7b4a" strokeWidth="10" strokeLinecap="round" strokeDasharray={`${(pctCuadran / 100) * 226.2} 226.2`} />
+                            </svg>
+                            <span className="absolute inset-0 grid place-items-center text-sm lg:text-lg font-bold tracking-tight">{Math.round(pctCuadran)}%</span>
+                          </div>
+                          <div className="min-w-0">
+                            <span className="text-[13px] text-stone-500">Cuadraron</span>
+                            <b className="block text-lg lg:text-2xl font-bold tracking-tight text-[#0f7b4a] mt-0.5 whitespace-nowrap">{cuadran} de {total}</b>
+                          </div>
+                        </div>
+                      </div>
+                      <div className={tarjeta}>
+                        <span className="text-[13px] text-stone-500">Diferencia acumulada</span>
+                        <b className={`block text-xl lg:text-2xl font-bold tracking-tight mt-1 tabular-nums ${acumulada < 0 ? 'text-[#c0262d]' : acumulada > 0 ? 'text-[#a15c07]' : 'text-stone-900'}`}>{acumulada === 0 ? 'S/ 0.00' : `${acumulada > 0 ? '+' : '-'} ${dinero(acumulada)}`}</b>
+                        <span className="block text-xs text-stone-500 mt-2">{conDif} turno{conDif === 1 ? '' : 's'} con diferencia</span>
+                      </div>
+                    </div>
+
+                    <div className="px-4 sm:px-7 py-3.5 shrink-0 flex flex-wrap items-center gap-x-3 gap-y-2.5">
+                      <div className="flex bg-[#ece9f4] rounded-full p-[3px] max-w-full overflow-x-auto hide-scrollbar">
                         {ATAJOS.map(([id, texto]) => (
-                          <button
-                            key={id}
-                            type="button"
-                            onClick={() => elegirAtajoCierres(id)}
-                            className={`h-7 px-3 rounded-[7px] text-[12.5px] whitespace-nowrap transition ${atajoCierres === id ? 'bg-white text-stone-900 font-semibold shadow-[0_0_0_1px_#e7e4ef]' : 'text-stone-500 font-medium hover:text-stone-900'}`}
-                          >
-                            {texto}
-                          </button>
+                          <button key={id} type="button" onClick={() => elegirAtajoCierres(id)} className={`h-8 px-[15px] rounded-full text-[13px] whitespace-nowrap transition ${atajoCierres === id ? 'bg-white text-stone-900 font-semibold shadow-[0_1px_3px_rgba(20,10,50,0.14)]' : 'text-stone-500 font-medium hover:text-stone-900'}`}>{texto}</button>
                         ))}
                       </div>
-                      <span className="text-[12.5px] text-stone-500">{rangoTexto}</span>
+                      <span className="text-[13px] text-stone-500">{rangoTexto}</span>
                       <span className="flex-1 hidden lg:block"></span>
-                      <button
-                        type="button"
-                        role="switch"
-                        aria-checked={soloConDiferenciaCierres}
-                        onClick={() => { setSoloConDiferenciaCierres((v) => !v); setCierreDetalle(null); }}
-                        className="inline-flex items-center gap-2 text-[13px] text-stone-700"
-                      >
-                        <span className={`relative w-[34px] h-5 rounded-full transition-colors shrink-0 ${soloConDiferenciaCierres ? 'bg-[#6105dc]' : 'bg-[#cfccdb]'}`}>
-                          <span className={`absolute top-0.5 w-4 h-4 rounded-full bg-white shadow transition-all ${soloConDiferenciaCierres ? 'left-4' : 'left-0.5'}`}></span>
-                        </span>
-                        Solo con diferencia
+                      <button type="button" role="switch" aria-checked={soloConDiferenciaCierres} onClick={() => { setSoloConDiferenciaCierres((v) => !v); setCierreDetalle(null); }} className="inline-flex items-center gap-2.5 text-[13px] font-medium text-stone-700">
+                        <span className={`kz-sw ${soloConDiferenciaCierres ? 'on' : ''}`}><i></i></span>Solo con diferencia
                       </button>
                       {atajoCierres === 'fechas' && (
                         <div className="flex flex-wrap items-center gap-2 w-full">
-                          <input type="date" aria-label="Desde" value={fechaInicioCierres} onChange={(e) => setFechaInicioCierres(e.target.value)} className={`h-[34px] px-2.5 rounded-[9px] border ${borde} bg-white text-[13px] text-stone-900`} />
+                          <input type="date" aria-label="Desde" value={fechaInicioCierres} onChange={(e) => setFechaInicioCierres(e.target.value)} className={`h-10 px-3.5 rounded-full border ${borde} bg-white text-[13px] text-stone-900`} />
                           <span className="text-xs text-stone-400">a</span>
-                          <input type="date" aria-label="Hasta" value={fechaFinCierres} onChange={(e) => setFechaFinCierres(e.target.value)} className={`h-[34px] px-2.5 rounded-[9px] border ${borde} bg-white text-[13px] text-stone-900`} />
-                          <button onClick={() => cargarHistorialCierresPorRango(fechaInicioCierres, fechaFinCierres)} className="h-[34px] px-4 rounded-[9px] bg-[#6105dc] hover:bg-[#4d04b0] text-white text-[13px] font-semibold">Buscar</button>
+                          <input type="date" aria-label="Hasta" value={fechaFinCierres} onChange={(e) => setFechaFinCierres(e.target.value)} className={`h-10 px-3.5 rounded-full border ${borde} bg-white text-[13px] text-stone-900`} />
+                          <button onClick={() => cargarHistorialCierresPorRango(fechaInicioCierres, fechaFinCierres)} className="kz-pri h-10 px-5 text-[13px] font-semibold">Buscar</button>
                         </div>
                       )}
                     </div>
 
-                    <div className={`grid grid-cols-2 lg:grid-cols-4 shrink-0 border-b ${borde}`}>
-                      {[
-                        ['Turnos cerrados', <>{total}</>, ''],
-                        ['Cuadraron', <>{cuadran}{total > 0 && <span className="text-xs font-medium text-stone-500 ml-1.5 tracking-normal">{Math.round((cuadran / total) * 100)}%</span>}</>, 'text-[#0f7b4a]'],
-                        ['Con diferencia', <>{conDif}</>, ''],
-                        ['Diferencia acumulada', <>{acumulada === 0 ? 'S/ 0.00' : `${acumulada > 0 ? '+' : '-'} ${dinero(acumulada)}`}</>, acumulada < 0 ? 'text-[#c0262d]' : acumulada > 0 ? 'text-[#a15c07]' : ''],
-                      ].map(([titulo, valor, color], i) => (
-                        <div key={titulo} className={`px-4 sm:px-5 py-3 ${i % 2 === 1 ? 'border-l' : ''} ${i > 0 ? 'lg:border-l' : ''} ${i >= 2 ? 'border-t lg:border-t-0' : ''} ${borde}`}>
-                          <span className="text-xs font-medium text-stone-500 block">{titulo}</span>
-                          <span className={`text-[17px] lg:text-[22px] font-bold tracking-tight tabular-nums whitespace-nowrap ${color || 'text-stone-900'}`}>{valor}</span>
-                        </div>
-                      ))}
-                    </div>
-
-                    <div className="flex-1 min-h-0 grid grid-rows-[minmax(0,1fr)] lg:grid-cols-[1fr_340px]">
-                      <div className={`min-h-0 overflow-y-auto hide-scrollbar lg:border-r ${borde}`}>
+                    <div className="flex-1 min-h-0 px-4 sm:px-7 pb-5 grid grid-rows-[minmax(0,1fr)] lg:grid-cols-[minmax(0,1fr)_330px] gap-4">
+                      <div className="min-h-0 overflow-y-auto hide-scrollbar lg:bg-white lg:border lg:border-[#e9e6f0] lg:rounded-[18px]">
                         {cargandoCierres ? (
                           <p className="text-sm text-center py-10 text-stone-500">Cargando...</p>
                         ) : visibles.length === 0 ? (
                           <p className="text-sm text-center py-10 text-stone-500">{soloConDiferenciaCierres && total > 0 ? 'Todos los turnos de este período cuadraron.' : 'No hay cierres de caja en ese rango.'}</p>
                         ) : (
                           <>
-                            {/* Celular: una fila por turno */}
+                            {/* Celular: una tarjeta por turno */}
                             <div className="lg:hidden">
                               {grupos.map((g) => (
                                 <div key={g.etiqueta}>
-                                  <p className={`flex justify-between px-4 py-1.5 bg-[#f6f5f9] border-b ${borde} text-[11.5px] font-semibold text-stone-500 sticky top-0 z-[1]`}>
-                                    <span>{g.etiqueta}</span><span>{g.turnos.length} turno{g.turnos.length === 1 ? '' : 's'}</span>
-                                  </p>
+                                  <p className="flex justify-between px-1.5 pt-3 pb-1.5 text-xs font-semibold text-stone-500"><span>{g.etiqueta}</span><span>{g.turnos.length} turno{g.turnos.length === 1 ? '' : 's'}</span></p>
                                   {g.turnos.map((t) => (
-                                    <div key={t.id} role="button" tabIndex={0} onClick={() => setCierreDetalle(t.id)} onKeyDown={(e) => { if (e.key === 'Enter') setCierreDetalle(t.id); }} className="grid grid-cols-[1fr_auto] items-center gap-2.5 px-4 py-3 border-b border-[#f0eef5] cursor-pointer active:bg-[#faf8fe]">
+                                    <div key={t.id} role="button" tabIndex={0} onClick={() => setCierreDetalle(t.id)} onKeyDown={(e) => { if (e.key === 'Enter') setCierreDetalle(t.id); }} className={`grid grid-cols-[1fr_auto] items-center gap-2.5 px-3.5 py-3.5 mb-2 bg-white border ${borde} rounded-[14px] cursor-pointer active:bg-[#faf8fe]`}>
                                       <div className="min-w-0">
-                                        <p className="text-[13.5px] font-semibold text-stone-900 truncate">{t.cajeros?.nombre || 'Cajero'}</p>
+                                        <p className="text-sm font-semibold text-stone-900 truncate">{t.cajeros?.nombre || 'Cajero'}</p>
                                         <p className="text-xs text-stone-500 mt-0.5">{horaApertura(t)} – {hora(t.fecha_cierre)}</p>
                                       </div>
                                       <div className="text-right">
                                         {celdaDif(t)}
-                                        <p className="text-[11.5px] text-stone-500 mt-0.5 tabular-nums">Contado S/ {formatoSoles(Number(t.monto_final_real || 0))}</p>
+                                        <p className="text-xs text-stone-500 mt-1.5 tabular-nums">Contado S/ {formatoSoles(Number(t.monto_final_real || 0))}</p>
                                       </div>
                                     </div>
                                   ))}
@@ -14160,27 +14177,27 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
                             {/* PC: tabla */}
                             <table className="hidden lg:table w-full border-collapse">
                               <thead>
-                                <tr className="text-left text-[11.5px] font-semibold text-stone-500">
-                                  {['Cajero', 'Apertura', 'Cierre'].map((c) => <th key={c} className={`sticky top-0 z-[2] bg-white px-4 py-2.5 border-b ${borde} whitespace-nowrap`}>{c}</th>)}
-                                  {['Fondo', 'Ventas efectivo', 'Contado', 'Diferencia'].map((c) => <th key={c} className={`sticky top-0 z-[2] bg-white px-4 py-2.5 border-b ${borde} whitespace-nowrap text-right`}>{c}</th>)}
+                                <tr className="text-left text-xs font-medium text-stone-500">
+                                  {['Cajero', 'Apertura', 'Cierre'].map((c) => <th key={c} className={`sticky top-0 z-[2] bg-white px-3 py-3.5 border-b ${borde} whitespace-nowrap font-medium`}>{c}</th>)}
+                                  {['Fondo', 'En efectivo', 'Contado', 'Diferencia'].map((c) => <th key={c} className={`sticky top-0 z-[2] bg-white px-3 py-3.5 border-b ${borde} whitespace-nowrap text-right font-medium`}>{c}</th>)}
                                 </tr>
                               </thead>
                               <tbody>
                                 {grupos.map((g) => (
                                   <React.Fragment key={g.etiqueta}>
-                                    <tr className="bg-[#f6f5f9] text-xs font-semibold text-stone-500">
-                                      <td colSpan={5} className={`px-4 py-1.5 border-b ${borde}`}>{g.etiqueta}</td>
-                                      <td colSpan={2} className={`px-4 py-1.5 border-b ${borde} text-right`}>{g.turnos.length} turno{g.turnos.length === 1 ? '' : 's'}</td>
+                                    <tr className="bg-[#faf9fc] text-xs font-semibold text-stone-500">
+                                      <td colSpan={5} className="px-3 py-2.5">{g.etiqueta}</td>
+                                      <td colSpan={2} className="px-3 py-2.5 text-right">{g.turnos.length} turno{g.turnos.length === 1 ? '' : 's'}</td>
                                     </tr>
                                     {g.turnos.map((t) => (
-                                      <tr key={t.id} onClick={() => setCierreDetalle(t.id)} className={`cursor-pointer text-[13.5px] text-stone-700 ${panel && panel.id === t.id ? 'bg-[#f3effd] shadow-[inset_3px_0_0_#6105dc]' : 'hover:bg-[#fbfafd]'}`}>
-                                        <td className="px-4 py-2.5 border-b border-[#f0eef5] whitespace-nowrap max-w-[150px] truncate">{t.cajeros?.nombre || 'Cajero'}</td>
-                                        <td className="px-4 py-2.5 border-b border-[#f0eef5] whitespace-nowrap text-stone-500">{horaApertura(t)}</td>
-                                        <td className="px-4 py-2.5 border-b border-[#f0eef5] whitespace-nowrap text-stone-500">{hora(t.fecha_cierre)}</td>
-                                        <td className="px-4 py-2.5 border-b border-[#f0eef5] whitespace-nowrap text-right tabular-nums text-stone-900">S/ {formatoSoles(Number(t.monto_inicial || 0))}</td>
-                                        <td className="px-4 py-2.5 border-b border-[#f0eef5] whitespace-nowrap text-right tabular-nums text-stone-900">S/ {formatoSoles(Number(t.ventas_sistema || 0))}</td>
-                                        <td className="px-4 py-2.5 border-b border-[#f0eef5] whitespace-nowrap text-right tabular-nums text-stone-900">S/ {formatoSoles(Number(t.monto_final_real || 0))}</td>
-                                        <td className="px-4 py-2.5 border-b border-[#f0eef5] whitespace-nowrap text-right">{celdaDif(t)}</td>
+                                      <tr key={t.id} onClick={() => setCierreDetalle(t.id)} className={`cursor-pointer text-[13.5px] text-stone-700 transition ${panel && panel.id === t.id ? 'bg-[#f4f0fd] shadow-[inset_3px_0_0_#6105dc]' : 'hover:bg-[#fbfafd]'}`}>
+                                        <td className="px-3 py-3 border-b border-[#f3f0f8] whitespace-nowrap max-w-[140px] truncate">{t.cajeros?.nombre || 'Cajero'}</td>
+                                        <td className="px-3 py-3 border-b border-[#f3f0f8] whitespace-nowrap text-stone-500">{horaApertura(t)}</td>
+                                        <td className="px-3 py-3 border-b border-[#f3f0f8] whitespace-nowrap text-stone-500">{hora(t.fecha_cierre)}</td>
+                                        <td className="px-3 py-3 border-b border-[#f3f0f8] whitespace-nowrap text-right tabular-nums font-semibold text-stone-900">S/ {formatoSoles(Number(t.monto_inicial || 0))}</td>
+                                        <td className="px-3 py-3 border-b border-[#f3f0f8] whitespace-nowrap text-right tabular-nums font-semibold text-stone-900">S/ {formatoSoles(Number(t.ventas_sistema || 0))}</td>
+                                        <td className="px-3 py-3 border-b border-[#f3f0f8] whitespace-nowrap text-right tabular-nums font-semibold text-stone-900">S/ {formatoSoles(Number(t.monto_final_real || 0))}</td>
+                                        <td className="px-3 py-3 border-b border-[#f3f0f8] whitespace-nowrap text-right">{celdaDif(t)}</td>
                                       </tr>
                                     ))}
                                   </React.Fragment>
@@ -14191,7 +14208,7 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
                         )}
                       </div>
 
-                      <div className="hidden lg:block min-h-0 overflow-y-auto hide-scrollbar p-5">
+                      <div className="hidden lg:block min-h-0 overflow-y-auto hide-scrollbar">
                         {panel ? detalleCierre(panel) : <p className="text-sm text-stone-500 text-center py-10">Elige un turno para ver su detalle.</p>}
                       </div>
                     </div>
@@ -16046,10 +16063,14 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
           {/* Modal: Historial de ventas (lista por día, resumen, detalle de cada venta) */}
           {modalHistorial && (() => {
             const activas = ventasDelDia.filter(v => !v.anulada);
+            const anuladas = ventasDelDia.filter(v => v.anulada);
             const totalGeneral = activas.reduce((a, c) => a + Number(c.total_venta), 0);
             const totalEfectivo = activas.filter(v => v.medio_pago === 'EFECTIVO').reduce((a, c) => a + Number(c.total_venta), 0);
             const totalOtros = totalGeneral - totalEfectivo;
             const totalGanancia = activas.reduce((a, c) => a + Number(c.utilidad_total || 0), 0);
+            const totalAnuladas = anuladas.reduce((a, c) => a + Number(c.total_venta), 0);
+            const ticketPromedio = activas.length > 0 ? totalGeneral / activas.length : 0;
+            const pctEfectivo = totalGeneral > 0 ? (totalEfectivo / totalGeneral) * 100 : 0;
             const q = busquedaBoletaHistorial.trim().toLowerCase();
             const filtradas = ventasDelDia.filter(v => !q || v.nro_boleta.toLowerCase().includes(q) || nombreClienteHistorial(v).toLowerCase().includes(q));
             const visibles = filtradas.slice(0, limiteHistorial);
@@ -16071,93 +16092,105 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
             const textoEstado = (v) => (v.anulada ? 'Anulada' : v.medio_pago === 'CREDITO' ? 'A crédito' : 'Pagada');
             const subtextoEstado = (v) => (v.anulada ? 'Venta anulada' : v.medio_pago === 'CREDITO' ? 'Venta a crédito' : `Pagada · ${etiquetaPago(v)}`);
             const clienteTexto = (v) => (nombreClienteHistorial(v) === 'Cliente sin registrar' ? '—' : nombreClienteHistorial(v));
-            const borde = 'border-[#e7e4ef]';
-            const botonBase = 'h-[34px] px-3 rounded-[9px] border text-[13px] font-medium flex items-center gap-2 bg-white hover:bg-[#f6f5f9] transition';
+            const ICONO_PAGO = {
+              EFECTIVO: ['fa-money-bill-wave', 'from-[#4cc995] to-[#0f7b4a]'],
+              YAPE: ['fa-mobile-screen', 'from-[#a78bfa] to-[#6d4ae0]'],
+              PLIN: ['fa-mobile-screen', 'from-[#a78bfa] to-[#6d4ae0]'],
+              TARJETA: ['fa-credit-card', 'from-[#7ab4ee] to-[#3d7fd0]'],
+              CREDITO: ['fa-file-invoice-dollar', 'from-[#f0b24a] to-[#d98a14]'],
+              MIXTO: ['fa-layer-group', 'from-[#b5aecb] to-[#8f89a8]'],
+            };
+            const iconoPago = (v) => (v.anulada ? ['fa-ban', 'from-[#d9d6e4] to-[#d9d6e4] !text-[#8f8aa3]'] : ICONO_PAGO[v.medio_pago] || ['fa-receipt', 'from-[#b5aecb] to-[#8f89a8]']);
+            const circuloPago = (v, tam = 'w-8 h-8') => { const [icono, color] = iconoPago(v); return <span className={`${tam} rounded-full bg-gradient-to-br ${color} text-white grid place-items-center text-[13px] shrink-0`}><i className={`fa-solid ${icono}`}></i></span>; };
+            const borde = 'border-[#e9e6f0]';
+            const botonFantasma = `h-10 px-[17px] rounded-full border ${borde} bg-white hover:bg-[#f8f7fb] text-[13px] font-medium text-stone-700 inline-flex items-center justify-center gap-2 transition whitespace-nowrap`;
+            const tarjeta = `relative overflow-hidden bg-white border ${borde} rounded-[18px] px-5 py-[18px] shadow-[0_1px_2px_rgba(20,10,50,0.04),0_16px_36px_-26px_rgba(20,10,50,0.3)]`;
+            const chispa = (<svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor" aria-hidden="true"><path d="M12 3c.6 4.6 2.4 6.4 7 7-4.6.6-6.4 2.4-7 7-.6-4.6-2.4-6.4-7-7 4.6-.6 6.4-2.4 7-7Z" /><path d="M19 15c.3 1.8 1 2.5 2.8 2.8-1.8.3-2.5 1-2.8 2.8-.3-1.8-1-2.5-2.8-2.8 1.8-.3 2.5-1 2.8-2.8Z" /></svg>);
 
             const menuVenta = (v) => (
               <>
                 <div className="fixed inset-0 z-[5]" onClick={() => setMenuVentaHistorial(null)}></div>
-                <div className="absolute right-3 top-10 z-10 bg-white border border-[#e7e4ef] rounded-[10px] p-1 min-w-[180px] shadow-[0_12px_30px_-8px_rgba(20,10,50,0.25)] text-left">
-                  <button onClick={() => { setMenuVentaHistorial(null); setVentaDetalleHistorial(v.id); }} className="w-full flex items-center gap-2.5 px-2.5 py-2 rounded-[7px] text-[13px] font-medium text-stone-700 hover:bg-[#f6f5f9]"><i className="fa-regular fa-eye w-4 text-stone-500"></i> Ver detalle</button>
-                  <button onClick={() => { setMenuVentaHistorial(null); setReciboReimpresion(v); }} className="w-full flex items-center gap-2.5 px-2.5 py-2 rounded-[7px] text-[13px] font-medium text-stone-700 hover:bg-[#f6f5f9]"><i className="fa-solid fa-print w-4 text-stone-500"></i> Reimprimir boleta</button>
+                <div className={`absolute right-3 top-10 z-10 bg-white border ${borde} rounded-xl p-1 min-w-[190px] shadow-[0_12px_30px_-8px_rgba(20,10,50,0.25)] text-left`}>
+                  <button onClick={() => { setMenuVentaHistorial(null); setVentaDetalleHistorial(v.id); }} className="w-full flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-[13px] font-medium text-stone-700 hover:bg-[#f8f7fb]"><i className="fa-regular fa-eye w-4 text-stone-500"></i> Ver detalle</button>
+                  <button onClick={() => { setMenuVentaHistorial(null); setReciboReimpresion(v); }} className="w-full flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-[13px] font-medium text-stone-700 hover:bg-[#f8f7fb]"><i className="fa-solid fa-print w-4 text-stone-500"></i> Reimprimir boleta</button>
                   {!v.anulada && esAdmin && (
                     <>
-                      <div className="border-t border-[#e7e4ef] my-1"></div>
-                      <button onClick={() => { setMenuVentaHistorial(null); anularVentaHoy(v); }} className="w-full flex items-center gap-2.5 px-2.5 py-2 rounded-[7px] text-[13px] font-medium text-[#c0262d] hover:bg-[#f6f5f9]"><i className="fa-solid fa-ban w-4"></i> Anular venta</button>
+                      <div className={`border-t ${borde} my-1`}></div>
+                      <button onClick={() => { setMenuVentaHistorial(null); anularVentaHoy(v); }} className="w-full flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-[13px] font-medium text-[#c0262d] hover:bg-[#fdf1f1]"><i className="fa-solid fa-ban w-4"></i> Anular venta</button>
                     </>
                   )}
                 </div>
               </>
             );
 
+            // Detalle como ticket: total grande, sello de estado, línea punteada con muescas y el desglose.
             const detalleVenta = (v) => (
-              <div className="flex flex-col gap-4 min-h-full">
-                <div>
-                  <p className="text-[13px] font-semibold text-stone-500"><span className="font-mono text-stone-900">{v.nro_boleta}</span> · {etiquetaDiaHistorial(v.fecha_hora)}, {horaVenta(v)}</p>
-                  <p className={`text-[28px] font-bold tracking-tight leading-tight mt-1 tabular-nums ${v.anulada ? 'line-through text-stone-400' : 'text-stone-900'}`}>S/ {formatoSoles(Number(v.total_venta))}</p>
-                  <p className={`text-[13px] mt-1 ${v.anulada ? 'text-[#c0262d] font-medium' : 'text-stone-500'}`}>{subtextoEstado(v)}</p>
-                </div>
-                <div>
-                  {(v.ventas_detalle || []).length > 0 ? (
-                    (v.ventas_detalle || []).map((d, i) => (
-                      <div key={i} className="flex items-start justify-between gap-3 py-2.5 border-b border-[#f0eef5] text-[13.5px]">
-                        <div className="min-w-0">
-                          <p className="text-stone-800">{d.productos?.descripcion || d.descripcion || 'Producto'}</p>
-                          <p className="text-xs text-stone-500 mt-0.5">{d.cantidad} × S/ {formatoSoles(Number(d.precio_unitario))}</p>
+              <div className="flex flex-col gap-4">
+                <div className={`relative bg-white border ${borde} rounded-[18px] shadow-[0_18px_40px_-24px_rgba(20,10,50,0.35)]`}>
+                  <div className="px-[22px] pt-[22px] pb-[18px]">
+                    <p className="text-[13px] text-stone-500"><b className="font-mono font-semibold text-stone-900">{v.nro_boleta}</b> · {etiquetaDiaHistorial(v.fecha_hora)}, {horaVenta(v)}</p>
+                    <p className={`text-4xl font-bold tracking-[-0.04em] leading-[1.05] mt-1.5 tabular-nums ${v.anulada ? 'line-through text-stone-400' : 'text-stone-900'}`}>S/ {formatoSoles(Number(v.total_venta))}</p>
+                    <span className={`inline-flex items-center gap-1.5 mt-2.5 text-[12.5px] font-semibold px-3 py-1 rounded-full ${v.anulada ? 'bg-[#fdf1f1] text-[#c0262d]' : 'bg-[#eef8f2] text-[#0f7b4a]'}`}>
+                      <i className={`fa-solid ${v.anulada ? 'fa-ban' : 'fa-check'} text-[10px]`}></i>{subtextoEstado(v)}
+                    </span>
+                  </div>
+                  <div className="relative mx-3.5 border-t-2 border-dashed border-[#e3dff0]">
+                    <span className={`absolute -top-[11px] -left-[25px] w-5 h-5 rounded-full bg-[#f8f7fb] border ${borde} [clip-path:inset(0_0_0_50%)]`}></span>
+                    <span className={`absolute -top-[11px] -right-[25px] w-5 h-5 rounded-full bg-[#f8f7fb] border ${borde} [clip-path:inset(0_50%_0_0)]`}></span>
+                  </div>
+                  <div className="px-[22px] pt-[18px] pb-[22px]">
+                    {(v.ventas_detalle || []).length > 0 ? (
+                      (v.ventas_detalle || []).map((d, i) => (
+                        <div key={i} className="flex justify-between gap-3 py-2.5 text-[13.5px] border-b border-[#f3f0f8]">
+                          <span className="text-stone-800">{d.productos?.descripcion || d.descripcion || 'Producto'}<small className="block text-xs text-stone-500 mt-0.5">{d.cantidad} × S/ {formatoSoles(Number(d.precio_unitario))}</small></span>
+                          <span className="font-semibold tabular-nums shrink-0">S/ {formatoSoles(Number(d.subtotal))}</span>
                         </div>
-                        <span className="font-semibold text-stone-900 tabular-nums shrink-0">S/ {formatoSoles(Number(d.subtotal))}</span>
-                      </div>
-                    ))
-                  ) : (
-                    <p className="text-xs text-stone-500 py-2">Sin detalle de productos disponible.</p>
-                  )}
+                      ))
+                    ) : (
+                      <p className="text-xs text-stone-500 py-2">Sin detalle de productos disponible.</p>
+                    )}
+                    <dl className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-2.5 text-[13px] mt-3.5">
+                      <dt className="text-stone-500">Cliente</dt><dd className="text-right font-medium">{nombreClienteHistorial(v).replace('Cliente sin registrar', 'Sin registrar')}</dd>
+                      <dt className="text-stone-500">Medio de pago</dt><dd className="text-right font-medium">{etiquetaPago(v)}</dd>
+                      {Number(v.descuento_monto) > 0 && (<><dt className="text-stone-500">Descuento</dt><dd className="text-right font-medium">- S/ {formatoSoles(Number(v.descuento_monto))}</dd></>)}
+                      {esAdmin && (<><dt className="text-stone-500">Ganancia</dt><dd className="text-right font-medium text-[#0f7b4a]">S/ {formatoSoles(Number(v.utilidad_total || 0))}</dd></>)}
+                    </dl>
+                    <div className="flex items-baseline justify-between border-t border-stone-900 pt-3 mt-3.5 text-[13px] font-semibold">
+                      <span>Total</span><b className="text-xl tracking-tight tabular-nums">S/ {formatoSoles(Number(v.total_venta))}</b>
+                    </div>
+                  </div>
                 </div>
-                <dl className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-2.5 text-[13px]">
-                  <dt className="text-stone-500">Cliente</dt><dd className="text-right font-medium text-stone-900">{nombreClienteHistorial(v).replace('Cliente sin registrar', 'Sin registrar')}</dd>
-                  <dt className="text-stone-500">Medio de pago</dt><dd className="text-right font-medium text-stone-900">{etiquetaPago(v)}</dd>
-                  {Number(v.descuento_monto) > 0 && (<><dt className="text-stone-500">Descuento</dt><dd className="text-right font-medium text-stone-900">- S/ {formatoSoles(Number(v.descuento_monto))}</dd></>)}
-                  {esAdmin && (<><dt className="text-stone-500">Ganancia</dt><dd className="text-right font-medium text-[#0f7b4a]">S/ {formatoSoles(Number(v.utilidad_total || 0))}</dd></>)}
-                </dl>
-                <div className="flex items-baseline justify-between border-t border-stone-900 pt-2.5 text-[13px] font-semibold">
-                  <span>Total</span><b className="text-lg tracking-tight tabular-nums">S/ {formatoSoles(Number(v.total_venta))}</b>
-                </div>
-                <div className="flex gap-2 mt-auto pt-2">
-                  <button onClick={() => setReciboReimpresion(v)} className="flex-1 h-[38px] rounded-[9px] bg-[#6105dc] hover:bg-[#4d04b0] text-white text-[13px] font-semibold flex items-center justify-center gap-2 transition">
-                    <i className="fa-solid fa-print text-xs"></i> Reimprimir
-                  </button>
+                <div className={`grid gap-2.5 ${!v.anulada && esAdmin ? 'grid-cols-[1.3fr_1fr]' : 'grid-cols-1'}`}>
+                  <button onClick={() => setReciboReimpresion(v)} className="kz-pri h-12 text-sm font-semibold inline-flex items-center justify-center gap-2"><i className="fa-solid fa-print text-xs"></i><span>Reimprimir</span>{chispa}</button>
                   {!v.anulada && esAdmin && (
-                    <button onClick={() => anularVentaHoy(v)} className="flex-1 h-[38px] rounded-[9px] border border-[#e7e4ef] bg-white hover:bg-[#f6f5f9] text-[#c0262d] text-[13px] font-medium flex items-center justify-center gap-2 transition">
-                      <i className="fa-solid fa-ban text-xs"></i> Anular
-                    </button>
+                    <button onClick={() => anularVentaHoy(v)} className={`${botonFantasma} h-12 !text-[#c0262d]`}><i className="fa-solid fa-ban text-xs"></i> Anular</button>
                   )}
                 </div>
               </div>
             );
 
             const estadoCelda = (v) => (
-              <span className={`inline-flex items-center gap-1.5 text-[12.5px] ${v.anulada ? 'text-[#c0262d]' : 'text-stone-600'}`}>
-                <span className={`w-1.5 h-1.5 rounded-full ${v.anulada ? 'bg-[#c0262d]' : 'bg-stone-400'}`}></span>{textoEstado(v)}
+              <span className={`inline-flex items-center gap-1.5 text-[12.5px] font-medium ${v.anulada ? 'text-[#c0262d]' : 'text-stone-600'}`}>
+                <span className={`w-[7px] h-[7px] rounded-full ${v.anulada ? 'bg-[#c0262d]' : v.medio_pago === 'CREDITO' ? 'bg-[#d98a14]' : 'bg-[#16a34a]'}`}></span>{textoEstado(v)}
               </span>
             );
 
             return (
               <div className="fixed inset-0 bg-stone-900/30 backdrop-blur-sm flex items-center justify-center z-50 p-3 sm:p-4">
-                <div className="bg-white rounded-2xl max-w-xl lg:max-w-6xl w-full max-h-[94vh] h-[94vh] lg:h-[740px] flex flex-col shadow-2xl border border-black/5 overflow-hidden">
-                  <div className={`px-4 sm:px-5 py-3.5 shrink-0 flex flex-wrap lg:flex-nowrap items-center gap-x-3 gap-y-2 border-b ${borde}`}>
+                <div className="bg-[#f8f7fb] rounded-[18px] max-w-xl lg:max-w-6xl w-full max-h-[94vh] h-[94vh] lg:h-[780px] flex flex-col shadow-2xl border border-black/5 overflow-hidden">
+                  <div className={`bg-white px-4 sm:px-7 py-3.5 sm:py-[18px] shrink-0 flex flex-wrap lg:flex-nowrap items-center gap-x-3 gap-y-2.5 border-b ${borde}`}>
                     {ventaElegida && (
-                      <button aria-label="Volver a la lista" onClick={() => setVentaDetalleHistorial(null)} className="lg:hidden w-8 h-8 rounded-lg text-stone-500 hover:bg-[#f6f5f9] shrink-0"><i className="fa-solid fa-arrow-left text-sm"></i></button>
+                      <button aria-label="Volver a la lista" onClick={() => setVentaDetalleHistorial(null)} className="lg:hidden h-9 pl-2.5 pr-3.5 rounded-full border border-[#e9e6f0] bg-white text-[13px] font-medium text-stone-700 inline-flex items-center gap-1 shrink-0"><i className="fa-solid fa-chevron-left text-[10px]"></i> Historial</button>
                     )}
-                    <h3 className="text-[17px] font-bold tracking-tight text-stone-900 whitespace-nowrap">
-                      {ventaElegida ? <><span className="lg:hidden">Detalle de la venta</span><span className="hidden lg:inline">Historial de ventas</span></> : 'Historial de ventas'}
-                    </h3>
+                    <h3 className={`text-xl sm:text-[21px] font-bold tracking-tight text-stone-900 whitespace-nowrap ${ventaElegida ? 'hidden lg:block' : ''}`}>Historial de ventas</h3>
                     {esAdmin && (
-                      <div className={`${ventaElegida ? 'hidden lg:flex' : 'flex'} gap-1 order-last basis-full lg:order-none lg:basis-auto lg:ml-1`}>
-                        <button type="button" className="h-8 px-3 rounded-lg text-[13px] font-semibold text-stone-900 bg-[#f6f5f9]">Ventas</button>
-                        <button type="button" onClick={() => { setModalHistorial(false); abrirHistorialCierres(); }} className="h-8 px-3 rounded-lg text-[13px] font-medium text-stone-500 hover:text-stone-900">Cierres de caja</button>
+                      <div className={`${ventaElegida ? 'hidden lg:inline-flex' : 'inline-flex'} bg-[#ece9f4] rounded-full p-[3px] order-last basis-full lg:order-none lg:basis-auto lg:ml-2`}>
+                        <button type="button" className="flex-1 lg:flex-none h-8 px-[17px] rounded-full text-[13px] font-semibold text-stone-900 bg-white shadow-[0_1px_3px_rgba(20,10,50,0.14)]">Ventas</button>
+                        <button type="button" onClick={() => { setModalHistorial(false); abrirHistorialCierres(); }} className="flex-1 lg:flex-none h-8 px-[17px] rounded-full text-[13px] font-medium text-stone-500 hover:text-stone-900 whitespace-nowrap">Cierres de caja</button>
                       </div>
                     )}
                     <span className="flex-1"></span>
-                    <button aria-label="Cerrar" onClick={() => { setModalHistorial(false); setVentaDetalleHistorial(null); setMenuVentaHistorial(null); }} className="w-8 h-8 rounded-lg text-stone-500 hover:bg-[#f6f5f9] shrink-0"><i className="fa-solid fa-xmark"></i></button>
+                    <button aria-label="Cerrar" onClick={() => { setModalHistorial(false); setVentaDetalleHistorial(null); setMenuVentaHistorial(null); }} className="w-9 h-9 rounded-full text-stone-400 hover:text-stone-700 hover:bg-[#f1eef9] shrink-0"><i className="fa-solid fa-xmark"></i></button>
                   </div>
 
                   {ventaElegida && (
@@ -16165,97 +16198,82 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
                   )}
 
                   <div className={`${ventaElegida ? 'hidden lg:flex' : 'flex'} flex-1 min-h-0 flex-col`}>
-                    <div className={`px-4 sm:px-5 py-3 shrink-0 flex flex-wrap items-center gap-x-3 gap-y-2 border-b ${borde}`}>
-                      <div className="flex bg-[#f6f5f9] rounded-[9px] p-[3px] max-w-full overflow-x-auto hide-scrollbar">
+                    <div className="px-4 sm:px-7 pt-4 lg:pt-5 shrink-0 grid grid-cols-2 lg:grid-cols-[1.25fr_1fr_1fr] gap-3 lg:gap-3.5">
+                      <div className={`${tarjeta} col-span-2 lg:col-span-1`}>
+                        <span className="absolute -right-14 -top-[70px] w-[200px] h-[200px] rounded-full pointer-events-none" style={{ background: 'radial-gradient(closest-side, rgba(124,80,240,0.16), rgba(124,80,240,0))' }}></span>
+                        <span className="relative text-[13px] text-stone-500">Total vendido · {activas.length} venta{activas.length === 1 ? '' : 's'}</span>
+                        <b className="relative block text-[30px] lg:text-4xl font-bold tracking-[-0.04em] leading-[1.05] mt-1 mb-3 tabular-nums">S/ {formatoSoles(totalGeneral)}</b>
+                        <div className="relative flex h-2 rounded overflow-hidden bg-[#ece9f4] gap-0.5">
+                          {pctEfectivo > 0 && <i className="block h-full bg-gradient-to-r from-[#3fbf8a] to-[#0f7b4a]" style={{ width: `${pctEfectivo}%` }}></i>}
+                          {pctEfectivo < 100 && <i className="block h-full bg-gradient-to-r from-[#9b7bf5] to-[#6b44d8]" style={{ width: `${100 - pctEfectivo}%` }}></i>}
+                        </div>
+                        <div className="relative flex flex-wrap gap-x-4 gap-y-1 mt-2.5 text-[12.5px] text-stone-500">
+                          <span className="flex items-center gap-1.5"><i className="w-2 h-2 rounded-full bg-[#0f7b4a]"></i>Efectivo <b className="text-stone-900 font-semibold">S/ {formatoSoles(totalEfectivo)}</b></span>
+                          <span className="flex items-center gap-1.5"><i className="w-2 h-2 rounded-full bg-[#6b44d8]"></i>Otros medios <b className="text-stone-900 font-semibold">S/ {formatoSoles(totalOtros)}</b></span>
+                        </div>
+                      </div>
+                      <div className={tarjeta}>
+                        <span className="text-[13px] text-stone-500">Ticket promedio</span>
+                        <b className="block text-[22px] lg:text-2xl font-bold tracking-tight mt-1 tabular-nums">S/ {formatoSoles(ticketPromedio)}</b>
+                        {esAdmin && <span className="inline-flex items-center gap-1.5 mt-2 text-[12px] font-semibold text-[#0f7b4a] bg-[#eef8f2] rounded-full px-2.5 py-[3px]"><i className="fa-solid fa-check text-[9px]"></i>Ganancia S/ {formatoSoles(totalGanancia)}</span>}
+                      </div>
+                      <div className={tarjeta}>
+                        <span className="text-[13px] text-stone-500">Anuladas</span>
+                        <b className="block text-[22px] lg:text-2xl font-bold tracking-tight mt-1 tabular-nums">{anuladas.length}</b>
+                        <span className="block text-xs text-stone-500 mt-2">{anuladas.length > 0 ? `S/ ${formatoSoles(totalAnuladas)} sin contar` : 'Ninguna en este período'}</span>
+                      </div>
+                    </div>
+
+                    <div className="px-4 sm:px-7 py-3.5 shrink-0 flex flex-wrap items-center gap-x-3 gap-y-2.5">
+                      <div className="flex bg-[#ece9f4] rounded-full p-[3px] max-w-full overflow-x-auto hide-scrollbar">
                         {ATAJOS.map(([id, texto]) => (
-                          <button
-                            key={id}
-                            type="button"
-                            onClick={() => elegirAtajoHistorial(id)}
-                            className={`h-7 px-3 rounded-[7px] text-[12.5px] whitespace-nowrap transition ${atajoHistorial === id ? 'bg-white text-stone-900 font-semibold shadow-[0_0_0_1px_#e7e4ef]' : 'text-stone-500 font-medium hover:text-stone-900'}`}
-                          >
-                            {texto}
-                          </button>
+                          <button key={id} type="button" onClick={() => elegirAtajoHistorial(id)} className={`h-8 px-[15px] rounded-full text-[13px] whitespace-nowrap transition ${atajoHistorial === id ? 'bg-white text-stone-900 font-semibold shadow-[0_1px_3px_rgba(20,10,50,0.14)]' : 'text-stone-500 font-medium hover:text-stone-900'}`}>{texto}</button>
                         ))}
                       </div>
-                      <span className="text-[12.5px] text-stone-500">{rangoTexto}</span>
+                      <span className="text-[13px] text-stone-500">{rangoTexto}</span>
                       <span className="flex-1 hidden lg:block"></span>
                       <div className="flex items-center gap-2 w-full lg:w-auto">
-                        <label className={`flex items-center gap-2 h-[34px] flex-1 lg:flex-none lg:w-[260px] px-3 rounded-[9px] border ${borde} bg-white text-stone-400 focus-within:border-[#6105dc]/50`}>
+                        <label className={`flex items-center gap-2.5 h-10 flex-1 lg:flex-none lg:w-[280px] px-4 rounded-full border ${borde} bg-white text-stone-400 focus-within:border-[#6105dc] focus-within:ring-[3px] focus-within:ring-[#6105dc]/10 transition`}>
                           <i className="fa-solid fa-magnifying-glass text-xs"></i>
-                          <input
-                            type="text"
-                            placeholder="Buscar boleta o cliente"
-                            value={busquedaBoletaHistorial}
-                            onChange={(e) => { setBusquedaBoletaHistorial(e.target.value); setLimiteHistorial(40); }}
-                            className="flex-1 min-w-0 bg-transparent text-[13px] text-stone-900 outline-none"
-                          />
+                          <input type="text" placeholder="Buscar boleta o cliente" value={busquedaBoletaHistorial} onChange={(e) => { setBusquedaBoletaHistorial(e.target.value); setLimiteHistorial(40); }} className="flex-1 min-w-0 bg-transparent text-[13.5px] text-stone-900 outline-none placeholder:text-stone-400" />
                         </label>
                         {esAdmin && ventasDelDia.length > 0 && (
-                          <button onClick={exportarVentasExcel} className={`${botonBase} ${borde} text-stone-700`} title="Descargar en Excel" aria-label="Descargar en Excel">
-                            <i className="fa-solid fa-download text-xs"></i><span className="hidden sm:inline">Excel</span>
-                          </button>
+                          <button onClick={exportarVentasExcel} className={botonFantasma} title="Descargar en Excel" aria-label="Descargar en Excel"><i className="fa-solid fa-download text-xs"></i><span className="hidden sm:inline">Excel</span></button>
                         )}
                       </div>
                       {atajoHistorial === 'fechas' && (
                         <div className="flex flex-wrap items-center gap-2 w-full">
-                          <input type="date" aria-label="Desde" value={fechaInicioHistorial} onChange={(e) => setFechaInicioHistorial(e.target.value)} className={`h-[34px] px-2.5 rounded-[9px] border ${borde} bg-white text-[13px] text-stone-900`} />
+                          <input type="date" aria-label="Desde" value={fechaInicioHistorial} onChange={(e) => setFechaInicioHistorial(e.target.value)} className={`h-10 px-3.5 rounded-full border ${borde} bg-white text-[13px] text-stone-900`} />
                           <span className="text-xs text-stone-400">a</span>
-                          <input type="date" aria-label="Hasta" value={fechaFinHistorial} onChange={(e) => setFechaFinHistorial(e.target.value)} className={`h-[34px] px-2.5 rounded-[9px] border ${borde} bg-white text-[13px] text-stone-900`} />
-                          <button onClick={() => cargarHistorialPorRango(fechaInicioHistorial, fechaFinHistorial)} className="h-[34px] px-4 rounded-[9px] bg-[#6105dc] hover:bg-[#4d04b0] text-white text-[13px] font-semibold">Buscar</button>
+                          <input type="date" aria-label="Hasta" value={fechaFinHistorial} onChange={(e) => setFechaFinHistorial(e.target.value)} className={`h-10 px-3.5 rounded-full border ${borde} bg-white text-[13px] text-stone-900`} />
+                          <button onClick={() => cargarHistorialPorRango(fechaInicioHistorial, fechaFinHistorial)} className="kz-pri h-10 px-5 text-[13px] font-semibold">Buscar</button>
                         </div>
                       )}
                     </div>
 
-                    <div className={`grid ${esAdmin ? 'grid-cols-3 lg:grid-cols-4' : 'grid-cols-2 lg:grid-cols-3'} shrink-0 border-b ${borde}`}>
-                      <div className={`col-span-full lg:col-span-1 px-4 sm:px-5 py-3 border-b lg:border-b-0 ${borde}`}>
-                        <span className="text-xs font-medium text-stone-500 block">Total vendido · {activas.length} venta{activas.length === 1 ? '' : 's'}</span>
-                        <span className="text-2xl lg:text-[22px] font-bold tracking-tight text-stone-900 tabular-nums whitespace-nowrap">S/ {formatoSoles(totalGeneral)}</span>
-                      </div>
-                      <div className={`px-4 sm:px-5 py-3 lg:border-l ${borde}`}>
-                        <span className="text-xs font-medium text-stone-500 block">Efectivo</span>
-                        <span className="text-[15px] lg:text-[22px] font-bold tracking-tight text-stone-900 tabular-nums whitespace-nowrap">S/ {formatoSoles(totalEfectivo)}</span>
-                      </div>
-                      <div className={`px-3 sm:px-5 py-3 border-l ${borde}`}>
-                        <span className="text-xs font-medium text-stone-500 block">Otros medios</span>
-                        <span className="text-[15px] lg:text-[22px] font-bold tracking-tight text-stone-900 tabular-nums whitespace-nowrap">S/ {formatoSoles(totalOtros)}</span>
-                      </div>
-                      {esAdmin && (
-                        <div className={`px-3 sm:px-5 py-3 border-l ${borde}`}>
-                          <span className="text-xs font-medium text-stone-500 block">Ganancia</span>
-                          <span className="text-[15px] lg:text-[22px] font-bold tracking-tight text-[#0f7b4a] tabular-nums whitespace-nowrap">S/ {formatoSoles(totalGanancia)}</span>
-                        </div>
-                      )}
-                    </div>
-
-                    <div className="flex-1 min-h-0 grid grid-rows-[minmax(0,1fr)] lg:grid-cols-[1fr_360px]">
-                      <div className={`min-h-0 overflow-y-auto hide-scrollbar lg:border-r ${borde}`}>
+                    <div className="flex-1 min-h-0 px-4 sm:px-7 pb-5 grid grid-rows-[minmax(0,1fr)] lg:grid-cols-[minmax(0,1fr)_330px] gap-4">
+                      <div className="min-h-0 overflow-y-auto hide-scrollbar lg:bg-white lg:border lg:border-[#e9e6f0] lg:rounded-[18px]">
                         {cargandoHistorial ? (
                           <p className="text-sm text-center py-10 text-stone-500">Cargando ventas...</p>
                         ) : filtradas.length === 0 ? (
                           <p className="text-sm text-center py-10 text-stone-500">No hay ventas en ese período.</p>
                         ) : (
                           <>
-                            {/* Celular: lista simple, una venta por fila */}
+                            {/* Celular: una tarjeta por venta */}
                             <div className="lg:hidden">
                               {grupos.map((g) => (
                                 <div key={g.etiqueta}>
-                                  <p className={`flex justify-between px-4 py-1.5 bg-[#f6f5f9] border-b ${borde} text-[11.5px] font-semibold text-stone-500 sticky top-0 z-[1]`}>
-                                    <span>{g.etiqueta}</span>
-                                    <span className="tabular-nums">S/ {formatoSoles(g.ventas.filter(v => !v.anulada).reduce((a, c) => a + Number(c.total_venta), 0))}</span>
-                                  </p>
+                                  <p className="flex justify-between px-1.5 pt-3 pb-1.5 text-xs font-semibold text-stone-500"><span>{g.etiqueta}</span><span className="tabular-nums">S/ {formatoSoles(g.ventas.filter(v => !v.anulada).reduce((a, c) => a + Number(c.total_venta), 0))}</span></p>
                                   {g.ventas.map((v) => (
-                                    <div key={v.id} className="relative">
-                                      <div role="button" tabIndex={0} onClick={() => setVentaDetalleHistorial(v.id)} onKeyDown={(e) => { if (e.key === 'Enter') setVentaDetalleHistorial(v.id); }} className="grid grid-cols-[1fr_auto_28px] items-center gap-2.5 px-4 py-3 border-b border-[#f0eef5] cursor-pointer active:bg-[#faf8fe]">
+                                    <div key={v.id} className="relative mb-2">
+                                      <div role="button" tabIndex={0} onClick={() => setVentaDetalleHistorial(v.id)} onKeyDown={(e) => { if (e.key === 'Enter') setVentaDetalleHistorial(v.id); }} className={`grid grid-cols-[36px_1fr_auto_28px] items-center gap-3 px-2.5 py-3 bg-white border ${borde} rounded-[14px] cursor-pointer active:bg-[#faf8fe]`}>
+                                        {circuloPago(v, 'w-9 h-9')}
                                         <div className="min-w-0">
                                           <p className={`font-mono text-[13.5px] font-semibold ${v.anulada ? 'line-through text-stone-400' : 'text-stone-900'}`}>{v.nro_boleta}</p>
-                                          <p className="text-xs text-stone-500 mt-0.5 truncate">
-                                            {horaVenta(v)} · {etiquetaPago(v)}{clienteTexto(v) !== '—' ? ` · ${clienteTexto(v)}` : ''}
-                                            {v.anulada && <span className="text-[#c0262d] font-semibold"> · Anulada</span>}
-                                          </p>
+                                          <p className="text-xs text-stone-500 mt-0.5 truncate">{horaVenta(v)} · {etiquetaPago(v)}{clienteTexto(v) !== '—' ? ` · ${clienteTexto(v)}` : ''}{v.anulada && <span className="text-[#c0262d] font-semibold"> · Anulada</span>}</p>
                                         </div>
-                                        <span className={`text-sm font-semibold tabular-nums ${v.anulada ? 'line-through text-stone-400' : 'text-stone-900'}`}>S/ {formatoSoles(Number(v.total_venta))}</span>
-                                        <button type="button" aria-label="Más acciones" onClick={(e) => { e.stopPropagation(); setMenuVentaHistorial(menuVentaHistorial === v.id ? null : v.id); }} className="w-7 h-7 rounded-md text-stone-400 hover:bg-[#f6f5f9] flex items-center justify-center"><i className="fa-solid fa-ellipsis-vertical"></i></button>
+                                        <span className={`text-[15px] font-bold tracking-tight tabular-nums ${v.anulada ? 'line-through text-stone-400' : 'text-stone-900'}`}>S/ {formatoSoles(Number(v.total_venta))}</span>
+                                        <button type="button" aria-label="Más acciones" onClick={(e) => { e.stopPropagation(); setMenuVentaHistorial(menuVentaHistorial === v.id ? null : v.id); }} className="w-7 h-7 rounded-full text-stone-400 hover:bg-[#f1eef9] grid place-items-center"><i className="fa-solid fa-ellipsis-vertical"></i></button>
                                       </div>
                                       {menuVentaHistorial === v.id && menuVenta(v)}
                                     </div>
@@ -16264,34 +16282,34 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
                               ))}
                             </div>
 
-                            {/* PC: tabla con columnas alineadas */}
+                            {/* PC: tabla */}
                             <table className="hidden lg:table w-full border-collapse">
                               <thead>
-                                <tr className="text-left text-[11.5px] font-semibold text-stone-500">
-                                  {['Boleta', 'Hora', 'Cliente', 'Pago', 'Estado'].map((t) => <th key={t} className={`sticky top-0 z-[2] bg-white px-5 py-2.5 border-b ${borde}`}>{t}</th>)}
-                                  <th className={`sticky top-0 z-[2] bg-white px-5 py-2.5 border-b ${borde} text-right`}>Total</th>
+                                <tr className="text-left text-xs font-medium text-stone-500">
+                                  {['Boleta', 'Hora', 'Cliente', 'Pago', 'Estado'].map((t) => <th key={t} className={`sticky top-0 z-[2] bg-white px-3 py-3.5 border-b ${borde} whitespace-nowrap font-medium`}>{t}</th>)}
+                                  <th className={`sticky top-0 z-[2] bg-white px-3 py-3.5 border-b ${borde} text-right font-medium`}>Total</th>
                                   <th className={`sticky top-0 z-[2] bg-white border-b ${borde} w-11`}></th>
                                 </tr>
                               </thead>
                               <tbody>
                                 {grupos.map((g) => (
                                   <React.Fragment key={g.etiqueta}>
-                                    <tr className="bg-[#f6f5f9] text-xs font-semibold text-stone-500">
-                                      <td colSpan={5} className={`px-5 py-1.5 border-b ${borde}`}>{g.etiqueta}</td>
-                                      <td colSpan={2} className={`px-5 py-1.5 border-b ${borde} text-right tabular-nums`}>{g.ventas.length} venta{g.ventas.length === 1 ? '' : 's'} · S/ {formatoSoles(g.ventas.filter(v => !v.anulada).reduce((a, c) => a + Number(c.total_venta), 0))}</td>
+                                    <tr className="bg-[#faf9fc] text-xs font-semibold text-stone-500">
+                                      <td colSpan={5} className="px-3 py-2.5">{g.etiqueta}</td>
+                                      <td colSpan={2} className="px-3 py-2.5 text-right tabular-nums">{g.ventas.length} venta{g.ventas.length === 1 ? '' : 's'} · S/ {formatoSoles(g.ventas.filter(v => !v.anulada).reduce((a, c) => a + Number(c.total_venta), 0))}</td>
                                     </tr>
                                     {g.ventas.map((v) => {
                                       const elegida = ventaPanel && ventaPanel.id === v.id;
                                       return (
-                                        <tr key={v.id} onClick={() => setVentaDetalleHistorial(v.id)} className={`cursor-pointer text-[13.5px] text-stone-700 ${elegida ? 'bg-[#f3effd] shadow-[inset_3px_0_0_#6105dc]' : 'hover:bg-[#fbfafd]'}`}>
-                                          <td className={`px-5 py-2.5 border-b border-[#f0eef5] font-mono text-[13px] ${v.anulada ? 'line-through text-stone-400' : 'text-stone-900'}`}>{v.nro_boleta}</td>
-                                          <td className="px-5 py-2.5 border-b border-[#f0eef5] text-stone-500 whitespace-nowrap">{horaVenta(v)}</td>
-                                          <td className="px-5 py-2.5 border-b border-[#f0eef5] text-stone-500 max-w-[160px] truncate">{clienteTexto(v)}</td>
-                                          <td className="px-5 py-2.5 border-b border-[#f0eef5]">{etiquetaPago(v)}</td>
-                                          <td className="px-5 py-2.5 border-b border-[#f0eef5] whitespace-nowrap">{estadoCelda(v)}</td>
-                                          <td className={`px-5 py-2.5 border-b border-[#f0eef5] text-right font-semibold tabular-nums whitespace-nowrap ${v.anulada ? 'line-through text-stone-400' : 'text-stone-900'}`}>S/ {formatoSoles(Number(v.total_venta))}</td>
-                                          <td className="px-3 py-1 border-b border-[#f0eef5] relative text-right">
-                                            <button type="button" aria-label="Más acciones" onClick={(e) => { e.stopPropagation(); setMenuVentaHistorial(menuVentaHistorial === v.id ? null : v.id); }} className="w-7 h-7 rounded-md text-stone-400 hover:bg-[#ece8f5] flex items-center justify-center"><i className="fa-solid fa-ellipsis-vertical"></i></button>
+                                        <tr key={v.id} onClick={() => setVentaDetalleHistorial(v.id)} className={`cursor-pointer text-[13.5px] text-stone-700 transition ${elegida ? 'bg-[#f4f0fd] shadow-[inset_3px_0_0_#6105dc]' : 'hover:bg-[#fbfafd]'}`}>
+                                          <td className="px-3 py-3 border-b border-[#f3f0f8]"><span className={`flex items-center gap-2.5 font-mono text-[13px] font-medium ${v.anulada ? 'line-through text-stone-400' : 'text-stone-900'}`}>{circuloPago(v)}{v.nro_boleta}</span></td>
+                                          <td className="px-3 py-3 border-b border-[#f3f0f8] text-stone-500 whitespace-nowrap">{horaVenta(v)}</td>
+                                          <td className="px-3 py-3 border-b border-[#f3f0f8] text-stone-500 max-w-[140px] truncate">{clienteTexto(v)}</td>
+                                          <td className="px-3 py-3 border-b border-[#f3f0f8]">{etiquetaPago(v)}</td>
+                                          <td className="px-3 py-3 border-b border-[#f3f0f8] whitespace-nowrap">{estadoCelda(v)}</td>
+                                          <td className={`px-3 py-3 border-b border-[#f3f0f8] text-right font-semibold tabular-nums whitespace-nowrap ${v.anulada ? 'line-through text-stone-400' : 'text-stone-900'}`}>S/ {formatoSoles(Number(v.total_venta))}</td>
+                                          <td className="px-2 py-1 border-b border-[#f3f0f8] relative text-right">
+                                            <button type="button" aria-label="Más acciones" onClick={(e) => { e.stopPropagation(); setMenuVentaHistorial(menuVentaHistorial === v.id ? null : v.id); }} className="w-[30px] h-[30px] rounded-full text-stone-400 hover:bg-[#ece8f5] hover:text-[#6105dc] grid place-items-center"><i className="fa-solid fa-ellipsis-vertical"></i></button>
                                             {menuVentaHistorial === v.id && menuVenta(v)}
                                           </td>
                                         </tr>
@@ -16303,15 +16321,15 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
                             </table>
 
                             {filtradas.length > visibles.length && (
-                              <div className={`flex justify-center py-3 border-t ${borde}`}>
-                                <button onClick={() => setLimiteHistorial((n) => n + 40)} className={`${botonBase} ${borde} text-stone-700`}>Ver más ventas</button>
+                              <div className="flex justify-center py-3">
+                                <button onClick={() => setLimiteHistorial((n) => n + 40)} className={botonFantasma}>Ver más ventas</button>
                               </div>
                             )}
                           </>
                         )}
                       </div>
 
-                      <div className="hidden lg:block min-h-0 overflow-y-auto hide-scrollbar p-5">
+                      <div className="hidden lg:block min-h-0 overflow-y-auto hide-scrollbar">
                         {ventaPanel ? detalleVenta(ventaPanel) : <p className="text-sm text-stone-500 text-center py-10">Elige una venta para ver su detalle.</p>}
                       </div>
                     </div>
