@@ -1289,6 +1289,7 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
       const [clientesLista, setClientesLista] = useState([]);
       const [cargandoClientes, setCargandoClientes] = useState(false);
       const [busquedaClientes, setBusquedaClientes] = useState('');
+      const [filtroClientes, setFiltroClientes] = useState('todos'); // 'todos' | 'deuda' | 'aldia'
       const [clienteEditando, setClienteEditando] = useState(null);
       const [formEditarCliente, setFormEditarCliente] = useState(null);
       const [guardandoEdicionCliente, setGuardandoEdicionCliente] = useState(false);
@@ -5226,6 +5227,7 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
       const abrirGestionClientes = async () => {
         setModalGestionClientes(true);
         setClienteEditando(null);
+        setFiltroClientes('todos');
         // Modo Demo Local: no hay nada que traer del servidor -- se deja la
         // lista tal cual está en memoria (los clientes creados en la demo
         // ya viven ahí) en vez de reemplazarla por un resultado vacío.
@@ -5248,10 +5250,20 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
 
       const clientesFiltradosGestion = () => {
         const t = busquedaClientes.trim().toLowerCase();
-        if (!t) return clientesLista;
-        return clientesLista.filter(
-          (c) => (c.nombre_completo || '').toLowerCase().includes(t) || (c.dni || '').includes(t)
-        );
+        return clientesLista.filter((c) => {
+          const debe = (Number(c.saldo_actual) || 0) > 0;
+          if (filtroClientes === 'deuda' && !debe) return false;
+          if (filtroClientes === 'aldia' && debe) return false;
+          if (!t) return true;
+          return (c.nombre_completo || '').toLowerCase().includes(t) || (c.dni || '').includes(t);
+        });
+      };
+
+      // Iniciales para el avatar de cada cliente ("Rosa Chávez Mendoza" -> "RC").
+      const inicialesCliente = (nombre) => {
+        const partes = (nombre || '').trim().split(/\s+/).filter(Boolean);
+        if (partes.length === 0) return '?';
+        return (partes[0][0] + (partes.length > 1 ? partes[1][0] : '')).toUpperCase();
       };
 
       // Abre el selector de cliente del POS: muestra la lista completa para
@@ -15273,100 +15285,132 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
           )}
 
           {/* Modal: Gestión de Clientes (listar / editar) */}
-          {modalGestionClientes && (
+          {modalGestionClientes && (() => {
+            const totalPorCobrar = clientesLista.reduce((acc, c) => acc + Math.max(0, Number(c.saldo_actual) || 0), 0);
+            const conDeuda = clientesLista.filter((c) => (Number(c.saldo_actual) || 0) > 0).length;
+            const filtrados = clientesFiltradosGestion();
+            return (
             <div className="fixed inset-0 bg-stone-900/30 backdrop-blur-sm flex items-center justify-center z-50 p-4">
               <div className="bg-gradient-to-br from-[#f4effc] via-[#f9f8fb] to-[#f5f4f8] border border-white/80 rounded-[28px] max-w-lg w-full p-5 shadow-2xl space-y-3 max-h-[90vh] flex flex-col">
-                <div className="flex justify-between items-center shrink-0">
-                  <h3 className="text-lg font-bold text-stone-900 flex items-center gap-2">
-                    <span className="w-8 h-8 rounded-xl bg-[#ece0fd] text-[#6105dc] flex items-center justify-center text-sm"><i className="fa-solid fa-users"></i></span> Clientes
-                  </h3>
-                  <button aria-label="Cerrar" onClick={() => { setModalGestionClientes(false); setClienteEditando(null); }} className="w-8 h-8 rounded-full bg-white/70 hover:bg-white text-stone-500 hover:text-stone-900 shadow-sm"><i className="fa-solid fa-xmark"></i></button>
+                <div className="flex justify-between items-start shrink-0">
+                  <div className="min-w-0">
+                    <h3 className="text-lg font-bold text-stone-900 flex items-center gap-2">
+                      <span className="w-7 h-7 rounded-[9px] bg-[#f4eefe] flex items-center justify-center shrink-0"><i className={`fa-solid ${clienteEditando ? 'fa-user' : 'fa-users'} text-sm text-[#6105dc]`}></i></span>
+                      <span className="truncate">{clienteEditando ? clienteEditando.nombre_completo : 'Clientes'}</span>
+                    </h3>
+                    {clienteEditando ? (
+                      <p className="text-xs text-stone-600 mt-0.5">
+                        DNI {clienteEditando.dni} · <button onClick={() => setClienteEditando(null)} className="underline">Volver a la lista</button>
+                      </p>
+                    ) : (
+                      <p className="text-xs text-stone-600 mt-0.5">
+                        {clientesLista.length} registrado{clientesLista.length === 1 ? '' : 's'} · {conDeuda} con deuda · Por cobrar <span className="font-semibold text-rose-600">S/ {formatoSoles(totalPorCobrar)}</span>
+                      </p>
+                    )}
+                  </div>
+                  <button aria-label="Cerrar" onClick={() => { setModalGestionClientes(false); setClienteEditando(null); }} className="text-stone-600 hover:text-stone-900 shrink-0"><i className="fa-solid fa-xmark"></i></button>
                 </div>
 
-                {!clienteEditando && (
-                  <button
-                    type="button"
-                    onClick={() => setModalNuevoCliente(true)}
-                    className="shrink-0 w-full py-2.5 bg-[#6105dc] hover:bg-[#4d04b0] text-white text-xs font-bold rounded-full shadow-sm flex items-center justify-center gap-2"
-                  >
-                    <i className="fa-solid fa-user-plus"></i> Agregar Cliente
-                  </button>
-                )}
-
                 {clienteEditando ? (
-                  <div className="p-4 bg-white/60 backdrop-blur-xl border border-white/80 rounded-3xl shadow-[0_10px_40px_-14px_rgba(97,5,220,0.18)] space-y-2.5">
-                    <div className="flex justify-between items-center">
-                      <span className="text-xs font-bold text-stone-900">DNI: {clienteEditando.dni}</span>
-                      <button onClick={() => setClienteEditando(null)} className="text-xs text-stone-600 underline">Volver a la lista</button>
-                    </div>
+                  <div className="flex-1 overflow-y-auto space-y-3 pr-1">
                     <div>
-                      <label className="text-xs text-stone-600 block mb-1">Nombre completo:</label>
+                      <label className="text-xs font-semibold text-stone-600 block mb-1">Nombre completo</label>
                       <input
                         type="text"
                         value={formEditarCliente.nombre_completo}
                         onChange={(e) => setFormEditarCliente({ ...formEditarCliente, nombre_completo: e.target.value })}
-                        className="w-full bg-white border border-stone-200/70 shadow-sm rounded-full px-3.5 py-2 text-xs text-stone-900"
+                        className="w-full bg-white border border-stone-200/70 shadow-sm rounded-xl px-3 py-1.5 text-sm text-stone-900"
                       />
                     </div>
                     <div className="grid grid-cols-2 gap-2">
                       <div>
-                        <label className="text-xs text-stone-600 block mb-1">Teléfono:</label>
+                        <label className="text-xs font-semibold text-stone-600 block mb-1">Teléfono</label>
                         <input
                           type="text"
                           value={formEditarCliente.telefono}
                           onChange={(e) => setFormEditarCliente({ ...formEditarCliente, telefono: e.target.value })}
-                          className="w-full bg-white border border-stone-200/70 shadow-sm rounded-full px-3.5 py-2 text-xs text-stone-900"
+                          className="w-full bg-white border border-stone-200/70 shadow-sm rounded-xl px-3 py-1.5 text-sm text-stone-900"
                         />
                       </div>
                       <div>
-                        <label className="text-xs text-stone-600 block mb-1">Correo:</label>
+                        <label className="text-xs font-semibold text-stone-600 block mb-1">Correo (opcional)</label>
                         <input
                           type="text"
                           value={formEditarCliente.correo}
                           onChange={(e) => setFormEditarCliente({ ...formEditarCliente, correo: e.target.value })}
-                          className="w-full bg-white border border-stone-200/70 shadow-sm rounded-full px-3.5 py-2 text-xs text-stone-900"
+                          className="w-full bg-white border border-stone-200/70 shadow-sm rounded-xl px-3 py-1.5 text-sm text-stone-900"
                         />
                       </div>
                     </div>
-                    <div>
-                      <label className="text-xs text-stone-600 block mb-1">Límite de crédito (S/):</label>
-                      <input
-                        type="number"
-                        step="10"
-                        value={formEditarCliente.limite_credito}
-                        onChange={(e) => setFormEditarCliente({ ...formEditarCliente, limite_credito: e.target.value })}
-                        className="w-full bg-white border border-stone-200/70 shadow-sm rounded-full px-3.5 py-2 text-sm font-bold text-orange-600"
-                      />
-                      <p className="text-xs text-stone-500 mt-1">Deuda actual: S/ {Number(clienteEditando.saldo_actual || 0).toFixed(2)} (no editable aquí)</p>
+                    <div className="grid grid-cols-2 gap-2">
+                      <div>
+                        <label className="text-xs font-semibold text-stone-600 block mb-1">Límite de crédito (S/)</label>
+                        <input
+                          type="number"
+                          step="10"
+                          value={formEditarCliente.limite_credito}
+                          onChange={(e) => setFormEditarCliente({ ...formEditarCliente, limite_credito: e.target.value })}
+                          className="w-full bg-white border border-stone-200/70 shadow-sm rounded-xl px-3 py-1.5 text-sm font-bold text-stone-900"
+                        />
+                      </div>
+                      <div className={`flex flex-col justify-center rounded-lg px-3 py-1.5 ${Number(clienteEditando.saldo_actual) > 0 ? 'bg-rose-50' : 'bg-stone-100'}`}>
+                        <span className={`text-[11px] ${Number(clienteEditando.saldo_actual) > 0 ? 'text-rose-700' : 'text-stone-500'}`}>Deuda actual</span>
+                        <span className={`text-sm font-extrabold ${Number(clienteEditando.saldo_actual) > 0 ? 'text-rose-600' : 'text-stone-900'}`}>S/ {formatoSoles(Number(clienteEditando.saldo_actual || 0))}</span>
+                      </div>
                     </div>
-                    <div>
-                      <label className="text-xs text-stone-600 block mb-1">Días de Crédito (plazo para pagar):</label>
-                      <input
-                        type="number"
-                        step="1"
-                        value={formEditarCliente.dias_credito}
-                        onChange={(e) => setFormEditarCliente({ ...formEditarCliente, dias_credito: e.target.value })}
-                        className="w-full bg-white border border-stone-200/70 shadow-sm rounded-full px-3.5 py-2 text-sm font-bold text-stone-900"
-                      />
+                    <div className="grid grid-cols-2 gap-2">
+                      <div>
+                        <label className="text-xs font-semibold text-stone-600 block mb-1">Días de crédito</label>
+                        <input
+                          type="number"
+                          step="1"
+                          value={formEditarCliente.dias_credito}
+                          onChange={(e) => setFormEditarCliente({ ...formEditarCliente, dias_credito: e.target.value })}
+                          className="w-full bg-white border border-stone-200/70 shadow-sm rounded-xl px-3 py-1.5 text-sm font-bold text-stone-900"
+                        />
+                      </div>
+                      <div className="flex flex-col justify-center rounded-lg px-3 py-1.5 bg-stone-100">
+                        <span className="text-[11px] text-stone-500">Disponible para fiar</span>
+                        <span className="text-sm font-extrabold text-stone-900">S/ {formatoSoles(Math.max(0, (Number(formEditarCliente.limite_credito) || 0) - (Number(clienteEditando.saldo_actual) || 0)))}</span>
+                      </div>
                     </div>
-                    <button
-                      onClick={guardarEdicionCliente}
-                      disabled={guardandoEdicionCliente}
-                      className="w-full py-2.5 bg-[#6105dc] hover:bg-[#4d04b0] disabled:opacity-60 text-white font-bold text-xs rounded-full shadow-sm"
-                    >
-                      {guardandoEdicionCliente ? 'Guardando...' : 'Guardar Cambios'}
-                    </button>
+                    <p className="text-[11px] text-stone-500">La deuda actual no se edita aquí: cambia con las ventas fiadas y los pagos.</p>
+                    <div className="flex gap-2 pt-1">
+                      <button
+                        onClick={() => setClienteEditando(null)}
+                        className="px-5 py-2.5 bg-white hover:bg-stone-50 text-stone-600 font-bold text-sm rounded-full shadow-sm"
+                      >
+                        Cancelar
+                      </button>
+                      <button
+                        onClick={guardarEdicionCliente}
+                        disabled={guardandoEdicionCliente}
+                        className="flex-1 py-2.5 bg-[#6105dc] hover:bg-[#4d04b0] disabled:opacity-60 text-white font-bold text-sm rounded-full shadow"
+                      >
+                        {guardandoEdicionCliente ? 'Guardando...' : 'Guardar cambios'}
+                      </button>
+                    </div>
                   </div>
                 ) : (
                   <>
+                    <button
+                      type="button"
+                      onClick={() => setModalNuevoCliente(true)}
+                      className="w-full py-2.5 bg-[#6105dc] hover:bg-[#4d04b0] text-white text-sm font-bold rounded-full shadow flex items-center justify-center gap-1.5 shrink-0"
+                    >
+                      <i className="fa-solid fa-user-plus"></i> Nuevo Cliente
+                    </button>
                     <div className="flex gap-2 shrink-0">
-                      <input
-                        type="text"
-                        placeholder="Buscar por nombre o DNI..."
-                        value={busquedaClientes}
-                        onChange={(e) => setBusquedaClientes(e.target.value)}
-                        className="flex-1 min-w-0 bg-white border border-stone-200/70 shadow-sm rounded-full px-4 py-2 text-xs text-stone-900 focus:outline-none focus:ring-2 focus:ring-[#d6bdfa]"
-                      />
+                      <div className="relative flex-1 min-w-0">
+                        <i className="fa-solid fa-magnifying-glass absolute left-3.5 top-1/2 -translate-y-1/2 text-xs text-stone-400"></i>
+                        <input
+                          type="text"
+                          placeholder="Buscar por nombre o DNI..."
+                          value={busquedaClientes}
+                          onChange={(e) => setBusquedaClientes(e.target.value)}
+                          className="w-full bg-white border border-stone-200/70 shadow-sm rounded-full pl-9 pr-4 py-2 text-xs text-stone-900 focus:outline-none focus:ring-2 focus:ring-[#d6bdfa]"
+                        />
+                      </div>
                       {esAdmin && clientesLista.length > 0 && (
                         <button
                           onClick={exportarClientesExcel}
@@ -15377,37 +15421,72 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
                         </button>
                       )}
                     </div>
-                    <div className="flex-1 overflow-y-auto hide-scrollbar space-y-2">
+                    <div className="flex gap-1.5 shrink-0">
+                      {[
+                        { id: 'todos', etiqueta: 'Todos', n: clientesLista.length },
+                        { id: 'deuda', etiqueta: 'Con deuda', n: conDeuda },
+                        { id: 'aldia', etiqueta: 'Al día', n: clientesLista.length - conDeuda }
+                      ].map((f) => (
+                        <button
+                          key={f.id}
+                          type="button"
+                          onClick={() => setFiltroClientes(f.id)}
+                          className={`px-3 py-1.5 rounded-full text-xs font-semibold transition ${filtroClientes === f.id ? 'bg-[#f4eefe] text-[#4d04b0] ring-[1.5px] ring-[#d6bdfa]' : 'bg-white/70 text-stone-600 hover:bg-white'}`}
+                        >
+                          {f.etiqueta} <span className="opacity-60 font-bold ml-0.5">{f.n}</span>
+                        </button>
+                      ))}
+                    </div>
+                    <div className="flex-1 overflow-y-auto hide-scrollbar space-y-2 pr-1">
                       {cargandoClientes ? (
                         <p className="text-xs text-stone-500 text-center py-6">Cargando...</p>
-                      ) : clientesFiltradosGestion().length === 0 ? (
-                        <p className="text-xs text-stone-500 text-center py-6">Sin clientes registrados.</p>
+                      ) : filtrados.length === 0 ? (
+                        <p className="text-xs text-stone-500 text-center py-6">{clientesLista.length === 0 ? 'Sin clientes registrados.' : 'Ningún cliente coincide.'}</p>
                       ) : (
-                        clientesFiltradosGestion().map((c) => (
-                          <button
-                            key={c.id}
-                            onClick={() => { if (esAdmin) abrirEdicionCliente(c); }}
-                            className={`w-full flex items-center justify-between gap-3 px-4 py-3 bg-white/60 backdrop-blur-xl border border-white/80 rounded-2xl shadow-sm transition text-left ${esAdmin ? 'hover:bg-[#f4eefe]' : 'cursor-default'}`}
-                          >
-                            <div>
-                              <p className="text-sm font-semibold text-stone-900">{c.nombre_completo}</p>
-                              <p className="text-xs text-stone-500">DNI: {c.dni} {c.telefono && `· ${c.telefono}`}</p>
-                            </div>
-                            <div className="text-right shrink-0">
-                              {Number(c.saldo_actual) > 0 && (
-                                <span className="inline-block px-2 py-0.5 mb-1 rounded-full bg-rose-50 text-xs font-bold text-rose-600 whitespace-nowrap">Debe S/ {formatoSoles(Number(c.saldo_actual))}</span>
-                              )}
-                              <span className="text-xs text-stone-500 block whitespace-nowrap">Límite S/ {formatoSoles(Number(c.limite_credito || 0))}</span>
-                            </div>
-                          </button>
-                        ))
+                        filtrados.map((c) => {
+                          const saldo = Number(c.saldo_actual) || 0;
+                          const limite = Number(c.limite_credito) || 0;
+                          const debe = saldo > 0;
+                          const uso = debe && limite > 0 ? Math.min(100, Math.round((saldo / limite) * 100)) : null;
+                          const colorBarra = uso >= 80 ? 'bg-rose-500' : uso >= 40 ? 'bg-amber-500' : 'bg-violet-400';
+                          return (
+                            <button
+                              key={c.id}
+                              onClick={() => { if (esAdmin) abrirEdicionCliente(c); }}
+                              className={`w-full flex items-center gap-3 p-3 bg-white border border-stone-200 rounded-xl text-left transition ${esAdmin ? 'hover:bg-[#f4eefe]' : 'cursor-default'}`}
+                            >
+                              <span className={`w-9 h-9 rounded-full flex items-center justify-center shrink-0 text-xs font-bold ${debe ? 'bg-rose-50 text-rose-700' : 'bg-[#f4eefe] text-[#6105dc]'}`}>{inicialesCliente(c.nombre_completo)}</span>
+                              <div className="min-w-0 flex-1">
+                                <p className="text-sm font-bold text-stone-900 truncate">{c.nombre_completo}</p>
+                                <p className="text-[11px] text-stone-500 truncate">
+                                  DNI {c.dni}{c.telefono ? ` · ${c.telefono}` : ''}{!debe && limite > 0 ? ` · Límite S/ ${formatoSoles(limite)}` : ''}
+                                </p>
+                                {uso !== null && (
+                                  <div className="flex items-center gap-2 mt-1.5">
+                                    <div className="w-20 h-1 rounded-full bg-stone-200 overflow-hidden shrink-0"><div className={`h-full rounded-full ${colorBarra}`} style={{ width: `${uso}%` }}></div></div>
+                                    <span className="text-[10.5px] text-stone-500 whitespace-nowrap">{uso}% de S/ {formatoSoles(limite)}</span>
+                                  </div>
+                                )}
+                              </div>
+                              <div className="flex items-center gap-1.5 shrink-0">
+                                {debe ? (
+                                  <span className="px-2 py-0.5 rounded-full bg-rose-50 text-xs font-bold text-rose-600 whitespace-nowrap">Debe S/ {formatoSoles(saldo)}</span>
+                                ) : (
+                                  <span className="px-2 py-0.5 rounded-full bg-emerald-50 text-xs font-bold text-emerald-600 whitespace-nowrap">Al día</span>
+                                )}
+                                {esAdmin && <i className="fa-solid fa-pen text-xs text-stone-500 w-6 text-center"></i>}
+                              </div>
+                            </button>
+                          );
+                        })
                       )}
                     </div>
                   </>
                 )}
               </div>
             </div>
-          )}
+            );
+          })()}
 
           {/* Modal: Nuevo Cliente con Límite de Crédito */}
           {/* Modal: Buscar/Seleccionar Cliente (POS) */}
