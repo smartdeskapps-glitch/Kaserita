@@ -9424,7 +9424,6 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
                         onKeyDown={handleKeyDownBusqueda}
                         placeholder="Busca por nombre o escanea un código"
                         className="flex-1 min-w-0 bg-transparent text-[14px] md:text-[15px] font-medium text-stone-900 placeholder:text-[#9a94b3] placeholder:font-normal focus:outline-none"
-                        autoFocus
                       />
                       {busqueda && (
                         <>
@@ -9435,7 +9434,7 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
                             onClick={() => {
                               setBusqueda('');
                               cargarProductos('');
-                              inputBusquedaRef.current?.focus();
+                              inputBusquedaRef.current?.blur();
                             }}
                             className="shrink-0 w-[30px] h-[30px] flex items-center justify-center bg-[#f3f1f8] hover:bg-[#e9e5f3] text-[#6b6585] rounded-full transition"
                           ><i className="fa-solid fa-xmark text-xs"></i></button>
