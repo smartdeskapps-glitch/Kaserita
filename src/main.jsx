@@ -1220,6 +1220,9 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
       const [cierresCaja, setCierresCaja] = useState([]);
       const [cargandoCierres, setCargandoCierres] = useState(false);
       const [fechaInicioCierres, setFechaInicioCierres] = useState('');
+      const [atajoCierres, setAtajoCierres] = useState('30dias'); // hoy | 7dias | 30dias | fechas
+      const [soloConDiferenciaCierres, setSoloConDiferenciaCierres] = useState(false);
+      const [cierreDetalle, setCierreDetalle] = useState(null); // turno cuyo detalle se ve
       const [fechaFinCierres, setFechaFinCierres] = useState('');
 
       // --- Carrito & Ventas en Espera (Park Sales) ---
@@ -7892,8 +7895,26 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
         const desde = fechaISOLocal(hace30dias);
         setFechaInicioCierres(desde);
         setFechaFinCierres(hoy);
+        setAtajoCierres('30dias');
+        setSoloConDiferenciaCierres(false);
+        setCierreDetalle(null);
         setModalHistorialCierres(true);
         cargarHistorialCierresPorRango(desde, hoy);
+      };
+
+      // Atajos de fecha del historial de cierres: Hoy, 7 días, 30 días o fechas a elección.
+      const elegirAtajoCierres = (id) => {
+        setAtajoCierres(id);
+        setCierreDetalle(null);
+        if (id === 'fechas') return;
+        const hoy = new Date();
+        const hasta = fechaISOLocal(hoy);
+        const atras = new Date(hoy);
+        atras.setDate(atras.getDate() - (id === 'hoy' ? 0 : id === '7dias' ? 6 : 29));
+        const desde = fechaISOLocal(atras);
+        setFechaInicioCierres(desde);
+        setFechaFinCierres(hasta);
+        cargarHistorialCierresPorRango(desde, hasta);
       };
 
       // Turno activo check -- cada cajero puede tener su propia caja
@@ -13888,81 +13909,222 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
           )}
 
           {/* Modal: Historial de Cierres de Caja */}
-          {modalHistorialCierres && (
-            <div className="fixed inset-0 bg-stone-900/30 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-              <div className="bg-gradient-to-br from-[#f4effc] via-[#f9f8fb] to-[#f5f4f8] rounded-[28px] max-w-lg w-full p-5 shadow-2xl border border-white/80 space-y-3 max-h-[90vh] flex flex-col">
-                <div className="flex justify-between items-center shrink-0">
-                  <h3 className="text-lg font-bold text-stone-900 flex items-center gap-2">
-                    <span className="w-8 h-8 rounded-xl bg-[#ece0fd] text-[#6105dc] flex items-center justify-center text-sm"><i className="fa-solid fa-cash-register"></i></span>
-                    Historial de cierres de caja
-                  </h3>
-                  <button aria-label="Cerrar" onClick={() => setModalHistorialCierres(false)} className="w-8 h-8 rounded-full bg-white/70 hover:bg-white text-stone-500 hover:text-stone-900 shadow-sm"><i className="fa-solid fa-xmark"></i></button>
+          {/* Modal: Historial de cierres de caja (turnos cerrados y si cuadraron) */}
+          {modalHistorialCierres && (() => {
+            const borde = 'border-[#e7e4ef]';
+            const dinero = (v) => `S/ ${formatoSoles(Math.abs(Number(v) || 0))}`;
+            const difDe = (t) => Number(t.diferencia) || 0;
+            const total = cierresCaja.length;
+            const cuadran = cierresCaja.filter((t) => difDe(t) === 0).length;
+            const conDif = total - cuadran;
+            const acumulada = cierresCaja.reduce((a, t) => a + difDe(t), 0);
+            const visibles = soloConDiferenciaCierres ? cierresCaja.filter((t) => difDe(t) !== 0) : cierresCaja;
+            const grupos = [];
+            visibles.forEach((t) => {
+              const etiqueta = etiquetaDiaHistorial(t.fecha_cierre);
+              const ultimo = grupos[grupos.length - 1];
+              if (ultimo && ultimo.etiqueta === etiqueta) ultimo.turnos.push(t);
+              else grupos.push({ etiqueta, turnos: [t] });
+            });
+            const elegido = cierreDetalle ? cierresCaja.find((t) => t.id === cierreDetalle) || null : null;
+            const panel = elegido || visibles[0] || null;
+            const hora = (f) => new Date(f).toLocaleTimeString('es-PE', { hour: 'numeric', minute: '2-digit' });
+            const mismoDia = (a, b) => new Date(a).toDateString() === new Date(b).toDateString();
+            const horaApertura = (t) => (mismoDia(t.fecha_apertura, t.fecha_cierre) ? hora(t.fecha_apertura) : `${new Date(t.fecha_apertura).toLocaleDateString('es-PE', { day: 'numeric', month: 'short' }).replace(/\./g, '')}, ${hora(t.fecha_apertura)}`);
+            const fechaHora = (f) => `${new Date(f).toLocaleDateString('es-PE', { day: 'numeric', month: 'short' }).replace(/\./g, '')}, ${hora(f)}`;
+            const esperadoDe = (t) => Number(t.monto_inicial || 0) + Number(t.ventas_sistema || 0);
+            const ATAJOS = [['hoy', 'Hoy'], ['7dias', '7 días'], ['30dias', '30 días'], ['fechas', 'Fechas']];
+            const rangoTexto = `${new Date(`${fechaInicioCierres}T00:00:00`).toLocaleDateString('es-PE', { day: 'numeric', month: 'short' }).replace(/\./g, '')} – ${new Date(`${fechaFinCierres}T00:00:00`).toLocaleDateString('es-PE', { day: 'numeric', month: 'short', year: 'numeric' }).replace(/\./g, '')}`;
+            const celdaDif = (t) => {
+              const d = difDe(t);
+              if (d === 0) return <span className="inline-flex items-center gap-1.5 text-[13px] font-semibold text-[#0f7b4a]"><span className="w-1.5 h-1.5 rounded-full bg-[#0f7b4a]"></span>Cuadra</span>;
+              const leve = Math.abs(d) < 1;
+              return (
+                <span className={`inline-flex items-center gap-1.5 text-[13px] font-semibold tabular-nums ${leve ? 'text-[#a15c07]' : 'text-[#c0262d]'}`}>
+                  <span className={`w-1.5 h-1.5 rounded-full ${leve ? 'bg-[#d98a14]' : 'bg-[#c0262d]'}`}></span>{d > 0 ? '+' : '-'} {dinero(d)}
+                </span>
+              );
+            };
+            const detalleCierre = (t) => {
+              const d = difDe(t);
+              return (
+                <div className="flex flex-col gap-4 min-h-full">
+                  <div>
+                    <p className="text-[13px] font-semibold text-stone-500">{t.cajeros?.nombre || 'Cajero'} · {etiquetaDiaHistorial(t.fecha_cierre)}</p>
+                    <p className="text-[26px] font-bold tracking-tight leading-tight mt-1 text-stone-900">{d === 0 ? 'Cuadra' : d > 0 ? `Sobran ${dinero(d)}` : `Faltan ${dinero(d)}`}</p>
+                    <p className={`text-[13px] mt-1.5 ${d === 0 ? 'text-[#0f7b4a]' : Math.abs(d) < 1 ? 'text-[#a15c07]' : 'text-[#c0262d]'}`}>
+                      {d === 0 ? 'Lo contado es igual a lo esperado.' : d > 0 ? 'Había más efectivo del esperado.' : 'Había menos efectivo del esperado.'}
+                    </p>
+                  </div>
+                  <div className="text-[13.5px]">
+                    {[
+                      ['Apertura', fechaHora(t.fecha_apertura)],
+                      ['Cierre', fechaHora(t.fecha_cierre)],
+                      ['Fondo inicial', `S/ ${formatoSoles(Number(t.monto_inicial || 0))}`],
+                      ['Ventas en efectivo', `+ S/ ${formatoSoles(Number(t.ventas_sistema || 0))}`],
+                      ['Esperado en caja', `S/ ${formatoSoles(esperadoDe(t))}`],
+                    ].map(([r, v]) => (
+                      <div key={r} className="flex justify-between gap-3 py-2.5 border-b border-[#f0eef5]">
+                        <span className="text-stone-500">{r}</span><span className="font-medium text-stone-900 tabular-nums">{v}</span>
+                      </div>
+                    ))}
+                    <div className="flex justify-between gap-3 pt-3 mt-0.5 border-t border-stone-900 font-semibold">
+                      <span>Contado</span><span className="text-[17px] font-bold tracking-tight tabular-nums">S/ {formatoSoles(Number(t.monto_final_real || 0))}</span>
+                    </div>
+                  </div>
+                  <p className="text-[12.5px] text-stone-500 bg-[#f6f5f9] rounded-[9px] px-3 py-2.5 leading-snug">Las ventas con Yape, Plin o tarjeta no cuentan en el efectivo de la caja. Se ven en el historial de ventas.</p>
                 </div>
+              );
+            };
 
-                <PestanasModal pestanas={[
-                  { texto: 'Ventas de hoy', onClick: () => { setModalHistorialCierres(false); abrirHistorialDelDia(); } },
-                  { texto: 'Cierres de caja', activa: true },
-                ]} />
+            return (
+              <div className="fixed inset-0 bg-stone-900/30 backdrop-blur-sm flex items-center justify-center z-50 p-3 sm:p-4">
+                <div className="bg-white rounded-2xl max-w-xl lg:max-w-6xl w-full max-h-[94vh] h-[94vh] lg:h-[740px] flex flex-col shadow-2xl border border-black/5 overflow-hidden">
+                  <div className={`px-4 sm:px-5 py-3.5 shrink-0 flex flex-wrap lg:flex-nowrap items-center gap-x-3 gap-y-2 border-b ${borde}`}>
+                    {elegido && (
+                      <button aria-label="Volver a la lista" onClick={() => setCierreDetalle(null)} className="lg:hidden w-8 h-8 rounded-lg text-stone-500 hover:bg-[#f6f5f9] shrink-0"><i className="fa-solid fa-arrow-left text-sm"></i></button>
+                    )}
+                    <h3 className="text-[17px] font-bold tracking-tight text-stone-900 whitespace-nowrap">
+                      {elegido ? <><span className="lg:hidden">Detalle del cierre</span><span className="hidden lg:inline">Historial de ventas</span></> : 'Historial de ventas'}
+                    </h3>
+                    <div className={`${elegido ? 'hidden lg:flex' : 'flex'} gap-1 order-last basis-full lg:order-none lg:basis-auto lg:ml-1`}>
+                      <button type="button" onClick={() => { setModalHistorialCierres(false); abrirHistorialDelDia(); }} className="h-8 px-3 rounded-lg text-[13px] font-medium text-stone-500 hover:text-stone-900">Ventas</button>
+                      <button type="button" className="h-8 px-3 rounded-lg text-[13px] font-semibold text-stone-900 bg-[#f6f5f9]">Cierres de caja</button>
+                    </div>
+                    <span className="flex-1"></span>
+                    <button aria-label="Cerrar" onClick={() => { setModalHistorialCierres(false); setCierreDetalle(null); }} className="w-8 h-8 rounded-lg text-stone-500 hover:bg-[#f6f5f9] shrink-0"><i className="fa-solid fa-xmark"></i></button>
+                  </div>
 
-                <FiltroFechasRapido
-                  desde={fechaInicioCierres}
-                  hasta={fechaFinCierres}
-                  setDesde={setFechaInicioCierres}
-                  setHasta={setFechaFinCierres}
-                  onRango={cargarHistorialCierresPorRango}
-                  diasAtras={30}
-                />
-
-                <div className="flex-1 overflow-y-auto hide-scrollbar space-y-2">
-                  {cargandoCierres ? (
-                    <p className="text-xs text-center py-8 text-stone-500">Cargando...</p>
-                  ) : cierresCaja.length === 0 ? (
-                    <p className="text-xs text-center py-8 text-stone-500">No hay cierres de caja en ese rango.</p>
-                  ) : (
-                    cierresCaja.map((t) => {
-                      const dif = Number(t.diferencia);
-                      const fmt = (f) => new Date(f).toLocaleString('es-PE', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
-                      return (
-                        <div key={t.id} className="p-4 bg-white/60 backdrop-blur-xl border border-white/80 rounded-3xl shadow-[0_10px_40px_-14px_rgba(97,5,220,0.18)] text-xs">
-                          <div className="flex justify-between items-center gap-2 mb-3">
-                            <span className="font-bold text-stone-900 flex items-center gap-2 min-w-0">
-                              <span className="w-7 h-7 rounded-full bg-[#ece0fd] text-[#6105dc] flex items-center justify-center text-[11px] shrink-0"><i className="fa-solid fa-user"></i></span>
-                              <span className="truncate">{t.cajeros?.nombre || 'Cajero'}</span>
-                            </span>
-                            <span className={`px-2.5 py-1 rounded-full font-semibold whitespace-nowrap ${dif === 0 ? 'bg-emerald-50 text-emerald-600' : Math.abs(dif) < 1 ? 'bg-amber-50 text-amber-600' : 'bg-rose-50 text-rose-600'}`}>
-                              {dif === 0 ? (<><i className="fa-solid fa-circle-check mr-1"></i>Cuadre perfecto</>) : `${dif > 0 ? '+' : ''}S/ ${formatoSoles(dif)}`}
-                            </span>
-                          </div>
-                          <div className="grid grid-cols-2 gap-2">
-                            <div className="bg-white/70 rounded-2xl px-3 py-2">
-                              <span className="text-[11px] text-stone-500 block">Apertura</span>
-                              <span className="font-semibold text-stone-800">{fmt(t.fecha_apertura)}</span>
-                            </div>
-                            <div className="bg-white/70 rounded-2xl px-3 py-2">
-                              <span className="text-[11px] text-stone-500 block">Cierre</span>
-                              <span className="font-semibold text-stone-800">{fmt(t.fecha_cierre)}</span>
-                            </div>
-                            <div className="bg-white/70 rounded-2xl px-3 py-2">
-                              <span className="text-[11px] text-stone-500 block">Fondo inicial</span>
-                              <span className="font-semibold text-stone-800 whitespace-nowrap">S/ {formatoSoles(Number(t.monto_inicial))}</span>
-                            </div>
-                            <div className="bg-white/70 rounded-2xl px-3 py-2">
-                              <span className="text-[11px] text-stone-500 block">Ventas efectivo</span>
-                              <span className="font-semibold text-stone-800 whitespace-nowrap">S/ {formatoSoles(Number(t.ventas_sistema || 0))}</span>
-                            </div>
-                            <div className="col-span-2 bg-[#f4eefe] border border-[#d6bdfa] rounded-2xl px-3 py-2 flex justify-between items-center">
-                              <span className="text-[11px] text-[#6105dc]">Contado</span>
-                              <span className="font-bold text-sm text-[#4d04b0] whitespace-nowrap">S/ {formatoSoles(Number(t.monto_final_real || 0))}</span>
-                            </div>
-                          </div>
-                        </div>
-                      );
-                    })
+                  {elegido && (
+                    <div className="lg:hidden flex-1 min-h-0 overflow-y-auto hide-scrollbar p-4">{detalleCierre(elegido)}</div>
                   )}
+
+                  <div className={`${elegido ? 'hidden lg:flex' : 'flex'} flex-1 min-h-0 flex-col`}>
+                    <div className={`px-4 sm:px-5 py-3 shrink-0 flex flex-wrap items-center gap-x-3 gap-y-2 border-b ${borde}`}>
+                      <div className="flex bg-[#f6f5f9] rounded-[9px] p-[3px] max-w-full overflow-x-auto hide-scrollbar">
+                        {ATAJOS.map(([id, texto]) => (
+                          <button
+                            key={id}
+                            type="button"
+                            onClick={() => elegirAtajoCierres(id)}
+                            className={`h-7 px-3 rounded-[7px] text-[12.5px] whitespace-nowrap transition ${atajoCierres === id ? 'bg-white text-stone-900 font-semibold shadow-[0_0_0_1px_#e7e4ef]' : 'text-stone-500 font-medium hover:text-stone-900'}`}
+                          >
+                            {texto}
+                          </button>
+                        ))}
+                      </div>
+                      <span className="text-[12.5px] text-stone-500">{rangoTexto}</span>
+                      <span className="flex-1 hidden lg:block"></span>
+                      <button
+                        type="button"
+                        role="switch"
+                        aria-checked={soloConDiferenciaCierres}
+                        onClick={() => { setSoloConDiferenciaCierres((v) => !v); setCierreDetalle(null); }}
+                        className="inline-flex items-center gap-2 text-[13px] text-stone-700"
+                      >
+                        <span className={`relative w-[34px] h-5 rounded-full transition-colors shrink-0 ${soloConDiferenciaCierres ? 'bg-[#6105dc]' : 'bg-[#cfccdb]'}`}>
+                          <span className={`absolute top-0.5 w-4 h-4 rounded-full bg-white shadow transition-all ${soloConDiferenciaCierres ? 'left-4' : 'left-0.5'}`}></span>
+                        </span>
+                        Solo con diferencia
+                      </button>
+                      {atajoCierres === 'fechas' && (
+                        <div className="flex flex-wrap items-center gap-2 w-full">
+                          <input type="date" aria-label="Desde" value={fechaInicioCierres} onChange={(e) => setFechaInicioCierres(e.target.value)} className={`h-[34px] px-2.5 rounded-[9px] border ${borde} bg-white text-[13px] text-stone-900`} />
+                          <span className="text-xs text-stone-400">a</span>
+                          <input type="date" aria-label="Hasta" value={fechaFinCierres} onChange={(e) => setFechaFinCierres(e.target.value)} className={`h-[34px] px-2.5 rounded-[9px] border ${borde} bg-white text-[13px] text-stone-900`} />
+                          <button onClick={() => cargarHistorialCierresPorRango(fechaInicioCierres, fechaFinCierres)} className="h-[34px] px-4 rounded-[9px] bg-[#6105dc] hover:bg-[#4d04b0] text-white text-[13px] font-semibold">Buscar</button>
+                        </div>
+                      )}
+                    </div>
+
+                    <div className={`grid grid-cols-2 lg:grid-cols-4 shrink-0 border-b ${borde}`}>
+                      {[
+                        ['Turnos cerrados', <>{total}</>, ''],
+                        ['Cuadraron', <>{cuadran}{total > 0 && <span className="text-xs font-medium text-stone-500 ml-1.5 tracking-normal">{Math.round((cuadran / total) * 100)}%</span>}</>, 'text-[#0f7b4a]'],
+                        ['Con diferencia', <>{conDif}</>, ''],
+                        ['Diferencia acumulada', <>{acumulada === 0 ? 'S/ 0.00' : `${acumulada > 0 ? '+' : '-'} ${dinero(acumulada)}`}</>, acumulada < 0 ? 'text-[#c0262d]' : acumulada > 0 ? 'text-[#a15c07]' : ''],
+                      ].map(([titulo, valor, color], i) => (
+                        <div key={titulo} className={`px-4 sm:px-5 py-3 ${i % 2 === 1 ? 'border-l' : ''} ${i > 0 ? 'lg:border-l' : ''} ${i >= 2 ? 'border-t lg:border-t-0' : ''} ${borde}`}>
+                          <span className="text-xs font-medium text-stone-500 block">{titulo}</span>
+                          <span className={`text-[17px] lg:text-[22px] font-bold tracking-tight tabular-nums whitespace-nowrap ${color || 'text-stone-900'}`}>{valor}</span>
+                        </div>
+                      ))}
+                    </div>
+
+                    <div className="flex-1 min-h-0 grid grid-rows-[minmax(0,1fr)] lg:grid-cols-[1fr_340px]">
+                      <div className={`min-h-0 overflow-y-auto hide-scrollbar lg:border-r ${borde}`}>
+                        {cargandoCierres ? (
+                          <p className="text-sm text-center py-10 text-stone-500">Cargando...</p>
+                        ) : visibles.length === 0 ? (
+                          <p className="text-sm text-center py-10 text-stone-500">{soloConDiferenciaCierres && total > 0 ? 'Todos los turnos de este período cuadraron.' : 'No hay cierres de caja en ese rango.'}</p>
+                        ) : (
+                          <>
+                            {/* Celular: una fila por turno */}
+                            <div className="lg:hidden">
+                              {grupos.map((g) => (
+                                <div key={g.etiqueta}>
+                                  <p className={`flex justify-between px-4 py-1.5 bg-[#f6f5f9] border-b ${borde} text-[11.5px] font-semibold text-stone-500 sticky top-0 z-[1]`}>
+                                    <span>{g.etiqueta}</span><span>{g.turnos.length} turno{g.turnos.length === 1 ? '' : 's'}</span>
+                                  </p>
+                                  {g.turnos.map((t) => (
+                                    <div key={t.id} role="button" tabIndex={0} onClick={() => setCierreDetalle(t.id)} onKeyDown={(e) => { if (e.key === 'Enter') setCierreDetalle(t.id); }} className="grid grid-cols-[1fr_auto] items-center gap-2.5 px-4 py-3 border-b border-[#f0eef5] cursor-pointer active:bg-[#faf8fe]">
+                                      <div className="min-w-0">
+                                        <p className="text-[13.5px] font-semibold text-stone-900 truncate">{t.cajeros?.nombre || 'Cajero'}</p>
+                                        <p className="text-xs text-stone-500 mt-0.5">{horaApertura(t)} – {hora(t.fecha_cierre)}</p>
+                                      </div>
+                                      <div className="text-right">
+                                        {celdaDif(t)}
+                                        <p className="text-[11.5px] text-stone-500 mt-0.5 tabular-nums">Contado S/ {formatoSoles(Number(t.monto_final_real || 0))}</p>
+                                      </div>
+                                    </div>
+                                  ))}
+                                </div>
+                              ))}
+                            </div>
+
+                            {/* PC: tabla */}
+                            <table className="hidden lg:table w-full border-collapse">
+                              <thead>
+                                <tr className="text-left text-[11.5px] font-semibold text-stone-500">
+                                  {['Cajero', 'Apertura', 'Cierre'].map((c) => <th key={c} className={`sticky top-0 z-[2] bg-white px-4 py-2.5 border-b ${borde} whitespace-nowrap`}>{c}</th>)}
+                                  {['Fondo', 'Ventas efectivo', 'Contado', 'Diferencia'].map((c) => <th key={c} className={`sticky top-0 z-[2] bg-white px-4 py-2.5 border-b ${borde} whitespace-nowrap text-right`}>{c}</th>)}
+                                </tr>
+                              </thead>
+                              <tbody>
+                                {grupos.map((g) => (
+                                  <React.Fragment key={g.etiqueta}>
+                                    <tr className="bg-[#f6f5f9] text-xs font-semibold text-stone-500">
+                                      <td colSpan={5} className={`px-4 py-1.5 border-b ${borde}`}>{g.etiqueta}</td>
+                                      <td colSpan={2} className={`px-4 py-1.5 border-b ${borde} text-right`}>{g.turnos.length} turno{g.turnos.length === 1 ? '' : 's'}</td>
+                                    </tr>
+                                    {g.turnos.map((t) => (
+                                      <tr key={t.id} onClick={() => setCierreDetalle(t.id)} className={`cursor-pointer text-[13.5px] text-stone-700 ${panel && panel.id === t.id ? 'bg-[#f3effd] shadow-[inset_3px_0_0_#6105dc]' : 'hover:bg-[#fbfafd]'}`}>
+                                        <td className="px-4 py-2.5 border-b border-[#f0eef5] whitespace-nowrap max-w-[150px] truncate">{t.cajeros?.nombre || 'Cajero'}</td>
+                                        <td className="px-4 py-2.5 border-b border-[#f0eef5] whitespace-nowrap text-stone-500">{horaApertura(t)}</td>
+                                        <td className="px-4 py-2.5 border-b border-[#f0eef5] whitespace-nowrap text-stone-500">{hora(t.fecha_cierre)}</td>
+                                        <td className="px-4 py-2.5 border-b border-[#f0eef5] whitespace-nowrap text-right tabular-nums text-stone-900">S/ {formatoSoles(Number(t.monto_inicial || 0))}</td>
+                                        <td className="px-4 py-2.5 border-b border-[#f0eef5] whitespace-nowrap text-right tabular-nums text-stone-900">S/ {formatoSoles(Number(t.ventas_sistema || 0))}</td>
+                                        <td className="px-4 py-2.5 border-b border-[#f0eef5] whitespace-nowrap text-right tabular-nums text-stone-900">S/ {formatoSoles(Number(t.monto_final_real || 0))}</td>
+                                        <td className="px-4 py-2.5 border-b border-[#f0eef5] whitespace-nowrap text-right">{celdaDif(t)}</td>
+                                      </tr>
+                                    ))}
+                                  </React.Fragment>
+                                ))}
+                              </tbody>
+                            </table>
+                          </>
+                        )}
+                      </div>
+
+                      <div className="hidden lg:block min-h-0 overflow-y-auto hide-scrollbar p-5">
+                        {panel ? detalleCierre(panel) : <p className="text-sm text-stone-500 text-center py-10">Elige un turno para ver su detalle.</p>}
+                      </div>
+                    </div>
+                  </div>
                 </div>
               </div>
-            </div>
-          )}
+            );
+          })()}
 
           {/* Modal: Historial de Toma de Inventario -- comparar, producto por
               producto, si un día cuadró contra el sistema y otro no. */}
