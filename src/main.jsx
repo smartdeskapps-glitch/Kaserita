@@ -1262,6 +1262,7 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
       const [cargandoDetalleDeudor, setCargandoDetalleDeudor] = useState(false);
       const [montoAbonoDeuda, setMontoAbonoDeuda] = useState('');
       const [hojaPagoDeudor, setHojaPagoDeudor] = useState(false); // hoja "Registrar pago" del celular
+      const [confirmandoPagoDeudor, setConfirmandoPagoDeudor] = useState(false); // paso "¿Confirmas el pago?" antes de cobrar
       const [mostrarHistorialCompletoDeuda, setMostrarHistorialCompletoDeuda] = useState(false);
       // Lista de deudores: buscador, filtro ('todos' | 'venc' | 'lim'), orden
       // ('deuda' | 'antigua'), boletas a crédito de todos los deudores (para
@@ -5387,6 +5388,7 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
         setPagoRegistrado(null);
         setDeudorSeleccionado(cliente);
         setMontoAbonoDeuda(Number(cliente.saldo_actual).toFixed(2));
+        setConfirmandoPagoDeudor(false);
         setBoletasDeudor([]);
         setMostrarHistorialCompletoDeuda(false);
         setPagosRecientes([]);
@@ -13259,7 +13261,7 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
                   <p className="mt-2.5 text-[12.5px] text-stone-500 min-h-[16px]">
                     {abono > 0 && !excede && e.pendientesAsc.length > 0 ? (cob.cubiertas === 0 ? 'No alcanza para cubrir una boleta completa; queda como pago a cuenta.' : `Cubre ${cob.cubiertas} de ${e.pendientesAsc.length} boleta${e.pendientesAsc.length > 1 ? 's' : ''} pendiente${e.pendientesAsc.length > 1 ? 's' : ''} (las más antiguas primero).`) : ''}
                   </p>
-                  <button type="button" onClick={procesarPagoDeudaCliente} disabled={!(abono > 0) || excede} className="kz-pri mt-1.5 w-full h-[52px] text-[14.5px] font-semibold inline-flex items-center justify-center gap-2">
+                  <button type="button" onClick={() => setConfirmandoPagoDeudor(true)} disabled={!(abono > 0) || excede} className="kz-pri mt-1.5 w-full h-[52px] text-[14.5px] font-semibold inline-flex items-center justify-center gap-2">
                     <span>{etiquetaBoton}</span>{chispa}
                   </button>
                 </>
@@ -13369,6 +13371,19 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
                     <p className="text-center text-xs text-stone-500 mb-2">Deuda actual {dinero(saldo)}</p>
                     <button type="button" onClick={() => setHojaPagoDeudor(true)} className="kz-pri w-full h-[54px] text-[15px] font-semibold inline-flex items-center justify-center gap-2"><span>Registrar pago</span>{chispa}</button>
                   </div>
+                  {confirmandoPagoDeudor && abono > 0 && !excede && (
+                    <div className="fixed inset-0 z-[80] flex items-center justify-center p-4" role="dialog" aria-modal="true" aria-label="Confirmar pago">
+                      <div className="absolute inset-0 bg-[rgba(20,12,40,0.5)] backdrop-blur-[2px]" onClick={() => setConfirmandoPagoDeudor(false)}></div>
+                      <div className="relative bg-white rounded-[20px] w-full max-w-[360px] p-6 shadow-2xl">
+                        <h5 className="text-lg font-bold tracking-tight text-stone-900">¿Confirmas el pago?</h5>
+                        <p className="text-[13.5px] text-stone-500 mt-1.5 leading-snug">Vas a registrar que <b className="text-stone-900">{cl.nombre_completo}</b> pagó <b className="text-stone-900">{dinero(abono)}</b>. {restante === 0 ? 'Su deuda quedará en S/ 0.00.' : `Su deuda quedará en ${dinero(restante)}.`}</p>
+                        <div className="grid grid-cols-2 gap-2.5 mt-5">
+                          <button type="button" onClick={() => setConfirmandoPagoDeudor(false)} className={`${botonFantasma} h-12`}>Cancelar</button>
+                          <button type="button" onClick={() => { setConfirmandoPagoDeudor(false); procesarPagoDeudaCliente(); }} className="kz-pri h-12 text-sm font-semibold">Sí, registrar</button>
+                        </div>
+                      </div>
+                    </div>
+                  )}
                   {hojaPagoDeudor && (
                     <div className="md:hidden fixed inset-0 z-[70]">
                       <div className="absolute inset-0 bg-[rgba(20,12,40,0.42)] backdrop-blur-[2px]" onClick={() => setHojaPagoDeudor(false)}></div>
