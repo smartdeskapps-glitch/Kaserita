@@ -55,7 +55,7 @@ GRUPOS.append(('empieza', 'Empieza aquí', [
                  '<b>Fiados.</b> Lo que te deben tus clientes a crédito.',
                  '<b>Historial.</b> Las boletas de hoy o de otras fechas; desde aquí también anulas una venta.',
                  '<b>Toma de Inventario.</b> Cuenta lo que hay en el local y ajusta el sistema.',
-                 '<b>Registrar Merma.</b> Productos vencidos, rotos o perdidos.',
+                 '<b>Registrar pérdida.</b> Productos vencidos, rotos o perdidos (la merma).',
              ], 'modal'),
              ('fig', 'pos-menu-mas-2', 'Menú de opciones, parte inferior', [
                  '<b>Cajeros y Empleados.</b> Quién puede entrar y con qué permisos.',
@@ -68,7 +68,7 @@ GRUPOS.append(('empieza', 'Empieza aquí', [
                  '<b>Cerrar Sesión.</b> Sal del POS en ese equipo.',
              ], 'modal'),
              ('p', 'Arriba de todo, según tu caja, verás también «Abrir Turno» o «Cerrar Caja». Falta mostrar «Clientes», «Dashboard de Ventas» y «Cuentas por Pagar», que están en el mismo menú.'),
-             ('aviso', 'No todos ven todas las opciones. Un <b>cajero</b> solo ve lo necesario para vender: caja, fiados, historial, clientes, toma de inventario y merma. El <b>administrador</b> y el <b>dueño</b> ven además el dashboard, las entradas, los combos, los cajeros, el registro de actividad y Mi Link de Pedidos.'),
+             ('aviso', 'No todos ven todas las opciones. Un <b>cajero</b> solo ve lo necesario para vender: caja, fiados, historial, clientes, toma de inventario y pérdidas. El <b>administrador</b> y el <b>dueño</b> ven además el dashboard, las entradas, los combos, los cajeros, el registro de actividad y Mi Link de Pedidos.'),
          ]),
 ]))
 
@@ -312,7 +312,7 @@ GRUPOS.append(('inventario', 'Productos e inventario', [
              ]),
              ('tip', 'Si cierras la ventana a mitad del conteo, no pierdes nada: al volver se restaura lo que ya habías contado. «Vaciar» borra el conteo.'),
          ]),
-    dict(id='merma', titulo='Registrar una merma',
+    dict(id='merma', titulo='Registrar una pérdida (merma)',
          intro='Merma es lo que pierdes sin vender: productos vencidos, rotos, robados o perdidos. Registrarla mantiene tu stock real.',
          bloques=[
              ('fig', 'inv-merma', 'Registrar merma', [

@@ -1777,7 +1777,14 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
       // queda sin usar pero no se tocó -- borrarlo es un cambio grande y
       // separado, no hace falta para esto.
 
+      // Si la sesión venció (no la cerró la persona), el aviso lo explica.
+      const motivoCierreRef = useRef(null);
+      const cerrandoSesionRef = useRef(false);
+      const sesionRef = useRef(null);
+      sesionRef.current = sesion;
+
       const cerrarSesion = async () => {
+        cerrandoSesionRef.current = true;
         if (sbClient) {
           try { await sbClient.auth.signOut(); } catch (err) { console.warn(err); }
         }
@@ -1797,8 +1804,50 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
         setListaCajeros([]);
         setClientesLista([]);
         setProductos([]);
-        notificar('Has cerrado sesión.', 'info');
+        const motivo = motivoCierreRef.current;
+        motivoCierreRef.current = null;
+        cerrandoSesionRef.current = false;
+        notificar(motivo || 'Has cerrado sesión.', motivo ? 'error' : 'info');
       };
+
+      // Pregunta al servidor si la sesión sigue viva. Solo la da por vencida si
+      // el servidor la rechaza (401/403): sin internet no se saca a nadie.
+      const verificarSesionVigente = async () => {
+        if (!sbClient || !sesionRef.current || cerrandoSesionRef.current) return true;
+        try {
+          const { error } = await sbClient.auth.getUser();
+          const rechazada = error && (error.status === 401 || error.status === 403 || error.name === 'AuthSessionMissingError');
+          if (rechazada) {
+            motivoCierreRef.current = 'Tu sesión venció. Vuelve a entrar para seguir vendiendo.';
+            await cerrarSesion();
+            return false;
+          }
+        } catch (err) { /* sin conexión: se deja seguir */ }
+        return true;
+      };
+
+      useEffect(() => {
+        if (!sbClient) return undefined;
+        // Si Supabase cierra la sesión por su cuenta (no pudo renovar el token).
+        const { data: { subscription } } = sbClient.auth.onAuthStateChange((evento) => {
+          if (evento === 'SIGNED_OUT' && sesionRef.current && !cerrandoSesionRef.current) {
+            motivoCierreRef.current = 'Tu sesión venció. Vuelve a entrar para seguir vendiendo.';
+            cerrarSesion();
+          }
+        });
+        // Al volver a la pestaña después de un rato, se revisa una vez por minuto.
+        let ultimaRevision = 0;
+        const alVolver = () => {
+          if (document.visibilityState !== 'visible' || Date.now() - ultimaRevision < 60000) return;
+          ultimaRevision = Date.now();
+          verificarSesionVigente();
+        };
+        document.addEventListener('visibilitychange', alVolver);
+        return () => {
+          subscription.unsubscribe();
+          document.removeEventListener('visibilitychange', alVolver);
+        };
+      }, [sbClient]);
 
       // Al cargar la app, si el dispositivo ya tiene una sesión válida de
       // Supabase Auth (login anterior), se restaura sin pedir DNI/PIN de
@@ -7959,6 +8008,9 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
             // corta acá y se deja reintentar.
             if (error && enLinea) {
               console.warn('Error al abrir turno en la base de datos:', error);
+              // Un rechazo por permisos casi siempre es una sesión vencida: se
+              // revisa y, si es eso, se manda a ingresar de nuevo.
+              if (error.code === '42501' && !(await verificarSesionVigente())) return;
               notificar(`No se pudo abrir el turno en el servidor. Intenta de nuevo.`, 'error');
               return;
             }
@@ -10353,7 +10405,7 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
               { grupo: 'Ventas y caja', etiqueta: 'Historial', icono: 'fa-receipt', accion: abrirHistorialDelDia },
               { grupo: 'Ventas y caja', etiqueta: 'Clientes', icono: 'fa-users', accion: abrirGestionClientes },
               !esBarberia && { grupo: 'Inventario', etiqueta: 'Toma de Inventario', icono: 'fa-clipboard-check', accion: abrirTomaInventario },
-              { grupo: 'Inventario', etiqueta: 'Registrar Merma', icono: 'fa-box', accion: () => setModalMerma(true) },
+              { grupo: 'Inventario', etiqueta: 'Registrar pérdida', buscar: 'merma perdida vencido roto robo', icono: 'fa-box', accion: () => setModalMerma(true) },
               ...(esAdmin ? [
                 { grupo: 'Administración', etiqueta: 'Dashboard de Ventas', icono: 'fa-chart-pie', accion: abrirDashboard },
                 !esBarberia && { grupo: 'Administración', etiqueta: 'Cuentas por Pagar', icono: 'fa-file-invoice', accion: abrirCuentasPorPagar },
