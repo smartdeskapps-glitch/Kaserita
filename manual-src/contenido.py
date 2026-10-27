@@ -9,8 +9,8 @@ bloque = ('fig', archivo, pie, [marcas], 'modal'|'movil')
 """
 
 PRIMER_DIA = [
-    ('registrar-productos', 'Registra tus productos', 'Créalos uno por uno o impórtalos del catálogo maestro.'),
-    ('entrada-mercaderia', 'Carga el stock', 'Con una entrada de mercadería (o un levantamiento de inventario).'),
+    ('registrar-productos', 'Registra tus productos', 'Créalos uno por uno; el sistema te sugiere categoría y foto del catálogo de Kaserita.'),
+    ('entrada-mercaderia', 'Carga el stock', 'Con una entrada de mercadería.'),
     ('abrir-turno', 'Abre tu turno', 'Indica con cuánto efectivo empiezas la caja.'),
     ('vender', 'Vende y cobra', 'Toca los productos, elige cómo paga el cliente y cobra.'),
     ('cerrar-caja', 'Cierra la caja', 'Cuenta el efectivo y mira si cuadra con el sistema.'),
@@ -54,7 +54,6 @@ GRUPOS.append(('empieza', 'Empieza aquí', [
                  '<b>Buscar una opción.</b> Escribe para filtrar el menú.',
                  '<b>Fiados.</b> Lo que te deben tus clientes a crédito.',
                  '<b>Historial.</b> Las boletas de hoy o de otras fechas; desde aquí también anulas una venta.',
-                 '<b>Ver Stock.</b> Todo tu catálogo con sus cantidades. La insignia («2 por reponer») te avisa cuándo toca comprar.',
                  '<b>Toma de Inventario.</b> Cuenta lo que hay en el local y ajusta el sistema.',
                  '<b>Registrar Merma.</b> Productos vencidos, rotos o perdidos.',
              ], 'modal'),
@@ -64,14 +63,12 @@ GRUPOS.append(('empieza', 'Empieza aquí', [
                  '<b>Mi Link de Pedidos.</b> Tu tienda online: logo, horario, entrega a domicilio y QR.',
                  '<b>Registrar Productos.</b> Crea o actualiza las fichas de tus productos.',
                  '<b>Entrada de Mercadería.</b> Registra tus compras: suma stock y actualiza el costo.',
-                 '<b>Levantamiento de Inventario.</b> Cuenta producto por producto escaneando.',
                  '<b>Combos.</b> Crea paquetes a precio especial.',
-                 '<b>Importar del Catálogo Maestro.</b> Agrega productos ya cargados con foto.',
                  '<b>Cambiar mi PIN.</b> Solo el dueño. La insignia «Recomendado» aparece mientras tu PIN no esté reforzado.',
                  '<b>Cerrar Sesión.</b> Sal del POS en ese equipo.',
              ], 'modal'),
              ('p', 'Arriba de todo, según tu caja, verás también «Abrir Turno» o «Cerrar Caja». Falta mostrar «Clientes», «Dashboard de Ventas» y «Cuentas por Pagar», que están en el mismo menú.'),
-             ('aviso', 'No todos ven todas las opciones. Un <b>cajero</b> solo ve lo necesario para vender: caja, fiados, historial, clientes, ver stock, toma de inventario y merma. El <b>administrador</b> y el <b>dueño</b> ven además el dashboard, las entradas, los combos, los cajeros, el registro de actividad y Mi Link de Pedidos.'),
+             ('aviso', 'No todos ven todas las opciones. Un <b>cajero</b> solo ve lo necesario para vender: caja, fiados, historial, clientes, toma de inventario y merma. El <b>administrador</b> y el <b>dueño</b> ven además el dashboard, las entradas, los combos, los cajeros, el registro de actividad y Mi Link de Pedidos.'),
          ]),
 ]))
 
@@ -266,24 +263,6 @@ GRUPOS.append(('inventario', 'Productos e inventario', [
                  '<b>Guardar Inventario.</b> Guarda todos los productos del formulario.',
              ], 'modal'),
          ]),
-    dict(id='catalogo-maestro', titulo='Importar del catálogo maestro',
-         intro='El catálogo maestro es una base de productos ya cargados con nombre, categoría y foto. Es la forma más rápida de armar tu inventario.',
-         bloques=[
-             ('fig', 'inv-catalogo-maestro', 'Buscar en el catálogo', [
-                 '<b>Buscador.</b> Escribe parte del nombre.',
-                 '<b>Resultado.</b> Toca el producto que quieres traer a tu inventario.',
-             ], 'modal'),
-             ('fig', 'inv-catalogo-importar', 'Importar un producto', [
-                 '<b>Volver a la búsqueda.</b>',
-                 '<b>El producto elegido</b>, con su foto y categoría.',
-                 '<b>Precio de venta (S/).</b>',
-                 '<b>Precio de costo (S/).</b>',
-                 '<b>Stock inicial.</b> Cuántas unidades tienes ahora.',
-                 '<b>Unidad.</b> Por unidad (UND) o por peso (KG).',
-                 '<b>Código EAN</b> (opcional).',
-                 '<b>Agregar a mi Inventario.</b>',
-             ], 'modal'),
-         ]),
     dict(id='editar-producto', titulo='Editar un producto',
          intro='Para cambiar un precio, corregir un nombre o destacar un producto en tu tienda online, toca el lápiz de su tarjeta.',
          bloques=[
@@ -314,17 +293,6 @@ GRUPOS.append(('inventario', 'Productos e inventario', [
                  '<b>Confirmar Entrada de Mercadería.</b> Guarda la compra y actualiza el stock.',
              ], 'modal'),
          ]),
-    dict(id='ver-stock', titulo='Ver stock',
-         intro='Tu catálogo completo con las cantidades. Es la mejor forma de saber qué reponer.',
-         bloques=[
-             ('fig', 'inv-ver-stock', 'Ver stock', [
-                 '<b>Buscador.</b> Por nombre de producto.',
-                 '<b>Categorías.</b> Filtra por una categoría.',
-                 '<b>Filtros.</b> «Todos», «Stock bajo» (cerca del mínimo) y «Sin stock».',
-                 '<b>Cada producto</b> muestra su categoría, su <b>mínimo</b> y la cantidad actual. En ámbar, el stock está bajo.',
-             ], 'modal'),
-             ('tip', 'En el menú ≡, la opción «Ver Stock» muestra una insignia («2 por reponer») cuando hay productos bajo el mínimo.'),
-         ]),
     dict(id='toma-inventario', titulo='Toma de inventario',
          intro='Para comprobar que lo que dice el sistema coincide con lo que realmente hay. Se hace en dos pasos: contar y revisar.',
          bloques=[
@@ -343,19 +311,6 @@ GRUPOS.append(('inventario', 'Productos e inventario', [
                  'Confirma: el stock de los productos con diferencia se ajusta al número contado.',
              ]),
              ('tip', 'Si cierras la ventana a mitad del conteo, no pierdes nada: al volver se restaura lo que ya habías contado. «Vaciar» borra el conteo.'),
-         ]),
-    dict(id='levantamiento', titulo='Levantamiento de inventario',
-         intro='Una forma rápida de fijar el stock producto por producto, con lector de código de barras. Es ideal para cargar tu inventario inicial.',
-         bloques=[
-             ('fig', 'inv-levantamiento', 'Levantamiento de inventario', [
-                 '<b>Escanea o escribe el EAN.</b> El campo ya está listo para recibir el lector. También hay un botón de cámara.',
-                 '<b>Buscar.</b> Si el código no existe, te avisa que primero lo registres en «Registrar Productos».',
-             ], 'modal'),
-             ('pasos', [
-                 'Escanea el producto. Aparece su nombre con «Producto encontrado».',
-                 'Escribe los <b>packs contados</b> y las <b>unidades sueltas</b>; el sistema suma el total.',
-                 'Presiona <b>Guardar y escanear siguiente</b>: se guarda el conteo y quedas listo para el próximo producto.',
-             ]),
          ]),
     dict(id='merma', titulo='Registrar una merma',
          intro='Merma es lo que pierdes sin vender: productos vencidos, rotos, robados o perdidos. Registrarla mantiene tu stock real.',
@@ -645,12 +600,12 @@ FAQ = [
     ('No me deja cobrar', 'Casi siempre es porque no hay un turno abierto. Toca «Abrir Turno», elige el cajero y confirma el monto inicial. Mientras no haya turno, el botón dice «Abre un turno para cobrar».'),
     ('Me equivoqué en una venta, ¿qué hago?', 'Ve a <b>≡ → Historial</b>, busca la boleta y toca <b>Anular</b>. Escribe el motivo y confirma: la boleta queda anulada, deja de sumar en tus totales y los productos vuelven al stock.'),
     ('La caja no cuadra al cerrar', 'Revisa que contaste solo el <b>efectivo</b> (Yape, Plin y tarjeta no entran en el arqueo) y que no hay ventas anuladas o vueltos mal dados. La diferencia queda registrada en el cierre y en el Registro de actividad.'),
-    ('Se cayó el internet, ¿puedo seguir vendiendo?', 'Si el POS ya estaba abierto cuando se cayó la conexión, puede seguir registrando ventas y las sincroniza cuando vuelve internet. Después revisa «Ver Stock» por si alguna cantidad necesita ajuste.'),
+    ('Se cayó el internet, ¿puedo seguir vendiendo?', 'Si el POS ya estaba abierto cuando se cayó la conexión, puede seguir registrando ventas y las sincroniza cuando vuelve internet. Después busca tus productos en el POS y revisa que sus cantidades estén bien.'),
     ('Mi cajero no ve algunas opciones', 'Es normal: el rol <b>Cajero</b> solo ve lo necesario para vender. Para darle más acceso, cámbialo a <b>Administrador</b> en «Cajeros y Empleados».'),
     ('Mi tienda online no aparece o está vacía', 'Revisa en «Mi Link de Pedidos» que <b>«Aparecer en el catálogo público»</b> esté encendido y que hayas presionado <b>Guardar</b>. Recuerda que los productos sin stock se muestran aparte, como «Agotados por ahora», y no se pueden pedir. Si ves «Función no habilitada», pide que la activen en tu bodega.'),
     ('Marqué un destacado pero no sale', 'El producto necesita tener <b>foto</b>. Agrégale una desde el lápiz de su tarjeta y guarda.'),
     ('¿Puedo cambiar el link de mi tienda?', 'No. El link es fijo para que los QR y los afiches que ya imprimiste sigan funcionando.'),
-    ('¿Cómo sé qué productos reponer?', 'Abre <b>≡ → Ver Stock</b> y usa el filtro «Stock bajo»: son los que están cerca o por debajo del mínimo. También lo ves en la insignia del menú («2 por reponer»).'),
+    ('¿Cómo sé qué productos reponer?', 'Abre <b>≡ → Entrada de Mercadería</b> y toca el filtro «Por reponer»: son los productos que están cerca o por debajo del mínimo. En la pantalla de venta, cada producto también muestra cuánto stock le queda.'),
     ('¿Dónde veo cuánto estoy ganando?', 'En <b>≡ → Dashboard de Ventas</b> (opción de administración). Muestra la utilidad, el costo y el margen del período que elijas.'),
     ('Un cliente quiere pagar su deuda', 'Abre <b>≡ → Fiados</b>, toca al cliente y registra su pago. Puede abonar una parte o todo («Pagar todo» / «Mitad»).'),
 ]

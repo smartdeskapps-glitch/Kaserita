@@ -1514,30 +1514,10 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
       // Paso del stepper de "Registrar Productos" (1 producto, 2 precio, 3 revisar).
       const [pasoInventario, setPasoInventario] = useState(1);
 
-      // --- Módulo: Importar productos de Kaserita -- banco de productos que
-      // administra Kaserita (descripción + categoría + foto); la bodega
-      // busca uno y le pone su propio precio/costo/stock antes de sumarlo
-      // a su inventario. No existe en Modo Demo (no hay sesión real). ---
-      const [modalImportarMaestro, setModalImportarMaestro] = useState(false);
+      // --- Catálogo maestro de Kaserita (descripción + categoría + foto): "Registrar
+      // Productos" lo usa para sugerir categoría y foto mientras se escribe. ---
       const [catalogoMaestroDisponible, setCatalogoMaestroDisponible] = useState([]);
       const [cargandoMaestroImport, setCargandoMaestroImport] = useState(false);
-      const [busquedaMaestroImport, setBusquedaMaestroImport] = useState('');
-      const [productoMaestroSeleccionado, setProductoMaestroSeleccionado] = useState(null);
-      const [formImportarMaestro, setFormImportarMaestro] = useState({ precio_venta: '', precio_costo: '', stock_actual: '', cod_ean: '', unidad: 'UND' });
-      const [guardandoImportMaestro, setGuardandoImportMaestro] = useState(false);
-
-      // --- Módulo: Levantamiento de Inventario -- conteo físico rápido,
-      // escaneando de a un producto a la vez. El producto ya tiene que
-      // estar registrado en el catálogo, esto solo declara cuánto hay. ---
-      const [modalLevantamiento, setModalLevantamiento] = useState(false);
-      const [levantamientoEan, setLevantamientoEan] = useState('');
-      // null = todavía no se buscó nada; 'no-encontrado' = se buscó y no
-      // existe; { producto, esPack } = encontrado (mismo shape que
-      // buscarProductoPorCodigo, así se reutiliza tal cual).
-      const [levantamientoResultado, setLevantamientoResultado] = useState(null);
-      const [levantamientoPacks, setLevantamientoPacks] = useState('');
-      const [levantamientoSueltas, setLevantamientoSueltas] = useState('');
-      const [guardandoLevantamiento, setGuardandoLevantamiento] = useState(false);
 
       // --- Módulo: Entrada de Mercadería (Compras) ---
       const [modalEntradaMercaderia, setModalEntradaMercaderia] = useState(false);
@@ -4408,17 +4388,6 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
           return;
         }
 
-        if (modoEscaner === 'levantamiento') {
-          setLevantamientoEan(codigoLimpio);
-          const encontrado = buscarProductoPorCodigo(codigoLimpio);
-          setLevantamientoResultado(encontrado || 'no-encontrado');
-          setLevantamientoPacks('');
-          setLevantamientoSueltas('');
-          if (!encontrado) notificar(`Código ${codigoLimpio} no encontrado en tus productos.`, 'error');
-          setModalEscaner(false);
-          return;
-        }
-
         const encontradoPorCodigo = buscarProductoPorCodigo(codigoLimpio);
         if (encontradoPorCodigo) {
           handleClicProducto(encontradoPorCodigo.producto, encontradoPorCodigo.esPack ? 'PACK' : 'UNIDAD');
@@ -6077,98 +6046,9 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
       };
 
       // ==========================================
-      // LEVANTAMIENTO DE INVENTARIO (conteo físico, escaneando de a uno)
-      // ==========================================
-      const buscarLevantamientoPorEan = () => {
-        const codigo = levantamientoEan.trim();
-        if (!codigo) return;
-        const encontrado = buscarProductoPorCodigo(codigo);
-        setLevantamientoResultado(encontrado || 'no-encontrado');
-        setLevantamientoPacks('');
-        setLevantamientoSueltas('');
-      };
-
-      // Busca automáticamente mientras se escribe/escanea, sin esperar Enter
-      // ni el botón "Buscar" -- así el escáner de mano (que dispara Enter al
-      // terminar) y la escritura manual funcionan igual de rápido.
-      useEffect(() => {
-        const codigo = levantamientoEan.trim();
-        if (!codigo) { setLevantamientoResultado(null); return; }
-        const timer = setTimeout(() => {
-          const encontrado = buscarProductoPorCodigo(codigo);
-          setLevantamientoResultado(encontrado || 'no-encontrado');
-          setLevantamientoPacks('');
-          setLevantamientoSueltas('');
-        }, 200);
-        return () => clearTimeout(timer);
-      }, [levantamientoEan]);
-
-      const cerrarResultadoLevantamiento = () => {
-        setLevantamientoEan('');
-        setLevantamientoResultado(null);
-        setLevantamientoPacks('');
-        setLevantamientoSueltas('');
-      };
-
-      const confirmarConteoLevantamiento = async () => {
-        if (!levantamientoResultado || levantamientoResultado === 'no-encontrado') return;
-        const { producto } = levantamientoResultado;
-        const unidadesPorPack = Number(producto.unidades_por_pack) > 1 ? Number(producto.unidades_por_pack) : 1;
-        const totalContado = (Number(levantamientoPacks) || 0) * unidadesPorPack + (Number(levantamientoSueltas) || 0);
-
-        setGuardandoLevantamiento(true);
-        try {
-          let stockSistema = Number(producto.stock_actual) || 0;
-          if (esModoDemo) {
-            const diferencia = totalContado - stockSistema;
-            if (catalogoDemoRef.current) {
-              catalogoDemoRef.current = catalogoDemoRef.current.map((p) => (p.id === producto.id ? { ...p, stock_actual: totalContado } : p));
-            }
-          } else if (sbClient) {
-            // Relee el stock justo antes de calcular la diferencia (igual que
-            // en Toma de Inventario) -- por si hubo una venta o ajuste
-            // mientras se estaba contando este producto.
-            const { data: fresco, error: errFresco } = await sbClient
-              .from('productos').select('stock_actual').eq('id', producto.id).maybeSingle();
-            if (errFresco) throw errFresco;
-            if (fresco) stockSistema = Number(fresco.stock_actual) || 0;
-
-            const diferencia = totalContado - stockSistema;
-            const { error: errInsert } = await sbClient.from('tomas_inventario').insert([{
-              bodega_id: bodegaId,
-              producto_id: producto.id,
-              cajero_id: cajeroSeleccionado?.id || null,
-              fecha: new Date().toISOString(),
-              stock_sistema: stockSistema,
-              stock_contado: totalContado,
-              diferencia
-            }]);
-            if (errInsert) throw errInsert;
-
-            if (diferencia !== 0) {
-              const { error: errAjuste } = await sbClient.rpc('ajustar_stock', { p_producto_id: producto.id, p_delta: diferencia });
-              if (errAjuste) {
-                notificar(`Se guardó el conteo, pero no se pudo ajustar el stock.`, 'error');
-                setGuardandoLevantamiento(false);
-                return;
-              }
-            }
-          }
-          cargarProductos();
-          notificar(`${producto.descripcion}: ${totalContado} unidades registradas.`, 'success');
-          cerrarResultadoLevantamiento();
-        } catch (err) {
-          notificar(mensajeError(err, 'Error al guardar el conteo'), 'error');
-        } finally {
-          setGuardandoLevantamiento(false);
-        }
-      };
-
-      // ==========================================
       // IMPORTAR DEL CATÁLOGO MAESTRO
       // ==========================================
-      // Se reutiliza tanto al abrir "Importar productos de Kaserita" como al
-      // abrir "Registrar Productos" (ahí sugiere categoría + foto mientras
+      // Lo usa "Registrar Productos" (ahí sugiere categoría + foto mientras
       // se escribe la descripción, ver sugerenciasParaFila).
       const cargarCatalogoMaestroDisponible = useCallback(() => {
         // Si la bodega tiene el Catálogo Maestro desactivado (ver panel de
@@ -6186,73 +6066,12 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
           .finally(() => setCargandoMaestroImport(false));
       }, [esModoDemo, sbClient, sesion?.bodega?.mostrar_catalogo_maestro]);
 
-      const abrirImportarMaestro = useCallback(() => {
-        setModalImportarMaestro(true);
-        setProductoMaestroSeleccionado(null);
-        setBusquedaMaestroImport('');
-        cargarCatalogoMaestroDisponible();
-      }, [cargarCatalogoMaestroDisponible]);
-
       // "Registrar Productos" también se apoya en el catálogo maestro para
       // sugerir categoría y foto -- se carga apenas se abre el modal, sin
       // que el bodeguero tenga que ir a buscarlo a otro lado.
       useEffect(() => {
         if (modalInventarioInicial) cargarCatalogoMaestroDisponible();
       }, [modalInventarioInicial]);
-
-      const seleccionarProductoMaestro = (item) => {
-        setProductoMaestroSeleccionado(item);
-        // El catálogo maestro ya no trae EAN (varía por proveedor/empaque);
-        // si la bodega tiene el código real de este producto, lo escribe acá.
-        setFormImportarMaestro({ precio_venta: '', precio_costo: '', stock_actual: '', cod_ean: '', unidad: 'UND' });
-      };
-
-      const importarProductoMaestro = async (e) => {
-        e.preventDefault();
-        if (!formImportarMaestro.precio_venta) {
-          notificar('Ponle un precio de venta.', 'error');
-          return;
-        }
-        setGuardandoImportMaestro(true);
-        try {
-          const payload = {
-            bodega_id: bodegaId,
-            descripcion: productoMaestroSeleccionado.descripcion,
-            categoria: productoMaestroSeleccionado.categoria || 'General',
-            foto_url: productoMaestroSeleccionado.foto_url || null,
-            // Enlaza el producto a su ficha del catálogo maestro: si más
-            // adelante se le agrega o cambia la foto ahí, se actualiza sola
-            // acá también (ver el JOIN en cargarProductos).
-            catalogo_maestro_id: productoMaestroSeleccionado.id,
-            cod_ean: formImportarMaestro.cod_ean.trim() || generarCodigoInterno(),
-            sku: generarSKU(productoMaestroSeleccionado.categoria),
-            precio_costo: Number(formImportarMaestro.precio_costo) || 0,
-            precio_venta: Number(formImportarMaestro.precio_venta) || 0,
-            unidad: formImportarMaestro.unidad === 'KG' ? 'KG' : 'UND',
-            stock_actual: formImportarMaestro.stock_actual === '' ? null : Number(formImportarMaestro.stock_actual),
-            activo: true
-          };
-          if (esModoDemo) {
-            if (!catalogoDemoRef.current) catalogoDemoRef.current = catalogoDemoInicial();
-            const siguienteId = catalogoDemoRef.current.reduce((max, p) => Math.max(max, Number(p.id) || 0), 0) + 1;
-            catalogoDemoRef.current = [...catalogoDemoRef.current, { ...payload, id: String(siguienteId) }];
-          } else if (sbClient) {
-            const { error } = await sbClient.from('productos').insert([payload]);
-            if (error) throw error;
-          }
-          notificar(`"${productoMaestroSeleccionado.descripcion}" agregado a tu inventario.`, 'success');
-          cargarProductos(busqueda);
-          setProductoMaestroSeleccionado(null);
-        } catch (err) {
-          notificar(mensajeError(err, 'No se pudo importar'), 'error');
-        } finally {
-          setGuardandoImportMaestro(false);
-        }
-      };
-
-      const catalogoMaestroDisponibleFiltrado = catalogoMaestroDisponible.filter((p) =>
-        !busquedaMaestroImport.trim() || p.descripcion.toLowerCase().includes(busquedaMaestroImport.trim().toLowerCase())
-      );
 
       // ==========================================
       // EDITAR / DESACTIVAR PRODUCTO
@@ -10516,9 +10335,7 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
                 { grupo: 'Administración', etiqueta: 'Mi Link de Pedidos', icono: 'fa-share-nodes', accion: abrirModalDelivery },
                 { grupo: 'Entradas', etiqueta: esBarberia ? 'Registrar Servicios y Productos' : 'Registrar Productos', icono: 'fa-boxes-stacked', accion: () => setModalInventarioInicial(true) },
                 !esBarberia && { grupo: 'Entradas', etiqueta: 'Entrada de Mercadería', icono: 'fa-truck-ramp-box', accion: abrirEntradaMercaderia },
-                !esBarberia && { grupo: 'Entradas', etiqueta: 'Levantamiento de Inventario', icono: 'fa-clipboard-list', accion: () => setModalLevantamiento(true) },
-                { grupo: 'Entradas', etiqueta: 'Combos', icono: 'fa-gift', accion: abrirModalCombos },
-                !esBarberia && { grupo: 'Entradas', etiqueta: 'Importar productos de Kaserita', icono: 'fa-book', accion: abrirImportarMaestro },
+                { grupo: 'Catálogo', etiqueta: 'Combos', icono: 'fa-gift', accion: abrirModalCombos },
               ] : []),
               // El manual solo lo sirve /api/manual a quien tiene sesión: antes de abrirlo se
               // renueva el token por si venció, y la pestaña se abre primero para que el
@@ -12876,244 +12693,6 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
             </div>
             );
           })()}
-
-          {/* Modal: Importar productos de Kaserita */}
-          {modalImportarMaestro && (
-            <div className="fixed inset-0 bg-stone-900/30 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-              <div className="bg-gradient-to-br from-[#f4effc] via-[#f9f8fb] to-[#f5f4f8] border border-white/80 rounded-[28px] max-w-lg w-full p-5 shadow-2xl space-y-3 max-h-[85vh] flex flex-col">
-                <div className="flex justify-between items-center shrink-0">
-                  <h3 className="text-lg font-bold text-stone-900 flex items-center gap-2">
-                    <i className="fa-solid fa-book text-orange-600"></i> Importar productos de Kaserita
-                  </h3>
-                  <button aria-label="Cerrar" onClick={() => setModalImportarMaestro(false)} className="w-8 h-8 rounded-full bg-white/70 hover:bg-white text-stone-500 hover:text-stone-900 shadow-sm"><i className="fa-solid fa-xmark"></i></button>
-                </div>
-
-                {productoMaestroSeleccionado ? (
-                  <form onSubmit={importarProductoMaestro} className="space-y-2.5 overflow-y-auto">
-                    <button type="button" onClick={() => setProductoMaestroSeleccionado(null)} className="text-xs font-semibold text-stone-500 hover:text-stone-800 flex items-center gap-1">
-                      <i className="fa-solid fa-arrow-left"></i> Volver a la búsqueda
-                    </button>
-                    <div className="flex items-center gap-3 bg-white border border-stone-200 rounded-xl p-3">
-                      <FotoProducto fotoUrl={productoMaestroSeleccionado.foto_url} categoria={productoMaestroSeleccionado.categoria} className="w-14 h-14 rounded-lg shrink-0" iconClassName="text-xl" />
-                      <div className="min-w-0">
-                        <p className="text-sm font-bold text-stone-900 truncate">{productoMaestroSeleccionado.descripcion}</p>
-                        <p className="text-xs text-stone-500">{productoMaestroSeleccionado.categoria || 'Sin categoría'}</p>
-                      </div>
-                    </div>
-                    <div className="grid grid-cols-2 gap-2">
-                      <div>
-                        <label className="text-xs text-stone-600 block mb-1">Precio de venta (S/):</label>
-                        <input
-                          type="number" step="0.10" required
-                          value={formImportarMaestro.precio_venta}
-                          onChange={(e) => setFormImportarMaestro({ ...formImportarMaestro, precio_venta: e.target.value })}
-                          className="w-full bg-white border border-stone-200/70 shadow-sm rounded-xl px-3 py-1.5 text-xs text-stone-900"
-                        />
-                      </div>
-                      <div>
-                        <label className="text-xs text-stone-600 block mb-1">Precio de costo (S/):</label>
-                        <input
-                          type="number" step="0.10"
-                          value={formImportarMaestro.precio_costo}
-                          onChange={(e) => setFormImportarMaestro({ ...formImportarMaestro, precio_costo: e.target.value })}
-                          className="w-full bg-white border border-stone-200/70 shadow-sm rounded-xl px-3 py-1.5 text-xs text-stone-900"
-                        />
-                      </div>
-                      <div>
-                        <label className="text-xs text-stone-600 block mb-1">Stock inicial:</label>
-                        <input
-                          type="number" step="1"
-                          value={formImportarMaestro.stock_actual}
-                          onChange={(e) => setFormImportarMaestro({ ...formImportarMaestro, stock_actual: e.target.value })}
-                          className="w-full bg-white border border-stone-200/70 shadow-sm rounded-xl px-3 py-1.5 text-xs text-stone-900"
-                        />
-                      </div>
-                      <div>
-                        <label className="text-xs text-stone-600 block mb-1">Unidad:</label>
-                        <select
-                          value={formImportarMaestro.unidad}
-                          onChange={(e) => setFormImportarMaestro({ ...formImportarMaestro, unidad: e.target.value })}
-                          className="w-full bg-white border border-stone-200/70 shadow-sm rounded-xl px-3 py-1.5 text-xs text-stone-900"
-                        >
-                          <option value="UND">Unidad (UND)</option>
-                          <option value="KG">Peso (KG)</option>
-                        </select>
-                      </div>
-                      <div className="col-span-2">
-                        <label className="text-xs text-stone-600 block mb-1">Código de barras (opcional):</label>
-                        <input
-                          type="text"
-                          value={formImportarMaestro.cod_ean}
-                          onChange={(e) => setFormImportarMaestro({ ...formImportarMaestro, cod_ean: e.target.value })}
-                          className="w-full bg-white border border-stone-200/70 shadow-sm rounded-xl px-3 py-1.5 text-xs text-stone-900"
-                        />
-                      </div>
-                    </div>
-                    <button type="submit" disabled={guardandoImportMaestro} className="w-full py-2.5 bg-[#6105dc] hover:bg-[#4d04b0] disabled:opacity-60 text-white font-bold text-xs rounded-full shadow">
-                      {guardandoImportMaestro ? 'Agregando...' : 'Agregar a mi Inventario'}
-                    </button>
-                  </form>
-                ) : (
-                  <>
-                    <input
-                      type="text" placeholder="Buscar producto..."
-                      value={busquedaMaestroImport}
-                      onChange={(e) => setBusquedaMaestroImport(e.target.value)}
-                      className="w-full bg-white border border-stone-200/70 shadow-sm rounded-xl px-3 py-2 text-xs text-stone-900 shrink-0"
-                    />
-                    <div className="flex-1 overflow-y-auto space-y-1.5">
-                      {cargandoMaestroImport ? (
-                        <p className="text-xs text-stone-500 text-center py-6">Cargando...</p>
-                      ) : catalogoMaestroDisponibleFiltrado.length === 0 ? (
-                        <p className="text-xs text-stone-500 text-center py-6">
-                          {esModoDemo
-                            ? 'Los productos de Kaserita no están disponibles en el modo demostración.'
-                            : catalogoMaestroDisponible.length === 0
-                            ? 'Kaserita todavía no cargó productos para importar.'
-                            : 'No se encontraron productos con esa búsqueda.'}
-                        </p>
-                      ) : (
-                        catalogoMaestroDisponibleFiltrado.map((p) => (
-                          <button
-                            key={p.id}
-                            onClick={() => seleccionarProductoMaestro(p)}
-                            className="w-full flex items-center gap-3 bg-white border border-stone-200 hover:border-orange-500/50 rounded-xl p-2.5 text-left transition"
-                          >
-                            <FotoProducto fotoUrl={p.foto_url} categoria={p.categoria} className="w-11 h-11 rounded-lg shrink-0" iconClassName="text-base" />
-                            <div className="min-w-0 flex-1">
-                              <p className="text-xs font-bold text-stone-900 truncate">{p.descripcion}</p>
-                              <p className="text-[11px] text-stone-500">{p.categoria || 'Sin categoría'}</p>
-                            </div>
-                            <i className="fa-solid fa-chevron-right text-stone-400 text-xs shrink-0"></i>
-                          </button>
-                        ))
-                      )}
-                    </div>
-                  </>
-                )}
-              </div>
-            </div>
-          )}
-
-          {/* Modal: Levantamiento de Inventario (conteo físico, escaneando de a uno) */}
-          {modalLevantamiento && (
-            <div className="fixed inset-0 bg-stone-900/30 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-              <div className="bg-gradient-to-br from-[#f4effc] via-[#f9f8fb] to-[#f5f4f8] border border-white/80 rounded-[28px] max-w-md w-full p-5 shadow-2xl space-y-4">
-                <div className="flex justify-between items-start shrink-0">
-                  <div>
-                    <h3 className="text-lg font-bold text-stone-900 flex items-center gap-2">
-                      <i className="fa-solid fa-clipboard-list text-orange-600"></i> Levantamiento de Inventario
-                    </h3>
-                    <p className="text-xs text-stone-600 mt-0.5">Escanea o busca el producto y cuenta lo que tienes.</p>
-                  </div>
-                  <button aria-label="Cerrar" onClick={() => { setModalLevantamiento(false); cerrarResultadoLevantamiento(); }} className="text-stone-600 hover:text-stone-900 shrink-0"><i className="fa-solid fa-xmark"></i></button>
-                </div>
-
-                <div className="space-y-1.5">
-                  <label className="text-xs font-bold text-stone-500 uppercase tracking-wide">Escanear producto</label>
-                  <div className="flex gap-1.5">
-                    <input
-                      type="text"
-                      autoFocus
-                      placeholder="Escanea o escribe el código de barras..."
-                      value={levantamientoEan}
-                      onChange={(e) => setLevantamientoEan(e.target.value)}
-                      onKeyDown={(e) => { if (e.key === 'Enter') buscarLevantamientoPorEan(); }}
-                      className="flex-1 min-w-0 bg-white border border-stone-200/70 shadow-sm rounded-xl px-3 py-2 text-sm text-stone-900 focus:outline-none focus:ring-2 focus:ring-[#d6bdfa]"
-                    />
-                    <button
-                      onClick={buscarLevantamientoPorEan}
-                      className="px-4 bg-stone-900 hover:bg-stone-800 text-white text-xs font-bold rounded-lg"
-                    >
-                      Buscar
-                    </button>
-                    <button
-                      onClick={() => { setModoEscaner('levantamiento'); setMetodoForzado(null); setModalEscaner(true); }}
-                      title="Escanear con la cámara"
-                      className="shrink-0 w-10 flex items-center justify-center bg-stone-200 hover:bg-stone-300 text-stone-700 rounded-lg"
-                    >
-                      <i className="fa-solid fa-camera"></i>
-                    </button>
-                  </div>
-                  {cargandoProductos && (
-                    <p className="text-[11px] text-stone-500">Cargando productos...</p>
-                  )}
-                </div>
-
-                {levantamientoResultado === 'no-encontrado' && (
-                  <div className="bg-rose-50 border border-rose-200 rounded-xl p-3 flex items-start justify-between gap-2">
-                    <div>
-                      <p className="text-xs font-bold text-rose-700">Producto no encontrado</p>
-                      <p className="text-xs text-rose-600 mt-0.5">Regístralo primero en "Registrar Productos" y vuelve a intentarlo.</p>
-                    </div>
-                    <button aria-label="Cerrar" onClick={cerrarResultadoLevantamiento} className="text-rose-400 hover:text-rose-600 shrink-0"><i className="fa-solid fa-xmark"></i></button>
-                  </div>
-                )}
-
-                {levantamientoResultado && levantamientoResultado !== 'no-encontrado' && (() => {
-                  const producto = levantamientoResultado.producto;
-                  const unidadesPorPack = Number(producto.unidades_por_pack) > 1 ? Number(producto.unidades_por_pack) : 1;
-                  const totalContado = (Number(levantamientoPacks) || 0) * unidadesPorPack + (Number(levantamientoSueltas) || 0);
-                  return (
-                    <>
-                      <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-3 flex items-start justify-between gap-2">
-                        <div className="min-w-0">
-                          <p className="text-[11px] font-bold text-emerald-700 uppercase tracking-wide">Producto encontrado</p>
-                          <p className="text-sm font-bold text-stone-900 truncate">{producto.descripcion}</p>
-                          <p className="text-[11px] text-stone-500 mt-0.5">SKU: {producto.sku || '—'} · 1 pack = {unidadesPorPack} und.</p>
-                        </div>
-                        <button aria-label="Cerrar" onClick={cerrarResultadoLevantamiento} className="text-emerald-500 hover:text-emerald-700 shrink-0"><i className="fa-solid fa-xmark"></i></button>
-                      </div>
-
-                      <div className="space-y-1.5">
-                        <label className="text-xs font-bold text-stone-500 uppercase tracking-wide">Cantidades</label>
-                        <div className="grid grid-cols-3 gap-2">
-                          <div>
-                            <label className="text-[11px] text-stone-600 block mb-1">Packs contados <span className="text-rose-600">*</span></label>
-                            <input
-                              type="number"
-                              placeholder="0"
-                              value={levantamientoPacks}
-                              onChange={(e) => setLevantamientoPacks(e.target.value)}
-                              className="w-full bg-white border border-stone-200/70 shadow-sm rounded-full px-2.5 py-2 text-center text-sm font-bold text-stone-900 focus:outline-none focus:ring-2 focus:ring-[#d6bdfa]"
-                            />
-                          </div>
-                          <div>
-                            <label className="text-[11px] text-stone-600 block mb-1">Unidades sueltas</label>
-                            <input
-                              type="number"
-                              placeholder="0"
-                              value={levantamientoSueltas}
-                              onChange={(e) => setLevantamientoSueltas(e.target.value)}
-                              className="w-full bg-white border border-stone-200/70 shadow-sm rounded-full px-2.5 py-2 text-center text-sm font-bold text-stone-900 focus:outline-none focus:ring-2 focus:ring-[#d6bdfa]"
-                            />
-                          </div>
-                          <div>
-                            <label className="text-[11px] text-stone-600 block mb-1">Unidades totales</label>
-                            <div className="w-full bg-stone-200 rounded-lg px-2.5 py-2 text-center text-sm font-black text-stone-900">
-                              {totalContado} <span className="text-[10px] font-normal text-stone-600">und.</span>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-
-                      <button
-                        onClick={confirmarConteoLevantamiento}
-                        disabled={guardandoLevantamiento || levantamientoPacks === ''}
-                        className="w-full py-2.5 bg-[#6105dc] hover:bg-[#4d04b0] disabled:opacity-60 text-white font-bold text-xs rounded-full shadow flex items-center justify-center gap-1.5"
-                      >
-                        {guardandoLevantamiento ? (
-                          <><i className="fa-solid fa-spinner fa-spin"></i> Guardando...</>
-                        ) : (
-                          <><i className="fa-solid fa-check"></i> Guardar y escanear siguiente</>
-                        )}
-                      </button>
-                    </>
-                  );
-                })()}
-              </div>
-            </div>
-          )}
 
           {/* Modal: Entrada de Mercadería (Compras) */}
           {modalEntradaMercaderia && (() => {
