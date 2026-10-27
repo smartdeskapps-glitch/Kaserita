@@ -25,10 +25,15 @@
   <!-- Tipografía -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <!-- media="print" + /estilos-diferidos.js: la hoja se baja sin bloquear el primer dibujo de la pantalla -->
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" media="print" data-diferido>
 
   <!-- Íconos de línea (Font Awesome) -->
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" media="print" data-diferido>
+  <noscript>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  </noscript>
 
   <!-- React, Supabase y el bundle de la app: compilados por Vite (ver src/main.jsx) -->
 
@@ -304,6 +309,7 @@
   <div id="root"></div>
 
   <script src="/splash-pos.js"></script>
+  <script src="/estilos-diferidos.js"></script>
 
   <script src="/sw-registro.js"></script>
 

@@ -3663,6 +3663,26 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
         return productos.filter(p => p.categoria === categoriaFiltro);
       }, [productos, categoriaFiltro]);
 
+      // La grilla dibuja los productos por tandas: con catálogos de miles de ítems,
+      // montar todas las tarjetas de golpe congela el celular. Al acercarse al final
+      // se dibuja la siguiente tanda. (Buscar y el lector de código trabajan sobre
+      // los datos, no sobre las tarjetas, así que no se ven afectados.)
+      const TANDA_GRILLA = 60;
+      const [limiteGrid, setLimiteGrid] = useState(TANDA_GRILLA);
+      const centinelaGridRef = useRef(null);
+      useEffect(() => { setLimiteGrid(TANDA_GRILLA); }, [categoriaFiltro, busqueda]);
+      const hayMasEnGrid = productosFiltrados.length > limiteGrid;
+      useEffect(() => {
+        const el = centinelaGridRef.current;
+        if (!hayMasEnGrid || !el) return undefined;
+        if (typeof IntersectionObserver === 'undefined') { setLimiteGrid(Infinity); return undefined; }
+        const obs = new IntersectionObserver((entradas) => {
+          if (entradas.some((e) => e.isIntersecting)) setLimiteGrid((l) => l + TANDA_GRILLA);
+        }, { rootMargin: '600px' });
+        obs.observe(el);
+        return () => obs.disconnect();
+      }, [hayMasEnGrid, limiteGrid]);
+
       // Cuántos productos hay en cada categoría, para mostrarlo junto al
       // nombre en las pestañas ("Bebidas · 8 items").
       const conteoPorCategoria = useMemo(() => {
@@ -9532,7 +9552,7 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
                   </div>
                 ) : (
                   <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
-                    {productosFiltrados.map((prod) => (
+                    {(hayMasEnGrid ? productosFiltrados.slice(0, limiteGrid) : productosFiltrados).map((prod) => (
                       <ProductoCard
                         key={prod.id}
                         prod={prod}
@@ -9544,6 +9564,7 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
                         onVerCombo={verCombosDesdeTarjeta}
                       />
                     ))}
+                    {hayMasEnGrid && <div ref={centinelaGridRef} className="col-span-full h-10" aria-hidden="true"></div>}
                   </div>
                 )}
                 </div>
