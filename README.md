@@ -28,6 +28,7 @@ Los cambios de base de datos son archivos `.sql` en la raíz que se ejecutan **a
 |---|---|
 | `schema.sql`, `rls_*.sql`, `seguridad_*.sql` | Esquema base y políticas de seguridad por negocio |
 | `errores_app.sql` | Registro de errores de la app (ver abajo) |
+| `indices_llaves_foraneas.sql` | Índices en llaves foráneas (aviso del asesor de rendimiento de Supabase). Aplicado el 2026-10-27 |
 | `probar_aislamiento_entre_negocios.sql` | Prueba (con ROLLBACK) de que un dueño no ve datos de otro negocio. Requiere dos negocios de prueba reales |
 | `revocar_privilegios_anon.sql` | Opcional: quita permisos de tabla al rol `anon` (segunda capa de seguridad) |
 
