@@ -15,7 +15,7 @@ import { calcularDescuento } from './lib/descuentos.js';
 import { resumirVentasPeriodo, agruparVentasPorDia, calcularCambioPct } from './lib/dashboard.js';
 import { valorAuditoria, describirAuditoria } from './lib/auditoria.js';
 import { antiguedadTurno } from './lib/turnos.js';
-import { iniciarMonitoreo, reportarError } from './monitoreo.js';
+import { iniciarMonitoreo, reportarError, reportarFallo } from './monitoreo.js';
 import { estadoDeudor, coberturaPago, restoPrimeraBoleta } from './lib/deudas.js';
 import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCombo, margenCombo, expandirLineaCombo, detalleComboTicket } from './lib/combos.js';
 
@@ -331,7 +331,7 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
       const m = String(err && err.message ? err.message : '').trim();
       const claro = m.length > 8 && /^[¡¿A-ZÁÉÍÓÚ]/.test(m) && /[áéíóúñ¿¡]|\b(no|el|la|los|las|tu|tus|ya|de|que|para|se|elige|ingresa)\b/i.test(m) && !TEXTO_TECNICO.test(m);
       if (claro) return limpio === generico ? m : `${limpio}: ${m}`;
-      if (err) console.warn(limpio, err);
+      if (err) { console.warn(limpio, err); reportarFallo(limpio, err); }
       return `${limpio}. Revisa tu conexión e inténtalo de nuevo.`;
     }
 
@@ -3596,6 +3596,7 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
             ));
             if (resultadosAjuste.some((r) => r.error)) {
               console.warn('Una venta offline se sincronizó pero su ajuste de stock falló:', pendiente);
+              reportarFallo('ajuste de stock tras sincronizar', 'la venta se guardó pero el stock no se ajustó');
               hayFallosDeStock = true;
             }
             }
@@ -3604,6 +3605,7 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
             exitosas++;
           } catch (err) {
             console.warn('No se pudo sincronizar una venta offline, se reintentará:', err);
+            reportarFallo('sincronizar venta sin conexión', err);
             restantes.push(pendiente);
           }
           // Se guarda el progreso después de CADA venta (no solo al final del
@@ -8008,6 +8010,7 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
             // corta acá y se deja reintentar.
             if (error && enLinea) {
               console.warn('Error al abrir turno en la base de datos:', error);
+              reportarFallo('abrir turno', error);
               // Un rechazo por permisos casi siempre es una sesión vencida: se
               // revisa y, si es eso, se manda a ingresar de nuevo.
               if (error.code === '42501' && !(await verificarSesionVigente())) return;
@@ -8021,6 +8024,7 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
             }
           } catch (err) {
             console.warn(err);
+            reportarFallo('abrir turno', err);
             if (enLinea) {
               notificar('No se pudo abrir el turno (error de conexión con el servidor). Intenta de nuevo.', 'error');
               return;

@@ -17,6 +17,7 @@ const RUIDO = [
   /resizeobserver loop/i,
   /^script error\.?$/i,
   /non-error promise rejection/i,
+  /jwt expired/i, // sesión vencida: la app ya avisa y lleva al ingreso
   /chunkloaderror|loading chunk|dynamically imported module/i
 ];
 
@@ -68,3 +69,10 @@ export const armarReporte = ({ mensaje, stack, origen, accion, ruta, navegador }
   ruta: ruta ? limpiarTexto(ruta, 120) : null,
   navegador: navegador ? String(navegador).slice(0, 160) : null
 });
+
+// Texto de un fallo que la app detectó y mostró a la persona (no una excepción
+// suelta): "[contexto] código mensaje". El contexto dice dónde pasó ("abrir turno").
+export const mensajeDeFallo = (contexto, err) => {
+  const detalle = err && typeof err === 'object' ? [err.code, err.message].filter(Boolean).join(' ') : String(err ?? '');
+  return `[${contexto || 'app'}] ${detalle || 'sin detalle'}`;
+};

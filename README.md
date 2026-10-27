@@ -17,6 +17,7 @@ La lógica de negocio que se puede probar sola (arqueo de caja, combos, descuent
 
 - Cada push a `main` despliega en Vercel. El comando de build es `npm test && npm run build`: **si una prueba o el build falla, no se despliega** y sigue la versión anterior.
 - GitHub Actions (`.github/workflows/ci.yml`) corre lo mismo en cada push y pull request.
+- Después de un cambio importante (arranque, cobro, turno, caja) se repite el recorrido de [`PRUEBA_MANUAL.md`](PRUEBA_MANUAL.md) en la Bodega Demo.
 - Las claves de Supabase usadas en el navegador son la URL y la clave **publicable**; la seguridad la dan las políticas RLS, no el secreto de la clave.
 
 ## Base de datos (Supabase)
@@ -32,7 +33,7 @@ Los cambios de base de datos son archivos `.sql` en la raíz que se ejecutan **a
 
 ## Monitoreo de errores
 
-Los errores no controlados del navegador (y las pantallas que se rompen al dibujarse) se guardan en la tabla `errores_app` y se ven en el **panel de superadmin → pestaña Errores**, agrupados con su conteo. No hay servicios externos. No se guardan correos, números largos ni IP. Para activarlo, ejecutar `errores_app.sql` una vez. Revisar la pestaña después de cada despliegue y cuando un cliente reporte un problema.
+Los errores no controlados del navegador (y las pantallas que se rompen al dibujarse) se guardan en la tabla `errores_app` y se ven en el **panel de superadmin → pestaña Errores**, agrupados con su conteo. También llegan ahí los fallos que la app le muestra a la persona (abrir turno, cobrar, registrar pagos, sincronizar ventas sin conexión): el lugar va entre corchetes al inicio, por ejemplo `[abrir turno] 42501 …`. Se ignoran los errores por falta de internet y por sesión vencida, y no se reportan más de 10 por sesión. No hay servicios externos. No se guardan correos, números largos ni IP. Para activarlo, ejecutar `errores_app.sql` una vez. Revisar la pestaña después de cada despliegue y cuando un cliente reporte un problema.
 
 ## Revertir un problema (rollback)
 

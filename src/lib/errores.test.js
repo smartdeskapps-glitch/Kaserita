@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import {
-  esRuidoConocido, limpiarTexto, huellaError, decidirReporte, armarReporte,
+  esRuidoConocido, limpiarTexto, huellaError, decidirReporte, armarReporte, mensajeDeFallo,
   MAX_REPORTES_POR_SESION
 } from './errores.js';
 
@@ -80,5 +80,19 @@ describe('armarReporte', () => {
     expect(r.detalle).toBeNull();
     expect(r.accion).toBeNull();
     expect(r.navegador).toBeNull();
+  });
+});
+
+describe('mensajeDeFallo', () => {
+  it('une contexto, código y mensaje', () => {
+    expect(mensajeDeFallo('abrir turno', { code: '42501', message: 'row-level security' })).toBe('[abrir turno] 42501 row-level security');
+  });
+  it('acepta un texto suelto y un error vacío', () => {
+    expect(mensajeDeFallo('venta', 'se cayó')).toBe('[venta] se cayó');
+    expect(mensajeDeFallo('venta', null)).toBe('[venta] sin detalle');
+    expect(mensajeDeFallo('', { message: 'x' })).toBe('[app] x');
+  });
+  it('no se reporta cuando la sesión venció', () => {
+    expect(esRuidoConocido(mensajeDeFallo('venta', { message: 'JWT expired' }))).toBe(true);
   });
 });

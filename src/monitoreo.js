@@ -1,7 +1,7 @@
 // Monitoreo de errores propio: escucha los errores no controlados del navegador
 // y los guarda en la tabla errores_app (ver errores_app.sql). Se ven en el panel
 // de superadmin, pestaña "Errores". No usa servicios externos ni cookies.
-import { esRuidoConocido, huellaError, decidirReporte, armarReporte } from './lib/errores.js';
+import { esRuidoConocido, huellaError, decidirReporte, armarReporte, mensajeDeFallo } from './lib/errores.js';
 
 let cliente = null;
 let estado = null;
@@ -31,6 +31,12 @@ export const reportarError = ({ mensaje, stack, origen }) => {
     });
     cliente.from('errores_app').insert([fila]).then(() => {}, () => {});
   } catch (e) { /* silencioso a propósito */ }
+};
+
+// Un fallo que la app detectó y le mostró a la persona (abrir turno, cobrar,
+// sincronizar...). Llega a la misma pestaña Errores, con el lugar entre corchetes.
+export const reportarFallo = (contexto, err) => {
+  reportarError({ mensaje: mensajeDeFallo(contexto, err), stack: err && err.stack, origen: 'js' });
 };
 
 // Devuelve una función para detener la escucha (útil para el efecto de React).
