@@ -7361,12 +7361,21 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
           .map(([medio, total]) => ({ medio, total: Number(total) || 0, pct: totalVenta ? ((Number(total) || 0) / totalVenta) * 100 : 0 }))
           .sort((a, b) => b.total - a.total);
 
-        const topProductos = (R.top_productos || []).map(p => ({
-          descripcion: p.descripcion,
-          cantidad: Number(p.cantidad) || 0,
-          monto: Number(p.monto) || 0,
-          utilidad: Number(p.utilidad) || 0
-        }));
+        // Las líneas de combo llegan como "Producto (Combo: Nombre)": se suman al
+        // producto base para que cada uno salga una sola vez (el detalle de los
+        // combos va en su propia sección "Combos vendidos").
+        const productosUnidos = new Map();
+        (R.top_productos || []).forEach((p) => {
+          const descripcion = String(p.descripcion || '').replace(/\s*\(Combo:[^)]*\)\s*$/, '');
+          const previo = productosUnidos.get(descripcion) || { descripcion, cantidad: 0, monto: 0, utilidad: 0 };
+          previo.cantidad += Number(p.cantidad) || 0;
+          previo.monto += Number(p.monto) || 0;
+          previo.utilidad += Number(p.utilidad) || 0;
+          productosUnidos.set(descripcion, previo);
+        });
+        const topProductos = [...productosUnidos.values()]
+          .map((p) => ({ ...p, monto: +p.monto.toFixed(2), utilidad: +p.utilidad.toFixed(2) }))
+          .sort((a, b) => b.monto - a.monto);
         const maxProducto = Math.max(1, ...topProductos.map(p => p.monto));
 
         const numDeudores = clientesDeuda.length;
@@ -9356,7 +9365,11 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
                         ref={inputBusquedaRef}
                         type="text"
                         value={busqueda}
-                        onChange={(e) => setBusqueda(e.target.value)}
+                        onChange={(e) => {
+                          setBusqueda(e.target.value);
+                          // En la pestaña Combos la búsqueda daba "0 resultados" para cualquier producto: se pasa a Todos.
+                          if (e.target.value && categoriaFiltro === '__COMBOS__') setCategoriaFiltro('TODOS');
+                        }}
                         onKeyDown={handleKeyDownBusqueda}
                         placeholder="Busca por nombre o escanea un código"
                         className="flex-1 min-w-0 bg-transparent text-[14px] md:text-[15px] font-medium text-stone-900 placeholder:text-[#9a94b3] placeholder:font-normal focus:outline-none"
