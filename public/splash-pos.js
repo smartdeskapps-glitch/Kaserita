@@ -4,6 +4,20 @@
 // no den un salto de posición justo cuando el splash desaparece.
 window.__kgSplashT0 = performance.now();
 
+// Equipos modestos: menos capas animadas (ver .splash-ligero en pos.html).
+(function () {
+  var el = document.getElementById('splash-kaserita');
+  if (!el) return;
+  var pocosNucleos = navigator.hardwareConcurrency && navigator.hardwareConcurrency <= 4;
+  var pocaMemoria = navigator.deviceMemory && navigator.deviceMemory <= 4;
+  var ahorro = navigator.connection && navigator.connection.saveData;
+  if (pocosNucleos || pocaMemoria || ahorro) el.classList.add('splash-ligero');
+  // Pestaña en segundo plano: se pausan las animaciones.
+  document.addEventListener('visibilitychange', function () {
+    el.classList.toggle('splash-pausado', document.hidden);
+  });
+})();
+
 // Frases cortas que se van turnando en el splash mientras carga --  no
 // reflejan un progreso real (no hay forma de medirlo acá), solo dan la
 // sensación de que algo sigue pasando en vez de una pantalla estática.
