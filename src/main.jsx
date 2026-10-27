@@ -9411,53 +9411,59 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
                     <span className="text-2xl font-black text-stone-900 tabular-nums">{productosFiltrados.length}</span>
                     <span className="text-xs font-semibold text-stone-400">Productos</span>
                   </div>
-                  <div className="flex gap-2 flex-1 min-w-0">
-                    <div className="relative flex-1">
-                      <button
-                        onClick={abrirEscanerParaVenta}
-                        title="Escanear código de barras con la cámara"
-                        className="absolute left-2.5 top-1/2 -translate-y-1/2 w-7 h-7 flex items-center justify-center text-stone-500 hover:text-[#6105dc] hover:bg-[#f4eefe] rounded-full transition"
-                      >
-                        <i className="fa-solid fa-barcode text-sm"></i>
-                      </button>
+                  <div className="flex gap-2.5 flex-1 min-w-0 items-center">
+                    {/* Una sola pastilla: lupa, campo, resultados, limpiar y cámara.
+                        El borde violeta se enciende cuando el campo tiene el foco. */}
+                    <div className="flex-1 min-w-0 flex items-center gap-2.5 h-[46px] md:h-[50px] pl-4 md:pl-[18px] pr-1.5 md:pr-2 bg-white border border-[#e4dff0] rounded-full shadow-[0_1px_2px_rgba(40,10,100,0.04),0_8px_22px_-14px_rgba(60,4,150,0.28)] transition focus-within:border-[#6105dc] focus-within:ring-4 focus-within:ring-[#6105dc]/10 focus-within:shadow-[0_10px_26px_-12px_rgba(97,5,220,0.4)] group/bus">
+                      <i className="fa-solid fa-magnifying-glass text-[15px] text-[#8f89a8] group-focus-within/bus:text-[#6105dc] transition shrink-0"></i>
                       <input
                         ref={inputBusquedaRef}
                         type="text"
                         value={busqueda}
                         onChange={(e) => setBusqueda(e.target.value)}
                         onKeyDown={handleKeyDownBusqueda}
-                        placeholder="Escanear código o buscar producto..."
-                        className="w-full bg-white border border-[#d6bdfa]/60 text-stone-900 placeholder-stone-500 text-sm rounded-full pl-12 pr-10 py-2.5 focus:outline-none focus:border-[#6105dc]/45 focus:ring-4 focus:ring-[#6105dc]/[0.07] transition"
+                        placeholder="Busca por nombre o escanea un código"
+                        className="flex-1 min-w-0 bg-transparent text-[14px] md:text-[15px] font-medium text-stone-900 placeholder:text-[#9a94b3] placeholder:font-normal focus:outline-none"
                         autoFocus
                       />
                       {busqueda && (
-                        <button aria-label="Cerrar"
-                          onClick={() => {
-                            setBusqueda('');
-                            cargarProductos('');
-                          }}
-                          className="absolute right-2.5 top-1/2 -translate-y-1/2 w-7 h-7 flex items-center justify-center text-stone-500 hover:text-stone-800 rounded-full transition"
-                        ><i className="fa-solid fa-xmark"></i></button>
+                        <>
+                          <span className="hidden sm:inline-flex shrink-0 text-xs font-bold text-[#4d04b0] bg-[#f1e9fe] rounded-full px-2.5 py-1.5 tabular-nums">
+                            {productosFiltrados.length} {productosFiltrados.length === 1 ? 'resultado' : 'resultados'}
+                          </span>
+                          <button aria-label="Limpiar búsqueda"
+                            onClick={() => {
+                              setBusqueda('');
+                              cargarProductos('');
+                              inputBusquedaRef.current?.focus();
+                            }}
+                            className="shrink-0 w-[30px] h-[30px] flex items-center justify-center bg-[#f3f1f8] hover:bg-[#e9e5f3] text-[#6b6585] rounded-full transition"
+                          ><i className="fa-solid fa-xmark text-xs"></i></button>
+                        </>
                       )}
+                      <button
+                        onClick={abrirEscanerParaVenta}
+                        title="Escanear código de barras con la cámara"
+                        aria-label="Escanear código de barras con la cámara"
+                        className={`shrink-0 flex items-center justify-center gap-2 h-[34px] md:h-9 w-[34px] md:w-auto md:px-3.5 md:pl-3 rounded-full text-[13px] font-semibold transition ${busqueda ? 'bg-[#f4eefe] text-[#5503c4] hover:bg-[#ebdffd]' : 'text-white bg-gradient-to-br from-[#7a2cf0] to-[#5503c4] shadow-[0_6px_16px_-8px_rgba(97,5,220,0.7)] hover:brightness-110'}`}
+                      >
+                        <svg className="w-[17px] h-[17px]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 8V6a2 2 0 0 1 2-2h2M16 4h2a2 2 0 0 1 2 2v2M20 16v2a2 2 0 0 1-2 2h-2M8 20H6a2 2 0 0 1-2-2v-2"/><path d="M7 12h10"/></svg>
+                        <span className="hidden md:inline">Escanear</span>
+                      </button>
                     </div>
-                    <button aria-label="Buscar"
-                      onClick={() => cargarProductos(busqueda)}
-                      className="hidden md:flex items-center justify-center w-10 h-10 shrink-0 bg-white hover:bg-[#f4eefe] text-stone-700 text-xs font-semibold rounded-full border border-[#d6bdfa]/60 transition"
-                    >
-                      <i className="fa-solid fa-magnifying-glass"></i>
-                    </button>
                     <button
                       onClick={abrirPedidosRetirar}
                       title="Pedidos por retirar (clientes con cuenta)"
-                      className="relative flex items-center justify-center w-10 h-10 shrink-0 bg-white hover:bg-[#f4eefe] text-stone-700 text-xs font-semibold rounded-full border border-[#d6bdfa]/60 transition"
+                      aria-label="Pedidos por retirar"
+                      className="relative flex items-center justify-center w-[46px] h-[46px] md:w-[50px] md:h-[50px] shrink-0 bg-white hover:bg-[#f4eefe] text-[#4b4565] rounded-full border border-[#e4dff0] shadow-[0_1px_2px_rgba(40,10,100,0.04),0_8px_22px_-14px_rgba(60,4,150,0.28)] transition"
                     >
-                      <i className="fa-solid fa-bell-concierge"></i>
+                      <i className="fa-solid fa-bell-concierge text-[17px]"></i>
                       {pedidosPorRetirarPendientes > 0 ? (
-                        <span className="absolute -top-1.5 -right-1.5 w-4 h-4 flex items-center justify-center bg-rose-600 text-white text-[9px] font-bold rounded-full animate-pulse">
+                        <span className="absolute -top-1 -right-1 min-w-[19px] h-[19px] px-1 flex items-center justify-center bg-rose-600 text-white text-[10px] font-bold rounded-full border-2 border-white animate-pulse">
                           {pedidosPorRetirarPendientes > 9 ? '9+' : pedidosPorRetirarPendientes}
                         </span>
                       ) : pedidosListosSinCargar > 0 && (
-                        <span className="absolute -top-1.5 -right-1.5 w-4 h-4 flex items-center justify-center bg-emerald-600 text-white text-[9px] font-bold rounded-full">
+                        <span className="absolute -top-1 -right-1 min-w-[19px] h-[19px] px-1 flex items-center justify-center bg-emerald-600 text-white text-[10px] font-bold rounded-full border-2 border-white">
                           {pedidosListosSinCargar > 9 ? '9+' : pedidosListosSinCargar}
                         </span>
                       )}
