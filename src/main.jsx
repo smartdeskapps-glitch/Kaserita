@@ -10731,7 +10731,7 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
 
                 {/* Visor: esquinas blancas (verdes al leer un código) y una línea que recorre el recuadro */}
                 <div
-                  className={`absolute left-1/2 ${modoEscaner === 'toma-inventario' ? 'top-[45%]' : 'top-[42%]'} -translate-x-1/2 -translate-y-1/2 w-[78%] max-w-sm aspect-[1.55/1] rounded-[26px] shadow-[0_0_0_9999px_rgba(12,9,18,0.62)] pointer-events-none transition ${destelloEscaner ? 'bg-green-400/15' : ''}`}
+                  className={`absolute left-1/2 ${modoEscaner === 'toma-inventario' ? 'top-[45%]' : 'top-[42%]'} -translate-x-1/2 -translate-y-1/2 w-[78%] max-w-sm aspect-[1.55/1] rounded-[26px] shadow-[0_0_0_9999px_rgba(12,9,18,0.62)] pointer-events-none transition ${destelloEscaner ? 'bg-green-400/10' : ''}`}
                 >
                   {[
                     'left-[-2px] top-[-2px] border-r-0 border-b-0 rounded-tl-[24px]',
@@ -10739,10 +10739,32 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
                     'left-[-2px] bottom-[-2px] border-r-0 border-t-0 rounded-bl-[24px]',
                     'right-[-2px] bottom-[-2px] border-l-0 border-t-0 rounded-br-[24px]',
                   ].map((pos) => (
-                    <i key={pos} className={`absolute w-[38px] h-[38px] border-4 transition-colors ${destelloEscaner ? 'border-green-400' : 'border-white'} ${pos}`}></i>
+                    <i key={pos} className={`absolute w-[40px] h-[40px] border-4 transition-colors ${destelloEscaner ? 'border-green-400 drop-shadow-[0_0_10px_rgba(61,220,151,0.7)]' : 'border-white drop-shadow-[0_0_8px_rgba(160,100,255,0.55)]'} ${pos}`}></i>
                   ))}
                   {!destelloEscaner && <span className="escaner-linea absolute left-3 right-3 h-0.5 rounded-full"></span>}
+                  {!destelloEscaner && (
+                    <p className="absolute left-0 right-0 -bottom-10 text-center text-[12.5px] font-semibold text-white/85 [text-shadow:0_1px_8px_rgba(0,0,0,0.6)]">
+                      Centra el código dentro del recuadro
+                    </p>
+                  )}
                 </div>
+
+                {/* Aviso de lo que se acaba de leer (solo al vender) */}
+                {destelloEscaner && modoEscaner === 'venta' && (() => {
+                  const ultimo = listaEscaneada[0]
+                    ? carrito.find((it) => (it.claveCarrito || it.productoId) === listaEscaneada[0])
+                    : null;
+                  if (!ultimo) return null;
+                  return (
+                    <div key={`${ultimo.claveCarrito || ultimo.productoId}-${ultimo.cantidad}`} className="absolute left-1/2 -translate-x-1/2 top-[88px] max-w-[88%] flex items-center gap-2.5 bg-white text-[#1c1830] rounded-full py-1.5 pl-2 pr-3.5 text-[13px] font-bold shadow-[0_12px_30px_-10px_rgba(0,0,0,0.6)] animate-[escaner-pop_0.45s_cubic-bezier(0.2,1.4,0.3,1)_both]">
+                      <span className="w-6 h-6 shrink-0 rounded-full bg-[#22b573] text-white flex items-center justify-center">
+                        <IconoTrazo nombre="check" className="w-3.5 h-3.5" />
+                      </span>
+                      <span className="truncate">{ultimo.descripcion}</span>
+                      <span className="text-[#6105dc] tabular-nums shrink-0">×{ultimo.cantidad}</span>
+                    </div>
+                  );
+                })()}
 
                 <div className="absolute left-3.5 right-3.5 top-3.5 flex items-center gap-2.5">
                   <div className="flex-1 min-w-0 text-white">
@@ -10782,6 +10804,15 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
                     >
                       Reintentar
                     </button>
+                    {modoEscaner === 'venta' && (
+                      <button
+                        type="button"
+                        onClick={() => { setModalEscaner(false); setTimeout(() => inputBusquedaRef.current?.focus(), 80); }}
+                        className="text-[13px] font-semibold text-white/70 hover:text-white"
+                      >
+                        Buscar escribiendo
+                      </button>
+                    )}
                   </div>
                 )}
               </div>
@@ -10900,16 +10931,18 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
                     : [];
                   if (escaneados.length === 0) {
                     return (
-                      <div className="absolute left-3 right-3 bottom-3 rounded-[28px] bg-white/15 backdrop-blur-xl ring-1 ring-white/20 px-4 py-3.5">
-                        <p className="text-sm text-center text-white/90 leading-snug">Apunta la cámara al código de barras del producto.</p>
+                      <div className="absolute left-3 right-3 bottom-3 rounded-[28px] bg-white/15 backdrop-blur-xl ring-1 ring-white/20 px-4 py-3.5 text-center">
+                        <p className="text-[13.5px] font-medium text-white/95 leading-snug">Cada producto que leas se suma a la venta</p>
+                        <p className="text-xs text-white/65 mt-0.5">Puedes seguir escaneando uno tras otro</p>
                       </div>
                     );
                   }
                   return (
-                    <div className="absolute left-3 right-3 bottom-3 rounded-[28px] bg-[#140f20]/90 backdrop-blur-xl ring-1 ring-white/10 p-3.5 text-white">
-                      <div className="flex items-baseline justify-between mb-1.5 text-xs font-semibold uppercase tracking-wide text-white/65">
+                    <div className="absolute left-3 right-3 bottom-3 rounded-[28px] bg-[#140f20]/90 backdrop-blur-xl ring-1 ring-white/10 px-3.5 pb-3.5 pt-2 text-white">
+                      <div className="w-9 h-1 rounded-full bg-white/25 mx-auto mb-2.5"></div>
+                      <div className="flex items-center justify-between mb-1 text-xs font-semibold text-white/65">
                         <span>Escaneado ahora</span>
-                        <b className="text-[12.5px] text-white">{carrito.length} {carrito.length === 1 ? 'producto' : 'productos'}</b>
+                        <b className="text-[12.5px] text-white bg-white/10 rounded-full px-2.5 py-0.5">{carrito.length} {carrito.length === 1 ? 'producto' : 'productos'}</b>
                       </div>
                       {escaneados.map((it, i) => {
                         const clave = it.claveCarrito || it.productoId;
@@ -10918,7 +10951,7 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
                             <FotoProducto fotoUrl={it.foto_url} categoria={it.categoria} className={`w-[34px] h-[34px] rounded-[10px] shrink-0 bg-white ${i === 0 ? 'ring-2 ring-green-400' : 'ring-1 ring-black/5'}`} iconClassName="text-xs" />
                             <div className="flex-1 min-w-0">
                               <p className="text-[13.5px] font-semibold leading-tight truncate">{it.descripcion}</p>
-                              <p className="text-[11.5px] text-white/60">S/ {formatoSoles(it.precioUnitario)}</p>
+                              <p className="text-[11.5px] text-white/60">S/ {formatoSoles(it.precioUnitario)} c/u</p>
                             </div>
                             <div className="flex items-center bg-white/[0.12] rounded-full shrink-0">
                               <button type="button" onClick={() => cambiarCantidadCarrito(clave, -1)} className="w-[30px] h-[30px] flex items-center justify-center text-white" aria-label="Quitar uno">
@@ -10929,17 +10962,16 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
                                 <IconoTrazo nombre="plus" className="w-[13px] h-[13px]" />
                               </button>
                             </div>
-                            <span className="w-[54px] text-right text-[13.5px] font-bold tabular-nums shrink-0">{formatoSoles(it.subtotal)}</span>
                           </div>
                         );
                       })}
                       <button
                         type="button"
                         onClick={() => { setModalEscaner(false); setMostrarResumenMobile(true); }}
-                        className="w-full h-[52px] mt-2.5 rounded-full bg-white hover:bg-[#faf8fe] text-[#4d04b0] flex items-center justify-between pl-5 pr-2 text-[15px] font-bold transition"
+                        className="w-full h-[52px] mt-2.5 rounded-full bg-white hover:bg-[#faf8fe] text-[#4d04b0] flex items-center justify-between pl-[18px] pr-1.5 text-[14px] font-bold whitespace-nowrap transition"
                       >
                         Listo · ver venta
-                        <span className="px-3.5 py-2 rounded-full bg-[#6105dc] text-white text-sm tabular-nums">S/ {formatoSoles(totalConDescuento)}</span>
+                        <span className="px-4 py-2.5 rounded-full bg-gradient-to-br from-[#7a2cf0] to-[#5503c4] text-white text-sm tabular-nums shadow-[0_8px_18px_-8px_rgba(97,5,220,0.8)]">S/ {formatoSoles(totalConDescuento)}</span>
                       </button>
                     </div>
                   );
