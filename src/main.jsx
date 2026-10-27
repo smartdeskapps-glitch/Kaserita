@@ -10723,7 +10723,7 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
 
                 {/* Visor: esquinas blancas (verdes al leer un código) y una línea que recorre el recuadro */}
                 <div
-                  className={`absolute left-1/2 ${modoEscaner === 'toma-inventario' ? 'top-[45%]' : 'top-[42%]'} -translate-x-1/2 -translate-y-1/2 w-[78%] max-w-sm aspect-[1.55/1] rounded-[26px] shadow-[0_0_0_9999px_rgba(12,9,18,0.62)] pointer-events-none transition [container-type:size] ${destelloEscaner ? 'bg-green-400/10' : ''}`}
+                  className={`absolute left-1/2 ${modoEscaner === 'toma-inventario' ? 'top-[45%]' : 'top-[42%]'} -translate-x-1/2 -translate-y-1/2 w-[78%] max-w-sm aspect-[1.55/1] rounded-[26px] shadow-[0_0_0_9999px_rgba(12,9,18,0.62)] pointer-events-none transition ${destelloEscaner ? 'bg-green-400/10' : ''}`}
                 >
                   {[
                     'left-[-2px] top-[-2px] border-r-0 border-b-0 rounded-tl-[24px]',
@@ -10733,7 +10733,6 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
                   ].map((pos) => (
                     <i key={pos} className={`absolute w-[40px] h-[40px] border-4 transition-colors ${destelloEscaner ? 'border-green-400 drop-shadow-[0_0_10px_rgba(61,220,151,0.7)]' : 'border-white drop-shadow-[0_0_8px_rgba(160,100,255,0.55)]'} ${pos}`}></i>
                   ))}
-                  {!destelloEscaner && <span className="escaner-linea absolute left-3 right-3 h-0.5 rounded-full"></span>}
                   {!destelloEscaner && (
                     <p className="absolute left-0 right-0 -bottom-10 text-center text-[12.5px] font-semibold text-white/85 [text-shadow:0_1px_8px_rgba(0,0,0,0.6)]">
                       Centra el código dentro del recuadro

@@ -108,27 +108,7 @@
   display: none;
 }
 
-/* Línea que recorre el visor del lector de códigos. */
-.escaner-linea {
-  top: 12%;
-  will-change: transform;
-  background: linear-gradient(90deg, transparent, #c9a2ff 20%, #fff 50%, #c9a2ff 80%, transparent);
-  box-shadow: 0 0 16px 4px rgba(150, 80, 255, 0.65);
-  animation: escaner-linea 2.2s ease-in-out infinite alternate;
-}
-/* Estela de luz que queda debajo del haz */
-.escaner-linea::after {
-  content: '';
-  position: absolute;
-  left: 0;
-  right: 0;
-  top: 2px;
-  height: 46px;
-  background: linear-gradient(180deg, rgba(150, 80, 255, 0.28), transparent);
-}
-/* cqh = alto del visor (que es contenedor): 74 % del recuadro de recorrido */
-@keyframes escaner-linea { to { transform: translateY(74cqh); } }
-@media (prefers-reduced-motion: reduce) { .escaner-linea { animation: none; } }
+/* Aviso del producto recién leído en el escáner. */
 @keyframes escaner-pop { from { transform: translateX(-50%) translateY(10px) scale(0.8); opacity: 0; } }
 
 
