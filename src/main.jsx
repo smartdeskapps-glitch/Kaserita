@@ -3037,6 +3037,35 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
       // (stock tras una venta, precios, nombres, fotos, altas y bajas) y los
       // aplica a la grilla sin recargar. Requiere realtime_productos.sql;
       // si no está activado, el catálogo sigue refrescándose como siempre.
+      // Actualiza solo algunos productos (por ejemplo, los de una venta) sin volver a
+      // descargar el catálogo completo: pide únicamente esas filas y las funde en la grilla.
+      const refrescarProductosPorId = async (ids) => {
+        const lista = [...new Set((ids || []).filter(Boolean))];
+        if (lista.length === 0) return;
+        if (esModoDemo || !sbClient || !bodegaId) { cargarProductos(busquedaActualRef.current); return; }
+        try {
+          const { data, error } = await sbClient.from('productos').select('*').eq('bodega_id', bodegaId).in('id', lista);
+          if (error) throw error;
+          const nuevos = new Map((data || []).map((x) => [x.id, x]));
+          setProductos((prev) => {
+            let cambio = false;
+            const siguiente = prev.map((o) => {
+              const nuevo = nuevos.get(o.id);
+              if (!nuevo) return o;
+              if (nuevo.activo === false) { cambio = true; return null; }
+              // La foto del catálogo maestro manda sobre la copiada al importar, y esta consulta no trae ese JOIN.
+              const fusion = { ...o, ...nuevo, foto_url: o.catalogo_maestro ? o.foto_url : nuevo.foto_url, catalogo_maestro: o.catalogo_maestro };
+              if (JSON.stringify(fusion) === JSON.stringify(o)) return o;
+              cambio = true;
+              return fusion;
+            }).filter(Boolean);
+            return cambio ? siguiente : prev;
+          });
+        } catch (err) {
+          cargarProductos(busquedaActualRef.current);
+        }
+      };
+
       const busquedaActualRef = useRef('');
       busquedaActualRef.current = busqueda;
       const recargaCatalogoTimer = useRef(null);
@@ -3372,9 +3401,11 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
           // resuelto qué cajero es "el mío" en este dispositivo (por DNI)
           // para decidir si hay que retomar mi propia caja en silencio o
           // avisar que hay otras cajas abiertas de otros cajeros.
+          // La consulta de turnos sale ya, junto con las demás; solo la decisión espera al cajero.
+          const turnosEnCurso = esModoDemo || !sbClient ? null : consultarTurnosAbiertos();
           (async () => {
             const cajero = await cargarCajeros();
-            verificarTurno(cajero);
+            verificarTurno(cajero, turnosEnCurso);
           })();
           // Avisa una sola vez (por sesión iniciada) si se recuperó una venta
           // que había quedado a medias por un refresh accidental.
@@ -3622,6 +3653,10 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
         const extra = Array.from(usadas).filter(c => !categoriasDB.includes(c));
         return ['TODOS', ...enOrden, ...extra];
       }, [productos, categoriasDB]);
+
+      // Función estable para las tarjetas: si fuera una flecha nueva en cada render,
+      // React.memo no evitaría que todas las tarjetas se redibujen con cada cambio.
+      const verCombosDesdeTarjeta = useCallback(() => setCategoriaFiltro('__COMBOS__'), []);
 
       const productosFiltrados = useMemo(() => {
         if (categoriaFiltro === 'TODOS') return productos;
@@ -7926,15 +7961,21 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
       // hay alguna caja abierta (sea "la mía" u otra), se muestra siempre
       // la misma lista para elegir con cuál trabajar, en vez de engancharse
       // en silencio a una de ellas.
-      const verificarTurno = async (cajeroActual) => {
+      // Consulta de turnos abiertos de la bodega. Se puede lanzar antes de saber quién es el
+      // cajero (en el arranque va en paralelo con los demás datos) y pasarla a verificarTurno.
+      const consultarTurnosAbiertos = () => Promise.resolve(
+        sbClient
+          .from('turnos_caja')
+          .select('*, cajeros(id, bodega_id, nombre, dni, rol, activo)')
+          .eq('bodega_id', bodegaId)
+          .is('fecha_cierre', null)
+          .order('fecha_apertura', { ascending: false })
+      );
+
+      const verificarTurno = async (cajeroActual, consultaPrevia = null) => {
         if (!sbClient || !bodegaId || esModoDemo) return;
         try {
-          const { data: abiertas } = await sbClient
-            .from('turnos_caja')
-            .select('*, cajeros(id, bodega_id, nombre, dni, rol, activo)')
-            .eq('bodega_id', bodegaId)
-            .is('fecha_cierre', null)
-            .order('fecha_apertura', { ascending: false });
+          const { data: abiertas } = await (consultaPrevia || consultarTurnosAbiertos());
 
           if (abiertas && abiertas.length > 0) {
             // Se avisa una vez por combinación exacta de cajas abiertas
@@ -8470,7 +8511,9 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
           // Cierra la hoja del carrito (mobile): que la venta exitosa vuelva
           // al catálogo en vez de dejar ver el carrito ya vacío detrás.
           setMostrarResumenMobile(false);
-          if (enLinea || esModoDemo) cargarProductos(busqueda); // refresca el stock mostrado en el catálogo
+          // Refresca el stock mostrado: solo los productos vendidos, no el catálogo entero.
+          if (esModoDemo) cargarProductos(busqueda);
+          else if (enLinea) refrescarProductosPorId(carrito.flatMap(expandirLineaCarrito).map((l) => l.productoId));
           // No se usa notificar() aquí: el modal de "¡Venta Exitosa!" ya
           // muestra la boleta y el detalle, un toast encima sería redundante.
         } catch (err) {
@@ -9498,7 +9541,7 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
                         onSelect={handleClicProducto}
                         onEdit={abrirEdicionProducto}
                         tieneCombo={productosEnCombo.has(prod.id)}
-                        onVerCombo={() => setCategoriaFiltro('__COMBOS__')}
+                        onVerCombo={verCombosDesdeTarjeta}
                       />
                     ))}
                   </div>
