@@ -29,22 +29,10 @@ window.ocultarSplashKaserita = function () {
   const el = document.getElementById('splash-kaserita');
   if (!el) return;
   clearInterval(fraseSplashIntervalo);
-  // En escritorio primero se encoge hacia la izquierda (mismo ancho
-  // final que el panel de marca real) y recién después se desvanece --
-  // así se ve como si el splash se transformara en el panel en vez de
-  // simplemente taparlo y desaparecer. En mobile el login no se divide
-  // en columnas, así que se salta directo al desvanecido de siempre.
-  const esEscritorio = window.matchMedia('(min-width: 768px)').matches;
-  const desvanecer = () => {
-    el.classList.add('splash-oculto');
-    setTimeout(() => el.remove(), 450);
-  };
-  if (esEscritorio) {
-    el.classList.add('splash-encogiendo');
-    setTimeout(desvanecer, 700);
-  } else {
-    desvanecer();
-  }
+  // Se desvanece (con un leve acercamiento, ver .splash-oculto en pos.html) y
+  // recién entonces se quita del DOM.
+  el.classList.add('splash-oculto');
+  setTimeout(() => el.remove(), 550);
 };
 // Salvavidas: si algo tarda demasiado en cargar, el splash no se queda
 // pegado para siempre.

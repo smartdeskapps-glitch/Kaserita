@@ -46,7 +46,7 @@
        falta -- ver cargarScriptExterno() más abajo. -->
 
   <!-- Logo: se precarga para que el splash de abajo lo muestre al instante -->
-  <link rel="preload" as="image" href="/logo-vertical-color.svg" type="image/svg+xml">
+  <link rel="preload" as="image" href="/logo-horizontal-sobre-morado.svg" type="image/svg+xml">
 
   <style>
     html {
@@ -136,77 +136,104 @@
     }
 
     /* Splash screen: puro HTML/CSS, visible desde el primer instante (antes
-       de que React, Babel y Supabase terminen de descargarse), para que
-       nunca se vea una pantalla en blanco mientras carga. */
+       de que React y Supabase terminen de descargarse), para que nunca se vea
+       una pantalla en blanco mientras carga. Fondo violeta de la marca con una
+       aurora de manchas de color que se deforman y se mezclan, logo blanco al
+       centro. Las medidas usan vw/vh/vmax porque el splash ocupa toda la pantalla. */
     #splash-kaserita {
       position: fixed;
-      top: 0;
-      left: 0;
-      bottom: 0;
-      right: 0;
+      inset: 0;
       z-index: 9999;
       display: flex;
       flex-direction: column;
       align-items: center;
       justify-content: center;
       overflow: hidden;
-      color: #2d1b4e;
+      color: #fff;
       font-family: 'Inter', system-ui, sans-serif;
-      transition: opacity 0.4s ease, visibility 0.4s ease, right 0.7s cubic-bezier(0.65, 0, 0.35, 1);
+      background: radial-gradient(120% 90% at 50% 0%, #5a06cf 0%, #43059f 45%, #2c0369 100%);
+      transition: opacity 0.5s ease, transform 0.5s ease, visibility 0.5s ease;
     }
     #splash-kaserita.splash-oculto {
       opacity: 0;
+      transform: scale(1.04);
       visibility: hidden;
       pointer-events: none;
     }
-    /* En pantallas de escritorio, al terminar de cargar el splash no se
-       desvanece de una: primero se encoge hacia la izquierda (mismo ancho
-       final que el panel de marca del login, "right: 50%") para que
-       parezca que se transforma en él, mientras a la derecha va quedando a
-       la vista el formulario. En mobile el login no se divide en columnas,
-       así que esto no aplica y pasa directo al desvanecido de siempre. */
-    @media (min-width: 768px) {
-      #splash-kaserita.splash-encogiendo { right: 50%; }
+    /* Aurora: manchas grandes y difuminadas que se mezclan con "screen",
+       más un velo de luz que gira lento por detrás. */
+    #splash-kaserita .au {
+      position: absolute;
+      pointer-events: none;
+      mix-blend-mode: screen;
+      will-change: transform, border-radius;
     }
-    /* El tamaño y espaciado del logo/subtítulo NO se define acá -- usa las
-       mismas clases de Tailwind que el panel de marca real (w-52 md:w-64,
-       mb-6, -mt-3, etc., puestas directo en el HTML de abajo) para que
-       ambos bloques midan exactamente lo mismo. Si no coinciden al pixel,
-       durante el encogido/desvanecido se alcanzan a ver los dos logos
-       superpuestos a distinta escala (efecto fantasma). */
+    #splash-kaserita .au-b { filter: blur(clamp(22px, 7vmax, 54px)); }
+    #splash-kaserita .au-1 { width: 70vmax; height: 58vmax; left: -18vmax; top: -14vmax; background: radial-gradient(closest-side, #9b4dff, rgba(155,77,255,0)); animation: au-m1 11s ease-in-out infinite, au-f1 7s ease-in-out infinite; }
+    #splash-kaserita .au-2 { width: 62vmax; height: 52vmax; right: -16vmax; top: 6vmax; background: radial-gradient(closest-side, #d7a8ff, rgba(215,168,255,0)); opacity: 0.85; animation: au-m2 13s ease-in-out infinite, au-f2 9s ease-in-out infinite; }
+    #splash-kaserita .au-3 { width: 66vmax; height: 48vmax; left: -6vmax; bottom: -20vmax; background: radial-gradient(closest-side, #ff5fb0, rgba(255,95,176,0)); opacity: 0.8; animation: au-m3 12s ease-in-out infinite, au-f3 8s ease-in-out infinite; }
+    #splash-kaserita .au-4 { width: 46vmax; height: 38vmax; right: -8vmax; bottom: -14vmax; background: radial-gradient(closest-side, #ffc81a, rgba(255,200,26,0)); opacity: 0.75; animation: au-m4 10s ease-in-out infinite, au-f4 6s ease-in-out infinite; }
+    #splash-kaserita .au-5 { width: 50vmax; height: 40vmax; left: 30%; top: 20%; background: radial-gradient(closest-side, #6a7bff, rgba(106,123,255,0)); opacity: 0.7; animation: au-m5 14s ease-in-out infinite, au-f1 10s ease-in-out infinite; }
+    #splash-kaserita .au-velo {
+      width: 170vmax; height: 170vmax; left: 50%; top: 55%; margin: -85vmax 0 0 -85vmax;
+      filter: blur(clamp(26px, 8vmax, 60px));
+      opacity: 0.55;
+      background: conic-gradient(from 0deg, rgba(0,0,0,0) 0%, rgba(205,160,255,0.75) 14%, rgba(0,0,0,0) 34%, rgba(255,200,26,0.55) 52%, rgba(0,0,0,0) 70%, rgba(255,110,190,0.6) 86%, rgba(0,0,0,0) 100%);
+      animation: au-giro 22s linear infinite;
+    }
+    @keyframes au-giro { to { transform: rotate(360deg); } }
+    @keyframes au-m1 { 0%,100% { transform: translate(0,0) scale(1); } 33% { transform: translate(34vw,22vh) scale(1.2); } 66% { transform: translate(12vw,40vh) scale(0.9); } }
+    @keyframes au-m2 { 0%,100% { transform: translate(0,0) scale(1); } 35% { transform: translate(-38vw,24vh) scale(1.15); } 70% { transform: translate(-14vw,-6vh) scale(0.92); } }
+    @keyframes au-m3 { 0%,100% { transform: translate(0,0) scale(1); } 40% { transform: translate(40vw,-30vh) scale(1.2); } 75% { transform: translate(18vw,-8vh) scale(0.95); } }
+    @keyframes au-m4 { 0%,100% { transform: translate(0,0) scale(1); } 50% { transform: translate(-42vw,-34vh) scale(1.25); } }
+    @keyframes au-m5 { 0%,100% { transform: translate(0,0); } 25% { transform: translate(26vw,-12vh); } 50% { transform: translate(-8vw,26vh); } 75% { transform: translate(-30vw,-6vh); } }
+    @keyframes au-f1 { 0%,100% { border-radius: 42% 58% 63% 37% / 45% 41% 59% 55%; } 50% { border-radius: 61% 39% 38% 62% / 58% 62% 38% 42%; } }
+    @keyframes au-f2 { 0%,100% { border-radius: 55% 45% 40% 60% / 38% 60% 40% 62%; } 50% { border-radius: 38% 62% 58% 42% / 62% 40% 60% 38%; } }
+    @keyframes au-f3 { 0%,100% { border-radius: 60% 40% 52% 48% / 48% 55% 45% 52%; } 50% { border-radius: 40% 60% 45% 55% / 60% 42% 58% 40%; } }
+    @keyframes au-f4 { 0%,100% { border-radius: 50%; } 50% { border-radius: 64% 36% 44% 56% / 42% 58% 42% 58%; } }
+
+    #splash-kaserita .splash-cont {
+      position: relative;
+      z-index: 2;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      text-align: center;
+      padding: 0 6vw;
+    }
     #splash-kaserita .splash-logo-img {
-      animation: splash-pulso 1.8s infinite ease-in-out;
+      display: block;
+      width: min(62vw, 420px);
+      height: auto;
+      filter: drop-shadow(0 6px 24px rgba(30, 0, 90, 0.35));
+      animation: splash-ent 1s cubic-bezier(0.2, 0.8, 0.2, 1) both, splash-resp 4.5s ease-in-out 1s infinite;
     }
-    @keyframes splash-pulso {
-      0%, 100% { transform: scale(1); opacity: 0.85; }
-      50% { transform: scale(1.04); opacity: 1; }
+    @keyframes splash-ent { from { opacity: 0; transform: translateY(14px) scale(0.96); } }
+    @keyframes splash-resp { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-4px); } }
+    #splash-kaserita .lema-kaserita {
+      margin: 1.6rem 0 0;
+      color: rgba(255, 255, 255, 0.95);
+      text-shadow: 0 1px 14px rgba(40, 0, 110, 0.65);
+      animation: splash-ent 1s 0.15s both;
     }
-    /* Indicador de carga: barra indeterminada + frase que va cambiando.
-       Va con position:absolute (no dentro del grupo centrado del logo) a
-       propósito -- si fuera un hijo más del flex centrado, sumaría alto al
-       bloque y correría el logo hacia arriba, desalineándolo del logo real
-       del panel (el mismo efecto fantasma que ya se corrigió una vez). */
+    /* Indicador de carga: barra indeterminada + frase que va cambiando. */
     #splash-kaserita .splash-loading {
       position: absolute;
+      z-index: 2;
       left: 0;
       right: 0;
-      bottom: clamp(2rem, 9vh, 4rem);
+      bottom: clamp(2rem, 8vh, 4rem);
       display: flex;
       flex-direction: column;
       align-items: center;
       gap: 0.75rem;
-      transition: opacity 0.25s ease;
-    }
-    /* Al empezar a encogerse ya sabemos que la carga terminó -- se apaga de
-       una vez para no mezclar "cargando" con la pantalla final apareciendo. */
-    #splash-kaserita.splash-encogiendo .splash-loading {
-      opacity: 0;
+      animation: splash-ent 1s 0.3s both;
     }
     #splash-kaserita .splash-progress {
-      width: 160px;
+      width: min(46vw, 200px);
       height: 3px;
       border-radius: 999px;
-      background: rgba(124, 58, 237, 0.15);
+      background: rgba(255, 255, 255, 0.22);
       overflow: hidden;
       position: relative;
     }
@@ -216,28 +243,30 @@
       top: 0;
       left: -40%;
       height: 100%;
-      width: 40%;
+      width: 38%;
       border-radius: 999px;
-      background: rgba(124, 58, 237, 0.85);
-      animation: splash-progress-slide 1.4s ease-in-out infinite;
+      background: linear-gradient(90deg, transparent, #fff, transparent);
+      animation: splash-progress-slide 1.5s ease-in-out infinite;
     }
     @keyframes splash-progress-slide {
       0% { left: -40%; }
-      100% { left: 100%; }
+      100% { left: 102%; }
     }
     #splash-kaserita .splash-status {
-      font-size: 0.75rem;
-      color: rgba(45, 27, 78, 0.55);
+      margin: 0;
+      font-size: 0.78rem;
+      font-weight: 500;
+      color: rgba(255, 255, 255, 0.88);
+      text-shadow: 0 1px 12px rgba(40, 0, 110, 0.7);
       min-height: 1.2em;
       transition: opacity 0.3s ease;
     }
     #splash-kaserita .splash-status.splash-status-oculto {
       opacity: 0;
     }
-    /* Si el sistema pide menos movimiento, se queda quieto en vez de verse
-       trabado a medio camino. */
+    /* Si el sistema pide menos movimiento, todo se queda quieto. */
     @media (prefers-reduced-motion: reduce) {
-      #splash-kaserita .splash-logo-img { animation: none; }
+      #splash-kaserita .au, #splash-kaserita .splash-logo-img { animation: none; }
       #splash-kaserita .splash-progress::after { animation: none; left: 0; width: 100%; }
     }
 
@@ -298,9 +327,17 @@
   </style>
 </head>
 <body class="bg-stone-50 text-stone-900 h-screen overflow-hidden font-sans">
-  <div id="splash-kaserita" class="login-brand-mesh">
-    <img class="splash-logo-img w-52 md:w-64 h-auto mb-6" src="/logo-vertical-color.svg" width="975" height="907" alt="Kaserita - Punto de Venta">
-    <p class="lema-kaserita">Tu negocio <b>bajo</b> control</p>
+  <div id="splash-kaserita">
+    <div class="au au-velo"></div>
+    <div class="au au-b au-1"></div>
+    <div class="au au-b au-2"></div>
+    <div class="au au-b au-3"></div>
+    <div class="au au-b au-4"></div>
+    <div class="au au-b au-5"></div>
+    <div class="splash-cont">
+      <img class="splash-logo-img" src="/logo-horizontal-sobre-morado.svg" width="2068" height="642" alt="Kaserita - Punto de Venta">
+      <p class="lema-kaserita">Tu negocio <b>bajo</b> control</p>
+    </div>
     <div class="splash-loading">
       <div class="splash-progress"></div>
       <p class="splash-status" id="splash-status">Preparando tu catálogo...</p>
