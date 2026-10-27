@@ -1785,6 +1785,11 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
         setCajeroSeleccionado(null);
         setCarrito([]);
         setTurnoActivo(null);
+        // El catálogo guardado para abrir rápido incluye costos: no se deja
+        // en el equipo al salir.
+        try {
+          Object.keys(localStorage).filter((k) => k.startsWith('kz_catalogo_')).forEach((k) => localStorage.removeItem(k));
+        } catch (err) { /* sin almacenamiento disponible: nada que limpiar */ }
         // Limpia el estado del Modo Demo Local para que no se filtre a la
         // siguiente sesión (real o demo de nuevo) en esta misma pestaña.
         catalogoDemoRef.current = null;
@@ -2922,7 +2927,22 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
           return;
         }
 
-        setCargandoProductos(true);
+        // Primera carga de esta bodega en la sesión, sin búsqueda: se muestra
+        // al instante el último catálogo guardado en este equipo mientras
+        // llega el actualizado (stock y precios se corrigen solos al terminar).
+        let desdeCache = false;
+        const claveCache = `kz_catalogo_${bodegaId}`;
+        if (!termino.trim() && catalogoCacheadoRef.current !== bodegaId) {
+          catalogoCacheadoRef.current = bodegaId;
+          try {
+            const guardado = JSON.parse(localStorage.getItem(claveCache) || 'null');
+            if (Array.isArray(guardado) && guardado.length > 0) {
+              setProductos(guardado);
+              desdeCache = true;
+            }
+          } catch (err) { /* caché ilegible: se carga normal */ }
+        }
+        setCargandoProductos(!desdeCache);
         if (sbClient) {
           try {
             const TAMANO_LOTE_CATALOGO = 1000;
@@ -2993,8 +3013,16 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
               const igual = nuevos.length === prev.length && nuevos.every((x, i) => x === prev[i]);
               return igual ? prev : nuevos;
             });
+            if (!termino.trim()) {
+              try {
+                const texto = JSON.stringify(visibles);
+                if (texto.length < 2_500_000) localStorage.setItem(claveCache, texto);
+                else localStorage.removeItem(claveCache);
+              } catch (err) { /* almacenamiento lleno o bloqueado: se sigue sin caché */ }
+            }
           } catch (err) {
-            setProductos([]);
+            // Sin internet pero con catálogo guardado: se conserva lo que ya se ve.
+            if (!desdeCache) setProductos([]);
             notificar(mensajeError(err, 'No se pudieron cargar tus productos'), 'error');
           } finally {
             setCargandoProductos(false);
@@ -3041,6 +3069,7 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
       const busquedaActualRef = useRef('');
       busquedaActualRef.current = busqueda;
       const recargaCatalogoTimer = useRef(null);
+      const catalogoCacheadoRef = useRef(null);
       useEffect(() => {
         if (esModoDemo || !sbClient || !bodegaId) return;
         const recargarSuave = () => {

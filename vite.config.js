@@ -12,7 +12,17 @@ export default defineConfig({
     environment: "node",
   },
   build: {
-    rollupOptions: {
+    rolldownOptions: {
+      // React y Supabase casi nunca cambian: en archivos aparte, un despliegue
+      // de la app no obliga a descargarlos de nuevo.
+      output: {
+        codeSplitting: {
+          groups: [
+            { name: 'react', test: /node_modules[\\/](react|react-dom|scheduler)[\\/]/ },
+            { name: 'supabase', test: /node_modules[\\/]@supabase[\\/]/ },
+          ],
+        },
+      },
       input: {
         inicio: resolve(__dirname, 'index.html'),
         pos: resolve(__dirname, 'pos.html'),
