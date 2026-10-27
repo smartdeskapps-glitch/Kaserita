@@ -2888,7 +2888,13 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
       // caso conviene usar "Desactivar" en su lugar, así se avisa.
       const eliminarCajero = async (cajero) => {
         if (cajero.rol === 'dueno') return;
-        if (!window.confirm(`¿Eliminar a "${cajero.nombre}" de la lista de cajeros? Esta acción no se puede deshacer.`)) return;
+        const confirmado = await pedirConfirmacion({
+          titulo: 'Eliminar cajero',
+          mensaje: `¿Eliminar a "${cajero.nombre}" de la lista de cajeros? Esta acción no se puede deshacer.`,
+          textoBoton: 'Sí, eliminar',
+          peligroso: true
+        });
+        if (!confirmado) return;
         try {
           if (sbClient && !esModoDemo) {
             const { error } = await sbClient.from('cajeros').delete().eq('id', cajero.id);
@@ -7902,6 +7908,17 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
         try {
           const { data: abiertas } = await (consultaPrevia || consultarTurnosAbiertos());
 
+          // Mi propia caja (del cajero de este dispositivo), si es de hoy y es
+          // la única mía: se retoma sola. Sin esto, tras recargar la página
+          // el botón decía "Abrir Turno" aunque la caja seguía abierta.
+          const propias = (abiertas || []).filter((t) => cajeroActual?.id && t.cajero_id === cajeroActual.id);
+          if (propias.length === 1 && !antiguedadTurno(propias[0].fecha_apertura).antiguo) {
+            const mia = propias[0];
+            setTurnoActivo((previo) => previo || mia);
+            if (mia.cajeros) setCajeroSeleccionado((previo) => previo || mia.cajeros);
+            if (abiertas.length === 1) return;
+          }
+
           if (abiertas && abiertas.length > 0) {
             // Se avisa una vez por combinación exacta de cajas abiertas
             // (guardado en sessionStorage) -- no en cada recarga de la
@@ -9949,7 +9966,14 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
                 )}
                 {carrito.length > 0 && (
                   <button
-                    onClick={() => { avisarPedidosDevueltos(); setCarrito([]); setDescuentoTipo(null); setDescuentoValor(''); setMostrarPago(false); reiniciarClienteYMedioPago(); setPedidosCargadosAlCarrito([]); }}
+                    onClick={async () => {
+                      // Con varias líneas se pregunta antes: un toque sin querer borraría toda la venta.
+                      if (carrito.length > 1) {
+                        const ok = await pedirConfirmacion({ titulo: 'Vaciar el carrito', mensaje: `Se quitarán los ${carrito.length} productos de esta venta.`, textoBoton: 'Sí, vaciar', peligroso: true });
+                        if (!ok) return;
+                      }
+                      avisarPedidosDevueltos(); setCarrito([]); setDescuentoTipo(null); setDescuentoValor(''); setMostrarPago(false); reiniciarClienteYMedioPago(); setPedidosCargadosAlCarrito([]);
+                    }}
                     className="px-3.5 py-1.5 rounded-full bg-rose-50 hover:bg-rose-100 text-xs text-rose-700 font-semibold transition"
                   >
                     Vaciar
