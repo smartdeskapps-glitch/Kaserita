@@ -1784,9 +1784,6 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
       useEffect(() => {
         if (!modalEscaner) setProductoEscaneadoId(null);
       }, [modalEscaner]);
-      // Diagnóstico visible en pantalla (para poder revisar desde el celular
-      // sin necesitar la consola del navegador).
-      const [debugEscaner, setDebugEscaner] = useState({ frames: 0, tamano: '', error: '' });
 
       const notificar = useCallback((texto, tipo = 'info') => {
         setToast({ visible: true, texto, tipo });
@@ -4490,7 +4487,6 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
       useEffect(() => {
         if (!modalEscaner) return;
         setErrorEscaner('');
-        setDebugEscaner({ frames: 0, tamano: '', error: '' });
         let activo = true;
 
         const detenerTodo = () => {
@@ -4537,9 +4533,6 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
             }
             procesando = true;
             frames++;
-            if (frames % 5 === 0) {
-              setDebugEscaner({ frames, tamano: `${video.videoWidth}x${video.videoHeight}`, error: '' });
-            }
             try {
               // Decodificar a resolución completa (hasta 1920x1080) es
               // innecesario para leer un código de barras y en celulares sin
@@ -4567,7 +4560,6 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
                 handleCodigoEscaneado(resultados[0].text);
               }
             } catch (e) {
-              setDebugEscaner((prev) => ({ ...prev, error: String(e?.message || e).slice(0, 60) }));
               console.warn('[escaner] error en zxing-wasm:', e);
             }
             procesando = false;
@@ -4588,17 +4580,17 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
 
           const detector = new window.BarcodeDetector({ formats: formatos });
           let detectando = false;
-          let frames = 0;
+          let ultimaLectura = 0;
 
           const loop = () => {
             if (!activo) return;
             detectorLoopRef.current = requestAnimationFrame(loop);
-            if (detectando || video.readyState < 2) return;
+            // Un código se lee igual de rápido con ~10 intentos por segundo que con 60,
+            // y se ahorra batería. Tampoco se analiza con la pantalla en segundo plano.
+            const ahora = performance.now();
+            if (detectando || video.readyState < 2 || document.hidden || ahora - ultimaLectura < 100) return;
+            ultimaLectura = ahora;
             detectando = true;
-            frames++;
-            if (frames % 15 === 0) {
-              setDebugEscaner({ frames, tamano: `${video.videoWidth}x${video.videoHeight}`, error: '' });
-            }
             detector.detect(video)
               .then((resultados) => {
                 detectando = false;
@@ -4608,7 +4600,7 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
               })
               .catch((e) => {
                 detectando = false;
-                setDebugEscaner((prev) => ({ ...prev, error: String(e?.message || e).slice(0, 60) }));
+                console.warn('[escaner] error del detector nativo:', e);
               });
           };
 
@@ -10731,7 +10723,7 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
 
                 {/* Visor: esquinas blancas (verdes al leer un código) y una línea que recorre el recuadro */}
                 <div
-                  className={`absolute left-1/2 ${modoEscaner === 'toma-inventario' ? 'top-[45%]' : 'top-[42%]'} -translate-x-1/2 -translate-y-1/2 w-[78%] max-w-sm aspect-[1.55/1] rounded-[26px] shadow-[0_0_0_9999px_rgba(12,9,18,0.62)] pointer-events-none transition ${destelloEscaner ? 'bg-green-400/10' : ''}`}
+                  className={`absolute left-1/2 ${modoEscaner === 'toma-inventario' ? 'top-[45%]' : 'top-[42%]'} -translate-x-1/2 -translate-y-1/2 w-[78%] max-w-sm aspect-[1.55/1] rounded-[26px] shadow-[0_0_0_9999px_rgba(12,9,18,0.62)] pointer-events-none transition [container-type:size] ${destelloEscaner ? 'bg-green-400/10' : ''}`}
                 >
                   {[
                     'left-[-2px] top-[-2px] border-r-0 border-b-0 rounded-tl-[24px]',
