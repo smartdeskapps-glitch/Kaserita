@@ -1770,6 +1770,36 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
         setSesion(datos);
       };
 
+      // Aviso de versión nueva: el POS se queda abierto horas (o días) sin
+      // recargar. Se compara el archivo pos-xxxx.js de esta pestaña con el que
+      // publica /pos ahora; si cambió, se ofrece actualizar (nunca a la fuerza,
+      // por si hay una venta a medias).
+      const [versionNueva, setVersionNueva] = useState(false);
+      const [avisoVersionOculto, setAvisoVersionOculto] = useState(false);
+      useEffect(() => {
+        const actual = (document.querySelector('script[src*="/assets/pos-"]')?.getAttribute('src') || '').match(/pos-[\w-]+\.js/)?.[0];
+        if (!actual) return undefined; // en desarrollo no hay archivos con huella
+        let ultima = Date.now();
+        const revisar = async () => {
+          ultima = Date.now();
+          try {
+            const res = await fetch(`/pos?v=${ultima}`, { cache: 'no-store' });
+            const html = await res.text();
+            const publicado = html.match(/\/assets\/(pos-[\w-]+\.js)/)?.[1];
+            if (publicado && publicado !== actual) setVersionNueva(true);
+          } catch (err) { /* sin conexión: se revisa la próxima vez */ }
+        };
+        const alVolver = () => {
+          if (document.visibilityState === 'visible' && Date.now() - ultima > 5 * 60000) revisar();
+        };
+        document.addEventListener('visibilitychange', alVolver);
+        const reloj = setInterval(() => { if (document.visibilityState === 'visible') revisar(); }, 15 * 60000);
+        return () => {
+          document.removeEventListener('visibilitychange', alVolver);
+          clearInterval(reloj);
+        };
+      }, []);
+
       // El botón "Modo Demo Local" y el link /demo se sacaron de la pantalla
       // de login (ver commit correspondiente) -- para mostrar la app ahora
       // se usa una bodega real ("Bodega Demo", DNI+PIN, ver el SQL que la
@@ -9130,6 +9160,15 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
             <div className={`fixed top-[4.75rem] inset-x-4 md:top-4 md:inset-x-auto md:right-4 md:max-w-xs z-[100] pointer-events-none flex items-center gap-2.5 px-4 py-3 rounded-xl shadow-xl border-l-4 bg-white text-xs font-semibold ${toast.tipo === 'error' ? 'border-rose-500 text-rose-700' : 'border-emerald-500 text-emerald-700'}`}>
               <i className={`fa-solid ${toast.tipo === 'error' ? 'fa-circle-exclamation' : 'fa-circle-check'} text-sm shrink-0`}></i>
               {toast.texto}
+            </div>
+          )}
+
+          {versionNueva && !avisoVersionOculto && (
+            <div role="status" className="fixed bottom-4 inset-x-4 md:inset-x-auto md:right-4 md:max-w-sm z-[95] flex items-center gap-3 px-4 py-3 rounded-2xl bg-white border border-[#e9e6f0] shadow-2xl">
+              <i className="fa-solid fa-rotate text-[#6105dc] shrink-0"></i>
+              <p className="text-[13px] text-stone-700 leading-snug flex-1">Hay una versión nueva de Kaserita. Actualiza cuando termines esta venta.</p>
+              <button type="button" onClick={() => window.location.reload()} className="kz-pri h-9 px-4 text-[13px] font-semibold shrink-0">Actualizar</button>
+              <button type="button" aria-label="Ocultar aviso" onClick={() => setAvisoVersionOculto(true)} className="w-7 h-7 rounded-full text-stone-400 hover:text-stone-700 shrink-0"><i className="fa-solid fa-xmark"></i></button>
             </div>
           )}
 
