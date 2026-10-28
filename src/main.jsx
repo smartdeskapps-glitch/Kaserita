@@ -3114,8 +3114,12 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
       // ==========================================
       // PRODUCTOS & CATÁLOGO
       // ==========================================
+      // Número de la última carga pedida: si una respuesta lenta de una búsqueda anterior
+      // llega después de la más reciente, se descarta en vez de pisarla.
+      const cargaProductosSeqRef = useRef(0);
       const cargarProductos = async (termino = '') => {
         if (!bodegaId) return;
+        const miCarga = ++cargaProductosSeqRef.current;
 
         // Modo Demo Local: nunca toca Supabase -- el catálogo vive en
         // catalogoDemoRef (se crea una sola vez) y conserva ahí cualquier
@@ -3195,6 +3199,7 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
               ({ data, error } = await traerCatalogoCompleto(false));
             }
             if (error) throw error;
+            if (miCarga !== cargaProductosSeqRef.current) return;
 
             // Se filtra "activo" en el cliente (no en la consulta) para que la
             // app no se rompa si todavía no corriste la migración que agrega
@@ -3233,11 +3238,12 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
               else setTimeout(guardarCache, 300);
             }
           } catch (err) {
+            if (miCarga !== cargaProductosSeqRef.current) return;
             // Sin internet pero con catálogo guardado: se conserva lo que ya se ve.
             if (!desdeCache) setProductos([]);
             notificar(mensajeError(err, 'No se pudieron cargar tus productos'), 'error');
           } finally {
-            setCargandoProductos(false);
+            if (miCarga === cargaProductosSeqRef.current) setCargandoProductos(false);
           }
         } else {
           setProductos([]);
