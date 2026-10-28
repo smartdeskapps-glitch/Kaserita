@@ -214,59 +214,19 @@
       #splash-kaserita .splash-puntos i { opacity: 0.7; }
     }
 
-    /* Panel de marca del login: fondo con 2 manchas de color que se
-       desplazan solas (mismo truco que un "mesh gradient" animado --
-       animar la posición de cada radial-gradient vía @property, que
-       permite interpolar porcentajes en vez de saltar de golpe). */
-    @property --kg-blob1-x { syntax: '<percentage>'; inherits: false; initial-value: 88%; }
-    @property --kg-blob1-y { syntax: '<percentage>'; inherits: false; initial-value: 86%; }
-    @property --kg-blob2-x { syntax: '<percentage>'; inherits: false; initial-value: 12%; }
-    @property --kg-blob2-y { syntax: '<percentage>'; inherits: false; initial-value: 82%; }
+    /* Panel de marca del login: el mismo degradado violeta del splash, para que
+       al retirarse el splash la pantalla de ingreso siga sin saltos de color.
+       Quieto a propósito (sin manchas animadas). */
     .login-brand-mesh {
-      --kg-blob1-x: 88%;
-      --kg-blob1-y: 86%;
-      --kg-blob2-x: 12%;
-      --kg-blob2-y: 82%;
-      /* Varias paradas del mismo color (en vez de solo "color 0%,
-         transparent 65%") para que se apague de a poco -- con solo 2
-         paradas, el degradado hacia transparente pasa por un gris turbio a
-         mitad de camino y se ve como un círculo con borde marcado en vez
-         de un aura difuminada. */
       background:
-        radial-gradient(85% 85% at var(--kg-blob1-x) var(--kg-blob1-y), rgba(59,92,246,0.16) 0%, rgba(59,92,246,0.08) 28%, rgba(59,92,246,0.03) 52%, transparent 75%),
-        radial-gradient(85% 85% at var(--kg-blob2-x) var(--kg-blob2-y), rgba(139,61,240,0.16) 0%, rgba(139,61,240,0.08) 28%, rgba(139,61,240,0.03) 52%, transparent 75%),
-        #ffffff;
-      /* Cada mancha tiene su propia animación con distinta duración (15s y
-         21s, sin múltiplo común corto) -- así nunca suben y bajan a la vez
-         como un solo bloque; se cruzan en momentos distintos cada vuelta y
-         el movimiento se ve orgánico en vez de mecánico. */
-      animation: login-mesh-drift-1 15s ease-in-out infinite, login-mesh-drift-2 21s ease-in-out infinite;
-    }
-    /* La mancha azul se mueve solo por la mitad derecha y la violeta solo
-       por la mitad izquierda -- si cruzaran el centro al mismo tiempo se
-       funden un instante en una sola bola grande y plana (justo lo que no
-       se veía bien). Cada una recorre un pequeño lazo (4 puntos) en vez de
-       solo subir y bajar en línea recta. */
-    @keyframes login-mesh-drift-1 {
-      0%   { --kg-blob1-x: 88%; --kg-blob1-y: 84%; }
-      25%  { --kg-blob1-x: 68%; --kg-blob1-y: 58%; }
-      50%  { --kg-blob1-x: 82%; --kg-blob1-y: 20%; }
-      75%  { --kg-blob1-x: 65%; --kg-blob1-y: 46%; }
-      100% { --kg-blob1-x: 88%; --kg-blob1-y: 84%; }
-    }
-    @keyframes login-mesh-drift-2 {
-      0%   { --kg-blob2-x: 12%; --kg-blob2-y: 80%; }
-      25%  { --kg-blob2-x: 30%; --kg-blob2-y: 50%; }
-      50%  { --kg-blob2-x: 16%; --kg-blob2-y: 18%; }
-      75%  { --kg-blob2-x: 28%; --kg-blob2-y: 60%; }
-      100% { --kg-blob2-x: 12%; --kg-blob2-y: 80%; }
-    }
-    @media (prefers-reduced-motion: reduce) {
-      .login-brand-mesh { animation: none; }
+        radial-gradient(70% 45% at 50% 42%, rgba(160, 110, 255, 0.5) 0%, rgba(160, 110, 255, 0) 70%),
+        linear-gradient(165deg, #6c22ee 0%, #4a0cb8 100%);
     }
     /* Eslogan bajo el logo (carga e inicio de sesion). Una sola regla para los dos, así miden exactamente lo mismo. */
     .lema-kaserita { margin: -0.75rem 0 0; text-align: center; font-size: 0.9375rem; font-weight: 700; letter-spacing: -0.005em; color: #4d04b0; }
     .lema-kaserita b { font-weight: 800; color: #1c1830; background: #FFC81A; border-radius: 6px; padding: 1px 7px; }
+    /* Sobre el panel violeta del login el lema va en blanco (el "bajo" sigue en amarillo). */
+    .login-brand-mesh .lema-kaserita { margin: 0; color: rgba(255, 255, 255, 0.92); text-shadow: 0 1px 12px rgba(40, 0, 110, 0.35); }
     @media (min-width: 768px) { .lema-kaserita { font-size: 1.0625rem; } }
   </style>
 </head>

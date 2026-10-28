@@ -8880,11 +8880,11 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
             >
 
               <img
-                src="/logo-vertical-color.svg"
-                width="975"
-                height="907"
+                src="/logo-horizontal-sobre-morado.svg"
+                width="2068"
+                height="642"
                 alt="Kaserita"
-                className="relative w-52 md:w-64 h-auto mb-6"
+                className="relative w-60 md:w-80 h-auto mb-5"
                 style={{ animation: 'auth-panel-in 0.5s ease' }}
               />
               <p className="lema-kaserita relative" style={{ animation: 'auth-panel-in 0.5s ease' }}>Tu negocio <b>bajo</b> control</p>
