@@ -9549,7 +9549,7 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
           {carrito.length > 0 && !mostrarResumenMobile && (() => {
             const unidades = carrito.reduce((acc, item) => acc + Number(item.cantidad || 0), 0);
             const unidadesTexto = Number.isInteger(unidades) ? String(unidades) : String(+unidades.toFixed(2));
-            const ultimos = carrito.slice(-3);
+            const ultimos = carrito.slice(-2);
             return (
               <>
                 <div className="md:hidden fixed inset-x-0 bottom-0 h-28 z-30 pointer-events-none bg-gradient-to-t from-[#f9f8fb] via-[#f9f8fb]/70 to-transparent"></div>
@@ -9570,11 +9570,11 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
                           iconClassName="text-xs"
                         />
                       ))}
-                      {carrito.length > 3 && (
-                        <span className="-ml-3 w-9 h-9 rounded-full ring-2 ring-white/90 bg-[#3a1b94] text-white text-[11px] font-bold tabular-nums flex items-center justify-center shrink-0">+{carrito.length - 3}</span>
+                      {carrito.length > 2 && (
+                        <span className="-ml-3 w-9 h-9 rounded-full ring-2 ring-white/90 bg-[#3a1b94] text-white text-[11px] font-bold tabular-nums flex items-center justify-center shrink-0">+{carrito.length - 2}</span>
                       )}
                     </span>
-                    <span className="ml-2.5 text-left leading-tight min-w-0">
+                    <span className="ml-2.5 text-left leading-tight min-w-0 whitespace-nowrap">
                       <span className="block font-bold text-[15px] tracking-tight">Ver carrito</span>
                       <span key={unidadesTexto} className="kz-barra-pop block text-[12px] text-stone-500 font-medium tabular-nums">{unidadesTexto} {unidades === 1 ? 'producto' : 'productos'}</span>
                     </span>
@@ -10097,7 +10097,8 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
             )}
 
             {/* Lista Ítems */}
-            <div className="flex-1 overflow-y-auto p-2.5 pb-16 space-y-1.5 hide-scrollbar">
+            {/* Celular al cobrar: la lista se achica (unas 2 filas) para dejar espacio a los medios de pago */}
+            <div className={`overflow-y-auto p-2.5 space-y-1.5 hide-scrollbar ${mostrarPago ? 'max-h-[22vh] pb-2.5 md:max-h-none md:flex-1 md:pb-16' : 'flex-1 pb-16'}`}>
               {carrito.length === 0 ? (
                 <div className="flex flex-col items-center justify-center h-full text-stone-500 text-center p-4">
                   <i className="fa-solid fa-basket-shopping text-3xl mb-2 text-stone-300"></i>
