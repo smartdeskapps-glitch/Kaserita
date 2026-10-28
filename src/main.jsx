@@ -9,6 +9,7 @@ import {
   CATEGORIA_ESTILO_POR_NOMBRE_NORMALIZADO, CATEGORIA_ALIAS,
   estiloCategoria, categoriaDesdeTexto, FotoProducto, MiniInterruptor,
 } from './PanelAdminCompartido.jsx';
+import CombosCatalogo, { comboCoincide } from './CombosCatalogo.jsx';
 import { esDniValido, esDocumentoValido, esRucValido, esMontoNoNegativo } from './lib/validaciones.js';
 import { efectivoEntrante, desgloseMediosPago, diferenciaArqueo, totalConteo, DENOMINACIONES } from './lib/arqueo.js';
 import { calcularDescuento } from './lib/descuentos.js';
@@ -9486,8 +9487,17 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
                 {/* Contador + Buscador */}
                 <div className="flex items-center gap-3 shrink-0">
                   <div className="hidden lg:flex items-baseline gap-1.5 shrink-0">
-                    <span className="text-2xl font-black text-stone-900 tabular-nums">{productosFiltrados.length}</span>
-                    <span className="text-xs font-semibold text-stone-400">Productos</span>
+                    {categoriaFiltro === '__COMBOS__' ? (
+                      <>
+                        <span className="text-2xl font-black text-stone-900 tabular-nums">{combos.filter((c) => c.activo && comboCoincide(c, busqueda)).length}</span>
+                        <span className="text-xs font-semibold text-stone-400">Combos</span>
+                      </>
+                    ) : (
+                      <>
+                        <span className="text-2xl font-black text-stone-900 tabular-nums">{productosFiltrados.length}</span>
+                        <span className="text-xs font-semibold text-stone-400">Productos</span>
+                      </>
+                    )}
                   </div>
                   <div className="flex gap-2.5 flex-1 min-w-0 items-center">
                     {/* Una sola pastilla: lupa, campo, resultados, limpiar y cámara.
@@ -9500,8 +9510,11 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
                         value={busqueda}
                         onChange={(e) => {
                           setBusqueda(e.target.value);
-                          // En la pestaña Combos la búsqueda daba "0 resultados" para cualquier producto: se pasa a Todos.
-                          if (e.target.value && categoriaFiltro === '__COMBOS__') setCategoriaFiltro('TODOS');
+                          // En la pestaña Combos se filtran los combos (por nombre o por sus productos);
+                          // si ninguno coincide (p. ej. al escanear un código) se pasa a Todos.
+                          if (e.target.value && categoriaFiltro === '__COMBOS__' && !combos.some((c) => c.activo && comboCoincide(c, e.target.value))) {
+                            setCategoriaFiltro('TODOS');
+                          }
                         }}
                         onKeyDown={handleKeyDownBusqueda}
                         placeholder="Busca por nombre o escanea un código"
@@ -9509,7 +9522,7 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
                       />
                       {busqueda && (
                         <>
-                          <span className="hidden sm:inline-flex shrink-0 text-xs font-bold text-[#2d284b] bg-[#edf0fa] rounded-full px-2.5 py-1.5 tabular-nums">
+                          <span className={`${categoriaFiltro === '__COMBOS__' ? 'hidden' : 'hidden sm:inline-flex'} shrink-0 text-xs font-bold text-[#2d284b] bg-[#edf0fa] rounded-full px-2.5 py-1.5 tabular-nums`}>
                             {productosFiltrados.length} {productosFiltrados.length === 1 ? 'resultado' : 'resultados'}
                           </span>
                           <button aria-label="Limpiar búsqueda"
@@ -9559,57 +9572,23 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
                   no se corte contra el borde del contenedor con scroll. */}
               <div className="flex-1 overflow-y-auto pt-1.5 pl-1 pr-1 pb-24 md:pb-6 hide-scrollbar">
                 {categoriaFiltro === '__COMBOS__' ? (
-                  combos.filter(c => c.activo).length === 0 ? (
-                    <div className="flex flex-col items-center justify-center h-48 text-stone-500 text-center">
-                      <p className="text-base font-semibold">No hay combos activos</p>
-                      <p className="text-xs text-stone-400 mt-1">Créalos desde "Entradas → Combos".</p>
-                    </div>
-                  ) : (
-                    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
-                      {combos.filter(c => c.activo).map((combo) => {
-                        const est = estadoCombos.get(combo.id) || { disponible: true, faltan: [], unidades: Infinity };
-                        return (
-                        <button
-                          key={combo.id}
-                          disabled={!est.disponible}
-                          onClick={() => {
-                            if ((cantidadEnCarritoPorCombo.get(combo.id) || 0) + 1 > est.unidades) {
-                              notificar(`No hay stock para más de ${est.unidades} de este combo.`, 'error');
-                              return;
-                            }
-                            agregarComboAlCarrito(combo);
-                          }}
-                          className={`text-left bg-white border rounded-2xl overflow-hidden shadow-sm transition-all duration-200 relative p-3 flex flex-col gap-1.5 ${
-                            !est.disponible
-                              ? 'border-stone-200 opacity-60 grayscale cursor-not-allowed'
-                              : (cantidadEnCarritoPorCombo.get(combo.id) || 0) > 0
-                                ? 'border-[#5b4bd6] ring-2 ring-[#5b4bd6]/40 hover:-translate-y-0.5 hover:shadow-lg active:scale-[0.98]'
-                                : 'border-[#c5bcff] hover:border-[#5b4bd6] hover:-translate-y-0.5 hover:shadow-lg active:scale-[0.98]'
-                          }`}
-                        >
-                          <div className="flex items-center gap-2">
-                            <span className="w-9 h-9 rounded-xl bg-[#ebf0ff] text-[#5b4bd6] flex items-center justify-center shrink-0">
-                              <i className="fa-solid fa-gift"></i>
-                            </span>
-                            <h3 className="text-[13px] font-bold text-stone-900 line-clamp-2 leading-snug flex-1">{combo.nombre}</h3>
-                          </div>
-                          <p className="text-[10px] text-stone-500 line-clamp-2">
-                            Incluye: {(combo.combos_items || []).map((ci) => `${ci.productos?.descripcion || '?'} x${ci.cantidad}`).join(', ')}
-                          </p>
-                          {!est.disponible && (
-                            <p className="text-[10px] font-bold text-rose-600 line-clamp-2">Sin stock: {est.faltan.join(', ')}</p>
-                          )}
-                          <div className="flex items-center justify-between mt-auto pt-1">
-                            <span className="text-base font-black text-[#2d284b] tabular-nums">S/ {Number(combo.precio_venta).toFixed(2)}</span>
-                            {(cantidadEnCarritoPorCombo.get(combo.id) || 0) > 0 && (
-                              <span className="text-[10px] font-bold text-white bg-[#5b4bd6] px-2 py-0.5 rounded-full">x{cantidadEnCarritoPorCombo.get(combo.id)}</span>
-                            )}
-                          </div>
-                        </button>
-                        );
-                      })}
-                    </div>
-                  )
+                  <CombosCatalogo
+                    combos={combos.filter((c) => c.activo)}
+                    estadoCombos={estadoCombos}
+                    enCarrito={cantidadEnCarritoPorCombo}
+                    busqueda={busqueda}
+                    esAdmin={esAdmin}
+                    onAgregar={(combo) => {
+                      const est = estadoCombos.get(combo.id) || { unidades: Infinity };
+                      if ((cantidadEnCarritoPorCombo.get(combo.id) || 0) + 1 > est.unidades) {
+                        notificar(`No hay stock para más de ${est.unidades} de este combo.`, 'error');
+                        return;
+                      }
+                      agregarComboAlCarrito(combo);
+                    }}
+                    onQuitar={(combo) => cambiarCantidadCarrito(`combo::${combo.id}`, -1)}
+                    onCrear={abrirModalCombos}
+                  />
                 ) : cargandoProductos && productos.length === 0 ? (
                   <div className="flex flex-col items-center justify-center h-48 text-stone-600 gap-2">
                     <div className="w-8 h-8 border-4 border-amber-500 border-t-transparent rounded-full animate-spin"></div>
