@@ -9413,7 +9413,7 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
                         onClick={abrirEscanerParaVenta}
                         title="Escanear código de barras con la cámara"
                         aria-label="Escanear código de barras con la cámara"
-                        className={`shrink-0 flex items-center justify-center gap-2 h-10 md:h-9 w-10 md:w-auto md:px-3.5 md:pl-3 rounded-full text-[13px] font-semibold transition ${busqueda ? 'bg-[#f4eefe] text-[#5503c4] hover:bg-[#ebdffd]' : 'text-white bg-gradient-to-br from-[#7a2cf0] to-[#5503c4] shadow-[0_6px_16px_-8px_rgba(97,5,220,0.7)] hover:brightness-110'}`}
+                        className="kz-pri shrink-0 flex items-center justify-center gap-2 h-10 md:h-9 w-10 md:w-auto md:px-3.5 md:pl-3 rounded-full text-[13px] font-semibold"
                       >
                         <svg className="w-[17px] h-[17px]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 8V6a2 2 0 0 1 2-2h2M16 4h2a2 2 0 0 1 2 2v2M20 16v2a2 2 0 0 1-2 2h-2M8 20H6a2 2 0 0 1-2-2v-2"/><path d="M7 12h10"/></svg>
                         <span className="hidden md:inline">Escanear</span>
@@ -9577,15 +9577,15 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
                     </span>
                     <span className="ml-2.5 text-left leading-tight min-w-0">
                       <span className="block font-bold text-[15px] tracking-tight">Ver carrito</span>
-                      <span key={unidadesTexto} className="kz-barra-pop block text-[12px] text-white/75 font-medium tabular-nums">{unidadesTexto} {unidades === 1 ? 'producto' : 'productos'}</span>
+                      <span key={unidadesTexto} className="kz-barra-pop block text-[12px] text-stone-500 font-medium tabular-nums">{unidadesTexto} {unidades === 1 ? 'producto' : 'productos'}</span>
                     </span>
                   </span>
                   <span className="flex items-center gap-2.5 shrink-0">
                     <span className="text-right leading-tight">
-                      <span className="block text-[11px] text-white/70 font-medium">Total</span>
+                      <span className="block text-[11px] text-stone-500 font-medium">Total</span>
                       <span className="block font-bold text-[19px] tracking-tight tabular-nums"><small className="text-xs font-semibold opacity-80 mr-0.5">S/</small>{formatoSoles(totalConDescuento)}</span>
                     </span>
-                    <span className="flex items-center justify-center w-11 h-11 rounded-full bg-white text-[#6105dc] shrink-0 shadow-[0_4px_10px_-4px_rgba(30,5,100,0.6)]">
+                    <span className="flex items-center justify-center w-11 h-11 rounded-full bg-[#6105dc] text-white shrink-0 shadow-[0_4px_10px_-4px_rgba(60,5,170,0.6)]">
                       <IconoTrazo nombre="bag" className="w-5 h-5" />
                     </span>
                   </span>
@@ -10191,7 +10191,7 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
                     className={`w-full py-3.5 rounded-full font-semibold text-[15px] transition-all flex items-center justify-center gap-2 ${
                       !turnoActivo || carrito.length === 0
                         ? 'bg-[#ebe8f1] text-[#8b869a] cursor-not-allowed'
-                        : 'bg-[#6105dc] hover:bg-[#4d04b0] text-white active:scale-[0.98]'
+                        : 'kz-pri'
                     }`}
                   >
                     {!turnoActivo ? (
@@ -10493,7 +10493,7 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
                 className={`w-full h-[54px] rounded-full font-semibold text-base transition-all flex items-center justify-center gap-2 ${
                   !turnoActivo || procesandoVenta || carrito.length === 0
                     ? 'bg-[#ebe8f1] text-[#8b869a] cursor-not-allowed'
-                    : 'bg-[#6105dc] hover:bg-[#4d04b0] text-white active:scale-[0.98]'
+                    : 'kz-pri'
                 }`}
               >
                 {!turnoActivo ? (

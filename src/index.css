@@ -429,60 +429,80 @@
 .bol-sec { display: flex; gap: 8px; margin-top: 10px; }
 .bol-sec button { flex: 1; height: 42px; border-radius: 9999px; background: #f7f3fe; font-size: 12.5px; font-weight: 700; color: #4d04b0; display: flex; gap: 6px; align-items: center; justify-content: center; white-space: nowrap; }
 @media (prefers-reduced-motion: reduce) { .bol-ticket, .bol-ok-c, .bol-ok i { animation: none; } }
-/* Botón principal con brillo y interruptor premium (Combos) */
+/* Botón principal "borde de luz" (opción A): pastilla blanca con relieve dentro de un
+   anillo iridiscente, el mismo lenguaje de "Abrir Turno" (.btn-noise). Todo en el propio
+   botón (sin elemento interior): la pastilla es el fondo del área interna y el anillo es
+   el borde de 4 px pintado con un degradado cónico. El anillo está quieto y solo gira al
+   pasar el mouse o con el foco (así no hay decenas de animaciones a la vez). */
+@property --kz-ang {
+  syntax: '<angle>';
+  initial-value: 0deg;
+  inherits: false;
+}
 .kz-pri {
+  --kz-anillo: conic-gradient(
+    from var(--kz-ang),
+    #dcd6ea 0deg, #b9a5f5 55deg, #e7d9fb 100deg, #f3c9e6 150deg,
+    #e4e0ee 200deg, #a9bdf3 250deg, #c8b0f8 300deg, #dcd6ea 360deg
+  );
   position: relative;
   isolation: isolate;
-  border: 0;
-  color: #fff;
+  overflow: hidden;
+  border: 4px solid transparent;
   border-radius: 999px;
-  background: radial-gradient(130% 150% at 50% 125%, #9b7bf5 0%, #6b44d8 42%, #4b2bb4 100%);
-  box-shadow: inset 0 0 16px rgba(255, 255, 255, 0.26), inset 0 1px 1px rgba(255, 255, 255, 0.5), inset 0 -1px 2px rgba(40, 10, 120, 0.5), 0 10px 24px -10px rgba(97, 5, 220, 0.7), 0 2px 4px rgba(60, 20, 160, 0.25);
-  transition: transform 0.15s, box-shadow 0.2s, filter 0.2s;
+  color: #1c1830;
+  background: linear-gradient(#fff, #f4f3f6) padding-box, var(--kz-anillo) border-box;
+  box-shadow: 0 0 0 1px rgba(60, 40, 100, 0.09), 0 6px 18px -8px rgba(97, 5, 220, 0.35), inset 0 1px 0 #fff, inset 0 -2px 4px rgba(97, 5, 220, 0.05);
+  transition: transform 0.15s, box-shadow 0.2s;
 }
+/* Grano fino sobre todo el botón, igual que en el anillo de "Abrir Turno". */
 .kz-pri::after {
   content: "";
   position: absolute;
+  inset: 0;
   z-index: -1;
-  left: 16%;
-  right: 16%;
-  bottom: -7px;
-  height: 12px;
-  border-radius: 50%;
-  background: rgba(190, 170, 255, 0.65);
-  filter: blur(8px);
-  opacity: 0.9;
+  border-radius: inherit;
+  pointer-events: none;
+  opacity: 0.3;
+  mix-blend-mode: soft-light;
+  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 .9 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
 }
 .kz-pri::before {
-  content: "";
-  position: absolute;
-  z-index: -1;
-  left: 10%;
-  right: 10%;
-  top: 2px;
-  height: 45%;
-  border-radius: 999px;
-  background: linear-gradient(to bottom, rgba(255, 255, 255, 0.28), rgba(255, 255, 255, 0));
+  display: none;
 }
-.kz-pri:hover:not(:disabled) {
-  filter: brightness(1.07);
-  transform: translateY(-1px);
+.kz-pri:hover:not(:disabled),
+.kz-pri:focus-visible {
+  animation: kz-giro 9s linear infinite;
+  background: linear-gradient(#fff, #efedf3) padding-box, var(--kz-anillo) border-box;
+}
+.kz-pri:focus-visible {
+  outline: 3px solid rgba(97, 5, 220, 0.4);
+  outline-offset: 3px;
 }
 .kz-pri:active:not(:disabled) {
-  transform: translateY(0) scale(0.985);
+  transform: scale(0.985);
 }
 .kz-pri:disabled {
   cursor: not-allowed;
-  background: #ebe8f1;
-  color: #8b869a;
+  color: #a29cb8;
+  background: linear-gradient(#f1eff6, #ebe8f1) padding-box, #e2deec border-box;
   box-shadow: none;
 }
-.kz-pri:disabled::before,
 .kz-pri:disabled::after {
   display: none;
 }
 .kz-pri svg {
-  filter: drop-shadow(0 0 4px rgba(255, 255, 255, 0.7));
+  color: #6105dc;
+}
+.kz-pri:disabled svg {
+  color: currentColor;
+}
+@keyframes kz-giro {
+  to { --kz-ang: 360deg; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .kz-pri:hover:not(:disabled),
+  .kz-pri:focus-visible { animation: none; }
 }
 .kz-sw {
   position: relative;
