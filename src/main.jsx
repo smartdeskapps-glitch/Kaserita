@@ -16,6 +16,7 @@ import { resumirVentasPeriodo, agruparVentasPorDia, calcularCambioPct } from './
 import { valorAuditoria, describirAuditoria } from './lib/auditoria.js';
 import { antiguedadTurno } from './lib/turnos.js';
 import { iniciarMonitoreo, reportarError, reportarFallo } from './monitoreo.js';
+import { evitarZoomEnCampos } from './lib/movil.js';
 import { estadoDeudor, coberturaPago, restoPrimeraBoleta } from './lib/deudas.js';
 import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCombo, margenCombo, expandirLineaCombo, detalleComboTicket } from './lib/combos.js';
 
@@ -905,6 +906,7 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
 
       // Errores no controlados -> tabla errores_app (se ven en el panel de superadmin).
       useEffect(() => iniciarMonitoreo(sbClient), [sbClient]);
+      useEffect(() => evitarZoomEnCampos(), []);
 
       const pedirTexto = ({ titulo, mensaje, placeholder = '', valorInicial = '', textoBoton = 'Confirmar' }) => {
         return new Promise((resolve) => {
@@ -9258,6 +9260,15 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
                     </span>
                   </button>
                 )}
+                {/* Celular: el botón "Turno Abierto / Abrir Turno" no cabe, así que queda un ícono de caja con un punto de estado */}
+                <button
+                  onClick={turnoActivo ? abrirCierreCaja : () => setModalTurno(true)}
+                  className="sm:hidden relative w-10 h-10 flex items-center justify-center bg-white border border-stone-200 rounded-xl text-stone-700 shadow-sm transition"
+                  aria-label={turnoActivo ? 'Turno abierto. Toca para cerrar la caja' : 'Turno cerrado. Toca para abrir turno'}
+                >
+                  <i className="fa-solid fa-cash-register text-[15px]"></i>
+                  <span className={`absolute -top-1 -right-1 w-3.5 h-3.5 rounded-full border-2 border-white ${turnoActivo ? 'bg-green-500' : 'bg-amber-400'}`}></span>
+                </button>
                 <button
                   onClick={() => { setBusquedaMenu(''); setIndiceMenu(0); setMenuMas(true); }}
                   className="w-10 h-10 flex items-center justify-center bg-white border border-stone-200 rounded-xl text-stone-700 hover:text-stone-900 shadow-sm transition"
@@ -9393,7 +9404,7 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
                         onClick={abrirEscanerParaVenta}
                         title="Escanear código de barras con la cámara"
                         aria-label="Escanear código de barras con la cámara"
-                        className={`shrink-0 flex items-center justify-center gap-2 h-[34px] md:h-9 w-[34px] md:w-auto md:px-3.5 md:pl-3 rounded-full text-[13px] font-semibold transition ${busqueda ? 'bg-[#f4eefe] text-[#5503c4] hover:bg-[#ebdffd]' : 'text-white bg-gradient-to-br from-[#7a2cf0] to-[#5503c4] shadow-[0_6px_16px_-8px_rgba(97,5,220,0.7)] hover:brightness-110'}`}
+                        className={`shrink-0 flex items-center justify-center gap-2 h-10 md:h-9 w-10 md:w-auto md:px-3.5 md:pl-3 rounded-full text-[13px] font-semibold transition ${busqueda ? 'bg-[#f4eefe] text-[#5503c4] hover:bg-[#ebdffd]' : 'text-white bg-gradient-to-br from-[#7a2cf0] to-[#5503c4] shadow-[0_6px_16px_-8px_rgba(97,5,220,0.7)] hover:brightness-110'}`}
                       >
                         <svg className="w-[17px] h-[17px]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 8V6a2 2 0 0 1 2-2h2M16 4h2a2 2 0 0 1 2 2v2M20 16v2a2 2 0 0 1-2 2h-2M8 20H6a2 2 0 0 1-2-2v-2"/><path d="M7 12h10"/></svg>
                         <span className="hidden md:inline">Escanear</span>
@@ -9962,7 +9973,7 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
               <div className="flex items-center gap-1.5 w-full md:w-auto">
                 <button
                   onClick={() => { setModalPedidosRetirar(false); setModalVentasEspera(true); }}
-                  className="md:hidden flex items-center gap-1.5 pl-3 pr-2 py-1.5 rounded-full ring-1 ring-amber-200 bg-amber-50 hover:bg-amber-100 text-xs font-semibold text-amber-700 transition"
+                  className="md:hidden flex items-center gap-1.5 pl-3 pr-2 py-2.5 rounded-full ring-1 ring-amber-200 bg-amber-50 hover:bg-amber-100 text-xs font-semibold text-amber-700 transition"
                 >
                   En espera
                   <span className="w-4 h-4 rounded-full bg-amber-500 text-white text-[10px] font-extrabold flex items-center justify-center">
@@ -9972,7 +9983,7 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
                 {carrito.length > 0 && (
                   <button
                     onClick={aparcarVentaActual}
-                    className="px-3.5 py-1.5 rounded-full bg-[#f4eefe] hover:bg-[#ece0fd] text-xs text-[#4d04b0] font-semibold transition"
+                    className="px-3.5 py-2.5 md:py-1.5 rounded-full bg-[#f4eefe] hover:bg-[#ece0fd] text-xs text-[#4d04b0] font-semibold transition"
                   >
                     Pausar
                   </button>
@@ -9987,7 +9998,7 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
                       }
                       avisarPedidosDevueltos(); setCarrito([]); setDescuentoTipo(null); setDescuentoValor(''); setMostrarPago(false); reiniciarClienteYMedioPago(); setPedidosCargadosAlCarrito([]);
                     }}
-                    className="px-3.5 py-1.5 rounded-full bg-rose-50 hover:bg-rose-100 text-xs text-rose-700 font-semibold transition"
+                    className="px-3.5 py-2.5 md:py-1.5 rounded-full bg-rose-50 hover:bg-rose-100 text-xs text-rose-700 font-semibold transition"
                   >
                     Vaciar
                   </button>
@@ -10087,7 +10098,7 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
                     <div className="flex items-center bg-white rounded-full ring-1 ring-[#6105dc]/10 shrink-0">
                       <button
                         onClick={() => cambiarCantidadCarrito(item.claveCarrito || item.productoId, -1)}
-                        className="w-8 h-8 flex items-center justify-center text-[#6105dc] hover:bg-[#f4eefe] rounded-full transition"
+                        className="w-10 h-10 md:w-8 md:h-8 flex items-center justify-center text-[#6105dc] hover:bg-[#f4eefe] rounded-full transition"
                         aria-label="Quitar uno"
                       >
                         <IconoTrazo nombre="minus" className="w-3.5 h-3.5" />
@@ -10097,7 +10108,7 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
                       </span>
                       <button
                         onClick={() => cambiarCantidadCarrito(item.claveCarrito || item.productoId, 1)}
-                        className="w-8 h-8 flex items-center justify-center text-[#6105dc] hover:bg-[#f4eefe] rounded-full transition"
+                        className="w-10 h-10 md:w-8 md:h-8 flex items-center justify-center text-[#6105dc] hover:bg-[#f4eefe] rounded-full transition"
                         aria-label="Agregar uno"
                       >
                         <IconoTrazo nombre="plus" className="w-3.5 h-3.5" />
