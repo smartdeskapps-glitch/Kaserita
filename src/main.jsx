@@ -10161,7 +10161,7 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
                 los items pasan por debajo, borrosos, y el borde superior se desvanece. */}
             <div
               className={`relative z-10 p-4 space-y-3 min-h-0 overflow-y-auto overscroll-contain ${mostrarPago
-                ? 'pt-4 bg-white border-t border-[#efe6fc] shadow-[0_-14px_26px_-20px_rgba(40,20,100,0.4)]'
+                ? 'pt-4 scroll-pb-44 bg-white border-t border-[#efe6fc] shadow-[0_-14px_26px_-20px_rgba(40,20,100,0.4)]'
                 : '-mt-10 pt-14 backdrop-blur-xl bg-gradient-to-b from-white/60 to-white/90'}`}
               style={mostrarPago ? undefined : { WebkitMaskImage: 'linear-gradient(to bottom, transparent 0, black 44px)', maskImage: 'linear-gradient(to bottom, transparent 0, black 44px)' }}
             >
