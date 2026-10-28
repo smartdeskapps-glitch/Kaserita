@@ -1,8 +1,25 @@
 import { describe, it, expect } from 'vitest';
 import {
-  esRuidoConocido, limpiarTexto, huellaError, decidirReporte, armarReporte, mensajeDeFallo,
+  esRuidoConocido, esDeExtension, limpiarTexto, huellaError, decidirReporte, armarReporte, mensajeDeFallo,
   MAX_REPORTES_POR_SESION
 } from './errores.js';
+
+describe('esDeExtension', () => {
+  const stackExtension = "TypeError: Cannot read properties of undefined (reading 'M_ID')\n    at Y (chrome-extension://eppiocemhmnlbhjplcgkofciiegomcon/executors/200.js:1:761)";
+  it('detecta errores que vienen solo de una extensión', () => {
+    expect(esDeExtension(stackExtension, 'https://kaserita.smartdeskapps.com')).toBe(true);
+    expect(esDeExtension('Error\n    at x (moz-extension://abc/content.js:1:1)', 'https://kaserita.smartdeskapps.com')).toBe(true);
+  });
+  it('sigue reportando si la traza pasa por archivos de la app', () => {
+    const mezclado = stackExtension + '\n    at J (https://kaserita.smartdeskapps.com/assets/pos-abc.js:1:2)';
+    expect(esDeExtension(mezclado, 'https://kaserita.smartdeskapps.com')).toBe(false);
+  });
+  it('no confunde errores normales ni trazas vacías', () => {
+    expect(esDeExtension('Error\n    at J (https://kaserita.smartdeskapps.com/assets/pos-abc.js:1:2)', 'https://kaserita.smartdeskapps.com')).toBe(false);
+    expect(esDeExtension('', 'https://kaserita.smartdeskapps.com')).toBe(false);
+    expect(esDeExtension(undefined)).toBe(false);
+  });
+});
 
 describe('esRuidoConocido', () => {
   it('ignora fallos de red y avisos inofensivos', () => {

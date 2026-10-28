@@ -1,7 +1,7 @@
 // Monitoreo de errores propio: escucha los errores no controlados del navegador
 // y los guarda en la tabla errores_app (ver errores_app.sql). Se ven en el panel
 // de superadmin, pestaña "Errores". No usa servicios externos ni cookies.
-import { esRuidoConocido, huellaError, decidirReporte, armarReporte, mensajeDeFallo } from './lib/errores.js';
+import { esRuidoConocido, esDeExtension, huellaError, decidirReporte, armarReporte, mensajeDeFallo } from './lib/errores.js';
 
 let cliente = null;
 let estado = null;
@@ -19,6 +19,8 @@ const textoDeBoton = (el) => {
 export const reportarError = ({ mensaje, stack, origen }) => {
   try {
     if (!cliente || esRuidoConocido(mensaje)) return;
+    // Un error que sale de una extensión del navegador (no de la app) no se reporta.
+    if (esDeExtension(stack, typeof location !== 'undefined' ? location.origin : '')) return;
     const huella = huellaError(mensaje, origen);
     const decision = decidirReporte(estado, huella);
     estado = decision.estado;

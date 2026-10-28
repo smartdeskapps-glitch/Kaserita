@@ -27,6 +27,17 @@ export const esRuidoConocido = (mensaje) => {
   return RUIDO.some((re) => re.test(m));
 };
 
+// Errores que vienen solo de una extensión del navegador (traductores, gestores
+// de contraseñas, bloqueadores...). No son de la app y no se pueden arreglar acá:
+// si la traza pasa por archivos de la propia app (origenPropio), sí se reportan.
+const EN_EXTENSION = /(?:chrome|moz|safari-web|safari)-extension:\/\//i;
+export const esDeExtension = (stack, origenPropio = '') => {
+  const s = String(stack || '');
+  if (!EN_EXTENSION.test(s)) return false;
+  if (origenPropio && s.includes(origenPropio)) return false;
+  return true;
+};
+
 // Quita lo que no debe guardarse: datos de la URL (?token=...), correos y
 // números largos (DNI, teléfonos, tarjetas). Corta al largo máximo.
 export const limpiarTexto = (texto, max = 500) => {
