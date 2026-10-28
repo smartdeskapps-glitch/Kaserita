@@ -22,7 +22,7 @@ window.ocultarSplashKaserita = function () {
   // Se desvanece (con un leve acercamiento, ver .splash-oculto en pos.html) y
   // recién entonces se quita del DOM.
   el.classList.add('splash-oculto');
-  setTimeout(() => el.remove(), 550);
+  setTimeout(() => el.remove(), 350);
 };
 // Salvavidas: si algo tarda demasiado en cargar, el splash no se queda
 // pegado para siempre.

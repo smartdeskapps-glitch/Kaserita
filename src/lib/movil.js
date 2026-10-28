@@ -17,7 +17,9 @@ export const evitarZoomEnCampos = () => {
   if (typeof document === 'undefined') return () => {};
   const revisar = (e) => {
     const campo = e.target;
-    if (!campo || !campo.tagName) return;
+    // Salida rápida: casi todos los toques no son en un campo o son en pantalla grande,
+    // y getComputedStyle fuerza un cálculo de estilos.
+    if (!campo || !campo.tagName || !ES_CAMPO.test(campo.tagName) || window.innerWidth >= 768) return;
     const letra = parseFloat(window.getComputedStyle(campo).fontSize) || 16;
     if (campoNecesitaLetraGrande(campo, window.innerWidth, letra)) campo.style.fontSize = '16px';
   };

@@ -157,7 +157,7 @@
         radial-gradient(70% 45% at 50% 42%, rgba(160, 110, 255, 0.5) 0%, rgba(160, 110, 255, 0) 70%),
         linear-gradient(165deg, #6c22ee 0%, #4a0cb8 100%);
       contain: strict;
-      transition: opacity 0.5s ease, transform 0.5s ease, visibility 0.5s ease;
+      transition: opacity 0.3s ease, transform 0.3s ease, visibility 0.3s ease;
     }
     #splash-kaserita.splash-oculto {
       opacity: 0;
@@ -178,7 +178,7 @@
       display: block;
       width: min(62vw, 420px);
       height: auto;
-      animation: splash-ent 1s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+      animation: splash-ent 0.6s cubic-bezier(0.2, 0.8, 0.2, 1) both;
     }
     @keyframes splash-ent { from { opacity: 0; transform: translateY(14px) scale(0.96); } }
     /* Tres puntos que pulsan: solo opacity y transform (los anima la tarjeta
@@ -192,7 +192,7 @@
       display: flex;
       justify-content: center;
       gap: 8px;
-      animation: splash-ent 1s 0.3s both;
+      animation: splash-ent 0.6s 0.15s both;
     }
     #splash-kaserita .splash-puntos i {
       width: 7px;

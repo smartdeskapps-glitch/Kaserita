@@ -133,10 +133,11 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
     // no dejan reproducir sonido antes de que haya habido algún clic/
     // interacción en la página; por eso puede no sonar el primer pedido si
     // se acaba de abrir la pestaña.
-    const audioAvisoPedidoNuevo = new Audio('https://cdn.pixabay.com/audio/2025/01/11/audio_5e34842448.mp3');
-    audioAvisoPedidoNuevo.preload = 'auto';
+    // Se crea recién al primer aviso: así no se descarga el mp3 en cada arranque.
+    let audioAvisoPedidoNuevo = null;
     const sonarAvisoPedidoNuevo = () => {
       try {
+        if (!audioAvisoPedidoNuevo) audioAvisoPedidoNuevo = new Audio('https://cdn.pixabay.com/audio/2025/01/11/audio_5e34842448.mp3');
         audioAvisoPedidoNuevo.currentTime = 0;
         audioAvisoPedidoNuevo.play().catch((err) => console.warn('No se pudo reproducir el aviso sonoro:', err.message));
       } catch (err) {
@@ -975,7 +976,7 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
               const el = document.getElementById('splash-kaserita');
               if (!el) return;
               el.classList.add('splash-oculto');
-              setTimeout(() => el.remove(), 550);
+              setTimeout(() => el.remove(), 350);
             };
         const id1 = requestAnimationFrame(() => {
           const id2 = requestAnimationFrame(() => {
@@ -3173,11 +3174,17 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
               return igual ? prev : nuevos;
             });
             if (!termino.trim()) {
-              try {
-                const texto = JSON.stringify(visibles);
-                if (texto.length < 2_500_000) localStorage.setItem(claveCache, texto);
-                else localStorage.removeItem(claveCache);
-              } catch (err) { /* almacenamiento lleno o bloqueado: se sigue sin caché */ }
+              // En un momento libre y solo si cambió: serializar y escribir cientos de
+              // productos en localStorage bloquea el hilo justo cuando se pinta la lista.
+              const guardarCache = () => {
+                try {
+                  const texto = JSON.stringify(visibles);
+                  if (texto.length >= 2_500_000) localStorage.removeItem(claveCache);
+                  else if (localStorage.getItem(claveCache) !== texto) localStorage.setItem(claveCache, texto);
+                } catch (err) { /* almacenamiento lleno o bloqueado: se sigue sin caché */ }
+              };
+              if (typeof requestIdleCallback === 'function') requestIdleCallback(guardarCache, { timeout: 3000 });
+              else setTimeout(guardarCache, 300);
             }
           } catch (err) {
             // Sin internet pero con catálogo guardado: se conserva lo que ya se ve.
@@ -8945,7 +8952,7 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
             {/* Tarjeta de formulario */}
             <div className="relative flex-1 md:w-1/2 flex md:items-center justify-center md:px-5">
               <div
-                className={`w-full md:max-w-md flex-1 md:flex-none bg-white rounded-t-[2.5rem] md:rounded-3xl shadow-2xl px-7 pt-9 pb-10 md:p-10 space-y-6 transition-all duration-700 ease-out ${revelarLogin ? 'opacity-100 translate-x-0' : 'opacity-0 md:translate-x-10'}`}
+                className={`w-full md:max-w-md flex-1 md:flex-none bg-white rounded-t-[2.5rem] md:rounded-3xl shadow-2xl px-7 pt-9 pb-10 md:p-10 space-y-6 transition-all duration-300 ease-out ${revelarLogin ? 'opacity-100 translate-x-0' : 'opacity-0 md:translate-x-10'}`}
               >
                 <div className="text-center space-y-1">
                   <h2 className="text-xl font-black text-stone-900">{authTab === 'admin' ? 'Panel de Administrador' : '¡Bienvenido de nuevo!'}</h2>

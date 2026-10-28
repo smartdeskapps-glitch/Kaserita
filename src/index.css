@@ -31,8 +31,11 @@
     #e4e0ee 200deg, #a9bdf3 250deg, #c8b0f8 300deg, #dcd6ea 360deg
   );
   filter: blur(6px);
-  animation: btn-glow-spin 9s linear infinite;
 }
+/* Gira solo con el mouse encima o con el foco: una animación infinita con desenfoque
+   repinta el encabezado en cada cuadro aunque nadie lo mire. */
+.btn-noise:hover::before,
+.btn-noise:focus-visible::before { animation: btn-glow-spin 9s linear infinite; }
 .btn-noise::after {
   content: "";
   position: absolute;
@@ -70,16 +73,17 @@
     #d5eadd 0deg, #a7dfbd 60deg, #e3f5ea 110deg, #cfe9f0 170deg,
     #bfe6cd 230deg, #e3f5ea 290deg, #d5eadd 360deg
   );
-  animation: none;
+  animation: none !important;
 }
 /* Anillo quieto (cápsula de marca del encabezado). */
-.btn-noise-quieto::before { animation: none; }
+.btn-noise-quieto::before { animation: none !important; }
 
 @keyframes btn-glow-spin {
   to { --btn-glow-angle: 360deg; }
 }
 @media (prefers-reduced-motion: reduce) {
-  .btn-noise::before { animation: none; }
+  .btn-noise::before,
+  .btn-noise:hover::before { animation: none !important; }
 }
 
 /* "Pestaña" de categoría/carrito activa: se funde sin costura con el
@@ -455,18 +459,6 @@
   box-shadow: 0 0 0 1px rgba(60, 40, 100, 0.09), 0 6px 18px -8px rgba(97, 5, 220, 0.35), inset 0 1px 0 #fff, inset 0 -2px 4px rgba(97, 5, 220, 0.05);
   transition: transform 0.15s, box-shadow 0.2s;
 }
-/* Grano fino sobre todo el botón, igual que en el anillo de "Abrir Turno". */
-.kz-pri::after {
-  content: "";
-  position: absolute;
-  inset: 0;
-  z-index: -1;
-  border-radius: inherit;
-  pointer-events: none;
-  opacity: 0.3;
-  mix-blend-mode: soft-light;
-  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 .9 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
-}
 .kz-pri::before {
   display: none;
 }
@@ -487,9 +479,6 @@
   color: #a29cb8;
   background: linear-gradient(#f1eff6, #ebe8f1) padding-box, #e2deec border-box;
   box-shadow: none;
-}
-.kz-pri:disabled::after {
-  display: none;
 }
 .kz-pri svg {
   color: #6105dc;
