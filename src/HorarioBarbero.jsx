@@ -18,7 +18,7 @@ export default function HorarioBarbero({
                 <div className="fixed inset-0 bg-stone-900/30 backdrop-blur-sm flex items-center justify-center z-[60] p-4">
                   <div className="bg-white border border-stone-200 rounded-[28px] max-w-lg w-full shadow-2xl max-h-[92vh] flex flex-col overflow-hidden">
                     <div className="flex items-center justify-between gap-2 px-5 pt-4 pb-1 shrink-0">
-                      <h3 className="text-lg font-bold text-stone-900 flex items-center gap-2"><i className="fa-regular fa-calendar text-[#6105dc]"></i> Horario de {modalHorario.barbero.nombre}</h3>
+                      <h3 className="text-lg font-bold text-stone-900 flex items-center gap-2"><i className="fa-regular fa-calendar text-[#5b4bd6]"></i> Horario de {modalHorario.barbero.nombre}</h3>
                       <button aria-label="Cerrar" onClick={() => setModalHorario(null)} className="text-stone-600 hover:text-stone-900 shrink-0"><i className="fa-solid fa-xmark"></i></button>
                     </div>
                     <p className="px-5 pb-2 text-[11px] text-stone-500 shrink-0">
@@ -51,10 +51,10 @@ export default function HorarioBarbero({
                       ))}
                     </div>
                     <div className="flex gap-2 px-5 pb-4 pt-1 shrink-0">
-                      <button onClick={copiarHorarioADias} className="px-3 py-2 bg-[#f4eefe] hover:bg-[#ece0fd] text-[#4d04b0] text-xs font-semibold rounded-full">
+                      <button onClick={copiarHorarioADias} className="px-3 py-2 bg-[#ebf0ff] hover:bg-[#dde4fa] text-[#2d284b] text-xs font-semibold rounded-full">
                         Copiar el primer día a los demás
                       </button>
-                      <button onClick={guardarHorarioBarbero} disabled={guardandoHorario} className="flex-1 py-2 bg-[#6105dc] hover:bg-[#4d04b0] disabled:opacity-60 text-white font-bold text-xs rounded-full shadow">
+                      <button onClick={guardarHorarioBarbero} disabled={guardandoHorario} className="flex-1 py-2 bg-[#5b4bd6] hover:bg-[#473bb5] disabled:opacity-60 text-white font-bold text-xs rounded-full shadow">
                         {guardandoHorario ? 'Guardando...' : 'Guardar horario'}
                       </button>
                     </div>

@@ -18,7 +18,7 @@ export default function CuentasPagar({
               {/* Modal: Cuentas por Pagar (proveedores) */}
               {modalCuentasPagar && (
                 <div className="fixed inset-0 bg-stone-900/30 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-                  <div className="bg-gradient-to-br from-[#f4effc] via-[#f9f8fb] to-[#f5f4f8] border border-white/80 rounded-[28px] max-w-md w-full p-5 shadow-2xl space-y-3 max-h-[90vh] overflow-y-auto">
+                  <div className="bg-gradient-to-br from-[#eef1fb] via-[#f8f9fd] to-[#f4f5fa] border border-white/80 rounded-[28px] max-w-md w-full p-5 shadow-2xl space-y-3 max-h-[90vh] overflow-y-auto">
                     <div className="flex justify-between items-center">
                       <h3 className="text-lg font-bold text-stone-900 flex items-center gap-2">
                         <i className="fa-solid fa-file-invoice text-orange-600"></i> Cuentas por Pagar
@@ -48,7 +48,7 @@ export default function CuentasPagar({
                             placeholder="0.00"
                             value={montoMovimientoProveedor}
                             onChange={(e) => setMontoMovimientoProveedor(e.target.value)}
-                            className="w-full bg-stone-100 border border-stone-200 rounded-lg p-2 text-sm font-bold text-stone-900 focus:outline-none focus:ring-2 focus:ring-[#d6bdfa]"
+                            className="w-full bg-stone-100 border border-stone-200 rounded-lg p-2 text-sm font-bold text-stone-900 focus:outline-none focus:ring-2 focus:ring-[#c5bcff]"
                           />
                         </div>
                         <div className="grid grid-cols-2 gap-2">
@@ -93,7 +93,7 @@ export default function CuentasPagar({
                     {!proveedorSeleccionado && (
                       <button
                         onClick={() => setModalNuevoProveedor(true)}
-                        className="w-full py-2 bg-white/70 hover:bg-[#ece0fd] text-stone-600 font-bold text-xs rounded-full border border-stone-300 border-dashed flex items-center justify-center gap-1.5 shadow-sm"
+                        className="w-full py-2 bg-white/70 hover:bg-[#dde4fa] text-stone-600 font-bold text-xs rounded-full border border-stone-300 border-dashed flex items-center justify-center gap-1.5 shadow-sm"
                       >
                         <i className="fa-solid fa-plus"></i> Nuevo Proveedor
                       </button>

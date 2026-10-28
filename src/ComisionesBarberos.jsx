@@ -21,7 +21,7 @@ export default function ComisionesBarberos({
                 <div className="fixed inset-0 bg-stone-900/30 backdrop-blur-sm flex items-center justify-center z-50 p-4">
                   <div className="bg-white border border-stone-200 rounded-[28px] max-w-lg w-full shadow-2xl max-h-[92vh] flex flex-col overflow-hidden">
                     <div className="flex items-center justify-between gap-2 px-5 pt-4 pb-2 shrink-0">
-                      <h3 className="text-lg font-bold text-stone-900 flex items-center gap-2"><i className="fa-solid fa-percent text-[#6105dc]"></i> Comisiones de barberos</h3>
+                      <h3 className="text-lg font-bold text-stone-900 flex items-center gap-2"><i className="fa-solid fa-percent text-[#5b4bd6]"></i> Comisiones de barberos</h3>
                       <button aria-label="Cerrar" onClick={() => setModalComisiones(false)} className="text-stone-600 hover:text-stone-900 shrink-0"><i className="fa-solid fa-xmark"></i></button>
                     </div>
                     <div className="px-5 pb-3 flex gap-1.5 shrink-0">
@@ -29,7 +29,7 @@ export default function ComisionesBarberos({
                         <button
                           key={valor}
                           onClick={() => { setPeriodoComisiones(valor); cargarComisiones(valor); }}
-                          className={`px-3.5 py-1.5 rounded-full text-xs font-semibold transition ${periodoComisiones === valor ? 'bg-[#6105dc] text-white' : 'bg-[#f4eefe] text-[#4d04b0] hover:bg-[#ece0fd]'}`}
+                          className={`px-3.5 py-1.5 rounded-full text-xs font-semibold transition ${periodoComisiones === valor ? 'bg-[#5b4bd6] text-white' : 'bg-[#ebf0ff] text-[#2d284b] hover:bg-[#dde4fa]'}`}
                         >
                           {etiqueta}
                         </button>
@@ -48,7 +48,7 @@ export default function ComisionesBarberos({
                                 <p className="text-sm font-bold text-stone-900">{f.nombre}</p>
                                 {f.esDueno
                                   ? <p className="text-xs font-semibold text-stone-500">Dueño · sin comisión</p>
-                                  : <p className="text-sm font-extrabold text-[#4d04b0] tabular-nums">Comisión S/ {f.comision.toFixed(2)}</p>}
+                                  : <p className="text-sm font-extrabold text-[#2d284b] tabular-nums">Comisión S/ {f.comision.toFixed(2)}</p>}
                               </div>
                               <p className="text-xs text-stone-500 mt-1">
                                 {f.atenciones} {f.atenciones === 1 ? 'atención' : 'atenciones'}

@@ -28,7 +28,7 @@ export default function GestionCajeros({
               {/* Modal: Gestión de Cajeros */}
               {modalGestionCajeros && (
                 <div className="fixed inset-0 bg-stone-900/30 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-                  <div className="bg-gradient-to-br from-[#f4effc] via-[#f9f8fb] to-[#f5f4f8] border border-white/80 rounded-[28px] max-w-md w-full p-5 shadow-2xl space-y-3 max-h-[90vh] flex flex-col">
+                  <div className="bg-gradient-to-br from-[#eef1fb] via-[#f8f9fd] to-[#f4f5fa] border border-white/80 rounded-[28px] max-w-md w-full p-5 shadow-2xl space-y-3 max-h-[90vh] flex flex-col">
                     <div className="flex justify-between items-center shrink-0">
                       <h3 className="text-lg font-bold text-stone-900 flex items-center gap-2">
                         <i className="fa-solid fa-user-group text-orange-600"></i> {esBarberia ? 'Barberos' : 'Cajeros y Empleados'}
@@ -89,7 +89,7 @@ export default function GestionCajeros({
                           <button
                             onClick={registrarNuevoCajeroCompleto}
                             disabled={guardandoNuevoCajero}
-                            className="flex-1 py-2 bg-[#6105dc] hover:bg-[#4d04b0] disabled:opacity-60 text-white font-bold text-xs rounded-full shadow"
+                            className="flex-1 py-2 bg-[#5b4bd6] hover:bg-[#473bb5] disabled:opacity-60 text-white font-bold text-xs rounded-full shadow"
                           >
                             {guardandoNuevoCajero ? 'Guardando...' : 'Agregar'}
                           </button>
@@ -99,7 +99,7 @@ export default function GestionCajeros({
                       <>
                         <button
                           onClick={() => setMostrarFormNuevoCajero(true)}
-                          className="w-full py-2.5 bg-white/70 hover:bg-[#ece0fd] text-stone-600 text-xs font-semibold rounded-full border border-stone-300 border-dashed flex items-center justify-center gap-1.5 shrink-0 shadow-sm"
+                          className="w-full py-2.5 bg-white/70 hover:bg-[#dde4fa] text-stone-600 text-xs font-semibold rounded-full border border-stone-300 border-dashed flex items-center justify-center gap-1.5 shrink-0 shadow-sm"
                         >
                           <i className="fa-solid fa-user-plus"></i> {esBarberia ? 'Agregar barbero' : 'Agregar cajero'}
                         </button>
@@ -137,7 +137,7 @@ export default function GestionCajeros({
                                     <button
                                       onClick={() => abrirHorarioBarbero(c)}
                                       title="Días y horas en que atiende; las citas de la tienda en línea se reservan dentro de este horario"
-                                      className="mt-1.5 flex items-center gap-1.5 text-[11px] font-semibold text-[#4d04b0] hover:underline"
+                                      className="mt-1.5 flex items-center gap-1.5 text-[11px] font-semibold text-[#2d284b] hover:underline"
                                     >
                                       <i className="fa-regular fa-calendar"></i>
                                       Horario de atención · {barberosConHorario.has(c.id) ? 'configurado' : 'sin horario'}

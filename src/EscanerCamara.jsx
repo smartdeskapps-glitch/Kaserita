@@ -63,12 +63,12 @@ export default function EscanerCamara({
                         : null;
                       if (!ultimo) return null;
                       return (
-                        <div key={`${ultimo.claveCarrito || ultimo.productoId}-${ultimo.cantidad}`} className="absolute left-1/2 -translate-x-1/2 top-[88px] max-w-[88%] flex items-center gap-2.5 bg-white text-[#1c1830] rounded-full py-1.5 pl-2 pr-3.5 text-[13px] font-bold shadow-[0_12px_30px_-10px_rgba(0,0,0,0.6)] animate-[escaner-pop_0.45s_cubic-bezier(0.2,1.4,0.3,1)_both]">
+                        <div key={`${ultimo.claveCarrito || ultimo.productoId}-${ultimo.cantidad}`} className="absolute left-1/2 -translate-x-1/2 top-[88px] max-w-[88%] flex items-center gap-2.5 bg-white text-[#2d284b] rounded-full py-1.5 pl-2 pr-3.5 text-[13px] font-bold shadow-[0_12px_30px_-10px_rgba(0,0,0,0.6)] animate-[escaner-pop_0.45s_cubic-bezier(0.2,1.4,0.3,1)_both]">
                           <span className="w-6 h-6 shrink-0 rounded-full bg-[#22b573] text-white flex items-center justify-center">
                             <IconoTrazo nombre="check" className="w-3.5 h-3.5" />
                           </span>
                           <span className="truncate">{ultimo.descripcion}</span>
-                          <span className="text-[#6105dc] tabular-nums shrink-0">×{ultimo.cantidad}</span>
+                          <span className="text-[#5b4bd6] tabular-nums shrink-0">×{ultimo.cantidad}</span>
                         </div>
                       );
                     })()}
@@ -98,7 +98,7 @@ export default function EscanerCamara({
                     </div>
 
                     {errorEscaner && (
-                      <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 text-center p-8 bg-gradient-to-br from-[#1a1524] to-[#0c0912]">
+                      <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 text-center p-8 bg-gradient-to-br from-[#191821] to-[#0b0b10]">
                         <span className="w-16 h-16 rounded-3xl bg-rose-500/20 text-rose-400 flex items-center justify-center">
                           <IconoTrazo nombre="camaraOff" className="w-7 h-7" />
                         </span>
@@ -107,7 +107,7 @@ export default function EscanerCamara({
                         <button
                           type="button"
                           onClick={() => { setModalEscaner(false); setTimeout(() => setModalEscaner(true), 60); }}
-                          className="mt-1.5 h-[46px] px-6 rounded-full bg-white text-[#4d04b0] text-sm font-semibold"
+                          className="mt-1.5 h-[46px] px-6 rounded-full bg-white text-[#2d284b] text-sm font-semibold"
                         >
                           Reintentar
                         </button>
@@ -212,7 +212,7 @@ export default function EscanerCamara({
                               </div>
                               <span className="text-xs font-bold text-orange-600 ml-auto shrink-0">= {totalPendiente} und</span>
                             </div>
-                            <button onClick={() => agregarHallazgo(f.productoId)} className="w-full h-[50px] bg-[#6105dc] hover:bg-[#4d04b0] text-white rounded-full text-[15px] font-semibold">
+                            <button onClick={() => agregarHallazgo(f.productoId)} className="w-full h-[50px] bg-[#5b4bd6] hover:bg-[#473bb5] text-white rounded-full text-[15px] font-semibold">
                               <i className="fa-solid fa-plus"></i> Agregar
                             </button>
                           </div>
@@ -245,7 +245,7 @@ export default function EscanerCamara({
                         );
                       }
                       return (
-                        <div className="absolute left-3 right-3 bottom-3 rounded-[28px] bg-[#140f20]/90 backdrop-blur-xl ring-1 ring-white/10 px-3.5 pb-3.5 pt-2 text-white">
+                        <div className="absolute left-3 right-3 bottom-3 rounded-[28px] bg-[#13121d]/90 backdrop-blur-xl ring-1 ring-white/10 px-3.5 pb-3.5 pt-2 text-white">
                           <div className="w-9 h-1 rounded-full bg-white/25 mx-auto mb-2.5"></div>
                           <div className="flex items-center justify-between mb-1 text-xs font-semibold text-white/65">
                             <span>Escaneado ahora</span>
@@ -275,10 +275,10 @@ export default function EscanerCamara({
                           <button
                             type="button"
                             onClick={() => { setModalEscaner(false); setMostrarResumenMobile(true); }}
-                            className="w-full h-[52px] mt-2.5 rounded-full bg-white hover:bg-[#faf8fe] text-[#4d04b0] flex items-center justify-between pl-[18px] pr-1.5 text-[14px] font-bold whitespace-nowrap transition"
+                            className="w-full h-[52px] mt-2.5 rounded-full bg-white hover:bg-[#f7f9ff] text-[#2d284b] flex items-center justify-between pl-[18px] pr-1.5 text-[14px] font-bold whitespace-nowrap transition"
                           >
                             Listo · ver venta
-                            <span className="px-4 py-2.5 rounded-full bg-gradient-to-br from-[#7a2cf0] to-[#5503c4] text-white text-sm tabular-nums shadow-[0_8px_18px_-8px_rgba(97,5,220,0.8)]">S/ {formatoSoles(totalConDescuento)}</span>
+                            <span className="px-4 py-2.5 rounded-full bg-gradient-to-br from-[#7466e8] to-[#473bb5] text-white text-sm tabular-nums shadow-[0_8px_18px_-8px_rgba(91,75,214,0.8)]">S/ {formatoSoles(totalConDescuento)}</span>
                           </button>
                         </div>
                       );

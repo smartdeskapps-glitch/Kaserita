@@ -181,14 +181,14 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
     // onClick; la otra abre la ventana hermana.
     function PestanasModal({ pestanas }) {
       return (
-        <div className="flex gap-0.5 p-1 rounded-full bg-[#6105dc]/[0.08] shrink-0">
+        <div className="flex gap-0.5 p-1 rounded-full bg-[#5b4bd6]/[0.08] shrink-0">
           {pestanas.map((t) => (
             <button
               key={t.texto}
               type="button"
               onClick={t.onClick}
               className={`flex-1 h-9 rounded-full text-[13px] font-semibold transition ${
-                t.activa ? 'bg-white text-[#4d04b0] shadow-[0_1px_3px_rgba(40,20,80,0.15)]' : 'text-[#6a6386] hover:text-[#4d04b0]'
+                t.activa ? 'bg-white text-[#2d284b] shadow-[0_1px_3px_rgba(40,20,80,0.15)]' : 'text-[#6b6890] hover:text-[#2d284b]'
               }`}
             >
               {t.texto}
@@ -213,9 +213,9 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
               key={t}
               type="button"
               onClick={() => presionar(t)}
-              className="h-11 bg-white hover:bg-[#faf8fe] ring-1 ring-[#6105dc]/10 rounded-[14px] text-lg font-semibold text-stone-800 flex items-center justify-center active:scale-95 transition"
+              className="h-11 bg-white hover:bg-[#f7f9ff] ring-1 ring-[#5b4bd6]/10 rounded-[14px] text-lg font-semibold text-stone-800 flex items-center justify-center active:scale-95 transition"
             >
-              {t === 'BORRAR' ? <IconoTrazo nombre="borrar" className="w-[22px] h-[22px] text-[#6105dc]" /> : t}
+              {t === 'BORRAR' ? <IconoTrazo nombre="borrar" className="w-[22px] h-[22px] text-[#5b4bd6]" /> : t}
             </button>
           ))}
           <button
@@ -274,8 +274,8 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
 
     // Confeti que salta del visto al emitir la boleta: [color, x, y, tamaño].
     const CONFETI_BOLETA = [
-      ['#ffc81a', -46, -30, 8], ['#8a3df2', 46, -34, 7], ['#ff7aa2', -58, 6, 6],
-      ['#34d399', 56, 10, 7], ['#6105dc', -30, -52, 6], ['#f59e0b', 30, -54, 6],
+      ['#ffc81a', -46, -30, 8], ['#7466e8', 46, -34, 7], ['#ff7aa2', -58, 6, 6],
+      ['#34d399', 56, 10, 7], ['#5b4bd6', -30, -52, 6], ['#f59e0b', 30, -54, 6],
     ];
     const ICONO_MEDIO_PAGO = { EFECTIVO: 'efectivo', YAPE: 'movil', PLIN: 'movil', TARJETA: 'tarjeta', CREDITO: 'credito', MIXTO: 'mixto' };
 
@@ -508,8 +508,8 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
     // setters y el número de días distinto.
     function FiltroFechasRapido({ desde, hasta, setDesde, setHasta, onRango, diasAtras, children, tema }) {
       const dsh = tema === 'dsh';
-      const claseBuscar = dsh ? 'bg-[#2D284B] hover:bg-[#3b3466]' : 'bg-[#6105dc] hover:bg-[#4d04b0]';
-      const claseAtajo = dsh ? 'hover:bg-[#dde4fa] hover:text-[#2D284B]' : 'hover:bg-[#ece0fd] hover:text-[#4d04b0]';
+      const claseBuscar = dsh ? 'bg-[#2D284B] hover:bg-[#3b3466]' : 'bg-[#5b4bd6] hover:bg-[#473bb5]';
+      const claseAtajo = dsh ? 'hover:bg-[#dde4fa] hover:text-[#2D284B]' : 'hover:bg-[#dde4fa] hover:text-[#2d284b]';
       const irAHoy = () => {
         const hoy = fechaHoyISO();
         setDesde(hoy); setHasta(hoy); onRango(hoy, hoy);
@@ -575,7 +575,7 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
     function DesgloseMediosPago({ desglose }) {
       if (!desglose) return null;
       const filas = [
-        { label: 'Yape', valor: desglose.YAPE, color: '#7c3aed' },
+        { label: 'Yape', valor: desglose.YAPE, color: '#5b4bd6' },
         { label: 'Plin', valor: desglose.PLIN, color: '#06b6d4' },
         { label: 'Tarjeta', valor: desglose.TARJETA, color: '#f59e0b' },
         { label: 'Crédito', valor: desglose.CREDITO, color: '#64748b' },
@@ -583,10 +583,10 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
       ].filter((f) => f.valor > 0);
       if (filas.length === 0) return null;
       return (
-        <div className="mt-3.5 bg-[#fcfaff] border border-stone-100 rounded-[18px] px-3.5 py-1 text-left text-xs text-stone-600">
+        <div className="mt-3.5 bg-[#f8faff] border border-stone-100 rounded-[18px] px-3.5 py-1 text-left text-xs text-stone-600">
           <p className="font-semibold text-stone-500 py-2 leading-snug">Otros medios de pago: no es efectivo. Cruza estos montos con tu app de Yape o tu POS de tarjeta.</p>
           {filas.map((f) => (
-            <div key={f.label} className="flex justify-between items-center py-1.5 border-t border-dashed border-[#e4d6fb]">
+            <div key={f.label} className="flex justify-between items-center py-1.5 border-t border-dashed border-[#d2d9f5]">
               <span className="flex items-center"><i className="w-[9px] h-[9px] rounded-[3px] inline-block mr-2" style={{ background: f.color }}></i>{f.label}</span>
               <b className="text-stone-800">S/ {f.valor.toFixed(2)}</b>
             </div>
@@ -619,17 +619,17 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
         const n = Math.max(0, Math.floor(Number(conteo[d])) || 0);
         const esBillete = d >= 10;
         return (
-          <div key={d} className="flex items-center gap-2.5 py-[7px] border-b border-dashed border-[#e4d6fb] last:border-b-0">
+          <div key={d} className="flex items-center gap-2.5 py-[7px] border-b border-dashed border-[#d2d9f5] last:border-b-0">
             <span className="flex items-center gap-2 text-[13px] font-bold min-w-[88px]">
               {esBillete
                 ? <span className="w-[34px] h-5 rounded-[5px] grid place-items-center text-[9px] font-extrabold text-white shrink-0" style={{ background: COLOR_BILLETE[d] }}>S/</span>
-                : <span className="w-[22px] h-[22px] mx-1.5 rounded-full grid place-items-center text-[9px] font-extrabold bg-[#e4d6fb] text-[#4d04b0] shrink-0">¢</span>}
+                : <span className="w-[22px] h-[22px] mx-1.5 rounded-full grid place-items-center text-[9px] font-extrabold bg-[#d2d9f5] text-[#2d284b] shrink-0">¢</span>}
               {d >= 1 ? `S/ ${d}` : d.toFixed(2)}
             </span>
-            <span className="ml-auto flex items-center bg-[#f1eef9] rounded-[11px]">
-              <button type="button" aria-label={`Menos ${d}`} onClick={() => cambiar(d, n - 1)} className="w-[30px] h-[30px] rounded-[11px] text-[#4d04b0] hover:bg-[#e6def7] grid place-items-center"><i className="fa-solid fa-minus text-[11px]"></i></button>
+            <span className="ml-auto flex items-center bg-[#eef1fb] rounded-[11px]">
+              <button type="button" aria-label={`Menos ${d}`} onClick={() => cambiar(d, n - 1)} className="w-[30px] h-[30px] rounded-[11px] text-[#2d284b] hover:bg-[#dde4fa] grid place-items-center"><i className="fa-solid fa-minus text-[11px]"></i></button>
               <input type="number" min="0" inputMode="numeric" value={n || ''} placeholder="0" aria-label={`Cantidad de ${d}`} onChange={(e) => cambiar(d, Number(e.target.value))} className="w-[38px] h-[30px] bg-transparent border-0 text-center font-extrabold text-sm outline-none p-0 [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none" />
-              <button type="button" aria-label={`Más ${d}`} onClick={() => cambiar(d, n + 1)} className="w-[30px] h-[30px] rounded-[11px] text-[#4d04b0] hover:bg-[#e6def7] grid place-items-center"><i className="fa-solid fa-plus text-[11px]"></i></button>
+              <button type="button" aria-label={`Más ${d}`} onClick={() => cambiar(d, n + 1)} className="w-[30px] h-[30px] rounded-[11px] text-[#2d284b] hover:bg-[#dde4fa] grid place-items-center"><i className="fa-solid fa-plus text-[11px]"></i></button>
             </span>
             <span className={`min-w-[70px] text-right text-[12.5px] font-bold ${n ? 'text-stone-900' : 'text-stone-400'}`}>S/ {(n * d).toFixed(2)}</span>
           </div>
@@ -637,12 +637,12 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
       };
       const etiqueta = 'text-[11px] font-bold text-stone-500 tracking-[0.06em] uppercase';
       return (
-        <div className="mt-1.5 border border-stone-100 rounded-[18px] bg-[#fcfaff] px-3.5 py-1.5">
+        <div className="mt-1.5 border border-stone-100 rounded-[18px] bg-[#f8faff] px-3.5 py-1.5">
           <p className={`${etiqueta} pt-2 pb-0.5`}>Billetes</p>
           {DENOMINACIONES.filter((d) => d >= 10).map(fila)}
           <p className={`${etiqueta} pt-2.5 pb-0.5`}>Monedas</p>
           {DENOMINACIONES.filter((d) => d < 10).map(fila)}
-          <div className="flex justify-between items-center pt-2.5 pb-1.5 mt-1 border-t border-[#e4d6fb] text-[12.5px] font-bold">
+          <div className="flex justify-between items-center pt-2.5 pb-1.5 mt-1 border-t border-[#d2d9f5] text-[12.5px] font-bold">
             <span>Total contado en caja <b className="text-base font-extrabold ml-1.5">S/ {totalConteo(conteo).toFixed(2)}</b></span>
             <button type="button" onClick={() => onChange({})} className="text-xs font-bold text-stone-500 hover:text-stone-900 hover:bg-stone-100 rounded-lg px-1.5 py-1">Limpiar</button>
           </div>
@@ -755,7 +755,7 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
     // cada negocio, así que el tono sale de un hash estable del nombre (la misma
     // categoría siempre queda del mismo color). Sin categoría: lila de marca.
     const TONOS_TARJETA = [
-      { t: '#ece0fd', td: '#6a3fc4' },
+      { t: '#dde4fa', td: '#5b4bd6' },
       { t: '#dfeafd', td: '#3b66b8' },
       { t: '#fde8d6', td: '#c0662a' },
       { t: '#fff1c7', td: '#a97c10' },
@@ -2214,14 +2214,14 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
       const seccionDelivery = (id, icono, titulo, resumen, hijos) => {
         const abierta = !!seccionesDelivery[id];
         return (
-          <div className="bg-white rounded-3xl ring-1 ring-[#6105dc]/5 mb-2.5 overflow-hidden">
+          <div className="bg-white rounded-3xl ring-1 ring-[#5b4bd6]/5 mb-2.5 overflow-hidden">
             <button
               type="button"
               aria-expanded={abierta}
               onClick={() => setSeccionesDelivery((s) => ({ ...s, [id]: !s[id] }))}
               className="w-full flex items-center gap-3 p-3.5 text-left"
             >
-              <span className="w-10 h-10 rounded-[14px] bg-[#f4eefe] text-[#6105dc] flex items-center justify-center shrink-0">
+              <span className="w-10 h-10 rounded-[14px] bg-[#ebf0ff] text-[#5b4bd6] flex items-center justify-center shrink-0">
                 <IconoTrazo nombre={icono} className="w-[18px] h-[18px]" />
               </span>
               <span className="min-w-0 flex-1">
@@ -9292,7 +9292,7 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
       return (
         <div
           className={`relative fondo-pos-grano flex h-screen text-stone-900 font-sans select-none overflow-hidden ${(!enLinea || ventasPendientesSync.length > 0) ? 'pt-7' : ''}`}
-          style={{ background: '#F8F6FD' }}
+          style={{ background: '#f7f8fc' }}
         >
           {/* Fondo "aurora violeta": tres masas de color muy difuminadas (fijas,
               sin animación) + una cuadrícula técnica sutil que se desvanece
@@ -9314,8 +9314,8 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
           )}
 
           {versionNueva && !avisoVersionOculto && (
-            <div role="status" className="fixed bottom-4 inset-x-4 md:inset-x-auto md:right-4 md:max-w-sm z-[95] flex items-center gap-3 px-4 py-3 rounded-2xl bg-white border border-[#e9e6f0] shadow-2xl">
-              <i className="fa-solid fa-rotate text-[#6105dc] shrink-0"></i>
+            <div role="status" className="fixed bottom-4 inset-x-4 md:inset-x-auto md:right-4 md:max-w-sm z-[95] flex items-center gap-3 px-4 py-3 rounded-2xl bg-white border border-[#e6e9f5] shadow-2xl">
+              <i className="fa-solid fa-rotate text-[#5b4bd6] shrink-0"></i>
               <p className="text-[13px] text-stone-700 leading-snug flex-1">Hay una versión nueva de Kaserita. Actualiza cuando termines esta venta.</p>
               <button type="button" onClick={() => window.location.reload()} className="kz-pri h-9 px-4 text-[13px] font-semibold shrink-0">Actualizar</button>
               <button type="button" aria-label="Ocultar aviso" onClick={() => setAvisoVersionOculto(true)} className="w-7 h-7 rounded-full text-stone-400 hover:text-stone-700 shrink-0"><i className="fa-solid fa-xmark"></i></button>
@@ -9353,10 +9353,10 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
             <header className="flex items-center justify-between mx-3 mt-3 px-2 md:px-3 py-2 gap-3">
               <div className="flex items-center gap-3 min-w-0 max-w-full pl-1">
                 <img src="/logo-horizontal-color.svg" width="2068" height="642" alt="Kaserita" className="h-7 md:h-8 w-auto shrink-0" />
-                <span className="w-px h-[30px] bg-[#6105dc]/20 shrink-0"></span>
+                <span className="w-px h-[30px] bg-[#5b4bd6]/20 shrink-0"></span>
                 <div className="min-w-0">
-                  <h1 className="text-sm md:text-[15px] font-bold text-[#1c1830] leading-tight tracking-tight truncate">{bodegaNombre}</h1>
-                  <p className="text-xs text-[#78729a] truncate leading-tight mt-px">
+                  <h1 className="text-sm md:text-[15px] font-bold text-[#2d284b] leading-tight tracking-tight truncate">{bodegaNombre}</h1>
+                  <p className="text-xs text-[#6b6890] truncate leading-tight mt-px">
                     {cajeroSeleccionado?.nombre || usuarioActivo?.nombre}
                   </p>
                 </div>
@@ -9374,7 +9374,7 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
                 ) : (
                   <button
                     onClick={() => setModalTurno(true)}
-                    className="btn-noise hidden sm:inline-flex text-xs font-medium text-[#1c1830]"
+                    className="btn-noise hidden sm:inline-flex text-xs font-medium text-[#2d284b]"
                   >
                     <span className="btn-noise-in">
                       Abrir Turno
@@ -9422,7 +9422,7 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
                   {menuCategoriasAbierto && (
                     <>
                       <div className="fixed inset-0 z-20" onClick={() => setMenuCategoriasAbierto(false)}></div>
-                      <div className="absolute top-full left-0 mt-2 w-64 bg-white/80 backdrop-blur-2xl border border-white/90 rounded-3xl shadow-[0_24px_60px_-24px_rgba(60,20,120,0.28)] ring-1 ring-[#6105dc]/5 p-2 z-30">
+                      <div className="absolute top-full left-0 mt-2 w-64 bg-white/80 backdrop-blur-2xl border border-white/90 rounded-3xl shadow-[0_24px_60px_-24px_rgba(60,20,120,0.28)] ring-1 ring-[#5b4bd6]/5 p-2 z-30">
                         <div className="relative mb-2">
                           <i className="fa-solid fa-magnifying-glass absolute left-3.5 top-1/2 -translate-y-1/2 text-[11px] text-stone-400"></i>
                           <input
@@ -9430,7 +9430,7 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
                             value={busquedaCategoria}
                             onChange={(e) => setBusquedaCategoria(e.target.value)}
                             placeholder="Buscar categoría"
-                            className="w-full bg-white rounded-full pl-9 pr-3 py-2 text-[13px] text-stone-900 placeholder-stone-400 ring-1 ring-[#6105dc]/10 focus:outline-none focus:ring-2 focus:ring-[#d6bdfa]"
+                            className="w-full bg-white rounded-full pl-9 pr-3 py-2 text-[13px] text-stone-900 placeholder-stone-400 ring-1 ring-[#5b4bd6]/10 focus:outline-none focus:ring-2 focus:ring-[#c5bcff]"
                           />
                         </div>
                         <div
@@ -9450,12 +9450,12 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
                                 <React.Fragment key={cat}>
                                   <button
                                     onClick={() => { setCategoriaFiltro(cat); setMenuCategoriasAbierto(false); }}
-                                    className={`w-full flex items-center justify-between gap-2 px-3.5 py-2.5 rounded-full text-left text-sm transition ${activo ? 'bg-[#ece0fd] text-[#4d04b0] font-bold' : 'text-stone-800 font-medium hover:bg-[#6105dc]/5'}`}
+                                    className={`w-full flex items-center justify-between gap-2 px-3.5 py-2.5 rounded-full text-left text-sm transition ${activo ? 'bg-[#dde4fa] text-[#2d284b] font-bold' : 'text-stone-800 font-medium hover:bg-[#5b4bd6]/5'}`}
                                   >
                                     <span className="truncate">{cat}</span>
-                                    <span className={`text-xs shrink-0 tabular-nums ${activo ? 'bg-white text-[#6105dc] font-semibold px-2 py-0.5 rounded-full' : 'text-stone-400'}`}>{cantidad}</span>
+                                    <span className={`text-xs shrink-0 tabular-nums ${activo ? 'bg-white text-[#5b4bd6] font-semibold px-2 py-0.5 rounded-full' : 'text-stone-400'}`}>{cantidad}</span>
                                   </button>
-                                  {cat === 'TODOS' && !q && <div className="h-px bg-[#6105dc]/10 mx-3.5 my-1.5"></div>}
+                                  {cat === 'TODOS' && !q && <div className="h-px bg-[#5b4bd6]/10 mx-3.5 my-1.5"></div>}
                                 </React.Fragment>
                               );
                             });
@@ -9468,11 +9468,11 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
                 {combos.some(c => c.activo) && (
                   <button
                     onClick={() => setCategoriaFiltro('__COMBOS__')}
-                    className={`shrink-0 flex items-center gap-1.5 px-4 py-2.5 transition ${categoriaFiltro === '__COMBOS__' ? 'folder-tab-active text-[#6105dc]' : 'mb-2 rounded-full bg-white/50 text-[#6105dc] hover:bg-white/80 border border-[#d6bdfa]'}`}
+                    className={`shrink-0 flex items-center gap-1.5 px-4 py-2.5 transition ${categoriaFiltro === '__COMBOS__' ? 'folder-tab-active text-[#5b4bd6]' : 'mb-2 rounded-full bg-white/50 text-[#5b4bd6] hover:bg-white/80 border border-[#c5bcff]'}`}
                   >
                     <i className="fa-solid fa-gift text-xs"></i>
                     <span className="font-bold whitespace-nowrap">Combos</span>
-                    <span className="text-xs font-semibold text-[#6105dc]/70">
+                    <span className="text-xs font-semibold text-[#5b4bd6]/70">
                       {combos.filter(c => c.activo && estadoCombos.get(c.id)?.disponible !== false).length}
                     </span>
                   </button>
@@ -9492,8 +9492,8 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
                   <div className="flex gap-2.5 flex-1 min-w-0 items-center">
                     {/* Una sola pastilla: lupa, campo, resultados, limpiar y cámara.
                         El borde violeta se enciende cuando el campo tiene el foco. */}
-                    <div className="flex-1 min-w-0 flex items-center gap-2.5 h-[46px] md:h-[50px] pl-4 md:pl-[18px] pr-1.5 md:pr-2 bg-white border border-[#e4dff0] rounded-full shadow-[0_1px_2px_rgba(40,10,100,0.04),0_8px_22px_-14px_rgba(60,4,150,0.28)] transition focus-within:border-[#6105dc] focus-within:ring-4 focus-within:ring-[#6105dc]/10 focus-within:shadow-[0_10px_26px_-12px_rgba(97,5,220,0.4)] group/bus">
-                      <i className="fa-solid fa-magnifying-glass text-[15px] text-[#8f89a8] group-focus-within/bus:text-[#6105dc] transition shrink-0"></i>
+                    <div className="flex-1 min-w-0 flex items-center gap-2.5 h-[46px] md:h-[50px] pl-4 md:pl-[18px] pr-1.5 md:pr-2 bg-white border border-[#e1e5f3] rounded-full shadow-[0_1px_2px_rgba(40,10,100,0.04),0_8px_22px_-14px_rgba(45,40,75,0.28)] transition focus-within:border-[#5b4bd6] focus-within:ring-4 focus-within:ring-[#5b4bd6]/10 focus-within:shadow-[0_10px_26px_-12px_rgba(91,75,214,0.4)] group/bus">
+                      <i className="fa-solid fa-magnifying-glass text-[15px] text-[#8f8cb0] group-focus-within/bus:text-[#5b4bd6] transition shrink-0"></i>
                       <input
                         ref={inputBusquedaRef}
                         type="text"
@@ -9505,11 +9505,11 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
                         }}
                         onKeyDown={handleKeyDownBusqueda}
                         placeholder="Busca por nombre o escanea un código"
-                        className="flex-1 min-w-0 bg-transparent text-[14px] md:text-[15px] font-medium text-stone-900 placeholder:text-[#9a94b3] placeholder:font-normal focus:outline-none"
+                        className="flex-1 min-w-0 bg-transparent text-[14px] md:text-[15px] font-medium text-stone-900 placeholder:text-[#8f8cb0] placeholder:font-normal focus:outline-none"
                       />
                       {busqueda && (
                         <>
-                          <span className="hidden sm:inline-flex shrink-0 text-xs font-bold text-[#4d04b0] bg-[#f1e9fe] rounded-full px-2.5 py-1.5 tabular-nums">
+                          <span className="hidden sm:inline-flex shrink-0 text-xs font-bold text-[#2d284b] bg-[#edf0fa] rounded-full px-2.5 py-1.5 tabular-nums">
                             {productosFiltrados.length} {productosFiltrados.length === 1 ? 'resultado' : 'resultados'}
                           </span>
                           <button aria-label="Limpiar búsqueda"
@@ -9518,7 +9518,7 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
                               cargarProductos('');
                               inputBusquedaRef.current?.blur();
                             }}
-                            className="shrink-0 w-[30px] h-[30px] flex items-center justify-center bg-[#f3f1f8] hover:bg-[#e9e5f3] text-[#6b6585] rounded-full transition"
+                            className="shrink-0 w-[30px] h-[30px] flex items-center justify-center bg-[#f2f3f7] hover:bg-[#e5e9f6] text-[#6b6890] rounded-full transition"
                           ><i className="fa-solid fa-xmark text-xs"></i></button>
                         </>
                       )}
@@ -9535,7 +9535,7 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
                       onClick={abrirPedidosRetirar}
                       title="Pedidos por retirar (clientes con cuenta)"
                       aria-label="Pedidos por retirar"
-                      className="relative flex items-center justify-center w-[46px] h-[46px] md:w-[50px] md:h-[50px] shrink-0 bg-white hover:bg-[#f4eefe] text-[#4b4565] rounded-full border border-[#e4dff0] shadow-[0_1px_2px_rgba(40,10,100,0.04),0_8px_22px_-14px_rgba(60,4,150,0.28)] transition"
+                      className="relative flex items-center justify-center w-[46px] h-[46px] md:w-[50px] md:h-[50px] shrink-0 bg-white hover:bg-[#ebf0ff] text-[#5f5d76] rounded-full border border-[#e1e5f3] shadow-[0_1px_2px_rgba(40,10,100,0.04),0_8px_22px_-14px_rgba(45,40,75,0.28)] transition"
                     >
                       <i className="fa-solid fa-bell-concierge text-[17px]"></i>
                       {pedidosPorRetirarPendientes > 0 ? (
@@ -9583,12 +9583,12 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
                             !est.disponible
                               ? 'border-stone-200 opacity-60 grayscale cursor-not-allowed'
                               : (cantidadEnCarritoPorCombo.get(combo.id) || 0) > 0
-                                ? 'border-[#6105dc] ring-2 ring-[#6105dc]/40 hover:-translate-y-0.5 hover:shadow-lg active:scale-[0.98]'
-                                : 'border-[#d6bdfa] hover:border-[#7c1fe0] hover:-translate-y-0.5 hover:shadow-lg active:scale-[0.98]'
+                                ? 'border-[#5b4bd6] ring-2 ring-[#5b4bd6]/40 hover:-translate-y-0.5 hover:shadow-lg active:scale-[0.98]'
+                                : 'border-[#c5bcff] hover:border-[#5b4bd6] hover:-translate-y-0.5 hover:shadow-lg active:scale-[0.98]'
                           }`}
                         >
                           <div className="flex items-center gap-2">
-                            <span className="w-9 h-9 rounded-xl bg-[#f4eefe] text-[#6105dc] flex items-center justify-center shrink-0">
+                            <span className="w-9 h-9 rounded-xl bg-[#ebf0ff] text-[#5b4bd6] flex items-center justify-center shrink-0">
                               <i className="fa-solid fa-gift"></i>
                             </span>
                             <h3 className="text-[13px] font-bold text-stone-900 line-clamp-2 leading-snug flex-1">{combo.nombre}</h3>
@@ -9600,9 +9600,9 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
                             <p className="text-[10px] font-bold text-rose-600 line-clamp-2">Sin stock: {est.faltan.join(', ')}</p>
                           )}
                           <div className="flex items-center justify-between mt-auto pt-1">
-                            <span className="text-base font-black text-[#4d04b0] tabular-nums">S/ {Number(combo.precio_venta).toFixed(2)}</span>
+                            <span className="text-base font-black text-[#2d284b] tabular-nums">S/ {Number(combo.precio_venta).toFixed(2)}</span>
                             {(cantidadEnCarritoPorCombo.get(combo.id) || 0) > 0 && (
-                              <span className="text-[10px] font-bold text-white bg-[#6105dc] px-2 py-0.5 rounded-full">x{cantidadEnCarritoPorCombo.get(combo.id)}</span>
+                              <span className="text-[10px] font-bold text-white bg-[#5b4bd6] px-2 py-0.5 rounded-full">x{cantidadEnCarritoPorCombo.get(combo.id)}</span>
                             )}
                           </div>
                         </button>
@@ -9665,7 +9665,7 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
             const ultimos = carrito.slice(-2);
             return (
               <>
-                <div className="md:hidden fixed inset-x-0 bottom-0 h-28 z-30 pointer-events-none bg-gradient-to-t from-[#f9f8fb] via-[#f9f8fb]/70 to-transparent"></div>
+                <div className="md:hidden fixed inset-x-0 bottom-0 h-28 z-30 pointer-events-none bg-gradient-to-t from-[#f8f9fd] via-[#f8f9fd]/70 to-transparent"></div>
                 <button
                   onClick={() => setMostrarResumenMobile(true)}
                   aria-label={`Ver carrito: ${unidadesTexto} ${unidades === 1 ? 'producto' : 'productos'}, total S/ ${formatoSoles(totalConDescuento)}`}
@@ -9684,7 +9684,7 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
                         />
                       ))}
                       {carrito.length > 2 && (
-                        <span className="-ml-3 w-9 h-9 rounded-full ring-2 ring-white/90 bg-[#3a1b94] text-white text-[11px] font-bold tabular-nums flex items-center justify-center shrink-0">+{carrito.length - 2}</span>
+                        <span className="-ml-3 w-9 h-9 rounded-full ring-2 ring-white/90 bg-[#2d284b] text-white text-[11px] font-bold tabular-nums flex items-center justify-center shrink-0">+{carrito.length - 2}</span>
                       )}
                     </span>
                     <span className="ml-2.5 text-left leading-tight min-w-0 whitespace-nowrap">
@@ -9697,7 +9697,7 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
                       <span className="block text-[11px] text-stone-500 font-medium">Total</span>
                       <span className="block font-bold text-[19px] tracking-tight tabular-nums"><small className="text-xs font-semibold opacity-80 mr-0.5">S/</small>{formatoSoles(totalConDescuento)}</span>
                     </span>
-                    <span className="flex items-center justify-center w-11 h-11 rounded-full bg-[#6105dc] text-white shrink-0 shadow-[0_4px_10px_-4px_rgba(60,5,170,0.6)]">
+                    <span className="flex items-center justify-center w-11 h-11 rounded-full bg-[#5b4bd6] text-white shrink-0 shadow-[0_4px_10px_-4px_rgba(45,40,75,0.6)]">
                       <IconoTrazo nombre="bag" className="w-5 h-5 !text-white" />
                     </span>
                   </span>
@@ -9845,7 +9845,7 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
                   const estadoInfo = {
                     pendiente: { texto: 'Pendiente', color: 'text-amber-600', dot: 'bg-amber-500' },
                     listo: { texto: 'Listo', color: 'text-emerald-600', dot: 'bg-emerald-500' },
-                    en_camino: { texto: 'En camino', color: 'text-[#6105dc]', dot: 'bg-[#6105dc]' },
+                    en_camino: { texto: 'En camino', color: 'text-[#5b4bd6]', dot: 'bg-[#5b4bd6]' },
                     retirado: { texto: 'Entregado', color: 'text-stone-400', dot: 'bg-stone-300' },
                     cancelado: { texto: 'Cancelado', color: 'text-rose-400', dot: 'bg-rose-300' },
                   }[p.estado];
@@ -9903,8 +9903,8 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
                       </div>
 
                       {p.cita_fecha && (
-                        <div className="rounded-lg bg-[#f4eefe] px-3 py-2 text-xs">
-                          <p className="font-semibold text-[#4d04b0]">
+                        <div className="rounded-lg bg-[#ebf0ff] px-3 py-2 text-xs">
+                          <p className="font-semibold text-[#2d284b]">
                             Cita: {(() => {
                               const [a, m, d] = String(p.cita_fecha).split('-').map(Number);
                               const t = new Date(a, m - 1, d).toLocaleDateString('es-PE', { weekday: 'long', day: 'numeric', month: 'long' });
@@ -9916,9 +9916,9 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
                       )}
 
                       {esDomicilioPedido && (
-                        <div className="rounded-lg bg-[#f4eefe] px-3 py-2 space-y-1 text-xs">
+                        <div className="rounded-lg bg-[#ebf0ff] px-3 py-2 space-y-1 text-xs">
                           <div className="flex items-center justify-between gap-2">
-                            <span className="flex items-center gap-1.5 font-semibold text-[#4d04b0]">
+                            <span className="flex items-center gap-1.5 font-semibold text-[#2d284b]">
                               <IconoTrazo nombre="moto" className="w-3.5 h-3.5" /> A domicilio
                             </span>
                             <span className="text-stone-500 tabular-nums">Envío S/ {envioPedido.toFixed(2)}</span>
@@ -9946,7 +9946,7 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
                         <div className="flex gap-2">
                           <button
                             onClick={() => enviarPedidoAlRepartidor(p)}
-                            className="flex-1 py-2 rounded-lg bg-[#6105dc] hover:bg-[#4d04b0] text-white text-xs font-semibold flex items-center justify-center gap-1.5 transition"
+                            className="flex-1 py-2 rounded-lg bg-[#5b4bd6] hover:bg-[#473bb5] text-white text-xs font-semibold flex items-center justify-center gap-1.5 transition"
                           >
                             <IconoTrazo nombre="chat" className="w-3.5 h-3.5" /> Enviar al repartidor
                           </button>
@@ -9954,7 +9954,7 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
                             href={`https://www.google.com/maps?q=${p.entrega_lat},${p.entrega_lng}`}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="px-3 py-2 rounded-lg bg-[#f4eefe] hover:bg-[#ece0fd] text-[#4d04b0] text-xs font-semibold flex items-center gap-1.5 transition"
+                            className="px-3 py-2 rounded-lg bg-[#ebf0ff] hover:bg-[#dde4fa] text-[#2d284b] text-xs font-semibold flex items-center gap-1.5 transition"
                           >
                             <IconoTrazo nombre="ubicacion" className="w-3.5 h-3.5" /> Ver mapa
                           </a>
@@ -10067,7 +10067,7 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
                 const resumen = nombres.length > 2 ? `${nombres.slice(0, 2).join(', ')} y ${nombres.length - 2} más` : nombres.join(', ');
                 const unidades = v.items.reduce((a, it) => a + (Number(it.cantidad) || 0), 0);
                 return (
-                  <div key={v.id} className="rounded-[22px] border border-[#f0e9fc] bg-gradient-to-br from-[#f7f2ff] to-white p-3.5">
+                  <div key={v.id} className="rounded-[22px] border border-[#edeff8] bg-gradient-to-br from-[#f5f6fc] to-white p-3.5">
                     <div className="flex items-baseline justify-between gap-2">
                       <span className="text-xs font-semibold text-stone-400 flex items-center gap-1.5">
                         <i className="w-1.5 h-1.5 rounded-full bg-amber-500"></i> {v.hora}
@@ -10082,7 +10082,7 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
                     <div className="flex gap-2">
                       <button
                         onClick={() => recuperarVentaEspera(i)}
-                        className="flex-1 py-2.5 bg-[#6105dc] hover:bg-[#4d04b0] text-white text-[13px] font-semibold rounded-full transition"
+                        className="flex-1 py-2.5 bg-[#5b4bd6] hover:bg-[#473bb5] text-white text-[13px] font-semibold rounded-full transition"
                       >
                         Recuperar
                       </button>
@@ -10110,7 +10110,7 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
               </h2>
               <button
                 onClick={() => setMostrarResumenMobile(false)}
-                className="md:hidden w-9 h-9 rounded-full bg-[#f4eefe] hover:bg-[#ece0fd] text-stone-500 flex items-center justify-center transition"
+                className="md:hidden w-9 h-9 rounded-full bg-[#ebf0ff] hover:bg-[#dde4fa] text-stone-500 flex items-center justify-center transition"
                 aria-label="Cerrar"
               >
                 <IconoTrazo nombre="x" className="w-[15px] h-[15px]" />
@@ -10128,7 +10128,7 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
                 {carrito.length > 0 && (
                   <button
                     onClick={aparcarVentaActual}
-                    className="px-3.5 py-2.5 md:py-1.5 rounded-full bg-[#f4eefe] hover:bg-[#ece0fd] text-xs text-[#4d04b0] font-semibold transition"
+                    className="px-3.5 py-2.5 md:py-1.5 rounded-full bg-[#ebf0ff] hover:bg-[#dde4fa] text-xs text-[#2d284b] font-semibold transition"
                   >
                     Pausar
                   </button>
@@ -10159,16 +10159,16 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
                   <button
                     type="button"
                     onClick={() => { setMostrarPago(false); reiniciarClienteYMedioPago(); }}
-                    className="flex items-center gap-1 pl-2 pr-3 py-2 rounded-full bg-[#f4eefe] hover:bg-[#ece0fd] text-[13px] font-semibold text-[#4d04b0] transition"
+                    className="flex items-center gap-1 pl-2 pr-3 py-2 rounded-full bg-[#ebf0ff] hover:bg-[#dde4fa] text-[13px] font-semibold text-[#2d284b] transition"
                   >
                     <IconoTrazo nombre="back" className="w-[15px] h-[15px]" /> Volver
                   </button>
                   <h2 className="text-[15px] font-bold text-stone-900">Cobro</h2>
-                  <span className="px-2.5 py-1.5 rounded-full bg-[#f4eefe] text-[11.5px] font-semibold text-[#4d04b0]">
+                  <span className="px-2.5 py-1.5 rounded-full bg-[#ebf0ff] text-[11.5px] font-semibold text-[#2d284b]">
                     {carrito.reduce((a, c) => a + c.cantidad, 0)} ítems
                   </span>
                 </div>
-                <div className="relative overflow-hidden rounded-[22px] px-4 pt-3.5 pb-3 text-white bg-gradient-to-br from-[#8a3df2] to-[#4d04b0]">
+                <div className="relative overflow-hidden rounded-[22px] px-4 pt-3.5 pb-3 text-white bg-gradient-to-br from-[#7466e8] to-[#2d284b]">
                   <span className="absolute -right-8 -top-10 w-32 h-32 rounded-full bg-white/10"></span>
                   <p className="relative text-[11.5px] font-semibold opacity-90">Total a cobrar</p>
                   <p className="relative text-[36px] leading-[1.1] font-extrabold tracking-tight tabular-nums">
@@ -10241,7 +10241,7 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
                       key={c.id}
                       type="button"
                       onClick={() => setBarberoVentaId(barberoVentaId === c.id ? null : c.id)}
-                      className={`px-3 py-1.5 rounded-full text-xs font-semibold transition ${barberoVentaId === c.id ? 'bg-[#6105dc] text-white' : 'bg-[#f4eefe] text-[#4d04b0] hover:bg-[#ece0fd]'}`}
+                      className={`px-3 py-1.5 rounded-full text-xs font-semibold transition ${barberoVentaId === c.id ? 'bg-[#5b4bd6] text-white' : 'bg-[#ebf0ff] text-[#2d284b] hover:bg-[#dde4fa]'}`}
                     >
                       {c.nombre}
                     </button>
@@ -10265,7 +10265,7 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
                 carrito.map((item) => (
                   <div
                     key={item.claveCarrito || item.productoId}
-                    className="flex items-center gap-2.5 p-2 bg-[#faf8fe] rounded-[20px]"
+                    className="flex items-center gap-2.5 p-2 bg-[#f7f9ff] rounded-[20px]"
                   >
                     <FotoProducto
                       fotoUrl={item.foto_url}
@@ -10282,10 +10282,10 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
                       </p>
                     </div>
 
-                    <div className="flex items-center bg-white rounded-full ring-1 ring-[#6105dc]/10 shrink-0">
+                    <div className="flex items-center bg-white rounded-full ring-1 ring-[#5b4bd6]/10 shrink-0">
                       <button
                         onClick={() => cambiarCantidadCarrito(item.claveCarrito || item.productoId, -1)}
-                        className="w-10 h-10 md:w-8 md:h-8 flex items-center justify-center text-[#6105dc] hover:bg-[#f4eefe] rounded-full transition"
+                        className="w-10 h-10 md:w-8 md:h-8 flex items-center justify-center text-[#5b4bd6] hover:bg-[#ebf0ff] rounded-full transition"
                         aria-label="Quitar uno"
                       >
                         <IconoTrazo nombre="minus" className="w-3.5 h-3.5" />
@@ -10295,7 +10295,7 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
                       </span>
                       <button
                         onClick={() => cambiarCantidadCarrito(item.claveCarrito || item.productoId, 1)}
-                        className="w-10 h-10 md:w-8 md:h-8 flex items-center justify-center text-[#6105dc] hover:bg-[#f4eefe] rounded-full transition"
+                        className="w-10 h-10 md:w-8 md:h-8 flex items-center justify-center text-[#5b4bd6] hover:bg-[#ebf0ff] rounded-full transition"
                         aria-label="Agregar uno"
                       >
                         <IconoTrazo nombre="plus" className="w-3.5 h-3.5" />
@@ -10315,13 +10315,13 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
                 los items pasan por debajo, borrosos, y el borde superior se desvanece. */}
             <div
               className={`relative z-10 p-4 space-y-3 min-h-0 overflow-y-auto overscroll-contain ${mostrarPago
-                ? 'pt-4 scroll-pb-44 bg-white border-t border-[#efe6fc] shadow-[0_-14px_26px_-20px_rgba(40,20,100,0.4)]'
+                ? 'pt-4 scroll-pb-44 bg-white border-t border-[#dde4fa] shadow-[0_-14px_26px_-20px_rgba(40,20,100,0.4)]'
                 : '-mt-10 pt-14 backdrop-blur-xl bg-gradient-to-b from-white/60 to-white/90'}`}
               style={mostrarPago ? undefined : { WebkitMaskImage: 'linear-gradient(to bottom, transparent 0, black 44px)', maskImage: 'linear-gradient(to bottom, transparent 0, black 44px)' }}
             >
               {!mostrarPago ? (
                 <>
-                  <div className="bg-[#f4eefe] border border-[#efe6fc] rounded-[22px] px-4 py-3 space-y-1.5">
+                  <div className="bg-[#ebf0ff] border border-[#dde4fa] rounded-[22px] px-4 py-3 space-y-1.5">
                     <div className="flex items-baseline justify-between text-[12.5px] text-stone-500">
                       <span>Subtotal</span>
                       <span className="tabular-nums">S/ {formatoSoles(totalVenta)}</span>
@@ -10332,8 +10332,8 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
                         <span className="tabular-nums">- S/ {montoDescuento.toFixed(2)}</span>
                       </div>
                     )}
-                    <div className="flex items-baseline justify-between pt-2 mt-1 border-t border-[#6105dc]/10">
-                      <span className="text-xs font-semibold text-[#4d04b0]">
+                    <div className="flex items-baseline justify-between pt-2 mt-1 border-t border-[#5b4bd6]/10">
+                      <span className="text-xs font-semibold text-[#2d284b]">
                         Total
                       </span>
                       <span className="text-[28px] font-bold tracking-tight text-stone-900 tabular-nums">
@@ -10346,7 +10346,7 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
                     disabled={carrito.length === 0 || !turnoActivo}
                     className={`w-full py-3.5 rounded-full font-semibold text-[15px] transition-all flex items-center justify-center gap-2 ${
                       !turnoActivo || carrito.length === 0
-                        ? 'bg-[#ebe8f1] text-[#8b869a] cursor-not-allowed'
+                        ? 'bg-[#e6e9f5] text-[#8b869a] cursor-not-allowed'
                         : 'kz-pri'
                     }`}
                   >
@@ -10362,12 +10362,12 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
               <button
                 type="button"
                 onClick={() => { setMostrarPago(false); reiniciarClienteYMedioPago(); }}
-                className="self-start hidden md:flex items-center gap-1 pl-2 pr-3 py-1.5 rounded-full bg-[#f4eefe] hover:bg-[#ece0fd] text-[13px] font-semibold text-[#4d04b0] transition"
+                className="self-start hidden md:flex items-center gap-1 pl-2 pr-3 py-1.5 rounded-full bg-[#ebf0ff] hover:bg-[#dde4fa] text-[13px] font-semibold text-[#2d284b] transition"
               >
                 <IconoTrazo nombre="back" className="w-[15px] h-[15px]" /> Volver
               </button>
 
-              <div className="grid grid-cols-3 gap-1.5 md:gap-2 p-1 rounded-[18px] bg-[#f4eefe] md:p-0 md:rounded-none md:bg-transparent">
+              <div className="grid grid-cols-3 gap-1.5 md:gap-2 p-1 rounded-[18px] bg-[#ebf0ff] md:p-0 md:rounded-none md:bg-transparent">
                 {[
                   { id: 'EFECTIVO', icono: 'efectivo', texto: 'Efectivo' },
                   { id: 'YAPE', icono: 'movil', texto: 'Yape' },
@@ -10387,21 +10387,21 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
                     }}
                     className={`flex flex-row md:flex-col items-center justify-center gap-1.5 h-11 md:h-auto md:pt-3 md:pb-2.5 text-[12.5px] font-semibold rounded-[14px] md:rounded-[20px] transition ${
                       medioPago === m.id
-                        ? 'bg-[#6105dc] text-white'
-                        : 'bg-transparent md:bg-[#f4eefe] hover:bg-[#ece0fd] text-stone-600'
+                        ? 'bg-[#5b4bd6] text-white'
+                        : 'bg-transparent md:bg-[#ebf0ff] hover:bg-[#dde4fa] text-stone-600'
                     }`}
                   >
-                    <IconoTrazo nombre={m.icono} className={`w-[18px] h-[18px] md:w-5 md:h-5 ${medioPago === m.id ? 'text-white' : 'text-[#6105dc]'}`} />
+                    <IconoTrazo nombre={m.icono} className={`w-[18px] h-[18px] md:w-5 md:h-5 ${medioPago === m.id ? 'text-white' : 'text-[#5b4bd6]'}`} />
                     {m.texto}
                   </button>
                 ))}
               </div>
 
               {medioPago === 'EFECTIVO' && (
-                <div data-campo-pago className="bg-[#f4eefe] border border-[#efe6fc] rounded-[22px] p-3.5">
-                  <label className="text-xs font-semibold text-[#4d04b0] block mb-2">Paga con</label>
+                <div data-campo-pago className="bg-[#ebf0ff] border border-[#dde4fa] rounded-[22px] p-3.5">
+                  <label className="text-xs font-semibold text-[#2d284b] block mb-2">Paga con</label>
                   <div className="flex items-center gap-2">
-                    <div className="flex-1 h-14 flex items-center gap-1.5 px-4 rounded-[18px] bg-white ring-1 ring-[#6105dc]/10 focus-within:ring-2 focus-within:ring-[#6105dc]/40">
+                    <div className="flex-1 h-14 flex items-center gap-1.5 px-4 rounded-[18px] bg-white ring-1 ring-[#5b4bd6]/10 focus-within:ring-2 focus-within:ring-[#5b4bd6]/40">
                       <span className="text-[15px] font-semibold text-stone-400">S/</span>
                       <input
                         type="text"
@@ -10409,14 +10409,14 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
                         value={montoRecibido}
                         onChange={(e) => setMontoRecibido(e.target.value)}
                         placeholder="0.00"
-                        className="w-full min-w-0 bg-transparent text-[28px] font-bold tracking-tight text-stone-900 tabular-nums placeholder:text-[#c4bfd0] focus:outline-none"
+                        className="w-full min-w-0 bg-transparent text-[28px] font-bold tracking-tight text-stone-900 tabular-nums placeholder:text-[#c1c6da] focus:outline-none"
                       />
                     </div>
                     <button
                       type="button"
                       onClick={() => setCampoTeclado(campoTeclado === 'recibido' ? null : 'recibido')}
                       title="Teclado numérico"
-                      className={`shrink-0 w-14 h-14 flex items-center justify-center rounded-[18px] ring-1 ring-[#6105dc]/10 transition ${campoTeclado === 'recibido' ? 'bg-[#6105dc] text-white' : 'bg-white text-[#6105dc] hover:bg-[#faf8fe]'}`}
+                      className={`shrink-0 w-14 h-14 flex items-center justify-center rounded-[18px] ring-1 ring-[#5b4bd6]/10 transition ${campoTeclado === 'recibido' ? 'bg-[#5b4bd6] text-white' : 'bg-white text-[#5b4bd6] hover:bg-[#f7f9ff]'}`}
                     >
                       <IconoTrazo nombre="calc" className="w-[22px] h-[22px]" />
                     </button>
@@ -10430,14 +10430,14 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
                         key={c.t}
                         type="button"
                         onClick={() => setMontoRecibido(String(+Number(c.v).toFixed(2)))}
-                        className="px-3.5 py-1.5 rounded-full bg-white ring-1 ring-[#6105dc]/10 hover:bg-[#faf8fe] text-[12.5px] font-semibold text-[#4d04b0] transition"
+                        className="px-3.5 py-1.5 rounded-full bg-white ring-1 ring-[#5b4bd6]/10 hover:bg-[#f7f9ff] text-[12.5px] font-semibold text-[#2d284b] transition"
                       >
                         {c.t}
                       </button>
                     ))}
                   </div>
-                  <div className="flex items-center justify-between mt-3 pt-3 border-t border-[#6105dc]/10">
-                    <span className="text-xs font-semibold text-[#4d04b0]">Vuelto</span>
+                  <div className="flex items-center justify-between mt-3 pt-3 border-t border-[#5b4bd6]/10">
+                    <span className="text-xs font-semibold text-[#2d284b]">Vuelto</span>
                     <span className={`text-[26px] font-bold tracking-tight tabular-nums ${vuelto < 0 ? 'text-rose-600' : 'text-green-700'}`}>
                       S/ {vuelto > 0 ? vuelto.toFixed(2) : '0.00'}
                     </span>
@@ -10450,22 +10450,22 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
                 <button
                   type="button"
                   onClick={() => setMedioQR(medioPago)}
-                  className="w-full h-[50px] flex items-center justify-center gap-2 rounded-full bg-white ring-1 ring-[#6105dc]/15 hover:bg-[#faf8fe] text-sm font-semibold text-[#4d04b0] transition"
+                  className="w-full h-[50px] flex items-center justify-center gap-2 rounded-full bg-white ring-1 ring-[#5b4bd6]/15 hover:bg-[#f7f9ff] text-sm font-semibold text-[#2d284b] transition"
                 >
                   <IconoTrazo nombre="qr" className="w-[18px] h-[18px]" /> Mostrar QR de {medioPago === 'YAPE' ? 'Yape' : 'Plin'}
                 </button>
               )}
 
               {medioPago === 'TARJETA' && (
-                <div className="bg-[#f4eefe] border border-[#efe6fc] rounded-[22px] p-3.5 text-center text-[13px] font-semibold text-[#4d04b0]">
+                <div className="bg-[#ebf0ff] border border-[#dde4fa] rounded-[22px] p-3.5 text-center text-[13px] font-semibold text-[#2d284b]">
                   Cobro exacto con tarjeta: S/ {totalConDescuento.toFixed(2)}
                 </div>
               )}
 
               {medioPago === 'CREDITO' && (
-                <div className="bg-[#f4eefe] border border-[#efe6fc] rounded-[22px] p-3.5">
-                  <div className="flex items-center gap-2.5 bg-white rounded-[18px] ring-1 ring-[#6105dc]/10 px-3 py-2.5">
-                    <span className="w-[34px] h-[34px] rounded-full bg-[#ece0fd] text-[#4d04b0] text-xs font-bold flex items-center justify-center shrink-0">
+                <div className="bg-[#ebf0ff] border border-[#dde4fa] rounded-[22px] p-3.5">
+                  <div className="flex items-center gap-2.5 bg-white rounded-[18px] ring-1 ring-[#5b4bd6]/10 px-3 py-2.5">
+                    <span className="w-[34px] h-[34px] rounded-full bg-[#dde4fa] text-[#2d284b] text-xs font-bold flex items-center justify-center shrink-0">
                       {(!clienteActual || clienteActual.dni === '99999999')
                         ? '?'
                         : (clienteActual.nombre_completo || '?').split(/\s+/).slice(0, 2).map((w) => w[0]).join('').toUpperCase()}
@@ -10480,14 +10480,14 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
                           : `Disponible S/ ${Math.max(0, (Number(clienteActual.limite_credito) || 0) - (Number(clienteActual.saldo_actual) || 0)).toFixed(2)} de S/ ${(Number(clienteActual.limite_credito) || 0).toFixed(2)}`}
                       </p>
                     </div>
-                    <button type="button" onClick={abrirBuscarClientePOS} className="shrink-0 px-3 py-1.5 rounded-full bg-[#f4eefe] hover:bg-[#ece0fd] text-[12.5px] font-semibold text-[#6105dc] transition">
+                    <button type="button" onClick={abrirBuscarClientePOS} className="shrink-0 px-3 py-1.5 rounded-full bg-[#ebf0ff] hover:bg-[#dde4fa] text-[12.5px] font-semibold text-[#5b4bd6] transition">
                       Cambiar
                     </button>
                   </div>
                   {clienteActual && clienteActual.dni !== '99999999' && Number(clienteActual.limite_credito) > 0 && (
-                    <div className="h-2 rounded-full bg-[#e2d4fb] mt-2.5 overflow-hidden">
+                    <div className="h-2 rounded-full bg-[#dce0f3] mt-2.5 overflow-hidden">
                       <div
-                        className="h-full rounded-full bg-[#6105dc]"
+                        className="h-full rounded-full bg-[#5b4bd6]"
                         style={{ width: `${Math.min(100, Math.max(0, ((Number(clienteActual.saldo_actual) || 0) / Number(clienteActual.limite_credito)) * 100))}%` }}
                       ></div>
                     </div>
@@ -10496,10 +10496,10 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
               )}
 
               {medioPago === 'MIXTO' && (
-                <div data-campo-pago className="bg-[#f4eefe] border border-[#efe6fc] rounded-[22px] p-3.5">
-                  <label className="text-xs font-semibold text-[#4d04b0] block mb-2">Monto en tarjeta / otro</label>
+                <div data-campo-pago className="bg-[#ebf0ff] border border-[#dde4fa] rounded-[22px] p-3.5">
+                  <label className="text-xs font-semibold text-[#2d284b] block mb-2">Monto en tarjeta / otro</label>
                   <div className="flex items-center gap-2">
-                    <div className="flex-1 h-[50px] flex items-center gap-1.5 px-4 rounded-[18px] bg-white ring-1 ring-[#6105dc]/10 focus-within:ring-2 focus-within:ring-[#6105dc]/40">
+                    <div className="flex-1 h-[50px] flex items-center gap-1.5 px-4 rounded-[18px] bg-white ring-1 ring-[#5b4bd6]/10 focus-within:ring-2 focus-within:ring-[#5b4bd6]/40">
                       <span className="text-sm font-semibold text-stone-400">S/</span>
                       <input
                         type="text"
@@ -10507,29 +10507,29 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
                         value={montoMixtoOtro}
                         onChange={(e) => setMontoMixtoOtro(e.target.value)}
                         placeholder="0.00"
-                        className="w-full min-w-0 bg-transparent text-[22px] font-bold tracking-tight text-stone-900 tabular-nums placeholder:text-[#c4bfd0] focus:outline-none"
+                        className="w-full min-w-0 bg-transparent text-[22px] font-bold tracking-tight text-stone-900 tabular-nums placeholder:text-[#c1c6da] focus:outline-none"
                       />
                     </div>
                     <button
                       type="button"
                       onClick={() => setCampoTeclado(campoTeclado === 'mixtoOtro' ? null : 'mixtoOtro')}
                       title="Teclado numérico"
-                      className={`shrink-0 w-[50px] h-[50px] flex items-center justify-center rounded-[18px] ring-1 ring-[#6105dc]/10 transition ${campoTeclado === 'mixtoOtro' ? 'bg-[#6105dc] text-white' : 'bg-white text-[#6105dc] hover:bg-[#faf8fe]'}`}
+                      className={`shrink-0 w-[50px] h-[50px] flex items-center justify-center rounded-[18px] ring-1 ring-[#5b4bd6]/10 transition ${campoTeclado === 'mixtoOtro' ? 'bg-[#5b4bd6] text-white' : 'bg-white text-[#5b4bd6] hover:bg-[#f7f9ff]'}`}
                     >
                       <IconoTrazo nombre="calc" className="w-5 h-5" />
                     </button>
                   </div>
 
-                  <div className="flex items-center justify-between mt-3 pt-3 border-t border-[#6105dc]/10">
-                    <span className="text-xs font-semibold text-[#4d04b0]">Falta en efectivo</span>
+                  <div className="flex items-center justify-between mt-3 pt-3 border-t border-[#5b4bd6]/10">
+                    <span className="text-xs font-semibold text-[#2d284b]">Falta en efectivo</span>
                     <span className="text-[22px] font-bold tracking-tight tabular-nums text-stone-900">S/ {efectivoRequeridoMixto.toFixed(2)}</span>
                   </div>
 
                   {efectivoRequeridoMixto > 0 && (
                     <>
-                      <label className="text-xs font-semibold text-[#4d04b0] block mt-3 mb-2">Recibe en efectivo</label>
+                      <label className="text-xs font-semibold text-[#2d284b] block mt-3 mb-2">Recibe en efectivo</label>
                       <div className="flex items-center gap-2">
-                        <div className="flex-1 h-[50px] flex items-center gap-1.5 px-4 rounded-[18px] bg-white ring-1 ring-[#6105dc]/10 focus-within:ring-2 focus-within:ring-[#6105dc]/40">
+                        <div className="flex-1 h-[50px] flex items-center gap-1.5 px-4 rounded-[18px] bg-white ring-1 ring-[#5b4bd6]/10 focus-within:ring-2 focus-within:ring-[#5b4bd6]/40">
                           <span className="text-sm font-semibold text-stone-400">S/</span>
                           <input
                             type="text"
@@ -10537,14 +10537,14 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
                             value={montoMixtoRecibido}
                             onChange={(e) => setMontoMixtoRecibido(e.target.value)}
                             placeholder="0.00"
-                            className="w-full min-w-0 bg-transparent text-[22px] font-bold tracking-tight text-stone-900 tabular-nums placeholder:text-[#c4bfd0] focus:outline-none"
+                            className="w-full min-w-0 bg-transparent text-[22px] font-bold tracking-tight text-stone-900 tabular-nums placeholder:text-[#c1c6da] focus:outline-none"
                           />
                         </div>
                         <button
                           type="button"
                           onClick={() => setCampoTeclado(campoTeclado === 'mixtoRecibido' ? null : 'mixtoRecibido')}
                           title="Teclado numérico"
-                          className={`shrink-0 w-[50px] h-[50px] flex items-center justify-center rounded-[18px] ring-1 ring-[#6105dc]/10 transition ${campoTeclado === 'mixtoRecibido' ? 'bg-[#6105dc] text-white' : 'bg-white text-[#6105dc] hover:bg-[#faf8fe]'}`}
+                          className={`shrink-0 w-[50px] h-[50px] flex items-center justify-center rounded-[18px] ring-1 ring-[#5b4bd6]/10 transition ${campoTeclado === 'mixtoRecibido' ? 'bg-[#5b4bd6] text-white' : 'bg-white text-[#5b4bd6] hover:bg-[#f7f9ff]'}`}
                         >
                           <IconoTrazo nombre="calc" className="w-5 h-5" />
                         </button>
@@ -10552,8 +10552,8 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
                     </>
                   )}
 
-                  <div className="flex items-center justify-between mt-3 pt-3 border-t border-[#6105dc]/10">
-                    <span className="text-xs font-semibold text-[#4d04b0]">Vuelto</span>
+                  <div className="flex items-center justify-between mt-3 pt-3 border-t border-[#5b4bd6]/10">
+                    <span className="text-xs font-semibold text-[#2d284b]">Vuelto</span>
                     <span className={`text-[22px] font-bold tracking-tight tabular-nums ${vueltoMixto < 0 ? 'text-rose-600' : 'text-green-700'}`}>
                       S/ {vueltoMixto > 0 ? vueltoMixto.toFixed(2) : '0.00'}
                     </span>
@@ -10571,15 +10571,15 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
                     <button
                       type="button"
                       onClick={() => { setDescuentoTipo('PORCENTAJE'); setDescuentoValor(''); }}
-                      className="flex items-center gap-1.5 text-[13px] text-[#6105dc] hover:text-[#4d04b0] font-semibold transition"
+                      className="flex items-center gap-1.5 text-[13px] text-[#5b4bd6] hover:text-[#2d284b] font-semibold transition"
                     >
                       <IconoTrazo nombre="etiqueta" className="w-[15px] h-[15px]" /> Aplicar descuento
                     </button>
                   )
                 ) : (
-                  <div className="bg-[#f4eefe] border border-[#efe6fc] rounded-[22px] p-3.5 space-y-2.5">
+                  <div className="bg-[#ebf0ff] border border-[#dde4fa] rounded-[22px] p-3.5 space-y-2.5">
                     <div className="flex items-center justify-between">
-                      <span className="text-xs font-semibold text-[#4d04b0]">Descuento</span>
+                      <span className="text-xs font-semibold text-[#2d284b]">Descuento</span>
                       <button
                         type="button"
                         onClick={() => { setDescuentoTipo(null); setDescuentoValor(''); }}
@@ -10589,18 +10589,18 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
                       </button>
                     </div>
                     <div className="flex items-center gap-2">
-                      <div className="flex bg-white rounded-full ring-1 ring-[#6105dc]/10 p-0.5 shrink-0">
+                      <div className="flex bg-white rounded-full ring-1 ring-[#5b4bd6]/10 p-0.5 shrink-0">
                         <button
                           type="button"
                           onClick={() => setDescuentoTipo('PORCENTAJE')}
-                          className={`w-10 h-9 rounded-full text-xs font-bold transition ${descuentoTipo === 'PORCENTAJE' ? 'bg-[#6105dc] text-white' : 'text-stone-500'}`}
+                          className={`w-10 h-9 rounded-full text-xs font-bold transition ${descuentoTipo === 'PORCENTAJE' ? 'bg-[#5b4bd6] text-white' : 'text-stone-500'}`}
                         >
                           %
                         </button>
                         <button
                           type="button"
                           onClick={() => setDescuentoTipo('MONTO')}
-                          className={`w-10 h-9 rounded-full text-xs font-bold transition ${descuentoTipo === 'MONTO' ? 'bg-[#6105dc] text-white' : 'text-stone-500'}`}
+                          className={`w-10 h-9 rounded-full text-xs font-bold transition ${descuentoTipo === 'MONTO' ? 'bg-[#5b4bd6] text-white' : 'text-stone-500'}`}
                         >
                           S/
                         </button>
@@ -10612,7 +10612,7 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
                         value={descuentoValor}
                         onChange={(e) => setDescuentoValor(e.target.value)}
                         placeholder={descuentoTipo === 'PORCENTAJE' ? '0-100' : '0.00'}
-                        className="w-full h-[44px] bg-white ring-1 ring-[#6105dc]/10 rounded-[16px] px-4 text-base font-bold text-stone-900 tabular-nums focus:outline-none focus:ring-2 focus:ring-[#6105dc]/40"
+                        className="w-full h-[44px] bg-white ring-1 ring-[#5b4bd6]/10 rounded-[16px] px-4 text-base font-bold text-stone-900 tabular-nums focus:outline-none focus:ring-2 focus:ring-[#5b4bd6]/40"
                       />
                     </div>
                   </div>
@@ -10622,7 +10622,7 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
               {/* Total y botón de cobro siempre a la vista: si las opciones de pago no
                   caben en pantallas bajas, lo de arriba hace scroll y esto se queda abajo. */}
               <div className="sticky bottom-0 -mx-4 -mb-4 px-4 pb-4 pt-3 space-y-3 bg-white shadow-[0_-12px_18px_-14px_rgba(40,20,100,0.28)]">
-              <div className="hidden md:block bg-[#f4eefe] border border-[#efe6fc] rounded-[22px] px-4 py-3 space-y-1.5">
+              <div className="hidden md:block bg-[#ebf0ff] border border-[#dde4fa] rounded-[22px] px-4 py-3 space-y-1.5">
                 {montoDescuento > 0 && (
                   <>
                     <div className="flex items-center justify-between text-[12.5px] text-stone-500">
@@ -10635,8 +10635,8 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
                     </div>
                   </>
                 )}
-                <div className={`flex items-baseline justify-between ${montoDescuento > 0 ? 'pt-2 border-t border-[#6105dc]/10' : ''}`}>
-                  <span className="text-xs font-semibold text-[#4d04b0]">Total a cobrar</span>
+                <div className={`flex items-baseline justify-between ${montoDescuento > 0 ? 'pt-2 border-t border-[#5b4bd6]/10' : ''}`}>
+                  <span className="text-xs font-semibold text-[#2d284b]">Total a cobrar</span>
                   <span className="text-[28px] font-bold tracking-tight text-stone-900 tabular-nums">
                     <small className="text-sm text-stone-500 font-semibold mr-1">S/</small>{formatoSoles(totalConDescuento)}
                   </span>
@@ -10657,7 +10657,7 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
                 disabled={procesandoVenta || carrito.length === 0 || !turnoActivo}
                 className={`w-full h-[54px] rounded-full font-semibold text-base transition-all hidden md:flex items-center justify-center gap-2 ${
                   !turnoActivo || procesandoVenta || carrito.length === 0
-                    ? 'bg-[#ebe8f1] text-[#8b869a] cursor-not-allowed'
+                    ? 'bg-[#e6e9f5] text-[#8b869a] cursor-not-allowed'
                     : 'kz-pri'
                 }`}
               >
@@ -10742,7 +10742,7 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
             const cerrarMenu = () => setMenuMas(false);
             const ejecutar = (o) => { if (!o) return; o.accion(); cerrarMenu(); };
             const tonos = {
-              primario: 'bg-[#6105dc] text-white',
+              primario: 'bg-[#5b4bd6] text-white',
               rose: 'bg-rose-100 text-rose-600',
               amber: 'bg-amber-50 text-amber-600',
             };
@@ -10789,10 +10789,10 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
                           onClick={() => ejecutar(o)}
                           onMouseEnter={() => setIndiceMenu(i)}
                           className={`w-full text-left px-3 py-2.5 rounded-xl flex items-center gap-3 text-sm ${
-                            i === activo ? 'bg-[#f4eefe]' : ''
-                          } ${o.tono === 'rose' ? 'text-rose-600 font-semibold' : o.tono === 'primario' ? 'text-[#4d04b0] font-bold' : 'text-stone-800 font-medium'}`}
+                            i === activo ? 'bg-[#ebf0ff]' : ''
+                          } ${o.tono === 'rose' ? 'text-rose-600 font-semibold' : o.tono === 'primario' ? 'text-[#2d284b] font-bold' : 'text-stone-800 font-medium'}`}
                         >
-                          <span className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 ${tonos[o.tono] || 'bg-[#f4eefe] text-[#6105dc]'}`}>
+                          <span className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 ${tonos[o.tono] || 'bg-[#ebf0ff] text-[#5b4bd6]'}`}>
                             <i className={`fa-solid ${o.icono} text-xs`}></i>
                           </span>
                           <span className="flex-1 min-w-0 truncate">{o.etiqueta}</span>
@@ -10820,7 +10820,7 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
           {/* Modal: Cantidad / Balanza para Peso KG */}
           {modalCantidad && productoSeleccionadoCantidad && (
             <div className="fixed inset-0 bg-stone-900/30 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-              <div className="bg-gradient-to-br from-[#f4effc] via-[#f9f8fb] to-[#f5f4f8] border border-white/80 rounded-[28px] max-w-xs w-full p-5 shadow-2xl space-y-4 text-center">
+              <div className="bg-gradient-to-br from-[#eef1fb] via-[#f8f9fd] to-[#f4f5fa] border border-white/80 rounded-[28px] max-w-xs w-full p-5 shadow-2xl space-y-4 text-center">
                 <h3 className="text-sm font-bold text-stone-900 leading-tight">{productoSeleccionadoCantidad.descripcion}</h3>
 
                 {productoSeleccionadoCantidad.unidad === 'KG' ? (
@@ -10833,7 +10833,7 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
                         min="0.001"
                         value={inputCantidad}
                         onChange={(e) => setInputCantidad(e.target.value)}
-                        className="w-32 bg-stone-50 border border-stone-200 text-center font-mono font-bold text-xl text-orange-600 p-2 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#d6bdfa]"
+                        className="w-32 bg-stone-50 border border-stone-200 text-center font-mono font-bold text-xl text-orange-600 p-2 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#c5bcff]"
                         autoFocus
                       />
                       <span className="text-sm font-bold text-stone-700">KG</span>
@@ -10869,7 +10869,7 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
                         min="1"
                         value={inputCantidad}
                         onChange={(e) => setInputCantidad(e.target.value)}
-                        className="w-32 bg-stone-50 border border-stone-200 text-center font-mono font-bold text-xl text-orange-600 p-2 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#d6bdfa]"
+                        className="w-32 bg-stone-50 border border-stone-200 text-center font-mono font-bold text-xl text-orange-600 p-2 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#c5bcff]"
                         autoFocus
                       />
                       <span className="text-sm font-bold text-stone-700">{tipoVentaSeleccionado === 'PACK' ? 'pack(s)' : 'und'}</span>
@@ -10879,7 +10879,7 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
 
                 <div className="flex gap-2 pt-1">
                   <button onClick={() => setModalCantidad(false)} className="flex-1 py-2 bg-white/70 rounded-full text-xs font-semibold shadow-sm">Cancelar</button>
-                  <button onClick={confirmarCantidadBalanza} className="flex-1 py-2 bg-[#6105dc] hover:bg-[#4d04b0] text-white rounded-full text-xs font-bold shadow">Aceptar</button>
+                  <button onClick={confirmarCantidadBalanza} className="flex-1 py-2 bg-[#5b4bd6] hover:bg-[#473bb5] text-white rounded-full text-xs font-bold shadow">Aceptar</button>
                 </div>
               </div>
             </div>
@@ -11486,9 +11486,9 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
           {/* Modal: Buscar/Seleccionar Cliente (POS) */}
           {modalBuscarCliente && (
             <div className="fixed inset-0 bg-stone-900/30 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-              <div className="bg-gradient-to-br from-[#f4effc] via-[#f9f8fb] to-[#f5f4f8] border border-white/80 rounded-[28px] max-w-sm w-full p-5 shadow-2xl space-y-3 max-h-[85vh] flex flex-col">
+              <div className="bg-gradient-to-br from-[#eef1fb] via-[#f8f9fd] to-[#f4f5fa] border border-white/80 rounded-[28px] max-w-sm w-full p-5 shadow-2xl space-y-3 max-h-[85vh] flex flex-col">
                 <div className="flex justify-between items-center shrink-0">
-                  <h3 className="text-lg font-bold text-stone-900 flex items-center gap-2"><span className="w-8 h-8 rounded-xl bg-[#ece0fd] text-[#6105dc] flex items-center justify-center text-sm"><i className="fa-solid fa-user"></i></span> Seleccionar cliente</h3>
+                  <h3 className="text-lg font-bold text-stone-900 flex items-center gap-2"><span className="w-8 h-8 rounded-xl bg-[#dde4fa] text-[#5b4bd6] flex items-center justify-center text-sm"><i className="fa-solid fa-user"></i></span> Seleccionar cliente</h3>
                   <button aria-label="Cerrar" onClick={() => setModalBuscarCliente(false)} className="w-8 h-8 rounded-full bg-white/70 hover:bg-white text-stone-500 hover:text-stone-900 shadow-sm"><i className="fa-solid fa-xmark"></i></button>
                 </div>
                 <input
@@ -11497,12 +11497,12 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
                   value={busquedaClientePOS}
                   onChange={(e) => setBusquedaClientePOS(e.target.value)}
                   placeholder="Buscar por nombre o DNI..."
-                  className="w-full bg-white border border-stone-200/70 shadow-sm rounded-full px-4 py-2 text-sm text-stone-900 shrink-0 focus:outline-none focus:ring-2 focus:ring-[#d6bdfa]"
+                  className="w-full bg-white border border-stone-200/70 shadow-sm rounded-full px-4 py-2 text-sm text-stone-900 shrink-0 focus:outline-none focus:ring-2 focus:ring-[#c5bcff]"
                 />
                 <div className="flex-1 overflow-y-auto hide-scrollbar -mx-1 px-1 space-y-2">
                   <button
                     onClick={() => seleccionarClientePOS({ dni: '99999999', nombre_completo: 'Cliente sin registrar', saldo_actual: 0 })}
-                    className="w-full text-left px-4 py-3 bg-white/60 hover:bg-[#f4eefe] backdrop-blur-xl border border-white/80 rounded-2xl shadow-sm transition"
+                    className="w-full text-left px-4 py-3 bg-white/60 hover:bg-[#ebf0ff] backdrop-blur-xl border border-white/80 rounded-2xl shadow-sm transition"
                   >
                     <p className="text-sm font-semibold text-stone-900">Cliente sin registrar</p>
                     <p className="text-xs text-stone-500">Sin DNI registrado</p>
@@ -11516,7 +11516,7 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
                       <button
                         key={c.id}
                         onClick={() => seleccionarClientePOS(c)}
-                        className="w-full text-left px-4 py-3 bg-white/60 hover:bg-[#f4eefe] backdrop-blur-xl border border-white/80 rounded-2xl shadow-sm transition"
+                        className="w-full text-left px-4 py-3 bg-white/60 hover:bg-[#ebf0ff] backdrop-blur-xl border border-white/80 rounded-2xl shadow-sm transition"
                       >
                         <div className="flex items-center justify-between gap-2">
                           <p className="text-sm font-semibold text-stone-900 truncate">{c.nombre_completo}</p>
@@ -11531,7 +11531,7 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
                 </div>
                 <button
                   onClick={() => { setModalBuscarCliente(false); setModalNuevoCliente(true); }}
-                  className="shrink-0 w-full py-2 text-xs font-semibold text-[#6105dc] hover:underline"
+                  className="shrink-0 w-full py-2 text-xs font-semibold text-[#5b4bd6] hover:underline"
                 >
                   + Registrar cliente nuevo
                 </button>
@@ -11660,13 +11660,13 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
             const iniciales = (n) => String(n || '?').trim().split(/\s+/).slice(0, 2).map((w) => w[0]).join('').toUpperCase();
             const esElevado = (c) => c.rol === 'administrador' || c.rol === 'dueno';
             const fijarMonto = (v) => { setConteoEfectivo({}); setMontoApertura(String(v)); };
-            const atajo = (activo) => `px-3 py-1.5 rounded-xl border-[1.5px] text-[12.5px] font-bold transition ${activo ? 'border-[#6105dc] bg-[#f4eefe] text-[#4d04b0]' : 'border-stone-200 bg-white hover:bg-[#f4eefe] hover:border-[#e4d6fb]'}`;
+            const atajo = (activo) => `px-3 py-1.5 rounded-xl border-[1.5px] text-[12.5px] font-bold transition ${activo ? 'border-[#5b4bd6] bg-[#ebf0ff] text-[#2d284b]' : 'border-stone-200 bg-white hover:bg-[#ebf0ff] hover:border-[#d2d9f5]'}`;
             const esIgual = (v) => !conteoActivo && !montoInvalido && montoNum === v;
             return (
               <div className="fixed inset-0 bg-stone-900/30 backdrop-blur-sm flex items-center justify-center z-50 p-2 sm:p-4">
-                <div className="bg-gradient-to-br from-[#f4effc] via-[#f9f8fb] to-[#f5f4f8] border border-white/80 rounded-[28px] max-w-md w-full shadow-2xl max-h-[94vh] flex flex-col overflow-hidden">
+                <div className="bg-gradient-to-br from-[#eef1fb] via-[#f8f9fd] to-[#f4f5fa] border border-white/80 rounded-[28px] max-w-md w-full shadow-2xl max-h-[94vh] flex flex-col overflow-hidden">
                   <div className="bg-white border-b border-stone-100 px-4 sm:px-5 py-3.5 shrink-0 flex items-center gap-3">
-                    <span className="w-11 h-11 rounded-[14px] bg-[#f4eefe] text-[#6105dc] grid place-items-center text-xl shrink-0"><i className="fa-solid fa-cash-register"></i></span>
+                    <span className="w-11 h-11 rounded-[14px] bg-[#ebf0ff] text-[#5b4bd6] grid place-items-center text-xl shrink-0"><i className="fa-solid fa-cash-register"></i></span>
                     <div className="min-w-0 flex-1">
                       <h3 className="text-[17px] sm:text-lg font-extrabold text-stone-900 tracking-tight leading-tight">Abrir turno</h3>
                       <p className="text-[12.5px] text-stone-500 mt-0.5 leading-snug">Elige quién atiende y con cuánto efectivo empieza la caja.</p>
@@ -11681,19 +11681,19 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
                         {listaCajeros.map((c) => {
                           const activo = elegido?.id === c.id;
                           return (
-                            <button type="button" key={c.id} onClick={() => elegirCajeroTurno(c)} className={`flex items-center gap-3 w-full text-left rounded-2xl border-[1.5px] bg-white px-3 py-2.5 transition hover:bg-[#fcfaff] hover:border-[#e4d6fb] ${activo ? 'border-[#6105dc] bg-[#fcfaff] ring-[3px] ring-[#6105dc]/15' : 'border-stone-100'}`}>
-                              <span className={`w-[38px] h-[38px] rounded-full grid place-items-center text-[13px] font-extrabold shrink-0 ${esElevado(c) ? 'bg-gradient-to-br from-[#ffd45c] to-[#f0a500] text-stone-900' : 'bg-gradient-to-br from-[#8a3df2] to-[#4d04b0] text-white'}`}>{iniciales(c.nombre)}</span>
+                            <button type="button" key={c.id} onClick={() => elegirCajeroTurno(c)} className={`flex items-center gap-3 w-full text-left rounded-2xl border-[1.5px] bg-white px-3 py-2.5 transition hover:bg-[#f8faff] hover:border-[#d2d9f5] ${activo ? 'border-[#5b4bd6] bg-[#f8faff] ring-[3px] ring-[#5b4bd6]/15' : 'border-stone-100'}`}>
+                              <span className={`w-[38px] h-[38px] rounded-full grid place-items-center text-[13px] font-extrabold shrink-0 ${esElevado(c) ? 'bg-gradient-to-br from-[#ffd45c] to-[#f0a500] text-stone-900' : 'bg-gradient-to-br from-[#7466e8] to-[#2d284b] text-white'}`}>{iniciales(c.nombre)}</span>
                               <span className="min-w-0 flex-1">
                                 <span className="block text-[13.5px] font-bold text-stone-900 leading-tight truncate">{c.nombre}</span>
                                 <span className="block text-[11.5px] text-stone-500 capitalize">{c.rol || 'Cajero'}</span>
                               </span>
-                              <span className={`w-[22px] h-[22px] rounded-full border-2 grid place-items-center text-white text-xs shrink-0 ${activo ? 'bg-[#6105dc] border-[#6105dc]' : 'border-stone-300'}`}>{activo && <i className="fa-solid fa-check text-[10px]"></i>}</span>
+                              <span className={`w-[22px] h-[22px] rounded-full border-2 grid place-items-center text-white text-xs shrink-0 ${activo ? 'bg-[#5b4bd6] border-[#5b4bd6]' : 'border-stone-300'}`}>{activo && <i className="fa-solid fa-check text-[10px]"></i>}</span>
                             </button>
                           );
                         })}
                       </div>
                       {esAdmin && (
-                        <button type="button" onClick={() => { setModalTurno(false); abrirGestionCajeros(); setMostrarFormNuevoCajero(true); }} className="mt-2 inline-flex items-center gap-1.5 text-[12.5px] font-bold text-[#4d04b0] hover:bg-[#f4eefe] rounded-lg px-1 py-1.5">
+                        <button type="button" onClick={() => { setModalTurno(false); abrirGestionCajeros(); setMostrarFormNuevoCajero(true); }} className="mt-2 inline-flex items-center gap-1.5 text-[12.5px] font-bold text-[#2d284b] hover:bg-[#ebf0ff] rounded-lg px-1 py-1.5">
                           <i className="fa-solid fa-plus text-[10px]"></i> Agregar a alguien que no está en la lista
                         </button>
                       )}
@@ -11701,7 +11701,7 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
 
                     <div>
                       <label className="flex items-center justify-between gap-2 text-[12.5px] font-semibold text-stone-800 mb-2"><span>Efectivo con el que empieza la caja</span><span className="text-stone-400 font-normal">fondo inicial</span></label>
-                      <div className="flex items-baseline gap-2.5 border-2 border-stone-200 rounded-[20px] bg-stone-50/70 px-4 sm:px-[18px] py-3 focus-within:border-[#6105dc] focus-within:bg-white focus-within:ring-[5px] focus-within:ring-[#6105dc]/15 transition">
+                      <div className="flex items-baseline gap-2.5 border-2 border-stone-200 rounded-[20px] bg-stone-50/70 px-4 sm:px-[18px] py-3 focus-within:border-[#5b4bd6] focus-within:bg-white focus-within:ring-[5px] focus-within:ring-[#5b4bd6]/15 transition">
                         <span className="text-[22px] font-extrabold text-stone-300">S/</span>
                         <input type="number" min="0" step="0.50" inputMode="decimal" placeholder="0.00" aria-label="Monto inicial" readOnly={conteoActivo} value={montoApertura} onChange={(e) => setMontoApertura(e.target.value)} className="w-full min-w-0 bg-transparent outline-none border-0 text-[32px] sm:text-[38px] font-extrabold tracking-tight text-stone-900 placeholder:text-stone-300" />
                       </div>
@@ -11714,12 +11714,12 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
                       {ultimoCierre && [0, 50, 100, 200].includes(ultimoCierre.monto) && (
                         <p className="mt-2 text-[11.5px] text-stone-500">La última caja se cerró con {dinero(ultimoCierre.monto)} ({etiquetaCuandoTurno(ultimoCierre.fecha)}).</p>
                       )}
-                      <button type="button" onClick={() => setConteoAbierto((v) => !v)} className="mt-3 inline-flex items-center gap-2 text-[12.5px] font-bold text-[#4d04b0] hover:bg-[#f4eefe] rounded-lg px-1 py-1.5">
+                      <button type="button" onClick={() => setConteoAbierto((v) => !v)} className="mt-3 inline-flex items-center gap-2 text-[12.5px] font-bold text-[#2d284b] hover:bg-[#ebf0ff] rounded-lg px-1 py-1.5">
                         <i className="fa-solid fa-coins text-sm"></i> Contar billetes y monedas <i className={`fa-solid fa-chevron-down text-[10px] transition-transform ${conteoAbierto ? 'rotate-180' : ''}`}></i>
                       </button>
                       {conteoAbierto && <ContadorEfectivo conteo={conteoEfectivo} onChange={(n) => cambiarConteo(n, setMontoApertura)} />}
                       {conteoActivo && (
-                        <p className="mt-2 text-[11.5px] text-stone-500">El monto se calcula con tu conteo. <button type="button" onClick={() => setConteoEfectivo({})} className="font-bold text-[#4d04b0]">Escribirlo a mano</button></p>
+                        <p className="mt-2 text-[11.5px] text-stone-500">El monto se calcula con tu conteo. <button type="button" onClick={() => setConteoEfectivo({})} className="font-bold text-[#2d284b]">Escribirlo a mano</button></p>
                       )}
                     </div>
                   </div>
@@ -11727,7 +11727,7 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
                   <div className="shrink-0 bg-white border-t border-stone-100 px-4 sm:px-5 py-3 flex items-center gap-2.5 shadow-[0_-8px_24px_-14px_rgba(40,10,90,0.18)]">
                     <button type="button" onClick={() => setModalTurno(false)} className="h-[46px] px-4 sm:px-5 rounded-[14px] text-stone-500 hover:text-stone-800 hover:bg-stone-100 font-bold text-[13.5px]">Cancelar</button>
                     <span className="flex-1 text-right text-xs text-stone-500 hidden sm:block">{montoInvalido ? 'Escribe con cuánto efectivo empieza la caja' : `${elegido?.nombre || ''} · empieza con ${dinero(montoNum)}`}</span>
-                    <button type="button" onClick={handleAbrirTurno} disabled={montoInvalido} className="h-[46px] px-5 rounded-[14px] bg-[#6105dc] hover:bg-[#4d04b0] disabled:bg-[#d9d2ea] disabled:shadow-none disabled:cursor-not-allowed text-white font-bold text-[13.5px] shadow-lg shadow-[#6105dc]/30 inline-flex items-center justify-center gap-2 transition ml-auto sm:ml-0">
+                    <button type="button" onClick={handleAbrirTurno} disabled={montoInvalido} className="h-[46px] px-5 rounded-[14px] bg-[#5b4bd6] hover:bg-[#473bb5] disabled:bg-[#d5dbef] disabled:shadow-none disabled:cursor-not-allowed text-white font-bold text-[13.5px] shadow-lg shadow-[#5b4bd6]/30 inline-flex items-center justify-center gap-2 transition ml-auto sm:ml-0">
                       <i className="fa-solid fa-check text-xs"></i> Abrir turno
                     </button>
                   </div>
@@ -11742,7 +11742,7 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
               nada. */}
           {cajeroPendientePin && (
             <div className="fixed inset-0 bg-stone-900/30 backdrop-blur-sm flex items-center justify-center z-[60] p-4">
-              <div className="bg-gradient-to-br from-[#f4effc] via-[#f9f8fb] to-[#f5f4f8] border border-white/80 rounded-[28px] max-w-xs w-full p-5 shadow-2xl space-y-3">
+              <div className="bg-gradient-to-br from-[#eef1fb] via-[#f8f9fd] to-[#f4f5fa] border border-white/80 rounded-[28px] max-w-xs w-full p-5 shadow-2xl space-y-3">
                 <h3 className="text-sm font-bold text-stone-900 flex items-center gap-2">
                   <i className="fa-solid fa-lock text-orange-600"></i> PIN de {cajeroPendientePin.nombre}
                 </h3>
@@ -11755,7 +11755,7 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
                   onChange={(e) => setPinConfirmarCajero(e.target.value)}
                   onKeyDown={(e) => { if (e.key === 'Enter') confirmarPinCajero(); }}
                   placeholder="••••"
-                  className="w-full bg-white border border-stone-200 rounded-xl px-3 py-2.5 text-center text-lg tracking-widest text-stone-900 focus:outline-none focus:ring-2 focus:ring-[#d6bdfa]"
+                  className="w-full bg-white border border-stone-200 rounded-xl px-3 py-2.5 text-center text-lg tracking-widest text-stone-900 focus:outline-none focus:ring-2 focus:ring-[#c5bcff]"
                 />
                 <div className="flex gap-2">
                   <button
@@ -11767,7 +11767,7 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
                   <button
                     onClick={confirmarPinCajero}
                     disabled={verificandoPinCajero || !pinConfirmarCajero.trim()}
-                    className="flex-1 py-2 bg-[#6105dc] hover:bg-[#4d04b0] disabled:opacity-60 text-white font-bold text-xs rounded-full shadow"
+                    className="flex-1 py-2 bg-[#5b4bd6] hover:bg-[#473bb5] disabled:opacity-60 text-white font-bold text-xs rounded-full shadow"
                   >
                     {verificandoPinCajero ? 'Verificando...' : 'Confirmar'}
                   </button>
@@ -11787,9 +11787,9 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
             const iniciales = (n) => String(n || '?').trim().split(/\s+/).slice(0, 2).map((w) => w[0]).join('').toUpperCase();
             return (
               <div className="fixed inset-0 bg-stone-900/30 backdrop-blur-sm flex items-center justify-center z-50 p-2 sm:p-4">
-                <div className="bg-gradient-to-br from-[#f4effc] via-[#f9f8fb] to-[#f5f4f8] border border-white/80 rounded-[28px] max-w-lg w-full shadow-2xl max-h-[94vh] flex flex-col overflow-hidden">
+                <div className="bg-gradient-to-br from-[#eef1fb] via-[#f8f9fd] to-[#f4f5fa] border border-white/80 rounded-[28px] max-w-lg w-full shadow-2xl max-h-[94vh] flex flex-col overflow-hidden">
                   <div className="bg-white border-b border-stone-100 px-4 sm:px-5 py-3.5 shrink-0 flex items-center gap-3">
-                    <span className="w-11 h-11 rounded-[14px] bg-[#f4eefe] text-[#6105dc] grid place-items-center text-xl shrink-0"><i className="fa-solid fa-cash-register"></i></span>
+                    <span className="w-11 h-11 rounded-[14px] bg-[#ebf0ff] text-[#5b4bd6] grid place-items-center text-xl shrink-0"><i className="fa-solid fa-cash-register"></i></span>
                     <div className="min-w-0 flex-1">
                       <h3 className="text-[17px] sm:text-lg font-extrabold text-stone-900 tracking-tight leading-tight">
                         {cajasAbiertasAviso.length === 1 ? 'Ya hay una caja abierta' : `Ya hay ${cajasAbiertasAviso.length} cajas abiertas`}
@@ -11804,15 +11804,15 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
                       const nombre = t.cajeros?.nombre || 'Cajero';
                       return (
                         <div key={t.id} className={`rounded-[20px] border-[1.5px] p-3.5 flex gap-3 items-start ${edad.antiguo ? 'border-amber-300 bg-amber-50/60' : 'border-stone-100 bg-white'}`}>
-                          <span className={`w-[38px] h-[38px] rounded-full grid place-items-center text-[13px] font-extrabold shrink-0 ${i % 2 ? 'bg-gradient-to-br from-[#ffd45c] to-[#f0a500] text-stone-900' : 'bg-gradient-to-br from-[#8a3df2] to-[#4d04b0] text-white'}`}>{iniciales(nombre)}</span>
+                          <span className={`w-[38px] h-[38px] rounded-full grid place-items-center text-[13px] font-extrabold shrink-0 ${i % 2 ? 'bg-gradient-to-br from-[#ffd45c] to-[#f0a500] text-stone-900' : 'bg-gradient-to-br from-[#7466e8] to-[#2d284b] text-white'}`}>{iniciales(nombre)}</span>
                           <div className="min-w-0 flex-1">
-                            <p className="text-sm font-bold text-stone-900 truncate">{nombre}{t.es_propia && <span className="text-[#6105dc]"> · tú</span>}</p>
+                            <p className="text-sm font-bold text-stone-900 truncate">{nombre}{t.es_propia && <span className="text-[#5b4bd6]"> · tú</span>}</p>
                             <p className="text-xs text-stone-500 mt-0.5 leading-snug">Desde {etiquetaCuandoTurno(t.fecha_apertura)} · S/ {Number(t.monto_inicial || 0).toFixed(2)} de fondo inicial</p>
                             {edad.antiguo && (
                               <div className="flex gap-2 items-start rounded-xl bg-amber-100/70 text-amber-800 px-2.5 py-2 text-xs leading-snug mt-2.5"><i className="fa-solid fa-triangle-exclamation mt-0.5"></i><span>Abierta {edad.etiqueta}. Si sigues con ella, el cierre sumará las ventas de todo ese tiempo. Conviene cerrarla.</span></div>
                             )}
                             <div className="flex flex-wrap gap-2 mt-2.5">
-                              <button type="button" onClick={() => unirseACaja(t)} className="h-[38px] px-3.5 rounded-xl bg-[#6105dc] hover:bg-[#4d04b0] text-white text-[12.5px] font-bold shadow-md shadow-[#6105dc]/25">Usar esta caja</button>
+                              <button type="button" onClick={() => unirseACaja(t)} className="h-[38px] px-3.5 rounded-xl bg-[#5b4bd6] hover:bg-[#473bb5] text-white text-[12.5px] font-bold shadow-md shadow-[#5b4bd6]/25">Usar esta caja</button>
                               {edad.antiguo && (
                                 <button type="button" onClick={() => { unirseACaja(t); setCierreAlRetomar(true); }} className="h-[38px] px-3.5 rounded-xl bg-amber-100 hover:bg-amber-200 text-amber-800 text-[12.5px] font-bold">Cerrar esta caja</button>
                               )}
@@ -11824,7 +11824,7 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
                   </div>
 
                   <div className="shrink-0 bg-white border-t border-stone-100 px-4 sm:px-5 py-3 shadow-[0_-8px_24px_-14px_rgba(40,10,90,0.18)]">
-                    <button type="button" onClick={abrirCajaNueva} className="w-full h-[46px] rounded-[14px] bg-[#f4eefe] hover:bg-[#ece0fd] text-[#4d04b0] font-bold text-[13.5px] inline-flex items-center justify-center gap-2"><i className="fa-solid fa-plus text-xs"></i> Abrir otra caja</button>
+                    <button type="button" onClick={abrirCajaNueva} className="w-full h-[46px] rounded-[14px] bg-[#ebf0ff] hover:bg-[#dde4fa] text-[#2d284b] font-bold text-[13.5px] inline-flex items-center justify-center gap-2"><i className="fa-solid fa-plus text-xs"></i> Abrir otra caja</button>
                   </div>
                 </div>
               </div>
@@ -11834,7 +11834,7 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
           {/* Aviso: tu caja sigue abierta de un día anterior */}
           {avisoTurnoViejo && (
             <div className="fixed inset-0 bg-stone-900/30 backdrop-blur-sm flex items-center justify-center z-50 p-4" role="alertdialog" aria-modal="true">
-              <div className="bg-gradient-to-br from-[#f4effc] via-[#f9f8fb] to-[#f5f4f8] border border-white/80 rounded-[28px] max-w-sm w-full p-6 shadow-2xl space-y-4 text-center">
+              <div className="bg-gradient-to-br from-[#eef1fb] via-[#f8f9fd] to-[#f4f5fa] border border-white/80 rounded-[28px] max-w-sm w-full p-6 shadow-2xl space-y-4 text-center">
                 <div className="w-14 h-14 mx-auto bg-amber-100 rounded-full flex items-center justify-center">
                   <i className="fa-solid fa-triangle-exclamation text-amber-600 text-xl"></i>
                 </div>
@@ -12016,7 +12016,7 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
           {/* Modal genérico: reemplazo de prompt() nativo */}
           {modalPrompt && (
             <div className="fixed inset-0 bg-stone-900/30 backdrop-blur-sm flex items-center justify-center z-[100] p-4">
-              <div className="bg-gradient-to-br from-[#f4effc] via-[#f9f8fb] to-[#f5f4f8] border border-white/80 rounded-[28px] max-w-sm w-full p-5 shadow-2xl space-y-3">
+              <div className="bg-gradient-to-br from-[#eef1fb] via-[#f8f9fd] to-[#f4f5fa] border border-white/80 rounded-[28px] max-w-sm w-full p-5 shadow-2xl space-y-3">
                 <h3 className="text-lg font-bold text-stone-900">{modalPrompt.titulo}</h3>
                 {modalPrompt.mensaje && <p className="text-xs text-stone-600">{modalPrompt.mensaje}</p>}
                 <input
@@ -12028,18 +12028,18 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
                     if (e.key === 'Enter') { modalPrompt.onConfirmar(modalPromptValor); setModalPrompt(null); }
                   }}
                   placeholder={modalPrompt.placeholder}
-                  className="w-full bg-white border border-stone-200/70 shadow-sm rounded-xl px-3 py-2 text-sm text-stone-900 focus:outline-none focus:ring-2 focus:ring-[#d6bdfa]"
+                  className="w-full bg-white border border-stone-200/70 shadow-sm rounded-xl px-3 py-2 text-sm text-stone-900 focus:outline-none focus:ring-2 focus:ring-[#c5bcff]"
                 />
                 <div className="flex gap-2">
                   <button
                     onClick={() => { modalPrompt.onCancelar(); setModalPrompt(null); }}
-                    className="flex-1 py-2.5 bg-white/70 hover:bg-[#ece0fd] text-stone-600 font-semibold text-xs rounded-full shadow-sm"
+                    className="flex-1 py-2.5 bg-white/70 hover:bg-[#dde4fa] text-stone-600 font-semibold text-xs rounded-full shadow-sm"
                   >
                     Cancelar
                   </button>
                   <button
                     onClick={() => { modalPrompt.onConfirmar(modalPromptValor); setModalPrompt(null); }}
-                    className="flex-1 py-2.5 bg-[#6105dc] hover:bg-[#4d04b0] text-white font-bold text-xs rounded-full shadow"
+                    className="flex-1 py-2.5 bg-[#5b4bd6] hover:bg-[#473bb5] text-white font-bold text-xs rounded-full shadow"
                   >
                     {modalPrompt.textoBoton}
                   </button>
@@ -12051,13 +12051,13 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
           {/* Modal genérico: reemplazo de confirm() nativo */}
           {modalConfirmar && (
             <div className="fixed inset-0 bg-stone-900/30 backdrop-blur-sm flex items-center justify-center z-[100] p-4">
-              <div className="bg-gradient-to-br from-[#f4effc] via-[#f9f8fb] to-[#f5f4f8] border border-white/80 rounded-[28px] max-w-sm w-full p-5 shadow-2xl space-y-3">
+              <div className="bg-gradient-to-br from-[#eef1fb] via-[#f8f9fd] to-[#f4f5fa] border border-white/80 rounded-[28px] max-w-sm w-full p-5 shadow-2xl space-y-3">
                 <h3 className="text-lg font-bold text-stone-900">{modalConfirmar.titulo}</h3>
                 <p className="text-xs text-stone-600">{modalConfirmar.mensaje}</p>
                 <div className="flex gap-2">
                   <button
                     onClick={() => { modalConfirmar.onCancelar(); setModalConfirmar(null); }}
-                    className="flex-1 py-2.5 bg-white/70 hover:bg-[#ece0fd] text-stone-600 font-semibold text-xs rounded-full shadow-sm"
+                    className="flex-1 py-2.5 bg-white/70 hover:bg-[#dde4fa] text-stone-600 font-semibold text-xs rounded-full shadow-sm"
                   >
                     Cancelar
                   </button>

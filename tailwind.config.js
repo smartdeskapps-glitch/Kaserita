@@ -6,25 +6,36 @@ export default {
       fontFamily: {
         sans: ['"Inter"', 'system-ui', 'sans-serif'],
       },
-      // Pisa la escala "orange" de Tailwind con un violeta anclado
-      // exactamente en el mismo #7c3aed (violet-600) que ya se usa en
-      // el degradado del login y en los badges del encabezado -- así
-      // TODO lo que en el código sigue usando clases orange-50..950
-      // (botones, precios, pestañas activas, etc.) cambia de color
-      // automáticamente, sin tener que tocar cada pantalla a mano.
+      // Pisa las escalas "orange" y "violet" de Tailwind con la paleta Crocus Purple /
+      // Ebony Clay / Titan White: todo lo que usa clases orange-* o violet-* (botones,
+      // precios, pestañas activas, etc.) cambia de color sin tocar cada pantalla.
+      // 600 es el tono de acciones (el blanco se lee bien encima); 400 es el Crocus puro.
       colors: {
         orange: {
-          50: '#f5f0ff',
-          100: '#ece1fe',
-          200: '#d6c2fa',
-          300: '#ba97f7',
-          400: '#9b69f2',
-          500: '#925bf0',
-          600: '#7c3aed',
-          700: '#6217e2',
-          800: '#5416bf',
-          900: '#4915a2',
-          950: '#350f75',
+          50: '#f3f5ff',
+          100: '#ebf0ff',
+          200: '#dde4fa',
+          300: '#c5bcff',
+          400: '#9687f5',
+          500: '#7466e8',
+          600: '#5b4bd6',
+          700: '#473bb5',
+          800: '#3b3466',
+          900: '#2d284b',
+          950: '#221e3d',
+        },
+        violet: {
+          50: '#f3f5ff',
+          100: '#ebf0ff',
+          200: '#dde4fa',
+          300: '#c5bcff',
+          400: '#9687f5',
+          500: '#7466e8',
+          600: '#5b4bd6',
+          700: '#473bb5',
+          800: '#3b3466',
+          900: '#2d284b',
+          950: '#221e3d',
         },
       },
     },

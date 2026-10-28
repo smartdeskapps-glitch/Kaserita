@@ -108,9 +108,9 @@ export default function EditarProducto({
                   setF('stock_actual', String(Math.max(0, Math.round((actual + delta) * 10) / 10)));
                 };
                 const stockTag = esServicio
-                  ? { texto: `Servicio · ${Number(f.duracion_min) || 30} min`, clase: 'bg-[#f4eefe] text-[#4d04b0]' }
+                  ? { texto: `Servicio · ${Number(f.duracion_min) || 30} min`, clase: 'bg-[#ebf0ff] text-[#2d284b]' }
                   : f.stock_actual === ''
-                    ? { texto: 'Sin control de stock', clase: 'bg-[#f4eefe] text-[#4d04b0]' }
+                    ? { texto: 'Sin control de stock', clase: 'bg-[#ebf0ff] text-[#2d284b]' }
                     : Number(f.stock_actual) <= 0
                       ? { texto: 'Sin stock', clase: 'bg-rose-50 text-rose-600' }
                       : Number(f.stock_actual) <= 5
@@ -120,21 +120,21 @@ export default function EditarProducto({
                   const base = categoriasDB.slice(0, 6);
                   return f.categoria && !base.includes(f.categoria) ? [...base, f.categoria] : base;
                 })();
-                const inputBase = 'w-full h-11 bg-stone-50/70 border-[1.5px] border-stone-200 rounded-[14px] px-3.5 text-sm text-stone-900 placeholder:text-stone-400 outline-none focus:border-[#6105dc] focus:bg-white focus:ring-4 focus:ring-[#6105dc]/15 transition disabled:bg-stone-100 disabled:text-stone-500';
+                const inputBase = 'w-full h-11 bg-stone-50/70 border-[1.5px] border-stone-200 rounded-[14px] px-3.5 text-sm text-stone-900 placeholder:text-stone-400 outline-none focus:border-[#5b4bd6] focus:bg-white focus:ring-4 focus:ring-[#5b4bd6]/15 transition disabled:bg-stone-100 disabled:text-stone-500';
                 const inputError = 'border-rose-400 bg-rose-50 focus:border-rose-500 focus:ring-rose-200';
-                const chipClase = (activo) => `inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[12.5px] font-semibold border-[1.5px] transition ${activo ? 'border-[#6105dc] bg-[#f4eefe] text-[#4d04b0] ring-2 ring-[#6105dc]/15' : 'border-stone-200 bg-white text-stone-600 hover:bg-[#f4eefe] hover:border-[#e4d6fb]'}`;
-                const segClase = (activo) => `rounded-[11px] py-2.5 px-2 text-[13px] font-bold transition text-center ${activo ? 'bg-white text-[#4d04b0] shadow-sm' : 'text-stone-500 hover:text-stone-700'}`;
+                const chipClase = (activo) => `inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[12.5px] font-semibold border-[1.5px] transition ${activo ? 'border-[#5b4bd6] bg-[#ebf0ff] text-[#2d284b] ring-2 ring-[#5b4bd6]/15' : 'border-stone-200 bg-white text-stone-600 hover:bg-[#ebf0ff] hover:border-[#d2d9f5]'}`;
+                const segClase = (activo) => `rounded-[11px] py-2.5 px-2 text-[13px] font-bold transition text-center ${activo ? 'bg-white text-[#2d284b] shadow-sm' : 'text-stone-500 hover:text-stone-700'}`;
                 const etiqueta = 'flex items-center justify-between gap-2 text-[12.5px] font-semibold text-stone-800 mb-1.5';
                 const interruptor2 = ({ activo, onClick, icono, titulo, detalle, aviso }) => (
-                  <button type="button" role="switch" aria-checked={activo} onClick={onClick} className={`w-full flex items-center justify-between gap-3 text-left rounded-2xl border-[1.5px] px-3.5 py-3 transition ${activo ? 'border-[#6105dc] bg-[#fcfaff]' : aviso ? 'border-amber-300 bg-amber-50' : 'border-stone-200 bg-white hover:bg-stone-50'}`}>
+                  <button type="button" role="switch" aria-checked={activo} onClick={onClick} className={`w-full flex items-center justify-between gap-3 text-left rounded-2xl border-[1.5px] px-3.5 py-3 transition ${activo ? 'border-[#5b4bd6] bg-[#f8faff]' : aviso ? 'border-amber-300 bg-amber-50' : 'border-stone-200 bg-white hover:bg-stone-50'}`}>
                     <span className="flex items-center gap-3 min-w-0">
-                      <span className={`w-[34px] h-[34px] rounded-[11px] grid place-items-center shrink-0 text-sm ${activo ? 'bg-[#6105dc] text-white' : aviso ? 'bg-amber-500 text-white' : 'bg-stone-100 text-stone-400'}`}><i className={`fa-solid ${icono}`}></i></span>
+                      <span className={`w-[34px] h-[34px] rounded-[11px] grid place-items-center shrink-0 text-sm ${activo ? 'bg-[#5b4bd6] text-white' : aviso ? 'bg-amber-500 text-white' : 'bg-stone-100 text-stone-400'}`}><i className={`fa-solid ${icono}`}></i></span>
                       <span className="min-w-0">
                         <span className="block text-[13.5px] font-bold text-stone-800">{titulo}</span>
                         <span className="block text-xs text-stone-500 leading-snug">{detalle}</span>
                       </span>
                     </span>
-                    <span className={`relative w-[42px] h-6 rounded-full shrink-0 transition-colors ${activo ? 'bg-[#6105dc]' : 'bg-stone-300'}`}>
+                    <span className={`relative w-[42px] h-6 rounded-full shrink-0 transition-colors ${activo ? 'bg-[#5b4bd6]' : 'bg-stone-300'}`}>
                       <span className={`absolute top-[3px] left-[3px] w-[18px] h-[18px] rounded-full bg-white shadow transition-transform ${activo ? 'translate-x-[18px]' : ''}`}></span>
                     </span>
                   </button>
@@ -142,7 +142,7 @@ export default function EditarProducto({
 
                 return (
                 <div className="fixed inset-0 bg-stone-900/30 backdrop-blur-sm flex items-center justify-center z-50 p-2 sm:p-4">
-                  <div className="bg-gradient-to-br from-[#f4effc] via-[#f9f8fb] to-[#f5f4f8] border border-white/80 rounded-[28px] max-w-4xl w-full shadow-2xl h-[95vh] max-h-[820px] flex flex-col overflow-hidden">
+                  <div className="bg-gradient-to-br from-[#eef1fb] via-[#f8f9fd] to-[#f4f5fa] border border-white/80 rounded-[28px] max-w-4xl w-full shadow-2xl h-[95vh] max-h-[820px] flex flex-col overflow-hidden">
 
                     {/* Cabecera: ficha del producto + pestañas */}
                     <div className="bg-white border-b border-stone-100 px-4 sm:px-5 pt-3.5 shrink-0">
@@ -166,7 +166,7 @@ export default function EditarProducto({
                         <div className="min-w-0 flex-1">
                           <h1 className="text-base sm:text-[19px] font-extrabold text-stone-900 tracking-tight leading-tight truncate">{f.descripcion.trim() || 'Sin nombre'}</h1>
                           <div className="flex flex-wrap gap-1.5 mt-1.5">
-                            <span className="text-[11px] font-bold rounded-full px-2.5 py-0.5 bg-[#f4eefe] text-[#4d04b0]">{f.categoria || 'Sin categoría'}</span>
+                            <span className="text-[11px] font-bold rounded-full px-2.5 py-0.5 bg-[#ebf0ff] text-[#2d284b]">{f.categoria || 'Sin categoría'}</span>
                             <span className={`text-[11px] font-bold rounded-full px-2.5 py-0.5 ${stockTag.clase}`}>{stockTag.texto}</span>
                             {f.es_destacado && <span className="text-[11px] font-bold rounded-full px-2.5 py-0.5 bg-[#fff6d6] text-[#8a6200]">★ Destacado</span>}
                             {esBarberia && f.visible_en_tienda === false && <span className="text-[11px] font-bold rounded-full px-2.5 py-0.5 bg-amber-50 text-amber-700">Oculto en la tienda</span>}
@@ -174,7 +174,7 @@ export default function EditarProducto({
                         </div>
                         <div className="text-right shrink-0">
                           {pvOriginal !== pv && <s className="text-xs font-semibold text-stone-300 mr-1.5">S/ {pvOriginal.toFixed(2)}</s>}
-                          <strong className="block sm:inline text-xl sm:text-2xl font-extrabold text-[#4d04b0] leading-tight">S/ {pv.toFixed(2)}</strong>
+                          <strong className="block sm:inline text-xl sm:text-2xl font-extrabold text-[#2d284b] leading-tight">S/ {pv.toFixed(2)}</strong>
                           <small className="block text-[11px] font-semibold text-stone-400">{esBarberia ? (esServicio ? 'servicio' : 'unidad') : (f.unidad === 'KG' ? 'por kg' : 'por unidad')}</small>
                         </div>
                       </div>
@@ -183,10 +183,10 @@ export default function EditarProducto({
                           const nCambios = cambios.filter((c) => c.pestana === id).length;
                           const conError = Object.keys(errores).some((k) => pestanaDeError[k] === id);
                           return (
-                            <button key={id} type="button" role="tab" aria-selected={pestana === id} onClick={() => setTabEditarProducto(id)} className={`relative px-3 sm:px-4 pt-2.5 pb-3 text-[13px] sm:text-[13.5px] font-bold whitespace-nowrap flex items-center gap-2 rounded-t-xl ${pestana === id ? 'text-[#4d04b0]' : 'text-stone-500 hover:text-stone-800'}`}>
+                            <button key={id} type="button" role="tab" aria-selected={pestana === id} onClick={() => setTabEditarProducto(id)} className={`relative px-3 sm:px-4 pt-2.5 pb-3 text-[13px] sm:text-[13.5px] font-bold whitespace-nowrap flex items-center gap-2 rounded-t-xl ${pestana === id ? 'text-[#2d284b]' : 'text-stone-500 hover:text-stone-800'}`}>
                               {titulo}
-                              {conError ? <span className="w-2 h-2 rounded-full bg-rose-500 ring-[3px] ring-rose-500/15" title="Falta completar algo en esta pestaña"></span> : nCambios > 0 ? <span className="w-2 h-2 rounded-full bg-[#6105dc] ring-[3px] ring-[#6105dc]/15" title={`${nCambios} cambio${nCambios > 1 ? 's' : ''} sin guardar`}></span> : null}
-                              {pestana === id && <span className="absolute left-3 right-3 -bottom-px h-[3px] rounded bg-[#6105dc]"></span>}
+                              {conError ? <span className="w-2 h-2 rounded-full bg-rose-500 ring-[3px] ring-rose-500/15" title="Falta completar algo en esta pestaña"></span> : nCambios > 0 ? <span className="w-2 h-2 rounded-full bg-[#5b4bd6] ring-[3px] ring-[#5b4bd6]/15" title={`${nCambios} cambio${nCambios > 1 ? 's' : ''} sin guardar`}></span> : null}
+                              {pestana === id && <span className="absolute left-3 right-3 -bottom-px h-[3px] rounded bg-[#5b4bd6]"></span>}
                             </button>
                           );
                         })}
@@ -243,7 +243,7 @@ export default function EditarProducto({
                                   <p className="text-xs text-stone-500">La subida de fotos está desactivada para tu negocio. Contacta a Kaserita si la necesitas.</p>
                                 ) : (
                                   <div className="flex flex-wrap gap-2">
-                                    <label className="inline-flex items-center gap-1.5 cursor-pointer py-2 px-3.5 rounded-xl border-[1.5px] border-stone-200 bg-white hover:bg-[#f4eefe] text-stone-700 text-xs font-semibold transition">
+                                    <label className="inline-flex items-center gap-1.5 cursor-pointer py-2 px-3.5 rounded-xl border-[1.5px] border-stone-200 bg-white hover:bg-[#ebf0ff] text-stone-700 text-xs font-semibold transition">
                                       {subiendoFotoProducto ? <i className="fa-solid fa-spinner fa-spin text-stone-500"></i> : <i className="fa-solid fa-camera text-stone-500"></i>}
                                       {f.foto_url ? 'Cambiar foto' : 'Subir foto'}
                                       <input type="file" accept="image/*" className="hidden" onChange={(e) => { const file = e.target.files && e.target.files[0]; e.target.value = ''; if (file) subirFotoProducto(file); }} />
@@ -268,7 +268,7 @@ export default function EditarProducto({
                               </div>
                               <div>
                                 <label className={etiqueta}><span>Precio de venta{esBarberia ? '' : ' por unidad'} <span className="text-rose-500">*</span></span></label>
-                                <div className={`flex items-baseline gap-2.5 rounded-[20px] border-2 transition px-4 py-3 focus-within:ring-4 ${errores.precio ? 'border-rose-400 bg-rose-50 focus-within:ring-rose-200' : 'bg-stone-50/70 border-stone-200 focus-within:border-[#6105dc] focus-within:bg-white focus-within:ring-[#6105dc]/15'}`}>
+                                <div className={`flex items-baseline gap-2.5 rounded-[20px] border-2 transition px-4 py-3 focus-within:ring-4 ${errores.precio ? 'border-rose-400 bg-rose-50 focus-within:ring-rose-200' : 'bg-stone-50/70 border-stone-200 focus-within:border-[#5b4bd6] focus-within:bg-white focus-within:ring-[#5b4bd6]/15'}`}>
                                   <span className="text-xl font-extrabold text-stone-300 select-none">S/</span>
                                   <input type="number" step="0.10" min="0" inputMode="decimal" value={f.precio_venta} onChange={(e) => setF('precio_venta', e.target.value)} className="w-full min-w-0 bg-transparent border-0 p-0 text-[34px] sm:text-[40px] leading-tight font-extrabold tracking-tight text-stone-900 placeholder:text-stone-300 focus:ring-0 focus:outline-none" />
                                   <span className="text-[11px] font-bold tracking-widest text-stone-300">PEN</span>
@@ -312,7 +312,7 @@ export default function EditarProducto({
                                 ) : !esBarberia ? (
                                   <div>
                                     <label className={etiqueta}><span>Se vende por</span></label>
-                                    <div className="grid grid-flow-col auto-cols-fr bg-[#f1eef9] rounded-[14px] p-1 gap-1">
+                                    <div className="grid grid-flow-col auto-cols-fr bg-[#eef1fb] rounded-[14px] p-1 gap-1">
                                       <button type="button" onClick={() => setF('unidad', 'UND')} className={segClase(f.unidad !== 'KG')}>Unidad</button>
                                       <button type="button" onClick={() => setFormEditarProducto((prev) => ({ ...prev, unidad: 'KG', vendeEnPack: false }))} className={segClase(f.unidad === 'KG')}>Peso (KG)<span className="block text-[11px] font-medium opacity-80">balanza</span></button>
                                     </div>
@@ -321,7 +321,7 @@ export default function EditarProducto({
                               </div>
 
                               {pc > 0 && (
-                                <div className="rounded-2xl border border-dashed border-[#e4d6fb] bg-[#fcfaff] px-3.5 py-3">
+                                <div className="rounded-2xl border border-dashed border-[#d2d9f5] bg-[#f8faff] px-3.5 py-3">
                                   <p className="text-xs font-semibold text-stone-500 mb-2">Precio sugerido según tu margen</p>
                                   <div className="flex flex-wrap gap-2">
                                     {[20, 30, 40].map((m) => {
@@ -342,9 +342,9 @@ export default function EditarProducto({
                                   <div className={`flex flex-wrap items-center gap-3.5 border-[1.5px] rounded-[18px] px-3.5 py-3 bg-stone-50/70 ${errores.stock ? 'border-rose-400' : 'border-stone-200'}`}>
                                     <div className="text-[30px] leading-none font-extrabold text-stone-900 min-w-[64px]">{f.stock_actual === '' ? '—' : f.stock_actual}<small className="text-[13px] font-bold text-stone-400 ml-1">{f.unidad === 'KG' ? 'kg' : 'und'}</small></div>
                                     <div className="flex items-center gap-2 ml-auto">
-                                      <button type="button" aria-label="Menos" onClick={() => ajustarStock(f.unidad === 'KG' ? -0.5 : -1)} className="w-[42px] h-[42px] rounded-[13px] border-[1.5px] border-stone-200 bg-white grid place-items-center text-[#4d04b0] hover:bg-[#f4eefe]"><i className="fa-solid fa-minus text-xs"></i></button>
-                                      <input type="number" min="0" step={f.unidad === 'KG' ? '0.1' : '1'} placeholder="—" value={f.stock_actual} onChange={(e) => setF('stock_actual', e.target.value)} className="w-24 h-[42px] text-center font-bold text-sm rounded-[13px] border-[1.5px] border-stone-200 bg-white outline-none focus:border-[#6105dc]" />
-                                      <button type="button" aria-label="Más" onClick={() => ajustarStock(f.unidad === 'KG' ? 0.5 : 1)} className="w-[42px] h-[42px] rounded-[13px] border-[1.5px] border-stone-200 bg-white grid place-items-center text-[#4d04b0] hover:bg-[#f4eefe]"><i className="fa-solid fa-plus text-xs"></i></button>
+                                      <button type="button" aria-label="Menos" onClick={() => ajustarStock(f.unidad === 'KG' ? -0.5 : -1)} className="w-[42px] h-[42px] rounded-[13px] border-[1.5px] border-stone-200 bg-white grid place-items-center text-[#2d284b] hover:bg-[#ebf0ff]"><i className="fa-solid fa-minus text-xs"></i></button>
+                                      <input type="number" min="0" step={f.unidad === 'KG' ? '0.1' : '1'} placeholder="—" value={f.stock_actual} onChange={(e) => setF('stock_actual', e.target.value)} className="w-24 h-[42px] text-center font-bold text-sm rounded-[13px] border-[1.5px] border-stone-200 bg-white outline-none focus:border-[#5b4bd6]" />
+                                      <button type="button" aria-label="Más" onClick={() => ajustarStock(f.unidad === 'KG' ? 0.5 : 1)} className="w-[42px] h-[42px] rounded-[13px] border-[1.5px] border-stone-200 bg-white grid place-items-center text-[#2d284b] hover:bg-[#ebf0ff]"><i className="fa-solid fa-plus text-xs"></i></button>
                                     </div>
                                   </div>
                                   {errores.stock ? <p className="text-[11.5px] text-rose-600 mt-1.5">{errores.stock}</p> : <p className="text-[11px] text-stone-400 mt-1.5">Déjalo vacío si no llevas el control de stock de este producto.</p>}
@@ -373,7 +373,7 @@ export default function EditarProducto({
                                         <label className="text-[11px] font-semibold text-stone-500 block mb-1">Código de barras del pack (opcional, si es distinto al de la unidad)</label>
                                         <div className="relative">
                                           <input type="text" placeholder="Si ya existe, se vincula solo" value={f.cod_ean_pack} onChange={(e) => setF('cod_ean_pack', e.target.value)} className={`${inputBase} pr-10`} />
-                                          <button type="button" onClick={() => { setModoEscaner('editar-pack-ean'); setMetodoForzado(null); setModalEscaner(true); }} className="absolute right-1.5 top-1/2 -translate-y-1/2 w-8 h-8 flex items-center justify-center text-stone-600 hover:text-[#6105dc] transition" title="Escanear código de barras del pack">
+                                          <button type="button" onClick={() => { setModoEscaner('editar-pack-ean'); setMetodoForzado(null); setModalEscaner(true); }} className="absolute right-1.5 top-1/2 -translate-y-1/2 w-8 h-8 flex items-center justify-center text-stone-600 hover:text-[#5b4bd6] transition" title="Escanear código de barras del pack">
                                             <i className="fa-solid fa-camera text-xs"></i>
                                           </button>
                                         </div>
@@ -405,7 +405,7 @@ export default function EditarProducto({
                                       onChange={(e) => setF('descripcion_larga', e.target.value)}
                                       rows={3}
                                       placeholder={esBarberia ? 'Ej: degradado con máquina, perfilado y toalla caliente' : 'Ej: tela, talla, colores disponibles, sabor...'}
-                                      className="w-full bg-stone-50/70 border-[1.5px] border-stone-200 rounded-[14px] px-3.5 py-2.5 text-sm text-stone-900 placeholder:text-stone-400 outline-none focus:border-[#6105dc] focus:bg-white focus:ring-4 focus:ring-[#6105dc]/15 transition"
+                                      className="w-full bg-stone-50/70 border-[1.5px] border-stone-200 rounded-[14px] px-3.5 py-2.5 text-sm text-stone-900 placeholder:text-stone-400 outline-none focus:border-[#5b4bd6] focus:bg-white focus:ring-4 focus:ring-[#5b4bd6]/15 transition"
                                     />
                                   </div>
                                   <div>
@@ -418,7 +418,7 @@ export default function EditarProducto({
                                         </div>
                                       ))}
                                       {fotosExtra.length < 4 && (
-                                        <label className="aspect-square rounded-2xl border-2 border-dashed border-stone-300 bg-stone-50/70 grid place-items-center cursor-pointer text-stone-400 hover:border-[#6105dc] hover:text-[#6105dc] hover:bg-[#f4eefe] transition">
+                                        <label className="aspect-square rounded-2xl border-2 border-dashed border-stone-300 bg-stone-50/70 grid place-items-center cursor-pointer text-stone-400 hover:border-[#5b4bd6] hover:text-[#5b4bd6] hover:bg-[#ebf0ff] transition">
                                           {subiendoFotoExtra ? <span className="w-4 h-4 border-2 border-stone-400 border-t-transparent rounded-full animate-spin"></span> : <i className="fa-solid fa-plus text-lg"></i>}
                                           <input type="file" accept="image/*" className="hidden" onChange={(e) => { const file = e.target.files && e.target.files[0]; e.target.value = ''; if (file) subirFotoExtraProducto(file); }} />
                                         </label>
@@ -437,23 +437,23 @@ export default function EditarProducto({
                       <aside className="md:sticky md:top-0 md:self-start min-w-0">
                         <p className="hidden md:block text-[11px] font-bold tracking-wider uppercase text-stone-400 mb-2">Así se ve en tu caja</p>
                         <div className="hidden md:block bg-white border border-stone-100 rounded-[22px] p-3 shadow-sm">
-                          <div className="aspect-[1/0.72] rounded-2xl bg-gradient-to-br from-[#f4eefe] to-white overflow-hidden relative">
+                          <div className="aspect-[1/0.72] rounded-2xl bg-gradient-to-br from-[#ebf0ff] to-white overflow-hidden relative">
                             <FotoProducto fotoUrl={f.foto_url} categoria={f.categoria} className="w-full h-full" iconClassName="text-5xl" />
                             {f.vendeEnPack && !esBarberia && Number(f.unidades_por_pack) > 1 && <span className="absolute top-2 left-2 bg-[#ffc81a] text-stone-900 text-[10.5px] font-extrabold rounded-full px-2 py-0.5">Pack x{f.unidades_por_pack}</span>}
                             {f.es_destacado && <span className="absolute top-2 right-2 w-[26px] h-[26px] rounded-full bg-white grid place-items-center text-[#d99a00] shadow text-xs"><i className="fa-solid fa-star"></i></span>}
                           </div>
-                          <span className="inline-block mt-2.5 text-[10.5px] font-bold text-[#4d04b0] bg-[#f4eefe] rounded-full px-2 py-0.5">{f.categoria || 'Sin categoría'}</span>
+                          <span className="inline-block mt-2.5 text-[10.5px] font-bold text-[#2d284b] bg-[#ebf0ff] rounded-full px-2 py-0.5">{f.categoria || 'Sin categoría'}</span>
                           <p className="text-sm font-bold leading-tight mt-1.5 min-h-[2.2rem] text-stone-900">{f.descripcion.trim() || 'Sin nombre'}</p>
                           <div className="flex items-baseline justify-between mt-1.5">
                             <span>{pvOriginal !== pv && <s className="text-xs font-semibold text-stone-300 mr-1.5">S/ {pvOriginal.toFixed(2)}</s>}<strong className="text-[22px] font-extrabold text-stone-900">S/ {pv.toFixed(2)}</strong></span>
                             <small className="text-[11px] text-stone-400">{esBarberia ? (esServicio ? `${Number(f.duracion_min) || 30} min` : 'unidad') : (f.unidad === 'KG' ? 'por kg' : 'por unidad')}</small>
                           </div>
-                          <div className={`grid place-items-center mt-2.5 h-9 rounded-xl text-white text-[12.5px] font-bold ${!esServicio && f.stock_actual !== '' && Number(f.stock_actual) <= 0 ? 'bg-stone-300' : 'bg-[#6105dc] opacity-90'}`}>{!esServicio && f.stock_actual !== '' && Number(f.stock_actual) <= 0 ? 'Sin stock' : 'Agregar'}</div>
+                          <div className={`grid place-items-center mt-2.5 h-9 rounded-xl text-white text-[12.5px] font-bold ${!esServicio && f.stock_actual !== '' && Number(f.stock_actual) <= 0 ? 'bg-stone-300' : 'bg-[#5b4bd6] opacity-90'}`}>{!esServicio && f.stock_actual !== '' && Number(f.stock_actual) <= 0 ? 'Sin stock' : 'Agregar'}</div>
                         </div>
                         <details className="mt-3.5 bg-white border border-stone-100 rounded-[18px] overflow-hidden group" open={tieneCambios}>
                           <summary className="list-none cursor-pointer flex items-center gap-2 px-3.5 py-3 text-[12.5px] font-bold text-stone-800">
                             Cambios sin guardar
-                            <span className="bg-[#6105dc] text-white rounded-full text-[11px] px-2 py-px">{cambios.length}</span>
+                            <span className="bg-[#5b4bd6] text-white rounded-full text-[11px] px-2 py-px">{cambios.length}</span>
                             <i className="fa-solid fa-chevron-down text-stone-400 text-xs ml-auto transition group-open:rotate-180"></i>
                           </summary>
                           {cambios.length === 0 ? (
@@ -461,10 +461,10 @@ export default function EditarProducto({
                           ) : (
                             <ul className="px-2.5 pb-2.5 grid gap-1.5">
                               {cambios.map((c) => (
-                                <li key={c.etiqueta} className="flex items-center gap-2 bg-[#faf8ff] rounded-xl pl-2.5 pr-1.5 py-1.5 text-xs">
+                                <li key={c.etiqueta} className="flex items-center gap-2 bg-[#f9fafe] rounded-xl pl-2.5 pr-1.5 py-1.5 text-xs">
                                   <span className="text-stone-500 font-semibold whitespace-nowrap">{c.etiqueta}</span>
                                   <span className="flex-1 min-w-0 truncate font-bold text-stone-800"><i className="not-italic text-stone-300 font-semibold line-through mr-1">{c.antes}</i>{c.despues}</span>
-                                  <button type="button" onClick={() => deshacer(c)} title="Deshacer este cambio" className="text-[#6105dc] hover:bg-[#f4eefe] rounded-lg px-1.5 py-1"><i className="fa-solid fa-rotate-left text-[11px]"></i></button>
+                                  <button type="button" onClick={() => deshacer(c)} title="Deshacer este cambio" className="text-[#5b4bd6] hover:bg-[#ebf0ff] rounded-lg px-1.5 py-1"><i className="fa-solid fa-rotate-left text-[11px]"></i></button>
                                 </li>
                               ))}
                             </ul>
@@ -479,11 +479,11 @@ export default function EditarProducto({
                         <i className="fa-solid fa-trash-can text-xs"></i><span className="hidden sm:inline">Quitar de mis productos</span>
                       </button>
                       <span className="flex-1"></span>
-                      <span className={`hidden sm:flex items-center gap-1.5 text-xs ${hayErrores ? 'text-rose-600' : tieneCambios ? 'text-[#4d04b0] font-semibold' : 'text-stone-500'}`}>
+                      <span className={`hidden sm:flex items-center gap-1.5 text-xs ${hayErrores ? 'text-rose-600' : tieneCambios ? 'text-[#2d284b] font-semibold' : 'text-stone-500'}`}>
                         {hayErrores ? <><i className="fa-solid fa-triangle-exclamation"></i>{Object.values(errores)[0]}</> : tieneCambios ? `${cambios.length} cambio${cambios.length > 1 ? 's' : ''} sin guardar` : 'Sin cambios'}
                       </span>
                       {tieneCambios && <button type="button" onClick={descartar} disabled={guardandoEdicionProducto} className="h-11 px-3.5 rounded-[14px] text-sm font-bold text-stone-500 hover:bg-stone-100 hover:text-stone-800 transition">Descartar</button>}
-                      <button type="button" onClick={guardarEdicionProducto} disabled={guardandoEdicionProducto || !tieneCambios || hayErrores} className="h-11 px-5 rounded-[14px] bg-[#6105dc] hover:bg-[#4d04b0] disabled:bg-stone-300 disabled:cursor-not-allowed text-white text-sm font-bold shadow-md flex items-center gap-2 transition">
+                      <button type="button" onClick={guardarEdicionProducto} disabled={guardandoEdicionProducto || !tieneCambios || hayErrores} className="h-11 px-5 rounded-[14px] bg-[#5b4bd6] hover:bg-[#473bb5] disabled:bg-stone-300 disabled:cursor-not-allowed text-white text-sm font-bold shadow-md flex items-center gap-2 transition">
                         {guardandoEdicionProducto ? (<><i className="fa-solid fa-spinner fa-spin"></i> Guardando...</>) : (<><i className="fa-solid fa-check"></i> Guardar cambios</>)}
                       </button>
                     </div>

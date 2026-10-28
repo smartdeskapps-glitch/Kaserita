@@ -20,7 +20,7 @@ export default function AgendaCitas({
                 <div className="fixed inset-0 bg-stone-900/30 backdrop-blur-sm flex items-center justify-center z-50 p-4">
                   <div className="bg-white border border-stone-200 rounded-[28px] max-w-lg w-full shadow-2xl max-h-[92vh] flex flex-col overflow-hidden">
                     <div className="flex items-center justify-between gap-2 px-5 pt-4 pb-2 shrink-0">
-                      <h3 className="text-lg font-bold text-stone-900 flex items-center gap-2"><i className="fa-solid fa-calendar-days text-[#6105dc]"></i> Agenda de citas</h3>
+                      <h3 className="text-lg font-bold text-stone-900 flex items-center gap-2"><i className="fa-solid fa-calendar-days text-[#5b4bd6]"></i> Agenda de citas</h3>
                       <button aria-label="Cerrar" onClick={() => setModalAgenda(false)} className="text-stone-600 hover:text-stone-900 shrink-0"><i className="fa-solid fa-xmark"></i></button>
                     </div>
                     <div className="px-5 pb-3 shrink-0">
@@ -47,7 +47,7 @@ export default function AgendaCitas({
                                 const servicios = (seg.items || []).map((it) => `${it.cantidad} × ${String(it.descripcion || '').replace(/^Combo: /, '')}`).join(', ');
                                 return (
                                   <div key={c.id} className="flex items-start gap-3 p-2.5 bg-stone-50 border border-stone-200 rounded-xl">
-                                    <p className="text-xs font-bold text-[#4d04b0] tabular-nums shrink-0 pt-0.5">{hora(c.inicio)}–{hora(c.fin)}</p>
+                                    <p className="text-xs font-bold text-[#2d284b] tabular-nums shrink-0 pt-0.5">{hora(c.inicio)}–{hora(c.fin)}</p>
                                     <div className="min-w-0">
                                       <p className="text-xs font-semibold text-stone-800 truncate">{seg.cliente_nombre || 'Cliente'}</p>
                                       <p className="text-[11px] text-stone-500 truncate">{servicios}</p>

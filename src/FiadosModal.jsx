@@ -46,7 +46,7 @@ export default function FiadosModal({
               {modalCobrarDeudas && (() => {
                 const dinero = (v) => `S/ ${formatoSoles(Number(v) || 0)}`;
                 const iniciales = (n) => String(n || '?').trim().split(/\s+/).slice(0, 2).map((w) => w[0]).join('').toUpperCase();
-                const GRADIENTES = ['from-[#a78bfa] to-[#6d4ae0]', 'from-[#f09a7a] to-[#d9594f]', 'from-[#6fc3a3] to-[#2e8b72]', 'from-[#e6b85a] to-[#c9892a]', 'from-[#7ab4ee] to-[#3d7fd0]'];
+                const GRADIENTES = ['from-[#9687f5] to-[#5b4bd6]', 'from-[#f09a7a] to-[#d9594f]', 'from-[#6fc3a3] to-[#2e8b72]', 'from-[#e6b85a] to-[#c9892a]', 'from-[#7ab4ee] to-[#3d7fd0]'];
                 const gradienteDe = (cl) => GRADIENTES[String(cl.id).split('').reduce((a, c) => a + c.charCodeAt(0), 0) % GRADIENTES.length];
                 const avatar = (cl, tam) => <span className={`${tam} rounded-full bg-gradient-to-br ${gradienteDe(cl)} text-white grid place-items-center font-bold shrink-0 shadow-[inset_0_0_0_1px_rgba(255,255,255,0.25),0_4px_10px_-4px_rgba(20,10,50,0.35)]`}>{iniciales(cl.nombre_completo)}</span>;
                 const conEstado = boletasDeudores !== null;
@@ -65,11 +65,11 @@ export default function FiadosModal({
                   .sort(ordenDeudores === 'antigua' && conEstado
                     ? (a, b) => (b.e.masVieja ? b.e.masVieja.diasTranscurridos : 0) - (a.e.masVieja ? a.e.masVieja.diasTranscurridos : 0)
                     : (a, b) => (Number(b.cl.saldo_actual) || 0) - (Number(a.cl.saldo_actual) || 0));
-                const borde = 'border-[#e9e6f0]';
+                const borde = 'border-[#e6e9f5]';
                 const botonSeg = (activo) => `h-[30px] px-3.5 rounded-full text-[12.5px] whitespace-nowrap flex items-center gap-1.5 transition ${activo ? 'bg-white text-stone-900 font-semibold shadow-[0_1px_3px_rgba(20,10,50,0.14)]' : 'text-stone-500 font-medium hover:text-stone-900'}`;
-                const colorBarra = (uso) => (uso >= 1 ? 'bg-gradient-to-r from-[#e0565c] to-[#c0262d]' : uso >= 0.8 ? 'bg-gradient-to-r from-[#f0b24a] to-[#d98a14]' : 'bg-gradient-to-r from-[#b5aecb] to-[#9d97b8]');
-                const botonFantasma = `h-[38px] px-4 rounded-full border ${borde} bg-white hover:bg-[#f8f7fb] text-[13px] font-medium text-stone-700 inline-flex items-center justify-center gap-2 transition whitespace-nowrap`;
-                const botonCirculo = `w-9 h-9 rounded-full border ${borde} bg-white hover:bg-[#f8f7fb] text-stone-700 grid place-items-center`;
+                const colorBarra = (uso) => (uso >= 1 ? 'bg-gradient-to-r from-[#e0565c] to-[#c0262d]' : uso >= 0.8 ? 'bg-gradient-to-r from-[#f0b24a] to-[#d98a14]' : 'bg-gradient-to-r from-[#aeb4cf] to-[#9a9dbd]');
+                const botonFantasma = `h-[38px] px-4 rounded-full border ${borde} bg-white hover:bg-[#f7f8fc] text-[13px] font-medium text-stone-700 inline-flex items-center justify-center gap-2 transition whitespace-nowrap`;
+                const botonCirculo = `w-9 h-9 rounded-full border ${borde} bg-white hover:bg-[#f7f8fc] text-stone-700 grid place-items-center`;
                 const chispa = (<svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor" aria-hidden="true"><path d="M12 3c.6 4.6 2.4 6.4 7 7-4.6.6-6.4 2.4-7 7-.6-4.6-2.4-6.4-7-7 4.6-.6 6.4-2.4 7-7Z" /><path d="M19 15c.3 1.8 1 2.5 2.8 2.8-1.8.3-2.5 1-2.8 2.8-.3-1.8-1-2.5-2.8-2.8 1.8-.3 2.5-1 2.8-2.8Z" /></svg>);
                 const cerrar = () => { setModalCobrarDeudas(false); setDeudorSeleccionado(null); setBoletasDeudor([]); setPagoRegistrado(null); setHojaPagoDeudor(false); };
                 const volverALista = () => { setDeudorSeleccionado(null); setBoletasDeudor([]); setPagoRegistrado(null); setHojaPagoDeudor(false); };
@@ -93,8 +93,8 @@ export default function FiadosModal({
                           <h4 className="text-2xl font-bold text-stone-900 tracking-tight">Pago registrado</h4>
                           <p className="text-sm text-stone-500 mt-2 mb-5 leading-snug">{pagoRegistrado.nombre} {pagoRegistrado.despues <= 0.004 ? 'quedó sin deuda.' : `sigue debiendo ${dinero(pagoRegistrado.despues)}.`}</p>
                           <div className={`bg-white border ${borde} rounded-2xl px-[18px] py-1 text-left mb-[18px]`}>
-                            <div className="flex justify-between gap-3 py-3 text-[13.5px] border-b border-dashed border-[#e9e6f0]"><span className="text-stone-500">Deuda anterior</span><b>{dinero(pagoRegistrado.antes)}</b></div>
-                            <div className="flex justify-between gap-3 py-3 text-[13.5px] border-b border-dashed border-[#e9e6f0]"><span className="text-stone-500">Pago recibido</span><b className="text-[#0f7b4a]">+ {dinero(pagoRegistrado.abono)}</b></div>
+                            <div className="flex justify-between gap-3 py-3 text-[13.5px] border-b border-dashed border-[#e6e9f5]"><span className="text-stone-500">Deuda anterior</span><b>{dinero(pagoRegistrado.antes)}</b></div>
+                            <div className="flex justify-between gap-3 py-3 text-[13.5px] border-b border-dashed border-[#e6e9f5]"><span className="text-stone-500">Pago recibido</span><b className="text-[#0f7b4a]">+ {dinero(pagoRegistrado.abono)}</b></div>
                             <div className="flex justify-between gap-3 py-3 text-[13.5px] items-baseline"><span className="text-stone-500">Deuda actual</span><b className="text-base">{dinero(pagoRegistrado.despues)}</b></div>
                           </div>
                           <div className="grid gap-2.5">
@@ -117,14 +117,14 @@ export default function FiadosModal({
                   const uso = limite > 0 ? saldo / limite : 0;
                   const lista = mostrarHistorialCompletoDeuda ? e.boletas : e.pendientesAsc;
                   const v0 = e.vencidas[0];
-                  const atajo = (activo) => `h-[34px] px-4 rounded-full border text-[13px] whitespace-nowrap shrink-0 transition ${activo ? 'border-[#6105dc] bg-[#f4f0fd] text-[#4d04b0] font-semibold' : `${borde} bg-white text-stone-700 font-medium hover:bg-[#f8f7fb]`}`;
+                  const atajo = (activo) => `h-[34px] px-4 rounded-full border text-[13px] whitespace-nowrap shrink-0 transition ${activo ? 'border-[#5b4bd6] bg-[#eff2fd] text-[#2d284b] font-semibold' : `${borde} bg-white text-stone-700 font-medium hover:bg-[#f7f8fc]`}`;
                   const restoAntigua = restoPrimeraBoleta(e);
                   const etiquetaBoton = abono > 0 && !excede ? `Registrar pago de ${dinero(abono)}` : 'Registrar pago';
 
                   // Formulario del pago: en el celular va dentro de una hoja que sube desde abajo.
                   const formularioPago = (
                     <>
-                      <label className={`flex items-center gap-2.5 h-[62px] border rounded-[14px] px-[18px] transition cursor-text ${excede ? 'border-[#c0262d] bg-[#fdf6f6]' : `${borde} focus-within:border-[#6105dc] focus-within:ring-4 focus-within:ring-[#6105dc]/10`}`}>
+                      <label className={`flex items-center gap-2.5 h-[62px] border rounded-[14px] px-[18px] transition cursor-text ${excede ? 'border-[#c0262d] bg-[#fdf6f6]' : `${borde} focus-within:border-[#5b4bd6] focus-within:ring-4 focus-within:ring-[#5b4bd6]/10`}`}>
                         <span className="text-[22px] font-medium text-stone-400">S/</span>
                         <input type="number" min="0" step="0.10" inputMode="decimal" placeholder="0.00" aria-label="Monto a abonar" value={montoAbonoDeuda} onChange={(ev) => setMontoAbonoDeuda(ev.target.value)} className="w-full min-w-0 bg-transparent outline-none border-0 text-[32px] font-bold tracking-tight text-stone-900 placeholder:text-stone-300 tabular-nums" />
                       </label>
@@ -133,7 +133,7 @@ export default function FiadosModal({
                         <button type="button" onClick={() => setMontoAbonoDeuda((saldo / 2).toFixed(2))} className={atajo(abono > 0 && Math.abs(abono - saldo / 2) < 0.005)}>Mitad</button>
                         {e.pendientesAsc.length > 1 && restoAntigua > 0 && <button type="button" onClick={() => setMontoAbonoDeuda(restoAntigua.toFixed(2))} className={atajo(abono > 0 && Math.abs(abono - restoAntigua) < 0.005)}>Boleta más antigua {dinero(restoAntigua)}</button>}
                       </div>
-                      <div className={`mt-4 flex justify-between items-baseline gap-2.5 rounded-xl px-4 py-3 text-[13.5px] transition ${excede ? 'bg-[#fdf1f1] text-[#c0262d]' : abono > 0 && restante === 0 ? 'bg-[#eef8f2] text-stone-500' : 'bg-[#f8f7fb] text-stone-500'}`}>
+                      <div className={`mt-4 flex justify-between items-baseline gap-2.5 rounded-xl px-4 py-3 text-[13.5px] transition ${excede ? 'bg-[#fdf1f1] text-[#c0262d]' : abono > 0 && restante === 0 ? 'bg-[#eef8f2] text-stone-500' : 'bg-[#f7f8fc] text-stone-500'}`}>
                         <span>{excede ? 'El monto excede la deuda' : 'Saldo después del pago'}</span>
                         <b className={`text-xl tracking-tight tabular-nums ${excede ? 'text-[#c0262d]' : abono > 0 && restante === 0 ? 'text-[#0f7b4a]' : 'text-stone-900'}`}>{dinero(excede ? saldo : restante)}</b>
                       </div>
@@ -179,7 +179,7 @@ export default function FiadosModal({
                           </div>
                           {limite > 0 && (
                             <>
-                              <div className="relative h-2 rounded bg-[#ece9f4] mt-5"><i className={`block h-full rounded ${colorBarra(uso)}`} style={{ width: `${Math.min(100, uso * 100)}%` }}></i><u className="absolute left-[80%] -top-1 w-px h-4 bg-[#bdb7d0]"></u></div>
+                              <div className="relative h-2 rounded bg-[#e8ecf7] mt-5"><i className={`block h-full rounded ${colorBarra(uso)}`} style={{ width: `${Math.min(100, uso * 100)}%` }}></i><u className="absolute left-[80%] -top-1 w-px h-4 bg-[#bac0d6]"></u></div>
                               <div className="relative flex justify-between gap-2 flex-wrap text-[12.5px] text-stone-500 mt-2.5"><span>Usa {Math.round(uso * 100)}% de su crédito</span><span>Límite {dinero(limite)}</span></div>
                             </>
                           )}
@@ -188,7 +188,7 @@ export default function FiadosModal({
                           )}
                         </div>
 
-                        <div className="hidden md:block rounded-[18px] border border-transparent px-6 py-[22px] shadow-[0_18px_40px_-24px_rgba(97,5,220,0.4)] shrink-0" style={{ background: 'linear-gradient(#fff,#fff) padding-box, linear-gradient(135deg,#cdbcf7,#e9e6f0 45%,#cdbcf7) border-box' }}>
+                        <div className="hidden md:block rounded-[18px] border border-transparent px-6 py-[22px] shadow-[0_18px_40px_-24px_rgba(91,75,214,0.4)] shrink-0" style={{ background: 'linear-gradient(#fff,#fff) padding-box, linear-gradient(135deg,#c5bcff,#e6e9f5 45%,#c5bcff) border-box' }}>
                           <h5 className="text-base font-semibold text-stone-900 tracking-tight mb-3.5">Registrar pago</h5>
                           {formularioPago}
                         </div>
@@ -197,7 +197,7 @@ export default function FiadosModal({
                           <div className="flex items-baseline justify-between gap-2 mb-1.5">
                             <h5 className="text-base font-semibold text-stone-900 tracking-tight">{mostrarHistorialCompletoDeuda ? 'Historial de compras a crédito' : 'Boletas pendientes'}</h5>
                             {e.boletas.some((b) => b.pagada) && (
-                              <button type="button" onClick={() => setMostrarHistorialCompletoDeuda((x) => !x)} className="text-[13px] font-medium text-[#6105dc] hover:underline shrink-0">
+                              <button type="button" onClick={() => setMostrarHistorialCompletoDeuda((x) => !x)} className="text-[13px] font-medium text-[#5b4bd6] hover:underline shrink-0">
                                 {mostrarHistorialCompletoDeuda ? 'Ver solo pendientes' : `Ver historial completo (${e.boletas.length})`}
                               </button>
                             )}
@@ -213,8 +213,8 @@ export default function FiadosModal({
                               const cubre = !b.pagada && abono > 0 && !excede && cob.ids.includes(b.id);
                               return (
                                 <div key={b.id} className={`relative grid grid-cols-[22px_1fr_auto] gap-3.5 py-3.5 items-start ${b.pagada ? 'opacity-50' : ''}`}>
-                                  {i < lista.length - 1 && <span className="absolute left-[10px] top-[38px] -bottom-3.5 w-0.5 bg-[#ebe8f2]"></span>}
-                                  <span className={`relative z-[1] w-[22px] h-[22px] rounded-full border-2 grid place-items-center text-white transition ${b.pagada || cubre ? 'bg-[#0f7b4a] border-[#0f7b4a] shadow-[0_0_0_4px_rgba(15,123,74,0.12)]' : b.vencida ? 'bg-white border-[#c0262d]' : 'bg-white border-[#cdc8dc]'}`}>{(b.pagada || cubre) && <i className="fa-solid fa-check text-[10px]"></i>}</span>
+                                  {i < lista.length - 1 && <span className="absolute left-[10px] top-[38px] -bottom-3.5 w-0.5 bg-[#eaebf0]"></span>}
+                                  <span className={`relative z-[1] w-[22px] h-[22px] rounded-full border-2 grid place-items-center text-white transition ${b.pagada || cubre ? 'bg-[#0f7b4a] border-[#0f7b4a] shadow-[0_0_0_4px_rgba(15,123,74,0.12)]' : b.vencida ? 'bg-white border-[#c0262d]' : 'bg-white border-[#cccbd9]'}`}>{(b.pagada || cubre) && <i className="fa-solid fa-check text-[10px]"></i>}</span>
                                   <div className="min-w-0">
                                     <p className="text-[13.5px] flex items-center gap-2 flex-wrap">
                                       <b className="font-mono font-semibold text-stone-900">{b.nro_boleta}</b>
@@ -236,7 +236,7 @@ export default function FiadosModal({
                           <div className="shrink-0">
                             <h5 className="text-base font-semibold text-stone-900 tracking-tight mb-1">Pagos recientes</h5>
                             {pagosRecientes.map((p, i) => (
-                              <div key={i} className="flex justify-between gap-2.5 py-2.5 border-b border-[#f0edf6] last:border-0 text-[13px]">
+                              <div key={i} className="flex justify-between gap-2.5 py-2.5 border-b border-[#eef0f9] last:border-0 text-[13px]">
                                 <span className="text-stone-500">{etiquetaCuandoTurno(p.fecha)}{listaCajeros.find((c) => c.id === p.cajero_id) ? ` · ${listaCajeros.find((c) => c.id === p.cajero_id).nombre}` : ''}</span>
                                 <b className="text-[#0f7b4a] font-semibold tabular-nums">+ {dinero(p.monto_pagado)}</b>
                               </div>
@@ -246,7 +246,7 @@ export default function FiadosModal({
                       </div>
 
                       {/* Celular: botón fijo abajo y hoja que sube para registrar el pago */}
-                      <div className="md:hidden shrink-0 px-4 pt-3 pb-4 bg-[#f8f7fb] border-t border-[#e9e6f0] shadow-[0_-12px_24px_-16px_rgba(20,10,50,0.18)] relative z-[2]">
+                      <div className="md:hidden shrink-0 px-4 pt-3 pb-4 bg-[#f7f8fc] border-t border-[#e6e9f5] shadow-[0_-12px_24px_-16px_rgba(20,10,50,0.18)] relative z-[2]">
                         <p className="text-center text-xs text-stone-500 mb-2">Deuda actual {dinero(saldo)}</p>
                         <button type="button" onClick={() => setHojaPagoDeudor(true)} className="kz-pri w-full h-[54px] text-[15px] font-semibold inline-flex items-center justify-center gap-2"><span>Registrar pago</span>{chispa}</button>
                       </div>
@@ -267,7 +267,7 @@ export default function FiadosModal({
                         <div className="md:hidden fixed inset-0 z-[70]">
                           <div className="absolute inset-0 bg-[rgba(20,12,40,0.42)] backdrop-blur-[2px]" onClick={() => setHojaPagoDeudor(false)}></div>
                           <div className="absolute inset-x-0 bottom-0 bg-white rounded-t-3xl px-[18px] pt-2.5 pb-6 shadow-[0_-20px_50px_-20px_rgba(20,10,50,0.5)] max-h-[92vh] overflow-y-auto">
-                            <div className="w-10 h-1 rounded-sm bg-[#d6d2e2] mx-auto mb-3.5"></div>
+                            <div className="w-10 h-1 rounded-sm bg-[#d6d4e0] mx-auto mb-3.5"></div>
                             <h5 className="text-lg font-bold tracking-tight text-stone-900">Registrar pago</h5>
                             <p className="text-[13px] text-stone-500 mt-0.5 mb-3.5">{cl.nombre_completo} · Deuda {dinero(saldo)}</p>
                             {formularioPago}
@@ -280,9 +280,9 @@ export default function FiadosModal({
 
                 return (
                   <div className="fixed inset-0 bg-stone-900/30 backdrop-blur-sm flex items-center justify-center z-50 p-2 sm:p-4">
-                    <div className="bg-[#f8f7fb] border border-black/5 rounded-[18px] max-w-5xl w-full shadow-2xl h-[95vh] max-h-[780px] flex flex-col overflow-hidden">
+                    <div className="bg-[#f7f8fc] border border-black/5 rounded-[18px] max-w-5xl w-full shadow-2xl h-[95vh] max-h-[780px] flex flex-col overflow-hidden">
                       <div className={`bg-white px-4 sm:px-7 py-3.5 sm:py-[18px] shrink-0 flex items-center gap-3 border-b ${borde}`}>
-                        {deudorSeleccionado && !pagoRegistrado && <button type="button" onClick={volverALista} className="md:hidden h-9 pl-2.5 pr-3.5 rounded-full border border-[#e9e6f0] bg-white text-[13px] font-medium text-stone-700 inline-flex items-center gap-1 shrink-0"><i className="fa-solid fa-chevron-left text-[10px]"></i> Clientes</button>}
+                        {deudorSeleccionado && !pagoRegistrado && <button type="button" onClick={volverALista} className="md:hidden h-9 pl-2.5 pr-3.5 rounded-full border border-[#e6e9f5] bg-white text-[13px] font-medium text-stone-700 inline-flex items-center gap-1 shrink-0"><i className="fa-solid fa-chevron-left text-[10px]"></i> Clientes</button>}
                         <h3 className={`text-xl sm:text-[21px] font-bold tracking-tight text-stone-900 ${deudorSeleccionado ? 'hidden md:block' : ''}`}>Fiados</h3>
                         <p className="hidden md:block text-[13px] text-stone-500 truncate">Lo que tus clientes te deben a crédito</p>
                         <span className="flex-1"></span>
@@ -292,7 +292,7 @@ export default function FiadosModal({
                             <button type="button" onClick={() => enviarEstadoCuentaWhatsApp(deudorSeleccionado)} aria-label="Enviar por WhatsApp" className={botonCirculo}><IconoTrazo nombre="chat" className="w-4 h-4" /></button>
                           </div>
                         )}
-                        <button aria-label="Cerrar" onClick={cerrar} className="w-9 h-9 rounded-full text-stone-400 hover:text-stone-700 hover:bg-[#f1eef9] shrink-0"><i className="fa-solid fa-xmark"></i></button>
+                        <button aria-label="Cerrar" onClick={cerrar} className="w-9 h-9 rounded-full text-stone-400 hover:text-stone-700 hover:bg-[#eef1fb] shrink-0"><i className="fa-solid fa-xmark"></i></button>
                       </div>
 
                       {clientesDeudores.length === 0 && !deudorSeleccionado ? (
@@ -315,24 +315,24 @@ export default function FiadosModal({
                               <strong className="block text-[32px] md:text-4xl font-bold tracking-[-0.04em] text-stone-900 leading-[1.05] mt-0.5 mb-3.5 tabular-nums">{dinero(totalPorCobrar)}</strong>
                               {conEstado && totalPorCobrar > 0 && (
                                 <>
-                                  <div className="flex h-2 rounded overflow-hidden bg-[#ece9f4] gap-0.5">
+                                  <div className="flex h-2 rounded overflow-hidden bg-[#e8ecf7] gap-0.5">
                                     {pctVencido > 0 && <i className="block h-full bg-gradient-to-r from-[#d94b52] to-[#c0262d]" style={{ width: `${pctVencido}%` }}></i>}
-                                    <i className="block h-full bg-gradient-to-r from-[#9b7bf5] to-[#6b44d8]" style={{ width: `${100 - pctVencido}%` }}></i>
+                                    <i className="block h-full bg-gradient-to-r from-[#9687f5] to-[#5b4bd6]" style={{ width: `${100 - pctVencido}%` }}></i>
                                   </div>
                                   <div className="flex flex-wrap gap-x-[18px] gap-y-1.5 mt-2.5 text-[12.5px] text-stone-500">
                                     <span className="flex items-center gap-1.5"><i className="w-2 h-2 rounded-full bg-[#c0262d]"></i>Vencido <b className="text-stone-900 font-semibold">{dinero(totalVencido)}</b></span>
-                                    <span className="flex items-center gap-1.5"><i className="w-2 h-2 rounded-full bg-[#6b44d8]"></i>Al día <b className="text-stone-900 font-semibold">{dinero(totalPorCobrar - totalVencido)}</b></span>
+                                    <span className="flex items-center gap-1.5"><i className="w-2 h-2 rounded-full bg-[#5b4bd6]"></i>Al día <b className="text-stone-900 font-semibold">{dinero(totalPorCobrar - totalVencido)}</b></span>
                                   </div>
                                 </>
                               )}
                               <p className="text-xs text-stone-500 mt-2">{clientesDeudores.length} {clientesDeudores.length === 1 ? 'cliente' : 'clientes'}{conEstado && totalVencido <= 0 ? ' · Nada vencido' : ''}</p>
                             </div>
                             <div className="px-5 md:px-6 pb-3 space-y-2.5">
-                              <label className={`flex items-center gap-2.5 h-10 border ${borde} rounded-full px-4 text-stone-400 bg-white focus-within:border-[#6105dc] focus-within:ring-[3px] focus-within:ring-[#6105dc]/10 transition`}>
+                              <label className={`flex items-center gap-2.5 h-10 border ${borde} rounded-full px-4 text-stone-400 bg-white focus-within:border-[#5b4bd6] focus-within:ring-[3px] focus-within:ring-[#5b4bd6]/10 transition`}>
                                 <i className="fa-solid fa-magnifying-glass text-xs"></i>
                                 <input type="text" autoComplete="off" placeholder="Buscar por nombre o DNI" value={busquedaDeudores} onChange={(ev) => setBusquedaDeudores(ev.target.value)} className="flex-1 min-w-0 bg-transparent text-[13.5px] text-stone-900 outline-none placeholder:text-stone-400" />
                               </label>
-                              <div className="flex bg-[#ece9f4] rounded-full p-[3px] w-fit max-w-full overflow-x-auto hide-scrollbar">
+                              <div className="flex bg-[#e8ecf7] rounded-full p-[3px] w-fit max-w-full overflow-x-auto hide-scrollbar">
                                 <button type="button" onClick={() => setFiltroDeudores('todos')} className={botonSeg(filtroDeudores === 'todos')}>Todos <span className="text-[11.5px] text-stone-500 font-medium">{filas.length}</span></button>
                                 {conEstado && <button type="button" onClick={() => setFiltroDeudores('venc')} className={botonSeg(filtroDeudores === 'venc')}>Vencidos <span className="text-[11.5px] text-stone-500 font-medium">{nVencidos}</span></button>}
                                 <button type="button" onClick={() => setFiltroDeudores('lim')} className={botonSeg(filtroDeudores === 'lim')}>Cerca del límite <span className="text-[11.5px] text-stone-500 font-medium">{nCercaLimite}</span></button>
@@ -351,7 +351,7 @@ export default function FiadosModal({
                                 const pend = e ? e.pendientesAsc.length : 0;
                                 const elegido = deudorSeleccionado?.id === cl.id;
                                 return (
-                                  <button type="button" key={cl.id} onClick={() => { setHojaPagoDeudor(false); seleccionarDeudor(cl); }} className={`grid grid-cols-[44px_minmax(0,1fr)_auto] gap-3 items-center w-full text-left px-3 py-3 rounded-[14px] mb-0.5 border transition ${elegido ? 'md:bg-white md:border-[#d9cdf5] md:shadow-[0_10px_24px_-14px_rgba(97,5,220,0.45),0_0_0_3px_rgba(97,5,220,0.06)] border-transparent' : 'border-transparent hover:bg-[#f8f7fb]'}`}>
+                                  <button type="button" key={cl.id} onClick={() => { setHojaPagoDeudor(false); seleccionarDeudor(cl); }} className={`grid grid-cols-[44px_minmax(0,1fr)_auto] gap-3 items-center w-full text-left px-3 py-3 rounded-[14px] mb-0.5 border transition ${elegido ? 'md:bg-white md:border-[#d2d9f5] md:shadow-[0_10px_24px_-14px_rgba(91,75,214,0.45),0_0_0_3px_rgba(91,75,214,0.06)] border-transparent' : 'border-transparent hover:bg-[#f7f8fc]'}`}>
                                     {avatar(cl, 'w-11 h-11 text-sm')}
                                     <span className="min-w-0">
                                       <span className="block text-sm font-semibold text-stone-900 tracking-tight leading-tight truncate">{cl.nombre_completo}</span>
@@ -363,7 +363,7 @@ export default function FiadosModal({
                                     </span>
                                     <span className="text-right shrink-0">
                                       <strong className="block text-[15px] font-bold tracking-tight tabular-nums">{dinero(cl.saldo_actual)}</strong>
-                                      {(Number(cl.limite_credito) || 0) > 0 && <span className="block w-[60px] h-1 rounded-sm bg-[#ece9f4] mt-[7px] ml-auto overflow-hidden"><i className={`block h-full rounded-sm ${colorBarra(uso)}`} style={{ width: `${Math.min(100, uso * 100)}%` }}></i></span>}
+                                      {(Number(cl.limite_credito) || 0) > 0 && <span className="block w-[60px] h-1 rounded-sm bg-[#e8ecf7] mt-[7px] ml-auto overflow-hidden"><i className={`block h-full rounded-sm ${colorBarra(uso)}`} style={{ width: `${Math.min(100, uso * 100)}%` }}></i></span>}
                                     </span>
                                   </button>
                                 );

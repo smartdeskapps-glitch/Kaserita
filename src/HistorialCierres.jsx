@@ -27,7 +27,7 @@ export default function HistorialCierres({
               {/* Modal: Historial de Cierres de Caja */}
               {/* Modal: Historial de cierres de caja (turnos cerrados y si cuadraron) */}
               {modalHistorialCierres && (() => {
-                const borde = 'border-[#e9e6f0]';
+                const borde = 'border-[#e6e9f5]';
                 const dinero = (v) => `S/ ${formatoSoles(Math.abs(Number(v) || 0))}`;
                 const difDe = (t) => Number(t.diferencia) || 0;
                 const total = cierresCaja.length;
@@ -79,12 +79,12 @@ export default function HistorialCierres({
                           <p className={`text-[13px] mt-1.5 ${ok ? 'text-[#0f7b4a]' : leve ? 'text-[#a15c07]' : 'text-[#c0262d]'}`}>
                             {ok ? 'Lo contado es igual a lo esperado.' : d > 0 ? 'Había más efectivo del esperado.' : 'Había menos efectivo del esperado.'}
                           </p>
-                          <div className="h-1.5 rounded-sm bg-[#ece9f4] mt-4"><i className="block h-full rounded-sm bg-gradient-to-r from-[#9b7bf5] to-[#6b44d8]"></i></div>
+                          <div className="h-1.5 rounded-sm bg-[#e8ecf7] mt-4"><i className="block h-full rounded-sm bg-gradient-to-r from-[#9687f5] to-[#5b4bd6]"></i></div>
                           <div className="flex justify-between text-xs text-stone-500 mt-1.5"><span>{hora(t.fecha_apertura)}</span><span>{hora(t.fecha_cierre)} · {duracion(t)}</span></div>
                         </div>
-                        <div className="relative mx-3.5 border-t-2 border-dashed border-[#e3dff0]">
-                          <span className={`absolute -top-[11px] -left-[25px] w-5 h-5 rounded-full bg-[#f8f7fb] border ${borde} [clip-path:inset(0_0_0_50%)]`}></span>
-                          <span className={`absolute -top-[11px] -right-[25px] w-5 h-5 rounded-full bg-[#f8f7fb] border ${borde} [clip-path:inset(0_50%_0_0)]`}></span>
+                        <div className="relative mx-3.5 border-t-2 border-dashed border-[#e0e4f2]">
+                          <span className={`absolute -top-[11px] -left-[25px] w-5 h-5 rounded-full bg-[#f7f8fc] border ${borde} [clip-path:inset(0_0_0_50%)]`}></span>
+                          <span className={`absolute -top-[11px] -right-[25px] w-5 h-5 rounded-full bg-[#f7f8fc] border ${borde} [clip-path:inset(0_50%_0_0)]`}></span>
                         </div>
                         <div className="px-[22px] pt-[18px] pb-[22px] text-[13.5px]">
                           {[
@@ -94,7 +94,7 @@ export default function HistorialCierres({
                             ['Ventas en efectivo', `+ S/ ${formatoSoles(Number(t.ventas_sistema || 0))}`],
                             ['Esperado en caja', `S/ ${formatoSoles(esperadoDe(t))}`],
                           ].map(([r, v]) => (
-                            <div key={r} className="flex justify-between gap-3 py-[11px] border-b border-[#f3f0f8]">
+                            <div key={r} className="flex justify-between gap-3 py-[11px] border-b border-[#f1f3fa]">
                               <span className="text-stone-500">{r}</span><span className="font-medium text-stone-900 tabular-nums">{v}</span>
                             </div>
                           ))}
@@ -103,25 +103,25 @@ export default function HistorialCierres({
                           </div>
                         </div>
                       </div>
-                      <p className="text-[12.5px] text-stone-500 bg-[#f1eff7] rounded-[10px] px-3.5 py-3 leading-snug">Las ventas con Yape, Plin o tarjeta no cuentan en el efectivo de la caja. Se ven en el historial de ventas.</p>
+                      <p className="text-[12.5px] text-stone-500 bg-[#f1f2f5] rounded-[10px] px-3.5 py-3 leading-snug">Las ventas con Yape, Plin o tarjeta no cuentan en el efectivo de la caja. Se ven en el historial de ventas.</p>
                     </div>
                   );
                 };
 
                 return (
                   <div className="fixed inset-0 bg-stone-900/30 backdrop-blur-sm flex items-center justify-center z-50 p-3 sm:p-4">
-                    <div className="bg-[#f8f7fb] rounded-[18px] max-w-xl lg:max-w-6xl w-full max-h-[94vh] h-[94vh] lg:h-[780px] flex flex-col shadow-2xl border border-black/5 overflow-hidden">
+                    <div className="bg-[#f7f8fc] rounded-[18px] max-w-xl lg:max-w-6xl w-full max-h-[94vh] h-[94vh] lg:h-[780px] flex flex-col shadow-2xl border border-black/5 overflow-hidden">
                       <div className={`bg-white px-4 sm:px-7 py-3.5 sm:py-[18px] shrink-0 flex flex-wrap lg:flex-nowrap items-center gap-x-3 gap-y-2.5 border-b ${borde}`}>
                         {elegido && (
-                          <button aria-label="Volver a la lista" onClick={() => setCierreDetalle(null)} className="lg:hidden h-9 pl-2.5 pr-3.5 rounded-full border border-[#e9e6f0] bg-white text-[13px] font-medium text-stone-700 inline-flex items-center gap-1 shrink-0"><i className="fa-solid fa-chevron-left text-[10px]"></i> Historial</button>
+                          <button aria-label="Volver a la lista" onClick={() => setCierreDetalle(null)} className="lg:hidden h-9 pl-2.5 pr-3.5 rounded-full border border-[#e6e9f5] bg-white text-[13px] font-medium text-stone-700 inline-flex items-center gap-1 shrink-0"><i className="fa-solid fa-chevron-left text-[10px]"></i> Historial</button>
                         )}
                         <h3 className={`text-xl sm:text-[21px] font-bold tracking-tight text-stone-900 whitespace-nowrap ${elegido ? 'hidden lg:block' : ''}`}>Historial de ventas</h3>
-                        <div className={`${elegido ? 'hidden lg:inline-flex' : 'inline-flex'} bg-[#ece9f4] rounded-full p-[3px] order-last basis-full lg:order-none lg:basis-auto lg:ml-2`}>
+                        <div className={`${elegido ? 'hidden lg:inline-flex' : 'inline-flex'} bg-[#e8ecf7] rounded-full p-[3px] order-last basis-full lg:order-none lg:basis-auto lg:ml-2`}>
                           <button type="button" onClick={() => { setModalHistorialCierres(false); abrirHistorialDelDia(); }} className="flex-1 lg:flex-none h-8 px-[17px] rounded-full text-[13px] font-medium text-stone-500 hover:text-stone-900">Ventas</button>
                           <button type="button" className="flex-1 lg:flex-none h-8 px-[17px] rounded-full text-[13px] font-semibold text-stone-900 bg-white shadow-[0_1px_3px_rgba(20,10,50,0.14)] whitespace-nowrap">Cierres de caja</button>
                         </div>
                         <span className="flex-1"></span>
-                        <button aria-label="Cerrar" onClick={() => { setModalHistorialCierres(false); setCierreDetalle(null); }} className="w-9 h-9 rounded-full text-stone-400 hover:text-stone-700 hover:bg-[#f1eef9] shrink-0"><i className="fa-solid fa-xmark"></i></button>
+                        <button aria-label="Cerrar" onClick={() => { setModalHistorialCierres(false); setCierreDetalle(null); }} className="w-9 h-9 rounded-full text-stone-400 hover:text-stone-700 hover:bg-[#eef1fb] shrink-0"><i className="fa-solid fa-xmark"></i></button>
                       </div>
 
                       {elegido && (
@@ -131,10 +131,10 @@ export default function HistorialCierres({
                       <div className={`${elegido ? 'hidden lg:flex' : 'flex'} flex-1 min-h-0 flex-col`}>
                         <div className="px-4 sm:px-7 pt-4 lg:pt-5 shrink-0 grid grid-cols-2 lg:grid-cols-[1.25fr_1fr_1fr] gap-3 lg:gap-3.5">
                           <div className={`${tarjeta} col-span-2 lg:col-span-1`}>
-                            <span className="absolute -right-14 -top-[70px] w-[200px] h-[200px] rounded-full pointer-events-none" style={{ background: 'radial-gradient(closest-side, rgba(124,80,240,0.16), rgba(124,80,240,0))' }}></span>
+                            <span className="absolute -right-14 -top-[70px] w-[200px] h-[200px] rounded-full pointer-events-none" style={{ background: 'radial-gradient(closest-side, rgba(150,135,245,0.16), rgba(150,135,245,0))' }}></span>
                             <span className="relative text-[13px] text-stone-500">Turnos cerrados</span>
                             <b className="relative block text-[30px] lg:text-4xl font-bold tracking-[-0.04em] leading-[1.05] mt-1 mb-3 tabular-nums">{total}</b>
-                            <div className="relative flex h-2 rounded overflow-hidden bg-[#ece9f4] gap-0.5">
+                            <div className="relative flex h-2 rounded overflow-hidden bg-[#e8ecf7] gap-0.5">
                               {pctCuadran > 0 && <i className="block h-full bg-gradient-to-r from-[#3fbf8a] to-[#0f7b4a]" style={{ width: `${pctCuadran}%` }}></i>}
                               {pctCuadran < 100 && total > 0 && <i className="block h-full bg-gradient-to-r from-[#e0565c] to-[#c0262d]" style={{ width: `${100 - pctCuadran}%` }}></i>}
                             </div>
@@ -147,7 +147,7 @@ export default function HistorialCierres({
                             <div className="flex items-center gap-3.5">
                               <div className="relative w-[64px] h-[64px] lg:w-[84px] lg:h-[84px] shrink-0">
                                 <svg viewBox="0 0 90 90" className="w-full h-full -rotate-90">
-                                  <circle cx="45" cy="45" r="36" fill="none" stroke="#ece9f4" strokeWidth="10" />
+                                  <circle cx="45" cy="45" r="36" fill="none" stroke="#e8ecf7" strokeWidth="10" />
                                   <circle cx="45" cy="45" r="36" fill="none" stroke="#0f7b4a" strokeWidth="10" strokeLinecap="round" strokeDasharray={`${(pctCuadran / 100) * 226.2} 226.2`} />
                                 </svg>
                                 <span className="absolute inset-0 grid place-items-center text-sm lg:text-lg font-bold tracking-tight">{Math.round(pctCuadran)}%</span>
@@ -166,7 +166,7 @@ export default function HistorialCierres({
                         </div>
 
                         <div className="px-4 sm:px-7 py-3.5 shrink-0 flex flex-wrap items-center gap-x-3 gap-y-2.5">
-                          <div className="flex bg-[#ece9f4] rounded-full p-[3px] max-w-full overflow-x-auto hide-scrollbar">
+                          <div className="flex bg-[#e8ecf7] rounded-full p-[3px] max-w-full overflow-x-auto hide-scrollbar">
                             {ATAJOS.map(([id, texto]) => (
                               <button key={id} type="button" onClick={() => elegirAtajoCierres(id)} className={`h-8 px-[15px] rounded-full text-[13px] whitespace-nowrap transition ${atajoCierres === id ? 'bg-white text-stone-900 font-semibold shadow-[0_1px_3px_rgba(20,10,50,0.14)]' : 'text-stone-500 font-medium hover:text-stone-900'}`}>{texto}</button>
                             ))}
@@ -187,7 +187,7 @@ export default function HistorialCierres({
                         </div>
 
                         <div className="flex-1 min-h-0 px-4 sm:px-7 pb-5 grid grid-rows-[minmax(0,1fr)] lg:grid-cols-[minmax(0,1fr)_330px] gap-4">
-                          <div className="min-h-0 overflow-y-auto hide-scrollbar lg:bg-white lg:border lg:border-[#e9e6f0] lg:rounded-[18px]">
+                          <div className="min-h-0 overflow-y-auto hide-scrollbar lg:bg-white lg:border lg:border-[#e6e9f5] lg:rounded-[18px]">
                             {cargandoCierres ? (
                               <p className="text-sm text-center py-10 text-stone-500">Cargando...</p>
                             ) : visibles.length === 0 ? (
@@ -200,7 +200,7 @@ export default function HistorialCierres({
                                     <div key={g.etiqueta}>
                                       <p className="flex justify-between px-1.5 pt-3 pb-1.5 text-xs font-semibold text-stone-500"><span>{g.etiqueta}</span><span>{g.turnos.length} turno{g.turnos.length === 1 ? '' : 's'}</span></p>
                                       {g.turnos.map((t) => (
-                                        <div key={t.id} role="button" tabIndex={0} onClick={() => setCierreDetalle(t.id)} onKeyDown={(e) => { if (e.key === 'Enter') setCierreDetalle(t.id); }} className={`grid grid-cols-[1fr_auto] items-center gap-2.5 px-3.5 py-3.5 mb-2 bg-white border ${borde} rounded-[14px] cursor-pointer active:bg-[#faf8fe]`}>
+                                        <div key={t.id} role="button" tabIndex={0} onClick={() => setCierreDetalle(t.id)} onKeyDown={(e) => { if (e.key === 'Enter') setCierreDetalle(t.id); }} className={`grid grid-cols-[1fr_auto] items-center gap-2.5 px-3.5 py-3.5 mb-2 bg-white border ${borde} rounded-[14px] cursor-pointer active:bg-[#f7f9ff]`}>
                                           <div className="min-w-0">
                                             <p className="text-sm font-semibold text-stone-900 truncate">{t.cajeros?.nombre || 'Cajero'}</p>
                                             <p className="text-xs text-stone-500 mt-0.5">{horaApertura(t)} – {hora(t.fecha_cierre)}</p>
@@ -226,19 +226,19 @@ export default function HistorialCierres({
                                   <tbody>
                                     {grupos.map((g) => (
                                       <React.Fragment key={g.etiqueta}>
-                                        <tr className="bg-[#faf9fc] text-xs font-semibold text-stone-500">
+                                        <tr className="bg-[#f9fafd] text-xs font-semibold text-stone-500">
                                           <td colSpan={5} className="px-3 py-2.5">{g.etiqueta}</td>
                                           <td colSpan={2} className="px-3 py-2.5 text-right">{g.turnos.length} turno{g.turnos.length === 1 ? '' : 's'}</td>
                                         </tr>
                                         {g.turnos.map((t) => (
-                                          <tr key={t.id} onClick={() => setCierreDetalle(t.id)} className={`cursor-pointer text-[13.5px] text-stone-700 transition ${panel && panel.id === t.id ? 'bg-[#f4f0fd] shadow-[inset_3px_0_0_#6105dc]' : 'hover:bg-[#fbfafd]'}`}>
-                                            <td className="px-3 py-3 border-b border-[#f3f0f8] whitespace-nowrap max-w-[140px] truncate">{t.cajeros?.nombre || 'Cajero'}</td>
-                                            <td className="px-3 py-3 border-b border-[#f3f0f8] whitespace-nowrap text-stone-500">{horaApertura(t)}</td>
-                                            <td className="px-3 py-3 border-b border-[#f3f0f8] whitespace-nowrap text-stone-500">{hora(t.fecha_cierre)}</td>
-                                            <td className="px-3 py-3 border-b border-[#f3f0f8] whitespace-nowrap text-right tabular-nums font-semibold text-stone-900">S/ {formatoSoles(Number(t.monto_inicial || 0))}</td>
-                                            <td className="px-3 py-3 border-b border-[#f3f0f8] whitespace-nowrap text-right tabular-nums font-semibold text-stone-900">S/ {formatoSoles(Number(t.ventas_sistema || 0))}</td>
-                                            <td className="px-3 py-3 border-b border-[#f3f0f8] whitespace-nowrap text-right tabular-nums font-semibold text-stone-900">S/ {formatoSoles(Number(t.monto_final_real || 0))}</td>
-                                            <td className="px-3 py-3 border-b border-[#f3f0f8] whitespace-nowrap text-right">{celdaDif(t)}</td>
+                                          <tr key={t.id} onClick={() => setCierreDetalle(t.id)} className={`cursor-pointer text-[13.5px] text-stone-700 transition ${panel && panel.id === t.id ? 'bg-[#eff2fd] shadow-[inset_3px_0_0_#5b4bd6]' : 'hover:bg-[#fafbfe]'}`}>
+                                            <td className="px-3 py-3 border-b border-[#f1f3fa] whitespace-nowrap max-w-[140px] truncate">{t.cajeros?.nombre || 'Cajero'}</td>
+                                            <td className="px-3 py-3 border-b border-[#f1f3fa] whitespace-nowrap text-stone-500">{horaApertura(t)}</td>
+                                            <td className="px-3 py-3 border-b border-[#f1f3fa] whitespace-nowrap text-stone-500">{hora(t.fecha_cierre)}</td>
+                                            <td className="px-3 py-3 border-b border-[#f1f3fa] whitespace-nowrap text-right tabular-nums font-semibold text-stone-900">S/ {formatoSoles(Number(t.monto_inicial || 0))}</td>
+                                            <td className="px-3 py-3 border-b border-[#f1f3fa] whitespace-nowrap text-right tabular-nums font-semibold text-stone-900">S/ {formatoSoles(Number(t.ventas_sistema || 0))}</td>
+                                            <td className="px-3 py-3 border-b border-[#f1f3fa] whitespace-nowrap text-right tabular-nums font-semibold text-stone-900">S/ {formatoSoles(Number(t.monto_final_real || 0))}</td>
+                                            <td className="px-3 py-3 border-b border-[#f1f3fa] whitespace-nowrap text-right">{celdaDif(t)}</td>
                                           </tr>
                                         ))}
                                       </React.Fragment>

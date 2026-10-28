@@ -1974,7 +1974,7 @@ const RUBROS_NEGOCIO = [
 
           {modalEditarBodega && (
             <div className="fixed inset-0 bg-stone-900/30 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-              <form onSubmit={guardarTelefonoBodega} className="bg-gradient-to-br from-[#f4effc] via-[#f9f8fb] to-[#f5f4f8] border border-white/80 rounded-[28px] max-w-sm w-full p-5 shadow-2xl space-y-4">
+              <form onSubmit={guardarTelefonoBodega} className="bg-gradient-to-br from-[#eef1fb] via-[#f8f9fd] to-[#f4f5fa] border border-white/80 rounded-[28px] max-w-sm w-full p-5 shadow-2xl space-y-4">
                 <h3 className="text-sm font-bold text-stone-900">Editar teléfono -- {modalEditarBodega.nombre}</h3>
                 <div>
                   <label className="text-[11px] font-bold text-stone-400 uppercase tracking-wide">Teléfono de {modalEditarBodega.dueno?.nombre}</label>
@@ -1991,7 +1991,7 @@ const RUBROS_NEGOCIO = [
                   <button type="button" onClick={() => setModalEditarBodega(null)} className="flex-1 py-2.5 bg-white/70 hover:bg-white/70 text-stone-600 font-bold text-sm rounded-full shadow-sm">
                     Cancelar
                   </button>
-                  <button type="submit" disabled={guardandoEditarBodega} className="flex-1 py-2.5 bg-[#6105dc] hover:bg-[#4d04b0] disabled:opacity-60 text-white font-bold text-sm rounded-full">
+                  <button type="submit" disabled={guardandoEditarBodega} className="flex-1 py-2.5 bg-[#5b4bd6] hover:bg-[#473bb5] disabled:opacity-60 text-white font-bold text-sm rounded-full">
                     {guardandoEditarBodega ? 'Guardando...' : 'Guardar'}
                   </button>
                 </div>
@@ -2001,7 +2001,7 @@ const RUBROS_NEGOCIO = [
 
           {modalResetearPin && (
             <div className="fixed inset-0 bg-stone-900/30 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-              <div className="bg-gradient-to-br from-[#f4effc] via-[#f9f8fb] to-[#f5f4f8] border border-white/80 rounded-[28px] max-w-sm w-full p-5 shadow-2xl space-y-4">
+              <div className="bg-gradient-to-br from-[#eef1fb] via-[#f8f9fd] to-[#f4f5fa] border border-white/80 rounded-[28px] max-w-sm w-full p-5 shadow-2xl space-y-4">
                 <div className="flex items-center gap-2 text-amber-600">
                   <i className="fa-solid fa-key text-lg"></i>
                   <h3 className="text-sm font-bold">Resetear PIN -- {modalResetearPin.nombre}</h3>
@@ -2030,7 +2030,7 @@ const RUBROS_NEGOCIO = [
                   <button
                     onClick={resetearPinConfirmado}
                     disabled={reseteandoPin || !pinValido(nuevoPinReset) || nuevoPinReset.trim().length < PIN_MIN_DUENO}
-                    className="flex-1 py-2.5 bg-[#6105dc] hover:bg-[#4d04b0] disabled:opacity-40 disabled:cursor-not-allowed text-white font-bold text-sm rounded-full"
+                    className="flex-1 py-2.5 bg-[#5b4bd6] hover:bg-[#473bb5] disabled:opacity-40 disabled:cursor-not-allowed text-white font-bold text-sm rounded-full"
                   >
                     {reseteandoPin ? 'Reseteando...' : 'Resetear PIN'}
                   </button>
@@ -2041,7 +2041,7 @@ const RUBROS_NEGOCIO = [
 
           {modalEliminarBodega && (
             <div className="fixed inset-0 bg-stone-900/30 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-              <div className="bg-gradient-to-br from-[#f4effc] via-[#f9f8fb] to-[#f5f4f8] border border-white/80 rounded-[28px] max-w-sm w-full p-5 shadow-2xl space-y-4">
+              <div className="bg-gradient-to-br from-[#eef1fb] via-[#f8f9fd] to-[#f4f5fa] border border-white/80 rounded-[28px] max-w-sm w-full p-5 shadow-2xl space-y-4">
                 <div className="flex items-center gap-2 text-rose-600">
                   <i className="fa-solid fa-triangle-exclamation text-lg"></i>
                   <h3 className="text-sm font-bold">Eliminar "{modalEliminarBodega.nombre}"</h3>

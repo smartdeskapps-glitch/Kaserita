@@ -30,16 +30,16 @@ export default function GestionClientes({
               {/* Modal: Gestión de Clientes (listar / editar) */}
               {modalGestionClientes && (() => {
                 const dinero = (v) => `S/ ${formatoSoles(Number(v) || 0)}`;
-                const GRADIENTES = ['from-[#a78bfa] to-[#6d4ae0]', 'from-[#f09a7a] to-[#d9594f]', 'from-[#6fc3a3] to-[#2e8b72]', 'from-[#e6b85a] to-[#c9892a]', 'from-[#7ab4ee] to-[#3d7fd0]'];
+                const GRADIENTES = ['from-[#9687f5] to-[#5b4bd6]', 'from-[#f09a7a] to-[#d9594f]', 'from-[#6fc3a3] to-[#2e8b72]', 'from-[#e6b85a] to-[#c9892a]', 'from-[#7ab4ee] to-[#3d7fd0]'];
                 const gradienteDe = (c) => GRADIENTES[String(c.id ?? c.dni ?? '').split('').reduce((a, ch) => a + ch.charCodeAt(0), 0) % GRADIENTES.length];
                 const avatar = (c, tam) => <span className={`${tam} rounded-full bg-gradient-to-br ${gradienteDe(c)} text-white grid place-items-center font-bold shrink-0 shadow-[inset_0_0_0_1px_rgba(255,255,255,0.25),0_4px_10px_-4px_rgba(20,10,50,0.35)]`}>{inicialesCliente(c.nombre_completo)}</span>;
-                const borde = 'border-[#e9e6f0]';
+                const borde = 'border-[#e6e9f5]';
                 const botonSeg = (activo) => `h-[30px] px-3.5 rounded-full text-[12.5px] whitespace-nowrap flex items-center gap-1.5 transition ${activo ? 'bg-white text-stone-900 font-semibold shadow-[0_1px_3px_rgba(20,10,50,0.14)]' : 'text-stone-500 font-medium hover:text-stone-900'}`;
-                const colorBarra = (uso) => (uso >= 1 ? 'bg-gradient-to-r from-[#e0565c] to-[#c0262d]' : uso >= 0.8 ? 'bg-gradient-to-r from-[#f0b24a] to-[#d98a14]' : 'bg-gradient-to-r from-[#b5aecb] to-[#9d97b8]');
-                const botonFantasma = `h-11 px-5 rounded-full border ${borde} bg-white hover:bg-[#f8f7fb] text-[13.5px] font-medium text-stone-700 inline-flex items-center justify-center gap-2 transition whitespace-nowrap`;
+                const colorBarra = (uso) => (uso >= 1 ? 'bg-gradient-to-r from-[#e0565c] to-[#c0262d]' : uso >= 0.8 ? 'bg-gradient-to-r from-[#f0b24a] to-[#d98a14]' : 'bg-gradient-to-r from-[#aeb4cf] to-[#9a9dbd]');
+                const botonFantasma = `h-11 px-5 rounded-full border ${borde} bg-white hover:bg-[#f7f8fc] text-[13.5px] font-medium text-stone-700 inline-flex items-center justify-center gap-2 transition whitespace-nowrap`;
                 const panelP = `bg-white border ${borde} rounded-2xl px-5 sm:px-6 py-5 sm:py-[22px] shadow-[0_1px_2px_rgba(20,10,50,0.03)]`;
                 const labP = 'flex items-center justify-between gap-2 text-[12.5px] font-medium text-stone-700 mb-1.5';
-                const inputP = 'w-full h-11 bg-white border border-[#e9e6f0] rounded-[10px] px-3.5 text-sm text-stone-900 placeholder:text-stone-400 outline-none focus:border-[#6105dc] focus:ring-[3px] focus:ring-[#6105dc]/10 transition';
+                const inputP = 'w-full h-11 bg-white border border-[#e6e9f5] rounded-[10px] px-3.5 text-sm text-stone-900 placeholder:text-stone-400 outline-none focus:border-[#5b4bd6] focus:ring-[3px] focus:ring-[#5b4bd6]/10 transition';
                 const chispa = (<svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor" aria-hidden="true"><path d="M12 3c.6 4.6 2.4 6.4 7 7-4.6.6-6.4 2.4-7 7-.6-4.6-2.4-6.4-7-7 4.6-.6 6.4-2.4 7-7Z" /><path d="M19 15c.3 1.8 1 2.5 2.8 2.8-1.8.3-2.5 1-2.8 2.8-.3-1.8-1-2.5-2.8-2.8 1.8-.3 2.5-1 2.8-2.8Z" /></svg>);
                 const saldoDe = (c) => Math.max(0, Number(c.saldo_actual) || 0);
                 const usoDe = (c) => ((Number(c.limite_credito) || 0) > 0 ? saldoDe(c) / Number(c.limite_credito) : 0);
@@ -92,7 +92,7 @@ export default function GestionClientes({
                           </div>
                           {limite > 0 ? (
                             <>
-                              <div className="relative h-2 rounded bg-[#ece9f4] mt-5"><i className={`block h-full rounded ${colorBarra(uso)}`} style={{ width: `${Math.min(100, uso * 100)}%` }}></i><u className="absolute left-[80%] -top-1 w-px h-4 bg-[#bdb7d0]"></u></div>
+                              <div className="relative h-2 rounded bg-[#e8ecf7] mt-5"><i className={`block h-full rounded ${colorBarra(uso)}`} style={{ width: `${Math.min(100, uso * 100)}%` }}></i><u className="absolute left-[80%] -top-1 w-px h-4 bg-[#bac0d6]"></u></div>
                               <div className="relative flex justify-between gap-2 flex-wrap text-[12.5px] text-stone-500 mt-2.5"><span>Usa {Math.round(uso * 100)}% de su crédito</span><span>Límite {dinero(limite)}</span></div>
                             </>
                           ) : (
@@ -147,16 +147,16 @@ export default function GestionClientes({
 
                 return (
                   <div className="fixed inset-0 bg-stone-900/30 backdrop-blur-sm flex items-center justify-center z-50 p-2 sm:p-4">
-                    <div className="bg-[#f8f7fb] border border-black/5 rounded-[18px] max-w-5xl w-full shadow-2xl h-[95vh] max-h-[780px] flex flex-col overflow-hidden">
+                    <div className="bg-[#f7f8fc] border border-black/5 rounded-[18px] max-w-5xl w-full shadow-2xl h-[95vh] max-h-[780px] flex flex-col overflow-hidden">
                       <div className={`bg-white px-4 sm:px-7 py-3.5 sm:py-[18px] shrink-0 flex items-center gap-3 border-b ${borde}`}>
-                        {sel && <button type="button" onClick={volverALista} className="md:hidden h-9 pl-2.5 pr-3.5 rounded-full border border-[#e9e6f0] bg-white text-[13px] font-medium text-stone-700 inline-flex items-center gap-1 shrink-0"><i className="fa-solid fa-chevron-left text-[10px]"></i> Clientes</button>}
+                        {sel && <button type="button" onClick={volverALista} className="md:hidden h-9 pl-2.5 pr-3.5 rounded-full border border-[#e6e9f5] bg-white text-[13px] font-medium text-stone-700 inline-flex items-center gap-1 shrink-0"><i className="fa-solid fa-chevron-left text-[10px]"></i> Clientes</button>}
                         <div className={`min-w-0 ${sel ? 'hidden md:block' : ''}`}>
                           <h3 className="text-xl sm:text-[21px] font-bold tracking-tight text-stone-900 leading-tight">Clientes</h3>
                           <p className="hidden md:block text-[13px] text-stone-500 mt-0.5 truncate">Tus clientes, su crédito y lo que te deben</p>
                         </div>
                         <span className="flex-1"></span>
                         <button type="button" onClick={() => setModalNuevoCliente(true)} className={`kz-pri h-11 px-5 text-[13.5px] font-semibold items-center gap-2 shrink-0 ${sel ? 'hidden md:inline-flex' : 'inline-flex'}`}><span>Nuevo<span className="hidden sm:inline"> cliente</span></span>{chispa}</button>
-                        <button aria-label="Cerrar" onClick={cerrar} className="w-9 h-9 rounded-full text-stone-400 hover:text-stone-700 hover:bg-[#f1eef9] shrink-0"><i className="fa-solid fa-xmark"></i></button>
+                        <button aria-label="Cerrar" onClick={cerrar} className="w-9 h-9 rounded-full text-stone-400 hover:text-stone-700 hover:bg-[#eef1fb] shrink-0"><i className="fa-solid fa-xmark"></i></button>
                       </div>
 
                       {clientesLista.length === 0 ? (
@@ -165,7 +165,7 @@ export default function GestionClientes({
                             <p className="text-[13px] text-stone-500">Cargando clientes...</p>
                           ) : (
                             <div className="text-center max-w-xs text-[13.5px] text-stone-500 leading-snug">
-                              <div className="w-16 h-16 rounded-2xl bg-white border border-[#e9e6f0] text-[#6105dc] grid place-items-center text-[26px] mx-auto mb-3"><i className="fa-solid fa-users"></i></div>
+                              <div className="w-16 h-16 rounded-2xl bg-white border border-[#e6e9f5] text-[#5b4bd6] grid place-items-center text-[26px] mx-auto mb-3"><i className="fa-solid fa-users"></i></div>
                               <b className="block text-base text-stone-900 mb-0.5">Todavía no tienes clientes</b>
                               Los clientes aparecen aquí cuando les vendes o los registras. Toca «Nuevo cliente» para agregar el primero.
                             </div>
@@ -180,11 +180,11 @@ export default function GestionClientes({
                               <p className="text-xs text-stone-500 mt-2">{clientesLista.length} {clientesLista.length === 1 ? 'cliente' : 'clientes'} · {conDeuda === 0 ? 'ninguno con deuda' : `${conDeuda} con deuda`}</p>
                             </div>
                             <div className="px-5 md:px-6 pb-3 space-y-2.5">
-                              <label className={`flex items-center gap-2.5 h-10 border ${borde} rounded-full px-4 text-stone-400 bg-white focus-within:border-[#6105dc] focus-within:ring-[3px] focus-within:ring-[#6105dc]/10 transition`}>
+                              <label className={`flex items-center gap-2.5 h-10 border ${borde} rounded-full px-4 text-stone-400 bg-white focus-within:border-[#5b4bd6] focus-within:ring-[3px] focus-within:ring-[#5b4bd6]/10 transition`}>
                                 <i className="fa-solid fa-magnifying-glass text-xs"></i>
                                 <input type="text" autoComplete="off" placeholder="Buscar por nombre o DNI" value={busquedaClientes} onChange={(e) => setBusquedaClientes(e.target.value)} className="flex-1 min-w-0 bg-transparent text-[13.5px] text-stone-900 outline-none placeholder:text-stone-400" />
                               </label>
-                              <div className="flex bg-[#ece9f4] rounded-full p-[3px] w-fit max-w-full overflow-x-auto hide-scrollbar">
+                              <div className="flex bg-[#e8ecf7] rounded-full p-[3px] w-fit max-w-full overflow-x-auto hide-scrollbar">
                                 {[['todos', 'Todos', clientesLista.length], ['deuda', 'Con deuda', conDeuda], ['aldia', 'Al día', clientesLista.length - conDeuda]].map(([k, t, n]) => (
                                   <button key={k} type="button" onClick={() => setFiltroClientes(k)} className={botonSeg(filtroClientes === k)}>{t} <span className="text-[11.5px] text-stone-500 font-medium">{n}</span></button>
                                 ))}
@@ -204,7 +204,7 @@ export default function GestionClientes({
                                 const uso = usoDe(c);
                                 const elegido = sel?.id === c.id;
                                 return (
-                                  <button type="button" key={c.id} onClick={() => { if (esAdmin) abrirEdicionCliente(c); }} className={`grid grid-cols-[44px_minmax(0,1fr)_auto] gap-3 items-center w-full text-left px-3 py-3 rounded-[14px] mb-0.5 border transition ${elegido ? 'md:bg-white md:border-[#d9cdf5] md:shadow-[0_10px_24px_-14px_rgba(97,5,220,0.45),0_0_0_3px_rgba(97,5,220,0.06)] border-transparent' : 'border-transparent hover:bg-[#f8f7fb]'} ${esAdmin ? '' : 'cursor-default'}`}>
+                                  <button type="button" key={c.id} onClick={() => { if (esAdmin) abrirEdicionCliente(c); }} className={`grid grid-cols-[44px_minmax(0,1fr)_auto] gap-3 items-center w-full text-left px-3 py-3 rounded-[14px] mb-0.5 border transition ${elegido ? 'md:bg-white md:border-[#d2d9f5] md:shadow-[0_10px_24px_-14px_rgba(91,75,214,0.45),0_0_0_3px_rgba(91,75,214,0.06)] border-transparent' : 'border-transparent hover:bg-[#f7f8fc]'} ${esAdmin ? '' : 'cursor-default'}`}>
                                     {avatar(c, 'w-11 h-11 text-sm')}
                                     <span className="min-w-0">
                                       <span className="block text-sm font-semibold text-stone-900 tracking-tight leading-tight truncate">{c.nombre_completo}</span>
@@ -214,7 +214,7 @@ export default function GestionClientes({
                                       {saldo > 0 ? (
                                         <>
                                           <strong className="block text-[15px] font-bold tracking-tight tabular-nums text-[#c0262d]">{dinero(saldo)}</strong>
-                                          {(Number(c.limite_credito) || 0) > 0 && <span className="block w-[60px] h-1 rounded-sm bg-[#ece9f4] mt-[7px] ml-auto overflow-hidden"><i className={`block h-full rounded-sm ${colorBarra(uso)}`} style={{ width: `${Math.min(100, uso * 100)}%` }}></i></span>}
+                                          {(Number(c.limite_credito) || 0) > 0 && <span className="block w-[60px] h-1 rounded-sm bg-[#e8ecf7] mt-[7px] ml-auto overflow-hidden"><i className={`block h-full rounded-sm ${colorBarra(uso)}`} style={{ width: `${Math.min(100, uso * 100)}%` }}></i></span>}
                                         </>
                                       ) : (
                                         <span className="block text-xs font-semibold text-[#0f7b4a]">Al día</span>

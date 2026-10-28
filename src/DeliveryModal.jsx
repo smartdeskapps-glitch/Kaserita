@@ -52,9 +52,9 @@ export default function DeliveryModal({
               {/* Modal: Mi Link de Pedidos (vitrina pública de KaseritaDelivery) */}
               {modalDelivery && (
                 <div className="fixed inset-0 bg-stone-900/30 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-                  <div className="bg-gradient-to-br from-[#f4effc] via-[#f9f8fb] to-[#f5f4f8] border border-white/80 rounded-[28px] max-w-md w-full shadow-2xl max-h-[92vh] flex flex-col overflow-hidden">
+                  <div className="bg-gradient-to-br from-[#eef1fb] via-[#f8f9fd] to-[#f4f5fa] border border-white/80 rounded-[28px] max-w-md w-full shadow-2xl max-h-[92vh] flex flex-col overflow-hidden">
                     <div className="flex items-start gap-2.5 px-4 pt-4 pb-2.5 shrink-0">
-                      <span className="w-[38px] h-[38px] rounded-[14px] bg-[#ece0fd] text-[#6105dc] flex items-center justify-center shrink-0">
+                      <span className="w-[38px] h-[38px] rounded-[14px] bg-[#dde4fa] text-[#5b4bd6] flex items-center justify-center shrink-0">
                         <IconoTrazo nombre="compartir" className="w-[19px] h-[19px]" />
                       </span>
                       <div className="flex-1 min-w-0">
@@ -63,7 +63,7 @@ export default function DeliveryModal({
                           Tus clientes piden desde este link y te llega el pedido por WhatsApp con un código. Ingresa ese código en caja para cobrar.
                         </p>
                       </div>
-                      <button onClick={() => { setModalDelivery(false); setMostrarQRDelivery(false); }} className="w-9 h-9 rounded-full bg-white ring-1 ring-[#6105dc]/10 hover:bg-[#f4eefe] text-stone-500 flex items-center justify-center transition shrink-0" aria-label="Cerrar">
+                      <button onClick={() => { setModalDelivery(false); setMostrarQRDelivery(false); }} className="w-9 h-9 rounded-full bg-white ring-1 ring-[#5b4bd6]/10 hover:bg-[#ebf0ff] text-stone-500 flex items-center justify-center transition shrink-0" aria-label="Cerrar">
                         <IconoTrazo nombre="x" className="w-[15px] h-[15px]" />
                       </button>
                     </div>
@@ -83,12 +83,12 @@ export default function DeliveryModal({
                     ) : (
                       <>
                         <div className="flex-1 overflow-y-auto px-4 pb-16 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden" style={{ scrollbarWidth: 'none' }}>
-                          <div className="relative overflow-hidden rounded-[26px] p-4 mb-2.5 text-white bg-gradient-to-br from-[#8a3df2] via-[#5a08cf] to-[#3f0394] shadow-[0_20px_30px_-22px_rgba(77,4,176,0.85)]">
+                          <div className="relative overflow-hidden rounded-[26px] p-4 mb-2.5 text-white bg-gradient-to-br from-[#7466e8] via-[#5b4bd6] to-[#221e3d] shadow-[0_20px_30px_-22px_rgba(45,40,75,0.85)]">
                             <span className="absolute -right-11 -top-14 w-[150px] h-[150px] rounded-full bg-white/10 pointer-events-none"></span>
                             <span className="absolute right-14 top-20 w-20 h-20 rounded-full bg-yellow-300/15 pointer-events-none"></span>
                             <div className="relative flex items-center gap-3.5">
                               <label className="relative w-[68px] h-[68px] rounded-[20px] cursor-pointer bg-white shrink-0 shadow-[0_10px_18px_-10px_rgba(0,0,0,0.5)]">
-                                <span className="absolute inset-0 rounded-[20px] overflow-hidden flex items-center justify-center text-[#6105dc]">
+                                <span className="absolute inset-0 rounded-[20px] overflow-hidden flex items-center justify-center text-[#5b4bd6]">
                                   {logoUrlDelivery ? (
                                     <img src={logoUrlDelivery} alt="Logo" className="w-full h-full object-cover" />
                                   ) : (
@@ -100,7 +100,7 @@ export default function DeliveryModal({
                                     </span>
                                   )}
                                 </span>
-                                <span className="absolute -right-1.5 -bottom-1.5 w-6 h-6 rounded-full bg-[#6105dc] text-white flex items-center justify-center border-2 border-white">
+                                <span className="absolute -right-1.5 -bottom-1.5 w-6 h-6 rounded-full bg-[#5b4bd6] text-white flex items-center justify-center border-2 border-white">
                                   <IconoTrazo nombre="plus" className="w-3 h-3" grosor={2.4} />
                                 </span>
                                 <input
@@ -159,7 +159,7 @@ export default function DeliveryModal({
                                     setLinkDeliveryCopiado(true);
                                     setTimeout(() => setLinkDeliveryCopiado(false), 1600);
                                   }}
-                                  className={`shrink-0 h-9 px-3.5 rounded-xl text-[12.5px] font-bold flex items-center gap-1.5 transition ${linkDeliveryCopiado ? 'bg-green-100 text-green-700' : 'bg-[#6105dc] text-white'}`}
+                                  className={`shrink-0 h-9 px-3.5 rounded-xl text-[12.5px] font-bold flex items-center gap-1.5 transition ${linkDeliveryCopiado ? 'bg-green-100 text-green-700' : 'bg-[#5b4bd6] text-white'}`}
                                 >
                                   <IconoTrazo nombre={linkDeliveryCopiado ? 'check' : 'copiar'} className="w-3.5 h-3.5" />
                                   {linkDeliveryCopiado ? 'Copiado' : 'Copiar'}
@@ -208,13 +208,13 @@ export default function DeliveryModal({
                             <>
                               <div>
                                 <label className="text-[12.5px] font-semibold text-stone-700 block mb-1.5">Dirección de tu negocio</label>
-                                <div className="h-[46px] flex items-center gap-2 px-3.5 rounded-2xl bg-[#faf8fe] ring-1 ring-[#6105dc]/10 focus-within:ring-2 focus-within:ring-[#6105dc]/40">
+                                <div className="h-[46px] flex items-center gap-2 px-3.5 rounded-2xl bg-[#f7f9ff] ring-1 ring-[#5b4bd6]/10 focus-within:ring-2 focus-within:ring-[#5b4bd6]/40">
                                   <input
                                     type="text"
                                     value={direccionDelivery}
                                     onChange={(e) => setDireccionDelivery(e.target.value)}
                                     placeholder="Ej. Av. Larco 450, Miraflores"
-                                    className="w-full min-w-0 bg-transparent text-sm text-stone-900 placeholder:text-[#a9a3b8] focus:outline-none"
+                                    className="w-full min-w-0 bg-transparent text-sm text-stone-900 placeholder:text-[#9290a2] focus:outline-none"
                                   />
                                 </div>
                               </div>
@@ -240,7 +240,7 @@ export default function DeliveryModal({
                                           };
                                         })}
                                         className={`h-[38px] rounded-xl text-xs font-bold flex items-center justify-center transition ${
-                                          abierto ? 'bg-[#6105dc] text-white' : 'bg-[#f4eefe] text-[#7a7396]'
+                                          abierto ? 'bg-[#5b4bd6] text-white' : 'bg-[#ebf0ff] text-[#6f6c93]'
                                         }`}
                                       >
                                         {letra}
@@ -258,7 +258,7 @@ export default function DeliveryModal({
                                         Object.keys(nuevo).forEach((d) => { if (nuevo[d]?.abierto) nuevo[d] = { ...nuevo[d], desde: e.target.value }; });
                                         return nuevo;
                                       })}
-                                      className="flex-1 min-w-0 h-[46px] bg-[#faf8fe] ring-1 ring-[#6105dc]/10 rounded-2xl px-3 text-sm text-stone-900 focus:outline-none focus:ring-2 focus:ring-[#6105dc]/40"
+                                      className="flex-1 min-w-0 h-[46px] bg-[#f7f9ff] ring-1 ring-[#5b4bd6]/10 rounded-2xl px-3 text-sm text-stone-900 focus:outline-none focus:ring-2 focus:ring-[#5b4bd6]/40"
                                     />
                                     <span className="text-stone-400 text-xs shrink-0">a</span>
                                     <input
@@ -269,7 +269,7 @@ export default function DeliveryModal({
                                         Object.keys(nuevo).forEach((d) => { if (nuevo[d]?.abierto) nuevo[d] = { ...nuevo[d], hasta: e.target.value }; });
                                         return nuevo;
                                       })}
-                                      className="flex-1 min-w-0 h-[46px] bg-[#faf8fe] ring-1 ring-[#6105dc]/10 rounded-2xl px-3 text-sm text-stone-900 focus:outline-none focus:ring-2 focus:ring-[#6105dc]/40"
+                                      className="flex-1 min-w-0 h-[46px] bg-[#f7f9ff] ring-1 ring-[#5b4bd6]/10 rounded-2xl px-3 text-sm text-stone-900 focus:outline-none focus:ring-2 focus:ring-[#5b4bd6]/40"
                                     />
                                   </div>
                                 ) : (
@@ -295,7 +295,7 @@ export default function DeliveryModal({
                                   aria-checked={domicilioHabilitado}
                                   aria-label="Entrega a domicilio"
                                   onClick={() => setDomicilioHabilitado((v) => !v)}
-                                  className={`relative w-12 h-7 rounded-full shrink-0 transition-colors ${domicilioHabilitado ? 'bg-[#6105dc]' : 'bg-[#d9d5e2]'}`}
+                                  className={`relative w-12 h-7 rounded-full shrink-0 transition-colors ${domicilioHabilitado ? 'bg-[#5b4bd6]' : 'bg-[#d8d7e0]'}`}
                                 >
                                   <span className={`absolute top-[3px] w-[22px] h-[22px] rounded-full bg-white shadow transition-all ${domicilioHabilitado ? 'left-[23px]' : 'left-[3px]'}`}></span>
                                 </button>
@@ -306,7 +306,7 @@ export default function DeliveryModal({
                                   <div className="grid grid-cols-2 gap-2.5">
                                     <div>
                                       <label className="text-[12.5px] font-semibold text-stone-700 block mb-1.5">Costo de envío</label>
-                                      <div className="h-[46px] flex items-center gap-1.5 px-3.5 rounded-2xl bg-[#faf8fe] ring-1 ring-[#6105dc]/10 focus-within:ring-2 focus-within:ring-[#6105dc]/40">
+                                      <div className="h-[46px] flex items-center gap-1.5 px-3.5 rounded-2xl bg-[#f7f9ff] ring-1 ring-[#5b4bd6]/10 focus-within:ring-2 focus-within:ring-[#5b4bd6]/40">
                                         <span className="text-sm text-stone-400">S/</span>
                                         <input
                                           type="text"
@@ -314,13 +314,13 @@ export default function DeliveryModal({
                                           value={costoEnvioDelivery}
                                           onChange={(e) => setCostoEnvioDelivery(e.target.value)}
                                           placeholder="3.00"
-                                          className="w-full min-w-0 bg-transparent text-sm text-stone-900 placeholder:text-[#a9a3b8] focus:outline-none"
+                                          className="w-full min-w-0 bg-transparent text-sm text-stone-900 placeholder:text-[#9290a2] focus:outline-none"
                                         />
                                       </div>
                                     </div>
                                     <div>
                                       <label className="text-[12.5px] font-semibold text-stone-700 block mb-1.5">Pedido mínimo</label>
-                                      <div className="h-[46px] flex items-center gap-1.5 px-3.5 rounded-2xl bg-[#faf8fe] ring-1 ring-[#6105dc]/10 focus-within:ring-2 focus-within:ring-[#6105dc]/40">
+                                      <div className="h-[46px] flex items-center gap-1.5 px-3.5 rounded-2xl bg-[#f7f9ff] ring-1 ring-[#5b4bd6]/10 focus-within:ring-2 focus-within:ring-[#5b4bd6]/40">
                                         <span className="text-sm text-stone-400">S/</span>
                                         <input
                                           type="text"
@@ -328,7 +328,7 @@ export default function DeliveryModal({
                                           value={pedidoMinimoDelivery}
                                           onChange={(e) => setPedidoMinimoDelivery(e.target.value)}
                                           placeholder="20.00"
-                                          className="w-full min-w-0 bg-transparent text-sm text-stone-900 placeholder:text-[#a9a3b8] focus:outline-none"
+                                          className="w-full min-w-0 bg-transparent text-sm text-stone-900 placeholder:text-[#9290a2] focus:outline-none"
                                         />
                                       </div>
                                     </div>
@@ -336,14 +336,14 @@ export default function DeliveryModal({
 
                                   <div>
                                     <label className="text-[12.5px] font-semibold text-stone-700 block mb-1.5">Zona de reparto</label>
-                                    <div className="h-[46px] flex items-center gap-2 px-3.5 rounded-2xl bg-[#faf8fe] ring-1 ring-[#6105dc]/10 focus-within:ring-2 focus-within:ring-[#6105dc]/40">
+                                    <div className="h-[46px] flex items-center gap-2 px-3.5 rounded-2xl bg-[#f7f9ff] ring-1 ring-[#5b4bd6]/10 focus-within:ring-2 focus-within:ring-[#5b4bd6]/40">
                                       <input
                                         type="text"
                                         value={zonaRepartoDelivery}
                                         onChange={(e) => setZonaRepartoDelivery(e.target.value)}
                                         maxLength={120}
                                         placeholder="Ej. Cercado, Breña y Jesús María"
-                                        className="w-full min-w-0 bg-transparent text-sm text-stone-900 placeholder:text-[#a9a3b8] focus:outline-none"
+                                        className="w-full min-w-0 bg-transparent text-sm text-stone-900 placeholder:text-[#9290a2] focus:outline-none"
                                       />
                                     </div>
                                     <p className="text-[11.5px] text-stone-400 mt-1.5 leading-snug">Se le muestra al cliente antes de pedir.</p>
@@ -351,14 +351,14 @@ export default function DeliveryModal({
 
                                   <div>
                                     <label className="text-[12.5px] font-semibold text-stone-700 block mb-1.5">WhatsApp de tu repartidor (opcional)</label>
-                                    <div className="h-[46px] flex items-center gap-2 px-3.5 rounded-2xl bg-[#faf8fe] ring-1 ring-[#6105dc]/10 focus-within:ring-2 focus-within:ring-[#6105dc]/40">
+                                    <div className="h-[46px] flex items-center gap-2 px-3.5 rounded-2xl bg-[#f7f9ff] ring-1 ring-[#5b4bd6]/10 focus-within:ring-2 focus-within:ring-[#5b4bd6]/40">
                                       <input
                                         type="text"
                                         inputMode="tel"
                                         value={whatsappRepartidor}
                                         onChange={(e) => setWhatsappRepartidor(e.target.value)}
                                         placeholder="Ej. 51987111222"
-                                        className="w-full min-w-0 bg-transparent text-sm text-stone-900 placeholder:text-[#a9a3b8] focus:outline-none"
+                                        className="w-full min-w-0 bg-transparent text-sm text-stone-900 placeholder:text-[#9290a2] focus:outline-none"
                                       />
                                     </div>
                                     <p className="text-[11.5px] text-stone-400 mt-1.5 leading-snug">Con el código de país. Si lo dejas vacío, WhatsApp te deja elegir el contacto cada vez. Los clientes no ven este número.</p>
@@ -371,13 +371,13 @@ export default function DeliveryModal({
                           {sesion?.usuario?.rol === 'dueno' && seccionDelivery('whatsapp', 'chat', 'Pedidos por WhatsApp', telefonoDeliveryEditar.trim() ? `Te llegan al ${telefonoDeliveryEditar.trim()}` : 'Falta tu número', (
                             <div>
                               <label className="text-[12.5px] font-semibold text-stone-700 block mb-1.5">Tu número (ahí te van a llegar los pedidos)</label>
-                              <div className="h-[46px] flex items-center gap-2 px-3.5 rounded-2xl bg-[#faf8fe] ring-1 ring-[#6105dc]/10 focus-within:ring-2 focus-within:ring-[#6105dc]/40">
+                              <div className="h-[46px] flex items-center gap-2 px-3.5 rounded-2xl bg-[#f7f9ff] ring-1 ring-[#5b4bd6]/10 focus-within:ring-2 focus-within:ring-[#5b4bd6]/40">
                                 <input
                                   type="text"
                                   value={telefonoDeliveryEditar}
                                   onChange={(e) => setTelefonoDeliveryEditar(e.target.value)}
                                   placeholder="Ej. 51987654321"
-                                  className="w-full min-w-0 bg-transparent text-sm text-stone-900 placeholder:text-[#a9a3b8] focus:outline-none"
+                                  className="w-full min-w-0 bg-transparent text-sm text-stone-900 placeholder:text-[#9290a2] focus:outline-none"
                                 />
                               </div>
                               <p className="text-[11.5px] text-stone-400 mt-1.5 leading-snug">Sin espacios ni guiones, con el código de país adelante.</p>
@@ -401,7 +401,7 @@ export default function DeliveryModal({
                                   type="button"
                                   onClick={avisarAMisClientes}
                                   disabled={enviandoAviso || resumenAvisos.audiencia === 0 || !!resumenAvisos.proximo}
-                                  className="w-full h-[46px] rounded-full bg-[#f4eefe] hover:bg-[#ece0fd] text-[#4d04b0] text-sm font-semibold flex items-center justify-center gap-2 transition disabled:opacity-50 disabled:hover:bg-[#f4eefe]"
+                                  className="w-full h-[46px] rounded-full bg-[#ebf0ff] hover:bg-[#dde4fa] text-[#2d284b] text-sm font-semibold flex items-center justify-center gap-2 transition disabled:opacity-50 disabled:hover:bg-[#ebf0ff]"
                                 >
                                   <IconoTrazo nombre="campana" className="w-[17px] h-[17px]" />
                                   {enviandoAviso
@@ -417,7 +417,7 @@ export default function DeliveryModal({
                           )}
                         </div>
 
-                        <div className="relative -mt-14 px-4 pt-8 pb-4 shrink-0 bg-gradient-to-t from-[#f9f8fb] from-70% to-transparent">
+                        <div className="relative -mt-14 px-4 pt-8 pb-4 shrink-0 bg-gradient-to-t from-[#f8f9fd] from-70% to-transparent">
                           {hayCambiosDelivery && (
                             <p className="flex items-center justify-center gap-1.5 text-xs font-semibold text-amber-700 mb-2">
                               <span className="w-2 h-2 rounded-full bg-amber-500"></span> Tienes cambios sin guardar
@@ -426,7 +426,7 @@ export default function DeliveryModal({
                           <button
                             onClick={guardarConfigDelivery}
                             disabled={guardandoDelivery}
-                            className="w-full h-[54px] rounded-full bg-gradient-to-r from-[#8a3df2] to-[#4d04b0] text-white font-semibold text-base transition disabled:opacity-50"
+                            className="w-full h-[54px] rounded-full bg-gradient-to-r from-[#7466e8] to-[#2d284b] text-white font-semibold text-base transition disabled:opacity-50"
                           >
                             {guardandoDelivery ? 'Guardando...' : 'Guardar cambios'}
                           </button>

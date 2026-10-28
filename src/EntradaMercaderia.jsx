@@ -74,8 +74,8 @@ export default function EntradaMercaderia({
                   return [];
                 };
                 const etiquetaDelta = (d) => {
-                  if (d === null) return <span className="inline-flex items-center gap-1 text-[11px] font-bold rounded-full px-2 py-0.5 bg-[#f1eef9] text-stone-500">costo nuevo</span>;
-                  if (Math.abs(d) < 0.005) return <span className="inline-flex items-center gap-1 text-[11px] font-bold rounded-full px-2 py-0.5 bg-[#f1eef9] text-stone-500">igual que antes</span>;
+                  if (d === null) return <span className="inline-flex items-center gap-1 text-[11px] font-bold rounded-full px-2 py-0.5 bg-[#eef1fb] text-stone-500">costo nuevo</span>;
+                  if (Math.abs(d) < 0.005) return <span className="inline-flex items-center gap-1 text-[11px] font-bold rounded-full px-2 py-0.5 bg-[#eef1fb] text-stone-500">igual que antes</span>;
                   return d > 0
                     ? <span className="inline-flex items-center gap-1 text-[11px] font-bold rounded-full px-2 py-0.5 bg-amber-50 text-amber-700"><i className="fa-solid fa-arrow-up text-[9px]"></i>{Math.round(d * 100)}%</span>
                     : <span className="inline-flex items-center gap-1 text-[11px] font-bold rounded-full px-2 py-0.5 bg-emerald-50 text-emerald-700"><i className="fa-solid fa-arrow-down text-[9px]"></i>{Math.abs(Math.round(d * 100))}%</span>;
@@ -110,10 +110,10 @@ export default function EntradaMercaderia({
                   }
                 };
 
-                const inputBase = 'w-full h-11 bg-stone-50/70 border-[1.5px] border-stone-200 rounded-[14px] px-3.5 text-sm text-stone-900 placeholder:text-stone-400 outline-none focus:border-[#6105dc] focus:bg-white focus:ring-4 focus:ring-[#6105dc]/15 transition';
+                const inputBase = 'w-full h-11 bg-stone-50/70 border-[1.5px] border-stone-200 rounded-[14px] px-3.5 text-sm text-stone-900 placeholder:text-stone-400 outline-none focus:border-[#5b4bd6] focus:bg-white focus:ring-4 focus:ring-[#5b4bd6]/15 transition';
                 const etiquetaCampo = 'flex items-center justify-between gap-2 text-[12.5px] font-semibold text-stone-800 mb-1.5';
-                const segClase = (activo) => `rounded-[11px] py-2.5 px-2 text-[13px] font-bold transition text-center ${activo ? 'bg-white text-[#4d04b0] shadow-sm' : 'text-stone-500 hover:text-stone-700'}`;
-                const chipClase = (activo) => `inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[12.5px] font-semibold border-[1.5px] transition ${activo ? 'border-[#6105dc] bg-[#f4eefe] text-[#4d04b0] ring-2 ring-[#6105dc]/15' : 'border-stone-200 bg-white text-stone-600 hover:bg-[#f4eefe] hover:border-[#e4d6fb]'}`;
+                const segClase = (activo) => `rounded-[11px] py-2.5 px-2 text-[13px] font-bold transition text-center ${activo ? 'bg-white text-[#2d284b] shadow-sm' : 'text-stone-500 hover:text-stone-700'}`;
+                const chipClase = (activo) => `inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[12.5px] font-semibold border-[1.5px] transition ${activo ? 'border-[#5b4bd6] bg-[#ebf0ff] text-[#2d284b] ring-2 ring-[#5b4bd6]/15' : 'border-stone-200 bg-white text-stone-600 hover:bg-[#ebf0ff] hover:border-[#d2d9f5]'}`;
                 const claveBloque = 'bg-white border border-stone-100 rounded-[22px] p-4 shadow-sm flex flex-col md:min-h-0';
                 const sugeridos = proveedoresLista
                   .map((p) => p.nombre)
@@ -144,7 +144,7 @@ export default function EntradaMercaderia({
                             </div>
                             <div>
                               <label className={etiquetaCampo}><span>Se vende por</span></label>
-                              <div className="grid grid-cols-2 bg-[#f1eef9] rounded-[14px] p-1 gap-1">
+                              <div className="grid grid-cols-2 bg-[#eef1fb] rounded-[14px] p-1 gap-1">
                                 <button type="button" onClick={() => setNuevoProductoInlineCompra({ ...creando, unidad: 'UND' })} className={segClase(creando.unidad === 'UND')}>Unidad</button>
                                 <button type="button" onClick={() => setNuevoProductoInlineCompra({ ...creando, unidad: 'KG' })} className={segClase(creando.unidad === 'KG')}>Peso (kg)</button>
                               </div>
@@ -161,10 +161,10 @@ export default function EntradaMercaderia({
                             </div>
                           </div>
                           {pcN > 0 && pvN > 0 && (pvN > pcN
-                            ? <div className="flex gap-2 items-start rounded-[14px] bg-[#f4eefe] text-[#4d04b0] px-3 py-2.5 text-xs leading-snug"><i className="fa-solid fa-circle-info mt-0.5"></i><span>Ganas {dinero(pvN - pcN)} por cada {creando.unidad === 'KG' ? 'kilo' : 'unidad'} ({Math.round((pvN - pcN) / pvN * 100)}%).</span></div>
+                            ? <div className="flex gap-2 items-start rounded-[14px] bg-[#ebf0ff] text-[#2d284b] px-3 py-2.5 text-xs leading-snug"><i className="fa-solid fa-circle-info mt-0.5"></i><span>Ganas {dinero(pvN - pcN)} por cada {creando.unidad === 'KG' ? 'kilo' : 'unidad'} ({Math.round((pvN - pcN) / pvN * 100)}%).</span></div>
                             : <div className="flex gap-2 items-start rounded-[14px] bg-rose-50 text-rose-600 px-3 py-2.5 text-xs leading-snug"><i className="fa-solid fa-triangle-exclamation mt-0.5"></i><span>El precio de venta es menor o igual al costo.</span></div>)}
                         </div>
-                        <button type="button" onClick={crearProductoInlineCompra} disabled={guardandoProductoInlineCompra} className="mt-3 w-full h-[46px] rounded-[14px] bg-[#6105dc] hover:bg-[#4d04b0] disabled:opacity-50 text-white font-bold text-[13.5px] shadow-lg shadow-[#6105dc]/30 inline-flex items-center justify-center gap-2">
+                        <button type="button" onClick={crearProductoInlineCompra} disabled={guardandoProductoInlineCompra} className="mt-3 w-full h-[46px] rounded-[14px] bg-[#5b4bd6] hover:bg-[#473bb5] disabled:opacity-50 text-white font-bold text-[13.5px] shadow-lg shadow-[#5b4bd6]/30 inline-flex items-center justify-center gap-2">
                           <i className="fa-solid fa-check"></i>{guardandoProductoInlineCompra ? 'Creando...' : 'Crear y usar en la entrada'}
                         </button>
                       </>
@@ -196,7 +196,7 @@ export default function EntradaMercaderia({
                           {tieneP && (
                             <div>
                               <label className={etiquetaCampo}><span>¿Cómo te llegó?</span></label>
-                              <div className="grid grid-cols-2 bg-[#f1eef9] rounded-[14px] p-1 gap-1">
+                              <div className="grid grid-cols-2 bg-[#eef1fb] rounded-[14px] p-1 gap-1">
                                 <button type="button" onClick={() => cambiarTipoEntrada('UNIDAD')} className={segClase(!esPack)}>Unidades sueltas</button>
                                 <button type="button" onClick={() => cambiarTipoEntrada('PACK')} className={segClase(esPack)}>Packs o cajas<small className="block text-[11px] font-medium opacity-80">de {uds} unidades</small></button>
                               </div>
@@ -206,9 +206,9 @@ export default function EntradaMercaderia({
                             <div>
                               <label className={etiquetaCampo}><span>{esPack ? 'Cantidad de packs' : (sel.unidad === 'KG' ? 'Kilos recibidos' : 'Cantidad')} <span className="text-rose-500">*</span></span></label>
                               <div className="flex items-center gap-1.5">
-                                <button type="button" aria-label="Menos" onClick={() => setCompraItemTemp({ ...compraItemTemp, cantidad: String(Math.max(0, Math.round(((Number(compraItemTemp.cantidad) || 0) - 1) * 100) / 100)) })} className="w-11 h-11 shrink-0 rounded-[13px] border-[1.5px] border-stone-200 bg-white text-[#4d04b0] hover:bg-[#f4eefe]"><i className="fa-solid fa-minus text-xs"></i></button>
+                                <button type="button" aria-label="Menos" onClick={() => setCompraItemTemp({ ...compraItemTemp, cantidad: String(Math.max(0, Math.round(((Number(compraItemTemp.cantidad) || 0) - 1) * 100) / 100)) })} className="w-11 h-11 shrink-0 rounded-[13px] border-[1.5px] border-stone-200 bg-white text-[#2d284b] hover:bg-[#ebf0ff]"><i className="fa-solid fa-minus text-xs"></i></button>
                                 <input type="number" autoFocus min="0" step={sel.unidad === 'KG' ? '0.1' : '1'} inputMode="decimal" placeholder="0" value={compraItemTemp.cantidad} onChange={(e) => setCompraItemTemp({ ...compraItemTemp, cantidad: e.target.value })} onKeyDown={alEnter} className={`${inputBase} text-center font-bold text-base px-1 min-w-0`} />
-                                <button type="button" aria-label="Más" onClick={() => setCompraItemTemp({ ...compraItemTemp, cantidad: String(Math.round(((Number(compraItemTemp.cantidad) || 0) + 1) * 100) / 100) })} className="w-11 h-11 shrink-0 rounded-[13px] border-[1.5px] border-stone-200 bg-white text-[#4d04b0] hover:bg-[#f4eefe]"><i className="fa-solid fa-plus text-xs"></i></button>
+                                <button type="button" aria-label="Más" onClick={() => setCompraItemTemp({ ...compraItemTemp, cantidad: String(Math.round(((Number(compraItemTemp.cantidad) || 0) + 1) * 100) / 100) })} className="w-11 h-11 shrink-0 rounded-[13px] border-[1.5px] border-stone-200 bg-white text-[#2d284b] hover:bg-[#ebf0ff]"><i className="fa-solid fa-plus text-xs"></i></button>
                               </div>
                             </div>
                             <div>
@@ -219,7 +219,7 @@ export default function EntradaMercaderia({
                           {avisos.map((a, i) => (
                             <div key={i} className={`flex gap-2 items-start rounded-[14px] px-3 py-2.5 text-xs leading-snug ${a.tipo === 'bad' ? 'bg-rose-50 text-rose-600' : 'bg-amber-50 text-amber-700'}`}><i className="fa-solid fa-triangle-exclamation mt-0.5"></i><span>{a.texto}</span></div>
                           ))}
-                          <div className="border border-stone-100 rounded-[18px] bg-[#fcfaff] px-3.5 divide-y divide-dashed divide-[#e4d6fb]">
+                          <div className="border border-stone-100 rounded-[18px] bg-[#f8faff] px-3.5 divide-y divide-dashed divide-[#d2d9f5]">
                             {esPack && cant > 0 && (
                               <div className="flex items-center justify-between gap-2 py-2.5 text-[12.5px]"><span className="font-semibold text-stone-500">Equivale a</span><b>{cant} × {uds} = {fmtQ(c.unidades, sel.unidad)} und</b></div>
                             )}
@@ -231,7 +231,7 @@ export default function EntradaMercaderia({
                             <div className="flex items-center justify-between gap-2 py-2.5 text-[12.5px]"><span className="font-semibold text-stone-500">Subtotal</span><b className="text-[15px] font-extrabold">{dinero(c.subtotal)}</b></div>
                           </div>
                         </div>
-                        <button type="button" onClick={agregarItemEntradaMercaderia} disabled={!listo} className="mt-3 w-full h-[46px] rounded-[14px] bg-[#6105dc] hover:bg-[#4d04b0] disabled:bg-[#d9d2ea] disabled:shadow-none text-white font-bold text-[13.5px] shadow-lg shadow-[#6105dc]/30 inline-flex items-center justify-center gap-2 transition">
+                        <button type="button" onClick={agregarItemEntradaMercaderia} disabled={!listo} className="mt-3 w-full h-[46px] rounded-[14px] bg-[#5b4bd6] hover:bg-[#473bb5] disabled:bg-[#d5dbef] disabled:shadow-none text-white font-bold text-[13.5px] shadow-lg shadow-[#5b4bd6]/30 inline-flex items-center justify-center gap-2 transition">
                           <i className="fa-solid fa-plus text-xs"></i> Añadir a la entrada
                         </button>
                         <p className="text-[11.5px] text-stone-400 text-center mt-1.5">Enter también lo añade</p>
@@ -244,24 +244,24 @@ export default function EntradaMercaderia({
                       <h4 className="text-base font-extrabold text-stone-900 tracking-tight">Agregar productos</h4>
                       <p className="text-[12.5px] text-stone-500 mt-0.5 mb-3">Busca por nombre o escanea el código de barras.</p>
                       {nLineas > 0 && (
-                        <button type="button" onClick={() => document.getElementById('entrada-lista')?.scrollIntoView({ behavior: 'smooth', block: 'start' })} className="md:hidden flex items-center gap-2 w-full rounded-[14px] border-[1.5px] border-[#e4d6fb] bg-[#f4eefe] text-[#4d04b0] px-3.5 py-2.5 text-[12.5px] font-bold mb-3 text-left">
+                        <button type="button" onClick={() => document.getElementById('entrada-lista')?.scrollIntoView({ behavior: 'smooth', block: 'start' })} className="md:hidden flex items-center gap-2 w-full rounded-[14px] border-[1.5px] border-[#d2d9f5] bg-[#ebf0ff] text-[#2d284b] px-3.5 py-2.5 text-[12.5px] font-bold mb-3 text-left">
                           <span className="flex-1">{nLineas} producto{nLineas > 1 ? 's' : ''} · {dinero(totalCompra)}</span>Ver la entrada <i className="fa-solid fa-arrow-down text-[10px]"></i>
                         </button>
                       )}
                       <div className="relative">
                         <i className="fa-solid fa-magnifying-glass absolute left-4 top-1/2 -translate-y-1/2 text-stone-300 text-[15px] pointer-events-none"></i>
-                        <input type="text" autoFocus autoComplete="off" placeholder="Ej: leche, arroz, 775…" value={busquedaCompra} onChange={(e) => { setBusquedaCompra(e.target.value); setResaltadoCompra(0); }} onKeyDown={teclasBusqueda} className="w-full h-[50px] bg-stone-50/70 border-[1.5px] border-stone-200 rounded-2xl pl-11 pr-[118px] text-[15px] text-stone-900 placeholder:text-stone-300 outline-none focus:border-[#6105dc] focus:bg-white focus:ring-4 focus:ring-[#6105dc]/15 transition" />
-                        <button type="button" onClick={() => { setModoEscaner('entrada-mercaderia'); setMetodoForzado(null); setModalEscaner(true); }} title="Escanear con la cámara" className="absolute right-1.5 top-1.5 bottom-1.5 px-3 rounded-[11px] border border-[#e4d6fb] bg-[#f4eefe] text-[#4d04b0] hover:bg-[#ece0fd] text-[12.5px] font-bold inline-flex items-center gap-1.5"><i className="fa-solid fa-camera text-xs"></i> Escanear</button>
+                        <input type="text" autoFocus autoComplete="off" placeholder="Ej: leche, arroz, 775…" value={busquedaCompra} onChange={(e) => { setBusquedaCompra(e.target.value); setResaltadoCompra(0); }} onKeyDown={teclasBusqueda} className="w-full h-[50px] bg-stone-50/70 border-[1.5px] border-stone-200 rounded-2xl pl-11 pr-[118px] text-[15px] text-stone-900 placeholder:text-stone-300 outline-none focus:border-[#5b4bd6] focus:bg-white focus:ring-4 focus:ring-[#5b4bd6]/15 transition" />
+                        <button type="button" onClick={() => { setModoEscaner('entrada-mercaderia'); setMetodoForzado(null); setModalEscaner(true); }} title="Escanear con la cámara" className="absolute right-1.5 top-1.5 bottom-1.5 px-3 rounded-[11px] border border-[#d2d9f5] bg-[#ebf0ff] text-[#2d284b] hover:bg-[#dde4fa] text-[12.5px] font-bold inline-flex items-center gap-1.5"><i className="fa-solid fa-camera text-xs"></i> Escanear</button>
                       </div>
                       <div className="flex flex-wrap gap-2 my-3">
                         <button type="button" onClick={() => { setFiltroCompra('todos'); setResaltadoCompra(0); }} className={chipClase(filtroCompra === 'todos')}>Todos</button>
-                        <button type="button" onClick={() => { setFiltroCompra('bajo'); setResaltadoCompra(0); }} className={chipClase(filtroCompra === 'bajo')}>Por reponer <span className={`text-[10.5px] rounded-full px-1.5 ${filtroCompra === 'bajo' ? 'bg-[#6105dc] text-white' : 'bg-amber-50 text-amber-700'}`}>{nBajos}</span></button>
+                        <button type="button" onClick={() => { setFiltroCompra('bajo'); setResaltadoCompra(0); }} className={chipClase(filtroCompra === 'bajo')}>Por reponer <span className={`text-[10.5px] rounded-full px-1.5 ${filtroCompra === 'bajo' ? 'bg-[#5b4bd6] text-white' : 'bg-amber-50 text-amber-700'}`}>{nBajos}</span></button>
                       </div>
                       <div className="grid grid-cols-[minmax(0,1fr)] gap-1.5 max-h-80 overflow-y-auto md:max-h-none md:flex-1 md:min-h-0 content-start">
                         {visibles.map((p, i) => {
                           const s = stockDe(p);
                           return (
-                            <button key={p.id} type="button" onClick={() => elegirProductoEntrada(p)} className={`flex items-center gap-3 w-full text-left rounded-2xl border-[1.5px] bg-white px-3 py-2 transition hover:bg-[#fcfaff] hover:border-[#e4d6fb] ${i === idxRes ? 'border-[#6105dc] ring-2 ring-[#6105dc]/15' : 'border-stone-100'}`}>
+                            <button key={p.id} type="button" onClick={() => elegirProductoEntrada(p)} className={`flex items-center gap-3 w-full text-left rounded-2xl border-[1.5px] bg-white px-3 py-2 transition hover:bg-[#f8faff] hover:border-[#d2d9f5] ${i === idxRes ? 'border-[#5b4bd6] ring-2 ring-[#5b4bd6]/15' : 'border-stone-100'}`}>
                               <span className="w-[42px] h-[42px] rounded-[13px] overflow-hidden shrink-0 border border-stone-100"><FotoProducto fotoUrl={p.foto_url} categoria={p.categoria} className="w-full h-full" iconClassName="text-base" /></span>
                               <span className="min-w-0 flex-1">
                                 <span className="block text-[13.5px] font-bold text-stone-900 leading-tight truncate">{p.descripcion}</span>
@@ -273,8 +273,8 @@ export default function EntradaMercaderia({
                           );
                         })}
                         {busquedaCompra.trim() && (
-                          <button type="button" onClick={() => abrirProductoNuevoEntrada(busquedaCompra.trim())} className="flex items-center gap-3 w-full text-left rounded-2xl border-[1.5px] border-dashed border-[#e4d6fb] bg-[#fcfaff] px-3 py-2 hover:bg-[#f4eefe] transition">
-                            <span className="w-[42px] h-[42px] rounded-[13px] shrink-0 bg-[#6105dc] text-white grid place-items-center"><i className="fa-solid fa-plus"></i></span>
+                          <button type="button" onClick={() => abrirProductoNuevoEntrada(busquedaCompra.trim())} className="flex items-center gap-3 w-full text-left rounded-2xl border-[1.5px] border-dashed border-[#d2d9f5] bg-[#f8faff] px-3 py-2 hover:bg-[#ebf0ff] transition">
+                            <span className="w-[42px] h-[42px] rounded-[13px] shrink-0 bg-[#5b4bd6] text-white grid place-items-center"><i className="fa-solid fa-plus"></i></span>
                             <span className="min-w-0 flex-1"><span className="block text-[13.5px] font-bold text-stone-900 leading-tight truncate">Crear «{busquedaCompra.trim()}» como producto nuevo</span><span className="block text-[11.5px] text-stone-500 mt-0.5">Lo creas aquí mismo y sigues con la entrada</span></span>
                           </button>
                         )}
@@ -302,14 +302,14 @@ export default function EntradaMercaderia({
                     </div>
                     {sugeridos.length > 0 && (
                       <div className="flex flex-wrap gap-1.5 mt-2">
-                        {sugeridos.map((n) => <button key={n} type="button" onClick={() => setCompraCabecera({ ...compraCabecera, proveedor: n })} className="px-2.5 py-1 rounded-full border-[1.5px] border-stone-200 bg-white text-xs font-semibold text-stone-600 hover:bg-[#f4eefe] hover:border-[#e4d6fb]">{n}</button>)}
+                        {sugeridos.map((n) => <button key={n} type="button" onClick={() => setCompraCabecera({ ...compraCabecera, proveedor: n })} className="px-2.5 py-1 rounded-full border-[1.5px] border-stone-200 bg-white text-xs font-semibold text-stone-600 hover:bg-[#ebf0ff] hover:border-[#d2d9f5]">{n}</button>)}
                       </div>
                     )}
                     <div className="h-px bg-stone-100 my-3.5"></div>
                     <div className="md:flex-1 md:min-h-0 md:overflow-y-auto -mx-1 px-1">
                       {nLineas === 0 ? (
                         <div className="text-center py-6 px-3 text-[13px] text-stone-500 leading-snug">
-                          <div className="w-[60px] h-[60px] rounded-[20px] bg-[#f4eefe] text-[#6105dc] grid place-items-center text-2xl mx-auto mb-2.5"><i className="fa-solid fa-box-open"></i></div>
+                          <div className="w-[60px] h-[60px] rounded-[20px] bg-[#ebf0ff] text-[#5b4bd6] grid place-items-center text-2xl mx-auto mb-2.5"><i className="fa-solid fa-box-open"></i></div>
                           <b className="block text-[15px] text-stone-900 mb-0.5">Todavía no hay productos</b>
                           Busca uno, pon cuánto llegó y a qué costo.
                         </div>
@@ -335,12 +335,12 @@ export default function EntradaMercaderia({
                                 </div>
                                 <div className="grid grid-cols-[78px_minmax(0,1fr)_auto] gap-2 items-center mt-2.5">
                                   <div className="relative">
-                                    <input key={`q-${idx}-${it.cantidad}`} type="number" min="0" step={p.unidad === 'KG' ? '0.1' : '1'} inputMode="decimal" defaultValue={it.cantidad} onBlur={commit('cantidad')} onKeyDown={alEnter} aria-label="Cantidad" className="w-full h-9 rounded-[11px] border-[1.5px] border-stone-200 bg-white text-[13px] font-bold text-center pl-2 pr-8 outline-none focus:border-[#6105dc] focus:ring-4 focus:ring-[#6105dc]/15" />
+                                    <input key={`q-${idx}-${it.cantidad}`} type="number" min="0" step={p.unidad === 'KG' ? '0.1' : '1'} inputMode="decimal" defaultValue={it.cantidad} onBlur={commit('cantidad')} onKeyDown={alEnter} aria-label="Cantidad" className="w-full h-9 rounded-[11px] border-[1.5px] border-stone-200 bg-white text-[13px] font-bold text-center pl-2 pr-8 outline-none focus:border-[#5b4bd6] focus:ring-4 focus:ring-[#5b4bd6]/15" />
                                     <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[10.5px] font-semibold text-stone-400 pointer-events-none">{unidadCant}</span>
                                   </div>
                                   <div className="relative">
                                     <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-[11.5px] font-bold text-stone-300">S/</span>
-                                    <input key={`c-${idx}-${it.costoIngresado}`} type="number" min="0" step="0.01" inputMode="decimal" defaultValue={it.costoIngresado} onBlur={commit('costo')} onKeyDown={alEnter} aria-label={it.esPack ? 'Costo por pack' : 'Costo por unidad'} className="w-full h-9 rounded-[11px] border-[1.5px] border-stone-200 bg-white text-[13px] font-bold pl-7 pr-12 outline-none focus:border-[#6105dc] focus:ring-4 focus:ring-[#6105dc]/15" />
+                                    <input key={`c-${idx}-${it.costoIngresado}`} type="number" min="0" step="0.01" inputMode="decimal" defaultValue={it.costoIngresado} onBlur={commit('costo')} onKeyDown={alEnter} aria-label={it.esPack ? 'Costo por pack' : 'Costo por unidad'} className="w-full h-9 rounded-[11px] border-[1.5px] border-stone-200 bg-white text-[13px] font-bold pl-7 pr-12 outline-none focus:border-[#5b4bd6] focus:ring-4 focus:ring-[#5b4bd6]/15" />
                                     <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[10.5px] font-semibold text-stone-400 pointer-events-none">{unidadCosto}</span>
                                   </div>
                                   <span className="text-sm font-extrabold text-stone-900 whitespace-nowrap">{dinero(c.subtotal)}</span>
@@ -360,7 +360,7 @@ export default function EntradaMercaderia({
                       )}
                     </div>
                     <div className="mt-3 pt-3 border-t border-stone-100 shrink-0">
-                      <div className="flex justify-between items-baseline"><span className="text-[12.5px] font-semibold text-stone-500">Total de la compra</span><strong className="text-[28px] font-extrabold text-[#4d04b0] tracking-tight leading-none">{dinero(totalCompra)}</strong></div>
+                      <div className="flex justify-between items-baseline"><span className="text-[12.5px] font-semibold text-stone-500">Total de la compra</span><strong className="text-[28px] font-extrabold text-[#2d284b] tracking-tight leading-none">{dinero(totalCompra)}</strong></div>
                       <p className="text-[11.5px] text-stone-500 mt-1">{nLineas ? `${nLineas} producto${nLineas > 1 ? 's' : ''} · ${Math.round(unidadesTotal * 100) / 100} unidades en total` : 'S/ 0.00 hasta que añadas productos'}</p>
                     </div>
                   </>
@@ -369,10 +369,10 @@ export default function EntradaMercaderia({
                 const fin = entradaRegistrada;
                 return (
                   <div className="fixed inset-0 bg-stone-900/30 backdrop-blur-sm flex items-center justify-center z-50 p-2 sm:p-4">
-                    <div className="bg-gradient-to-br from-[#f4effc] via-[#f9f8fb] to-[#f5f4f8] border border-white/80 rounded-[28px] max-w-4xl w-full shadow-2xl h-[95vh] max-h-[800px] flex flex-col overflow-hidden">
+                    <div className="bg-gradient-to-br from-[#eef1fb] via-[#f8f9fd] to-[#f4f5fa] border border-white/80 rounded-[28px] max-w-4xl w-full shadow-2xl h-[95vh] max-h-[800px] flex flex-col overflow-hidden">
 
                       <div className="bg-white border-b border-stone-100 px-4 sm:px-5 py-3.5 shrink-0 flex items-center gap-3">
-                        <span className="w-11 h-11 rounded-[14px] bg-[#f4eefe] text-[#6105dc] grid place-items-center text-xl shrink-0"><i className="fa-solid fa-truck-ramp-box"></i></span>
+                        <span className="w-11 h-11 rounded-[14px] bg-[#ebf0ff] text-[#5b4bd6] grid place-items-center text-xl shrink-0"><i className="fa-solid fa-truck-ramp-box"></i></span>
                         <div className="min-w-0">
                           <h3 className="text-[17px] sm:text-lg font-extrabold text-stone-900 tracking-tight leading-tight">Entrada de mercadería</h3>
                           <p className="hidden sm:block text-[12.5px] text-stone-500 mt-0.5">Anota lo que te dejó el proveedor. El stock y el costo se actualizan al confirmar.</p>
@@ -393,14 +393,14 @@ export default function EntradaMercaderia({
                               <div className="flex justify-between gap-3 py-2.5 text-[13px] items-baseline"><span className="text-stone-500">Total de la compra</span><b className="text-base font-extrabold">{dinero(fin.total)}</b></div>
                             </div>
                             <details className="text-left mb-5">
-                              <summary className="cursor-pointer text-[12.5px] font-bold text-[#4d04b0] py-1">Ver cómo quedó el stock</summary>
+                              <summary className="cursor-pointer text-[12.5px] font-bold text-[#2d284b] py-1">Ver cómo quedó el stock</summary>
                               <div className="bg-white border border-stone-100 rounded-[20px] px-4 py-1.5 mt-2 divide-y divide-dashed divide-stone-200">
                                 {fin.lineas.map((l, i) => <div key={i} className="flex justify-between gap-3 py-2.5 text-[13px]"><span className="text-stone-500 min-w-0 truncate">{l.descripcion}</span><b className="text-right whitespace-nowrap">{l.antes === null ? 'Sin control' : fmtQ(l.antes, l.unidad)} → {fmtQ(l.despues, l.unidad)}</b></div>)}
                               </div>
                             </details>
                             <div className="flex gap-2 justify-center flex-wrap">
-                              <button type="button" onClick={() => setEntradaRegistrada(null)} className="h-[46px] px-5 rounded-[14px] bg-[#f4eefe] hover:bg-[#ece0fd] text-[#4d04b0] font-bold text-[13.5px] inline-flex items-center gap-2"><i className="fa-solid fa-plus text-xs"></i> Registrar otra entrada</button>
-                              <button type="button" onClick={cerrarModalEntradaMercaderia} className="h-[46px] px-6 rounded-[14px] bg-[#6105dc] hover:bg-[#4d04b0] text-white font-bold text-[13.5px] shadow-lg shadow-[#6105dc]/30">Listo</button>
+                              <button type="button" onClick={() => setEntradaRegistrada(null)} className="h-[46px] px-5 rounded-[14px] bg-[#ebf0ff] hover:bg-[#dde4fa] text-[#2d284b] font-bold text-[13.5px] inline-flex items-center gap-2"><i className="fa-solid fa-plus text-xs"></i> Registrar otra entrada</button>
+                              <button type="button" onClick={cerrarModalEntradaMercaderia} className="h-[46px] px-6 rounded-[14px] bg-[#5b4bd6] hover:bg-[#473bb5] text-white font-bold text-[13.5px] shadow-lg shadow-[#5b4bd6]/30">Listo</button>
                             </div>
                           </div>
                         </div>
@@ -413,8 +413,8 @@ export default function EntradaMercaderia({
                           <div className="shrink-0 bg-white border-t border-stone-100 px-4 sm:px-5 py-3 flex items-center gap-2.5 shadow-[0_-8px_24px_-14px_rgba(40,10,90,0.18)]">
                             <button type="button" onClick={pedirCerrarEntrada} className="h-[46px] px-4 sm:px-5 rounded-[14px] text-stone-500 hover:text-stone-800 hover:bg-stone-100 font-bold text-[13.5px]">Cancelar</button>
                             <span className="flex-1"></span>
-                            <span className={`hidden md:flex items-center text-xs ${nLineas ? 'text-[#4d04b0] font-semibold' : 'text-stone-500'}`}>{nLineas ? `${nLineas} producto${nLineas > 1 ? 's' : ''} · ${dinero(totalCompra)}` : 'Añade al menos un producto para confirmar'}</span>
-                            <button type="button" onClick={guardarEntradaMercaderia} disabled={!nLineas || lineaInvalida || guardandoEntrada} className="h-[46px] px-4 sm:px-5 rounded-[14px] bg-[#6105dc] hover:bg-[#4d04b0] disabled:bg-[#d9d2ea] disabled:shadow-none disabled:cursor-not-allowed text-white font-bold text-[13.5px] shadow-lg shadow-[#6105dc]/30 inline-flex items-center justify-center gap-2 transition">
+                            <span className={`hidden md:flex items-center text-xs ${nLineas ? 'text-[#2d284b] font-semibold' : 'text-stone-500'}`}>{nLineas ? `${nLineas} producto${nLineas > 1 ? 's' : ''} · ${dinero(totalCompra)}` : 'Añade al menos un producto para confirmar'}</span>
+                            <button type="button" onClick={guardarEntradaMercaderia} disabled={!nLineas || lineaInvalida || guardandoEntrada} className="h-[46px] px-4 sm:px-5 rounded-[14px] bg-[#5b4bd6] hover:bg-[#473bb5] disabled:bg-[#d5dbef] disabled:shadow-none disabled:cursor-not-allowed text-white font-bold text-[13.5px] shadow-lg shadow-[#5b4bd6]/30 inline-flex items-center justify-center gap-2 transition">
                               <i className="fa-solid fa-check text-xs"></i><span>{guardandoEntrada ? 'Guardando...' : <>Confirmar<span className="hidden sm:inline"> entrada</span>{nLineas ? ` · ${dinero(totalCompra)}` : ''}</>}</span>
                             </button>
                           </div>

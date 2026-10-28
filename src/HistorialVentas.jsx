@@ -68,16 +68,16 @@ export default function HistorialVentas({
                 const clienteTexto = (v) => (nombreClienteHistorial(v) === 'Cliente sin registrar' ? '—' : nombreClienteHistorial(v));
                 const ICONO_PAGO = {
                   EFECTIVO: ['fa-money-bill-wave', 'from-[#4cc995] to-[#0f7b4a]'],
-                  YAPE: ['fa-mobile-screen', 'from-[#a78bfa] to-[#6d4ae0]'],
-                  PLIN: ['fa-mobile-screen', 'from-[#a78bfa] to-[#6d4ae0]'],
+                  YAPE: ['fa-mobile-screen', 'from-[#9687f5] to-[#5b4bd6]'],
+                  PLIN: ['fa-mobile-screen', 'from-[#9687f5] to-[#5b4bd6]'],
                   TARJETA: ['fa-credit-card', 'from-[#7ab4ee] to-[#3d7fd0]'],
                   CREDITO: ['fa-file-invoice-dollar', 'from-[#f0b24a] to-[#d98a14]'],
-                  MIXTO: ['fa-layer-group', 'from-[#b5aecb] to-[#8f89a8]'],
+                  MIXTO: ['fa-layer-group', 'from-[#aeb4cf] to-[#8f8cb0]'],
                 };
-                const iconoPago = (v) => (v.anulada ? ['fa-ban', 'from-[#d9d6e4] to-[#d9d6e4] !text-[#8f8aa3]'] : ICONO_PAGO[v.medio_pago] || ['fa-receipt', 'from-[#b5aecb] to-[#8f89a8]']);
+                const iconoPago = (v) => (v.anulada ? ['fa-ban', 'from-[#d6dbec] to-[#d6dbec] !text-[#8f8aa3]'] : ICONO_PAGO[v.medio_pago] || ['fa-receipt', 'from-[#aeb4cf] to-[#8f8cb0]']);
                 const circuloPago = (v, tam = 'w-8 h-8') => { const [icono, color] = iconoPago(v); return <span className={`${tam} rounded-full bg-gradient-to-br ${color} text-white grid place-items-center text-[13px] shrink-0`}><i className={`fa-solid ${icono}`}></i></span>; };
-                const borde = 'border-[#e9e6f0]';
-                const botonFantasma = `h-10 px-[17px] rounded-full border ${borde} bg-white hover:bg-[#f8f7fb] text-[13px] font-medium text-stone-700 inline-flex items-center justify-center gap-2 transition whitespace-nowrap`;
+                const borde = 'border-[#e6e9f5]';
+                const botonFantasma = `h-10 px-[17px] rounded-full border ${borde} bg-white hover:bg-[#f7f8fc] text-[13px] font-medium text-stone-700 inline-flex items-center justify-center gap-2 transition whitespace-nowrap`;
                 const tarjeta = `relative overflow-hidden bg-white border ${borde} rounded-[18px] px-5 py-[18px] shadow-[0_1px_2px_rgba(20,10,50,0.04),0_16px_36px_-26px_rgba(20,10,50,0.3)]`;
                 const chispa = (<svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor" aria-hidden="true"><path d="M12 3c.6 4.6 2.4 6.4 7 7-4.6.6-6.4 2.4-7 7-.6-4.6-2.4-6.4-7-7 4.6-.6 6.4-2.4 7-7Z" /><path d="M19 15c.3 1.8 1 2.5 2.8 2.8-1.8.3-2.5 1-2.8 2.8-.3-1.8-1-2.5-2.8-2.8 1.8-.3 2.5-1 2.8-2.8Z" /></svg>);
 
@@ -85,8 +85,8 @@ export default function HistorialVentas({
                   <>
                     <div className="fixed inset-0 z-[5]" onClick={() => setMenuVentaHistorial(null)}></div>
                     <div className={`absolute right-3 top-10 z-10 bg-white border ${borde} rounded-xl p-1 min-w-[190px] shadow-[0_12px_30px_-8px_rgba(20,10,50,0.25)] text-left`}>
-                      <button onClick={() => { setMenuVentaHistorial(null); setVentaDetalleHistorial(v.id); }} className="w-full flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-[13px] font-medium text-stone-700 hover:bg-[#f8f7fb]"><i className="fa-regular fa-eye w-4 text-stone-500"></i> Ver detalle</button>
-                      <button onClick={() => { setMenuVentaHistorial(null); setReciboReimpresion(v); }} className="w-full flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-[13px] font-medium text-stone-700 hover:bg-[#f8f7fb]"><i className="fa-solid fa-print w-4 text-stone-500"></i> Reimprimir boleta</button>
+                      <button onClick={() => { setMenuVentaHistorial(null); setVentaDetalleHistorial(v.id); }} className="w-full flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-[13px] font-medium text-stone-700 hover:bg-[#f7f8fc]"><i className="fa-regular fa-eye w-4 text-stone-500"></i> Ver detalle</button>
+                      <button onClick={() => { setMenuVentaHistorial(null); setReciboReimpresion(v); }} className="w-full flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-[13px] font-medium text-stone-700 hover:bg-[#f7f8fc]"><i className="fa-solid fa-print w-4 text-stone-500"></i> Reimprimir boleta</button>
                       {!v.anulada && esAdmin && (
                         <>
                           <div className={`border-t ${borde} my-1`}></div>
@@ -108,14 +108,14 @@ export default function HistorialVentas({
                           <i className={`fa-solid ${v.anulada ? 'fa-ban' : 'fa-check'} text-[10px]`}></i>{subtextoEstado(v)}
                         </span>
                       </div>
-                      <div className="relative mx-3.5 border-t-2 border-dashed border-[#e3dff0]">
-                        <span className={`absolute -top-[11px] -left-[25px] w-5 h-5 rounded-full bg-[#f8f7fb] border ${borde} [clip-path:inset(0_0_0_50%)]`}></span>
-                        <span className={`absolute -top-[11px] -right-[25px] w-5 h-5 rounded-full bg-[#f8f7fb] border ${borde} [clip-path:inset(0_50%_0_0)]`}></span>
+                      <div className="relative mx-3.5 border-t-2 border-dashed border-[#e0e4f2]">
+                        <span className={`absolute -top-[11px] -left-[25px] w-5 h-5 rounded-full bg-[#f7f8fc] border ${borde} [clip-path:inset(0_0_0_50%)]`}></span>
+                        <span className={`absolute -top-[11px] -right-[25px] w-5 h-5 rounded-full bg-[#f7f8fc] border ${borde} [clip-path:inset(0_50%_0_0)]`}></span>
                       </div>
                       <div className="px-[22px] pt-[18px] pb-[22px]">
                         {(v.ventas_detalle || []).length > 0 ? (
                           (v.ventas_detalle || []).map((d, i) => (
-                            <div key={i} className="flex justify-between gap-3 py-2.5 text-[13.5px] border-b border-[#f3f0f8]">
+                            <div key={i} className="flex justify-between gap-3 py-2.5 text-[13.5px] border-b border-[#f1f3fa]">
                               <span className="text-stone-800">{d.productos?.descripcion || d.descripcion || 'Producto'}<small className="block text-xs text-stone-500 mt-0.5">{d.cantidad} × S/ {formatoSoles(Number(d.precio_unitario))}</small></span>
                               <span className="font-semibold tabular-nums shrink-0">S/ {formatoSoles(Number(d.subtotal))}</span>
                             </div>
@@ -151,20 +151,20 @@ export default function HistorialVentas({
 
                 return (
                   <div className="fixed inset-0 bg-stone-900/30 backdrop-blur-sm flex items-center justify-center z-50 p-3 sm:p-4">
-                    <div className="bg-[#f8f7fb] rounded-[18px] max-w-xl lg:max-w-6xl w-full max-h-[94vh] h-[94vh] lg:h-[780px] flex flex-col shadow-2xl border border-black/5 overflow-hidden">
+                    <div className="bg-[#f7f8fc] rounded-[18px] max-w-xl lg:max-w-6xl w-full max-h-[94vh] h-[94vh] lg:h-[780px] flex flex-col shadow-2xl border border-black/5 overflow-hidden">
                       <div className={`bg-white px-4 sm:px-7 py-3.5 sm:py-[18px] shrink-0 flex flex-wrap lg:flex-nowrap items-center gap-x-3 gap-y-2.5 border-b ${borde}`}>
                         {ventaElegida && (
-                          <button aria-label="Volver a la lista" onClick={() => setVentaDetalleHistorial(null)} className="lg:hidden h-9 pl-2.5 pr-3.5 rounded-full border border-[#e9e6f0] bg-white text-[13px] font-medium text-stone-700 inline-flex items-center gap-1 shrink-0"><i className="fa-solid fa-chevron-left text-[10px]"></i> Historial</button>
+                          <button aria-label="Volver a la lista" onClick={() => setVentaDetalleHistorial(null)} className="lg:hidden h-9 pl-2.5 pr-3.5 rounded-full border border-[#e6e9f5] bg-white text-[13px] font-medium text-stone-700 inline-flex items-center gap-1 shrink-0"><i className="fa-solid fa-chevron-left text-[10px]"></i> Historial</button>
                         )}
                         <h3 className={`text-xl sm:text-[21px] font-bold tracking-tight text-stone-900 whitespace-nowrap ${ventaElegida ? 'hidden lg:block' : ''}`}>Historial de ventas</h3>
                         {esAdmin && (
-                          <div className={`${ventaElegida ? 'hidden lg:inline-flex' : 'inline-flex'} bg-[#ece9f4] rounded-full p-[3px] order-last basis-full lg:order-none lg:basis-auto lg:ml-2`}>
+                          <div className={`${ventaElegida ? 'hidden lg:inline-flex' : 'inline-flex'} bg-[#e8ecf7] rounded-full p-[3px] order-last basis-full lg:order-none lg:basis-auto lg:ml-2`}>
                             <button type="button" className="flex-1 lg:flex-none h-8 px-[17px] rounded-full text-[13px] font-semibold text-stone-900 bg-white shadow-[0_1px_3px_rgba(20,10,50,0.14)]">Ventas</button>
                             <button type="button" onClick={() => { setModalHistorial(false); abrirHistorialCierres(); }} className="flex-1 lg:flex-none h-8 px-[17px] rounded-full text-[13px] font-medium text-stone-500 hover:text-stone-900 whitespace-nowrap">Cierres de caja</button>
                           </div>
                         )}
                         <span className="flex-1"></span>
-                        <button aria-label="Cerrar" onClick={() => { setModalHistorial(false); setVentaDetalleHistorial(null); setMenuVentaHistorial(null); }} className="w-9 h-9 rounded-full text-stone-400 hover:text-stone-700 hover:bg-[#f1eef9] shrink-0"><i className="fa-solid fa-xmark"></i></button>
+                        <button aria-label="Cerrar" onClick={() => { setModalHistorial(false); setVentaDetalleHistorial(null); setMenuVentaHistorial(null); }} className="w-9 h-9 rounded-full text-stone-400 hover:text-stone-700 hover:bg-[#eef1fb] shrink-0"><i className="fa-solid fa-xmark"></i></button>
                       </div>
 
                       {ventaElegida && (
@@ -174,16 +174,16 @@ export default function HistorialVentas({
                       <div className={`${ventaElegida ? 'hidden lg:flex' : 'flex'} flex-1 min-h-0 flex-col`}>
                         <div className="px-4 sm:px-7 pt-4 lg:pt-5 shrink-0 grid grid-cols-2 lg:grid-cols-[1.25fr_1fr_1fr] gap-3 lg:gap-3.5">
                           <div className={`${tarjeta} col-span-2 lg:col-span-1`}>
-                            <span className="absolute -right-14 -top-[70px] w-[200px] h-[200px] rounded-full pointer-events-none" style={{ background: 'radial-gradient(closest-side, rgba(124,80,240,0.16), rgba(124,80,240,0))' }}></span>
+                            <span className="absolute -right-14 -top-[70px] w-[200px] h-[200px] rounded-full pointer-events-none" style={{ background: 'radial-gradient(closest-side, rgba(150,135,245,0.16), rgba(150,135,245,0))' }}></span>
                             <span className="relative text-[13px] text-stone-500">Total vendido · {activas.length} venta{activas.length === 1 ? '' : 's'}</span>
                             <b className="relative block text-[30px] lg:text-4xl font-bold tracking-[-0.04em] leading-[1.05] mt-1 mb-3 tabular-nums">S/ {formatoSoles(totalGeneral)}</b>
-                            <div className="relative flex h-2 rounded overflow-hidden bg-[#ece9f4] gap-0.5">
+                            <div className="relative flex h-2 rounded overflow-hidden bg-[#e8ecf7] gap-0.5">
                               {pctEfectivo > 0 && <i className="block h-full bg-gradient-to-r from-[#3fbf8a] to-[#0f7b4a]" style={{ width: `${pctEfectivo}%` }}></i>}
-                              {pctEfectivo < 100 && <i className="block h-full bg-gradient-to-r from-[#9b7bf5] to-[#6b44d8]" style={{ width: `${100 - pctEfectivo}%` }}></i>}
+                              {pctEfectivo < 100 && <i className="block h-full bg-gradient-to-r from-[#9687f5] to-[#5b4bd6]" style={{ width: `${100 - pctEfectivo}%` }}></i>}
                             </div>
                             <div className="relative flex flex-wrap gap-x-4 gap-y-1 mt-2.5 text-[12.5px] text-stone-500">
                               <span className="flex items-center gap-1.5"><i className="w-2 h-2 rounded-full bg-[#0f7b4a]"></i>Efectivo <b className="text-stone-900 font-semibold">S/ {formatoSoles(totalEfectivo)}</b></span>
-                              <span className="flex items-center gap-1.5"><i className="w-2 h-2 rounded-full bg-[#6b44d8]"></i>Otros medios <b className="text-stone-900 font-semibold">S/ {formatoSoles(totalOtros)}</b></span>
+                              <span className="flex items-center gap-1.5"><i className="w-2 h-2 rounded-full bg-[#5b4bd6]"></i>Otros medios <b className="text-stone-900 font-semibold">S/ {formatoSoles(totalOtros)}</b></span>
                             </div>
                           </div>
                           <div className={tarjeta}>
@@ -199,7 +199,7 @@ export default function HistorialVentas({
                         </div>
 
                         <div className="px-4 sm:px-7 py-3.5 shrink-0 flex flex-wrap items-center gap-x-3 gap-y-2.5">
-                          <div className="flex bg-[#ece9f4] rounded-full p-[3px] max-w-full overflow-x-auto hide-scrollbar">
+                          <div className="flex bg-[#e8ecf7] rounded-full p-[3px] max-w-full overflow-x-auto hide-scrollbar">
                             {ATAJOS.map(([id, texto]) => (
                               <button key={id} type="button" onClick={() => elegirAtajoHistorial(id)} className={`h-8 px-2.5 sm:px-[15px] rounded-full text-[12.5px] sm:text-[13px] whitespace-nowrap transition ${atajoHistorial === id ? 'bg-white text-stone-900 font-semibold shadow-[0_1px_3px_rgba(20,10,50,0.14)]' : 'text-stone-500 font-medium hover:text-stone-900'}`}>{texto}</button>
                             ))}
@@ -207,7 +207,7 @@ export default function HistorialVentas({
                           <span className="text-[13px] text-stone-500">{rangoTexto}</span>
                           <span className="flex-1 hidden lg:block"></span>
                           <div className="flex items-center gap-2 w-full lg:w-auto">
-                            <label className={`flex items-center gap-2.5 h-10 flex-1 lg:flex-none lg:w-[280px] px-4 rounded-full border ${borde} bg-white text-stone-400 focus-within:border-[#6105dc] focus-within:ring-[3px] focus-within:ring-[#6105dc]/10 transition`}>
+                            <label className={`flex items-center gap-2.5 h-10 flex-1 lg:flex-none lg:w-[280px] px-4 rounded-full border ${borde} bg-white text-stone-400 focus-within:border-[#5b4bd6] focus-within:ring-[3px] focus-within:ring-[#5b4bd6]/10 transition`}>
                               <i className="fa-solid fa-magnifying-glass text-xs"></i>
                               <input type="text" placeholder="Buscar boleta o cliente" value={busquedaBoletaHistorial} onChange={(e) => { setBusquedaBoletaHistorial(e.target.value); setLimiteHistorial(40); }} className="flex-1 min-w-0 bg-transparent text-[13.5px] text-stone-900 outline-none placeholder:text-stone-400" />
                             </label>
@@ -226,7 +226,7 @@ export default function HistorialVentas({
                         </div>
 
                         <div className="flex-1 min-h-0 px-4 sm:px-7 pb-5 grid grid-rows-[minmax(0,1fr)] lg:grid-cols-[minmax(0,1fr)_330px] gap-4">
-                          <div className="min-h-0 overflow-y-auto hide-scrollbar lg:bg-white lg:border lg:border-[#e9e6f0] lg:rounded-[18px]">
+                          <div className="min-h-0 overflow-y-auto hide-scrollbar lg:bg-white lg:border lg:border-[#e6e9f5] lg:rounded-[18px]">
                             {cargandoHistorial ? (
                               <p className="text-sm text-center py-10 text-stone-500">Cargando ventas...</p>
                             ) : filtradas.length === 0 ? (
@@ -240,14 +240,14 @@ export default function HistorialVentas({
                                       <p className="flex justify-between px-1.5 pt-3 pb-1.5 text-xs font-semibold text-stone-500"><span>{g.etiqueta}</span><span className="tabular-nums">S/ {formatoSoles(g.ventas.filter(v => !v.anulada).reduce((a, c) => a + Number(c.total_venta), 0))}</span></p>
                                       {g.ventas.map((v) => (
                                         <div key={v.id} className="relative mb-2">
-                                          <div role="button" tabIndex={0} onClick={() => setVentaDetalleHistorial(v.id)} onKeyDown={(e) => { if (e.key === 'Enter') setVentaDetalleHistorial(v.id); }} className={`grid grid-cols-[36px_1fr_auto_28px] items-center gap-3 px-2.5 py-3 bg-white border ${borde} rounded-[14px] cursor-pointer active:bg-[#faf8fe]`}>
+                                          <div role="button" tabIndex={0} onClick={() => setVentaDetalleHistorial(v.id)} onKeyDown={(e) => { if (e.key === 'Enter') setVentaDetalleHistorial(v.id); }} className={`grid grid-cols-[36px_1fr_auto_28px] items-center gap-3 px-2.5 py-3 bg-white border ${borde} rounded-[14px] cursor-pointer active:bg-[#f7f9ff]`}>
                                             {circuloPago(v, 'w-9 h-9')}
                                             <div className="min-w-0">
                                               <p className={`font-mono text-[13.5px] font-semibold ${v.anulada ? 'line-through text-stone-400' : 'text-stone-900'}`}>{v.nro_boleta}</p>
                                               <p className="text-xs text-stone-500 mt-0.5 truncate">{horaVenta(v)} · {etiquetaPago(v)}{clienteTexto(v) !== '—' ? ` · ${clienteTexto(v)}` : ''}{v.anulada && <span className="text-[#c0262d] font-semibold"> · Anulada</span>}</p>
                                             </div>
                                             <span className={`text-[15px] font-bold tracking-tight tabular-nums ${v.anulada ? 'line-through text-stone-400' : 'text-stone-900'}`}>S/ {formatoSoles(Number(v.total_venta))}</span>
-                                            <button type="button" aria-label="Más acciones" onClick={(e) => { e.stopPropagation(); setMenuVentaHistorial(menuVentaHistorial === v.id ? null : v.id); }} className="w-7 h-7 rounded-full text-stone-400 hover:bg-[#f1eef9] grid place-items-center"><i className="fa-solid fa-ellipsis-vertical"></i></button>
+                                            <button type="button" aria-label="Más acciones" onClick={(e) => { e.stopPropagation(); setMenuVentaHistorial(menuVentaHistorial === v.id ? null : v.id); }} className="w-7 h-7 rounded-full text-stone-400 hover:bg-[#eef1fb] grid place-items-center"><i className="fa-solid fa-ellipsis-vertical"></i></button>
                                           </div>
                                           {menuVentaHistorial === v.id && menuVenta(v)}
                                         </div>
@@ -268,22 +268,22 @@ export default function HistorialVentas({
                                   <tbody>
                                     {grupos.map((g) => (
                                       <React.Fragment key={g.etiqueta}>
-                                        <tr className="bg-[#faf9fc] text-xs font-semibold text-stone-500">
+                                        <tr className="bg-[#f9fafd] text-xs font-semibold text-stone-500">
                                           <td colSpan={5} className="px-3 py-2.5">{g.etiqueta}</td>
                                           <td colSpan={2} className="px-3 py-2.5 text-right tabular-nums">{g.ventas.length} venta{g.ventas.length === 1 ? '' : 's'} · S/ {formatoSoles(g.ventas.filter(v => !v.anulada).reduce((a, c) => a + Number(c.total_venta), 0))}</td>
                                         </tr>
                                         {g.ventas.map((v) => {
                                           const elegida = ventaPanel && ventaPanel.id === v.id;
                                           return (
-                                            <tr key={v.id} onClick={() => setVentaDetalleHistorial(v.id)} className={`cursor-pointer text-[13.5px] text-stone-700 transition ${elegida ? 'bg-[#f4f0fd] shadow-[inset_3px_0_0_#6105dc]' : 'hover:bg-[#fbfafd]'}`}>
-                                              <td className="px-3 py-3 border-b border-[#f3f0f8]"><span className={`flex items-center gap-2.5 font-mono text-[13px] font-medium ${v.anulada ? 'line-through text-stone-400' : 'text-stone-900'}`}>{circuloPago(v)}{v.nro_boleta}</span></td>
-                                              <td className="px-3 py-3 border-b border-[#f3f0f8] text-stone-500 whitespace-nowrap">{horaVenta(v)}</td>
-                                              <td className="px-3 py-3 border-b border-[#f3f0f8] text-stone-500 max-w-[140px] truncate">{clienteTexto(v)}</td>
-                                              <td className="px-3 py-3 border-b border-[#f3f0f8]">{etiquetaPago(v)}</td>
-                                              <td className="px-3 py-3 border-b border-[#f3f0f8] whitespace-nowrap">{estadoCelda(v)}</td>
-                                              <td className={`px-3 py-3 border-b border-[#f3f0f8] text-right font-semibold tabular-nums whitespace-nowrap ${v.anulada ? 'line-through text-stone-400' : 'text-stone-900'}`}>S/ {formatoSoles(Number(v.total_venta))}</td>
-                                              <td className="px-2 py-1 border-b border-[#f3f0f8] relative text-right">
-                                                <button type="button" aria-label="Más acciones" onClick={(e) => { e.stopPropagation(); setMenuVentaHistorial(menuVentaHistorial === v.id ? null : v.id); }} className="w-[30px] h-[30px] rounded-full text-stone-400 hover:bg-[#ece8f5] hover:text-[#6105dc] grid place-items-center"><i className="fa-solid fa-ellipsis-vertical"></i></button>
+                                            <tr key={v.id} onClick={() => setVentaDetalleHistorial(v.id)} className={`cursor-pointer text-[13.5px] text-stone-700 transition ${elegida ? 'bg-[#eff2fd] shadow-[inset_3px_0_0_#5b4bd6]' : 'hover:bg-[#fafbfe]'}`}>
+                                              <td className="px-3 py-3 border-b border-[#f1f3fa]"><span className={`flex items-center gap-2.5 font-mono text-[13px] font-medium ${v.anulada ? 'line-through text-stone-400' : 'text-stone-900'}`}>{circuloPago(v)}{v.nro_boleta}</span></td>
+                                              <td className="px-3 py-3 border-b border-[#f1f3fa] text-stone-500 whitespace-nowrap">{horaVenta(v)}</td>
+                                              <td className="px-3 py-3 border-b border-[#f1f3fa] text-stone-500 max-w-[140px] truncate">{clienteTexto(v)}</td>
+                                              <td className="px-3 py-3 border-b border-[#f1f3fa]">{etiquetaPago(v)}</td>
+                                              <td className="px-3 py-3 border-b border-[#f1f3fa] whitespace-nowrap">{estadoCelda(v)}</td>
+                                              <td className={`px-3 py-3 border-b border-[#f1f3fa] text-right font-semibold tabular-nums whitespace-nowrap ${v.anulada ? 'line-through text-stone-400' : 'text-stone-900'}`}>S/ {formatoSoles(Number(v.total_venta))}</td>
+                                              <td className="px-2 py-1 border-b border-[#f1f3fa] relative text-right">
+                                                <button type="button" aria-label="Más acciones" onClick={(e) => { e.stopPropagation(); setMenuVentaHistorial(menuVentaHistorial === v.id ? null : v.id); }} className="w-[30px] h-[30px] rounded-full text-stone-400 hover:bg-[#ebecf2] hover:text-[#5b4bd6] grid place-items-center"><i className="fa-solid fa-ellipsis-vertical"></i></button>
                                                 {menuVentaHistorial === v.id && menuVenta(v)}
                                               </td>
                                             </tr>

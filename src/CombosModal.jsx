@@ -50,14 +50,14 @@ export default function CombosModal({
                 const dinero = (v) => `S/ ${(Number(v) || 0).toFixed(2)}`;
                 const norm = (s) => String(s || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
                 const unidadesDe = (n) => `${n} combo${n === 1 ? '' : 's'}`;
-                const inputBase = 'w-full h-11 bg-stone-50/70 border-[1.5px] border-stone-200 rounded-[14px] px-3.5 text-sm text-stone-900 placeholder:text-stone-400 outline-none focus:border-[#6105dc] focus:bg-white focus:ring-4 focus:ring-[#6105dc]/15 transition';
+                const inputBase = 'w-full h-11 bg-stone-50/70 border-[1.5px] border-stone-200 rounded-[14px] px-3.5 text-sm text-stone-900 placeholder:text-stone-400 outline-none focus:border-[#5b4bd6] focus:bg-white focus:ring-4 focus:ring-[#5b4bd6]/15 transition';
                 const etiquetaCampo = 'flex items-center justify-between gap-2 text-[12.5px] font-semibold text-stone-800 mb-1.5';
-                const chipClase = (activo) => `inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[12.5px] font-semibold border-[1.5px] transition ${activo ? 'border-[#6105dc] bg-[#f4eefe] text-[#4d04b0] ring-2 ring-[#6105dc]/15' : 'border-stone-200 bg-white text-stone-600 hover:bg-[#f4eefe] hover:border-[#e4d6fb]'}`;
+                const chipClase = (activo) => `inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[12.5px] font-semibold border-[1.5px] transition ${activo ? 'border-[#5b4bd6] bg-[#ebf0ff] text-[#2d284b] ring-2 ring-[#5b4bd6]/15' : 'border-stone-200 bg-white text-stone-600 hover:bg-[#ebf0ff] hover:border-[#d2d9f5]'}`;
                 const panelClase = 'bg-white border border-stone-100 rounded-[22px] p-4 sm:p-5 shadow-sm';
-                const panelP = 'bg-white border border-[#e9e6f0] rounded-2xl px-5 sm:px-6 py-5 sm:py-[22px] shadow-[0_1px_2px_rgba(20,10,50,0.03)]';
+                const panelP = 'bg-white border border-[#e6e9f5] rounded-2xl px-5 sm:px-6 py-5 sm:py-[22px] shadow-[0_1px_2px_rgba(20,10,50,0.03)]';
                 const labP = 'flex items-center justify-between gap-2 text-[12.5px] font-medium text-stone-700 mb-1.5';
-                const inputP = 'w-full h-11 bg-white border border-[#e9e6f0] rounded-[10px] px-3.5 text-sm text-stone-900 placeholder:text-stone-400 outline-none focus:border-[#6105dc] focus:ring-[3px] focus:ring-[#6105dc]/10 transition';
-                const chipP = (activo) => `h-8 px-3.5 rounded-lg border text-[13px] transition ${activo ? 'border-[#6105dc] bg-[#f4f0fd] text-[#4d04b0] font-semibold' : 'border-[#e9e6f0] bg-white text-stone-700 font-medium hover:bg-[#f8f7fb]'}`;
+                const inputP = 'w-full h-11 bg-white border border-[#e6e9f5] rounded-[10px] px-3.5 text-sm text-stone-900 placeholder:text-stone-400 outline-none focus:border-[#5b4bd6] focus:ring-[3px] focus:ring-[#5b4bd6]/10 transition';
+                const chipP = (activo) => `h-8 px-3.5 rounded-lg border text-[13px] transition ${activo ? 'border-[#5b4bd6] bg-[#eff2fd] text-[#2d284b] font-semibold' : 'border-[#e6e9f5] bg-white text-stone-700 font-medium hover:bg-[#f7f8fc]'}`;
                 const chispa = (<svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor" aria-hidden="true"><path d="M12 3c.6 4.6 2.4 6.4 7 7-4.6.6-6.4 2.4-7 7-.6-4.6-2.4-6.4-7-7 4.6-.6 6.4-2.4 7-7Z" /><path d="M19 15c.3 1.8 1 2.5 2.8 2.8-1.8.3-2.5 1-2.8 2.8-.3-1.8-1-2.5-2.8-2.8 1.8-.3 2.5-1 2.8-2.8Z" /></svg>);
                 const miniatura = (url, categoria, tam = 'w-10 h-10') => (
                   <span className={`block ${tam} rounded-[13px] overflow-hidden shrink-0 border-2 border-white ring-1 ring-stone-200 bg-white`}><FotoProducto fotoUrl={url} categoria={categoria} className="w-full h-full" iconClassName="text-sm" /></span>
@@ -120,15 +120,15 @@ export default function CombosModal({
 
                   return (
                     <div className="fixed inset-0 bg-stone-900/30 backdrop-blur-sm flex items-center justify-center z-50 p-2 sm:p-4">
-                      <div className="bg-[#f8f7fb] border border-black/5 rounded-[18px] max-w-5xl w-full shadow-2xl h-[95vh] max-h-[800px] flex flex-col overflow-hidden">
+                      <div className="bg-[#f7f8fc] border border-black/5 rounded-[18px] max-w-5xl w-full shadow-2xl h-[95vh] max-h-[800px] flex flex-col overflow-hidden">
 
-                        <div className="bg-white border-b border-[#e9e6f0] px-4 sm:px-7 py-4 shrink-0 flex items-center gap-3">
-                          <button type="button" onClick={cerrarEditorCombo} className="h-9 px-3 rounded-[10px] border border-[#e9e6f0] bg-white hover:bg-[#f8f7fb] text-[13px] font-medium text-stone-700 inline-flex items-center gap-1.5 shrink-0"><i className="fa-solid fa-chevron-left text-[10px]"></i> Combos</button>
+                        <div className="bg-white border-b border-[#e6e9f5] px-4 sm:px-7 py-4 shrink-0 flex items-center gap-3">
+                          <button type="button" onClick={cerrarEditorCombo} className="h-9 px-3 rounded-[10px] border border-[#e6e9f5] bg-white hover:bg-[#f7f8fc] text-[13px] font-medium text-stone-700 inline-flex items-center gap-1.5 shrink-0"><i className="fa-solid fa-chevron-left text-[10px]"></i> Combos</button>
                           <div className="min-w-0 flex-1">
                             <h3 className="text-[19px] sm:text-[21px] font-bold text-stone-900 tracking-tight leading-tight truncate">{f.id ? (f.nombre.trim() || 'Combo sin nombre') : 'Nuevo combo'}</h3>
                             <p className="hidden sm:block text-[13px] text-stone-500 mt-0.5">{f.id ? 'Edita lo que incluye y su precio.' : 'Elige qué incluye y ponle un precio especial.'}</p>
                           </div>
-                          <button aria-label="Cerrar" onClick={cerrarEditorCombo} className="w-9 h-9 flex items-center justify-center rounded-full text-stone-400 hover:text-stone-700 hover:bg-[#f1eef9] transition-colors shrink-0"><i className="fa-solid fa-xmark"></i></button>
+                          <button aria-label="Cerrar" onClick={cerrarEditorCombo} className="w-9 h-9 flex items-center justify-center rounded-full text-stone-400 hover:text-stone-700 hover:bg-[#eef1fb] transition-colors shrink-0"><i className="fa-solid fa-xmark"></i></button>
                         </div>
 
                         <div className="flex-1 overflow-y-auto hide-scrollbar p-4 sm:p-7 grid gap-5 md:gap-6 md:grid-cols-[minmax(0,1fr)_310px] content-start">
@@ -157,26 +157,26 @@ export default function CombosModal({
                                 <input type="text" autoComplete="off" placeholder="Buscar para agregar…" value={busquedaProductoCombo} onChange={(e) => { setBusquedaProductoCombo(e.target.value); setResaltadoProductoCombo(0); }} onKeyDown={teclasBusqueda} className={`${inputP} pl-10`} />
                               </div>
                               {q && (
-                                <div className="mt-2 border border-[#e4d6fb] rounded-[14px] bg-white overflow-hidden shadow-lg shadow-[#6105dc]/10">
+                                <div className="mt-2 border border-[#d2d9f5] rounded-[14px] bg-white overflow-hidden shadow-lg shadow-[#5b4bd6]/10">
                                   {encontrados.length === 0 && <p className="px-3.5 py-3.5 text-[13px] text-stone-500">No encontré «{busquedaProductoCombo.trim()}». Prueba con otro nombre.</p>}
                                   {encontrados.map((p, i) => {
                                     const ya = f.items.find((it) => it.producto_id === p.id);
                                     const s = p.stock_actual === null || p.stock_actual === undefined ? null : Number(p.stock_actual);
                                     return (
-                                      <button type="button" key={p.id} onClick={() => agregarProductoAFormCombo(p)} className={`w-full flex items-center gap-3 text-left px-3 py-2 border-b border-[#f0edf6] last:border-b-0 hover:bg-[#fbf9ff] ${i === idxRes ? 'bg-[#fbf9ff]' : 'bg-white'}`}>
-                                        <span className="w-[40px] h-[40px] rounded-[10px] overflow-hidden shrink-0 bg-gradient-to-br from-[#f6f4fb] to-[#e9e5f3] [&_img]:object-contain [&_img]:mix-blend-multiply"><FotoProducto fotoUrl={p.foto_url} categoria={p.categoria} className="w-full h-full" iconClassName="text-sm" /></span>
+                                      <button type="button" key={p.id} onClick={() => agregarProductoAFormCombo(p)} className={`w-full flex items-center gap-3 text-left px-3 py-2 border-b border-[#eef0f9] last:border-b-0 hover:bg-[#f9fbff] ${i === idxRes ? 'bg-[#f9fbff]' : 'bg-white'}`}>
+                                        <span className="w-[40px] h-[40px] rounded-[10px] overflow-hidden shrink-0 bg-gradient-to-br from-[#f4f6fc] to-[#e5e9f6] [&_img]:object-contain [&_img]:mix-blend-multiply"><FotoProducto fotoUrl={p.foto_url} categoria={p.categoria} className="w-full h-full" iconClassName="text-sm" /></span>
                                         <span className="min-w-0 flex-1">
                                           <span className="block text-[13px] font-semibold text-stone-900 leading-tight truncate">{p.descripcion}</span>
                                           <span className="block text-xs text-stone-500 mt-0.5">{dinero(p.precio_venta)}{s === null ? (esBarberia ? ' · servicio' : '') : s <= 0 ? ' · sin stock' : ` · ${s} en stock`}</span>
                                         </span>
-                                        <span className="text-xs font-semibold text-[#4d04b0] flex items-center gap-1 shrink-0">{ya ? `Ya lleva ${ya.cantidad} · sumar otro` : 'Agregar'} <i className="fa-solid fa-plus text-[10px]"></i></span>
+                                        <span className="text-xs font-semibold text-[#2d284b] flex items-center gap-1 shrink-0">{ya ? `Ya lleva ${ya.cantidad} · sumar otro` : 'Agregar'} <i className="fa-solid fa-plus text-[10px]"></i></span>
                                       </button>
                                     );
                                   })}
                                 </div>
                               )}
                               {f.items.length === 0 ? (
-                                <div className="mt-3.5 border border-dashed border-[#d9d2ea] rounded-[14px] py-6 px-4 text-center text-[13px] text-stone-500">
+                                <div className="mt-3.5 border border-dashed border-[#d5dbef] rounded-[14px] py-6 px-4 text-center text-[13px] text-stone-500">
                                   <b className="block text-stone-900 mb-0.5">Aún no agregaste {esBarberia ? 'nada' : 'productos'}</b>
                                   Escribe arriba para buscar y añadir {esBarberia ? 'servicios o productos' : 'productos'}.
                                 </div>
@@ -188,8 +188,8 @@ export default function CombosModal({
                                     const stock = pr ? (sinSeguimiento ? null : Number(pr.stock_actual) || 0) : 0;
                                     const corto = stock !== null && stock < it.cantidad;
                                     return (
-                                      <div key={it.producto_id} className="flex flex-wrap items-center gap-x-3.5 gap-y-2 py-3 border-t border-[#f0edf6]">
-                                        <span className="w-12 h-12 rounded-[10px] overflow-hidden shrink-0 bg-gradient-to-br from-[#f6f4fb] to-[#e9e5f3] [&_img]:object-contain [&_img]:mix-blend-multiply"><FotoProducto fotoUrl={pr?.foto_url || it.foto_url} categoria={pr?.categoria || it.categoria} className="w-full h-full" iconClassName="text-base" /></span>
+                                      <div key={it.producto_id} className="flex flex-wrap items-center gap-x-3.5 gap-y-2 py-3 border-t border-[#eef0f9]">
+                                        <span className="w-12 h-12 rounded-[10px] overflow-hidden shrink-0 bg-gradient-to-br from-[#f4f6fc] to-[#e5e9f6] [&_img]:object-contain [&_img]:mix-blend-multiply"><FotoProducto fotoUrl={pr?.foto_url || it.foto_url} categoria={pr?.categoria || it.categoria} className="w-full h-full" iconClassName="text-base" /></span>
                                         <span className="min-w-0 flex-1 basis-[140px]">
                                           <span className="block text-[14px] font-semibold text-stone-900 leading-tight">{it.descripcion}</span>
                                           <span className="block text-[12.5px] text-stone-500 mt-0.5">
@@ -198,10 +198,10 @@ export default function CombosModal({
                                             {stock !== null && stock >= 1 && corto && <b className="text-[#a15c07] font-semibold"> · solo alcanza para {stock}</b>}
                                           </span>
                                         </span>
-                                        <span className="inline-flex items-center border border-[#e9e6f0] rounded-[9px] shrink-0">
-                                          <button type="button" aria-label="Menos" onClick={() => actualizarCantidadItemCombo(it.producto_id, it.cantidad - 1)} className="w-[30px] h-8 rounded-[8px] text-stone-700 hover:bg-[#f8f7fb]"><i className="fa-solid fa-minus text-[10px]"></i></button>
+                                        <span className="inline-flex items-center border border-[#e6e9f5] rounded-[9px] shrink-0">
+                                          <button type="button" aria-label="Menos" onClick={() => actualizarCantidadItemCombo(it.producto_id, it.cantidad - 1)} className="w-[30px] h-8 rounded-[8px] text-stone-700 hover:bg-[#f7f8fc]"><i className="fa-solid fa-minus text-[10px]"></i></button>
                                           <b className="min-w-[24px] text-center text-[13.5px] font-semibold tabular-nums">{it.cantidad}</b>
-                                          <button type="button" aria-label="Más" onClick={() => actualizarCantidadItemCombo(it.producto_id, it.cantidad + 1)} className="w-[30px] h-8 rounded-[8px] text-stone-700 hover:bg-[#f8f7fb]"><i className="fa-solid fa-plus text-[10px]"></i></button>
+                                          <button type="button" aria-label="Más" onClick={() => actualizarCantidadItemCombo(it.producto_id, it.cantidad + 1)} className="w-[30px] h-8 rounded-[8px] text-stone-700 hover:bg-[#f7f8fc]"><i className="fa-solid fa-plus text-[10px]"></i></button>
                                         </span>
                                         <span className="text-sm font-semibold text-stone-900 min-w-[64px] text-right shrink-0 tabular-nums">{dinero(it.precio_venta * it.cantidad)}</span>
                                         <button type="button" aria-label="Quitar" title="Quitar" onClick={() => quitarItemCombo(it.producto_id)} className="w-7 h-7 rounded-[7px] text-stone-300 hover:text-[#c0262d] hover:bg-[#fdf1f1] grid place-items-center shrink-0"><i className="fa-solid fa-xmark text-sm"></i></button>
@@ -215,7 +215,7 @@ export default function CombosModal({
                             <div className={panelP}>
                               <h4 className="text-base font-semibold text-stone-900 tracking-tight">Precio del combo</h4>
                               <p className="text-[13px] text-stone-500 mt-1 mb-[18px] leading-snug">Si lo dejas sin tocar, es la suma de lo que incluye. Bájalo para dar un descuento.</p>
-                              <label className="flex items-baseline gap-2.5 border border-[#e9e6f0] rounded-xl px-[18px] py-3 focus-within:border-[#6105dc] focus-within:ring-[3px] focus-within:ring-[#6105dc]/10 transition cursor-text">
+                              <label className="flex items-baseline gap-2.5 border border-[#e6e9f5] rounded-xl px-[18px] py-3 focus-within:border-[#5b4bd6] focus-within:ring-[3px] focus-within:ring-[#5b4bd6]/10 transition cursor-text">
                                 <span className="text-[22px] font-medium text-stone-400">S/</span>
                                 <input type="number" min="0" step="0.10" inputMode="decimal" placeholder="0.00" aria-label="Precio del combo" value={f.precio_venta} onChange={(e) => setFormCombo({ ...f, precioTocado: true, precio_venta: e.target.value })} className="w-full min-w-0 bg-transparent outline-none border-0 text-[34px] sm:text-[40px] font-bold tracking-tight text-stone-900 placeholder:text-stone-300 tabular-nums" />
                                 {suma > 0 && <span className="hidden sm:block text-[13px] text-stone-500 whitespace-nowrap">suma {dinero(suma)}</span>}
@@ -238,7 +238,7 @@ export default function CombosModal({
                                 </>
                               )}
                               {suma > 0 && costo > 0 && precio > 0 && (
-                                <div className="mt-[18px] pt-[18px] border-t border-[#f0edf6]">
+                                <div className="mt-[18px] pt-[18px] border-t border-[#eef0f9]">
                                   {(() => {
                                     const total = Math.max(precio, costo);
                                     const wCosto = Math.min(100, costo / total * 100);
@@ -247,7 +247,7 @@ export default function CombosModal({
                                     const textoGana = m.perdida ? 'text-[#c0262d]' : m.bajo ? 'text-[#a15c07]' : 'text-[#0f7b4a]';
                                     return (
                                       <>
-                                        <div className="flex h-2 rounded overflow-hidden bg-[#ece9f4]"><i className="block h-full bg-[#c9c2de]" style={{ width: `${wCosto}%` }}></i><i className={`block h-full ${colorGana}`} style={{ width: `${wGana}%` }}></i></div>
+                                        <div className="flex h-2 rounded overflow-hidden bg-[#e8ecf7]"><i className="block h-full bg-[#c8c6da]" style={{ width: `${wCosto}%` }}></i><i className={`block h-full ${colorGana}`} style={{ width: `${wGana}%` }}></i></div>
                                         <div className="grid grid-cols-3 gap-3.5 mt-3.5">
                                           <div><span className="block text-[12.5px] text-stone-500">Te cuesta</span><b className="block text-[19px] font-bold tracking-tight mt-0.5 tabular-nums">{dinero(costo)}</b></div>
                                           <div><span className="block text-[12.5px] text-stone-500">{m.perdida ? 'Pierdes' : 'Ganas'}</span><b className={`block text-[19px] font-bold tracking-tight mt-0.5 tabular-nums ${textoGana}`}>{dinero(Math.abs(m.ganancia))}</b></div>
@@ -264,11 +264,11 @@ export default function CombosModal({
                                 </div>
                               )}
                               {suma > 0 && !(costo > 0) && precio > 0 && (
-                                <p className="mt-[18px] text-[13px] rounded-[9px] px-3 py-2.5 leading-snug bg-[#f4f0fd] text-[#4d04b0]">{esBarberia ? 'Los servicios no tienen costo cargado, así que no puedo calcular tu ganancia.' : 'Estos productos no tienen costo cargado, así que no puedo calcular tu ganancia.'}</p>
+                                <p className="mt-[18px] text-[13px] rounded-[9px] px-3 py-2.5 leading-snug bg-[#eff2fd] text-[#2d284b]">{esBarberia ? 'Los servicios no tienen costo cargado, así que no puedo calcular tu ganancia.' : 'Estos productos no tienen costo cargado, así que no puedo calcular tu ganancia.'}</p>
                               )}
                             </div>
 
-                            <div className="flex items-center justify-between gap-4 bg-white border border-[#e9e6f0] rounded-2xl px-5 py-4">
+                            <div className="flex items-center justify-between gap-4 bg-white border border-[#e6e9f5] rounded-2xl px-5 py-4">
                               <span>
                                 <span className="block text-sm font-semibold text-stone-900">En venta</span>
                                 <span className="block text-[13px] text-stone-500 leading-snug mt-0.5">{f.activo ? 'Aparece en la caja para vender. Se pausa solo si falta stock y se enciende al reponer.' : 'Pausado: no aparece en la caja.'}</span>
@@ -282,36 +282,36 @@ export default function CombosModal({
 
                           <div className="min-w-0 md:sticky md:top-0 md:self-start order-first md:order-none">
                             <p className="hidden md:block text-[12.5px] font-medium text-stone-500 mb-2.5">Así lo verá el cajero</p>
-                            <div className="hidden md:block bg-white border border-[#e9e6f0] rounded-[18px] overflow-hidden shadow-[0_18px_40px_-22px_rgba(20,10,50,0.35)]">
-                              <div className={`relative grid gap-[2px] bg-[#e9e6f0] h-[118px] ${pvFotos.length >= 3 ? 'grid-cols-3' : pvFotos.length === 2 ? 'grid-cols-2' : 'grid-cols-1'}`}>
+                            <div className="hidden md:block bg-white border border-[#e6e9f5] rounded-[18px] overflow-hidden shadow-[0_18px_40px_-22px_rgba(20,10,50,0.35)]">
+                              <div className={`relative grid gap-[2px] bg-[#e6e9f5] h-[118px] ${pvFotos.length >= 3 ? 'grid-cols-3' : pvFotos.length === 2 ? 'grid-cols-2' : 'grid-cols-1'}`}>
                                 {pvFotos.length === 0
-                                  ? <span className="grid place-items-center bg-gradient-to-br from-[#f6f4fb] to-[#e9e5f3] text-[#9a94b3] text-3xl"><i className="fa-solid fa-gift"></i></span>
+                                  ? <span className="grid place-items-center bg-gradient-to-br from-[#f4f6fc] to-[#e5e9f6] text-[#8f8cb0] text-3xl"><i className="fa-solid fa-gift"></i></span>
                                   : pvFotos.map((it) => (
-                                    <span key={it.producto_id} className="relative bg-gradient-to-br from-[#f6f4fb] to-[#e9e5f3] overflow-hidden [&_img]:object-contain [&_img]:mix-blend-multiply [&_img]:p-2">
+                                    <span key={it.producto_id} className="relative bg-gradient-to-br from-[#f4f6fc] to-[#e5e9f6] overflow-hidden [&_img]:object-contain [&_img]:mix-blend-multiply [&_img]:p-2">
                                       <FotoProducto fotoUrl={vivo(it.producto_id)?.foto_url || it.foto_url} categoria={vivo(it.producto_id)?.categoria || it.categoria} className="w-full h-full" iconClassName="text-xl" />
-                                      {it.cantidad > 1 && <em className="absolute right-1.5 bottom-1.5 not-italic bg-[#14121c] text-white rounded-full text-[10.5px] font-bold px-1.5">×{it.cantidad}</em>}
+                                      {it.cantidad > 1 && <em className="absolute right-1.5 bottom-1.5 not-italic bg-[#14172b] text-white rounded-full text-[10.5px] font-bold px-1.5">×{it.cantidad}</em>}
                                     </span>
                                   ))}
-                                {ahorro > 0.5 && <span className="absolute left-3 top-3 bg-[#ffc81a] text-[#14121c] text-[11.5px] font-bold rounded-full px-2.5 py-0.5 shadow-md">Ahorras {Math.round(ahorro)}%</span>}
+                                {ahorro > 0.5 && <span className="absolute left-3 top-3 bg-[#ffc81a] text-[#14172b] text-[11.5px] font-bold rounded-full px-2.5 py-0.5 shadow-md">Ahorras {Math.round(ahorro)}%</span>}
                               </div>
                               <div className="px-[18px] pt-4 pb-[18px]">
                                 <h5 className="text-[15.5px] font-semibold tracking-tight text-stone-900 leading-tight">{f.nombre.trim() || 'Nombre del combo'}</h5>
                                 {f.descripcion.trim() && <p className="text-[12.5px] text-stone-500 leading-snug mt-1">{f.descripcion.trim()}</p>}
                                 {f.items.length > 0 && (
                                   <ul className="mt-2.5 text-[13px] text-stone-700">
-                                    {f.items.map((it) => <li key={it.producto_id} className="flex gap-2 py-0.5"><b className="text-[#6105dc] min-w-[22px] font-semibold">{it.cantidad}×</b><span>{it.descripcion}</span></li>)}
+                                    {f.items.map((it) => <li key={it.producto_id} className="flex gap-2 py-0.5"><b className="text-[#5b4bd6] min-w-[22px] font-semibold">{it.cantidad}×</b><span>{it.descripcion}</span></li>)}
                                   </ul>
                                 )}
-                                <div className="flex items-baseline gap-2 mt-3 pt-3 border-t border-dashed border-[#e9e6f0]">
+                                <div className="flex items-baseline gap-2 mt-3 pt-3 border-t border-dashed border-[#e6e9f5]">
                                   <strong className="text-[26px] font-bold tracking-tight tabular-nums">{dinero(precio)}</strong>
                                   {ahorro > 0.5 && <s className="text-[13px] text-stone-400">{dinero(suma)}</s>}
                                 </div>
-                                <div className={`mt-3.5 h-11 grid place-items-center text-[13.5px] font-semibold ${f.activo ? 'kz-pri !pointer-events-none' : 'rounded-full bg-[#ebe8f1] text-[#8b869a]'}`}>{f.activo ? 'Agregar al carrito' : 'Pausado'}</div>
+                                <div className={`mt-3.5 h-11 grid place-items-center text-[13.5px] font-semibold ${f.activo ? 'kz-pri !pointer-events-none' : 'rounded-full bg-[#e6e9f5] text-[#8b869a]'}`}>{f.activo ? 'Agregar al carrito' : 'Pausado'}</div>
                               </div>
                             </div>
                             {f.items.length > 0 && (
                               maxCombos === Infinity
-                                ? <p className="mt-3 rounded-xl bg-[#f1eef9] text-stone-600 px-3.5 py-3 text-[13px] leading-snug">Solo incluye servicios: siempre está disponible.</p>
+                                ? <p className="mt-3 rounded-xl bg-[#eef1fb] text-stone-600 px-3.5 py-3 text-[13px] leading-snug">Solo incluye servicios: siempre está disponible.</p>
                                 : maxCombos === 0
                                   ? <p className="mt-3 rounded-xl bg-[#fdf1f1] text-[#c0262d] px-3.5 py-3 text-[13px] leading-snug">Hoy no se puede vender: falta stock de <b>{faltan.join(', ')}</b>.</p>
                                   : <p className="mt-3 rounded-xl bg-[#eef8f2] text-[#0f7b4a] px-3.5 py-3 text-[13px] leading-snug">Con tu stock de hoy puedes armar <b className="text-[15px]">{maxCombos}</b> combo{maxCombos === 1 ? '' : 's'}.</p>
@@ -319,10 +319,10 @@ export default function CombosModal({
                           </div>
                         </div>
 
-                        <div className="shrink-0 bg-white border-t border-[#e9e6f0] px-4 sm:px-7 py-3.5 flex items-center gap-3">
-                          <button type="button" onClick={cerrarEditorCombo} className="h-11 px-5 rounded-full border border-[#e9e6f0] bg-white hover:bg-[#f8f7fb] text-stone-700 font-medium text-[13.5px]">Cancelar</button>
+                        <div className="shrink-0 bg-white border-t border-[#e6e9f5] px-4 sm:px-7 py-3.5 flex items-center gap-3">
+                          <button type="button" onClick={cerrarEditorCombo} className="h-11 px-5 rounded-full border border-[#e6e9f5] bg-white hover:bg-[#f7f8fc] text-stone-700 font-medium text-[13.5px]">Cancelar</button>
                           <span className="flex-1"></span>
-                          <span className={`hidden md:flex items-center text-[13px] ${errores.length ? 'text-stone-500' : 'text-[#4d04b0] font-medium'}`}>{errores.length ? errores.join(' · ') : hayCambios ? 'Hay cambios sin guardar' : 'Todo en orden'}</span>
+                          <span className={`hidden md:flex items-center text-[13px] ${errores.length ? 'text-stone-500' : 'text-[#2d284b] font-medium'}`}>{errores.length ? errores.join(' · ') : hayCambios ? 'Hay cambios sin guardar' : 'Todo en orden'}</span>
                           <button type="button" onClick={guardarCombo} disabled={guardandoCombo || errores.length > 0 || (!!f.id && !hayCambios)} className="kz-pri h-11 px-6 text-[13.5px] font-semibold inline-flex items-center justify-center gap-2">
                             <span>{guardandoCombo ? 'Guardando...' : (f.id ? 'Guardar cambios' : 'Guardar combo')}</span>{chispa}
                           </button>
@@ -342,15 +342,15 @@ export default function CombosModal({
 
                 return (
                   <div className="fixed inset-0 bg-stone-900/30 backdrop-blur-sm flex items-center justify-center z-50 p-2 sm:p-4">
-                    <div className="bg-[#f8f7fb] border border-black/5 rounded-[18px] max-w-5xl w-full shadow-2xl h-[95vh] max-h-[800px] flex flex-col overflow-hidden">
+                    <div className="bg-[#f7f8fc] border border-black/5 rounded-[18px] max-w-5xl w-full shadow-2xl h-[95vh] max-h-[800px] flex flex-col overflow-hidden">
 
-                      <div className="bg-white border-b border-[#e9e6f0] px-4 sm:px-7 py-4 shrink-0 flex items-center gap-3">
+                      <div className="bg-white border-b border-[#e6e9f5] px-4 sm:px-7 py-4 shrink-0 flex items-center gap-3">
                         <div className="min-w-0 flex-1">
                           <h3 className="text-[19px] sm:text-[21px] font-bold text-stone-900 tracking-tight leading-tight">Combos</h3>
                           <p className="hidden sm:block text-[13px] text-stone-500 mt-1 max-w-[520px] leading-snug">Paquetes de varios {esBarberia ? 'servicios y productos' : 'productos'} a un precio especial. Al venderse, descuentan el stock de cada producto que incluyen.</p>
                         </div>
                         <button type="button" onClick={nuevoCombo} className="kz-pri h-11 px-5 text-[13.5px] font-semibold inline-flex items-center gap-2 shrink-0"><span>Nuevo<span className="hidden sm:inline"> combo</span></span>{chispa}</button>
-                        <button aria-label="Cerrar" onClick={cerrarModalCombos} className="w-9 h-9 flex items-center justify-center rounded-full text-stone-400 hover:text-stone-700 hover:bg-[#f1eef9] transition-colors shrink-0"><i className="fa-solid fa-xmark"></i></button>
+                        <button aria-label="Cerrar" onClick={cerrarModalCombos} className="w-9 h-9 flex items-center justify-center rounded-full text-stone-400 hover:text-stone-700 hover:bg-[#eef1fb] transition-colors shrink-0"><i className="fa-solid fa-xmark"></i></button>
                       </div>
 
                       <div className="flex-1 overflow-y-auto hide-scrollbar px-4 sm:px-7 py-5 sm:py-6">
@@ -360,11 +360,11 @@ export default function CombosModal({
                           <div><b className="block text-[26px] sm:text-[30px] font-bold tracking-tight leading-none">{nPausa}</b><span className="block text-[12.5px] text-stone-500 mt-1.5">Pausados</span></div>
                         </div>
                         <div className="flex flex-wrap items-center gap-3 mb-5">
-                          <label className="flex items-center gap-2.5 h-10 w-full sm:w-[280px] px-3.5 rounded-[10px] border border-[#e9e6f0] bg-white text-stone-400 focus-within:border-[#6105dc]">
+                          <label className="flex items-center gap-2.5 h-10 w-full sm:w-[280px] px-3.5 rounded-[10px] border border-[#e6e9f5] bg-white text-stone-400 focus-within:border-[#5b4bd6]">
                             <i className="fa-solid fa-magnifying-glass text-[13px]"></i>
                             <input type="text" autoComplete="off" placeholder="Buscar combo" value={busquedaCombos} onChange={(e) => setBusquedaCombos(e.target.value)} className="flex-1 min-w-0 bg-transparent text-[13.5px] text-stone-900 outline-none placeholder:text-stone-400" />
                           </label>
-                          <div className="flex w-full sm:w-auto bg-[#ece9f4] rounded-[10px] p-[3px] max-w-full overflow-x-auto hide-scrollbar">
+                          <div className="flex w-full sm:w-auto bg-[#e8ecf7] rounded-[10px] p-[3px] max-w-full overflow-x-auto hide-scrollbar">
                             {[['todos', 'Todos', filas.length], ['venta', 'En venta', nVenta], ['sinstock', 'Sin stock', nSin], ['pausado', 'Pausados', nPausa]].map(([k, t, n]) => (
                               <button key={k} type="button" onClick={() => setFiltroCombos(k)} className={`h-8 px-2 sm:px-3.5 flex-1 sm:flex-none justify-center rounded-[8px] text-[12px] sm:text-[13px] whitespace-nowrap flex items-center gap-1 sm:gap-1.5 transition ${filtroCombos === k ? 'bg-white text-stone-900 font-semibold shadow-[0_1px_3px_rgba(20,10,50,0.12)]' : 'text-stone-500 font-medium hover:text-stone-900'}`}>{t} <span className="text-[11.5px] text-stone-500 font-normal">{n}</span></button>
                             ))}
@@ -375,7 +375,7 @@ export default function CombosModal({
                           <p className="text-[13px] text-center py-10 text-stone-500">Cargando combos...</p>
                         ) : combos.length === 0 ? (
                           <div className="text-center max-w-xs mx-auto py-10 text-[13.5px] text-stone-500 leading-snug">
-                            <div className="w-16 h-16 rounded-2xl bg-white border border-[#e9e6f0] text-[#6105dc] grid place-items-center text-[26px] mx-auto mb-3"><i className="fa-solid fa-gift"></i></div>
+                            <div className="w-16 h-16 rounded-2xl bg-white border border-[#e6e9f5] text-[#5b4bd6] grid place-items-center text-[26px] mx-auto mb-3"><i className="fa-solid fa-gift"></i></div>
                             <b className="block text-base text-stone-900 mb-0.5">Todavía no tienes combos</b>
                             Junta varios {esBarberia ? 'servicios y productos' : 'productos'} en un paquete a precio especial. Toca «Nuevo combo» para crear el primero.
                           </div>
@@ -394,16 +394,16 @@ export default function CombosModal({
                               const enVenta = est === 'venta';
                               const fotos = items.slice(0, 3);
                               return (
-                                <div key={combo.id} className="bg-white rounded-2xl border border-[#e9e6f0] shadow-[0_1px_2px_rgba(20,10,50,0.04),0_12px_28px_-18px_rgba(20,10,50,0.18)] hover:shadow-[0_1px_2px_rgba(20,10,50,0.04),0_18px_36px_-16px_rgba(20,10,50,0.28)] hover:-translate-y-px flex flex-col overflow-hidden transition">
-                                  <div className={`relative grid gap-[2px] bg-[#e9e6f0] h-[132px] ${fotos.length >= 3 ? 'grid-cols-3' : fotos.length === 2 ? 'grid-cols-2' : 'grid-cols-1'} ${enVenta ? '' : 'opacity-60'}`}>
+                                <div key={combo.id} className="bg-white rounded-2xl border border-[#e6e9f5] shadow-[0_1px_2px_rgba(20,10,50,0.04),0_12px_28px_-18px_rgba(20,10,50,0.18)] hover:shadow-[0_1px_2px_rgba(20,10,50,0.04),0_18px_36px_-16px_rgba(20,10,50,0.28)] hover:-translate-y-px flex flex-col overflow-hidden transition">
+                                  <div className={`relative grid gap-[2px] bg-[#e6e9f5] h-[132px] ${fotos.length >= 3 ? 'grid-cols-3' : fotos.length === 2 ? 'grid-cols-2' : 'grid-cols-1'} ${enVenta ? '' : 'opacity-60'}`}>
                                     {fotos.map((ci, i) => (
-                                      <span key={ci.id || i} className="relative bg-gradient-to-br from-[#f6f4fb] to-[#e9e5f3] overflow-hidden [&_img]:object-contain [&_img]:mix-blend-multiply [&_img]:p-2.5">
+                                      <span key={ci.id || i} className="relative bg-gradient-to-br from-[#f4f6fc] to-[#e5e9f6] overflow-hidden [&_img]:object-contain [&_img]:mix-blend-multiply [&_img]:p-2.5">
                                         <FotoProducto fotoUrl={vivo(ci.producto_id)?.foto_url || ci.productos?.foto_url} categoria={vivo(ci.producto_id)?.categoria || ci.productos?.categoria} className="w-full h-full" iconClassName="text-2xl" />
-                                        {Number(ci.cantidad) > 1 && <em className="absolute right-1.5 bottom-1.5 not-italic bg-[#14121c] text-white rounded-full text-[10.5px] font-bold px-1.5">×{Number(ci.cantidad)}</em>}
+                                        {Number(ci.cantidad) > 1 && <em className="absolute right-1.5 bottom-1.5 not-italic bg-[#14172b] text-white rounded-full text-[10.5px] font-bold px-1.5">×{Number(ci.cantidad)}</em>}
                                       </span>
                                     ))}
-                                    {items.length > 3 && <em className="absolute right-3 top-3 not-italic bg-[#14121c] text-white rounded-full text-[11px] font-bold px-2 py-0.5">+{items.length - 3}</em>}
-                                    {enVenta && ahorro > 0.5 && <span className="absolute left-3 top-3 bg-[#ffc81a] text-[#14121c] text-[11.5px] font-bold rounded-full px-2.5 py-0.5 shadow-md">Ahorra {Math.round(ahorro)}%</span>}
+                                    {items.length > 3 && <em className="absolute right-3 top-3 not-italic bg-[#14172b] text-white rounded-full text-[11px] font-bold px-2 py-0.5">+{items.length - 3}</em>}
+                                    {enVenta && ahorro > 0.5 && <span className="absolute left-3 top-3 bg-[#ffc81a] text-[#14172b] text-[11.5px] font-bold rounded-full px-2.5 py-0.5 shadow-md">Ahorra {Math.round(ahorro)}%</span>}
                                     {!enVenta && <span className={`absolute left-3 top-3 text-[11.5px] font-semibold rounded-full px-2.5 py-0.5 bg-white/90 ${est === 'sinstock' ? 'text-[#c0262d]' : 'text-stone-600'}`}>{est === 'sinstock' ? 'Sin stock' : 'Pausado'}</span>}
                                   </div>
                                   <div className={`px-4 pt-4 pb-3 flex flex-col gap-2 flex-1 ${enVenta ? '' : 'opacity-70'}`}>
@@ -427,14 +427,14 @@ export default function CombosModal({
                                       <p className="text-[12.5px] text-stone-500">Con tu stock puedes vender hasta <b className="text-stone-800 font-semibold">{unidadesDe(e.unidades)}</b>.</p>
                                     )}
                                   </div>
-                                  <div className="flex items-center gap-1.5 pl-4 pr-3 py-2.5 border-t border-[#f0edf6]">
+                                  <div className="flex items-center gap-1.5 pl-4 pr-3 py-2.5 border-t border-[#eef0f9]">
                                     <button type="button" role="switch" aria-checked={enVenta} onClick={() => (est === 'sinstock' ? notificar('Se enciende solo cuando repongas el stock.', 'info') : alternarActivoCombo(combo))} className="flex items-center gap-2.5 whitespace-nowrap text-[13px] font-medium text-stone-700">
                                       <span className={`kz-sw ${enVenta ? 'on' : ''}`}><i></i></span>
                                       {enVenta ? 'En venta' : est === 'sinstock' ? 'Pausado por stock' : 'Pausado'}
                                     </button>
                                     <span className="flex-1"></span>
-                                    <button type="button" onClick={() => duplicarCombo(combo)} title="Duplicar" aria-label="Duplicar" className="w-8 h-8 rounded-[9px] text-stone-400 hover:text-[#6105dc] hover:bg-[#f4f0fd] grid place-items-center"><i className="fa-regular fa-copy text-[15px]"></i></button>
-                                    <button type="button" onClick={() => editarCombo(combo)} title="Editar" aria-label="Editar" className="w-8 h-8 rounded-[9px] text-stone-400 hover:text-[#6105dc] hover:bg-[#f4f0fd] grid place-items-center"><i className="fa-solid fa-pen text-[14px]"></i></button>
+                                    <button type="button" onClick={() => duplicarCombo(combo)} title="Duplicar" aria-label="Duplicar" className="w-8 h-8 rounded-[9px] text-stone-400 hover:text-[#5b4bd6] hover:bg-[#eff2fd] grid place-items-center"><i className="fa-regular fa-copy text-[15px]"></i></button>
+                                    <button type="button" onClick={() => editarCombo(combo)} title="Editar" aria-label="Editar" className="w-8 h-8 rounded-[9px] text-stone-400 hover:text-[#5b4bd6] hover:bg-[#eff2fd] grid place-items-center"><i className="fa-solid fa-pen text-[14px]"></i></button>
                                     <button type="button" onClick={() => eliminarCombo(combo)} title="Eliminar" aria-label="Eliminar" className="w-8 h-8 rounded-[9px] text-stone-400 hover:text-[#c0262d] hover:bg-[#fdf1f1] grid place-items-center"><i className="fa-solid fa-trash-can text-[14px]"></i></button>
                                   </div>
                                 </div>

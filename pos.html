@@ -12,7 +12,7 @@
   <link rel="icon" href="/favicon.svg" type="image/svg+xml">
   <link rel="icon" href="/icon-192.png" type="image/png" sizes="192x192">
   <link rel="apple-touch-icon" href="/apple-touch-icon.png">
-  <meta name="theme-color" content="#f6f3fd">
+  <meta name="theme-color" content="#f3f5fd">
   <!-- Sin esto, Chrome en Android con modo oscuro del sistema "fuerza"
        su propio oscurecimiento sobre fondos sin color explícito -- se ve
        como franjas negras en las esquinas redondeadas del login. -->
@@ -155,7 +155,7 @@
       font-family: 'Inter', system-ui, sans-serif;
       background:
         radial-gradient(70% 45% at 50% 42%, rgba(160, 110, 255, 0.5) 0%, rgba(160, 110, 255, 0) 70%),
-        linear-gradient(165deg, #6c22ee 0%, #4a0cb8 100%);
+        linear-gradient(165deg, #5b4bd6 0%, #3b3466 100%);
       contain: strict;
       transition: opacity 0.3s ease, transform 0.3s ease, visibility 0.3s ease;
     }
@@ -220,11 +220,11 @@
     .login-brand-mesh {
       background:
         radial-gradient(70% 45% at 50% 42%, rgba(160, 110, 255, 0.5) 0%, rgba(160, 110, 255, 0) 70%),
-        linear-gradient(165deg, #6c22ee 0%, #4a0cb8 100%);
+        linear-gradient(165deg, #5b4bd6 0%, #3b3466 100%);
     }
     /* Eslogan bajo el logo (carga e inicio de sesion). Una sola regla para los dos, así miden exactamente lo mismo. */
-    .lema-kaserita { margin: -0.75rem 0 0; text-align: center; font-size: 0.9375rem; font-weight: 700; letter-spacing: -0.005em; color: #4d04b0; }
-    .lema-kaserita b { font-weight: 800; color: #1c1830; background: #FFC81A; border-radius: 6px; padding: 1px 7px; }
+    .lema-kaserita { margin: -0.75rem 0 0; text-align: center; font-size: 0.9375rem; font-weight: 700; letter-spacing: -0.005em; color: #2d284b; }
+    .lema-kaserita b { font-weight: 800; color: #2d284b; background: #FFC81A; border-radius: 6px; padding: 1px 7px; }
     /* Sobre el panel violeta del login el lema va en blanco (el "bajo" sigue en amarillo). */
     .login-brand-mesh .lema-kaserita { margin: 0; color: rgba(255, 255, 255, 0.92); text-shadow: 0 1px 12px rgba(40, 0, 110, 0.35); }
     @media (min-width: 768px) { .lema-kaserita { font-size: 1.0625rem; } }

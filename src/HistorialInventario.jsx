@@ -25,7 +25,7 @@ export default function HistorialInventario({
     <>
               {modalHistorialInventario && (
                 <div className="fixed inset-0 bg-stone-900/30 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-                  <div className="bg-gradient-to-br from-[#f4effc] via-[#f9f8fb] to-[#f5f4f8] border border-white/80 rounded-[28px] max-w-lg w-full p-5 shadow-2xl space-y-3 max-h-[90vh] flex flex-col">
+                  <div className="bg-gradient-to-br from-[#eef1fb] via-[#f8f9fd] to-[#f4f5fa] border border-white/80 rounded-[28px] max-w-lg w-full p-5 shadow-2xl space-y-3 max-h-[90vh] flex flex-col">
                     <div className="flex justify-between items-center shrink-0">
                       <h3 className="text-lg font-bold text-stone-900 flex items-center gap-2">
                         <i className="fa-solid fa-scale-balanced text-orange-600"></i> Historial de Inventario

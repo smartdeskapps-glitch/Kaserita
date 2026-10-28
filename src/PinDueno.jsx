@@ -16,7 +16,7 @@ export default function PinDueno({
               {/* Modal: cambiar el PIN de acceso de la cuenta del dueño */}
               {modalPinDueno && (
                 <div className="fixed inset-0 bg-stone-900/30 backdrop-blur-sm flex items-center justify-center z-[60] p-4">
-                  <div className="bg-gradient-to-br from-[#f4effc] via-[#f9f8fb] to-[#f5f4f8] border border-white/80 rounded-[28px] max-w-xs w-full p-5 shadow-2xl space-y-3">
+                  <div className="bg-gradient-to-br from-[#eef1fb] via-[#f8f9fd] to-[#f4f5fa] border border-white/80 rounded-[28px] max-w-xs w-full p-5 shadow-2xl space-y-3">
                     <h3 className="text-sm font-bold text-stone-900 flex items-center gap-2">
                       <i className="fa-solid fa-key text-orange-600"></i> Cambiar mi PIN de acceso
                     </h3>
@@ -32,7 +32,7 @@ export default function PinDueno({
                         value={formPinDueno[campo]}
                         onChange={(e) => setFormPinDueno((f) => ({ ...f, [campo]: e.target.value }))}
                         placeholder={etiqueta}
-                        className="w-full bg-white border border-stone-200 rounded-xl px-3 py-2.5 text-sm text-stone-900 focus:outline-none focus:ring-2 focus:ring-[#d6bdfa]"
+                        className="w-full bg-white border border-stone-200 rounded-xl px-3 py-2.5 text-sm text-stone-900 focus:outline-none focus:ring-2 focus:ring-[#c5bcff]"
                       />
                     ))}
                     <div className="flex gap-2">

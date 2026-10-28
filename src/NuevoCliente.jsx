@@ -13,7 +13,7 @@ export default function NuevoCliente({
     <>
               {modalNuevoCliente && (
                 <div className="fixed inset-0 bg-stone-900/30 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-                  <div className="bg-gradient-to-br from-[#f4effc] via-[#f9f8fb] to-[#f5f4f8] border border-white/80 rounded-[28px] max-w-sm w-full p-5 shadow-2xl space-y-3">
+                  <div className="bg-gradient-to-br from-[#eef1fb] via-[#f8f9fd] to-[#f4f5fa] border border-white/80 rounded-[28px] max-w-sm w-full p-5 shadow-2xl space-y-3">
                     <div className="flex justify-between items-center">
                       <h3 className="text-lg font-bold text-stone-900"><i className="fa-solid fa-user-plus mr-1.5"></i> Registrar cliente</h3>
                       <button aria-label="Cerrar" onClick={() => setModalNuevoCliente(false)} className="w-8 h-8 rounded-full bg-white/70 hover:bg-white text-stone-500 hover:text-stone-900 shadow-sm"><i className="fa-solid fa-xmark"></i></button>
@@ -70,7 +70,7 @@ export default function NuevoCliente({
                           className="w-full bg-white border border-stone-200/70 shadow-sm rounded-full px-3 py-1.5 text-sm font-bold text-orange-600"
                         />
                       </div>
-                      <button type="submit" className="w-full py-2.5 bg-[#6105dc] hover:bg-[#4d04b0] text-white font-bold text-xs rounded-full shadow mt-2">
+                      <button type="submit" className="w-full py-2.5 bg-[#5b4bd6] hover:bg-[#473bb5] text-white font-bold text-xs rounded-full shadow mt-2">
                         Guardar cliente
                       </button>
                     </form>

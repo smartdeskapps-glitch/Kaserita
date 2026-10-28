@@ -44,7 +44,7 @@ export default function TomaInventario({
     <>
               {modalTomaInventario && (
                 <div className="fixed inset-0 bg-stone-900/30 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-                  <div className="bg-gradient-to-br from-[#f4effc] via-[#f9f8fb] to-[#f5f4f8] border border-white/80 rounded-[28px] max-w-2xl w-full p-5 shadow-2xl space-y-3 max-h-[90vh] flex flex-col">
+                  <div className="bg-gradient-to-br from-[#eef1fb] via-[#f8f9fd] to-[#f4f5fa] border border-white/80 rounded-[28px] max-w-2xl w-full p-5 shadow-2xl space-y-3 max-h-[90vh] flex flex-col">
                     <div className="flex justify-between items-start shrink-0">
                       <div>
                         <h3 className="text-lg font-bold text-stone-900 flex items-center gap-2">
@@ -205,7 +205,7 @@ export default function TomaInventario({
                                       </div>
                                       <span className="text-xs font-bold text-orange-600 ml-auto shrink-0">= {totalPendiente} und</span>
                                     </div>
-                                    <button onClick={() => agregarHallazgo(f.productoId)} className="w-full py-1.5 bg-[#6105dc] hover:bg-[#4d04b0] text-white rounded-full text-[11px] font-bold">
+                                    <button onClick={() => agregarHallazgo(f.productoId)} className="w-full py-1.5 bg-[#5b4bd6] hover:bg-[#473bb5] text-white rounded-full text-[11px] font-bold">
                                       <i className="fa-solid fa-plus"></i> Agregar
                                     </button>
                                   </div>
@@ -250,7 +250,7 @@ export default function TomaInventario({
                         <button
                           onClick={continuarARevisionInventario}
                           disabled={filasTomaInventario.length === 0}
-                          className="w-full py-2.5 bg-[#6105dc] hover:bg-[#4d04b0] disabled:opacity-50 text-white font-bold text-xs rounded-full shadow shrink-0"
+                          className="w-full py-2.5 bg-[#5b4bd6] hover:bg-[#473bb5] disabled:opacity-50 text-white font-bold text-xs rounded-full shadow shrink-0"
                         >
                           {filasTomaInventario.length === 0 ? 'Agrega al menos un producto' : `Continuar a Revisión (${filasTomaInventario.length})`}
                           {filasTomaInventario.length > 0 && <i className="fa-solid fa-arrow-right ml-1.5"></i>}
@@ -312,14 +312,14 @@ export default function TomaInventario({
                         <div className="flex gap-2 shrink-0">
                           <button
                             onClick={() => setPasoTomaInventario('conteo')}
-                            className="py-2.5 px-4 bg-white/70 hover:bg-[#ece0fd] text-stone-600 font-bold text-xs rounded-full shrink-0 shadow-sm"
+                            className="py-2.5 px-4 bg-white/70 hover:bg-[#dde4fa] text-stone-600 font-bold text-xs rounded-full shrink-0 shadow-sm"
                           >
                             <i className="fa-solid fa-arrow-left mr-1.5"></i> Seguir contando
                           </button>
                           <button
                             onClick={guardarTomaInventario}
                             disabled={guardandoTomaInventario}
-                            className="flex-1 py-2.5 bg-[#6105dc] hover:bg-[#4d04b0] disabled:opacity-50 text-white font-bold text-xs rounded-full shadow"
+                            className="flex-1 py-2.5 bg-[#5b4bd6] hover:bg-[#473bb5] disabled:opacity-50 text-white font-bold text-xs rounded-full shadow"
                           >
                             {guardandoTomaInventario ? 'Guardando...' : 'Guardar y Ajustar Stock'}
                           </button>
