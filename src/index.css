@@ -612,7 +612,7 @@
   letter-spacing: 0.01em;
   color: #fff;
   pointer-events: none;
-  background: linear-gradient(100deg, rgba(255, 255, 255, 0.65) 20%, #fff 40%, rgba(255, 255, 255, 0.65) 60%);
+  background: linear-gradient(100deg, rgba(255, 255, 255, 0.9) 20%, #fff 40%, rgba(255, 255, 255, 0.9) 60%);
   background-size: 220% 100%;
   -webkit-background-clip: text;
   background-clip: text;
