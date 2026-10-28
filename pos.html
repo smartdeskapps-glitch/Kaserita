@@ -139,9 +139,9 @@
 
     /* Splash screen: puro HTML/CSS, visible desde el primer instante (antes
        de que React y Supabase terminen de descargarse), para que nunca se vea
-       una pantalla en blanco mientras carga. Simple a propósito: violeta
-       profundo con un leve resplandor detrás del logo (blanco con acento
-       amarillo) y tres puntos que pulsan. Sin manchas animadas ni frases. */
+       una pantalla en blanco mientras carga. Simple a propósito: degradado
+       violeta de la marca con un leve resplandor detrás del logo (blanco con
+       acento amarillo) y tres puntos que pulsan. Sin manchas animadas ni frases. */
     #splash-kaserita {
       position: fixed;
       inset: 0;
@@ -154,8 +154,8 @@
       color: #fff;
       font-family: 'Inter', system-ui, sans-serif;
       background:
-        radial-gradient(60% 40% at 50% 40%, rgba(110, 70, 235, 0.45) 0%, rgba(110, 70, 235, 0) 70%),
-        linear-gradient(170deg, #26106f 0%, #140744 100%);
+        radial-gradient(70% 45% at 50% 42%, rgba(160, 110, 255, 0.5) 0%, rgba(160, 110, 255, 0) 70%),
+        linear-gradient(165deg, #6c22ee 0%, #4a0cb8 100%);
       contain: strict;
       transition: opacity 0.5s ease, transform 0.5s ease, visibility 0.5s ease;
     }
