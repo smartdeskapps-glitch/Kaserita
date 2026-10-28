@@ -4,25 +4,26 @@ import { fechaHoyISO } from './PanelAdminCompartido.jsx';
 // Modal del dashboard de ventas (solo Administrador). Vive aparte y se carga al abrirlo
 // (React.lazy en main.jsx) para no pesar en el arranque del POS. El estado y la carga de
 // datos siguen en PosApp: aquí solo se dibuja lo que recibe por props.
-// Modal: Dashboard de Ventas (detallado). Estilo "cristal suave": fondo
-// lavanda con degradado, tarjetas blancas translúcidas de esquinas
-// muy redondeadas, cifras grandes y ligeras, el morado de la marca
-// como único acento (la barra más alta se resalta con degradado) y
-// verde/rojo solo para variaciones y deudas. El encabezado con los
+// Modal: Dashboard de Ventas (detallado). Estilo sereno: fondo con niebla de
+// color, tarjetas blancas translúcidas de esquinas redondeadas, texto pequeño
+// y ordenado, la paleta Crocus Purple / Ebony Clay / Titan White como único
+// acento (la hora pico y el mejor día se resaltan) y verde/rojo solo para
+// variaciones y deudas. El encabezado con los
 // filtros queda fijo y solo el contenido hace scroll.
 
 // Colores consistentes por medio de pago, usados en la dona y la leyenda.
 // Tonos del morado de la marca para los medios digitales y grises para el
 // resto, en vez de un color distinto por medio.
 const COLOR_MEDIO_PAGO = {
-  EFECTIVO: '#3b0f8c',
-  YAPE: '#6105dc',
-  PLIN: '#a26df0',
+  EFECTIVO: '#2D284B',
+  YAPE: '#9687F5',
+  PLIN: '#c5bcff',
   TARJETA: '#57534e',
   CREDITO: '#a8a29e',
   MIXTO: '#78716c',
   OTRO: '#d6d3d1'
 };
+const iniciales = (t) => String(t || '').trim().split(/\s+/).slice(0, 2).map((w) => w[0] || '').join('').toUpperCase();
 const NOMBRE_MEDIO_DIA = (medio) => medio.charAt(0) + medio.slice(1).toLowerCase();
 
 const MESES_CORTOS = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Set', 'Oct', 'Nov', 'Dic'];
@@ -60,19 +61,18 @@ export default function DashboardVentas({
   VariacionPct,
 }) {
   return (
-        <div className="fixed inset-0 bg-stone-900/30 backdrop-blur-sm flex items-center justify-center z-50 p-2 md:p-4">
-          <div className="bg-gradient-to-br from-[#f4effc] via-[#f9f8fb] to-[#f5f4f8] border border-white/80 rounded-[28px] max-w-6xl w-full max-h-[95vh] flex flex-col overflow-hidden shadow-2xl">
+        <div className="fixed inset-0 bg-stone-900/30 md:backdrop-blur-sm flex items-center justify-center z-50 p-2 md:p-4">
+          <div className="dsh-panel border border-white/80 rounded-[28px] max-w-6xl w-full max-h-[95vh] flex flex-col overflow-hidden shadow-2xl">
             <div className="shrink-0 px-5 md:px-7 pt-6 pb-4 space-y-4">
               <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0">
-                  <h3 className="text-2xl md:text-3xl font-medium text-stone-900 tracking-tight">Dashboard de <span className="text-[#6105dc]">ventas</span></h3>
-                  <p className="text-xs text-stone-500 mt-1.5 flex items-center gap-1.5">
-                    <i className="fa-regular fa-circle-question text-stone-400"></i>
+                  <h3 className="text-2xl md:text-[28px] font-normal text-[#2D284B] tracking-tight">Dashboard de <span className="text-[#5b4bd6]">ventas</span></h3>
+                  <p className="text-xs text-[#6b6890] mt-1.5">
                     Del {String(fechaInicioDash).split('-').reverse().join('/')} al {String(fechaFinDash).split('-').reverse().join('/')}
-                    {dashStats.numVentas > 0 && <> · <span className="text-[#6105dc] font-semibold">{dashStats.numVentas} venta{dashStats.numVentas === 1 ? '' : 's'}</span></>}
+                    {dashStats.numVentas > 0 && <> · <span className="text-[#5b4bd6] font-semibold">{dashStats.numVentas} venta{dashStats.numVentas === 1 ? '' : 's'}</span></>}
                   </p>
                 </div>
-                <button onClick={() => setModalDashboard(false)} className="w-10 h-10 rounded-full bg-white/80 hover:bg-white text-stone-600 hover:text-stone-900 shadow-sm flex items-center justify-center shrink-0" aria-label="Cerrar">
+                <button onClick={() => setModalDashboard(false)} className="w-10 h-10 rounded-full bg-white/80 hover:bg-white text-[#2D284B] shadow-sm flex items-center justify-center shrink-0" aria-label="Cerrar">
                   <i className="fa-solid fa-xmark"></i>
                 </button>
               </div>
@@ -83,14 +83,15 @@ export default function DashboardVentas({
                 setHasta={setFechaFinDash}
                 onRango={cargarDashboard}
                 diasAtras={7}
+                tema="dsh"
               >
                 {dashStats.numVentas > 0 && (
                   <button
                     onClick={exportarDashboardExcel}
-                    className="px-4 py-1.5 bg-white hover:bg-stone-50 text-stone-700 text-xs font-semibold rounded-full shadow-sm flex items-center gap-1.5 ml-auto"
+                    className="px-4 py-1.5 bg-white hover:bg-[#EBF0FF] text-[#2D284B] text-xs font-semibold rounded-full shadow-sm flex items-center gap-1.5 ml-auto"
                     title="Exportar a Excel"
                   >
-                    <i className="fa-solid fa-file-excel text-[#6105dc]"></i> Excel
+                    <i className="fa-solid fa-file-excel text-[#5b4bd6]"></i> Excel
                   </button>
                 )}
               </FiltroFechasRapido>
@@ -103,145 +104,151 @@ export default function DashboardVentas({
               <p className="text-xs text-center py-10 text-stone-500">No hay ventas registradas en ese rango.</p>
             ) : (
               <>
-                <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
-                  {/* Métricas: 4 mosaicos con el ícono en un círculo */}
-                  <section className="lg:col-span-5 bg-white/60 backdrop-blur-xl border border-white/80 rounded-3xl shadow-[0_10px_40px_-14px_rgba(97,5,220,0.18)] p-5">
-                    <h4 className="text-sm font-semibold text-stone-800">Métricas del período</h4>
-                    <div className="grid grid-cols-2 gap-3 mt-4">
+                <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 items-start">
+                  {/* Izquierda: venta total, productos y combos */}
+                  <div className="lg:col-span-5 space-y-4 min-w-0">
+                    <section className="dsh-card dsh-hero p-5">
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="flex items-center gap-2.5 text-xs font-medium text-[#6b6890]">
+                          <span className="dsh-ib"><i className="fa-solid fa-receipt text-[12px]"></i></span>Venta total
+                        </span>
+                        {dashStats.horaPico.total > 0 && (
+                          <span className="text-[11px] text-[#6b6890]">Hora pico <b className="text-[#5b4bd6] font-semibold">{String(dashStats.horaPico.hora).padStart(2, '0')}:00</b></span>
+                        )}
+                      </div>
+                      <p className="mt-3 text-[40px] md:text-[44px] font-normal tracking-tight tabular-nums text-[#2D284B] leading-none">
+                        <small className="text-xl font-light text-[#8f8cb0] mr-1.5">S/</small>{formatoSoles(dashStats.totalVenta)}
+                      </p>
+                      <div className="mt-3.5 flex flex-wrap items-center gap-2.5">
+                        <VariacionPct pct={dashStats.hayBaseVentaAnterior ? dashStats.cambioVentaPct : null} />
+                        <span className="dsh-chip">{dashStats.numVentas} venta{dashStats.numVentas === 1 ? '' : 's'}</span>
+                      </div>
+                    </section>
+
+                    <section className="dsh-card p-5">
+                      <h4 className="text-xs font-medium text-[#6b6890]">Productos más vendidos</h4>
+                      <p className="text-[11px] text-[#8f8cb0] mt-0.5">Por monto vendido en el período</p>
+                      <ol className="mt-2">
+                        {dashStats.topProductos.map((p, i) => (
+                          <li key={p.descripcion + i} className="flex items-center gap-3 py-2.5 border-t border-[#dde4fa] first:border-t-0">
+                            <span className={`w-[34px] h-[34px] rounded-full flex items-center justify-center text-[11.5px] font-semibold shrink-0 ${i === 0 ? 'bg-[#2D284B] text-white' : 'bg-[#5b4bd6]/10 text-[#5b4bd6]'}`}>{iniciales(p.descripcion)}</span>
+                            <div className="flex-1 min-w-0">
+                              <div className="flex justify-between items-baseline gap-3">
+                                <span className="text-[13px] font-medium text-[#2D284B] truncate">{p.descripcion}</span>
+                                <span className="text-[13px] font-semibold text-[#2D284B] tabular-nums shrink-0">S/ {formatoSoles(p.monto)}</span>
+                              </div>
+                              <div className="w-full h-1 bg-[#e6ebfb] rounded-full overflow-hidden mt-1.5">
+                                <div className="h-full bg-gradient-to-r from-[#c5bcff] to-[#9687F5] rounded-full" style={{ width: `${(p.monto / dashStats.maxProducto) * 100}%` }}></div>
+                              </div>
+                              <p className="text-[11px] text-[#6b6890] mt-1">
+                                {p.cantidad} und · utilidad <span className="text-emerald-600 font-semibold tabular-nums">S/ {formatoSoles(p.utilidad)}</span>
+                              </p>
+                            </div>
+                          </li>
+                        ))}
+                      </ol>
+                    </section>
+
+                    {combosVendidos.length > 0 && (
+                      <section className="dsh-card dsh-combo p-5 text-white">
+                        <h4 className="text-xs font-medium text-white/85">Combos vendidos</h4>
+                        <ul className="mt-2">
+                          {combosVendidos.map((c) => {
+                            const margen = c.monto > 0 ? (c.utilidad / c.monto) * 100 : 0;
+                            return (
+                              <li key={c.id} className="relative flex items-center justify-between gap-3 py-2.5 border-t border-white/15 first:border-t-0">
+                                <div className="min-w-0">
+                                  <p className="text-sm font-medium truncate">{c.nombre}</p>
+                                  <p className="text-[11px] text-white/80">{c.unidades} combo{c.unidades === 1 ? '' : 's'} · ganancia <span className={`font-semibold tabular-nums ${margen < 10 ? 'text-amber-300' : 'text-white'}`}>S/ {formatoSoles(c.utilidad)} ({margen.toFixed(margen < 10 ? 1 : 0)}%)</span></p>
+                                </div>
+                                <span className="text-sm font-semibold tabular-nums shrink-0">S/ {formatoSoles(c.monto)}</span>
+                              </li>
+                            );
+                          })}
+                        </ul>
+                      </section>
+                    )}
+                  </div>
+
+                  {/* Derecha: métricas, actividad por hora y métodos de pago */}
+                  <div className="lg:col-span-7 space-y-4 min-w-0">
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                       {[
-                        { etiqueta: 'Utilidad', valor: `S/ ${formatoSoles(dashStats.totalUtilidad)}`, icono: 'fa-arrow-trend-up', pct: dashStats.hayBaseUtilidadAnterior ? dashStats.cambioUtilidadPct : null },
-                        { etiqueta: 'Costo', valor: `S/ ${formatoSoles(dashStats.totalCosto)}`, icono: 'fa-coins' },
-                        { etiqueta: 'Margen', valor: `${dashStats.margenPct.toFixed(1)}%`, icono: 'fa-percent' },
-                        { etiqueta: 'Ticket promedio', valor: `S/ ${formatoSoles(dashStats.ticketPromedio)}`, icono: 'fa-receipt' },
+                        { etiqueta: 'Utilidad', valor: `S/ ${formatoSoles(dashStats.totalUtilidad)}`, pct: dashStats.hayBaseUtilidadAnterior ? dashStats.cambioUtilidadPct : null },
+                        { etiqueta: 'Costo', valor: `S/ ${formatoSoles(dashStats.totalCosto)}` },
+                        { etiqueta: 'Margen', valor: `${dashStats.margenPct.toFixed(1)}%` },
+                        { etiqueta: 'Ticket promedio', valor: `S/ ${formatoSoles(dashStats.ticketPromedio)}` },
                       ].map((d) => (
-                        <div key={d.etiqueta} className="bg-white/80 rounded-2xl p-4 shadow-sm">
-                          <div className="flex items-start justify-between gap-2">
-                            <p className="text-xl xl:text-2xl font-medium text-stone-900 tracking-tight tabular-nums leading-tight whitespace-nowrap">{d.valor}</p>
-                            <span className="w-8 h-8 rounded-full bg-[#f4eefe] text-[#6105dc] flex items-center justify-center shrink-0">
-                              <i className={`fa-solid ${d.icono} text-xs`}></i>
-                            </span>
-                          </div>
-                          <p className="text-xs text-stone-500 mt-2">{d.etiqueta}</p>
+                        <div key={d.etiqueta} className="dsh-card p-4 min-w-0">
+                          <p className="text-[11px] font-medium text-[#6b6890]">{d.etiqueta}</p>
+                          <p className="text-[17px] xl:text-lg font-medium text-[#2D284B] tracking-tight tabular-nums mt-1 whitespace-nowrap">{d.valor}</p>
                           {d.pct != null && <div className="mt-1"><VariacionPct pct={d.pct} corto /></div>}
                         </div>
                       ))}
                     </div>
-                  </section>
 
-                  {/* Venta total + ventas por hora: la hora pico se resalta */}
-                  <section className="lg:col-span-7 bg-white/60 backdrop-blur-xl border border-white/80 rounded-3xl shadow-[0_10px_40px_-14px_rgba(97,5,220,0.18)] p-5">
-                    <div className="flex flex-wrap items-start justify-between gap-2">
-                      <div>
-                        <h4 className="text-sm font-semibold text-stone-800">Venta total</h4>
-                        <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1 mt-2">
-                          <span className="text-4xl md:text-5xl font-medium text-stone-900 tracking-tight tabular-nums">S/ {formatoSoles(dashStats.totalVenta)}</span>
-                          <VariacionPct pct={dashStats.hayBaseVentaAnterior ? dashStats.cambioVentaPct : null} />
+                    <section className="dsh-card p-5">
+                      <div className="flex items-center justify-between gap-2">
+                        <h4 className="text-xs font-medium text-[#6b6890]">Actividad por hora</h4>
+                        {dashStats.horaPico.total > 0 && (
+                          <span className="text-[11px] text-[#6b6890]">{((dashStats.horaPico.total / dashStats.totalVenta) * 100).toFixed(0)}% de las ventas en la hora pico</span>
+                        )}
+                      </div>
+                      <div className="flex items-end gap-4 mt-3">
+                        <p className="shrink-0 text-[30px] font-light tracking-tight tabular-nums text-[#2D284B] leading-none pb-5">
+                          {dashStats.horaPico.total > 0 ? String(dashStats.horaPico.hora).padStart(2, '0') : '--'}<small className="text-[15px] text-[#8f8cb0]">:00</small>
+                        </p>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-end gap-[3px] h-28" onMouseLeave={() => setHoraResaltada(null)}>
+                            {dashStats.porHora.map((h, i) => {
+                              const esPico = dashStats.horaPico.total > 0 && h.hora === dashStats.horaPico.hora;
+                              const activa = horaResaltada === i;
+                              return (
+                                <div key={h.hora} className="relative flex-1 h-full flex items-end justify-center" onMouseEnter={() => setHoraResaltada(i)}>
+                                  {activa && h.total > 0 && (
+                                    <div className={`absolute bottom-full mb-1.5 bg-[#2D284B] text-white text-[11px] rounded-lg px-2.5 py-1.5 whitespace-nowrap pointer-events-none z-20 shadow-lg ${i < 3 ? 'left-0' : i > 20 ? 'right-0' : 'left-1/2 -translate-x-1/2'}`}>
+                                      <div className="font-bold">{String(h.hora).padStart(2, '0')}:00 · S/ {formatoSoles(h.total)}</div>
+                                      <div className="text-[#c5bcff]">{h.cantidad} venta{h.cantidad === 1 ? '' : 's'}</div>
+                                    </div>
+                                  )}
+                                  <div
+                                    className={`w-full max-w-[12px] rounded-full transition-colors duration-200 ${esPico ? 'dsh-pico' : activa ? 'bg-[#c5bcff]' : 'bg-[#5b4bd6]/15'}`}
+                                    style={{ height: `${Math.max(7, (h.total / dashStats.maxHora) * 100)}%` }}
+                                  ></div>
+                                </div>
+                              );
+                            })}
+                          </div>
+                          <div className="flex gap-[3px] mt-2 text-[10px] text-[#8f8cb0]">
+                            {dashStats.porHora.map((h) => (
+                              <span key={h.hora} className={`flex-1 text-center whitespace-nowrap ${dashStats.horaPico.total > 0 && h.hora === dashStats.horaPico.hora ? 'font-bold text-[#5b4bd6]' : ''}`}>{h.hora % 3 === 0 ? `${h.hora}h` : ''}</span>
+                            ))}
+                          </div>
                         </div>
                       </div>
-                      {dashStats.horaPico.total > 0 && (
-                        <p className="text-xs text-stone-500 sm:text-right">
-                          Hora pico <span className="font-semibold text-[#6105dc]">{String(dashStats.horaPico.hora).padStart(2, '0')}:00</span><br />
-                          {((dashStats.horaPico.total / dashStats.totalVenta) * 100).toFixed(0)}% de las ventas
-                        </p>
-                      )}
-                    </div>
+                    </section>
 
-                    <div className="flex items-end gap-[3px] h-40 mt-6" onMouseLeave={() => setHoraResaltada(null)}>
-                      {dashStats.porHora.map((h, i) => {
-                        const esPico = dashStats.horaPico.total > 0 && h.hora === dashStats.horaPico.hora;
-                        const activa = horaResaltada === i;
-                        return (
-                          <div key={h.hora} className="relative flex-1 h-full flex items-end" onMouseEnter={() => setHoraResaltada(i)}>
-                            {activa && h.total > 0 && (
-                              <div className={`absolute bottom-full mb-1.5 bg-stone-900 text-white text-[11px] rounded-lg px-2.5 py-1.5 whitespace-nowrap pointer-events-none z-20 shadow-lg ${i < 3 ? 'left-0' : i > 20 ? 'right-0' : 'left-1/2 -translate-x-1/2'}`}>
-                                <div className="font-bold">{String(h.hora).padStart(2, '0')}:00 · S/ {formatoSoles(h.total)}</div>
-                                <div className="text-stone-300">{h.cantidad} venta{h.cantidad === 1 ? '' : 's'}</div>
-                              </div>
-                            )}
-                            <div
-                              className={`w-full rounded-t-xl rounded-b-md transition-colors duration-200 ${esPico ? 'bg-gradient-to-t from-[#6105dc] to-[#b98cf5] shadow-[0_10px_24px_-8px_rgba(97,5,220,0.55)]' : activa ? 'bg-[#d6bdfa]' : 'bg-white'}`}
-                              style={{ height: `${Math.max(4, (h.total / dashStats.maxHora) * 100)}%` }}
-                            ></div>
-                          </div>
-                        );
-                      })}
-                    </div>
-                    <div className="flex gap-[3px] mt-2 text-[10px] text-stone-400">
-                      {dashStats.porHora.map((h) => (
-                        <span key={h.hora} className={`flex-1 text-center whitespace-nowrap ${dashStats.horaPico.total > 0 && h.hora === dashStats.horaPico.hora ? 'font-bold text-[#6105dc]' : ''}`}>{h.hora % 3 === 0 ? `${h.hora}h` : ''}</span>
-                      ))}
-                    </div>
-                  </section>
-                </div>
-
-                <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
-                  {/* Métodos de pago */}
-                  <section className="lg:col-span-5 bg-white/60 backdrop-blur-xl border border-white/80 rounded-3xl shadow-[0_10px_40px_-14px_rgba(97,5,220,0.18)] p-5">
-                    <h4 className="text-sm font-semibold text-stone-800">Métodos de pago</h4>
-                    <p className="text-xs text-stone-500 mt-0.5">Cómo pagaron tus clientes</p>
-                    <div className="flex h-3 rounded-full overflow-hidden bg-white/80 mt-5">
-                      {dashStats.porMedio.map(m => (
-                        <div key={m.medio} title={`${m.medio}: ${m.pct.toFixed(0)}%`} style={{ width: `${m.pct}%`, background: COLOR_MEDIO_PAGO[m.medio] || '#d6d3d1' }}></div>
-                      ))}
-                    </div>
-                    <ul className="mt-5 space-y-2">
-                      {dashStats.porMedio.map(m => (
-                        <li key={m.medio} className="flex items-center gap-3 bg-white/80 rounded-2xl px-3.5 py-2.5 text-sm shadow-sm">
-                          <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ background: COLOR_MEDIO_PAGO[m.medio] || '#d6d3d1' }}></span>
-                          <span className="flex-1 min-w-0 truncate font-medium text-stone-800 capitalize">{m.medio.toLowerCase()}</span>
-                          <span className="font-semibold text-stone-900 tabular-nums">S/ {formatoSoles(m.total)}</span>
-                          <span className="w-10 text-right text-xs text-stone-500 tabular-nums">{m.pct.toFixed(0)}%</span>
-                        </li>
-                      ))}
-                    </ul>
-                  </section>
-
-                  {/* Top productos */}
-                  <section className="lg:col-span-7 bg-white/60 backdrop-blur-xl border border-white/80 rounded-3xl shadow-[0_10px_40px_-14px_rgba(97,5,220,0.18)] p-5">
-                    <h4 className="text-sm font-semibold text-stone-800">Productos más vendidos</h4>
-                    <p className="text-xs text-stone-500 mt-0.5">Por monto vendido en el período</p>
-                    <ol className="mt-4 space-y-2">
-                      {dashStats.topProductos.map((p, i) => (
-                        <li key={p.descripcion + i} className="flex items-center gap-3 bg-white/80 rounded-2xl px-3.5 py-2.5 shadow-sm">
-                          <span className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-semibold shrink-0 ${i === 0 ? 'bg-[#6105dc] text-white' : 'bg-[#f4eefe] text-[#6105dc]'}`}>{i + 1}</span>
-                          <div className="flex-1 min-w-0">
-                            <div className="flex justify-between items-baseline gap-3">
-                              <span className="text-sm font-medium text-stone-900 truncate">{p.descripcion}</span>
-                              <span className="text-sm font-semibold text-stone-900 tabular-nums shrink-0">S/ {formatoSoles(p.monto)}</span>
-                            </div>
-                            <div className="w-full h-1 bg-stone-100 rounded-full overflow-hidden mt-1.5">
-                              <div className="h-full bg-gradient-to-r from-[#a26df0] to-[#6105dc] rounded-full" style={{ width: `${(p.monto / dashStats.maxProducto) * 100}%` }}></div>
-                            </div>
-                            <p className="text-[11px] text-stone-500 mt-1">
-                              {p.cantidad} und · utilidad <span className="text-emerald-600 font-semibold tabular-nums">S/ {formatoSoles(p.utilidad)}</span>
-                            </p>
-                          </div>
-                        </li>
-                      ))}
-                    </ol>
-                  </section>
-                </div>
-
-                {combosVendidos.length > 0 && (
-                  <section className="bg-white/60 backdrop-blur-xl border border-white/80 rounded-3xl shadow-[0_10px_40px_-14px_rgba(97,5,220,0.18)] p-5">
-                    <h4 className="text-sm font-semibold text-stone-800">Combos vendidos</h4>
-                    <p className="text-xs text-stone-500 mt-0.5">Unidades, ventas y ganancia de cada combo en el período</p>
-                    <ul className="mt-4 space-y-2">
-                      {combosVendidos.map((c) => {
-                        const margen = c.monto > 0 ? (c.utilidad / c.monto) * 100 : 0;
-                        return (
-                          <li key={c.id} className="flex items-center justify-between gap-3 bg-white/80 rounded-2xl px-3.5 py-2.5 shadow-sm">
-                            <div className="min-w-0">
-                              <p className="text-sm font-medium text-stone-900 truncate">{c.nombre}</p>
-                              <p className="text-[11px] text-stone-500">{c.unidades} combo{c.unidades === 1 ? '' : 's'} · ganancia <span className={`font-semibold tabular-nums ${margen < 10 ? 'text-amber-600' : 'text-emerald-600'}`}>S/ {formatoSoles(c.utilidad)} ({margen.toFixed(margen < 10 ? 1 : 0)}%)</span></p>
-                            </div>
-                            <span className="text-sm font-semibold text-stone-900 tabular-nums shrink-0">S/ {formatoSoles(c.monto)}</span>
+                    <section className="dsh-card p-5">
+                      <h4 className="text-xs font-medium text-[#6b6890]">Métodos de pago</h4>
+                      <p className="text-[11px] text-[#8f8cb0] mt-0.5">Cómo pagaron tus clientes</p>
+                      <div className="flex h-2.5 rounded-full overflow-hidden bg-[#e6ebfb] gap-0.5 mt-4">
+                        {dashStats.porMedio.map(m => (
+                          <div key={m.medio} title={`${m.medio}: ${m.pct.toFixed(0)}%`} style={{ width: `${m.pct}%`, background: COLOR_MEDIO_PAGO[m.medio] || '#d6d3d1' }}></div>
+                        ))}
+                      </div>
+                      <ul className="mt-2">
+                        {dashStats.porMedio.map(m => (
+                          <li key={m.medio} className="flex items-center gap-3 py-2.5 border-t border-[#dde4fa] first:border-t-0 text-sm">
+                            <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ background: COLOR_MEDIO_PAGO[m.medio] || '#d6d3d1' }}></span>
+                            <span className="flex-1 min-w-0 truncate font-medium text-[#2D284B] capitalize">{m.medio.toLowerCase()}</span>
+                            <span className="font-semibold text-[#2D284B] tabular-nums">S/ {formatoSoles(m.total)}</span>
+                            <span className="w-10 text-right text-xs text-[#6b6890] tabular-nums">{m.pct.toFixed(0)}%</span>
                           </li>
-                        );
-                      })}
-                    </ul>
-                  </section>
-                )}
+                        ))}
+                      </ul>
+                    </section>
+                  </div>
+                </div>
 
                 {/* Ventas por día: calendario del mes completo. Los datos salen de
                     las ventas del año (diasAnioDash), no del rango del filtro, y
@@ -314,7 +321,7 @@ export default function DashboardVentas({
                   const irDia = (d) => { if (d >= 1 && d <= hastaDia) setDiaCalendarioSel(clave(d)); };
                   return (
                     <>
-                    <section className="bg-white/60 backdrop-blur-xl border border-white/80 rounded-3xl shadow-[0_10px_40px_-14px_rgba(97,5,220,0.18)] p-5">
+                    <section className="dsh-card p-5">
                       <div className="flex flex-wrap items-start justify-between gap-2">
                         <div>
                           <h4 className="text-sm font-semibold text-stone-800">Ventas por día</h4>
@@ -329,8 +336,8 @@ export default function DashboardVentas({
                           <p className="text-lg font-semibold text-stone-900 mt-1 tabular-nums whitespace-nowrap truncate">{conVentas.length ? montoResumen(promedio) : '—'}</p>
                           <p className="text-[11px] text-stone-500">en {hastaDia} día{hastaDia === 1 ? '' : 's'} transcurrido{hastaDia === 1 ? '' : 's'}</p>
                         </div>
-                        <div className={`${tarjeta} bg-[#f4eefe] border border-[#d6bdfa]`}>
-                          <p className="text-[11px] text-stone-500 flex items-center gap-1.5"><span className="w-2 h-2 rounded-full bg-[#6105dc]"></span>Día de mayor venta</p>
+                        <div className={`${tarjeta} bg-[#EBF0FF] border border-[#c5bcff]`}>
+                          <p className="text-[11px] text-stone-500 flex items-center gap-1.5"><span className="w-2 h-2 rounded-full bg-[#9687F5]"></span>Día de mayor venta</p>
                           <p className="text-lg font-semibold text-stone-900 mt-1 tabular-nums whitespace-nowrap truncate">{conVentas.length ? montoResumen(totalDe(diaMax)) : '—'}</p>
                           <p className="text-[11px] text-stone-500 truncate">{conVentas.length ? `${nombreDia(diaMax)} · ${(totalDe(diaMax) / promedio).toFixed(1).replace('.', ',')}× el promedio` : 'Sin ventas'}</p>
                         </div>
@@ -390,8 +397,8 @@ export default function DashboardVentas({
                               key={d}
                               onClick={() => setDiaCalendarioSel(clave(d))}
                               title={`${nombreDia(d)}: S/ ${formatoSoles(v)}`}
-                              className={`relative rounded-[14px] sm:rounded-2xl aspect-square sm:aspect-[5/4] min-w-0 p-2 lg:p-3 flex flex-col items-center justify-center sm:items-stretch sm:justify-between overflow-hidden active:scale-95 transition-transform ${selDia === d ? 'outline outline-[2.5px] outline-offset-2 outline-stone-900' : ''} ${enRango ? 'ring-2 ring-inset ring-[#6105dc]' : ''} ${esMax ? 'shadow-[0_10px_22px_-8px_rgba(97,5,220,0.55)]' : ''} ${oscuro ? 'text-white' : 'text-stone-800'}`}
-                              style={{ background: esMax ? 'linear-gradient(160deg,#b98cf5,#6105dc)' : v > 0 ? `rgba(97,5,220,${(0.06 + t * 0.5).toFixed(2)})` : '#f0edf5' }}
+                              className={`relative rounded-[14px] sm:rounded-2xl aspect-square sm:aspect-[5/4] min-w-0 p-2 lg:p-3 flex flex-col items-center justify-center sm:items-stretch sm:justify-between overflow-hidden active:scale-95 transition-transform ${selDia === d ? 'outline outline-[2.5px] outline-offset-2 outline-stone-900' : ''} ${enRango ? 'ring-2 ring-inset ring-[#9687F5]' : ''} ${esMax ? 'shadow-[0_10px_22px_-8px_rgba(150,135,245,0.55)]' : ''} ${oscuro ? 'text-white' : 'text-stone-800'}`}
+                              style={{ background: esMax ? 'linear-gradient(160deg,#c5bcff,#9687F5)' : v > 0 ? `rgba(150,135,245,${(0.06 + t * 0.5).toFixed(2)})` : '#e6ebfb' }}
                             >
                               <span className="text-[13px] sm:text-sm font-bold sm:font-semibold sm:opacity-80">
                                 {d}
@@ -399,7 +406,7 @@ export default function DashboardVentas({
                                 {esMin && <span className={`absolute top-1 right-1.5 text-[8px] leading-none sm:static sm:text-[9px] sm:ml-1 ${oscuro ? 'text-rose-200' : 'text-rose-600'}`}>▼</span>}
                               </span>
                               <span className="hidden sm:block text-[11px] md:text-sm lg:text-base font-semibold text-right tabular-nums whitespace-nowrap">{v > 0 ? `S/ ${montoCorto(v)}` : '—'}</span>
-                              {esHoy && <span className={`absolute bottom-1.5 left-1/2 -ml-[2px] w-1 h-1 sm:bottom-auto sm:left-auto sm:ml-0 sm:top-2 sm:right-2 sm:w-1.5 sm:h-1.5 rounded-full ${esMax || oscuro ? 'bg-white' : 'bg-[#6105dc]'}`}></span>}
+                              {esHoy && <span className={`absolute bottom-1.5 left-1/2 -ml-[2px] w-1 h-1 sm:bottom-auto sm:left-auto sm:ml-0 sm:top-2 sm:right-2 sm:w-1.5 sm:h-1.5 rounded-full ${esMax || oscuro ? 'bg-white' : 'bg-[#9687F5]'}`}></span>}
                             </button>
                           );
                         })}
@@ -413,13 +420,13 @@ export default function DashboardVentas({
                           </div>
                           <div className="grid grid-cols-2 sm:grid-cols-[repeat(auto-fit,minmax(150px,1fr))] gap-3">
                             {semanasVisibles.map((s) => (
-                              <div key={s.i} title={`Semana ${s.i + 1}: S/ ${formatoSoles(s.total)}`} className={`rounded-2xl p-4 flex flex-col gap-2 min-w-0 border ${s.total === maxSemana ? 'bg-[#f5eefe] border-[#d9c6f8]' : 'bg-white/70 border-stone-200/70'}`}>
+                              <div key={s.i} title={`Semana ${s.i + 1}: S/ ${formatoSoles(s.total)}`} className={`rounded-2xl p-4 flex flex-col gap-2 min-w-0 border ${s.total === maxSemana ? 'bg-[#EBF0FF] border-[#c5bcff]' : 'bg-white/70 border-stone-200/70'}`}>
                                 <div className="flex justify-between items-baseline gap-1.5 text-[11px] text-stone-500">
                                   <span>Semana {s.i + 1}</span><span className="text-[10px]">{s.n} d.</span>
                                 </div>
                                 <p className="text-lg font-semibold text-stone-900 tabular-nums whitespace-nowrap">{montoResumen(s.total)}</p>
                                 <div className="h-2 rounded-full bg-stone-200/70 overflow-hidden">
-                                  <div className="h-full rounded-full bg-gradient-to-r from-[#b98cf5] to-[#6105dc]" style={{ width: `${(s.total / maxSemana) * 100}%` }}></div>
+                                  <div className="h-full rounded-full bg-gradient-to-r from-[#c5bcff] to-[#9687F5]" style={{ width: `${(s.total / maxSemana) * 100}%` }}></div>
                                 </div>
                               </div>
                             ))}
@@ -428,10 +435,10 @@ export default function DashboardVentas({
                       )}
 
                       <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 mt-4 text-[11px] text-stone-500">
-                        <span className="inline-flex items-center gap-1.5"><i className="inline-block w-7 h-2 rounded-full bg-gradient-to-r from-[#f1e9fd] to-[#6105dc]"></i>Menos → más ventas</span>
+                        <span className="inline-flex items-center gap-1.5"><i className="inline-block w-7 h-2 rounded-full bg-gradient-to-r from-[#EBF0FF] to-[#9687F5]"></i>Menos → más ventas</span>
                         <span>▲ Mejor día</span>
                         <span className="text-rose-600">▼ Día más flojo</span>
-                        <span className="inline-flex items-center gap-1.5"><i className="inline-block w-3.5 h-3.5 rounded-[5px] ring-2 ring-inset ring-[#6105dc]"></i>Rango elegido</span>
+                        <span className="inline-flex items-center gap-1.5"><i className="inline-block w-3.5 h-3.5 rounded-[5px] ring-2 ring-inset ring-[#9687F5]"></i>Rango elegido</span>
                         <span>● Hoy</span>
                       </div>
                     </section>
@@ -444,13 +451,13 @@ export default function DashboardVentas({
                           onClick={(e) => e.stopPropagation()}
                           className="kd-hoja w-full sm:max-w-md max-h-[88vh] overflow-y-auto hide-scrollbar bg-white rounded-t-[28px] sm:rounded-[28px] px-[18px] pt-2.5 pb-6 flex flex-col gap-3 shadow-2xl"
                         >
-                          <div className="w-[38px] h-1 rounded bg-[#e3d9f5] mx-auto shrink-0 sm:hidden"></div>
+                          <div className="w-[38px] h-1 rounded bg-[#dde4fa] mx-auto shrink-0 sm:hidden"></div>
                           <div className="flex items-center justify-between shrink-0">
-                            <button onClick={() => irDia(selDia - 1)} disabled={selDia <= 1} aria-label="Día anterior" className="w-[34px] h-[34px] rounded-full bg-white ring-1 ring-[#efe6fc] text-[#4d04b0] flex items-center justify-center disabled:opacity-30">
+                            <button onClick={() => irDia(selDia - 1)} disabled={selDia <= 1} aria-label="Día anterior" className="w-[34px] h-[34px] rounded-full bg-white ring-1 ring-[#dde4fa] text-[#2D284B] flex items-center justify-center disabled:opacity-30">
                               <i className="fa-solid fa-chevron-left text-xs"></i>
                             </button>
-                            <p className="text-xs font-bold text-[#78729a]">{detalleDia.titulo}</p>
-                            <button onClick={() => irDia(selDia + 1)} disabled={selDia >= hastaDia} aria-label="Día siguiente" className="w-[34px] h-[34px] rounded-full bg-white ring-1 ring-[#efe6fc] text-[#4d04b0] flex items-center justify-center disabled:opacity-30">
+                            <p className="text-xs font-bold text-[#6b6890]">{detalleDia.titulo}</p>
+                            <button onClick={() => irDia(selDia + 1)} disabled={selDia >= hastaDia} aria-label="Día siguiente" className="w-[34px] h-[34px] rounded-full bg-white ring-1 ring-[#dde4fa] text-[#2D284B] flex items-center justify-center disabled:opacity-30">
                               <i className="fa-solid fa-chevron-right text-xs"></i>
                             </button>
                           </div>
@@ -459,16 +466,16 @@ export default function DashboardVentas({
                             <p className={`text-4xl font-medium tracking-tight tabular-nums leading-none ${detalleDia.total > 0 ? 'text-stone-900' : 'text-[#a9a4c0]'}`}>S/ {formatoSoles(detalleDia.total)}</p>
                             <div className="flex flex-wrap justify-center gap-1.5">
                               {conVentas.length > 0 && selDia === diaMax && (
-                                <span className="inline-flex items-center gap-1.5 text-[11px] font-extrabold px-2.5 py-1 rounded-full bg-[#ece0fd] text-[#4d04b0]"><i className="fa-solid fa-arrow-up text-[9px]"></i>Mejor día del mes</span>
+                                <span className="inline-flex items-center gap-1.5 text-[11px] font-extrabold px-2.5 py-1 rounded-full bg-[#dde4fa] text-[#2D284B]"><i className="fa-solid fa-arrow-up text-[9px]"></i>Mejor día del mes</span>
                               )}
                               {conVentas.length > 1 && selDia === diaMin && (
                                 <span className="inline-flex items-center gap-1.5 text-[11px] font-extrabold px-2.5 py-1 rounded-full bg-rose-50 text-rose-600"><i className="fa-solid fa-arrow-down text-[9px]"></i>Día más flojo</span>
                               )}
                               {detalleDia.total === 0 && (
-                                <span className="text-[11px] font-extrabold px-2.5 py-1 rounded-full bg-[#f0edf5] text-[#78729a]">Sin ventas</span>
+                                <span className="text-[11px] font-extrabold px-2.5 py-1 rounded-full bg-[#e6ebfb] text-[#6b6890]">Sin ventas</span>
                               )}
                             </div>
-                            <p className="text-xs text-[#78729a]">
+                            <p className="text-xs text-[#6b6890]">
                               {detalleDia.total > 0 && promedio > 0
                                 ? `${(detalleDia.total / promedio).toFixed(1).replace('.', ',')}× el promedio diario`
                                 : detalleDia.total > 0 ? '' : 'Ningún movimiento registrado'}
@@ -476,24 +483,24 @@ export default function DashboardVentas({
                           </div>
 
                           <div className="grid grid-cols-2 gap-2 shrink-0">
-                            <div className="bg-[#f4eefe] rounded-2xl px-3 py-2.5">
-                              <p className="text-[10.5px] text-[#78729a]">Ventas</p>
+                            <div className="bg-[#EBF0FF] rounded-2xl px-3 py-2.5">
+                              <p className="text-[10.5px] text-[#6b6890]">Ventas</p>
                               <p className="text-[15px] font-bold tabular-nums">{detalleDia.n}</p>
                             </div>
-                            <div className="bg-[#f4eefe] rounded-2xl px-3 py-2.5">
-                              <p className="text-[10.5px] text-[#78729a]">Ticket promedio</p>
+                            <div className="bg-[#EBF0FF] rounded-2xl px-3 py-2.5">
+                              <p className="text-[10.5px] text-[#6b6890]">Ticket promedio</p>
                               <p className="text-[15px] font-bold tabular-nums">{detalleDia.n ? `S/ ${formatoSoles(detalleDia.total / detalleDia.n)}` : '—'}</p>
                             </div>
                           </div>
 
                           {detalleDia.n > 0 && (
                             <>
-                              <div className="grid grid-cols-2 bg-[#f0edf5] rounded-full p-[3px] shrink-0">
+                              <div className="grid grid-cols-2 bg-[#e6ebfb] rounded-full p-[3px] shrink-0">
                                 {[['pagos', 'Pagos'], ['horas', 'Por hora']].map(([id, texto]) => (
                                   <button
                                     key={id}
                                     onClick={() => setPestanaDiaCal(id)}
-                                    className={`h-[34px] rounded-full text-[12.5px] font-bold transition ${pestanaDiaCal === id ? 'bg-white text-[#4d04b0] shadow-[0_1px_4px_rgba(28,24,48,0.12)]' : 'text-[#78729a]'}`}
+                                    className={`h-[34px] rounded-full text-[12.5px] font-bold transition ${pestanaDiaCal === id ? 'bg-white text-[#2D284B] shadow-[0_1px_4px_rgba(28,24,48,0.12)]' : 'text-[#6b6890]'}`}
                                   >
                                     {texto}
                                   </button>
@@ -502,25 +509,25 @@ export default function DashboardVentas({
 
                               {pestanaDiaCal === 'pagos' ? (
                                 <>
-                                  <div className="flex h-2.5 rounded-full overflow-hidden bg-[#f0edf5] gap-0.5 shrink-0">
+                                  <div className="flex h-2.5 rounded-full overflow-hidden bg-[#e6ebfb] gap-0.5 shrink-0">
                                     {detalleDia.medios.map((m) => (
                                       <div key={m.medio} title={NOMBRE_MEDIO_DIA(m.medio)} style={{ width: `${(m.total / detalleDia.total) * 100}%`, background: COLOR_MEDIO_PAGO[m.medio] || '#d6d3d1' }}></div>
                                     ))}
                                   </div>
                                   <ul className="flex flex-col gap-1.5 shrink-0">
                                     {detalleDia.medios.map((m) => (
-                                      <li key={m.medio} className="flex items-center gap-2.5 bg-[#f4eefe] rounded-2xl px-3 py-2.5 text-[13px]">
+                                      <li key={m.medio} className="flex items-center gap-2.5 bg-[#EBF0FF] rounded-2xl px-3 py-2.5 text-[13px]">
                                         <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ background: COLOR_MEDIO_PAGO[m.medio] || '#d6d3d1' }}></span>
                                         <div className="flex-1 min-w-0">
                                           <p className="font-bold text-stone-800">{NOMBRE_MEDIO_DIA(m.medio)}</p>
-                                          <p className="text-[10.5px] text-[#78729a] truncate">
+                                          <p className="text-[10.5px] text-[#6b6890] truncate">
                                             {m.medio === 'MIXTO' && detalleDia.mixtoEfectivo + detalleDia.mixtoOtro > 0
                                               ? `Efectivo S/ ${formatoSoles(detalleDia.mixtoEfectivo)} + otro S/ ${formatoSoles(detalleDia.mixtoOtro)}`
                                               : `${m.n} venta${m.n === 1 ? '' : 's'}`}
                                           </p>
                                         </div>
                                         <span className="font-extrabold tabular-nums">S/ {formatoSoles(m.total)}</span>
-                                        <span className="w-9 text-right text-[11.5px] text-[#78729a] tabular-nums">{Math.round((m.total / detalleDia.total) * 100)}%</span>
+                                        <span className="w-9 text-right text-[11.5px] text-[#6b6890] tabular-nums">{Math.round((m.total / detalleDia.total) * 100)}%</span>
                                       </li>
                                     ))}
                                   </ul>
@@ -529,14 +536,14 @@ export default function DashboardVentas({
                                 <>
                                   <div className="flex items-baseline justify-between shrink-0">
                                     <span className="text-xs font-bold text-stone-800">Ventas por hora</span>
-                                    {detalleDia.pico != null && <span className="text-[11px] font-semibold text-[#78729a]">Hora pico {String(detalleDia.pico).padStart(2, '0')}:00</span>}
+                                    {detalleDia.pico != null && <span className="text-[11px] font-semibold text-[#6b6890]">Hora pico {String(detalleDia.pico).padStart(2, '0')}:00</span>}
                                   </div>
                                   <div className="flex items-end gap-[3px] h-16 shrink-0">
                                     {detalleDia.rangoHoras.map((h) => (
                                       <div
                                         key={h.hora}
                                         title={`${String(h.hora).padStart(2, '0')}:00 · S/ ${formatoSoles(h.total)}`}
-                                        className={`flex-1 rounded-t-md rounded-b-sm ${h.total > 0 && h.hora === detalleDia.pico ? 'bg-gradient-to-t from-[#6105dc] to-[#b98cf5]' : 'bg-[#ece0fd]'}`}
+                                        className={`flex-1 rounded-t-md rounded-b-sm ${h.total > 0 && h.hora === detalleDia.pico ? 'bg-gradient-to-t from-[#9687F5] to-[#c5bcff]' : 'bg-[#dde4fa]'}`}
                                         style={{ height: `${h.total > 0 ? Math.max(8, (h.total / detalleDia.maxH) * 100) : 4}%` }}
                                       ></div>
                                     ))}
@@ -559,14 +566,14 @@ export default function DashboardVentas({
 
                 {/* Ventas por Mes */}
                 {dashStats.totalAnio > 0 && (
-                  <section className="bg-white/60 backdrop-blur-xl border border-white/80 rounded-3xl shadow-[0_10px_40px_-14px_rgba(97,5,220,0.18)] p-5">
+                  <section className="dsh-card p-5">
                     <div className="flex flex-wrap items-start justify-between gap-2">
                       <div>
                         <h4 className="text-sm font-semibold text-stone-800">Ventas por mes · {dashStats.anioActual}</h4>
                         <p className="text-xs text-stone-500 mt-0.5">Acumulado del año <span className="font-semibold text-stone-800 tabular-nums">S/ {formatoSoles(dashStats.totalAnio)}</span></p>
                       </div>
                       <div className="flex flex-wrap gap-2">
-                        <span className="bg-[#ece0fd] text-[#4d04b0] text-[11px] font-semibold px-3 py-1 rounded-full">Mejor mes: {MESES_CORTOS[dashStats.mesPico.mes]} · S/ {formatoSoles(dashStats.mesPico.total)}</span>
+                        <span className="bg-[#dde4fa] text-[#2D284B] text-[11px] font-semibold px-3 py-1 rounded-full">Mejor mes: {MESES_CORTOS[dashStats.mesPico.mes]} · S/ {formatoSoles(dashStats.mesPico.total)}</span>
                         <span className="bg-white/80 text-stone-600 text-[11px] font-semibold px-3 py-1 rounded-full shadow-sm">Promedio: S/ {formatoSoles(dashStats.promedioMensual)}</span>
                         {dashStats.hayBaseMesAnterior && (
                           <span className="bg-white/80 text-[11px] px-3 py-1 rounded-full shadow-sm inline-flex items-center gap-1.5 text-stone-500">
@@ -590,14 +597,14 @@ export default function DashboardVentas({
                             onBlur={() => setMesResaltado((cur) => (cur === i ? null : cur))}
                             tabIndex={m.total > 0 ? 0 : -1}
                           >
-                            <span className={`text-[9px] sm:text-[10px] font-semibold mb-1 tabular-nums transition-opacity ${mesResaltado === i || esPico ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'} ${esPico ? 'text-[#6105dc]' : 'text-stone-500'}`}>
+                            <span className={`text-[9px] sm:text-[10px] font-semibold mb-1 tabular-nums transition-opacity ${mesResaltado === i || esPico ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'} ${esPico ? 'text-[#5b4bd6]' : 'text-stone-500'}`}>
                               {m.total >= 1000 ? `${(m.total / 1000).toFixed(1)}k` : m.total.toFixed(0)}
                             </span>
                             <div
-                              className={`w-full max-w-[34px] rounded-t-xl rounded-b-md transition-colors duration-200 ${esPico ? 'bg-gradient-to-t from-[#6105dc] to-[#b98cf5] shadow-[0_10px_24px_-8px_rgba(97,5,220,0.55)]' : mesResaltado === i ? 'bg-[#d6bdfa]' : 'bg-white group-hover:bg-[#ece0fd]'}`}
+                              className={`w-full max-w-[34px] rounded-t-xl rounded-b-md transition-colors duration-200 ${esPico ? 'bg-gradient-to-t from-[#9687F5] to-[#c5bcff] shadow-[0_10px_24px_-8px_rgba(150,135,245,0.55)]' : mesResaltado === i ? 'bg-[#c5bcff]' : 'bg-white group-hover:bg-[#dde4fa]'}`}
                               style={{ height: `${Math.max(3, (m.total / dashStats.maxMes) * 100)}%` }}
                             ></div>
-                            <span className={`text-[10px] sm:text-[11px] mt-2 ${esPico ? 'font-bold text-[#6105dc]' : esActual ? 'font-bold text-stone-800' : 'font-medium text-stone-500'}`}>{MESES_CORTOS[m.mes]}</span>
+                            <span className={`text-[10px] sm:text-[11px] mt-2 ${esPico ? 'font-bold text-[#5b4bd6]' : esActual ? 'font-bold text-stone-800' : 'font-medium text-stone-500'}`}>{MESES_CORTOS[m.mes]}</span>
                           </div>
                         );
                       })}
@@ -607,7 +614,7 @@ export default function DashboardVentas({
 
                 {/* Deudas: no dependen del rango de fechas */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <section className="bg-white/60 backdrop-blur-xl border border-white/80 rounded-3xl shadow-[0_10px_40px_-14px_rgba(97,5,220,0.18)] p-5">
+                  <section className="dsh-card p-5">
                     <div className="flex items-start justify-between gap-3">
                       <div>
                         <h4 className="text-sm font-semibold text-stone-800">Fiados</h4>
@@ -636,13 +643,13 @@ export default function DashboardVentas({
                     )}
                   </section>
 
-                  <section className="bg-white/60 backdrop-blur-xl border border-white/80 rounded-3xl shadow-[0_10px_40px_-14px_rgba(97,5,220,0.18)] p-5">
+                  <section className="dsh-card p-5">
                     <div className="flex items-start justify-between gap-3">
                       <div>
                         <h4 className="text-sm font-semibold text-stone-800">Cuentas por pagar</h4>
                         <p className="text-2xl font-medium tracking-tight tabular-nums mt-1.5 text-stone-900">S/ {formatoSoles(dashStats.totalPorPagar)}</p>
                       </div>
-                      <span className={`text-[11px] font-semibold px-3 py-1 rounded-full ${dashStats.numProveedoresDeuda > 0 ? 'bg-[#ece0fd] text-[#4d04b0]' : 'bg-emerald-50 text-emerald-600'}`}>
+                      <span className={`text-[11px] font-semibold px-3 py-1 rounded-full ${dashStats.numProveedoresDeuda > 0 ? 'bg-[#dde4fa] text-[#2D284B]' : 'bg-emerald-50 text-emerald-600'}`}>
                         {dashStats.numProveedoresDeuda > 0 ? `${dashStats.numProveedoresDeuda} proveedor${dashStats.numProveedoresDeuda === 1 ? '' : 'es'}` : 'Al día'}
                       </span>
                     </div>
@@ -657,7 +664,7 @@ export default function DashboardVentas({
                               <span className="font-semibold text-stone-900 tabular-nums shrink-0">S/ {formatoSoles(p.saldo_actual)}</span>
                             </div>
                             <div className="w-full h-1 bg-stone-100 rounded-full overflow-hidden mt-1.5">
-                              <div className="h-full bg-gradient-to-r from-[#a26df0] to-[#6105dc] rounded-full" style={{ width: `${(Number(p.saldo_actual) / dashStats.maxPorPagar) * 100}%` }}></div>
+                              <div className="h-full bg-gradient-to-r from-[#c5bcff] to-[#9687F5] rounded-full" style={{ width: `${(Number(p.saldo_actual) / dashStats.maxPorPagar) * 100}%` }}></div>
                             </div>
                           </li>
                         ))}

@@ -506,7 +506,10 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
     // mes), usada en Historial de Cierres y en el Dashboard de Ventas -- antes
     // este bloque estaba copiado en los dos lugares, con solo el nombre de los
     // setters y el número de días distinto.
-    function FiltroFechasRapido({ desde, hasta, setDesde, setHasta, onRango, diasAtras, children }) {
+    function FiltroFechasRapido({ desde, hasta, setDesde, setHasta, onRango, diasAtras, children, tema }) {
+      const dsh = tema === 'dsh';
+      const claseBuscar = dsh ? 'bg-[#2D284B] hover:bg-[#3b3466]' : 'bg-[#6105dc] hover:bg-[#4d04b0]';
+      const claseAtajo = dsh ? 'hover:bg-[#dde4fa] hover:text-[#2D284B]' : 'hover:bg-[#ece0fd] hover:text-[#4d04b0]';
       const irAHoy = () => {
         const hoy = fechaHoyISO();
         setDesde(hoy); setHasta(hoy); onRango(hoy, hoy);
@@ -545,18 +548,18 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
           </div>
           <button
             onClick={() => onRango(desde, hasta)}
-            className="px-4 py-1.5 bg-[#6105dc] hover:bg-[#4d04b0] text-white text-xs font-semibold rounded-full shadow-sm"
+            className={`px-4 py-1.5 ${claseBuscar} text-white text-xs font-semibold rounded-full shadow-sm`}
           >
             Buscar
           </button>
           <div className="inline-flex items-center bg-white/70 shadow-sm rounded-full p-0.5">
-            <button onClick={irAHoy} className="px-3 py-1 text-stone-600 hover:bg-[#ece0fd] hover:text-[#4d04b0] text-xs font-semibold rounded-full transition">
+            <button onClick={irAHoy} className={`px-3 py-1 text-stone-600 ${claseAtajo} text-xs font-semibold rounded-full transition`}>
               Hoy
             </button>
-            <button onClick={irAUltimosNDias} className="px-3 py-1 text-stone-600 hover:bg-[#ece0fd] hover:text-[#4d04b0] text-xs font-semibold rounded-full transition">
+            <button onClick={irAUltimosNDias} className={`px-3 py-1 text-stone-600 ${claseAtajo} text-xs font-semibold rounded-full transition`}>
               Últimos {diasAtras} días
             </button>
-            <button onClick={irAEsteMes} className="px-3 py-1 text-stone-600 hover:bg-[#ece0fd] hover:text-[#4d04b0] text-xs font-semibold rounded-full transition">
+            <button onClick={irAEsteMes} className={`px-3 py-1 text-stone-600 ${claseAtajo} text-xs font-semibold rounded-full transition`}>
               Este mes
             </button>
           </div>
