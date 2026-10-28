@@ -106,8 +106,8 @@ export default function DashboardVentas({
               <>
                 <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 items-start">
                   {/* Izquierda: venta total, productos y combos */}
-                  <div className="lg:col-span-5 space-y-4 min-w-0">
-                    <section className="dsh-card dsh-hero p-5">
+                  <div className="lg:col-span-5 space-y-4 min-w-0 max-lg:contents">
+                    <section className="dsh-card dsh-hero p-5 max-lg:order-1">
                       <div className="flex items-center justify-between gap-2">
                         <span className="flex items-center gap-2.5 text-xs font-medium text-[#6b6890]">
                           <span className="dsh-ib"><i className="fa-solid fa-receipt text-[12px]"></i></span>Venta total
@@ -125,7 +125,7 @@ export default function DashboardVentas({
                       </div>
                     </section>
 
-                    <section className="dsh-card p-5">
+                    <section className="dsh-card p-5 max-lg:order-5">
                       <h4 className="text-xs font-medium text-[#6b6890]">Productos más vendidos</h4>
                       <p className="text-[11px] text-[#8f8cb0] mt-0.5">Por monto vendido en el período</p>
                       <ol className="mt-2">
@@ -150,7 +150,7 @@ export default function DashboardVentas({
                     </section>
 
                     {combosVendidos.length > 0 && (
-                      <section className="dsh-card dsh-combo p-5 text-white">
+                      <section className="dsh-card dsh-combo p-5 text-white max-lg:order-6">
                         <h4 className="text-xs font-medium text-white/85">Combos vendidos</h4>
                         <ul className="mt-2">
                           {combosVendidos.map((c) => {
@@ -171,8 +171,8 @@ export default function DashboardVentas({
                   </div>
 
                   {/* Derecha: métricas, actividad por hora y métodos de pago */}
-                  <div className="lg:col-span-7 space-y-4 min-w-0">
-                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                  <div className="lg:col-span-7 space-y-4 min-w-0 max-lg:contents">
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 max-lg:order-2">
                       {[
                         { etiqueta: 'Utilidad', valor: `S/ ${formatoSoles(dashStats.totalUtilidad)}`, pct: dashStats.hayBaseUtilidadAnterior ? dashStats.cambioUtilidadPct : null },
                         { etiqueta: 'Costo', valor: `S/ ${formatoSoles(dashStats.totalCosto)}` },
@@ -187,7 +187,7 @@ export default function DashboardVentas({
                       ))}
                     </div>
 
-                    <section className="dsh-card p-5">
+                    <section className="dsh-card p-5 max-lg:order-3">
                       <div className="flex items-center justify-between gap-2">
                         <h4 className="text-xs font-medium text-[#6b6890]">Actividad por hora</h4>
                         {dashStats.horaPico.total > 0 && (
@@ -228,7 +228,7 @@ export default function DashboardVentas({
                       </div>
                     </section>
 
-                    <section className="dsh-card p-5">
+                    <section className="dsh-card p-5 max-lg:order-4">
                       <h4 className="text-xs font-medium text-[#6b6890]">Métodos de pago</h4>
                       <p className="text-[11px] text-[#8f8cb0] mt-0.5">Cómo pagaron tus clientes</p>
                       <div className="flex h-2.5 rounded-full overflow-hidden bg-[#e6ebfb] gap-0.5 mt-4">
