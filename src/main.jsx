@@ -17,6 +17,7 @@ import { valorAuditoria, describirAuditoria } from './lib/auditoria.js';
 import { antiguedadTurno } from './lib/turnos.js';
 import { iniciarMonitoreo, reportarError, reportarFallo } from './monitoreo.js';
 import { evitarZoomEnCampos } from './lib/movil.js';
+import { claveAuthSupabase, puedeUsarSesionGuardada, debeReintentar, PAUSAS_REINTENTO_SESION } from './lib/sesion.js';
 import { estadoDeudor, coberturaPago, restoPrimeraBoleta } from './lib/deudas.js';
 import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCombo, margenCombo, expandirLineaCombo, detalleComboTicket } from './lib/combos.js';
 
@@ -1831,6 +1832,13 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
       // separado, no hace falta para esto.
 
       // Si la sesión venció (no la cerró la persona), el aviso lo explica.
+      // Copia de la sesión (usuario y bodega) para poder abrir la app si al
+      // arrancar no se puede comprobar con internet. Se borra al cerrar sesión.
+      const CLAVE_SESION_COPIA = 'kz_sesion_ultima';
+      useEffect(() => {
+        if (!sesion || esModoDemo) return;
+        try { localStorage.setItem(CLAVE_SESION_COPIA, JSON.stringify({ usuario: sesion.usuario, bodega: sesion.bodega })); } catch (err) { /* sin almacenamiento: se sigue igual */ }
+      }, [sesion]);
       const motivoCierreRef = useRef(null);
       const cerrandoSesionRef = useRef(false);
       const sesionRef = useRef(null);
@@ -1839,7 +1847,7 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
       const cerrarSesion = async () => {
         cerrandoSesionRef.current = true;
         if (sbClient) {
-          try { await sbClient.auth.signOut(); } catch (err) { console.warn(err); }
+          try { await sbClient.auth.signOut({ scope: 'local' }); } catch (err) { console.warn(err); }
         }
         setSesion(null);
         setCajeroSeleccionado(null);
@@ -1848,7 +1856,7 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
         // El catálogo guardado para abrir rápido incluye costos: no se deja
         // en el equipo al salir.
         try {
-          Object.keys(localStorage).filter((k) => k.startsWith('kz_catalogo_')).forEach((k) => localStorage.removeItem(k));
+          Object.keys(localStorage).filter((k) => k.startsWith('kz_catalogo_')).forEach((k) => localStorage.removeItem(k)); localStorage.removeItem(CLAVE_SESION_COPIA);
         } catch (err) { /* sin almacenamiento disponible: nada que limpiar */ }
         // Limpia el estado del Modo Demo Local para que no se filtre a la
         // siguiente sesión (real o demo de nuevo) en esta misma pestaña.
@@ -1869,7 +1877,7 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
         if (!sbClient || !sesionRef.current || cerrandoSesionRef.current) return true;
         try {
           const { error } = await sbClient.auth.getUser();
-          const rechazada = error && (error.status === 401 || error.status === 403 || error.name === 'AuthSessionMissingError');
+          const rechazada = error && (error.status === 401 || error.status === 403);
           if (rechazada) {
             motivoCierreRef.current = 'Tu sesión venció. Vuelve a entrar para seguir vendiendo.';
             await cerrarSesion();
@@ -1905,54 +1913,97 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
       // Al cargar la app, si el dispositivo ya tiene una sesión válida de
       // Supabase Auth (login anterior), se restaura sin pedir DNI/PIN de
       // nuevo. El modo Demo no pasa por aquí (no usa Auth real).
+      //
+      // Un fallo momentáneo (la red del celular aún no despierta al reabrir la
+      // app, conexión lenta, otra pestaña sujetando el bloqueo de Supabase) NO
+      // es "no hay sesión": se reintenta unas veces y, si sigue sin poder
+      // comprobarse, se abre con la última sesión guardada en este equipo (el
+      // POS ya funciona sin conexión) en vez de mandar a iniciar sesión otra vez.
       useEffect(() => {
-        if (!sbClient) { setVerificandoSesion(false); return; }
-        (async () => {
-          try {
-            const { data: { session } } = await sbClient.auth.getSession();
-            if (session?.user) {
-              // maybeSingle (no single): una sesión guardada puede ser la del
-              // super-admin, que no tiene fila en "usuarios" -- eso es
-              // normal, no un error a mostrar en consola.
-              // Trae la bodega en el mismo viaje (embed) en vez de una
-              // segunda consulta secuencial después -- en cada carga de la
-              // app esto le ahorra una ida y vuelta completa al servidor
-              // antes de poder ocultar el splash.
-              let { data: usuarioConBodega } = await sbClient.from('usuarios').select('*, bodegas(*)').eq('auth_id', session.user.id).maybeSingle();
-              if (!usuarioConBodega) {
-                // Bodega creada por el admin con el correo del dueño: en su
-                // primer ingreso con Google se vincula la cuenta a esa bodega
-                // (reclamar_cuenta_por_correo.sql). Si la función aún no existe
-                // o el correo no tiene bodega, sigue el camino de siempre.
-                const { data: bodegaReclamada } = await sbClient.rpc('reclamar_cuenta_por_correo');
-                if (bodegaReclamada) {
-                  ({ data: usuarioConBodega } = await sbClient.from('usuarios').select('*, bodegas(*)').eq('auth_id', session.user.id).maybeSingle());
-                }
-              }
-              if (usuarioConBodega) {
-                const { bodegas: bodega, ...usuario } = usuarioConBodega;
-                setSesion({ usuario, bodega: bodega || { id: usuario.bodega_id, nombre: 'Mi Bodega' } });
-              } else {
-                // Sin fila en "usuarios" -- puede ser el super-admin (cuenta
-                // aparte, sin bodega, ver más abajo) o una cuenta de Google
-                // que nunca compró ninguna bodega. Si es lo segundo, no la
-                // dejamos en un login que no explica nada: la mandamos a
-                // activar su bodega, ya autenticada.
-                const { data: esAdmin } = await sbClient.from('super_admins').select('auth_id').eq('auth_id', session.user.id).maybeSingle();
-                if (!esAdmin) {
-                  setVerificandoSesion(false);
-                  notificar('Esta cuenta no tiene ninguna suscripción activa. Te llevamos a activar tu negocio...', 'error');
-                  setTimeout(() => { window.location.href = '/registro'; }, 1800);
-                  return;
-                }
-              }
-            }
-          } catch (err) {
-            console.warn('No se pudo restaurar la sesión:', err.message);
-          } finally {
-            setVerificandoSesion(false);
+        if (!sbClient) { setVerificandoSesion(false); return undefined; }
+        let cancelado = false;
+        const esperar = (ms) => new Promise((r) => setTimeout(r, ms));
+        const claveAuth = claveAuthSupabase(supabaseUrl);
+        const leerJSON = (clave) => {
+          try { return clave ? JSON.parse(localStorage.getItem(clave) || 'null') : null; } catch (e) { return null; }
+        };
+
+        // Un intento. Devuelve { estado }:
+        //  'ok' (con sesion) | 'sin-sesion' | 'admin' | 'sin-suscripcion' | 'error'
+        // 'error' = no se pudo comprobar; es lo único que se reintenta.
+        const intentarRestaurar = async () => {
+          const { data: { session }, error: errSesion } = await sbClient.auth.getSession();
+          if (!session?.user) {
+            // Hay sesión guardada pero no se pudo renovar: no es "sin sesión".
+            const guardada = leerJSON(claveAuth);
+            return errSesion && guardada && guardada.refresh_token ? { estado: 'error' } : { estado: 'sin-sesion' };
           }
+          // maybeSingle (no single): una sesión guardada puede ser la del
+          // super-admin, que no tiene fila en "usuarios" -- eso es
+          // normal, no un error a mostrar en consola.
+          // Trae la bodega en el mismo viaje (embed) en vez de una
+          // segunda consulta secuencial después -- en cada carga de la
+          // app esto le ahorra una ida y vuelta completa al servidor
+          // antes de poder ocultar el splash.
+          let { data: usuarioConBodega, error: errUsuario } = await sbClient.from('usuarios').select('*, bodegas(*)').eq('auth_id', session.user.id).maybeSingle();
+          if (errUsuario) return { estado: 'error' };
+          if (!usuarioConBodega) {
+            // Bodega creada por el admin con el correo del dueño: en su
+            // primer ingreso con Google se vincula la cuenta a esa bodega
+            // (reclamar_cuenta_por_correo.sql). Si la función aún no existe
+            // o el correo no tiene bodega, sigue el camino de siempre.
+            const { data: bodegaReclamada } = await sbClient.rpc('reclamar_cuenta_por_correo');
+            if (bodegaReclamada) {
+              ({ data: usuarioConBodega, error: errUsuario } = await sbClient.from('usuarios').select('*, bodegas(*)').eq('auth_id', session.user.id).maybeSingle());
+              if (errUsuario) return { estado: 'error' };
+            }
+          }
+          if (usuarioConBodega) {
+            const { bodegas: bodega, ...usuario } = usuarioConBodega;
+            return { estado: 'ok', sesion: { usuario, bodega: bodega || { id: usuario.bodega_id, nombre: 'Mi Bodega' } } };
+          }
+          // Sin fila en "usuarios" -- puede ser el super-admin (cuenta
+          // aparte, sin bodega, ver más abajo) o una cuenta de Google
+          // que nunca compró ninguna bodega.
+          const { data: esAdmin, error: errAdmin } = await sbClient.from('super_admins').select('auth_id').eq('auth_id', session.user.id).maybeSingle();
+          if (errAdmin) return { estado: 'error' };
+          return { estado: esAdmin ? 'admin' : 'sin-suscripcion' };
+        };
+
+        (async () => {
+          let r = { estado: 'error' };
+          for (const pausa of PAUSAS_REINTENTO_SESION) {
+            if (pausa) await esperar(pausa);
+            if (cancelado) return;
+            try {
+              r = await intentarRestaurar();
+            } catch (err) {
+              console.warn('No se pudo restaurar la sesión:', err && err.message);
+              r = { estado: 'error' };
+            }
+            if (!debeReintentar(r.estado, navigator.onLine)) break;
+          }
+          if (cancelado) return;
+          if (r.estado === 'ok') {
+            setSesion(r.sesion);
+          } else if (r.estado === 'sin-suscripcion') {
+            // Cuenta de Google que nunca compró ninguna bodega: no la dejamos en
+            // un login que no explica nada: la mandamos a activar su bodega,
+            // ya autenticada.
+            setVerificandoSesion(false);
+            notificar('Esta cuenta no tiene ninguna suscripción activa. Te llevamos a activar tu negocio...', 'error');
+            setTimeout(() => { window.location.href = '/registro'; }, 1800);
+            return;
+          } else if (r.estado === 'error') {
+            const copia = leerJSON(CLAVE_SESION_COPIA);
+            if (puedeUsarSesionGuardada(leerJSON(claveAuth), copia)) {
+              setSesion({ usuario: copia.usuario, bodega: copia.bodega });
+              notificar('Sin buena conexión: abrimos con tu última sesión guardada.', 'info');
+            }
+          }
+          setVerificandoSesion(false);
         })();
+        return () => { cancelado = true; };
       }, [sbClient]);
 
       // Guardar ventas en espera
@@ -8855,7 +8906,7 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
           notificar={notificar}
           toast={toast}
           onCerrarSesion={async () => {
-            try { await sbClient.auth.signOut(); } catch (err) { console.warn(err); }
+            try { await sbClient.auth.signOut({ scope: 'local' }); } catch (err) { console.warn(err); }
             setAdminSesion(null);
             setBodegasAdmin([]);
           }}
