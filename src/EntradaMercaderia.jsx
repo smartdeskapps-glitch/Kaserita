@@ -1,4 +1,5 @@
 import React from 'react';
+import { FotoProducto } from './PanelAdminCompartido.jsx';
 
 // Modal separado de main.jsx: se carga al abrirlo (React.lazy). El estado y las acciones
 // siguen en PosApp: aquí solo se dibuja lo que recibe por props.

@@ -11138,6 +11138,7 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
                 registrarMermaProducto={registrarMermaProducto}
                 setBusquedaMerma={setBusquedaMerma}
                 setFormMerma={setFormMerma}
+                formatoSoles={formatoSoles}
               />
             </Suspense>
           )}
@@ -13225,6 +13226,7 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
                 ContadorEfectivo={ContadorEfectivo}
                 DesgloseMediosPago={DesgloseMediosPago}
                 etiquetaCuandoTurno={etiquetaCuandoTurno}
+                vuelto={vuelto}
               />
             </Suspense>
           )}

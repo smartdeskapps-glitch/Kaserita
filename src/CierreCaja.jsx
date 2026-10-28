@@ -6,6 +6,8 @@ import { antiguedadTurno } from './lib/turnos.js';
 // cerrado. Se cargan al abrirlos (React.lazy en main.jsx). El estado y las acciones
 // siguen en PosApp: aquí solo se dibuja lo que recibe por props.
 export default function CierreCaja({
+  ContadorEfectivo,
+  DesgloseMediosPago,
   abrirHistorialCierres,
   arqueoEsperado,
   cajeroSeleccionado,
@@ -13,6 +15,7 @@ export default function CierreCaja({
   confirmarCierreConArqueo,
   conteoAbierto,
   conteoEfectivo,
+  etiquetaCuandoTurno,
   modalCierreCaja,
   montoConteoEfectivo,
   resumenCierre,
@@ -22,9 +25,7 @@ export default function CierreCaja({
   setMontoConteoEfectivo,
   setResumenCierre,
   turnoActivo,
-  ContadorEfectivo,
-  DesgloseMediosPago,
-  etiquetaCuandoTurno,
+  vuelto,
 }) {
   return (
     <>

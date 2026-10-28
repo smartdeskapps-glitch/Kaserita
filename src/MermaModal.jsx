@@ -11,6 +11,7 @@ export default function MermaModal({
   cerrarModalMerma,
   elegirProductoMerma,
   formMerma,
+  formatoSoles,
   guardandoMerma,
   modalMerma,
   productos,

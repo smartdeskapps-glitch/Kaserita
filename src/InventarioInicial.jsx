@@ -1,5 +1,5 @@
 import React from 'react';
-import { estiloCategoria } from './PanelAdminCompartido.jsx';
+import { FotoProducto, estiloCategoria } from './PanelAdminCompartido.jsx';
 import { esMontoNoNegativo } from './lib/validaciones.js';
 
 // Modal separado de main.jsx: se carga al abrirlo (React.lazy). El estado y las acciones
