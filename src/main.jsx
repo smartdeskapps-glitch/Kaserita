@@ -935,6 +935,27 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
       useEffect(() => iniciarMonitoreo(sbClient), [sbClient]);
       useEffect(() => evitarZoomEnCampos(), []);
 
+      // Con la sesión ya abierta y el navegador libre, se descargan por adelantado las
+      // ventanas que más se usan, para que abran al instante en vez de esperar a la red.
+      // Se omite con "ahorro de datos" activado.
+      useEffect(() => {
+        if (!sesion || esModoDemo) return undefined;
+        if (navigator.connection && navigator.connection.saveData) return undefined;
+        const precargar = () => {
+          import('./FiadosModal.jsx');
+          import('./HistorialVentas.jsx');
+          import('./CierreCaja.jsx');
+          import('./DashboardVentas.jsx');
+          import('./EntradaMercaderia.jsx');
+        };
+        if (typeof requestIdleCallback === 'function') {
+          const id = requestIdleCallback(precargar, { timeout: 8000 });
+          return () => cancelIdleCallback(id);
+        }
+        const id = setTimeout(precargar, 4000);
+        return () => clearTimeout(id);
+      }, [!!sesion]);
+
       const pedirTexto = ({ titulo, mensaje, placeholder = '', valorInicial = '', textoBoton = 'Confirmar' }) => {
         return new Promise((resolve) => {
           setModalPromptValor(valorInicial);
