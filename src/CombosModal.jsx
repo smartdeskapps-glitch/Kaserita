@@ -364,9 +364,9 @@ export default function CombosModal({
                             <i className="fa-solid fa-magnifying-glass text-[13px]"></i>
                             <input type="text" autoComplete="off" placeholder="Buscar combo" value={busquedaCombos} onChange={(e) => setBusquedaCombos(e.target.value)} className="flex-1 min-w-0 bg-transparent text-[13.5px] text-stone-900 outline-none placeholder:text-stone-400" />
                           </label>
-                          <div className="flex bg-[#ece9f4] rounded-[10px] p-[3px] max-w-full overflow-x-auto hide-scrollbar">
+                          <div className="flex w-full sm:w-auto bg-[#ece9f4] rounded-[10px] p-[3px] max-w-full overflow-x-auto hide-scrollbar">
                             {[['todos', 'Todos', filas.length], ['venta', 'En venta', nVenta], ['sinstock', 'Sin stock', nSin], ['pausado', 'Pausados', nPausa]].map(([k, t, n]) => (
-                              <button key={k} type="button" onClick={() => setFiltroCombos(k)} className={`h-8 px-3.5 rounded-[8px] text-[13px] whitespace-nowrap flex items-center gap-1.5 transition ${filtroCombos === k ? 'bg-white text-stone-900 font-semibold shadow-[0_1px_3px_rgba(20,10,50,0.12)]' : 'text-stone-500 font-medium hover:text-stone-900'}`}>{t} <span className="text-[11.5px] text-stone-500 font-normal">{n}</span></button>
+                              <button key={k} type="button" onClick={() => setFiltroCombos(k)} className={`h-8 px-2 sm:px-3.5 flex-1 sm:flex-none justify-center rounded-[8px] text-[12px] sm:text-[13px] whitespace-nowrap flex items-center gap-1 sm:gap-1.5 transition ${filtroCombos === k ? 'bg-white text-stone-900 font-semibold shadow-[0_1px_3px_rgba(20,10,50,0.12)]' : 'text-stone-500 font-medium hover:text-stone-900'}`}>{t} <span className="text-[11.5px] text-stone-500 font-normal">{n}</span></button>
                             ))}
                           </div>
                         </div>

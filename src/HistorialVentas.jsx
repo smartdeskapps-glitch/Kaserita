@@ -201,7 +201,7 @@ export default function HistorialVentas({
                         <div className="px-4 sm:px-7 py-3.5 shrink-0 flex flex-wrap items-center gap-x-3 gap-y-2.5">
                           <div className="flex bg-[#ece9f4] rounded-full p-[3px] max-w-full overflow-x-auto hide-scrollbar">
                             {ATAJOS.map(([id, texto]) => (
-                              <button key={id} type="button" onClick={() => elegirAtajoHistorial(id)} className={`h-8 px-[15px] rounded-full text-[13px] whitespace-nowrap transition ${atajoHistorial === id ? 'bg-white text-stone-900 font-semibold shadow-[0_1px_3px_rgba(20,10,50,0.14)]' : 'text-stone-500 font-medium hover:text-stone-900'}`}>{texto}</button>
+                              <button key={id} type="button" onClick={() => elegirAtajoHistorial(id)} className={`h-8 px-2.5 sm:px-[15px] rounded-full text-[12.5px] sm:text-[13px] whitespace-nowrap transition ${atajoHistorial === id ? 'bg-white text-stone-900 font-semibold shadow-[0_1px_3px_rgba(20,10,50,0.14)]' : 'text-stone-500 font-medium hover:text-stone-900'}`}>{texto}</button>
                             ))}
                           </div>
                           <span className="text-[13px] text-stone-500">{rangoTexto}</span>
