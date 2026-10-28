@@ -12,3 +12,18 @@ window.__kgSplashT0 = performance.now();
     el.classList.toggle('splash-pausado', document.hidden);
   });
 })();
+
+// La app (src/main.jsx) llama a esta función cuando ya sabe qué pantalla
+// mostrar. IMPORTANTE: si se quita, el splash no se retira nunca (main.jsx
+// tiene un respaldo, pero esta es la vía normal).
+window.ocultarSplashKaserita = function () {
+  const el = document.getElementById('splash-kaserita');
+  if (!el) return;
+  // Se desvanece (con un leve acercamiento, ver .splash-oculto en pos.html) y
+  // recién entonces se quita del DOM.
+  el.classList.add('splash-oculto');
+  setTimeout(() => el.remove(), 550);
+};
+// Salvavidas: si algo tarda demasiado en cargar, el splash no se queda
+// pegado para siempre.
+setTimeout(() => window.ocultarSplashKaserita(), 8000);

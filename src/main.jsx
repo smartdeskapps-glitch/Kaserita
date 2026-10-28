@@ -964,10 +964,21 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
       // mitad). Esperar dos frames alcanza para que el navegador ya haya
       // pintado con los estilos puestos antes de retirar el splash.
       useEffect(() => {
-        if (verificandoSesion || typeof window.ocultarSplashKaserita !== 'function') return;
+        if (verificandoSesion) return;
+        // Vía normal: la función de public/splash-pos.js. Respaldo: si ese archivo
+        // no la trae (versión vieja o dañada en la caché del navegador), se retira
+        // el splash directamente para que la app nunca quede detrás de él.
+        const ocultarSplash = typeof window.ocultarSplashKaserita === 'function'
+          ? window.ocultarSplashKaserita
+          : () => {
+              const el = document.getElementById('splash-kaserita');
+              if (!el) return;
+              el.classList.add('splash-oculto');
+              setTimeout(() => el.remove(), 550);
+            };
         const id1 = requestAnimationFrame(() => {
           const id2 = requestAnimationFrame(() => {
-            window.ocultarSplashKaserita();
+            ocultarSplash();
             setRevelarLogin(true);
           });
           splashRafRef.current = id2;
