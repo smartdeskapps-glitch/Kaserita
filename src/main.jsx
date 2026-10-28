@@ -880,6 +880,21 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
     const EntradaMercaderia = React.lazy(() => import('./EntradaMercaderia.jsx'));
     const HistorialCierres = React.lazy(() => import('./HistorialCierres.jsx'));
     const GestionClientes = React.lazy(() => import('./GestionClientes.jsx'));
+    const EscanerCamara = React.lazy(() => import('./EscanerCamara.jsx'));
+    const FiadosModal = React.lazy(() => import('./FiadosModal.jsx'));
+    const CuentasPagar = React.lazy(() => import('./CuentasPagar.jsx'));
+    const NuevoProveedor = React.lazy(() => import('./NuevoProveedor.jsx'));
+    const HistorialInventario = React.lazy(() => import('./HistorialInventario.jsx'));
+    const GestionCajeros = React.lazy(() => import('./GestionCajeros.jsx'));
+    const ComisionesBarberos = React.lazy(() => import('./ComisionesBarberos.jsx'));
+    const HorarioBarbero = React.lazy(() => import('./HorarioBarbero.jsx'));
+    const AgendaCitas = React.lazy(() => import('./AgendaCitas.jsx'));
+    const DeliveryModal = React.lazy(() => import('./DeliveryModal.jsx'));
+    const RegistroActividad = React.lazy(() => import('./RegistroActividad.jsx'));
+    const PinDueno = React.lazy(() => import('./PinDueno.jsx'));
+    const PinCajero = React.lazy(() => import('./PinCajero.jsx'));
+    const NuevoCliente = React.lazy(() => import('./NuevoCliente.jsx'));
+    const HistorialVentas = React.lazy(() => import('./HistorialVentas.jsx'));
 
     function PosApp() {
       // --- Supabase Config ---
@@ -10786,260 +10801,35 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
             </div>
           )}
 
-          {/* Modal: Lector de Código de Barras por Cámara */}
           {modalEscaner && (
-            <div className="fixed inset-0 bg-black z-[70] flex flex-col">
-              <div className="flex-1 relative overflow-hidden bg-black">
-                <video ref={videoNativoRef} className="absolute inset-0 w-full h-full object-cover" playsInline muted autoPlay></video>
-
-                {/* Visor: esquinas blancas (verdes al leer un código) y una línea que recorre el recuadro */}
-                <div
-                  className={`absolute left-1/2 ${modoEscaner === 'toma-inventario' ? 'top-[45%]' : 'top-[42%]'} -translate-x-1/2 -translate-y-1/2 w-[78%] max-w-sm aspect-[1.55/1] rounded-[26px] shadow-[0_0_0_9999px_rgba(12,9,18,0.62)] pointer-events-none transition ${destelloEscaner ? 'bg-green-400/10' : ''}`}
-                >
-                  {[
-                    'left-[-2px] top-[-2px] border-r-0 border-b-0 rounded-tl-[24px]',
-                    'right-[-2px] top-[-2px] border-l-0 border-b-0 rounded-tr-[24px]',
-                    'left-[-2px] bottom-[-2px] border-r-0 border-t-0 rounded-bl-[24px]',
-                    'right-[-2px] bottom-[-2px] border-l-0 border-t-0 rounded-br-[24px]',
-                  ].map((pos) => (
-                    <i key={pos} className={`absolute w-[40px] h-[40px] border-4 transition-colors ${destelloEscaner ? 'border-green-400 drop-shadow-[0_0_10px_rgba(61,220,151,0.7)]' : 'border-white drop-shadow-[0_0_8px_rgba(160,100,255,0.55)]'} ${pos}`}></i>
-                  ))}
-                  {!destelloEscaner && (
-                    <p className="absolute left-0 right-0 -bottom-10 text-center text-[12.5px] font-semibold text-white/85 [text-shadow:0_1px_8px_rgba(0,0,0,0.6)]">
-                      Centra el código dentro del recuadro
-                    </p>
-                  )}
-                </div>
-
-                {/* Aviso de lo que se acaba de leer (solo al vender) */}
-                {destelloEscaner && modoEscaner === 'venta' && (() => {
-                  const ultimo = listaEscaneada[0]
-                    ? carrito.find((it) => (it.claveCarrito || it.productoId) === listaEscaneada[0])
-                    : null;
-                  if (!ultimo) return null;
-                  return (
-                    <div key={`${ultimo.claveCarrito || ultimo.productoId}-${ultimo.cantidad}`} className="absolute left-1/2 -translate-x-1/2 top-[88px] max-w-[88%] flex items-center gap-2.5 bg-white text-[#1c1830] rounded-full py-1.5 pl-2 pr-3.5 text-[13px] font-bold shadow-[0_12px_30px_-10px_rgba(0,0,0,0.6)] animate-[escaner-pop_0.45s_cubic-bezier(0.2,1.4,0.3,1)_both]">
-                      <span className="w-6 h-6 shrink-0 rounded-full bg-[#22b573] text-white flex items-center justify-center">
-                        <IconoTrazo nombre="check" className="w-3.5 h-3.5" />
-                      </span>
-                      <span className="truncate">{ultimo.descripcion}</span>
-                      <span className="text-[#6105dc] tabular-nums shrink-0">×{ultimo.cantidad}</span>
-                    </div>
-                  );
-                })()}
-
-                <div className="absolute left-3.5 right-3.5 top-3.5 flex items-center gap-2.5">
-                  <div className="flex-1 min-w-0 text-white">
-                    <p className="text-base font-bold tracking-tight leading-tight">{modoEscaner === 'toma-inventario' ? 'Escanear para el conteo' : 'Escanear código'}</p>
-                    <p className="text-xs text-white/70 mt-0.5">{modoEscaner === 'toma-inventario' ? 'Sigue escaneando uno tras otro' : 'Apunta al código de barras'}</p>
-                  </div>
-                  {camarasDisponibles.length > 1 && (
-                    <button
-                      onClick={cambiarCamara}
-                      title="Cambiar de cámara"
-                      aria-label="Cambiar de cámara"
-                      className="w-[42px] h-[42px] rounded-full bg-white/15 backdrop-blur-md ring-1 ring-white/20 text-white flex items-center justify-center hover:bg-white/25 transition"
-                    >
-                      <IconoTrazo nombre="camaraGira" className="w-[18px] h-[18px]" />
-                    </button>
-                  )}
-                  <button
-                    onClick={() => setModalEscaner(false)}
-                    aria-label="Cerrar"
-                    className="w-[42px] h-[42px] rounded-full bg-white/15 backdrop-blur-md ring-1 ring-white/20 text-white flex items-center justify-center hover:bg-white/25 transition"
-                  >
-                    <IconoTrazo nombre="x" className="w-[18px] h-[18px]" />
-                  </button>
-                </div>
-
-                {errorEscaner && (
-                  <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 text-center p-8 bg-gradient-to-br from-[#1a1524] to-[#0c0912]">
-                    <span className="w-16 h-16 rounded-3xl bg-rose-500/20 text-rose-400 flex items-center justify-center">
-                      <IconoTrazo nombre="camaraOff" className="w-7 h-7" />
-                    </span>
-                    <p className="text-[17px] font-bold text-white">{errorEscaner}</p>
-                    <p className="text-[13.5px] text-white/70 leading-snug max-w-[260px]">Verifica que le diste permiso de cámara a esta página en tu navegador.</p>
-                    <button
-                      type="button"
-                      onClick={() => { setModalEscaner(false); setTimeout(() => setModalEscaner(true), 60); }}
-                      className="mt-1.5 h-[46px] px-6 rounded-full bg-white text-[#4d04b0] text-sm font-semibold"
-                    >
-                      Reintentar
-                    </button>
-                    {modoEscaner === 'venta' && (
-                      <button
-                        type="button"
-                        onClick={() => { setModalEscaner(false); setTimeout(() => inputBusquedaRef.current?.focus(), 80); }}
-                        className="text-[13px] font-semibold text-white/70 hover:text-white"
-                      >
-                        Buscar escribiendo
-                      </button>
-                    )}
-                  </div>
-                )}
-              </div>
-
-              {modoEscaner === 'toma-inventario' ? (
-                <div className="bg-white rounded-t-[28px] shadow-2xl">
-                  {productoEscaneadoId && (() => {
-                    const f = filasTomaInventario.find((x) => x.productoId === productoEscaneadoId);
-                    if (!f) return null;
-                    const porPack = Number(f.pendienteUnidadesPorPack) || 1;
-                    const totalPendiente = (Number(f.pendientePacks) || 0) * porPack + (Number(f.pendienteSueltas) || 0);
-                    return (
-                      <div className="p-4 border-b border-stone-200 space-y-2">
-                        <div className="flex items-center gap-3">
-                          <div className="w-11 h-11 rounded-xl bg-orange-100 text-orange-600 flex items-center justify-center shrink-0">
-                            <i className="fa-solid fa-box text-lg"></i>
-                          </div>
-                          <div className="min-w-0 flex-1">
-                            <p className="text-sm font-bold text-stone-900 truncate">{f.descripcion}</p>
-                            <p className="text-xs text-stone-500">
-                              {f.stockContado === '' ? 'Aún sin contar' : `Ya llevas ${f.stockContado} und`}
-                            </p>
-                          </div>
-                        </div>
-
-                        {f.historial.length > 0 && (
-                          <div className="flex flex-wrap gap-1">
-                            {f.historial.map((h) => (
-                              <span key={h.id} className="inline-flex items-center gap-1 bg-stone-200 rounded-full pl-2 pr-1 py-0.5 text-[11px] text-stone-700">
-                                +{h.cantidad}
-                                <button aria-label="Cerrar" onClick={() => quitarHallazgo(f.productoId, h.id)} className="w-3.5 h-3.5 flex items-center justify-center text-stone-500 hover:text-rose-600">
-                                  <i className="fa-solid fa-xmark text-[9px]"></i>
-                                </button>
-                              </span>
-                            ))}
-                          </div>
-                        )}
-
-                        <div className="flex flex-wrap items-center gap-1.5">
-                          <div className="flex flex-col items-center">
-                            <input
-                              type="number"
-                              autoFocus
-                              placeholder="0"
-                              value={f.pendientePacks}
-                              onChange={(e) => actualizarPendienteConteo(f.productoId, 'pendientePacks', e.target.value)}
-                              onKeyDown={(e) => { if (e.key === 'Enter') agregarHallazgo(f.productoId); }}
-                              className="w-14 bg-white border border-stone-300 rounded-lg px-2 py-2 text-sm text-stone-900 text-center"
-                            />
-                            <span className="text-[9px] text-stone-500">packs</span>
-                          </div>
-                          <span className="text-xs text-stone-400">de</span>
-                          <div className="flex flex-col items-center">
-                            {editandoPackParaId === f.productoId ? (
-                              <input
-                                type="number"
-                                autoFocus
-                                placeholder="1"
-                                value={f.pendienteUnidadesPorPack}
-                                onChange={(e) => actualizarPendienteConteo(f.productoId, 'pendienteUnidadesPorPack', e.target.value)}
-                                onBlur={() => setEditandoPackParaId(null)}
-                                onKeyDown={(e) => { if (e.key === 'Enter') setEditandoPackParaId(null); }}
-                                className="w-14 bg-white border border-orange-400 rounded-lg px-2 py-2 text-sm text-stone-900 text-center"
-                              />
-                            ) : (
-                              <button
-                                type="button"
-                                onClick={() => setEditandoPackParaId(f.productoId)}
-                                title="Tocar para cambiar las unidades por pack"
-                                className="w-14 h-[38px] bg-stone-100 border border-stone-200 rounded-lg text-sm font-bold text-stone-700"
-                              >
-                                x{f.pendienteUnidadesPorPack || 1}
-                              </button>
-                            )}
-                            <span className="text-[9px] text-stone-500 flex items-center gap-0.5">
-                              {editandoPackParaId !== f.productoId && <i className="fa-solid fa-lock text-[7px]"></i>} und c/u
-                            </span>
-                          </div>
-                          <span className="text-xs text-stone-400">+</span>
-                          <div className="flex flex-col items-center">
-                            <input
-                              type="number"
-                              placeholder="0"
-                              value={f.pendienteSueltas}
-                              onChange={(e) => actualizarPendienteConteo(f.productoId, 'pendienteSueltas', e.target.value)}
-                              onKeyDown={(e) => { if (e.key === 'Enter') agregarHallazgo(f.productoId); }}
-                              className="w-14 bg-white border border-stone-300 rounded-lg px-2 py-2 text-sm text-stone-900 text-center"
-                            />
-                            <span className="text-[9px] text-stone-500">sueltas</span>
-                          </div>
-                          <span className="text-xs font-bold text-orange-600 ml-auto shrink-0">= {totalPendiente} und</span>
-                        </div>
-                        <button onClick={() => agregarHallazgo(f.productoId)} className="w-full h-[50px] bg-[#6105dc] hover:bg-[#4d04b0] text-white rounded-full text-[15px] font-semibold">
-                          <i className="fa-solid fa-plus"></i> Agregar
-                        </button>
-                      </div>
-                    );
-                  })()}
-                  <div className="px-4 py-3 text-center space-y-1">
-                    <p className="text-xs text-stone-600">
-                      {productoEscaneadoId ? 'Confirma y sigue escaneando el siguiente.' : 'Apunta la cámara al código de barras del producto.'}
-                    </p>
-                    <p className="text-[11px] text-stone-500">
-                      <i className="fa-solid fa-clipboard-check mr-1"></i>
-                      {filasTomaInventario.length} producto{filasTomaInventario.length === 1 ? '' : 's'} en el conteo
-                    </p>
-                  </div>
-                </div>
-              ) : (
-                (() => {
-                  const escaneados = modoEscaner === 'venta'
-                    ? listaEscaneada
-                        .map((c) => carrito.find((it) => (it.claveCarrito || it.productoId) === c))
-                        .filter(Boolean)
-                        .slice(0, 3)
-                    : [];
-                  if (escaneados.length === 0) {
-                    return (
-                      <div className="absolute left-3 right-3 bottom-3 rounded-[28px] bg-white/15 backdrop-blur-xl ring-1 ring-white/20 px-4 py-3.5 text-center">
-                        <p className="text-[13.5px] font-medium text-white/95 leading-snug">Cada producto que leas se suma a la venta</p>
-                        <p className="text-xs text-white/65 mt-0.5">Puedes seguir escaneando uno tras otro</p>
-                      </div>
-                    );
-                  }
-                  return (
-                    <div className="absolute left-3 right-3 bottom-3 rounded-[28px] bg-[#140f20]/90 backdrop-blur-xl ring-1 ring-white/10 px-3.5 pb-3.5 pt-2 text-white">
-                      <div className="w-9 h-1 rounded-full bg-white/25 mx-auto mb-2.5"></div>
-                      <div className="flex items-center justify-between mb-1 text-xs font-semibold text-white/65">
-                        <span>Escaneado ahora</span>
-                        <b className="text-[12.5px] text-white bg-white/10 rounded-full px-2.5 py-0.5">{carrito.length} {carrito.length === 1 ? 'producto' : 'productos'}</b>
-                      </div>
-                      {escaneados.map((it, i) => {
-                        const clave = it.claveCarrito || it.productoId;
-                        return (
-                          <div key={clave} className={`flex items-center gap-2.5 py-[7px] ${i > 0 ? 'border-t border-white/10' : ''}`}>
-                            <FotoProducto fotoUrl={it.foto_url} categoria={it.categoria} className={`w-[34px] h-[34px] rounded-[10px] shrink-0 bg-white ${i === 0 ? 'ring-2 ring-green-400' : 'ring-1 ring-black/5'}`} iconClassName="text-xs" />
-                            <div className="flex-1 min-w-0">
-                              <p className="text-[13.5px] font-semibold leading-tight truncate">{it.descripcion}</p>
-                              <p className="text-[11.5px] text-white/60">S/ {formatoSoles(it.precioUnitario)} c/u</p>
-                            </div>
-                            <div className="flex items-center bg-white/[0.12] rounded-full shrink-0">
-                              <button type="button" onClick={() => cambiarCantidadCarrito(clave, -1)} className="w-[30px] h-[30px] flex items-center justify-center text-white" aria-label="Quitar uno">
-                                <IconoTrazo nombre="minus" className="w-[13px] h-[13px]" />
-                              </button>
-                              <span className="min-w-[22px] text-center text-[13.5px] font-bold tabular-nums">{it.cantidad}</span>
-                              <button type="button" onClick={() => cambiarCantidadCarrito(clave, 1)} className="w-[30px] h-[30px] flex items-center justify-center text-white" aria-label="Agregar uno">
-                                <IconoTrazo nombre="plus" className="w-[13px] h-[13px]" />
-                              </button>
-                            </div>
-                          </div>
-                        );
-                      })}
-                      <button
-                        type="button"
-                        onClick={() => { setModalEscaner(false); setMostrarResumenMobile(true); }}
-                        className="w-full h-[52px] mt-2.5 rounded-full bg-white hover:bg-[#faf8fe] text-[#4d04b0] flex items-center justify-between pl-[18px] pr-1.5 text-[14px] font-bold whitespace-nowrap transition"
-                      >
-                        Listo · ver venta
-                        <span className="px-4 py-2.5 rounded-full bg-gradient-to-br from-[#7a2cf0] to-[#5503c4] text-white text-sm tabular-nums shadow-[0_8px_18px_-8px_rgba(97,5,220,0.8)]">S/ {formatoSoles(totalConDescuento)}</span>
-                      </button>
-                    </div>
-                  );
-                })()
-              )}
-            </div>
+            <Suspense fallback={null}>
+              <EscanerCamara
+                IconoTrazo={IconoTrazo}
+                actualizarPendienteConteo={actualizarPendienteConteo}
+                agregarHallazgo={agregarHallazgo}
+                camarasDisponibles={camarasDisponibles}
+                cambiarCamara={cambiarCamara}
+                cambiarCantidadCarrito={cambiarCantidadCarrito}
+                carrito={carrito}
+                destelloEscaner={destelloEscaner}
+                editandoPackParaId={editandoPackParaId}
+                errorEscaner={errorEscaner}
+                filasTomaInventario={filasTomaInventario}
+                formatoSoles={formatoSoles}
+                inputBusquedaRef={inputBusquedaRef}
+                listaEscaneada={listaEscaneada}
+                modalEscaner={modalEscaner}
+                modoEscaner={modoEscaner}
+                productoEscaneadoId={productoEscaneadoId}
+                productos={productos}
+                quitarHallazgo={quitarHallazgo}
+                setEditandoPackParaId={setEditandoPackParaId}
+                setModalEscaner={setModalEscaner}
+                setMostrarResumenMobile={setMostrarResumenMobile}
+                totalConDescuento={totalConDescuento}
+                videoNativoRef={videoNativoRef}
+              />
+            </Suspense>
           )}
 
           {modalInventarioInicial && (
@@ -11265,488 +11055,74 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
             </Suspense>
           )}
 
-          {/* Modal: Fiados (cobrar deudas / créditos) */}
-          {modalCobrarDeudas && (() => {
-            const dinero = (v) => `S/ ${formatoSoles(Number(v) || 0)}`;
-            const iniciales = (n) => String(n || '?').trim().split(/\s+/).slice(0, 2).map((w) => w[0]).join('').toUpperCase();
-            const GRADIENTES = ['from-[#a78bfa] to-[#6d4ae0]', 'from-[#f09a7a] to-[#d9594f]', 'from-[#6fc3a3] to-[#2e8b72]', 'from-[#e6b85a] to-[#c9892a]', 'from-[#7ab4ee] to-[#3d7fd0]'];
-            const gradienteDe = (cl) => GRADIENTES[String(cl.id).split('').reduce((a, c) => a + c.charCodeAt(0), 0) % GRADIENTES.length];
-            const avatar = (cl, tam) => <span className={`${tam} rounded-full bg-gradient-to-br ${gradienteDe(cl)} text-white grid place-items-center font-bold shrink-0 shadow-[inset_0_0_0_1px_rgba(255,255,255,0.25),0_4px_10px_-4px_rgba(20,10,50,0.35)]`}>{iniciales(cl.nombre_completo)}</span>;
-            const conEstado = boletasDeudores !== null;
-            const estadoDe = (cl) => (conEstado ? estadoDeudor({ saldo: cl.saldo_actual, diasCredito: cl.dias_credito }, boletasDeudores[cl.id] || []) : null);
-            const usoLimite = (cl) => ((Number(cl.limite_credito) || 0) > 0 ? (Number(cl.saldo_actual) || 0) / Number(cl.limite_credito) : 0);
-            const filas = clientesDeudores.map((cl) => ({ cl, e: estadoDe(cl), uso: usoLimite(cl) }));
-            const totalPorCobrar = filas.reduce((a, x) => a + (Number(x.cl.saldo_actual) || 0), 0);
-            const totalVencido = filas.reduce((a, x) => a + (x.e ? x.e.vencidoMonto : 0), 0);
-            const pctVencido = totalPorCobrar > 0 ? Math.min(100, (totalVencido / totalPorCobrar) * 100) : 0;
-            const nVencidos = filas.filter((x) => x.e && x.e.vencidas.length > 0).length;
-            const nCercaLimite = filas.filter((x) => x.uso >= 0.8).length;
-            const qd = busquedaDeudores.trim().toLowerCase();
-            const visibles = filas
-              .filter((x) => (filtroDeudores === 'todos' || (filtroDeudores === 'venc' && x.e && x.e.vencidas.length > 0) || (filtroDeudores === 'lim' && x.uso >= 0.8))
-                && (!qd || String(x.cl.nombre_completo || '').toLowerCase().includes(qd) || String(x.cl.dni || '').includes(qd)))
-              .sort(ordenDeudores === 'antigua' && conEstado
-                ? (a, b) => (b.e.masVieja ? b.e.masVieja.diasTranscurridos : 0) - (a.e.masVieja ? a.e.masVieja.diasTranscurridos : 0)
-                : (a, b) => (Number(b.cl.saldo_actual) || 0) - (Number(a.cl.saldo_actual) || 0));
-            const borde = 'border-[#e9e6f0]';
-            const botonSeg = (activo) => `h-[30px] px-3.5 rounded-full text-[12.5px] whitespace-nowrap flex items-center gap-1.5 transition ${activo ? 'bg-white text-stone-900 font-semibold shadow-[0_1px_3px_rgba(20,10,50,0.14)]' : 'text-stone-500 font-medium hover:text-stone-900'}`;
-            const colorBarra = (uso) => (uso >= 1 ? 'bg-gradient-to-r from-[#e0565c] to-[#c0262d]' : uso >= 0.8 ? 'bg-gradient-to-r from-[#f0b24a] to-[#d98a14]' : 'bg-gradient-to-r from-[#b5aecb] to-[#9d97b8]');
-            const botonFantasma = `h-[38px] px-4 rounded-full border ${borde} bg-white hover:bg-[#f8f7fb] text-[13px] font-medium text-stone-700 inline-flex items-center justify-center gap-2 transition whitespace-nowrap`;
-            const botonCirculo = `w-9 h-9 rounded-full border ${borde} bg-white hover:bg-[#f8f7fb] text-stone-700 grid place-items-center`;
-            const chispa = (<svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor" aria-hidden="true"><path d="M12 3c.6 4.6 2.4 6.4 7 7-4.6.6-6.4 2.4-7 7-.6-4.6-2.4-6.4-7-7 4.6-.6 6.4-2.4 7-7Z" /><path d="M19 15c.3 1.8 1 2.5 2.8 2.8-1.8.3-2.5 1-2.8 2.8-.3-1.8-1-2.5-2.8-2.8 1.8-.3 2.5-1 2.8-2.8Z" /></svg>);
-            const cerrar = () => { setModalCobrarDeudas(false); setDeudorSeleccionado(null); setBoletasDeudor([]); setPagoRegistrado(null); setHojaPagoDeudor(false); };
-            const volverALista = () => { setDeudorSeleccionado(null); setBoletasDeudor([]); setPagoRegistrado(null); setHojaPagoDeudor(false); };
-
-            // ----- Columna de la derecha: el cliente elegido -----
-            const detalle = (() => {
-              if (!deudorSeleccionado) {
-                return (
-                  <div className="m-auto text-center text-[13.5px] text-stone-500 leading-snug max-w-[260px] p-5">
-                    <b className="block text-[15px] text-stone-900 mb-0.5">Elige un cliente</b>
-                    Verás sus boletas pendientes y podrás registrar un pago.
-                  </div>
-                );
-              }
-              if (pagoRegistrado) {
-                const siguiente = [...clientesDeudores].filter((c) => c.id !== pagoRegistrado.id).sort((a, b) => (Number(b.saldo_actual) || 0) - (Number(a.saldo_actual) || 0))[0];
-                return (
-                  <div className="flex-1 min-h-0 overflow-y-auto hide-scrollbar p-5 flex">
-                    <div className="text-center max-w-sm w-full mx-auto my-auto py-8">
-                      <div className="relative w-[78px] h-[78px] rounded-full bg-gradient-to-br from-[#2fa972] to-[#0f7b4a] text-white grid place-items-center text-[32px] mx-auto mb-[18px] shadow-[0_14px_28px_-10px_rgba(15,123,74,0.6)]"><i className="fa-solid fa-check"></i><span className="absolute -inset-2.5 rounded-full border-2 border-[#0f7b4a]/25 animate-ping"></span></div>
-                      <h4 className="text-2xl font-bold text-stone-900 tracking-tight">Pago registrado</h4>
-                      <p className="text-sm text-stone-500 mt-2 mb-5 leading-snug">{pagoRegistrado.nombre} {pagoRegistrado.despues <= 0.004 ? 'quedó sin deuda.' : `sigue debiendo ${dinero(pagoRegistrado.despues)}.`}</p>
-                      <div className={`bg-white border ${borde} rounded-2xl px-[18px] py-1 text-left mb-[18px]`}>
-                        <div className="flex justify-between gap-3 py-3 text-[13.5px] border-b border-dashed border-[#e9e6f0]"><span className="text-stone-500">Deuda anterior</span><b>{dinero(pagoRegistrado.antes)}</b></div>
-                        <div className="flex justify-between gap-3 py-3 text-[13.5px] border-b border-dashed border-[#e9e6f0]"><span className="text-stone-500">Pago recibido</span><b className="text-[#0f7b4a]">+ {dinero(pagoRegistrado.abono)}</b></div>
-                        <div className="flex justify-between gap-3 py-3 text-[13.5px] items-baseline"><span className="text-stone-500">Deuda actual</span><b className="text-base">{dinero(pagoRegistrado.despues)}</b></div>
-                      </div>
-                      <div className="grid gap-2.5">
-                        {siguiente && <button type="button" onClick={() => { setHojaPagoDeudor(false); seleccionarDeudor(siguiente); }} className="kz-pri h-12 text-sm font-semibold inline-flex items-center justify-center gap-2"><span>Siguiente cliente</span>{chispa}</button>}
-                        <button type="button" onClick={volverALista} className={`${botonFantasma} h-12`}>Volver a la lista</button>
-                      </div>
-                    </div>
-                  </div>
-                );
-              }
-
-              const cl = deudorSeleccionado;
-              const e = estadoDeudorSel;
-              const saldo = Number(cl.saldo_actual) || 0;
-              const abono = parseFloat(montoAbonoDeuda) || 0;
-              const excede = abono > saldo + 0.004;
-              const restante = Math.max(0, +(saldo - abono).toFixed(2));
-              const cob = coberturaPago(e, Math.min(abono, saldo));
-              const limite = Number(cl.limite_credito) || 0;
-              const uso = limite > 0 ? saldo / limite : 0;
-              const lista = mostrarHistorialCompletoDeuda ? e.boletas : e.pendientesAsc;
-              const v0 = e.vencidas[0];
-              const atajo = (activo) => `h-[34px] px-4 rounded-full border text-[13px] whitespace-nowrap shrink-0 transition ${activo ? 'border-[#6105dc] bg-[#f4f0fd] text-[#4d04b0] font-semibold' : `${borde} bg-white text-stone-700 font-medium hover:bg-[#f8f7fb]`}`;
-              const restoAntigua = restoPrimeraBoleta(e);
-              const etiquetaBoton = abono > 0 && !excede ? `Registrar pago de ${dinero(abono)}` : 'Registrar pago';
-
-              // Formulario del pago: en el celular va dentro de una hoja que sube desde abajo.
-              const formularioPago = (
-                <>
-                  <label className={`flex items-center gap-2.5 h-[62px] border rounded-[14px] px-[18px] transition cursor-text ${excede ? 'border-[#c0262d] bg-[#fdf6f6]' : `${borde} focus-within:border-[#6105dc] focus-within:ring-4 focus-within:ring-[#6105dc]/10`}`}>
-                    <span className="text-[22px] font-medium text-stone-400">S/</span>
-                    <input type="number" min="0" step="0.10" inputMode="decimal" placeholder="0.00" aria-label="Monto a abonar" value={montoAbonoDeuda} onChange={(ev) => setMontoAbonoDeuda(ev.target.value)} className="w-full min-w-0 bg-transparent outline-none border-0 text-[32px] font-bold tracking-tight text-stone-900 placeholder:text-stone-300 tabular-nums" />
-                  </label>
-                  <div className="flex gap-2 mt-3 overflow-x-auto hide-scrollbar -mr-4 pr-4 md:mr-0 md:pr-0 md:flex-wrap">
-                    <button type="button" onClick={() => setMontoAbonoDeuda(saldo.toFixed(2))} className={atajo(abono > 0 && Math.abs(abono - saldo) < 0.005)}>Pagar todo</button>
-                    <button type="button" onClick={() => setMontoAbonoDeuda((saldo / 2).toFixed(2))} className={atajo(abono > 0 && Math.abs(abono - saldo / 2) < 0.005)}>Mitad</button>
-                    {e.pendientesAsc.length > 1 && restoAntigua > 0 && <button type="button" onClick={() => setMontoAbonoDeuda(restoAntigua.toFixed(2))} className={atajo(abono > 0 && Math.abs(abono - restoAntigua) < 0.005)}>Boleta más antigua {dinero(restoAntigua)}</button>}
-                  </div>
-                  <div className={`mt-4 flex justify-between items-baseline gap-2.5 rounded-xl px-4 py-3 text-[13.5px] transition ${excede ? 'bg-[#fdf1f1] text-[#c0262d]' : abono > 0 && restante === 0 ? 'bg-[#eef8f2] text-stone-500' : 'bg-[#f8f7fb] text-stone-500'}`}>
-                    <span>{excede ? 'El monto excede la deuda' : 'Saldo después del pago'}</span>
-                    <b className={`text-xl tracking-tight tabular-nums ${excede ? 'text-[#c0262d]' : abono > 0 && restante === 0 ? 'text-[#0f7b4a]' : 'text-stone-900'}`}>{dinero(excede ? saldo : restante)}</b>
-                  </div>
-                  <p className="mt-2.5 text-[12.5px] text-stone-500 min-h-[16px]">
-                    {abono > 0 && !excede && e.pendientesAsc.length > 0 ? (cob.cubiertas === 0 ? 'No alcanza para cubrir una boleta completa; queda como pago a cuenta.' : `Cubre ${cob.cubiertas} de ${e.pendientesAsc.length} boleta${e.pendientesAsc.length > 1 ? 's' : ''} pendiente${e.pendientesAsc.length > 1 ? 's' : ''} (las más antiguas primero).`) : ''}
-                  </p>
-                  <button type="button" onClick={() => setConfirmandoPagoDeudor(true)} disabled={!(abono > 0) || excede} className="kz-pri mt-1.5 w-full h-[52px] text-[14.5px] font-semibold inline-flex items-center justify-center gap-2">
-                    <span>{etiquetaBoton}</span>{chispa}
-                  </button>
-                </>
-              );
-
-              return (
-                <>
-                  <div className="flex-1 min-h-0 overflow-y-auto hide-scrollbar px-4 md:px-[30px] pt-4 md:pt-[26px] pb-4 md:pb-8 flex flex-col gap-5">
-                    <div className="flex flex-wrap items-center gap-3.5">
-                      {avatar(cl, 'w-[52px] h-[52px] md:w-14 md:h-14 text-[17px] md:text-lg')}
-                      <div className="min-w-0 flex-1 basis-[180px]">
-                        <h4 className="text-xl md:text-[22px] font-bold text-stone-900 tracking-tight leading-tight truncate">{cl.nombre_completo}</h4>
-                        <div className="flex flex-wrap gap-1.5 mt-1.5">
-                          {[`DNI ${cl.dni}`, cl.telefono || 'Sin teléfono', `Plazo ${Number(cl.dias_credito) || 30} días`].map((t) => <span key={t} className={`text-xs text-stone-700 bg-white border ${borde} rounded-full px-2.5 py-[3px]`}>{t}</span>)}
-                        </div>
-                      </div>
-                      <div className="hidden md:flex gap-2">
-                        <button type="button" onClick={descargarEstadoCuenta} className={botonFantasma}><IconoTrazo nombre="pdf" className="w-[15px] h-[15px]" /> PDF</button>
-                        <button type="button" onClick={() => enviarEstadoCuentaWhatsApp(cl)} className={botonFantasma}><IconoTrazo nombre="chat" className="w-[15px] h-[15px]" /> WhatsApp</button>
-                      </div>
-                    </div>
-
-                    <div className={`relative overflow-hidden bg-white border ${borde} rounded-[18px] px-[18px] md:px-6 py-[18px] md:py-[22px] shadow-[0_1px_2px_rgba(20,10,50,0.04),0_18px_40px_-26px_rgba(20,10,50,0.3)] shrink-0`}>
-                      <span className="absolute -right-14 -top-[70px] w-[220px] h-[220px] rounded-full pointer-events-none" style={{ background: 'radial-gradient(closest-side, rgba(192,38,45,0.10), rgba(192,38,45,0))' }}></span>
-                      <div className="relative flex justify-between items-end gap-3">
-                        <div>
-                          <span className="text-[13px] text-stone-500">Deuda actual</span>
-                          <strong className="block text-[36px] md:text-[42px] font-bold tracking-[-0.04em] text-[#c0262d] leading-none mt-1.5 tabular-nums">{dinero(saldo)}</strong>
-                        </div>
-                        {limite > 0 && (
-                          <div className="text-right">
-                            <span className="text-[13px] text-stone-500">Disponible</span>
-                            <b className="block text-[17px] md:text-[19px] font-bold tracking-tight mt-1 tabular-nums">{dinero(Math.max(0, limite - saldo))}</b>
-                          </div>
-                        )}
-                      </div>
-                      {limite > 0 && (
-                        <>
-                          <div className="relative h-2 rounded bg-[#ece9f4] mt-5"><i className={`block h-full rounded ${colorBarra(uso)}`} style={{ width: `${Math.min(100, uso * 100)}%` }}></i><u className="absolute left-[80%] -top-1 w-px h-4 bg-[#bdb7d0]"></u></div>
-                          <div className="relative flex justify-between gap-2 flex-wrap text-[12.5px] text-stone-500 mt-2.5"><span>Usa {Math.round(uso * 100)}% de su crédito</span><span>Límite {dinero(limite)}</span></div>
-                        </>
-                      )}
-                      {v0 && (
-                        <p className="relative flex gap-2.5 items-start text-[13px] text-[#c0262d] bg-[#fdf1f1] rounded-[10px] px-3.5 py-2.5 mt-4 leading-snug"><i className="fa-solid fa-triangle-exclamation mt-0.5"></i><span><b>{dinero(e.vencidoMonto)} vencido.</b> La boleta {v0.nro_boleta} pasó su plazo hace {v0.diasVencido} día{v0.diasVencido > 1 ? 's' : ''}.</span></p>
-                      )}
-                    </div>
-
-                    <div className="hidden md:block rounded-[18px] border border-transparent px-6 py-[22px] shadow-[0_18px_40px_-24px_rgba(97,5,220,0.4)] shrink-0" style={{ background: 'linear-gradient(#fff,#fff) padding-box, linear-gradient(135deg,#cdbcf7,#e9e6f0 45%,#cdbcf7) border-box' }}>
-                      <h5 className="text-base font-semibold text-stone-900 tracking-tight mb-3.5">Registrar pago</h5>
-                      {formularioPago}
-                    </div>
-
-                    <div className="shrink-0">
-                      <div className="flex items-baseline justify-between gap-2 mb-1.5">
-                        <h5 className="text-base font-semibold text-stone-900 tracking-tight">{mostrarHistorialCompletoDeuda ? 'Historial de compras a crédito' : 'Boletas pendientes'}</h5>
-                        {e.boletas.some((b) => b.pagada) && (
-                          <button type="button" onClick={() => setMostrarHistorialCompletoDeuda((x) => !x)} className="text-[13px] font-medium text-[#6105dc] hover:underline shrink-0">
-                            {mostrarHistorialCompletoDeuda ? 'Ver solo pendientes' : `Ver historial completo (${e.boletas.length})`}
-                          </button>
-                        )}
-                      </div>
-                      {cargandoDetalleDeudor ? (
-                        <p className="text-xs text-stone-500 text-center py-4">Cargando...</p>
-                      ) : e.boletas.length === 0 ? (
-                        <p className="text-xs text-stone-500 text-center py-4">Sin boletas a crédito registradas.</p>
-                      ) : lista.length === 0 ? (
-                        <p className="text-xs text-[#0f7b4a] text-center py-4">No hay boletas pendientes.</p>
-                      ) : (
-                        lista.map((b, i) => {
-                          const cubre = !b.pagada && abono > 0 && !excede && cob.ids.includes(b.id);
-                          return (
-                            <div key={b.id} className={`relative grid grid-cols-[22px_1fr_auto] gap-3.5 py-3.5 items-start ${b.pagada ? 'opacity-50' : ''}`}>
-                              {i < lista.length - 1 && <span className="absolute left-[10px] top-[38px] -bottom-3.5 w-0.5 bg-[#ebe8f2]"></span>}
-                              <span className={`relative z-[1] w-[22px] h-[22px] rounded-full border-2 grid place-items-center text-white transition ${b.pagada || cubre ? 'bg-[#0f7b4a] border-[#0f7b4a] shadow-[0_0_0_4px_rgba(15,123,74,0.12)]' : b.vencida ? 'bg-white border-[#c0262d]' : 'bg-white border-[#cdc8dc]'}`}>{(b.pagada || cubre) && <i className="fa-solid fa-check text-[10px]"></i>}</span>
-                              <div className="min-w-0">
-                                <p className="text-[13.5px] flex items-center gap-2 flex-wrap">
-                                  <b className="font-mono font-semibold text-stone-900">{b.nro_boleta}</b>
-                                  {b.pagada && <span className="text-[11.5px] font-semibold text-[#0f7b4a]">Pagada</span>}
-                                  {b.vencida && <span className="text-[11.5px] font-semibold text-[#c0262d] bg-[#fdf1f1] rounded-full px-2 py-[2px]">Vencida hace {b.diasVencido} d</span>}
-                                </p>
-                                <p className="text-[12.5px] text-stone-500 mt-1 leading-snug">
-                                  {new Date(b.fecha_hora).toLocaleDateString('es-PE')} · {(b.ventas_detalle || []).map((d) => `${d.productos?.descripcion || 'Producto'} x${d.cantidad}`).join(', ') || 'Sin detalle'}
-                                </p>
-                              </div>
-                              <span className={`text-[15px] font-bold tracking-tight tabular-nums whitespace-nowrap ${b.pagada ? 'line-through' : ''}`}>{dinero(b.total_venta)}</span>
-                            </div>
-                          );
-                        })
-                      )}
-                    </div>
-
-                    {pagosRecientes.length > 0 && (
-                      <div className="shrink-0">
-                        <h5 className="text-base font-semibold text-stone-900 tracking-tight mb-1">Pagos recientes</h5>
-                        {pagosRecientes.map((p, i) => (
-                          <div key={i} className="flex justify-between gap-2.5 py-2.5 border-b border-[#f0edf6] last:border-0 text-[13px]">
-                            <span className="text-stone-500">{etiquetaCuandoTurno(p.fecha)}{listaCajeros.find((c) => c.id === p.cajero_id) ? ` · ${listaCajeros.find((c) => c.id === p.cajero_id).nombre}` : ''}</span>
-                            <b className="text-[#0f7b4a] font-semibold tabular-nums">+ {dinero(p.monto_pagado)}</b>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Celular: botón fijo abajo y hoja que sube para registrar el pago */}
-                  <div className="md:hidden shrink-0 px-4 pt-3 pb-4 bg-[#f8f7fb] border-t border-[#e9e6f0] shadow-[0_-12px_24px_-16px_rgba(20,10,50,0.18)] relative z-[2]">
-                    <p className="text-center text-xs text-stone-500 mb-2">Deuda actual {dinero(saldo)}</p>
-                    <button type="button" onClick={() => setHojaPagoDeudor(true)} className="kz-pri w-full h-[54px] text-[15px] font-semibold inline-flex items-center justify-center gap-2"><span>Registrar pago</span>{chispa}</button>
-                  </div>
-                  {confirmandoPagoDeudor && abono > 0 && !excede && (
-                    <div className="fixed inset-0 z-[80] flex items-center justify-center p-4" role="dialog" aria-modal="true" aria-label="Confirmar pago">
-                      <div className="absolute inset-0 bg-[rgba(20,12,40,0.5)] backdrop-blur-[2px]" onClick={() => setConfirmandoPagoDeudor(false)}></div>
-                      <div className="relative bg-white rounded-[20px] w-full max-w-[360px] p-6 shadow-2xl">
-                        <h5 className="text-lg font-bold tracking-tight text-stone-900">¿Confirmas el pago?</h5>
-                        <p className="text-[13.5px] text-stone-500 mt-1.5 leading-snug">Vas a registrar que <b className="text-stone-900">{cl.nombre_completo}</b> pagó <b className="text-stone-900">{dinero(abono)}</b>. {restante === 0 ? 'Su deuda quedará en S/ 0.00.' : `Su deuda quedará en ${dinero(restante)}.`}</p>
-                        <div className="grid grid-cols-2 gap-2.5 mt-5">
-                          <button type="button" onClick={() => setConfirmandoPagoDeudor(false)} className={`${botonFantasma} h-12`}>Cancelar</button>
-                          <button type="button" onClick={() => { setConfirmandoPagoDeudor(false); procesarPagoDeudaCliente(); }} className="kz-pri h-12 text-sm font-semibold">Sí, registrar</button>
-                        </div>
-                      </div>
-                    </div>
-                  )}
-                  {hojaPagoDeudor && (
-                    <div className="md:hidden fixed inset-0 z-[70]">
-                      <div className="absolute inset-0 bg-[rgba(20,12,40,0.42)] backdrop-blur-[2px]" onClick={() => setHojaPagoDeudor(false)}></div>
-                      <div className="absolute inset-x-0 bottom-0 bg-white rounded-t-3xl px-[18px] pt-2.5 pb-6 shadow-[0_-20px_50px_-20px_rgba(20,10,50,0.5)] max-h-[92vh] overflow-y-auto">
-                        <div className="w-10 h-1 rounded-sm bg-[#d6d2e2] mx-auto mb-3.5"></div>
-                        <h5 className="text-lg font-bold tracking-tight text-stone-900">Registrar pago</h5>
-                        <p className="text-[13px] text-stone-500 mt-0.5 mb-3.5">{cl.nombre_completo} · Deuda {dinero(saldo)}</p>
-                        {formularioPago}
-                      </div>
-                    </div>
-                  )}
-                </>
-              );
-            })();
-
-            return (
-              <div className="fixed inset-0 bg-stone-900/30 backdrop-blur-sm flex items-center justify-center z-50 p-2 sm:p-4">
-                <div className="bg-[#f8f7fb] border border-black/5 rounded-[18px] max-w-5xl w-full shadow-2xl h-[95vh] max-h-[780px] flex flex-col overflow-hidden">
-                  <div className={`bg-white px-4 sm:px-7 py-3.5 sm:py-[18px] shrink-0 flex items-center gap-3 border-b ${borde}`}>
-                    {deudorSeleccionado && !pagoRegistrado && <button type="button" onClick={volverALista} className="md:hidden h-9 pl-2.5 pr-3.5 rounded-full border border-[#e9e6f0] bg-white text-[13px] font-medium text-stone-700 inline-flex items-center gap-1 shrink-0"><i className="fa-solid fa-chevron-left text-[10px]"></i> Clientes</button>}
-                    <h3 className={`text-xl sm:text-[21px] font-bold tracking-tight text-stone-900 ${deudorSeleccionado ? 'hidden md:block' : ''}`}>Fiados</h3>
-                    <p className="hidden md:block text-[13px] text-stone-500 truncate">Lo que tus clientes te deben a crédito</p>
-                    <span className="flex-1"></span>
-                    {deudorSeleccionado && !pagoRegistrado && (
-                      <div className="md:hidden flex gap-2">
-                        <button type="button" onClick={descargarEstadoCuenta} aria-label="Estado de cuenta en PDF" className={botonCirculo}><IconoTrazo nombre="pdf" className="w-4 h-4" /></button>
-                        <button type="button" onClick={() => enviarEstadoCuentaWhatsApp(deudorSeleccionado)} aria-label="Enviar por WhatsApp" className={botonCirculo}><IconoTrazo nombre="chat" className="w-4 h-4" /></button>
-                      </div>
-                    )}
-                    <button aria-label="Cerrar" onClick={cerrar} className="w-9 h-9 rounded-full text-stone-400 hover:text-stone-700 hover:bg-[#f1eef9] shrink-0"><i className="fa-solid fa-xmark"></i></button>
-                  </div>
-
-                  {clientesDeudores.length === 0 && !deudorSeleccionado ? (
-                    <div className="flex-1 grid place-items-center p-6">
-                      {cargandoDeudores ? (
-                        <p className="text-[13px] text-stone-500">Cargando clientes con deuda...</p>
-                      ) : (
-                        <div className="text-center max-w-xs text-[13.5px] text-stone-500 leading-snug">
-                          <div className="w-14 h-14 rounded-full bg-[#e7f7ee] text-[#0f7b4a] grid place-items-center text-[24px] mx-auto mb-3"><i className="fa-solid fa-check"></i></div>
-                          <b className="block text-base text-stone-900 mb-0.5">No hay clientes con deuda</b>
-                          Todo está cobrado. Cuando vendas a crédito, el cliente aparecerá aquí.
-                        </div>
-                      )}
-                    </div>
-                  ) : (
-                    <div className="flex-1 min-h-0 grid md:grid-cols-[380px_minmax(0,1fr)]">
-                      <div className={`${deudorSeleccionado ? 'hidden md:flex' : 'flex'} flex-col min-h-0 bg-white md:border-r ${borde}`}>
-                        <div className="px-5 md:px-6 pt-5 pb-4">
-                          <span className="text-[13px] text-stone-500">Total por cobrar</span>
-                          <strong className="block text-[32px] md:text-4xl font-bold tracking-[-0.04em] text-stone-900 leading-[1.05] mt-0.5 mb-3.5 tabular-nums">{dinero(totalPorCobrar)}</strong>
-                          {conEstado && totalPorCobrar > 0 && (
-                            <>
-                              <div className="flex h-2 rounded overflow-hidden bg-[#ece9f4] gap-0.5">
-                                {pctVencido > 0 && <i className="block h-full bg-gradient-to-r from-[#d94b52] to-[#c0262d]" style={{ width: `${pctVencido}%` }}></i>}
-                                <i className="block h-full bg-gradient-to-r from-[#9b7bf5] to-[#6b44d8]" style={{ width: `${100 - pctVencido}%` }}></i>
-                              </div>
-                              <div className="flex flex-wrap gap-x-[18px] gap-y-1.5 mt-2.5 text-[12.5px] text-stone-500">
-                                <span className="flex items-center gap-1.5"><i className="w-2 h-2 rounded-full bg-[#c0262d]"></i>Vencido <b className="text-stone-900 font-semibold">{dinero(totalVencido)}</b></span>
-                                <span className="flex items-center gap-1.5"><i className="w-2 h-2 rounded-full bg-[#6b44d8]"></i>Al día <b className="text-stone-900 font-semibold">{dinero(totalPorCobrar - totalVencido)}</b></span>
-                              </div>
-                            </>
-                          )}
-                          <p className="text-xs text-stone-500 mt-2">{clientesDeudores.length} {clientesDeudores.length === 1 ? 'cliente' : 'clientes'}{conEstado && totalVencido <= 0 ? ' · Nada vencido' : ''}</p>
-                        </div>
-                        <div className="px-5 md:px-6 pb-3 space-y-2.5">
-                          <label className={`flex items-center gap-2.5 h-10 border ${borde} rounded-full px-4 text-stone-400 bg-white focus-within:border-[#6105dc] focus-within:ring-[3px] focus-within:ring-[#6105dc]/10 transition`}>
-                            <i className="fa-solid fa-magnifying-glass text-xs"></i>
-                            <input type="text" autoComplete="off" placeholder="Buscar por nombre o DNI" value={busquedaDeudores} onChange={(ev) => setBusquedaDeudores(ev.target.value)} className="flex-1 min-w-0 bg-transparent text-[13.5px] text-stone-900 outline-none placeholder:text-stone-400" />
-                          </label>
-                          <div className="flex bg-[#ece9f4] rounded-full p-[3px] w-fit max-w-full overflow-x-auto hide-scrollbar">
-                            <button type="button" onClick={() => setFiltroDeudores('todos')} className={botonSeg(filtroDeudores === 'todos')}>Todos <span className="text-[11.5px] text-stone-500 font-medium">{filas.length}</span></button>
-                            {conEstado && <button type="button" onClick={() => setFiltroDeudores('venc')} className={botonSeg(filtroDeudores === 'venc')}>Vencidos <span className="text-[11.5px] text-stone-500 font-medium">{nVencidos}</span></button>}
-                            <button type="button" onClick={() => setFiltroDeudores('lim')} className={botonSeg(filtroDeudores === 'lim')}>Cerca del límite <span className="text-[11.5px] text-stone-500 font-medium">{nCercaLimite}</span></button>
-                          </div>
-                          {conEstado && (
-                            <div className="flex justify-between items-center text-xs text-stone-500">
-                              <span>{visibles.length} resultado{visibles.length === 1 ? '' : 's'}</span>
-                              <button type="button" onClick={() => setOrdenDeudores((o) => (o === 'deuda' ? 'antigua' : 'deuda'))} className="font-semibold text-stone-700 hover:text-stone-900">Orden: {ordenDeudores === 'deuda' ? 'mayor deuda' : 'más antigua'}</button>
-                            </div>
-                          )}
-                        </div>
-                        <div className="flex-1 min-h-0 overflow-y-auto hide-scrollbar px-3.5 pb-[18px]">
-                          {visibles.length === 0 && <p className="text-center text-[13px] text-stone-500 py-8 px-4"><b className="block text-stone-900">Nadie coincide</b>Prueba con otro filtro o nombre.</p>}
-                          {visibles.map(({ cl, e, uso }) => {
-                            const venc = e && e.vencidas.length > 0;
-                            const pend = e ? e.pendientesAsc.length : 0;
-                            const elegido = deudorSeleccionado?.id === cl.id;
-                            return (
-                              <button type="button" key={cl.id} onClick={() => { setHojaPagoDeudor(false); seleccionarDeudor(cl); }} className={`grid grid-cols-[44px_minmax(0,1fr)_auto] gap-3 items-center w-full text-left px-3 py-3 rounded-[14px] mb-0.5 border transition ${elegido ? 'md:bg-white md:border-[#d9cdf5] md:shadow-[0_10px_24px_-14px_rgba(97,5,220,0.45),0_0_0_3px_rgba(97,5,220,0.06)] border-transparent' : 'border-transparent hover:bg-[#f8f7fb]'}`}>
-                                {avatar(cl, 'w-11 h-11 text-sm')}
-                                <span className="min-w-0">
-                                  <span className="block text-sm font-semibold text-stone-900 tracking-tight leading-tight truncate">{cl.nombre_completo}</span>
-                                  <span className={`block text-xs mt-0.5 truncate ${venc ? 'text-[#c0262d] font-medium' : 'text-stone-500'}`}>
-                                    {e
-                                      ? (venc ? `Vencida hace ${e.vencidas[0].diasVencido} d · ${pend} boleta${pend === 1 ? '' : 's'}` : e.masVieja ? `Debe desde hace ${e.masVieja.diasTranscurridos} d · ${pend} boleta${pend === 1 ? '' : 's'}` : 'Sin boletas a crédito')
-                                      : `DNI ${cl.dni}`}
-                                  </span>
-                                </span>
-                                <span className="text-right shrink-0">
-                                  <strong className="block text-[15px] font-bold tracking-tight tabular-nums">{dinero(cl.saldo_actual)}</strong>
-                                  {(Number(cl.limite_credito) || 0) > 0 && <span className="block w-[60px] h-1 rounded-sm bg-[#ece9f4] mt-[7px] ml-auto overflow-hidden"><i className={`block h-full rounded-sm ${colorBarra(uso)}`} style={{ width: `${Math.min(100, uso * 100)}%` }}></i></span>}
-                                </span>
-                              </button>
-                            );
-                          })}
-                        </div>
-                      </div>
-                      <div className={`${deudorSeleccionado ? 'flex' : 'hidden md:flex'} flex-col min-h-0 relative`}>{detalle}</div>
-                    </div>
-                  )}
-                </div>
-              </div>
-            );
-          })()}
-
-          {/* Modal: Cuentas por Pagar (proveedores) */}
-          {modalCuentasPagar && (
-            <div className="fixed inset-0 bg-stone-900/30 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-              <div className="bg-gradient-to-br from-[#f4effc] via-[#f9f8fb] to-[#f5f4f8] border border-white/80 rounded-[28px] max-w-md w-full p-5 shadow-2xl space-y-3 max-h-[90vh] overflow-y-auto">
-                <div className="flex justify-between items-center">
-                  <h3 className="text-lg font-bold text-stone-900 flex items-center gap-2">
-                    <i className="fa-solid fa-file-invoice text-orange-600"></i> Cuentas por Pagar
-                  </h3>
-                  <button aria-label="Cerrar" onClick={() => setModalCuentasPagar(false)} className="w-8 h-8 rounded-full bg-white/70 hover:bg-white text-stone-500 hover:text-stone-900 shadow-sm"><i className="fa-solid fa-xmark"></i></button>
-                </div>
-
-                {proveedorSeleccionado ? (
-                  <div className="p-3 bg-stone-50 rounded-xl border border-amber-500/40 space-y-3">
-                    <div className="flex justify-between items-center">
-                      <span className="font-bold text-xs text-stone-900 flex items-center gap-1.5">
-                        <i className="fa-solid fa-truck-field text-orange-600"></i> {proveedorSeleccionado.nombre}
-                      </span>
-                      <button onClick={() => setProveedorSeleccionado(null)} className="text-xs text-stone-600 underline">Cambiar</button>
-                    </div>
-                    <div className="text-xs">
-                      {proveedorSeleccionado.ruc && <p className="text-stone-600">RUC: {proveedorSeleccionado.ruc}</p>}
-                      {proveedorSeleccionado.telefono && <p className="text-stone-600">Tel: {proveedorSeleccionado.telefono}</p>}
-                      <p className="text-rose-600 font-bold mt-1 text-sm">Le debemos: S/ {Number(proveedorSeleccionado.saldo_actual).toFixed(2)}</p>
-                    </div>
-
-                    <div>
-                      <label className="text-xs text-stone-600 block mb-1">Monto (S/):</label>
-                      <input
-                        type="number"
-                        step="1.00"
-                        placeholder="0.00"
-                        value={montoMovimientoProveedor}
-                        onChange={(e) => setMontoMovimientoProveedor(e.target.value)}
-                        className="w-full bg-stone-100 border border-stone-200 rounded-lg p-2 text-sm font-bold text-stone-900 focus:outline-none focus:ring-2 focus:ring-[#d6bdfa]"
-                      />
-                    </div>
-                    <div className="grid grid-cols-2 gap-2">
-                      <button
-                        onClick={() => registrarMovimientoProveedor('deuda')}
-                        className="py-2 bg-stone-200 hover:bg-stone-300 text-stone-800 font-bold text-xs rounded-xl border border-stone-300 flex items-center justify-center gap-1.5"
-                      >
-                        <i className="fa-solid fa-plus"></i> Agregar Deuda
-                      </button>
-                      <button
-                        onClick={() => registrarMovimientoProveedor('pago')}
-                        className="py-2 bg-stone-900 hover:bg-stone-800 text-white font-bold text-xs rounded-xl shadow flex items-center justify-center gap-1.5"
-                      >
-                        <i className="fa-solid fa-check"></i> Registrar Pago
-                      </button>
-                    </div>
-                  </div>
-                ) : (
-                  <div className="max-h-72 overflow-y-auto space-y-1.5">
-                    {proveedoresLista.length === 0 ? (
-                      <p className="text-xs text-stone-600 text-center py-6">Aún no registras proveedores.</p>
-                    ) : (
-                      proveedoresLista.map((p) => (
-                        <div
-                          key={p.id}
-                          onClick={() => { setProveedorSeleccionado(p); setMontoMovimientoProveedor(''); }}
-                          className="flex justify-between items-center p-2.5 bg-stone-50 hover:bg-stone-200 border border-stone-200 rounded-xl cursor-pointer transition"
-                        >
-                          <div>
-                            <p className="text-xs font-bold text-stone-800">{p.nombre}</p>
-                            {p.ruc && <p className="text-xs text-stone-600">RUC: {p.ruc}</p>}
-                          </div>
-                          <span className={`text-sm font-black ${Number(p.saldo_actual) > 0 ? 'text-rose-600' : 'text-emerald-600'}`}>
-                            S/ {Number(p.saldo_actual).toFixed(2)}
-                          </span>
-                        </div>
-                      ))
-                    )}
-                  </div>
-                )}
-
-                {!proveedorSeleccionado && (
-                  <button
-                    onClick={() => setModalNuevoProveedor(true)}
-                    className="w-full py-2 bg-white/70 hover:bg-[#ece0fd] text-stone-600 font-bold text-xs rounded-full border border-stone-300 border-dashed flex items-center justify-center gap-1.5 shadow-sm"
-                  >
-                    <i className="fa-solid fa-plus"></i> Nuevo Proveedor
-                  </button>
-                )}
-              </div>
-            </div>
+          {modalCobrarDeudas && (
+            <Suspense fallback={null}>
+              <FiadosModal
+                IconoTrazo={IconoTrazo}
+                boletasDeudores={boletasDeudores}
+                busquedaDeudores={busquedaDeudores}
+                cargandoDetalleDeudor={cargandoDetalleDeudor}
+                cargandoDeudores={cargandoDeudores}
+                clientesDeudores={clientesDeudores}
+                confirmandoPagoDeudor={confirmandoPagoDeudor}
+                descargarEstadoCuenta={descargarEstadoCuenta}
+                deudorSeleccionado={deudorSeleccionado}
+                enviarEstadoCuentaWhatsApp={enviarEstadoCuentaWhatsApp}
+                estadoDeudorSel={estadoDeudorSel}
+                etiquetaCuandoTurno={etiquetaCuandoTurno}
+                filtroDeudores={filtroDeudores}
+                formatoSoles={formatoSoles}
+                hojaPagoDeudor={hojaPagoDeudor}
+                listaCajeros={listaCajeros}
+                modalCobrarDeudas={modalCobrarDeudas}
+                montoAbonoDeuda={montoAbonoDeuda}
+                mostrarHistorialCompletoDeuda={mostrarHistorialCompletoDeuda}
+                ordenDeudores={ordenDeudores}
+                pagoRegistrado={pagoRegistrado}
+                pagosRecientes={pagosRecientes}
+                procesarPagoDeudaCliente={procesarPagoDeudaCliente}
+                seleccionarDeudor={seleccionarDeudor}
+                setBoletasDeudor={setBoletasDeudor}
+                setBusquedaDeudores={setBusquedaDeudores}
+                setConfirmandoPagoDeudor={setConfirmandoPagoDeudor}
+                setDeudorSeleccionado={setDeudorSeleccionado}
+                setFiltroDeudores={setFiltroDeudores}
+                setHojaPagoDeudor={setHojaPagoDeudor}
+                setModalCobrarDeudas={setModalCobrarDeudas}
+                setMontoAbonoDeuda={setMontoAbonoDeuda}
+                setMostrarHistorialCompletoDeuda={setMostrarHistorialCompletoDeuda}
+                setOrdenDeudores={setOrdenDeudores}
+                setPagoRegistrado={setPagoRegistrado}
+              />
+            </Suspense>
           )}
 
-          {/* Modal: Nuevo Proveedor */}
+          {modalCuentasPagar && (
+            <Suspense fallback={null}>
+              <CuentasPagar
+                modalCuentasPagar={modalCuentasPagar}
+                montoMovimientoProveedor={montoMovimientoProveedor}
+                proveedorSeleccionado={proveedorSeleccionado}
+                proveedoresLista={proveedoresLista}
+                registrarMovimientoProveedor={registrarMovimientoProveedor}
+                setModalCuentasPagar={setModalCuentasPagar}
+                setModalNuevoProveedor={setModalNuevoProveedor}
+                setMontoMovimientoProveedor={setMontoMovimientoProveedor}
+                setProveedorSeleccionado={setProveedorSeleccionado}
+              />
+            </Suspense>
+          )}
+
           {modalNuevoProveedor && (
-            <div className="fixed inset-0 bg-stone-900/30 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-              <div className="bg-gradient-to-br from-[#f4effc] via-[#f9f8fb] to-[#f5f4f8] border border-white/80 rounded-[28px] max-w-sm w-full p-5 shadow-2xl space-y-3">
-                <div className="flex justify-between items-center">
-                  <h3 className="text-lg font-bold text-stone-900"><i className="fa-solid fa-truck mr-1.5"></i> Nuevo Proveedor</h3>
-                  <button aria-label="Cerrar" onClick={() => setModalNuevoProveedor(false)} className="w-8 h-8 rounded-full bg-white/70 hover:bg-white text-stone-500 hover:text-stone-900 shadow-sm"><i className="fa-solid fa-xmark"></i></button>
-                </div>
-                <form onSubmit={handleGuardarNuevoProveedor} className="space-y-2.5">
-                  <div>
-                    <label className="text-xs text-stone-600 block mb-1">Nombre *</label>
-                    <input
-                      type="text"
-                      required
-                      value={formProveedor.nombre}
-                      onChange={(e) => setFormProveedor({ ...formProveedor, nombre: e.target.value })}
-                      className="w-full bg-white border border-stone-200/70 shadow-sm rounded-xl px-3 py-1.5 text-sm text-stone-900 focus:outline-none focus:ring-2 focus:ring-[#d6bdfa]"
-                    />
-                  </div>
-                  <div className="grid grid-cols-2 gap-2">
-                    <div>
-                      <label className="text-xs text-stone-600 block mb-1">RUC</label>
-                      <input
-                        type="text"
-                        value={formProveedor.ruc}
-                        onChange={(e) => setFormProveedor({ ...formProveedor, ruc: e.target.value })}
-                        className="w-full bg-white border border-stone-200/70 shadow-sm rounded-xl px-3 py-1.5 text-sm text-stone-900 focus:outline-none focus:ring-2 focus:ring-[#d6bdfa]"
-                      />
-                    </div>
-                    <div>
-                      <label className="text-xs text-stone-600 block mb-1">Teléfono</label>
-                      <input
-                        type="text"
-                        value={formProveedor.telefono}
-                        onChange={(e) => setFormProveedor({ ...formProveedor, telefono: e.target.value })}
-                        className="w-full bg-white border border-stone-200/70 shadow-sm rounded-xl px-3 py-1.5 text-sm text-stone-900 focus:outline-none focus:ring-2 focus:ring-[#d6bdfa]"
-                      />
-                    </div>
-                  </div>
-                  <div>
-                    <label className="text-xs text-stone-600 block mb-1">Deuda inicial (S/, opcional)</label>
-                    <input
-                      type="number"
-                      step="1.00"
-                      placeholder="0.00"
-                      value={formProveedor.saldoInicial}
-                      onChange={(e) => setFormProveedor({ ...formProveedor, saldoInicial: e.target.value })}
-                      className="w-full bg-white border border-stone-200/70 shadow-sm rounded-xl px-3 py-1.5 text-sm text-stone-900 focus:outline-none focus:ring-2 focus:ring-[#d6bdfa]"
-                    />
-                  </div>
-                  <button
-                    type="submit"
-                    className="w-full py-2.5 bg-[#6105dc] hover:bg-[#4d04b0] text-white font-bold text-xs rounded-full shadow"
-                  >
-                    Guardar proveedor
-                  </button>
-                </form>
-              </div>
-            </div>
+            <Suspense fallback={null}>
+              <NuevoProveedor
+                formProveedor={formProveedor}
+                handleGuardarNuevoProveedor={handleGuardarNuevoProveedor}
+                modalNuevoProveedor={modalNuevoProveedor}
+                setFormProveedor={setFormProveedor}
+                setModalNuevoProveedor={setModalNuevoProveedor}
+              />
+            </Suspense>
           )}
 
           {modalHistorialCierres && (
@@ -11777,807 +11153,149 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
           {/* Modal: Historial de Toma de Inventario -- comparar, producto por
               producto, si un día cuadró contra el sistema y otro no. */}
           {modalHistorialInventario && (
-            <div className="fixed inset-0 bg-stone-900/30 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-              <div className="bg-gradient-to-br from-[#f4effc] via-[#f9f8fb] to-[#f5f4f8] border border-white/80 rounded-[28px] max-w-lg w-full p-5 shadow-2xl space-y-3 max-h-[90vh] flex flex-col">
-                <div className="flex justify-between items-center shrink-0">
-                  <h3 className="text-lg font-bold text-stone-900 flex items-center gap-2">
-                    <i className="fa-solid fa-scale-balanced text-orange-600"></i> Historial de Inventario
-                  </h3>
-                  <button aria-label="Cerrar" onClick={() => setModalHistorialInventario(false)} className="w-8 h-8 rounded-full bg-white/70 hover:bg-white text-stone-500 hover:text-stone-900 shadow-sm"><i className="fa-solid fa-xmark"></i></button>
-                </div>
-
-                <PestanasModal pestanas={[
-                  { texto: 'Nueva toma', onClick: () => { setModalHistorialInventario(false); abrirTomaInventario(); } },
-                  { texto: 'Historial', activa: true },
-                ]} />
-
-                <FiltroFechasRapido
-                  desde={fechaInicioHistInventario}
-                  hasta={fechaFinHistInventario}
-                  setDesde={setFechaInicioHistInventario}
-                  setHasta={setFechaFinHistInventario}
-                  onRango={cargarHistorialInventarioPorRango}
-                  diasAtras={30}
-                />
-
-                <div className="flex gap-2 shrink-0">
-                  <input
-                    type="text"
-                    placeholder="Buscar producto..."
-                    value={historialInventarioBusqueda}
-                    onChange={(e) => setHistorialInventarioBusqueda(e.target.value)}
-                    className="flex-1 bg-white border border-stone-200/70 shadow-sm rounded-xl px-2.5 py-1.5 text-xs text-stone-900"
-                  />
-                  <label className="flex items-center gap-1.5 px-2.5 py-1.5 bg-stone-50 border border-stone-200 rounded-lg text-xs text-stone-700 font-semibold cursor-pointer shrink-0">
-                    <input
-                      type="checkbox"
-                      checked={historialInventarioSoloDif}
-                      onChange={(e) => setHistorialInventarioSoloDif(e.target.checked)}
-                    />
-                    Solo con diferencia
-                  </label>
-                </div>
-
-                <div className="flex-1 overflow-y-auto space-y-3">
-                  {cargandoHistorialInventario ? (
-                    <p className="text-xs text-center py-8 text-stone-600">Cargando...</p>
-                  ) : historialInventarioAgrupado.length === 0 ? (
-                    <p className="text-xs text-center py-8 text-stone-500">No hay conteos registrados en ese rango.</p>
-                  ) : (
-                    historialInventarioAgrupado.map((grupo) => (
-                      <div key={grupo.dia}>
-                        <p className="text-[11px] font-bold text-stone-500 uppercase tracking-wide mb-1.5">
-                          {new Date(`${grupo.dia}T00:00:00`).toLocaleDateString('es-PE', { weekday: 'long', day: '2-digit', month: 'long' })}
-                        </p>
-                        <div className="space-y-1.5">
-                          {grupo.items.map((h) => {
-                            const dif = Number(h.diferencia);
-                            const cajero = listaCajeros.find((c) => c.id === h.cajero_id);
-                            return (
-                              <div key={h.id} className="p-2.5 bg-white rounded-xl border border-stone-200 text-xs">
-                                <div className="flex justify-between items-start gap-2">
-                                  <div className="min-w-0">
-                                    <p className="font-semibold text-stone-800 truncate">{h.productos?.descripcion || 'Producto eliminado'}</p>
-                                    <p className="text-[10px] text-stone-500">
-                                      {new Date(h.fecha).toLocaleTimeString('es-PE', { hour: '2-digit', minute: '2-digit' })}
-                                      {cajero ? ` · ${cajero.nombre}` : ''}
-                                    </p>
-                                  </div>
-                                  <span className={`shrink-0 font-black ${dif === 0 ? 'text-emerald-600' : 'text-rose-600'}`}>
-                                    {dif === 0 ? (<><i className="fa-solid fa-circle-check mr-1"></i>Cuadró</>) : (dif > 0 ? `+${dif}` : dif)}
-                                  </span>
-                                </div>
-                                <div className="flex gap-3 mt-1 text-[11px] text-stone-600">
-                                  <span>Sistema: <b className="text-stone-800">{Number(h.stock_sistema)}</b></span>
-                                  <span>Contado: <b className="text-stone-800">{Number(h.stock_contado)}</b></span>
-                                </div>
-                              </div>
-                            );
-                          })}
-                        </div>
-                      </div>
-                    ))
-                  )}
-                </div>
-              </div>
-            </div>
+            <Suspense fallback={null}>
+              <HistorialInventario
+                FiltroFechasRapido={FiltroFechasRapido}
+                PestanasModal={PestanasModal}
+                abrirTomaInventario={abrirTomaInventario}
+                cargandoHistorialInventario={cargandoHistorialInventario}
+                cargarHistorialInventarioPorRango={cargarHistorialInventarioPorRango}
+                fechaFinHistInventario={fechaFinHistInventario}
+                fechaInicioHistInventario={fechaInicioHistInventario}
+                historialInventarioAgrupado={historialInventarioAgrupado}
+                historialInventarioBusqueda={historialInventarioBusqueda}
+                historialInventarioSoloDif={historialInventarioSoloDif}
+                listaCajeros={listaCajeros}
+                modalHistorialInventario={modalHistorialInventario}
+                setFechaFinHistInventario={setFechaFinHistInventario}
+                setFechaInicioHistInventario={setFechaInicioHistInventario}
+                setHistorialInventarioBusqueda={setHistorialInventarioBusqueda}
+                setHistorialInventarioSoloDif={setHistorialInventarioSoloDif}
+                setModalHistorialInventario={setModalHistorialInventario}
+              />
+            </Suspense>
           )}
 
-          {/* Modal: Gestión de Cajeros */}
           {modalGestionCajeros && (
-            <div className="fixed inset-0 bg-stone-900/30 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-              <div className="bg-gradient-to-br from-[#f4effc] via-[#f9f8fb] to-[#f5f4f8] border border-white/80 rounded-[28px] max-w-md w-full p-5 shadow-2xl space-y-3 max-h-[90vh] flex flex-col">
-                <div className="flex justify-between items-center shrink-0">
-                  <h3 className="text-lg font-bold text-stone-900 flex items-center gap-2">
-                    <i className="fa-solid fa-user-group text-orange-600"></i> {esBarberia ? 'Barberos' : 'Cajeros y Empleados'}
-                  </h3>
-                  <button aria-label="Cerrar" onClick={() => setModalGestionCajeros(false)} className="w-8 h-8 rounded-full bg-white/70 hover:bg-white text-stone-500 hover:text-stone-900 shadow-sm"><i className="fa-solid fa-xmark"></i></button>
-                </div>
-
-                {mostrarFormNuevoCajero ? (
-                  <div className="p-3 bg-stone-50 rounded-xl border border-orange-700/40 space-y-2.5">
-                    <div>
-                      <label className="text-xs text-stone-600 block mb-1">Nombre:</label>
-                      <input
-                        type="text"
-                        value={formNuevoCajero.nombre}
-                        onChange={(e) => setFormNuevoCajero({ ...formNuevoCajero, nombre: e.target.value })}
-                        className="w-full bg-white border border-stone-200/70 shadow-sm rounded-xl px-3 py-1.5 text-xs text-stone-900"
-                      />
-                    </div>
-                    <div>
-                      <label className="text-xs text-stone-600 block mb-1">DNI:</label>
-                      <input
-                        type="text"
-                        maxLength={8}
-                        value={formNuevoCajero.dni}
-                        onChange={(e) => setFormNuevoCajero({ ...formNuevoCajero, dni: e.target.value })}
-                        className="w-full bg-white border border-stone-200/70 shadow-sm rounded-xl px-3 py-1.5 text-xs text-stone-900"
-                      />
-                    </div>
-                    <div>
-                      <label className="text-xs text-stone-600 block mb-1">Rol:</label>
-                      <select
-                        value={formNuevoCajero.rol}
-                        onChange={(e) => setFormNuevoCajero({ ...formNuevoCajero, rol: e.target.value })}
-                        className="w-full bg-white border border-stone-200/70 shadow-sm rounded-xl px-3 py-1.5 text-xs text-stone-900"
-                      >
-                        <option value="cajero">Cajero (solo vender y cobrar)</option>
-                        <option value="administrador">Administrador (acceso completo)</option>
-                      </select>
-                    </div>
-                    {formNuevoCajero.rol === 'administrador' && (
-                      <div>
-                        <label className="text-xs text-stone-600 block mb-1">PIN de seguridad (4 a 32 caracteres, con letras, números o símbolos):</label>
-                        <input
-                          type="text"
-                          maxLength={PIN_MAX}
-                          autoComplete="off"
-                          value={formNuevoCajero.pin}
-                          onChange={(e) => setFormNuevoCajero({ ...formNuevoCajero, pin: e.target.value })}
-                          className="w-full bg-white border border-stone-200/70 shadow-sm rounded-xl px-3 py-1.5 text-xs text-stone-900"
-                        />
-                        <p className="text-[10px] text-stone-500 mt-1">Se le va a pedir cada vez que alguien más lo elija al abrir turno.</p>
-                      </div>
-                    )}
-                    <div className="flex gap-2 pt-1">
-                      <button onClick={() => setMostrarFormNuevoCajero(false)} className="flex-1 py-2 bg-white/70 text-stone-600 text-xs font-semibold rounded-full shadow-sm">
-                        Cancelar
-                      </button>
-                      <button
-                        onClick={registrarNuevoCajeroCompleto}
-                        disabled={guardandoNuevoCajero}
-                        className="flex-1 py-2 bg-[#6105dc] hover:bg-[#4d04b0] disabled:opacity-60 text-white font-bold text-xs rounded-full shadow"
-                      >
-                        {guardandoNuevoCajero ? 'Guardando...' : 'Agregar'}
-                      </button>
-                    </div>
-                  </div>
-                ) : (
-                  <>
-                    <button
-                      onClick={() => setMostrarFormNuevoCajero(true)}
-                      className="w-full py-2.5 bg-white/70 hover:bg-[#ece0fd] text-stone-600 text-xs font-semibold rounded-full border border-stone-300 border-dashed flex items-center justify-center gap-1.5 shrink-0 shadow-sm"
-                    >
-                      <i className="fa-solid fa-user-plus"></i> {esBarberia ? 'Agregar barbero' : 'Agregar cajero'}
-                    </button>
-                    <div className="flex-1 overflow-y-auto space-y-1.5">
-                      {cargandoCajerosGestion ? (
-                        <p className="text-xs text-stone-500 text-center py-6">Cargando...</p>
-                      ) : cajerosGestion.length === 0 ? (
-                        <p className="text-xs text-stone-500 text-center py-6">Sin cajeros registrados.</p>
-                      ) : (
-                        cajerosGestion.map((c) => (
-                          <div key={c.id} className={`flex items-center justify-between p-2.5 bg-stone-50 border border-stone-200 rounded-xl ${!c.activo ? 'opacity-50' : ''}`}>
-                            <div>
-                              <p className="text-xs font-semibold text-stone-800">
-                                {c.nombre} {!c.activo && <span className="text-rose-600 font-sans">(Inactivo)</span>}
-                              </p>
-                              <p className="text-xs text-stone-500 capitalize">DNI: {c.dni} · {c.rol}</p>
-                              {esBarberia && c.rol !== 'dueno' && (
-                                <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mt-1.5">
-                                  {[['comision_pct', 'Cortes y servicios', 'Porcentaje que gana cuando hace un servicio (corte, barba...)'], ['comision_productos_pct', 'Productos', 'Porcentaje que gana cuando ayuda a vender un producto (pomada, shampoo...)']].map(([campo, etiqueta, ayuda]) => (
-                                    <label key={campo} className="flex items-center gap-1 text-[11px] text-stone-500" title={ayuda}>
-                                      {etiqueta}
-                                      <input
-                                        key={`${c.id}-${campo}-${c[campo]}`}
-                                        type="number" min="0" max="100" step="1"
-                                        defaultValue={c[campo] ?? 0}
-                                        onBlur={(e) => guardarComisionBarbero(c, e.target.value, campo)}
-                                        className="w-14 px-1.5 py-1 border border-stone-200 rounded-lg text-xs text-stone-800 text-right"
-                                      />
-                                      %
-                                    </label>
-                                  ))}
-                                </div>
-                              )}
-                              {esBarberia && c.activo && (
-                                <button
-                                  onClick={() => abrirHorarioBarbero(c)}
-                                  title="Días y horas en que atiende; las citas de la tienda en línea se reservan dentro de este horario"
-                                  className="mt-1.5 flex items-center gap-1.5 text-[11px] font-semibold text-[#4d04b0] hover:underline"
-                                >
-                                  <i className="fa-regular fa-calendar"></i>
-                                  Horario de atención · {barberosConHorario.has(c.id) ? 'configurado' : 'sin horario'}
-                                </button>
-                              )}
-                            </div>
-                            <div className="flex items-center gap-1.5 shrink-0">
-                              {c.rol === 'administrador' && (
-                                <button
-                                  onClick={() => { setModalPinCajero(c); setNuevoPinCajero(''); }}
-                                  title="Cambiar su PIN de seguridad"
-                                  className="w-7 h-7 flex items-center justify-center bg-stone-200 hover:bg-orange-100 text-stone-500 hover:text-orange-600 rounded-lg"
-                                >
-                                  <i className="fa-solid fa-key text-xs"></i>
-                                </button>
-                              )}
-                              {c.rol !== 'dueno' && (
-                                <button
-                                  onClick={() => alternarActivoCajero(c)}
-                                  className={`text-xs font-semibold px-2.5 py-1 rounded-lg ${
-                                    c.activo ? 'bg-rose-950/60 text-rose-600 hover:bg-rose-900' : 'bg-emerald-950/60 text-emerald-600 hover:bg-emerald-900'
-                                  }`}
-                                >
-                                  {c.activo ? 'Desactivar' : 'Reactivar'}
-                                </button>
-                              )}
-                              {c.rol !== 'dueno' && (
-                                <button
-                                  onClick={() => eliminarCajero(c)}
-                                  title="Eliminar de la lista de cajeros"
-                                  className="w-7 h-7 flex items-center justify-center bg-stone-200 hover:bg-rose-100 text-stone-500 hover:text-rose-600 rounded-lg"
-                                >
-                                  <i className="fa-solid fa-trash text-xs"></i>
-                                </button>
-                              )}
-                            </div>
-                          </div>
-                        ))
-                      )}
-                    </div>
-                  </>
-                )}
-              </div>
-            </div>
+            <Suspense fallback={null}>
+              <GestionCajeros
+                abrirHorarioBarbero={abrirHorarioBarbero}
+                alternarActivoCajero={alternarActivoCajero}
+                barberosConHorario={barberosConHorario}
+                cajerosGestion={cajerosGestion}
+                cargandoCajerosGestion={cargandoCajerosGestion}
+                eliminarCajero={eliminarCajero}
+                esBarberia={esBarberia}
+                formNuevoCajero={formNuevoCajero}
+                guardandoNuevoCajero={guardandoNuevoCajero}
+                guardarComisionBarbero={guardarComisionBarbero}
+                modalGestionCajeros={modalGestionCajeros}
+                mostrarFormNuevoCajero={mostrarFormNuevoCajero}
+                registrarNuevoCajeroCompleto={registrarNuevoCajeroCompleto}
+                setFormNuevoCajero={setFormNuevoCajero}
+                setModalGestionCajeros={setModalGestionCajeros}
+                setModalPinCajero={setModalPinCajero}
+                setMostrarFormNuevoCajero={setMostrarFormNuevoCajero}
+                setNuevoPinCajero={setNuevoPinCajero}
+              />
+            </Suspense>
           )}
 
-          {/* Modal: Comisiones de barberos (solo cuentas de barbería) */}
           {modalComisiones && esBarberia && (
-            <div className="fixed inset-0 bg-stone-900/30 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-              <div className="bg-white border border-stone-200 rounded-[28px] max-w-lg w-full shadow-2xl max-h-[92vh] flex flex-col overflow-hidden">
-                <div className="flex items-center justify-between gap-2 px-5 pt-4 pb-2 shrink-0">
-                  <h3 className="text-lg font-bold text-stone-900 flex items-center gap-2"><i className="fa-solid fa-percent text-[#6105dc]"></i> Comisiones de barberos</h3>
-                  <button aria-label="Cerrar" onClick={() => setModalComisiones(false)} className="text-stone-600 hover:text-stone-900 shrink-0"><i className="fa-solid fa-xmark"></i></button>
-                </div>
-                <div className="px-5 pb-3 flex gap-1.5 shrink-0">
-                  {[['hoy', 'Hoy'], ['semana', 'Esta semana'], ['mes', 'Este mes']].map(([valor, etiqueta]) => (
-                    <button
-                      key={valor}
-                      onClick={() => { setPeriodoComisiones(valor); cargarComisiones(valor); }}
-                      className={`px-3.5 py-1.5 rounded-full text-xs font-semibold transition ${periodoComisiones === valor ? 'bg-[#6105dc] text-white' : 'bg-[#f4eefe] text-[#4d04b0] hover:bg-[#ece0fd]'}`}
-                    >
-                      {etiqueta}
-                    </button>
-                  ))}
-                </div>
-                <div className="px-5 pb-4 overflow-y-auto space-y-2">
-                  {cargandoComisiones ? (
-                    <p className="text-xs text-stone-500 text-center py-6">Cargando...</p>
-                  ) : filasComisiones.length === 0 ? (
-                    <p className="text-xs text-stone-500 text-center py-6">Sin barberos o sin ventas en este período.</p>
-                  ) : (
-                    <>
-                      {filasComisiones.map((f) => (
-                        <div key={f.id} className="p-3 bg-stone-50 border border-stone-200 rounded-2xl">
-                          <div className="flex items-baseline justify-between gap-2">
-                            <p className="text-sm font-bold text-stone-900">{f.nombre}</p>
-                            {f.esDueno
-                              ? <p className="text-xs font-semibold text-stone-500">Dueño · sin comisión</p>
-                              : <p className="text-sm font-extrabold text-[#4d04b0] tabular-nums">Comisión S/ {f.comision.toFixed(2)}</p>}
-                          </div>
-                          <p className="text-xs text-stone-500 mt-1">
-                            {f.atenciones} {f.atenciones === 1 ? 'atención' : 'atenciones'}
-                          </p>
-                          <p className="text-xs text-stone-500">
-                            Cortes y servicios S/ {f.servicios.toFixed(2)}{f.esDueno ? '' : ` × ${f.pct}% = S/ ${f.comisionServicios.toFixed(2)}`}
-                          </p>
-                          <p className="text-xs text-stone-500">
-                            Productos S/ {f.productos.toFixed(2)}{f.esDueno ? '' : ` × ${f.pctProductos}% = S/ ${f.comisionProductos.toFixed(2)}`}
-                          </p>
-                          {f.insumosCombo > 0 && (
-                            <p className="text-xs text-stone-400">Productos dentro de combos S/ {f.insumosCombo.toFixed(2)} (sin comisión)</p>
-                          )}
-                        </div>
-                      ))}
-                      <div className="flex items-baseline justify-between gap-2 px-1 pt-1 text-sm font-bold text-stone-900">
-                        <span>Total a pagar en comisiones</span>
-                        <span className="tabular-nums">S/ {filasComisiones.reduce((a, f) => a + f.comision, 0).toFixed(2)}</span>
-                      </div>
-                      <p className="text-[11px] text-stone-500">Cada barbero tiene un % por cortes y servicios y otro por productos. Se cambian en "Barberos".</p>
-                    </>
-                  )}
-                </div>
-              </div>
-            </div>
+            <Suspense fallback={null}>
+              <ComisionesBarberos
+                cargandoComisiones={cargandoComisiones}
+                cargarComisiones={cargarComisiones}
+                combos={combos}
+                esBarberia={esBarberia}
+                filasComisiones={filasComisiones}
+                modalComisiones={modalComisiones}
+                periodoComisiones={periodoComisiones}
+                productos={productos}
+                setModalComisiones={setModalComisiones}
+                setPeriodoComisiones={setPeriodoComisiones}
+              />
+            </Suspense>
           )}
 
-          {/* Modal: horario de atención de un barbero (agenda de reservas) */}
           {modalHorario && esBarberia && (
-            <div className="fixed inset-0 bg-stone-900/30 backdrop-blur-sm flex items-center justify-center z-[60] p-4">
-              <div className="bg-white border border-stone-200 rounded-[28px] max-w-lg w-full shadow-2xl max-h-[92vh] flex flex-col overflow-hidden">
-                <div className="flex items-center justify-between gap-2 px-5 pt-4 pb-1 shrink-0">
-                  <h3 className="text-lg font-bold text-stone-900 flex items-center gap-2"><i className="fa-regular fa-calendar text-[#6105dc]"></i> Horario de {modalHorario.barbero.nombre}</h3>
-                  <button aria-label="Cerrar" onClick={() => setModalHorario(null)} className="text-stone-600 hover:text-stone-900 shrink-0"><i className="fa-solid fa-xmark"></i></button>
-                </div>
-                <p className="px-5 pb-2 text-[11px] text-stone-500 shrink-0">
-                  Marca los días que atiende y su horario. El descanso es opcional (por ejemplo, el almuerzo). Cuando un barbero tiene horario, la tienda en línea muestra horas libres y solo ofrece a los barberos con horario.
-                </p>
-                <div className="px-5 pb-3 overflow-y-auto space-y-2">
-                  {modalHorario.dias.map((d) => (
-                    <div key={d.dia} className={`p-2.5 border rounded-xl ${d.activo ? 'bg-stone-50 border-stone-200' : 'bg-white border-stone-100'}`}>
-                      <label className="flex items-center gap-2 text-xs font-bold text-stone-800 cursor-pointer">
-                        <input type="checkbox" checked={d.activo} onChange={(e) => cambiarDiaHorario(d.dia, { activo: e.target.checked })} className="w-3.5 h-3.5" />
-                        {d.nombre}
-                        {!d.activo && <span className="font-normal text-stone-400">No atiende</span>}
-                      </label>
-                      {d.activo && (
-                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mt-2">
-                          {[['desde', 'Desde'], ['hasta', 'Hasta'], ['descansoDesde', 'Descanso desde'], ['descansoHasta', 'Descanso hasta']].map(([campo, etiqueta]) => (
-                            <label key={campo} className="flex flex-col gap-0.5 text-[10px] text-stone-500">
-                              {etiqueta}
-                              <input
-                                type="time"
-                                value={d[campo]}
-                                onChange={(e) => cambiarDiaHorario(d.dia, { [campo]: e.target.value })}
-                                className="px-2 py-1.5 border border-stone-200 rounded-lg text-xs text-stone-800 bg-white"
-                              />
-                            </label>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                  ))}
-                </div>
-                <div className="flex gap-2 px-5 pb-4 pt-1 shrink-0">
-                  <button onClick={copiarHorarioADias} className="px-3 py-2 bg-[#f4eefe] hover:bg-[#ece0fd] text-[#4d04b0] text-xs font-semibold rounded-full">
-                    Copiar el primer día a los demás
-                  </button>
-                  <button onClick={guardarHorarioBarbero} disabled={guardandoHorario} className="flex-1 py-2 bg-[#6105dc] hover:bg-[#4d04b0] disabled:opacity-60 text-white font-bold text-xs rounded-full shadow">
-                    {guardandoHorario ? 'Guardando...' : 'Guardar horario'}
-                  </button>
-                </div>
-              </div>
-            </div>
+            <Suspense fallback={null}>
+              <HorarioBarbero
+                cambiarDiaHorario={cambiarDiaHorario}
+                copiarHorarioADias={copiarHorarioADias}
+                esBarberia={esBarberia}
+                guardandoHorario={guardandoHorario}
+                guardarHorarioBarbero={guardarHorarioBarbero}
+                modalHorario={modalHorario}
+                setModalHorario={setModalHorario}
+              />
+            </Suspense>
           )}
 
-          {/* Modal: agenda de citas por día (solo cuentas de barbería) */}
           {modalAgenda && esBarberia && (
-            <div className="fixed inset-0 bg-stone-900/30 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-              <div className="bg-white border border-stone-200 rounded-[28px] max-w-lg w-full shadow-2xl max-h-[92vh] flex flex-col overflow-hidden">
-                <div className="flex items-center justify-between gap-2 px-5 pt-4 pb-2 shrink-0">
-                  <h3 className="text-lg font-bold text-stone-900 flex items-center gap-2"><i className="fa-solid fa-calendar-days text-[#6105dc]"></i> Agenda de citas</h3>
-                  <button aria-label="Cerrar" onClick={() => setModalAgenda(false)} className="text-stone-600 hover:text-stone-900 shrink-0"><i className="fa-solid fa-xmark"></i></button>
-                </div>
-                <div className="px-5 pb-3 shrink-0">
-                  <input
-                    type="date"
-                    value={fechaAgenda}
-                    onChange={(e) => { setFechaAgenda(e.target.value); cargarAgenda(e.target.value); }}
-                    className="px-3 py-1.5 border border-stone-200 rounded-xl text-xs text-stone-800 bg-white"
-                  />
-                </div>
-                <div className="px-5 pb-4 overflow-y-auto space-y-3">
-                  {cargandoAgenda ? (
-                    <p className="text-xs text-stone-500 text-center py-6">Cargando...</p>
-                  ) : citasAgenda.length === 0 ? (
-                    <p className="text-xs text-stone-500 text-center py-6">No hay citas para este día.</p>
-                  ) : (
-                    [...new Set(citasAgenda.map((c) => c.barbero))].map((nombreBarbero) => (
-                      <div key={nombreBarbero}>
-                        <p className="text-xs font-bold text-stone-800 mb-1.5">{nombreBarbero}</p>
-                        <div className="space-y-1.5">
-                          {citasAgenda.filter((c) => c.barbero === nombreBarbero).map((c) => {
-                            const hora = (iso) => new Date(iso).toLocaleTimeString('es-PE', { hour: '2-digit', minute: '2-digit', hour12: false });
-                            const seg = c.pedidos_seguimiento || {};
-                            const servicios = (seg.items || []).map((it) => `${it.cantidad} × ${String(it.descripcion || '').replace(/^Combo: /, '')}`).join(', ');
-                            return (
-                              <div key={c.id} className="flex items-start gap-3 p-2.5 bg-stone-50 border border-stone-200 rounded-xl">
-                                <p className="text-xs font-bold text-[#4d04b0] tabular-nums shrink-0 pt-0.5">{hora(c.inicio)}–{hora(c.fin)}</p>
-                                <div className="min-w-0">
-                                  <p className="text-xs font-semibold text-stone-800 truncate">{seg.cliente_nombre || 'Cliente'}</p>
-                                  <p className="text-[11px] text-stone-500 truncate">{servicios}</p>
-                                  <p className="text-[10px] text-stone-400"><span className="font-mono">{seg.codigo_corto}</span>{seg.estado === 'retirado' ? ' · atendida' : ''}</p>
-                                </div>
-                                <label className="ml-auto shrink-0 flex items-center gap-1 text-[10px] text-stone-500" title="Cambia cuánto dura esta cita (por ejemplo, si el tinte toma más tiempo)">
-                                  Dura
-                                  <input
-                                    key={`${c.id}-${c.fin}`}
-                                    type="number" min="5" max="480" step="5"
-                                    defaultValue={Math.round((new Date(c.fin) - new Date(c.inicio)) / 60000)}
-                                    onBlur={(e) => ajustarDuracionCita(c, e.target.value)}
-                                    className="w-14 px-1.5 py-1 border border-stone-200 rounded-lg text-xs text-stone-800 text-right"
-                                  />
-                                  min
-                                </label>
-                              </div>
-                            );
-                          })}
-                        </div>
-                      </div>
-                    ))
-                  )}
-                </div>
-              </div>
-            </div>
+            <Suspense fallback={null}>
+              <AgendaCitas
+                ajustarDuracionCita={ajustarDuracionCita}
+                cargandoAgenda={cargandoAgenda}
+                cargarAgenda={cargarAgenda}
+                citasAgenda={citasAgenda}
+                esBarberia={esBarberia}
+                fechaAgenda={fechaAgenda}
+                modalAgenda={modalAgenda}
+                setFechaAgenda={setFechaAgenda}
+                setModalAgenda={setModalAgenda}
+              />
+            </Suspense>
           )}
 
-          {/* Modal: Mi Link de Pedidos (vitrina pública de KaseritaDelivery) */}
           {modalDelivery && (
-            <div className="fixed inset-0 bg-stone-900/30 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-              <div className="bg-gradient-to-br from-[#f4effc] via-[#f9f8fb] to-[#f5f4f8] border border-white/80 rounded-[28px] max-w-md w-full shadow-2xl max-h-[92vh] flex flex-col overflow-hidden">
-                <div className="flex items-start gap-2.5 px-4 pt-4 pb-2.5 shrink-0">
-                  <span className="w-[38px] h-[38px] rounded-[14px] bg-[#ece0fd] text-[#6105dc] flex items-center justify-center shrink-0">
-                    <IconoTrazo nombre="compartir" className="w-[19px] h-[19px]" />
-                  </span>
-                  <div className="flex-1 min-w-0">
-                    <h3 className="text-[19px] font-bold tracking-tight text-stone-900 leading-tight">Mi link de pedidos</h3>
-                    <p className="text-xs text-stone-500 mt-0.5 leading-snug">
-                      Tus clientes piden desde este link y te llega el pedido por WhatsApp con un código. Ingresa ese código en caja para cobrar.
-                    </p>
-                  </div>
-                  <button onClick={() => { setModalDelivery(false); setMostrarQRDelivery(false); }} className="w-9 h-9 rounded-full bg-white ring-1 ring-[#6105dc]/10 hover:bg-[#f4eefe] text-stone-500 flex items-center justify-center transition shrink-0" aria-label="Cerrar">
-                    <IconoTrazo nombre="x" className="w-[15px] h-[15px]" />
-                  </button>
-                </div>
-
-                {!sesion?.bodega?.delivery_permitido ? (
-                  <div className="px-4 pb-4">
-                    <div className="bg-amber-50 border border-amber-200 rounded-[20px] p-3.5 space-y-1.5">
-                      <p className="text-sm font-semibold text-amber-800 flex items-center gap-2">
-                        <IconoTrazo nombre="warn" className="w-4 h-4" /> Función no habilitada
-                      </p>
-                      <p className="text-xs text-amber-700">
-                        Los Pedidos por WhatsApp son una función paga aparte de tu plan.
-                        Escribe a soporte de Kaserita para habilitarla en tu bodega.
-                      </p>
-                    </div>
-                  </div>
-                ) : (
-                  <>
-                    <div className="flex-1 overflow-y-auto px-4 pb-16 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden" style={{ scrollbarWidth: 'none' }}>
-                      <div className="relative overflow-hidden rounded-[26px] p-4 mb-2.5 text-white bg-gradient-to-br from-[#8a3df2] via-[#5a08cf] to-[#3f0394] shadow-[0_20px_30px_-22px_rgba(77,4,176,0.85)]">
-                        <span className="absolute -right-11 -top-14 w-[150px] h-[150px] rounded-full bg-white/10 pointer-events-none"></span>
-                        <span className="absolute right-14 top-20 w-20 h-20 rounded-full bg-yellow-300/15 pointer-events-none"></span>
-                        <div className="relative flex items-center gap-3.5">
-                          <label className="relative w-[68px] h-[68px] rounded-[20px] cursor-pointer bg-white shrink-0 shadow-[0_10px_18px_-10px_rgba(0,0,0,0.5)]">
-                            <span className="absolute inset-0 rounded-[20px] overflow-hidden flex items-center justify-center text-[#6105dc]">
-                              {logoUrlDelivery ? (
-                                <img src={logoUrlDelivery} alt="Logo" className="w-full h-full object-cover" />
-                              ) : (
-                                <IconoTrazo nombre="tienda" className="w-[26px] h-[26px]" />
-                              )}
-                              {subiendoLogoDelivery && (
-                                <span className="absolute inset-0 flex items-center justify-center bg-black/40">
-                                  <span className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
-                                </span>
-                              )}
-                            </span>
-                            <span className="absolute -right-1.5 -bottom-1.5 w-6 h-6 rounded-full bg-[#6105dc] text-white flex items-center justify-center border-2 border-white">
-                              <IconoTrazo nombre="plus" className="w-3 h-3" grosor={2.4} />
-                            </span>
-                            <input
-                              type="file"
-                              accept="image/*"
-                              className="hidden"
-                              onChange={(e) => {
-                                const file = e.target.files && e.target.files[0];
-                                e.target.value = '';
-                                if (file) subirLogoDelivery(file);
-                              }}
-                            />
-                          </label>
-                          <div className="min-w-0">
-                            <p className="text-[19px] font-extrabold tracking-tight leading-tight truncate">{sesion?.bodega?.nombre}</p>
-                            {estadoHorarioActualDelivery ? (
-                              <span className="inline-flex items-center gap-1.5 mt-1.5 text-[11.5px] font-bold bg-white/20 rounded-full px-2.5 py-0.5">
-                                <span className={`w-[7px] h-[7px] rounded-full ${estadoHorarioActualDelivery.abierto ? 'bg-green-400' : 'bg-white/60'}`}></span>
-                                {estadoHorarioActualDelivery.texto}
-                              </span>
-                            ) : (
-                              <p className="text-[11.5px] text-white/80 mt-1 leading-snug">Configura tu horario para mostrar "Abierto" o "Cerrado".</p>
-                            )}
-                            {estadoHorarioActualDelivery && <p className="text-[11px] text-white/70 mt-1">Toca el círculo para cambiar tu logo.</p>}
-                          </div>
-                        </div>
-
-                        <div className="relative flex items-center justify-between gap-3 mt-3.5 bg-white/15 rounded-2xl px-3 py-2.5">
-                          <div className="min-w-0">
-                            <p className="text-[13.5px] font-bold">Mostrar mi tienda al público</p>
-                            <p className="text-[11.5px] text-white/85">{deliveryHabilitado ? 'Visible para tus clientes' : 'Solo entra quien tenga tu link'}</p>
-                          </div>
-                          <button
-                            type="button"
-                            role="switch"
-                            aria-checked={deliveryHabilitado}
-                            aria-label="Mostrar mi tienda al público"
-                            onClick={() => setDeliveryHabilitado((v) => !v)}
-                            className={`relative w-12 h-7 rounded-full shrink-0 transition-colors ${deliveryHabilitado ? 'bg-green-500' : 'bg-white/30'}`}
-                          >
-                            <span className={`absolute top-[3px] w-[22px] h-[22px] rounded-full bg-white shadow transition-all ${deliveryHabilitado ? 'left-[23px]' : 'left-[3px]'}`}></span>
-                          </button>
-                        </div>
-
-                        <div className="relative flex items-center gap-2 mt-2.5 bg-white text-stone-900 rounded-2xl p-1.5 pl-3.5">
-                          <span className="flex-1 min-w-0 truncate text-[12.5px] text-stone-400">
-                            {KASERITA_DELIVERY_URL.replace(/^https?:\/\//, '')}/
-                            {/* El link es fijo: ya se comparte impreso y en QR, y si cambiara dejaría de funcionar. */}
-                            <b className="text-stone-900 font-bold">{slugDelivery}</b>
-                          </span>
-                          {deliveryHabilitado && sesion?.bodega?.slug && (
-                            <button
-                              type="button"
-                              onClick={() => {
-                                navigator.clipboard.writeText(`${KASERITA_DELIVERY_URL}/${sesion.bodega.slug}`);
-                                setLinkDeliveryCopiado(true);
-                                setTimeout(() => setLinkDeliveryCopiado(false), 1600);
-                              }}
-                              className={`shrink-0 h-9 px-3.5 rounded-xl text-[12.5px] font-bold flex items-center gap-1.5 transition ${linkDeliveryCopiado ? 'bg-green-100 text-green-700' : 'bg-[#6105dc] text-white'}`}
-                            >
-                              <IconoTrazo nombre={linkDeliveryCopiado ? 'check' : 'copiar'} className="w-3.5 h-3.5" />
-                              {linkDeliveryCopiado ? 'Copiado' : 'Copiar'}
-                            </button>
-                          )}
-                        </div>
-
-                        {deliveryHabilitado && sesion?.bodega?.slug && (
-                          <div className="relative grid gap-2 mt-2.5" style={{ gridTemplateColumns: `repeat(${typeof navigator !== 'undefined' && navigator.share ? 3 : 2}, minmax(0, 1fr))` }}>
-                            <button
-                              type="button"
-                              onClick={() => setMostrarQRDelivery(true)}
-                              className="h-10 rounded-xl bg-white/15 hover:bg-white/25 text-white text-[12.5px] font-semibold flex items-center justify-center gap-1.5 transition"
-                            >
-                              <IconoTrazo nombre="qr" className="w-4 h-4" /> QR
-                            </button>
-                            {typeof navigator !== 'undefined' && navigator.share && (
-                              <button
-                                type="button"
-                                onClick={async () => {
-                                  const url = `${KASERITA_DELIVERY_URL}/${sesion.bodega.slug}`;
-                                  try {
-                                    await navigator.share({ title: 'Mi Link de Pedidos', text: 'Haz tu pedido aquí:', url });
-                                  } catch (err) {
-                                    if (err?.name !== 'AbortError') notificar('No se pudo abrir el menú de compartir.', 'error');
-                                  }
-                                }}
-                                className="h-10 rounded-xl bg-white/15 hover:bg-white/25 text-white text-[12.5px] font-semibold flex items-center justify-center gap-1.5 transition"
-                              >
-                                <IconoTrazo nombre="compartir" className="w-4 h-4" /> Compartir
-                              </button>
-                            )}
-                            <a
-                              href={`${KASERITA_DELIVERY_URL}/${sesion.bodega.slug}`}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="h-10 rounded-xl bg-white/15 hover:bg-white/25 text-white text-[12.5px] font-semibold flex items-center justify-center gap-1.5 transition"
-                            >
-                              <i className="fa-solid fa-arrow-up-right-from-square text-[11px]"></i> Ver tienda
-                            </a>
-                          </div>
-                        )}
-                      </div>
-
-                      {seccionDelivery('donde', 'ubicacion', 'Ubicación y horarios', `${direccionDelivery.trim() || 'Sin dirección'} · ${resumenHorarioDelivery(horarioDelivery)}`, (
-                        <>
-                          <div>
-                            <label className="text-[12.5px] font-semibold text-stone-700 block mb-1.5">Dirección de tu negocio</label>
-                            <div className="h-[46px] flex items-center gap-2 px-3.5 rounded-2xl bg-[#faf8fe] ring-1 ring-[#6105dc]/10 focus-within:ring-2 focus-within:ring-[#6105dc]/40">
-                              <input
-                                type="text"
-                                value={direccionDelivery}
-                                onChange={(e) => setDireccionDelivery(e.target.value)}
-                                placeholder="Ej. Av. Larco 450, Miraflores"
-                                className="w-full min-w-0 bg-transparent text-sm text-stone-900 placeholder:text-[#a9a3b8] focus:outline-none"
-                              />
-                            </div>
-                          </div>
-
-                          <div>
-                            <label className="text-[12.5px] font-semibold text-stone-700 block mb-1.5">Días y horario de atención</label>
-                            <div className="grid grid-cols-7 gap-1.5">
-                              {DIAS_DELIVERY.map(([dia, letra]) => {
-                                const abierto = !!horarioDelivery[dia]?.abierto;
-                                return (
-                                  <button
-                                    key={dia}
-                                    type="button"
-                                    onClick={() => setHorarioDelivery((h) => {
-                                      if (abierto) return { ...h, [dia]: { ...h[dia], abierto: false } };
-                                      // Toma el horario que ya tengan los otros días abiertos, para
-                                      // que todos los días activos compartan el mismo rango -- si
-                                      // ninguno está abierto todavía, cae al horario típico de bodega.
-                                      const otroAbierto = Object.values(h).find((v) => v?.abierto);
-                                      return {
-                                        ...h,
-                                        [dia]: { abierto: true, desde: otroAbierto?.desde || '08:00', hasta: otroAbierto?.hasta || '21:00' },
-                                      };
-                                    })}
-                                    className={`h-[38px] rounded-xl text-xs font-bold flex items-center justify-center transition ${
-                                      abierto ? 'bg-[#6105dc] text-white' : 'bg-[#f4eefe] text-[#7a7396]'
-                                    }`}
-                                  >
-                                    {letra}
-                                  </button>
-                                );
-                              })}
-                            </div>
-                            {Object.values(horarioDelivery).some((v) => v?.abierto) ? (
-                              <div className="flex items-center gap-2 mt-2.5">
-                                <input
-                                  type="time"
-                                  value={Object.values(horarioDelivery).find((v) => v?.abierto)?.desde || '08:00'}
-                                  onChange={(e) => setHorarioDelivery((h) => {
-                                    const nuevo = { ...h };
-                                    Object.keys(nuevo).forEach((d) => { if (nuevo[d]?.abierto) nuevo[d] = { ...nuevo[d], desde: e.target.value }; });
-                                    return nuevo;
-                                  })}
-                                  className="flex-1 min-w-0 h-[46px] bg-[#faf8fe] ring-1 ring-[#6105dc]/10 rounded-2xl px-3 text-sm text-stone-900 focus:outline-none focus:ring-2 focus:ring-[#6105dc]/40"
-                                />
-                                <span className="text-stone-400 text-xs shrink-0">a</span>
-                                <input
-                                  type="time"
-                                  value={Object.values(horarioDelivery).find((v) => v?.abierto)?.hasta || '21:00'}
-                                  onChange={(e) => setHorarioDelivery((h) => {
-                                    const nuevo = { ...h };
-                                    Object.keys(nuevo).forEach((d) => { if (nuevo[d]?.abierto) nuevo[d] = { ...nuevo[d], hasta: e.target.value }; });
-                                    return nuevo;
-                                  })}
-                                  className="flex-1 min-w-0 h-[46px] bg-[#faf8fe] ring-1 ring-[#6105dc]/10 rounded-2xl px-3 text-sm text-stone-900 focus:outline-none focus:ring-2 focus:ring-[#6105dc]/40"
-                                />
-                              </div>
-                            ) : (
-                              <p className="text-xs text-stone-400 mt-2">Marca los días en que atiendes.</p>
-                            )}
-                            <p className="text-[11.5px] text-stone-400 mt-1.5 leading-snug">
-                              La tienda muestra "Abierto" o "Cerrado" según este horario.
-                            </p>
-                          </div>
-                        </>
-                      ))}
-
-                      {seccionDelivery('entrega', 'moto', 'Entrega a domicilio', resumenEntregaDelivery, (
-                        <>
-                          <div className="flex items-center justify-between gap-3">
-                            <div className="min-w-0">
-                              <p className="text-sm font-semibold text-stone-900">Llevar pedidos a domicilio</p>
-                              <p className="text-[11.5px] text-stone-400 leading-snug mt-0.5">Tus clientes marcan su ubicación en el mapa y tú la reenvías a tu repartidor por WhatsApp.</p>
-                            </div>
-                            <button
-                              type="button"
-                              role="switch"
-                              aria-checked={domicilioHabilitado}
-                              aria-label="Entrega a domicilio"
-                              onClick={() => setDomicilioHabilitado((v) => !v)}
-                              className={`relative w-12 h-7 rounded-full shrink-0 transition-colors ${domicilioHabilitado ? 'bg-[#6105dc]' : 'bg-[#d9d5e2]'}`}
-                            >
-                              <span className={`absolute top-[3px] w-[22px] h-[22px] rounded-full bg-white shadow transition-all ${domicilioHabilitado ? 'left-[23px]' : 'left-[3px]'}`}></span>
-                            </button>
-                          </div>
-
-                          {domicilioHabilitado && (
-                            <>
-                              <div className="grid grid-cols-2 gap-2.5">
-                                <div>
-                                  <label className="text-[12.5px] font-semibold text-stone-700 block mb-1.5">Costo de envío</label>
-                                  <div className="h-[46px] flex items-center gap-1.5 px-3.5 rounded-2xl bg-[#faf8fe] ring-1 ring-[#6105dc]/10 focus-within:ring-2 focus-within:ring-[#6105dc]/40">
-                                    <span className="text-sm text-stone-400">S/</span>
-                                    <input
-                                      type="text"
-                                      inputMode="decimal"
-                                      value={costoEnvioDelivery}
-                                      onChange={(e) => setCostoEnvioDelivery(e.target.value)}
-                                      placeholder="3.00"
-                                      className="w-full min-w-0 bg-transparent text-sm text-stone-900 placeholder:text-[#a9a3b8] focus:outline-none"
-                                    />
-                                  </div>
-                                </div>
-                                <div>
-                                  <label className="text-[12.5px] font-semibold text-stone-700 block mb-1.5">Pedido mínimo</label>
-                                  <div className="h-[46px] flex items-center gap-1.5 px-3.5 rounded-2xl bg-[#faf8fe] ring-1 ring-[#6105dc]/10 focus-within:ring-2 focus-within:ring-[#6105dc]/40">
-                                    <span className="text-sm text-stone-400">S/</span>
-                                    <input
-                                      type="text"
-                                      inputMode="decimal"
-                                      value={pedidoMinimoDelivery}
-                                      onChange={(e) => setPedidoMinimoDelivery(e.target.value)}
-                                      placeholder="20.00"
-                                      className="w-full min-w-0 bg-transparent text-sm text-stone-900 placeholder:text-[#a9a3b8] focus:outline-none"
-                                    />
-                                  </div>
-                                </div>
-                              </div>
-
-                              <div>
-                                <label className="text-[12.5px] font-semibold text-stone-700 block mb-1.5">Zona de reparto</label>
-                                <div className="h-[46px] flex items-center gap-2 px-3.5 rounded-2xl bg-[#faf8fe] ring-1 ring-[#6105dc]/10 focus-within:ring-2 focus-within:ring-[#6105dc]/40">
-                                  <input
-                                    type="text"
-                                    value={zonaRepartoDelivery}
-                                    onChange={(e) => setZonaRepartoDelivery(e.target.value)}
-                                    maxLength={120}
-                                    placeholder="Ej. Cercado, Breña y Jesús María"
-                                    className="w-full min-w-0 bg-transparent text-sm text-stone-900 placeholder:text-[#a9a3b8] focus:outline-none"
-                                  />
-                                </div>
-                                <p className="text-[11.5px] text-stone-400 mt-1.5 leading-snug">Se le muestra al cliente antes de pedir.</p>
-                              </div>
-
-                              <div>
-                                <label className="text-[12.5px] font-semibold text-stone-700 block mb-1.5">WhatsApp de tu repartidor (opcional)</label>
-                                <div className="h-[46px] flex items-center gap-2 px-3.5 rounded-2xl bg-[#faf8fe] ring-1 ring-[#6105dc]/10 focus-within:ring-2 focus-within:ring-[#6105dc]/40">
-                                  <input
-                                    type="text"
-                                    inputMode="tel"
-                                    value={whatsappRepartidor}
-                                    onChange={(e) => setWhatsappRepartidor(e.target.value)}
-                                    placeholder="Ej. 51987111222"
-                                    className="w-full min-w-0 bg-transparent text-sm text-stone-900 placeholder:text-[#a9a3b8] focus:outline-none"
-                                  />
-                                </div>
-                                <p className="text-[11.5px] text-stone-400 mt-1.5 leading-snug">Con el código de país. Si lo dejas vacío, WhatsApp te deja elegir el contacto cada vez. Los clientes no ven este número.</p>
-                              </div>
-                            </>
-                          )}
-                        </>
-                      ))}
-
-                      {sesion?.usuario?.rol === 'dueno' && seccionDelivery('whatsapp', 'chat', 'Pedidos por WhatsApp', telefonoDeliveryEditar.trim() ? `Te llegan al ${telefonoDeliveryEditar.trim()}` : 'Falta tu número', (
-                        <div>
-                          <label className="text-[12.5px] font-semibold text-stone-700 block mb-1.5">Tu número (ahí te van a llegar los pedidos)</label>
-                          <div className="h-[46px] flex items-center gap-2 px-3.5 rounded-2xl bg-[#faf8fe] ring-1 ring-[#6105dc]/10 focus-within:ring-2 focus-within:ring-[#6105dc]/40">
-                            <input
-                              type="text"
-                              value={telefonoDeliveryEditar}
-                              onChange={(e) => setTelefonoDeliveryEditar(e.target.value)}
-                              placeholder="Ej. 51987654321"
-                              className="w-full min-w-0 bg-transparent text-sm text-stone-900 placeholder:text-[#a9a3b8] focus:outline-none"
-                            />
-                          </div>
-                          <p className="text-[11.5px] text-stone-400 mt-1.5 leading-snug">Sin espacios ni guiones, con el código de país adelante.</p>
-                        </div>
-                      ))}
-
-                      {esAdmin && resumenAvisos && sesion?.bodega?.delivery_habilitado && sesion?.bodega?.slug && seccionDelivery(
-                        'avisos',
-                        'campana',
-                        'Avisar a tus clientes',
-                        `${resumenAvisos.audiencia} cliente${resumenAvisos.audiencia === 1 ? '' : 's'} recibiría${resumenAvisos.audiencia === 1 ? '' : 'n'} el aviso`,
-                        (
-                          <>
-                            <p className="text-[12.5px] text-stone-600 leading-snug">
-                              Avisa a quienes siguen o visitaron tu tienda: <strong>“¡{sesion.bodega.nombre} ya recibe pedidos!”</strong>.
-                            </p>
-                            <p className="text-[11.5px] text-stone-400 leading-snug">
-                              Máximo una vez por semana. También se avisa solo cuando activas tu tienda o la entrega a domicilio.
-                            </p>
-                            <button
-                              type="button"
-                              onClick={avisarAMisClientes}
-                              disabled={enviandoAviso || resumenAvisos.audiencia === 0 || !!resumenAvisos.proximo}
-                              className="w-full h-[46px] rounded-full bg-[#f4eefe] hover:bg-[#ece0fd] text-[#4d04b0] text-sm font-semibold flex items-center justify-center gap-2 transition disabled:opacity-50 disabled:hover:bg-[#f4eefe]"
-                            >
-                              <IconoTrazo nombre="campana" className="w-[17px] h-[17px]" />
-                              {enviandoAviso
-                                ? 'Enviando...'
-                                : resumenAvisos.proximo
-                                ? `Disponible el ${new Date(resumenAvisos.proximo).toLocaleDateString('es-PE', { weekday: 'long', day: 'numeric', month: 'long' })}`
-                                : resumenAvisos.audiencia === 0
-                                ? 'Aún no tienes clientes con avisos'
-                                : 'Avisar ahora'}
-                            </button>
-                          </>
-                        )
-                      )}
-                    </div>
-
-                    <div className="relative -mt-14 px-4 pt-8 pb-4 shrink-0 bg-gradient-to-t from-[#f9f8fb] from-70% to-transparent">
-                      {hayCambiosDelivery && (
-                        <p className="flex items-center justify-center gap-1.5 text-xs font-semibold text-amber-700 mb-2">
-                          <span className="w-2 h-2 rounded-full bg-amber-500"></span> Tienes cambios sin guardar
-                        </p>
-                      )}
-                      <button
-                        onClick={guardarConfigDelivery}
-                        disabled={guardandoDelivery}
-                        className="w-full h-[54px] rounded-full bg-gradient-to-r from-[#8a3df2] to-[#4d04b0] text-white font-semibold text-base transition disabled:opacity-50"
-                      >
-                        {guardandoDelivery ? 'Guardando...' : 'Guardar cambios'}
-                      </button>
-                    </div>
-                  </>
-                )}
-              </div>
-            </div>
+            <Suspense fallback={null}>
+              <DeliveryModal
+                DIAS_DELIVERY={DIAS_DELIVERY}
+                IconoTrazo={IconoTrazo}
+                KASERITA_DELIVERY_URL={KASERITA_DELIVERY_URL}
+                avisarAMisClientes={avisarAMisClientes}
+                costoEnvioDelivery={costoEnvioDelivery}
+                deliveryHabilitado={deliveryHabilitado}
+                direccionDelivery={direccionDelivery}
+                domicilioHabilitado={domicilioHabilitado}
+                enviandoAviso={enviandoAviso}
+                esAdmin={esAdmin}
+                estadoHorarioActualDelivery={estadoHorarioActualDelivery}
+                guardandoDelivery={guardandoDelivery}
+                guardarConfigDelivery={guardarConfigDelivery}
+                hayCambiosDelivery={hayCambiosDelivery}
+                horarioDelivery={horarioDelivery}
+                linkDeliveryCopiado={linkDeliveryCopiado}
+                logoUrlDelivery={logoUrlDelivery}
+                modalDelivery={modalDelivery}
+                notificar={notificar}
+                pedidoMinimoDelivery={pedidoMinimoDelivery}
+                resumenAvisos={resumenAvisos}
+                resumenEntregaDelivery={resumenEntregaDelivery}
+                resumenHorarioDelivery={resumenHorarioDelivery}
+                seccionDelivery={seccionDelivery}
+                sesion={sesion}
+                setCostoEnvioDelivery={setCostoEnvioDelivery}
+                setDeliveryHabilitado={setDeliveryHabilitado}
+                setDireccionDelivery={setDireccionDelivery}
+                setDomicilioHabilitado={setDomicilioHabilitado}
+                setHorarioDelivery={setHorarioDelivery}
+                setLinkDeliveryCopiado={setLinkDeliveryCopiado}
+                setModalDelivery={setModalDelivery}
+                setMostrarQRDelivery={setMostrarQRDelivery}
+                setPedidoMinimoDelivery={setPedidoMinimoDelivery}
+                setTelefonoDeliveryEditar={setTelefonoDeliveryEditar}
+                setWhatsappRepartidor={setWhatsappRepartidor}
+                setZonaRepartoDelivery={setZonaRepartoDelivery}
+                slugDelivery={slugDelivery}
+                subiendoLogoDelivery={subiendoLogoDelivery}
+                subirLogoDelivery={subirLogoDelivery}
+                telefonoDeliveryEditar={telefonoDeliveryEditar}
+                whatsappRepartidor={whatsappRepartidor}
+                zonaRepartoDelivery={zonaRepartoDelivery}
+              />
+            </Suspense>
           )}
 
           {/* Modal: QR del link de pedidos en grande, para que el cliente lo escanee desde lejos */}
@@ -12610,130 +11328,46 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
             </div>
           )}
 
-          {/* Modal: registro de actividad (cambios de precio, anulaciones, turnos, empleados, mermas) */}
           {modalAuditoria && (
-            <div className="fixed inset-0 bg-stone-900/30 backdrop-blur-sm flex items-center justify-center z-[60] p-4" onClick={() => setModalAuditoria(false)}>
-              <div className="bg-gradient-to-br from-[#f4effc] via-[#f9f8fb] to-[#f5f4f8] border border-white/80 rounded-[28px] max-w-2xl w-full max-h-[85vh] flex flex-col shadow-2xl" onClick={(e) => e.stopPropagation()}>
-                <div className="p-4 border-b border-stone-200 flex items-center justify-between gap-3">
-                  <h3 className="text-sm font-bold text-stone-900 flex items-center gap-2">
-                    <i className="fa-solid fa-clipboard-check text-orange-600"></i> Registro de actividad
-                  </h3>
-                  <button aria-label="Cerrar" onClick={() => setModalAuditoria(false)} className="text-stone-500 hover:text-stone-800"><i className="fa-solid fa-xmark"></i></button>
-                </div>
-                <div className="px-4 pt-3 flex gap-1.5 flex-wrap">
-                  {[['todo', 'Todo'], ['productos', 'Precios y productos'], ['ventas', 'Ventas'], ['turnos_caja', 'Turnos'], ['cajeros', 'Empleados'], ['mermas', 'Pérdidas']].map(([valor, etiqueta]) => (
-                    <button
-                      key={valor}
-                      onClick={() => setFiltroAuditoria(valor)}
-                      className={`text-[11px] font-semibold px-2.5 py-1 rounded-full ${filtroAuditoria === valor ? 'bg-stone-900 text-white' : 'bg-stone-200 text-stone-700 hover:bg-stone-300'}`}
-                    >
-                      {etiqueta}
-                    </button>
-                  ))}
-                </div>
-                <div className="p-4 overflow-y-auto space-y-2">
-                  {esModoDemo && <p className="text-xs text-stone-500">El registro de actividad no está disponible en el modo demostración local.</p>}
-                  {errorAuditoria && <p className="text-xs text-rose-600">{errorAuditoria}</p>}
-                  {cargandoAuditoria && <p className="text-xs text-stone-500">Cargando...</p>}
-                  {!cargandoAuditoria && !errorAuditoria && !esModoDemo && filasAuditoria.filter((f) => filtroAuditoria === 'todo' || f.tabla === filtroAuditoria).length === 0 && (
-                    <p className="text-xs text-stone-500">Todavía no hay actividad registrada en esta categoría.</p>
-                  )}
-                  {filasAuditoria.filter((f) => filtroAuditoria === 'todo' || f.tabla === filtroAuditoria).map((f) => (
-                    <div key={f.id} className="bg-white border border-stone-200 rounded-xl px-3 py-2">
-                      {(() => { const d = describirAuditoria(f); return (
-                        <>
-                          <p className="text-xs font-semibold text-stone-800 break-words">{d.titulo}</p>
-                          {d.detalle.length > 0 && <p className="text-[11px] text-stone-600 mt-0.5 break-words">{d.detalle.join(' · ')}</p>}
-                        </>
-                      ); })()}
-                      <p className="text-[10px] text-stone-500 mt-0.5">
-                        {new Date(f.creado_en).toLocaleString('es-PE', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
-                        {f.turnos_abiertos && f.turnos_abiertos.length > 0 ? ` · Turno abierto de: ${f.turnos_abiertos.join(', ')}` : ' · Sin turnos abiertos'}
-                      </p>
-                    </div>
-                  ))}
-                  {!cargandoAuditoria && filasAuditoria.length >= 300 && <p className="text-[10px] text-stone-400 text-center">Se muestran los últimos 300 movimientos.</p>}
-                </div>
-              </div>
-            </div>
+            <Suspense fallback={null}>
+              <RegistroActividad
+                cargandoAuditoria={cargandoAuditoria}
+                errorAuditoria={errorAuditoria}
+                esModoDemo={esModoDemo}
+                filasAuditoria={filasAuditoria}
+                filtroAuditoria={filtroAuditoria}
+                modalAuditoria={modalAuditoria}
+                productos={productos}
+                setFiltroAuditoria={setFiltroAuditoria}
+                setModalAuditoria={setModalAuditoria}
+              />
+            </Suspense>
           )}
 
-          {/* Modal: cambiar el PIN de acceso de la cuenta del dueño */}
           {modalPinDueno && (
-            <div className="fixed inset-0 bg-stone-900/30 backdrop-blur-sm flex items-center justify-center z-[60] p-4">
-              <div className="bg-gradient-to-br from-[#f4effc] via-[#f9f8fb] to-[#f5f4f8] border border-white/80 rounded-[28px] max-w-xs w-full p-5 shadow-2xl space-y-3">
-                <h3 className="text-sm font-bold text-stone-900 flex items-center gap-2">
-                  <i className="fa-solid fa-key text-orange-600"></i> Cambiar mi PIN de acceso
-                </h3>
-                <p className="text-xs text-stone-600">
-                  Es el PIN con el que entras a Kaserita. Usa {PIN_MIN_DUENO} caracteres o más, mezclando letras y números.
-                </p>
-                {[['actual', 'PIN actual'], ['nuevo', 'PIN nuevo'], ['repetir', 'Repite el PIN nuevo']].map(([campo, etiqueta]) => (
-                  <input
-                    key={campo}
-                    type="password"
-                    maxLength={PIN_MAX}
-                    autoComplete="off"
-                    value={formPinDueno[campo]}
-                    onChange={(e) => setFormPinDueno((f) => ({ ...f, [campo]: e.target.value }))}
-                    placeholder={etiqueta}
-                    className="w-full bg-white border border-stone-200 rounded-xl px-3 py-2.5 text-sm text-stone-900 focus:outline-none focus:ring-2 focus:ring-[#d6bdfa]"
-                  />
-                ))}
-                <div className="flex gap-2">
-                  <button
-                    onClick={() => { setModalPinDueno(false); setFormPinDueno({ actual: '', nuevo: '', repetir: '' }); }}
-                    className="flex-1 py-2 bg-white/70 text-stone-600 text-xs font-semibold rounded-full shadow-sm"
-                  >
-                    Cancelar
-                  </button>
-                  <button
-                    onClick={cambiarPinDueno}
-                    disabled={cambiandoPinDueno || !formPinDueno.actual.trim() || !formPinDueno.nuevo.trim()}
-                    className="flex-1 py-2 bg-orange-500 hover:bg-orange-400 disabled:opacity-50 text-white text-xs font-bold rounded-full"
-                  >
-                    {cambiandoPinDueno ? 'Guardando...' : 'Guardar'}
-                  </button>
-                </div>
-              </div>
-            </div>
+            <Suspense fallback={null}>
+              <PinDueno
+                cambiandoPinDueno={cambiandoPinDueno}
+                cambiarPinDueno={cambiarPinDueno}
+                formPinDueno={formPinDueno}
+                modalPinDueno={modalPinDueno}
+                setFormPinDueno={setFormPinDueno}
+                setModalPinDueno={setModalPinDueno}
+              />
+            </Suspense>
           )}
 
-          {/* Modal: cambiar el PIN de seguridad de un Administrador */}
           {modalPinCajero && (
-            <div className="fixed inset-0 bg-stone-900/30 backdrop-blur-sm flex items-center justify-center z-[60] p-4">
-              <div className="bg-gradient-to-br from-[#f4effc] via-[#f9f8fb] to-[#f5f4f8] border border-white/80 rounded-[28px] max-w-xs w-full p-5 shadow-2xl space-y-3">
-                <h3 className="text-sm font-bold text-stone-900 flex items-center gap-2">
-                  <i className="fa-solid fa-key text-orange-600"></i> PIN de {modalPinCajero.nombre}
-                </h3>
-                <p className="text-xs text-stone-600">Se le va a pedir a cualquiera que elija a "{modalPinCajero.nombre}" al abrir turno.</p>
-                <input
-                  type="text"
-                  maxLength={PIN_MAX}
-                  autoComplete="off"
-                  autoFocus
-                  value={nuevoPinCajero}
-                  onChange={(e) => setNuevoPinCajero(e.target.value)}
-                  placeholder="4 a 32 caracteres"
-                  className="w-full bg-white border border-stone-200 rounded-xl px-3 py-2.5 text-center text-lg tracking-widest text-stone-900 focus:outline-none focus:ring-2 focus:ring-[#d6bdfa]"
-                />
-                <div className="flex gap-2">
-                  <button
-                    onClick={() => { setModalPinCajero(null); setNuevoPinCajero(''); }}
-                    className="flex-1 py-2 bg-white/70 text-stone-600 text-xs font-semibold rounded-full shadow-sm"
-                  >
-                    Cancelar
-                  </button>
-                  <button
-                    onClick={guardarPinCajero}
-                    disabled={guardandoPinCajero}
-                    className="flex-1 py-2 bg-[#6105dc] hover:bg-[#4d04b0] disabled:opacity-60 text-white font-bold text-xs rounded-full shadow"
-                  >
-                    {guardandoPinCajero ? 'Guardando...' : 'Guardar'}
-                  </button>
-                </div>
-              </div>
-            </div>
+            <Suspense fallback={null}>
+              <PinCajero
+                guardandoPinCajero={guardandoPinCajero}
+                guardarPinCajero={guardarPinCajero}
+                modalPinCajero={modalPinCajero}
+                nuevoPinCajero={nuevoPinCajero}
+                setModalPinCajero={setModalPinCajero}
+                setNuevoPinCajero={setNuevoPinCajero}
+              />
+            </Suspense>
           )}
 
           {modalGestionClientes && (
@@ -12822,70 +11456,15 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
           )}
 
           {modalNuevoCliente && (
-            <div className="fixed inset-0 bg-stone-900/30 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-              <div className="bg-gradient-to-br from-[#f4effc] via-[#f9f8fb] to-[#f5f4f8] border border-white/80 rounded-[28px] max-w-sm w-full p-5 shadow-2xl space-y-3">
-                <div className="flex justify-between items-center">
-                  <h3 className="text-lg font-bold text-stone-900"><i className="fa-solid fa-user-plus mr-1.5"></i> Registrar cliente</h3>
-                  <button aria-label="Cerrar" onClick={() => setModalNuevoCliente(false)} className="w-8 h-8 rounded-full bg-white/70 hover:bg-white text-stone-500 hover:text-stone-900 shadow-sm"><i className="fa-solid fa-xmark"></i></button>
-                </div>
-                <form onSubmit={handleGuardarNuevoCliente} className="space-y-2.5">
-                  <div>
-                    <label className="text-xs text-stone-600 block mb-1">DNI *</label>
-                    <input
-                      type="text"
-                      required
-                      value={formCliente.dni}
-                      onChange={(e) => setFormCliente({ ...formCliente, dni: e.target.value })}
-                      className="w-full bg-white border border-stone-200/70 shadow-sm rounded-xl px-3 py-1.5 text-xs text-stone-900"
-                    />
-                  </div>
-                  <div>
-                    <label className="text-xs text-stone-600 block mb-1">Nombre completo *</label>
-                    <input
-                      type="text"
-                      required
-                      value={formCliente.nombre}
-                      onChange={(e) => setFormCliente({ ...formCliente, nombre: e.target.value })}
-                      className="w-full bg-white border border-stone-200/70 shadow-sm rounded-xl px-3 py-1.5 text-xs text-stone-900"
-                    />
-                  </div>
-                  <div className="grid grid-cols-2 gap-2">
-                    <div>
-                      <label className="text-xs text-stone-600 block mb-1">Teléfono</label>
-                      <input
-                        type="text"
-                        value={formCliente.telefono}
-                        onChange={(e) => setFormCliente({ ...formCliente, telefono: e.target.value })}
-                        className="w-full bg-white border border-stone-200/70 shadow-sm rounded-xl px-3 py-1.5 text-xs text-stone-900"
-                      />
-                    </div>
-                    <div>
-                      <label className="text-xs text-stone-600 block mb-1">Correo</label>
-                      <input
-                        type="text"
-                        value={formCliente.correo}
-                        onChange={(e) => setFormCliente({ ...formCliente, correo: e.target.value })}
-                        className="w-full bg-white border border-stone-200/70 shadow-sm rounded-xl px-3 py-1.5 text-xs text-stone-900"
-                      />
-                    </div>
-                  </div>
-                  <div>
-                    <label className="text-xs text-stone-600 block mb-1">Límite de crédito (S/) *</label>
-                    <input
-                      type="number"
-                      step="10"
-                      required
-                      value={formCliente.limiteCredito}
-                      onChange={(e) => setFormCliente({ ...formCliente, limiteCredito: e.target.value })}
-                      className="w-full bg-white border border-stone-200/70 shadow-sm rounded-full px-3 py-1.5 text-sm font-bold text-orange-600"
-                    />
-                  </div>
-                  <button type="submit" className="w-full py-2.5 bg-[#6105dc] hover:bg-[#4d04b0] text-white font-bold text-xs rounded-full shadow mt-2">
-                    Guardar cliente
-                  </button>
-                </form>
-              </div>
-            </div>
+            <Suspense fallback={null}>
+              <NuevoCliente
+                formCliente={formCliente}
+                handleGuardarNuevoCliente={handleGuardarNuevoCliente}
+                modalNuevoCliente={modalNuevoCliente}
+                setFormCliente={setFormCliente}
+                setModalNuevoCliente={setModalNuevoCliente}
+              />
+            </Suspense>
           )}
 
           {modalDashboard && (
@@ -12925,284 +11504,40 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
             </Suspense>
           )}
 
-          {/* Modal: Historial de ventas (lista por día, resumen, detalle de cada venta) */}
-          {modalHistorial && (() => {
-            const activas = ventasDelDia.filter(v => !v.anulada);
-            const anuladas = ventasDelDia.filter(v => v.anulada);
-            const totalGeneral = activas.reduce((a, c) => a + Number(c.total_venta), 0);
-            const totalEfectivo = activas.filter(v => v.medio_pago === 'EFECTIVO').reduce((a, c) => a + Number(c.total_venta), 0);
-            const totalOtros = totalGeneral - totalEfectivo;
-            const totalGanancia = activas.reduce((a, c) => a + Number(c.utilidad_total || 0), 0);
-            const totalAnuladas = anuladas.reduce((a, c) => a + Number(c.total_venta), 0);
-            const ticketPromedio = activas.length > 0 ? totalGeneral / activas.length : 0;
-            const pctEfectivo = totalGeneral > 0 ? (totalEfectivo / totalGeneral) * 100 : 0;
-            const q = busquedaBoletaHistorial.trim().toLowerCase();
-            const filtradas = ventasDelDia.filter(v => !q || v.nro_boleta.toLowerCase().includes(q) || nombreClienteHistorial(v).toLowerCase().includes(q));
-            const visibles = filtradas.slice(0, limiteHistorial);
-            const grupos = [];
-            visibles.forEach((v) => {
-              const etiqueta = etiquetaDiaHistorial(v.fecha_hora);
-              const ultimo = grupos[grupos.length - 1];
-              if (ultimo && ultimo.etiqueta === etiqueta) ultimo.ventas.push(v);
-              else grupos.push({ etiqueta, ventas: [v] });
-            });
-            const ventaElegida = ventaDetalleHistorial ? ventasDelDia.find(v => v.id === ventaDetalleHistorial) || null : null;
-            const ventaPanel = ventaElegida || filtradas[0] || null;
-            const horaVenta = (v) => new Date(v.fecha_hora).toLocaleTimeString('es-PE', { hour: 'numeric', minute: '2-digit' });
-            const fechaCorta = (iso) => new Date(`${iso}T00:00:00`).toLocaleDateString('es-PE', { day: 'numeric', month: 'short', year: 'numeric' }).replace(/\./g, '');
-            const rangoTexto = fechaInicioHistorial === fechaFinHistorial ? fechaCorta(fechaInicioHistorial) : `${fechaCorta(fechaInicioHistorial)} – ${fechaCorta(fechaFinHistorial)}`;
-            const ATAJOS = [['hoy', 'Hoy'], ['ayer', 'Ayer'], ['7dias', '7 días'], ['mes', 'Este mes'], ['fechas', 'Fechas']];
-            const unidadesVenta = (v) => (v.ventas_detalle || []).reduce((a, d) => a + (Number(d.cantidad) || 0), 0);
-            const etiquetaPago = (v) => (v.medio_pago === 'EFECTIVO' ? 'Efectivo' : String(v.medio_pago || '').charAt(0) + String(v.medio_pago || '').slice(1).toLowerCase());
-            const textoEstado = (v) => (v.anulada ? 'Anulada' : v.medio_pago === 'CREDITO' ? 'A crédito' : 'Pagada');
-            const subtextoEstado = (v) => (v.anulada ? 'Venta anulada' : v.medio_pago === 'CREDITO' ? 'Venta a crédito' : `Pagada · ${etiquetaPago(v)}`);
-            const clienteTexto = (v) => (nombreClienteHistorial(v) === 'Cliente sin registrar' ? '—' : nombreClienteHistorial(v));
-            const ICONO_PAGO = {
-              EFECTIVO: ['fa-money-bill-wave', 'from-[#4cc995] to-[#0f7b4a]'],
-              YAPE: ['fa-mobile-screen', 'from-[#a78bfa] to-[#6d4ae0]'],
-              PLIN: ['fa-mobile-screen', 'from-[#a78bfa] to-[#6d4ae0]'],
-              TARJETA: ['fa-credit-card', 'from-[#7ab4ee] to-[#3d7fd0]'],
-              CREDITO: ['fa-file-invoice-dollar', 'from-[#f0b24a] to-[#d98a14]'],
-              MIXTO: ['fa-layer-group', 'from-[#b5aecb] to-[#8f89a8]'],
-            };
-            const iconoPago = (v) => (v.anulada ? ['fa-ban', 'from-[#d9d6e4] to-[#d9d6e4] !text-[#8f8aa3]'] : ICONO_PAGO[v.medio_pago] || ['fa-receipt', 'from-[#b5aecb] to-[#8f89a8]']);
-            const circuloPago = (v, tam = 'w-8 h-8') => { const [icono, color] = iconoPago(v); return <span className={`${tam} rounded-full bg-gradient-to-br ${color} text-white grid place-items-center text-[13px] shrink-0`}><i className={`fa-solid ${icono}`}></i></span>; };
-            const borde = 'border-[#e9e6f0]';
-            const botonFantasma = `h-10 px-[17px] rounded-full border ${borde} bg-white hover:bg-[#f8f7fb] text-[13px] font-medium text-stone-700 inline-flex items-center justify-center gap-2 transition whitespace-nowrap`;
-            const tarjeta = `relative overflow-hidden bg-white border ${borde} rounded-[18px] px-5 py-[18px] shadow-[0_1px_2px_rgba(20,10,50,0.04),0_16px_36px_-26px_rgba(20,10,50,0.3)]`;
-            const chispa = (<svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor" aria-hidden="true"><path d="M12 3c.6 4.6 2.4 6.4 7 7-4.6.6-6.4 2.4-7 7-.6-4.6-2.4-6.4-7-7 4.6-.6 6.4-2.4 7-7Z" /><path d="M19 15c.3 1.8 1 2.5 2.8 2.8-1.8.3-2.5 1-2.8 2.8-.3-1.8-1-2.5-2.8-2.8 1.8-.3 2.5-1 2.8-2.8Z" /></svg>);
-
-            const menuVenta = (v) => (
-              <>
-                <div className="fixed inset-0 z-[5]" onClick={() => setMenuVentaHistorial(null)}></div>
-                <div className={`absolute right-3 top-10 z-10 bg-white border ${borde} rounded-xl p-1 min-w-[190px] shadow-[0_12px_30px_-8px_rgba(20,10,50,0.25)] text-left`}>
-                  <button onClick={() => { setMenuVentaHistorial(null); setVentaDetalleHistorial(v.id); }} className="w-full flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-[13px] font-medium text-stone-700 hover:bg-[#f8f7fb]"><i className="fa-regular fa-eye w-4 text-stone-500"></i> Ver detalle</button>
-                  <button onClick={() => { setMenuVentaHistorial(null); setReciboReimpresion(v); }} className="w-full flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-[13px] font-medium text-stone-700 hover:bg-[#f8f7fb]"><i className="fa-solid fa-print w-4 text-stone-500"></i> Reimprimir boleta</button>
-                  {!v.anulada && esAdmin && (
-                    <>
-                      <div className={`border-t ${borde} my-1`}></div>
-                      <button onClick={() => { setMenuVentaHistorial(null); anularVentaHoy(v); }} className="w-full flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-[13px] font-medium text-[#c0262d] hover:bg-[#fdf1f1]"><i className="fa-solid fa-ban w-4"></i> Anular venta</button>
-                    </>
-                  )}
-                </div>
-              </>
-            );
-
-            // Detalle como ticket: total grande, sello de estado, línea punteada con muescas y el desglose.
-            const detalleVenta = (v) => (
-              <div className="flex flex-col gap-4">
-                <div className={`relative bg-white border ${borde} rounded-[18px] shadow-[0_18px_40px_-24px_rgba(20,10,50,0.35)]`}>
-                  <div className="px-[22px] pt-[22px] pb-[18px]">
-                    <p className="text-[13px] text-stone-500"><b className="font-mono font-semibold text-stone-900">{v.nro_boleta}</b> · {etiquetaDiaHistorial(v.fecha_hora)}, {horaVenta(v)}</p>
-                    <p className={`text-4xl font-bold tracking-[-0.04em] leading-[1.05] mt-1.5 tabular-nums ${v.anulada ? 'line-through text-stone-400' : 'text-stone-900'}`}>S/ {formatoSoles(Number(v.total_venta))}</p>
-                    <span className={`inline-flex items-center gap-1.5 mt-2.5 text-[12.5px] font-semibold px-3 py-1 rounded-full ${v.anulada ? 'bg-[#fdf1f1] text-[#c0262d]' : 'bg-[#eef8f2] text-[#0f7b4a]'}`}>
-                      <i className={`fa-solid ${v.anulada ? 'fa-ban' : 'fa-check'} text-[10px]`}></i>{subtextoEstado(v)}
-                    </span>
-                  </div>
-                  <div className="relative mx-3.5 border-t-2 border-dashed border-[#e3dff0]">
-                    <span className={`absolute -top-[11px] -left-[25px] w-5 h-5 rounded-full bg-[#f8f7fb] border ${borde} [clip-path:inset(0_0_0_50%)]`}></span>
-                    <span className={`absolute -top-[11px] -right-[25px] w-5 h-5 rounded-full bg-[#f8f7fb] border ${borde} [clip-path:inset(0_50%_0_0)]`}></span>
-                  </div>
-                  <div className="px-[22px] pt-[18px] pb-[22px]">
-                    {(v.ventas_detalle || []).length > 0 ? (
-                      (v.ventas_detalle || []).map((d, i) => (
-                        <div key={i} className="flex justify-between gap-3 py-2.5 text-[13.5px] border-b border-[#f3f0f8]">
-                          <span className="text-stone-800">{d.productos?.descripcion || d.descripcion || 'Producto'}<small className="block text-xs text-stone-500 mt-0.5">{d.cantidad} × S/ {formatoSoles(Number(d.precio_unitario))}</small></span>
-                          <span className="font-semibold tabular-nums shrink-0">S/ {formatoSoles(Number(d.subtotal))}</span>
-                        </div>
-                      ))
-                    ) : (
-                      <p className="text-xs text-stone-500 py-2">Sin detalle de productos disponible.</p>
-                    )}
-                    <dl className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-2.5 text-[13px] mt-3.5">
-                      <dt className="text-stone-500">Cliente</dt><dd className="text-right font-medium">{nombreClienteHistorial(v).replace('Cliente sin registrar', 'Sin registrar')}</dd>
-                      <dt className="text-stone-500">Medio de pago</dt><dd className="text-right font-medium">{etiquetaPago(v)}</dd>
-                      {Number(v.descuento_monto) > 0 && (<><dt className="text-stone-500">Descuento</dt><dd className="text-right font-medium">- S/ {formatoSoles(Number(v.descuento_monto))}</dd></>)}
-                      {esAdmin && (<><dt className="text-stone-500">Ganancia</dt><dd className="text-right font-medium text-[#0f7b4a]">S/ {formatoSoles(Number(v.utilidad_total || 0))}</dd></>)}
-                    </dl>
-                    <div className="flex items-baseline justify-between border-t border-stone-900 pt-3 mt-3.5 text-[13px] font-semibold">
-                      <span>Total</span><b className="text-xl tracking-tight tabular-nums">S/ {formatoSoles(Number(v.total_venta))}</b>
-                    </div>
-                  </div>
-                </div>
-                <div className={`grid gap-2.5 ${!v.anulada && esAdmin ? 'grid-cols-[1.3fr_1fr]' : 'grid-cols-1'}`}>
-                  <button onClick={() => setReciboReimpresion(v)} className="kz-pri h-12 text-sm font-semibold inline-flex items-center justify-center gap-2"><i className="fa-solid fa-print text-xs"></i><span>Reimprimir</span>{chispa}</button>
-                  {!v.anulada && esAdmin && (
-                    <button onClick={() => anularVentaHoy(v)} className={`${botonFantasma} h-12 !text-[#c0262d]`}><i className="fa-solid fa-ban text-xs"></i> Anular</button>
-                  )}
-                </div>
-              </div>
-            );
-
-            const estadoCelda = (v) => (
-              <span className={`inline-flex items-center gap-1.5 text-[12.5px] font-medium ${v.anulada ? 'text-[#c0262d]' : 'text-stone-600'}`}>
-                <span className={`w-[7px] h-[7px] rounded-full ${v.anulada ? 'bg-[#c0262d]' : v.medio_pago === 'CREDITO' ? 'bg-[#d98a14]' : 'bg-[#16a34a]'}`}></span>{textoEstado(v)}
-              </span>
-            );
-
-            return (
-              <div className="fixed inset-0 bg-stone-900/30 backdrop-blur-sm flex items-center justify-center z-50 p-3 sm:p-4">
-                <div className="bg-[#f8f7fb] rounded-[18px] max-w-xl lg:max-w-6xl w-full max-h-[94vh] h-[94vh] lg:h-[780px] flex flex-col shadow-2xl border border-black/5 overflow-hidden">
-                  <div className={`bg-white px-4 sm:px-7 py-3.5 sm:py-[18px] shrink-0 flex flex-wrap lg:flex-nowrap items-center gap-x-3 gap-y-2.5 border-b ${borde}`}>
-                    {ventaElegida && (
-                      <button aria-label="Volver a la lista" onClick={() => setVentaDetalleHistorial(null)} className="lg:hidden h-9 pl-2.5 pr-3.5 rounded-full border border-[#e9e6f0] bg-white text-[13px] font-medium text-stone-700 inline-flex items-center gap-1 shrink-0"><i className="fa-solid fa-chevron-left text-[10px]"></i> Historial</button>
-                    )}
-                    <h3 className={`text-xl sm:text-[21px] font-bold tracking-tight text-stone-900 whitespace-nowrap ${ventaElegida ? 'hidden lg:block' : ''}`}>Historial de ventas</h3>
-                    {esAdmin && (
-                      <div className={`${ventaElegida ? 'hidden lg:inline-flex' : 'inline-flex'} bg-[#ece9f4] rounded-full p-[3px] order-last basis-full lg:order-none lg:basis-auto lg:ml-2`}>
-                        <button type="button" className="flex-1 lg:flex-none h-8 px-[17px] rounded-full text-[13px] font-semibold text-stone-900 bg-white shadow-[0_1px_3px_rgba(20,10,50,0.14)]">Ventas</button>
-                        <button type="button" onClick={() => { setModalHistorial(false); abrirHistorialCierres(); }} className="flex-1 lg:flex-none h-8 px-[17px] rounded-full text-[13px] font-medium text-stone-500 hover:text-stone-900 whitespace-nowrap">Cierres de caja</button>
-                      </div>
-                    )}
-                    <span className="flex-1"></span>
-                    <button aria-label="Cerrar" onClick={() => { setModalHistorial(false); setVentaDetalleHistorial(null); setMenuVentaHistorial(null); }} className="w-9 h-9 rounded-full text-stone-400 hover:text-stone-700 hover:bg-[#f1eef9] shrink-0"><i className="fa-solid fa-xmark"></i></button>
-                  </div>
-
-                  {ventaElegida && (
-                    <div className="lg:hidden flex-1 min-h-0 overflow-y-auto hide-scrollbar p-4">{detalleVenta(ventaElegida)}</div>
-                  )}
-
-                  <div className={`${ventaElegida ? 'hidden lg:flex' : 'flex'} flex-1 min-h-0 flex-col`}>
-                    <div className="px-4 sm:px-7 pt-4 lg:pt-5 shrink-0 grid grid-cols-2 lg:grid-cols-[1.25fr_1fr_1fr] gap-3 lg:gap-3.5">
-                      <div className={`${tarjeta} col-span-2 lg:col-span-1`}>
-                        <span className="absolute -right-14 -top-[70px] w-[200px] h-[200px] rounded-full pointer-events-none" style={{ background: 'radial-gradient(closest-side, rgba(124,80,240,0.16), rgba(124,80,240,0))' }}></span>
-                        <span className="relative text-[13px] text-stone-500">Total vendido · {activas.length} venta{activas.length === 1 ? '' : 's'}</span>
-                        <b className="relative block text-[30px] lg:text-4xl font-bold tracking-[-0.04em] leading-[1.05] mt-1 mb-3 tabular-nums">S/ {formatoSoles(totalGeneral)}</b>
-                        <div className="relative flex h-2 rounded overflow-hidden bg-[#ece9f4] gap-0.5">
-                          {pctEfectivo > 0 && <i className="block h-full bg-gradient-to-r from-[#3fbf8a] to-[#0f7b4a]" style={{ width: `${pctEfectivo}%` }}></i>}
-                          {pctEfectivo < 100 && <i className="block h-full bg-gradient-to-r from-[#9b7bf5] to-[#6b44d8]" style={{ width: `${100 - pctEfectivo}%` }}></i>}
-                        </div>
-                        <div className="relative flex flex-wrap gap-x-4 gap-y-1 mt-2.5 text-[12.5px] text-stone-500">
-                          <span className="flex items-center gap-1.5"><i className="w-2 h-2 rounded-full bg-[#0f7b4a]"></i>Efectivo <b className="text-stone-900 font-semibold">S/ {formatoSoles(totalEfectivo)}</b></span>
-                          <span className="flex items-center gap-1.5"><i className="w-2 h-2 rounded-full bg-[#6b44d8]"></i>Otros medios <b className="text-stone-900 font-semibold">S/ {formatoSoles(totalOtros)}</b></span>
-                        </div>
-                      </div>
-                      <div className={tarjeta}>
-                        <span className="text-[13px] text-stone-500">Ticket promedio</span>
-                        <b className="block text-[22px] lg:text-2xl font-bold tracking-tight mt-1 tabular-nums">S/ {formatoSoles(ticketPromedio)}</b>
-                        {esAdmin && <span className="inline-flex items-center gap-1.5 mt-2 text-[12px] font-semibold text-[#0f7b4a] bg-[#eef8f2] rounded-full px-2.5 py-[3px]"><i className="fa-solid fa-check text-[9px]"></i>Ganancia S/ {formatoSoles(totalGanancia)}</span>}
-                      </div>
-                      <div className={tarjeta}>
-                        <span className="text-[13px] text-stone-500">Anuladas</span>
-                        <b className="block text-[22px] lg:text-2xl font-bold tracking-tight mt-1 tabular-nums">{anuladas.length}</b>
-                        <span className="block text-xs text-stone-500 mt-2">{anuladas.length > 0 ? `S/ ${formatoSoles(totalAnuladas)} sin contar` : 'Ninguna en este período'}</span>
-                      </div>
-                    </div>
-
-                    <div className="px-4 sm:px-7 py-3.5 shrink-0 flex flex-wrap items-center gap-x-3 gap-y-2.5">
-                      <div className="flex bg-[#ece9f4] rounded-full p-[3px] max-w-full overflow-x-auto hide-scrollbar">
-                        {ATAJOS.map(([id, texto]) => (
-                          <button key={id} type="button" onClick={() => elegirAtajoHistorial(id)} className={`h-8 px-[15px] rounded-full text-[13px] whitespace-nowrap transition ${atajoHistorial === id ? 'bg-white text-stone-900 font-semibold shadow-[0_1px_3px_rgba(20,10,50,0.14)]' : 'text-stone-500 font-medium hover:text-stone-900'}`}>{texto}</button>
-                        ))}
-                      </div>
-                      <span className="text-[13px] text-stone-500">{rangoTexto}</span>
-                      <span className="flex-1 hidden lg:block"></span>
-                      <div className="flex items-center gap-2 w-full lg:w-auto">
-                        <label className={`flex items-center gap-2.5 h-10 flex-1 lg:flex-none lg:w-[280px] px-4 rounded-full border ${borde} bg-white text-stone-400 focus-within:border-[#6105dc] focus-within:ring-[3px] focus-within:ring-[#6105dc]/10 transition`}>
-                          <i className="fa-solid fa-magnifying-glass text-xs"></i>
-                          <input type="text" placeholder="Buscar boleta o cliente" value={busquedaBoletaHistorial} onChange={(e) => { setBusquedaBoletaHistorial(e.target.value); setLimiteHistorial(40); }} className="flex-1 min-w-0 bg-transparent text-[13.5px] text-stone-900 outline-none placeholder:text-stone-400" />
-                        </label>
-                        {esAdmin && ventasDelDia.length > 0 && (
-                          <button onClick={exportarVentasExcel} className={botonFantasma} title="Descargar en Excel" aria-label="Descargar en Excel"><i className="fa-solid fa-download text-xs"></i><span className="hidden sm:inline">Excel</span></button>
-                        )}
-                      </div>
-                      {atajoHistorial === 'fechas' && (
-                        <div className="flex flex-wrap items-center gap-2 w-full">
-                          <input type="date" aria-label="Desde" value={fechaInicioHistorial} onChange={(e) => setFechaInicioHistorial(e.target.value)} className={`h-10 px-3.5 rounded-full border ${borde} bg-white text-[13px] text-stone-900`} />
-                          <span className="text-xs text-stone-400">a</span>
-                          <input type="date" aria-label="Hasta" value={fechaFinHistorial} onChange={(e) => setFechaFinHistorial(e.target.value)} className={`h-10 px-3.5 rounded-full border ${borde} bg-white text-[13px] text-stone-900`} />
-                          <button onClick={() => cargarHistorialPorRango(fechaInicioHistorial, fechaFinHistorial)} className="kz-pri h-10 px-5 text-[13px] font-semibold">Buscar</button>
-                        </div>
-                      )}
-                    </div>
-
-                    <div className="flex-1 min-h-0 px-4 sm:px-7 pb-5 grid grid-rows-[minmax(0,1fr)] lg:grid-cols-[minmax(0,1fr)_330px] gap-4">
-                      <div className="min-h-0 overflow-y-auto hide-scrollbar lg:bg-white lg:border lg:border-[#e9e6f0] lg:rounded-[18px]">
-                        {cargandoHistorial ? (
-                          <p className="text-sm text-center py-10 text-stone-500">Cargando ventas...</p>
-                        ) : filtradas.length === 0 ? (
-                          <p className="text-sm text-center py-10 text-stone-500">No hay ventas en ese período.</p>
-                        ) : (
-                          <>
-                            {/* Celular: una tarjeta por venta */}
-                            <div className="lg:hidden">
-                              {grupos.map((g) => (
-                                <div key={g.etiqueta}>
-                                  <p className="flex justify-between px-1.5 pt-3 pb-1.5 text-xs font-semibold text-stone-500"><span>{g.etiqueta}</span><span className="tabular-nums">S/ {formatoSoles(g.ventas.filter(v => !v.anulada).reduce((a, c) => a + Number(c.total_venta), 0))}</span></p>
-                                  {g.ventas.map((v) => (
-                                    <div key={v.id} className="relative mb-2">
-                                      <div role="button" tabIndex={0} onClick={() => setVentaDetalleHistorial(v.id)} onKeyDown={(e) => { if (e.key === 'Enter') setVentaDetalleHistorial(v.id); }} className={`grid grid-cols-[36px_1fr_auto_28px] items-center gap-3 px-2.5 py-3 bg-white border ${borde} rounded-[14px] cursor-pointer active:bg-[#faf8fe]`}>
-                                        {circuloPago(v, 'w-9 h-9')}
-                                        <div className="min-w-0">
-                                          <p className={`font-mono text-[13.5px] font-semibold ${v.anulada ? 'line-through text-stone-400' : 'text-stone-900'}`}>{v.nro_boleta}</p>
-                                          <p className="text-xs text-stone-500 mt-0.5 truncate">{horaVenta(v)} · {etiquetaPago(v)}{clienteTexto(v) !== '—' ? ` · ${clienteTexto(v)}` : ''}{v.anulada && <span className="text-[#c0262d] font-semibold"> · Anulada</span>}</p>
-                                        </div>
-                                        <span className={`text-[15px] font-bold tracking-tight tabular-nums ${v.anulada ? 'line-through text-stone-400' : 'text-stone-900'}`}>S/ {formatoSoles(Number(v.total_venta))}</span>
-                                        <button type="button" aria-label="Más acciones" onClick={(e) => { e.stopPropagation(); setMenuVentaHistorial(menuVentaHistorial === v.id ? null : v.id); }} className="w-7 h-7 rounded-full text-stone-400 hover:bg-[#f1eef9] grid place-items-center"><i className="fa-solid fa-ellipsis-vertical"></i></button>
-                                      </div>
-                                      {menuVentaHistorial === v.id && menuVenta(v)}
-                                    </div>
-                                  ))}
-                                </div>
-                              ))}
-                            </div>
-
-                            {/* PC: tabla */}
-                            <table className="hidden lg:table w-full border-collapse">
-                              <thead>
-                                <tr className="text-left text-xs font-medium text-stone-500">
-                                  {['Boleta', 'Hora', 'Cliente', 'Pago', 'Estado'].map((t) => <th key={t} className={`sticky top-0 z-[2] bg-white px-3 py-3.5 border-b ${borde} whitespace-nowrap font-medium`}>{t}</th>)}
-                                  <th className={`sticky top-0 z-[2] bg-white px-3 py-3.5 border-b ${borde} text-right font-medium`}>Total</th>
-                                  <th className={`sticky top-0 z-[2] bg-white border-b ${borde} w-11`}></th>
-                                </tr>
-                              </thead>
-                              <tbody>
-                                {grupos.map((g) => (
-                                  <React.Fragment key={g.etiqueta}>
-                                    <tr className="bg-[#faf9fc] text-xs font-semibold text-stone-500">
-                                      <td colSpan={5} className="px-3 py-2.5">{g.etiqueta}</td>
-                                      <td colSpan={2} className="px-3 py-2.5 text-right tabular-nums">{g.ventas.length} venta{g.ventas.length === 1 ? '' : 's'} · S/ {formatoSoles(g.ventas.filter(v => !v.anulada).reduce((a, c) => a + Number(c.total_venta), 0))}</td>
-                                    </tr>
-                                    {g.ventas.map((v) => {
-                                      const elegida = ventaPanel && ventaPanel.id === v.id;
-                                      return (
-                                        <tr key={v.id} onClick={() => setVentaDetalleHistorial(v.id)} className={`cursor-pointer text-[13.5px] text-stone-700 transition ${elegida ? 'bg-[#f4f0fd] shadow-[inset_3px_0_0_#6105dc]' : 'hover:bg-[#fbfafd]'}`}>
-                                          <td className="px-3 py-3 border-b border-[#f3f0f8]"><span className={`flex items-center gap-2.5 font-mono text-[13px] font-medium ${v.anulada ? 'line-through text-stone-400' : 'text-stone-900'}`}>{circuloPago(v)}{v.nro_boleta}</span></td>
-                                          <td className="px-3 py-3 border-b border-[#f3f0f8] text-stone-500 whitespace-nowrap">{horaVenta(v)}</td>
-                                          <td className="px-3 py-3 border-b border-[#f3f0f8] text-stone-500 max-w-[140px] truncate">{clienteTexto(v)}</td>
-                                          <td className="px-3 py-3 border-b border-[#f3f0f8]">{etiquetaPago(v)}</td>
-                                          <td className="px-3 py-3 border-b border-[#f3f0f8] whitespace-nowrap">{estadoCelda(v)}</td>
-                                          <td className={`px-3 py-3 border-b border-[#f3f0f8] text-right font-semibold tabular-nums whitespace-nowrap ${v.anulada ? 'line-through text-stone-400' : 'text-stone-900'}`}>S/ {formatoSoles(Number(v.total_venta))}</td>
-                                          <td className="px-2 py-1 border-b border-[#f3f0f8] relative text-right">
-                                            <button type="button" aria-label="Más acciones" onClick={(e) => { e.stopPropagation(); setMenuVentaHistorial(menuVentaHistorial === v.id ? null : v.id); }} className="w-[30px] h-[30px] rounded-full text-stone-400 hover:bg-[#ece8f5] hover:text-[#6105dc] grid place-items-center"><i className="fa-solid fa-ellipsis-vertical"></i></button>
-                                            {menuVentaHistorial === v.id && menuVenta(v)}
-                                          </td>
-                                        </tr>
-                                      );
-                                    })}
-                                  </React.Fragment>
-                                ))}
-                              </tbody>
-                            </table>
-
-                            {filtradas.length > visibles.length && (
-                              <div className="flex justify-center py-3">
-                                <button onClick={() => setLimiteHistorial((n) => n + 40)} className={botonFantasma}>Ver más ventas</button>
-                              </div>
-                            )}
-                          </>
-                        )}
-                      </div>
-
-                      <div className="hidden lg:block min-h-0 overflow-y-auto hide-scrollbar">
-                        {ventaPanel ? detalleVenta(ventaPanel) : <p className="text-sm text-stone-500 text-center py-10">Elige una venta para ver su detalle.</p>}
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            );
-          })()}
+          {modalHistorial && (
+            <Suspense fallback={null}>
+              <HistorialVentas
+                abrirHistorialCierres={abrirHistorialCierres}
+                anularVentaHoy={anularVentaHoy}
+                atajoHistorial={atajoHistorial}
+                busquedaBoletaHistorial={busquedaBoletaHistorial}
+                cargandoHistorial={cargandoHistorial}
+                cargarHistorialPorRango={cargarHistorialPorRango}
+                elegirAtajoHistorial={elegirAtajoHistorial}
+                esAdmin={esAdmin}
+                etiquetaDiaHistorial={etiquetaDiaHistorial}
+                exportarVentasExcel={exportarVentasExcel}
+                fechaFinHistorial={fechaFinHistorial}
+                fechaInicioHistorial={fechaInicioHistorial}
+                formatoSoles={formatoSoles}
+                limiteHistorial={limiteHistorial}
+                menuVentaHistorial={menuVentaHistorial}
+                modalHistorial={modalHistorial}
+                nombreClienteHistorial={nombreClienteHistorial}
+                productos={productos}
+                setBusquedaBoletaHistorial={setBusquedaBoletaHistorial}
+                setFechaFinHistorial={setFechaFinHistorial}
+                setFechaInicioHistorial={setFechaInicioHistorial}
+                setLimiteHistorial={setLimiteHistorial}
+                setMenuVentaHistorial={setMenuVentaHistorial}
+                setModalHistorial={setModalHistorial}
+                setReciboReimpresion={setReciboReimpresion}
+                setVentaDetalleHistorial={setVentaDetalleHistorial}
+                ventaDetalleHistorial={ventaDetalleHistorial}
+                ventasDelDia={ventasDelDia}
+              />
+            </Suspense>
+          )}
 
           {(modalCierreCaja || resumenCierre) && (
             <Suspense fallback={null}>
