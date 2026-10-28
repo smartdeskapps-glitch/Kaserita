@@ -17,6 +17,7 @@ import { valorAuditoria, describirAuditoria } from './lib/auditoria.js';
 import { antiguedadTurno } from './lib/turnos.js';
 import { iniciarMonitoreo, reportarError, reportarFallo } from './monitoreo.js';
 import { evitarZoomEnCampos } from './lib/movil.js';
+import DeslizarParaConfirmar from './DeslizarParaConfirmar.jsx';
 import { claveAuthSupabase, puedeUsarSesionGuardada, debeReintentar, PAUSAS_REINTENTO_SESION } from './lib/sesion.js';
 import { estadoDeudor, coberturaPago, restoPrimeraBoleta } from './lib/deudas.js';
 import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCombo, margenCombo, expandirLineaCombo, detalleComboTicket } from './lib/combos.js';
@@ -1649,6 +1650,9 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
       // Los métodos de pago y el descuento se mantienen ocultos hasta tocar
       // "Cobrar" -- así el carrito queda limpio y solo se ve lo esencial.
       const [mostrarPago, setMostrarPago] = useState(false);
+      // Celular: en el cobro, la lista de productos va resumida; se abre con "Ver detalle de la venta".
+      const [verDetalleCobro, setVerDetalleCobro] = useState(false);
+      useEffect(() => { if (!mostrarPago) setVerDetalleCobro(false); }, [mostrarPago]);
       const [medioPago, setMedioPago] = useState('EFECTIVO');
       // Celular: al pasar al cobro en efectivo, la hoja baja sola hasta "Paga con"
       // y sus atajos (antes quedaban tapados por el total y había que desplazar).
@@ -10096,7 +10100,7 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
             <>
             {/* Encabezado del carrito: una sola fila de título (con el cierre en
                 mobile) y debajo las acciones rápidas. En desktop todo va en una fila. */}
-            <div className="flex flex-wrap md:flex-nowrap items-center justify-between gap-y-2.5 px-4 pt-2 pb-3 md:py-3 bg-white border-b border-stone-100 shrink-0">
+            <div className={`${mostrarPago ? 'hidden md:flex' : 'flex'} flex-wrap md:flex-nowrap items-center justify-between gap-y-2.5 px-4 pt-2 pb-3 md:py-3 bg-white border-b border-stone-100 shrink-0`}>
               <h2 className="text-[19px] md:text-sm font-bold md:font-extrabold tracking-tight text-stone-900">
                 <span className="md:hidden">Carrito</span>
                 <span className="ml-1.5 md:ml-0 text-[13px] md:text-sm text-stone-400 font-semibold">{carrito.reduce((a, c) => a + c.cantidad, 0)} ítems</span>
@@ -10144,6 +10148,47 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
               </div>
             </div>
 
+            {/* Celular, paso de cobro: pantalla propia con el total grande arriba. Los productos
+                se resumen y se abren con "Ver detalle de la venta". */}
+            {mostrarPago && (
+              <div className="md:hidden shrink-0 px-3.5 pt-2 pb-1 space-y-2.5 bg-white">
+                <div className="flex items-center justify-between">
+                  <button
+                    type="button"
+                    onClick={() => { setMostrarPago(false); reiniciarClienteYMedioPago(); }}
+                    className="flex items-center gap-1 pl-2 pr-3 py-2 rounded-full bg-[#f4eefe] hover:bg-[#ece0fd] text-[13px] font-semibold text-[#4d04b0] transition"
+                  >
+                    <IconoTrazo nombre="back" className="w-[15px] h-[15px]" /> Volver
+                  </button>
+                  <h2 className="text-[15px] font-bold text-stone-900">Cobro</h2>
+                  <span className="px-2.5 py-1.5 rounded-full bg-[#f4eefe] text-[11.5px] font-semibold text-[#4d04b0]">
+                    {carrito.reduce((a, c) => a + c.cantidad, 0)} ítems
+                  </span>
+                </div>
+                <div className="relative overflow-hidden rounded-[22px] px-4 pt-3.5 pb-3 text-white bg-gradient-to-br from-[#8a3df2] to-[#4d04b0]">
+                  <span className="absolute -right-8 -top-10 w-32 h-32 rounded-full bg-white/10"></span>
+                  <p className="relative text-[11.5px] font-semibold opacity-90">Total a cobrar</p>
+                  <p className="relative text-[36px] leading-[1.1] font-extrabold tracking-tight tabular-nums">
+                    <small className="text-[17px] font-semibold opacity-80 mr-1.5">S/</small>{formatoSoles(totalConDescuento)}
+                  </p>
+                  {montoDescuento > 0 && (
+                    <p className="relative text-[11.5px] opacity-90 mt-0.5 tabular-nums">
+                      Subtotal S/ {totalVenta.toFixed(2)} · Descuento - S/ {montoDescuento.toFixed(2)}
+                    </p>
+                  )}
+                  <button
+                    type="button"
+                    aria-expanded={verDetalleCobro}
+                    onClick={() => setVerDetalleCobro((v) => !v)}
+                    className="relative mt-2.5 flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/20 hover:bg-white/30 text-xs font-semibold transition"
+                  >
+                    {verDetalleCobro ? 'Ocultar detalle' : 'Ver detalle de la venta'}
+                    <i className={`fa-solid fa-chevron-down text-[10px] transition-transform ${verDetalleCobro ? 'rotate-180' : ''}`}></i>
+                  </button>
+                </div>
+              </div>
+            )}
+
             {/* Recordatorio fijo de pedidos por retirar -- vive pegado arriba
                 de la lista de ítems, no solo como badge en un botón, para que
                 no se pierda de vista mientras el cajero sigue atendiendo el
@@ -10151,7 +10196,7 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
             {pedidosPorRetirarPendientes === 0 && pedidosListosSinCargar > 0 && (
               <button
                 onClick={abrirPedidosRetirar}
-                className="shrink-0 mx-3 mt-2.5 flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl bg-emerald-50 border border-emerald-200 hover:bg-emerald-100 transition text-left"
+                className={`shrink-0 mx-3 mt-2.5 ${mostrarPago ? 'hidden md:flex' : 'flex'} items-center gap-2.5 px-3.5 py-2.5 rounded-xl bg-emerald-50 border border-emerald-200 hover:bg-emerald-100 transition text-left`}
               >
                 <span className="flex items-center justify-center w-7 h-7 rounded-full bg-emerald-600 text-white shrink-0">
                   <i className="fa-solid fa-bell-concierge text-xs"></i>
@@ -10167,7 +10212,7 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
             {pedidosPorRetirarPendientes > 0 && (
               <button
                 onClick={abrirPedidosRetirar}
-                className="shrink-0 mx-3 mt-2.5 flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl bg-amber-50 border border-amber-200 hover:bg-amber-100 transition text-left"
+                className={`shrink-0 mx-3 mt-2.5 ${mostrarPago ? 'hidden md:flex' : 'flex'} items-center gap-2.5 px-3.5 py-2.5 rounded-xl bg-amber-50 border border-amber-200 hover:bg-amber-100 transition text-left`}
               >
                 <span className="relative flex items-center justify-center w-7 h-7 rounded-full bg-amber-500 text-white shrink-0">
                   <i className="fa-solid fa-bell-concierge text-xs"></i>
@@ -10204,7 +10249,7 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
 
             {/* Lista Ítems */}
             {/* Celular al cobrar: la lista se achica (unas 2 filas) para dejar espacio a los medios de pago */}
-            <div className={`overflow-y-auto p-2.5 space-y-1.5 hide-scrollbar ${mostrarPago ? 'max-h-[22vh] pb-2.5 md:max-h-none md:flex-1 md:pb-16' : 'flex-1 pb-16'}`}>
+            <div className={`overflow-y-auto p-2.5 space-y-1.5 hide-scrollbar ${mostrarPago ? `${verDetalleCobro ? 'max-h-[24vh] pb-2.5' : 'hidden'} md:block md:max-h-none md:flex-1 md:pb-16` : 'flex-1 pb-16'}`}>
               {carrito.length === 0 ? (
                 <div className="flex flex-col items-center justify-center h-full text-stone-500 text-center p-4">
                   <i className="fa-solid fa-basket-shopping text-3xl mb-2 text-stone-300"></i>
@@ -10314,12 +10359,12 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
               <button
                 type="button"
                 onClick={() => { setMostrarPago(false); reiniciarClienteYMedioPago(); }}
-                className="self-start flex items-center gap-1 pl-2 pr-3 py-1.5 rounded-full bg-[#f4eefe] hover:bg-[#ece0fd] text-[13px] font-semibold text-[#4d04b0] transition"
+                className="self-start hidden md:flex items-center gap-1 pl-2 pr-3 py-1.5 rounded-full bg-[#f4eefe] hover:bg-[#ece0fd] text-[13px] font-semibold text-[#4d04b0] transition"
               >
                 <IconoTrazo nombre="back" className="w-[15px] h-[15px]" /> Volver
               </button>
 
-              <div className="grid grid-cols-3 gap-2">
+              <div className="grid grid-cols-3 gap-1.5 md:gap-2 p-1 rounded-[18px] bg-[#f4eefe] md:p-0 md:rounded-none md:bg-transparent">
                 {[
                   { id: 'EFECTIVO', icono: 'efectivo', texto: 'Efectivo' },
                   { id: 'YAPE', icono: 'movil', texto: 'Yape' },
@@ -10337,13 +10382,13 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
                         abrirBuscarClientePOS();
                       }
                     }}
-                    className={`flex flex-col items-center gap-1.5 pt-3 pb-2.5 text-[12.5px] font-semibold rounded-[20px] transition ${
+                    className={`flex flex-row md:flex-col items-center justify-center gap-1.5 h-11 md:h-auto md:pt-3 md:pb-2.5 text-[12.5px] font-semibold rounded-[14px] md:rounded-[20px] transition ${
                       medioPago === m.id
                         ? 'bg-[#6105dc] text-white'
-                        : 'bg-[#f4eefe] hover:bg-[#ece0fd] text-stone-600'
+                        : 'bg-transparent md:bg-[#f4eefe] hover:bg-[#ece0fd] text-stone-600'
                     }`}
                   >
-                    <IconoTrazo nombre={m.icono} className={`w-5 h-5 ${medioPago === m.id ? 'text-white' : 'text-[#6105dc]'}`} />
+                    <IconoTrazo nombre={m.icono} className={`w-[18px] h-[18px] md:w-5 md:h-5 ${medioPago === m.id ? 'text-white' : 'text-[#6105dc]'}`} />
                     {m.texto}
                   </button>
                 ))}
@@ -10574,7 +10619,7 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
               {/* Total y botón de cobro siempre a la vista: si las opciones de pago no
                   caben en pantallas bajas, lo de arriba hace scroll y esto se queda abajo. */}
               <div className="sticky bottom-0 -mx-4 -mb-4 px-4 pb-4 pt-3 space-y-3 bg-white shadow-[0_-12px_18px_-14px_rgba(40,20,100,0.28)]">
-              <div className="bg-[#f4eefe] border border-[#efe6fc] rounded-[22px] px-4 py-3 space-y-1.5">
+              <div className="hidden md:block bg-[#f4eefe] border border-[#efe6fc] rounded-[22px] px-4 py-3 space-y-1.5">
                 {montoDescuento > 0 && (
                   <>
                     <div className="flex items-center justify-between text-[12.5px] text-stone-500">
@@ -10595,10 +10640,19 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
                 </div>
               </div>
 
+              <div className="md:hidden">
+                <DeslizarParaConfirmar
+                  onConfirm={handleCobrar}
+                  ocupado={procesandoVenta}
+                  disabled={carrito.length === 0 || !turnoActivo || (medioPago === 'EFECTIVO' && vuelto < 0)}
+                  texto={medioPago === 'CREDITO' ? 'Desliza para fiar' : 'Desliza para cobrar'}
+                  textoBloqueado={!turnoActivo ? 'Abre un turno para cobrar' : (medioPago === 'EFECTIVO' && vuelto < 0) ? `Falta S/ ${Math.abs(vuelto).toFixed(2)}` : ''}
+                />
+              </div>
               <button
                 onClick={handleCobrar}
                 disabled={procesandoVenta || carrito.length === 0 || !turnoActivo}
-                className={`w-full h-[54px] rounded-full font-semibold text-base transition-all flex items-center justify-center gap-2 ${
+                className={`w-full h-[54px] rounded-full font-semibold text-base transition-all hidden md:flex items-center justify-center gap-2 ${
                   !turnoActivo || procesandoVenta || carrito.length === 0
                     ? 'bg-[#ebe8f1] text-[#8b869a] cursor-not-allowed'
                     : 'kz-pri'

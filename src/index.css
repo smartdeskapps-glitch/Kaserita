@@ -576,3 +576,84 @@
     animation: none;
   }
 }
+/* "Desliza para cobrar" (celular): pastilla violeta con perilla blanca que se arrastra. */
+.kz-slide {
+  position: relative;
+  height: 58px;
+  border-radius: 999px;
+  overflow: hidden;
+  user-select: none;
+  -webkit-user-select: none;
+  touch-action: none;
+  background: linear-gradient(135deg, #7a2df0, #6105dc 55%, #4d04b0);
+  box-shadow: 0 10px 20px -10px rgba(97, 5, 220, 0.7), inset 0 1px 0 rgba(255, 255, 255, 0.25);
+}
+.kz-slide-fill {
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 0;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.16);
+}
+.kz-slide-lbl {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding-left: 46px;
+  font-size: 15px;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  color: #fff;
+  pointer-events: none;
+  background: linear-gradient(100deg, rgba(255, 255, 255, 0.65) 20%, #fff 40%, rgba(255, 255, 255, 0.65) 60%);
+  background-size: 220% 100%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  animation: kz-slide-brillo 2.6s linear infinite;
+}
+@keyframes kz-slide-brillo {
+  from { background-position: 120% 0; }
+  to { background-position: -120% 0; }
+}
+.kz-slide-mano {
+  position: absolute;
+  left: 5px;
+  top: 5px;
+  width: 48px;
+  height: 48px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  background: #fff;
+  color: #6105dc;
+  cursor: grab;
+  touch-action: none;
+  box-shadow: 0 4px 10px -2px rgba(30, 5, 90, 0.45);
+}
+.kz-slide-mano svg {
+  width: 21px;
+  height: 21px;
+  animation: kz-slide-empuja 1.6s ease-in-out infinite;
+}
+@keyframes kz-slide-empuja {
+  0%, 100% { transform: translateX(0); }
+  50% { transform: translateX(3px); }
+}
+.kz-slide-vuelve .kz-slide-mano { transition: transform 0.25s cubic-bezier(0.2, 0.9, 0.3, 1.2); }
+.kz-slide-vuelve .kz-slide-fill { transition: width 0.25s; }
+.kz-slide-off { background: #ebe8f1; box-shadow: none; }
+.kz-slide-off .kz-slide-lbl { background: none; -webkit-text-fill-color: #8b869a; color: #8b869a; animation: none; }
+.kz-slide-off .kz-slide-mano { background: #f7f5fb; color: #b9b3c9; box-shadow: none; cursor: not-allowed; }
+.kz-slide-off .kz-slide-mano svg { animation: none; }
+.kz-slide-ocupado .kz-slide-lbl { background: none; -webkit-text-fill-color: #fff; animation: none; }
+@media (prefers-reduced-motion: reduce) {
+  .kz-slide-lbl,
+  .kz-slide-mano svg { animation: none; }
+}
