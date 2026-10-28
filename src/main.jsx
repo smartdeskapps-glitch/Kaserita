@@ -9586,7 +9586,7 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
                       <span className="block font-bold text-[19px] tracking-tight tabular-nums"><small className="text-xs font-semibold opacity-80 mr-0.5">S/</small>{formatoSoles(totalConDescuento)}</span>
                     </span>
                     <span className="flex items-center justify-center w-11 h-11 rounded-full bg-[#6105dc] text-white shrink-0 shadow-[0_4px_10px_-4px_rgba(60,5,170,0.6)]">
-                      <IconoTrazo nombre="bag" className="w-5 h-5" />
+                      <IconoTrazo nombre="bag" className="w-5 h-5 !text-white" />
                     </span>
                   </span>
                 </button>
