@@ -9413,10 +9413,9 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
                         onClick={abrirEscanerParaVenta}
                         title="Escanear código de barras con la cámara"
                         aria-label="Escanear código de barras con la cámara"
-                        className="kz-pri shrink-0 flex items-center justify-center gap-2 h-10 md:h-9 w-10 md:w-auto md:px-3.5 md:pl-3 rounded-full text-[13px] font-semibold"
+                        className="kz-pri shrink-0 flex items-center justify-center w-10 h-10 rounded-full"
                       >
                         <svg className="w-[17px] h-[17px]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 8V6a2 2 0 0 1 2-2h2M16 4h2a2 2 0 0 1 2 2v2M20 16v2a2 2 0 0 1-2 2h-2M8 20H6a2 2 0 0 1-2-2v-2"/><path d="M7 12h10"/></svg>
-                        <span className="hidden md:inline">Escanear</span>
                       </button>
                     </div>
                     <button
