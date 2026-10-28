@@ -872,6 +872,14 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
     const PanelAdmin = React.lazy(() => import('./PanelAdmin.jsx'));
     const DashboardVentas = React.lazy(() => import('./DashboardVentas.jsx'));
     const CierreCaja = React.lazy(() => import('./CierreCaja.jsx'));
+    const InventarioInicial = React.lazy(() => import('./InventarioInicial.jsx'));
+    const CombosModal = React.lazy(() => import('./CombosModal.jsx'));
+    const MermaModal = React.lazy(() => import('./MermaModal.jsx'));
+    const TomaInventario = React.lazy(() => import('./TomaInventario.jsx'));
+    const EditarProducto = React.lazy(() => import('./EditarProducto.jsx'));
+    const EntradaMercaderia = React.lazy(() => import('./EntradaMercaderia.jsx'));
+    const HistorialCierres = React.lazy(() => import('./HistorialCierres.jsx'));
+    const GestionClientes = React.lazy(() => import('./GestionClientes.jsx'));
 
     function PosApp() {
       // --- Supabase Config ---
@@ -11034,2312 +11042,227 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
             </div>
           )}
 
-          {/* Modal: Inventario Inicial (carga de varios productos a la vez) */}
-          {modalInventarioInicial && (() => {
-            // Registrar productos con stepper: una ficha a la vez (producto -> precio -> revisar).
-            // La ficha activa es filasInventario[filaInventarioExpandidaIdx]; las demás ya
-            // cargadas se ven arriba como "En esta carga" y se guardan todas juntas al final.
-            const idx = filasInventario[filaInventarioExpandidaIdx] ? filaInventarioExpandidaIdx : 0;
-            const fila = filasInventario[idx];
-            const esExistente = !!fila.productoExistenteId;
-            const tipoActual = fila.tipoItem || 'servicio';
-            const esServicio = esBarberia && tipoActual !== 'producto';
-            const esProductoBarberia = esBarberia && tipoActual === 'producto';
-            const duracionTexto = String(fila.duracion_min ?? '').trim();
-            const duracionOk = duracionTexto === '' || (Number.isInteger(Number(duracionTexto)) && Number(duracionTexto) >= 5 && Number(duracionTexto) <= 480);
-            // La categoría por defecto de una ficha nueva ("Abarrotes") solo vale si esta bodega la tiene; en una barbería, por ejemplo, hay que elegir una.
-            const categoriaElegida = !!fila.categoria && (categoriasDB.includes(fila.categoria) || esExistente || !!fila.catalogoMaestroId);
-            const ok1 = fila.descripcion.trim().length >= 2 && categoriaElegida;
-            const ok2 = Number(fila.precio_venta) > 0
-              && esMontoNoNegativo(fila.precio_costo)
-              && (!fila.vendeEnPack || (Number(fila.unidades_por_pack) >= 2 && Number(fila.precio_venta_pack) > 0))
-              && (!esServicio || duracionOk)
-              && (!esProductoBarberia || esMontoNoNegativo(fila.stock_inicial || '0'));
-            const paso = pasoInventario;
-            const puedeAvanzar = paso === 1 ? ok1 : paso === 2 ? (ok1 && ok2) : true;
-            const pasosInfo = esBarberia
-              ? [['Qué es', 'Servicio o producto'], ['Precio', 'Y duración o stock'], ['Revisar', 'Y guardar']]
-              : [['Producto', 'Identificación'], ['Precio', 'Y forma de venta'], ['Revisar', 'Y guardar']];
-            const validoHasta = (n) => (n <= 1 ? true : n === 2 ? ok1 : ok1 && ok2);
-            const irAPaso = (n) => {
-              if (n < 1 || n > 3 || guardandoInventario) return;
-              if (n > paso && !validoHasta(n)) {
-                notificar(paso === 1 ? 'Completa el nombre y la categoría para seguir.' : 'Pon el precio de venta para seguir.', 'error');
-                return;
-              }
-              setPasoInventario(n);
-            };
-            const sugerencias = sugerenciasParaFila(fila);
-            const sugerenciasMaestro = sugerenciasMaestroParaFila(fila);
-            const sugerenciasPack = sugerenciasParaFilaPack(fila);
-            const pv = Number(fila.precio_venta) || 0;
-            const pc = Number(fila.precio_costo) || 0;
-            const margenPct = pv > 0 && pc > 0 ? ((pv - pc) / pv) * 100 : null;
-            const unidadTexto = esBarberia ? (esServicio ? `${Number(fila.duracion_min) || 30} min` : 'unidad') : (fila.unidad === 'KG' ? 'por kg' : 'por unidad');
-            // Las demás fichas de esta carga (las que ya tienen nombre).
-            const listos = filasInventario.map((f, i) => ({ f, i })).filter(({ f, i }) => i !== idx && f.descripcion.trim());
-            const incompletas = listos.filter(({ f }) => !(Number(f.precio_venta) > 0)).length;
-            const totalAGuardar = listos.filter(({ f }) => Number(f.precio_venta) > 0).length + (ok1 && ok2 ? 1 : 0);
-            const checklist = [
-              ['Nombre', fila.descripcion.trim().length >= 2, 30],
-              ['Categoría', categoriaElegida, 15],
-              ['Precio de venta', pv > 0, 30],
-              ['Costo (para ver tu ganancia)', pc > 0, 10],
-              ['Foto (vende más)', !!fila.foto_url, 10],
-              ['Código de barras', !!(fila.cod_ean || '').trim(), 5]
-            ];
-            const completitud = checklist.reduce((a, [, ok, pts]) => a + (ok ? pts : 0), 0);
-            const inputBase = 'w-full h-11 bg-stone-50/70 border-[1.5px] border-stone-200 rounded-[14px] px-3.5 text-sm text-stone-900 placeholder:text-stone-400 outline-none focus:border-[#6105dc] focus:bg-white focus:ring-4 focus:ring-[#6105dc]/15 transition disabled:bg-stone-100 disabled:text-stone-500 disabled:cursor-not-allowed';
-            const chipClase = (activo) => `inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[12.5px] font-semibold border-[1.5px] transition disabled:opacity-50 disabled:cursor-not-allowed ${activo ? 'border-[#6105dc] bg-[#f4eefe] text-[#4d04b0] ring-2 ring-[#6105dc]/15' : 'border-stone-200 bg-white text-stone-600 hover:bg-[#f4eefe] hover:border-[#e4d6fb]'}`;
-            const segClase = (activo) => `rounded-[11px] py-2.5 px-2 text-[13px] font-bold transition text-center disabled:opacity-50 disabled:cursor-not-allowed ${activo ? 'bg-white text-[#4d04b0] shadow-sm' : 'text-stone-500 hover:text-stone-700'}`;
-            const etiqueta = 'flex items-center justify-between gap-2 text-[12.5px] font-semibold text-stone-800 mb-1.5';
-            const categoriasChips = (() => {
-              const base = categoriasDB.slice(0, 6);
-              return categoriaElegida && !base.includes(fila.categoria) ? [...base, fila.categoria] : base;
-            })();
-            const filaVaciaConDatos = (f) => f.descripcion.trim() || Number(f.precio_venta) > 0;
-            const guardarYAgregarOtro = () => {
-              const { categoria, tipoItem } = fila;
-              setFilasInventario((prev) => {
-                setFilaInventarioExpandidaIdx(prev.length);
-                return [...prev, { ...filaInventarioVacia(), categoria, ...(esBarberia ? { tipoItem } : {}) }];
-              });
-              setPasoInventario(1);
-              notificar(`"${fila.descripcion.trim()}" agregado a esta carga.`, 'success');
-            };
-            const editarListo = (i, f) => {
-              setFilaInventarioExpandidaIdx(i);
-              setPasoInventario(f.descripcion.trim().length >= 2 && Number(f.precio_venta) > 0 ? 3 : 1);
-            };
-            const fotoDeshabilitada = sesion?.bodega?.permitir_subir_fotos === false;
+          {modalInventarioInicial && (
+            <Suspense fallback={null}>
+              <InventarioInicial
+                abrirEscanerParaFilaInventario={abrirEscanerParaFilaInventario}
+                actualizarCodigoEanFila={actualizarCodigoEanFila}
+                actualizarCodigoEanPackFila={actualizarCodigoEanPackFila}
+                actualizarFilaInventario={actualizarFilaInventario}
+                agregarCategoriaPersonalizada={agregarCategoriaPersonalizada}
+                categoriasDB={categoriasDB}
+                desvincularFilaInventario={desvincularFilaInventario}
+                eliminarFilaInventario={eliminarFilaInventario}
+                esBarberia={esBarberia}
+                filaInventarioExpandidaIdx={filaInventarioExpandidaIdx}
+                filasInventario={filasInventario}
+                guardandoInventario={guardandoInventario}
+                guardarInventarioInicial={guardarInventarioInicial}
+                modalInventarioInicial={modalInventarioInicial}
+                notificar={notificar}
+                pasoInventario={pasoInventario}
+                productos={productos}
+                sesion={sesion}
+                setFilaInventarioExpandidaIdx={setFilaInventarioExpandidaIdx}
+                setFilasInventario={setFilasInventario}
+                setModalInventarioInicial={setModalInventarioInicial}
+                setPasoInventario={setPasoInventario}
+                subiendoFotoFilaIdx={subiendoFotoFilaIdx}
+                subirFotoFilaInventario={subirFotoFilaInventario}
+                sugerenciasMaestroParaFila={sugerenciasMaestroParaFila}
+                sugerenciasParaFila={sugerenciasParaFila}
+                sugerenciasParaFilaPack={sugerenciasParaFilaPack}
+                usarSugerenciaMaestraEnFila={usarSugerenciaMaestraEnFila}
+                vincularProductoExistenteEnFila={vincularProductoExistenteEnFila}
+              />
+            </Suspense>
+          )}
 
-            return (
-            <div className="fixed inset-0 bg-stone-900/30 backdrop-blur-sm flex items-center justify-center z-50 p-2 sm:p-4">
-              <div className="bg-gradient-to-br from-[#f4effc] via-[#f9f8fb] to-[#f5f4f8] border border-white/80 rounded-[28px] max-w-4xl w-full shadow-2xl h-[95vh] max-h-[820px] flex flex-col overflow-hidden">
+          {modalCombos && (
+            <Suspense fallback={null}>
+              <CombosModal
+                actualizarCantidadItemCombo={actualizarCantidadItemCombo}
+                agregarProductoAFormCombo={agregarProductoAFormCombo}
+                alternarActivoCombo={alternarActivoCombo}
+                aplicarDescuentoRapidoCombo={aplicarDescuentoRapidoCombo}
+                aplicarPrecioCombo={aplicarPrecioCombo}
+                buscarProductoPorCodigo={buscarProductoPorCodigo}
+                busquedaCombos={busquedaCombos}
+                busquedaProductoCombo={busquedaProductoCombo}
+                cargandoCombos={cargandoCombos}
+                carrito={carrito}
+                cerrarEditorCombo={cerrarEditorCombo}
+                cerrarModalCombos={cerrarModalCombos}
+                combos={combos}
+                costoNormalCombo={costoNormalCombo}
+                duplicarCombo={duplicarCombo}
+                editarCombo={editarCombo}
+                eliminarCombo={eliminarCombo}
+                esBarberia={esBarberia}
+                estadoCombos={estadoCombos}
+                filtroCombos={filtroCombos}
+                formCombo={formCombo}
+                formComboOriginal={formComboOriginal}
+                guardandoCombo={guardandoCombo}
+                guardarCombo={guardarCombo}
+                modalCombos={modalCombos}
+                notificar={notificar}
+                nuevoCombo={nuevoCombo}
+                precioNormalCombo={precioNormalCombo}
+                productos={productos}
+                quitarItemCombo={quitarItemCombo}
+                resaltadoProductoCombo={resaltadoProductoCombo}
+                setBusquedaCombos={setBusquedaCombos}
+                setBusquedaProductoCombo={setBusquedaProductoCombo}
+                setFiltroCombos={setFiltroCombos}
+                setFormCombo={setFormCombo}
+                setResaltadoProductoCombo={setResaltadoProductoCombo}
+                snapshotCombo={snapshotCombo}
+              />
+            </Suspense>
+          )}
 
-                {/* Cabecera + stepper */}
-                <div className="bg-white border-b border-stone-100 px-4 sm:px-5 pt-3.5 shrink-0">
-                  <div className="flex items-center gap-3">
-                    <span className="w-9 h-9 rounded-xl bg-[#6105dc] text-white flex items-center justify-center shrink-0">
-                      <i className="fa-solid fa-boxes-stacked text-sm"></i>
-                    </span>
-                    <div className="min-w-0">
-                      <h3 className="text-[17px] font-extrabold text-stone-900 tracking-tight leading-tight">{esBarberia ? 'Registrar Servicios y Productos' : 'Registrar Productos'}</h3>
-                      <p className="hidden sm:block text-xs text-stone-500">Crea el producto en 3 pasos rápidos.</p>
-                    </div>
-                    <button onClick={() => setModalInventarioInicial(false)} aria-label="Cerrar" className="ml-auto w-8 h-8 flex items-center justify-center rounded-full text-stone-400 hover:text-stone-600 hover:bg-stone-100 transition-colors shrink-0"><i className="fa-solid fa-xmark"></i></button>
-                  </div>
-                  <ol className="flex items-start mt-3.5 pb-3.5">
-                    {pasosInfo.map(([titulo, sub], i) => {
-                      const n = i + 1;
-                      const estado = n < paso ? 'hecho' : n === paso ? 'activo' : 'pendiente';
-                      return (
-                        <li key={n} className="flex-1 relative flex flex-col items-center text-center min-w-0">
-                          {i > 0 && <span className={`absolute top-[17px] right-1/2 w-full h-[3px] rounded-full transition-colors duration-500 ${n <= paso ? 'bg-[#6105dc]' : 'bg-stone-200'}`}></span>}
-                          <button
-                            type="button"
-                            onClick={() => irAPaso(n)}
-                            aria-label={`Paso ${n}: ${titulo}`}
-                            aria-current={estado === 'activo' ? 'step' : undefined}
-                            className={`relative z-[1] w-9 h-9 rounded-full grid place-items-center border-2 text-sm font-extrabold transition ${estado === 'hecho' ? 'bg-[#6105dc] border-[#6105dc] text-white' : estado === 'activo' ? 'bg-white border-[#6105dc] text-[#6105dc] ring-[6px] ring-[#6105dc]/15' : 'bg-white border-stone-200 text-stone-400'}`}
-                          >
-                            {estado === 'hecho' ? <i className="fa-solid fa-check text-xs"></i> : n}
-                          </button>
-                          <span className={`mt-2 text-[13px] font-bold ${estado === 'pendiente' ? 'text-stone-400' : 'text-stone-900'} ${estado !== 'activo' ? 'hidden sm:block' : ''}`}>{titulo}</span>
-                          <span className="hidden sm:block text-[11px] text-stone-400">{sub}</span>
-                        </li>
-                      );
-                    })}
-                  </ol>
-                </div>
-
-                {/* En esta carga */}
-                {listos.length > 0 && (
-                  <div className="bg-white border-b border-stone-100 px-4 sm:px-5 py-2 flex items-center gap-2 overflow-x-auto hide-scrollbar shrink-0">
-                    <span className="text-[11.5px] font-bold text-stone-500 whitespace-nowrap">En esta carga ({listos.length})</span>
-                    {listos.map(({ f, i }) => {
-                      const sinPrecio = !(Number(f.precio_venta) > 0);
-                      return (
-                        <span key={f.id || i} className={`inline-flex items-center gap-1.5 rounded-full border pl-1 pr-1 py-0.5 text-xs font-semibold whitespace-nowrap ${sinPrecio ? 'bg-amber-50 border-amber-200 text-amber-800' : 'bg-[#f4eefe] border-[#e4d6fb] text-[#4d04b0]'}`}>
-                          <button type="button" onClick={() => editarListo(i, f)} title="Tocar para editar" className="inline-flex items-center gap-1.5">
-                            <FotoProducto fotoUrl={f.foto_url} categoria={f.categoria} className="w-5 h-5 rounded-full shrink-0" iconClassName="text-[8px]" />
-                            <span className="max-w-[140px] truncate">{f.descripcion}</span>
-                            <span className="font-medium opacity-70">{sinPrecio ? 'sin precio' : `S/ ${Number(f.precio_venta).toFixed(2)}`}</span>
-                          </button>
-                          <button type="button" onClick={() => eliminarFilaInventario(i)} aria-label="Quitar de la carga" className="w-[18px] h-[18px] rounded-full flex items-center justify-center opacity-60 hover:opacity-100 hover:bg-white"><i className="fa-solid fa-xmark text-[9px]"></i></button>
-                        </span>
-                      );
-                    })}
-                  </div>
-                )}
-
-                {/* Cuerpo: formulario del paso + vista previa */}
-                <div className="flex-1 overflow-y-auto p-4 sm:p-5 grid gap-4 md:gap-5 md:grid-cols-[minmax(0,1fr)_280px] content-start">
-                  <div className="min-w-0 order-2 md:order-1">
-                    <div className="bg-white border border-stone-100 rounded-[22px] p-4 sm:p-5 shadow-sm">
-
-                      {paso === 1 && (
-                        <div className="space-y-4">
-                          <div>
-                            <h4 className="text-[17px] font-extrabold text-stone-900 tracking-tight">{esBarberia ? '¿Qué vas a registrar?' : 'Identifica el producto'}</h4>
-                            <p className="text-[12.5px] text-stone-500 mt-0.5">{esBarberia ? 'Elige el tipo y ponle nombre. Lo demás viene en el siguiente paso.' : 'Escanea el código o escribe el nombre. Si ya existe, lo reconocemos.'}</p>
-                          </div>
-
-                          {esBarberia && !esExistente && (
-                            <div className="grid grid-flow-col auto-cols-fr bg-[#f1eef9] rounded-[14px] p-1 gap-1">
-                              {[['servicio', 'Servicio', 'Sin stock (corte, barba…)'], ['producto', 'Producto', 'Con stock (pomada…)']].map(([valor, titulo, ayuda]) => (
-                                <button key={valor} type="button" onClick={() => actualizarFilaInventario(idx, 'tipoItem', valor)} className={segClase(tipoActual === valor)}>
-                                  {titulo}
-                                  <span className="block text-[11px] font-medium opacity-80">{ayuda}</span>
-                                </button>
-                              ))}
-                            </div>
-                          )}
-
-                          {!esServicio && (
-                            <div>
-                              <label className={etiqueta}><span>Código de barras</span><span className="text-stone-400 font-normal">opcional</span></label>
-                              <div className="relative">
-                                <input
-                                  type="text"
-                                  inputMode="numeric"
-                                  placeholder="Escanea o escribe el código..."
-                                  value={fila.cod_ean}
-                                  disabled={esExistente}
-                                  onChange={(e) => actualizarCodigoEanFila(idx, e.target.value)}
-                                  className={`${inputBase} pr-28`}
-                                />
-                                <button
-                                  type="button"
-                                  onClick={() => abrirEscanerParaFilaInventario(idx)}
-                                  disabled={esExistente}
-                                  className="absolute inset-y-1 right-1 px-3 bg-[#f4eefe] hover:bg-[#ece0fd] text-[#4d04b0] disabled:opacity-40 rounded-[10px] text-xs font-bold flex items-center gap-1.5 border border-[#e4d6fb] transition active:scale-95"
-                                  title="Escanear código de barras"
-                                >
-                                  <i className="fa-solid fa-camera text-xs"></i> Escanear
-                                </button>
-                              </div>
-                            </div>
-                          )}
-
-                          {esExistente && (
-                            <div className="flex items-center justify-between gap-2 bg-emerald-50 border border-emerald-200 text-emerald-800 rounded-[14px] px-3 py-2.5 text-[12.5px] font-semibold">
-                              <span><i className="fa-solid fa-circle-check mr-1.5"></i>Ya está en tus productos: se actualizará</span>
-                              <button type="button" onClick={() => desvincularFilaInventario(idx)} className="underline text-xs shrink-0">Desvincular</button>
-                            </div>
-                          )}
-
-                          <div className="relative">
-                            <label className={etiqueta}>
-                              <span>{esBarberia ? 'Nombre' : 'Nombre del producto'} <span className="text-rose-500">*</span></span>
-                              {!esBarberia && <span className="inline-flex items-center gap-1 text-[11px] font-bold text-[#6105dc]"><i className="fa-solid fa-wand-magic-sparkles"></i> Sugeridos por Kaserita</span>}
-                            </label>
-                            <input
-                              type="text"
-                              autoComplete="off"
-                              placeholder={esBarberia ? (esServicio ? 'Ej: Corte fade' : 'Ej: Pomada mate 100g') : 'Ej: Leche Gloria Entera 400g...'}
-                              value={fila.descripcion}
-                              disabled={esExistente}
-                              onChange={(e) => actualizarFilaInventario(idx, 'descripcion', e.target.value)}
-                              className={inputBase}
-                            />
-                            {(sugerencias.length > 0 || sugerenciasMaestro.length > 0) && (
-                              <div className="absolute z-20 top-full left-0 right-0 mt-1 bg-white border border-stone-200 rounded-2xl shadow-xl overflow-hidden max-h-60 overflow-y-auto">
-                                {sugerencias.length > 0 && (
-                                  <div className="px-3.5 pt-2 pb-1 text-[10px] font-bold text-stone-500 uppercase tracking-wide bg-stone-50">Tus productos</div>
-                                )}
-                                {sugerencias.map((s) => (
-                                  <button type="button" key={`propio-${s.id}`} onClick={() => vincularProductoExistenteEnFila(idx, s)} className="w-full text-left px-3.5 py-2 text-[13px] text-stone-800 hover:bg-[#f4eefe] flex items-center gap-2">
-                                    <span className="truncate flex-1 font-semibold">{s.descripcion}</span>
-                                    <span className="text-stone-500 shrink-0 text-xs">S/ {Number(s.precio_venta).toFixed(2)}</span>
-                                    <span className="shrink-0 text-[10px] font-bold rounded-full px-2 py-0.5 bg-emerald-50 text-emerald-700">Tuyo</span>
-                                  </button>
-                                ))}
-                                {sugerenciasMaestro.length > 0 && (
-                                  <div className="px-3.5 pt-2 pb-1 text-[10px] font-bold text-stone-500 uppercase tracking-wide bg-stone-50">Productos de Kaserita</div>
-                                )}
-                                {sugerenciasMaestro.map((s) => (
-                                  <button type="button" key={`maestro-${s.id}`} onClick={() => usarSugerenciaMaestraEnFila(idx, s)} className="w-full text-left px-3.5 py-2 text-[13px] text-stone-800 hover:bg-[#f4eefe] flex items-center gap-2">
-                                    <FotoProducto fotoUrl={s.foto_url} categoria={s.categoria} className="w-7 h-7 rounded-md shrink-0" iconClassName="text-[10px]" />
-                                    <span className="truncate flex-1 font-semibold">{s.descripcion}</span>
-                                    <span className="text-stone-500 shrink-0 text-[11px]">{s.categoria}</span>
-                                    <span className="shrink-0 text-[10px] font-bold rounded-full px-2 py-0.5 bg-[#f4eefe] text-[#4d04b0]">Sugerido</span>
-                                  </button>
-                                ))}
-                              </div>
-                            )}
-                          </div>
-
-                          <div>
-                            <label className={etiqueta}><span>Categoría <span className="text-rose-500">*</span></span></label>
-                            <div className="flex flex-wrap gap-2">
-                              {categoriasChips.map((c) => (
-                                <button key={c} type="button" disabled={esExistente} onClick={() => actualizarFilaInventario(idx, 'categoria', c)} className={chipClase(categoriaElegida && fila.categoria === c)}>
-                                  <i className={`fa-solid ${estiloCategoria(c).icono} text-[11px]`}></i>{c}
-                                </button>
-                              ))}
-                              {!esExistente && (
-                                <button type="button" onClick={() => agregarCategoriaPersonalizada((v) => actualizarFilaInventario(idx, 'categoria', v))} className={`${chipClase(false)} border-dashed text-stone-500`}>
-                                  <i className="fa-solid fa-plus text-[10px]"></i> Nueva
-                                </button>
-                              )}
-                            </div>
-                            {categoriasDB.length > 6 && !esExistente && (
-                              <select
-                                value={categoriaElegida ? fila.categoria : ''}
-                                onChange={(e) => actualizarFilaInventario(idx, 'categoria', e.target.value)}
-                                className="mt-2 h-9 bg-stone-50/70 border border-stone-200 rounded-xl px-3 text-xs text-stone-600"
-                                aria-label="Ver todas las categorías"
-                              >
-                                {!categoriaElegida && <option value="" disabled>Ver todas las categorías…</option>}
-                                {categoriasDB.map((c) => <option key={c} value={c}>{c}</option>)}
-                              </select>
-                            )}
-                          </div>
-
-                          {!esExistente && (
-                            <div>
-                              <label className={etiqueta}><span>Foto</span><span className="text-stone-400 font-normal">opcional</span></label>
-                              {fotoDeshabilitada ? (
-                                <div className="flex items-center gap-3">
-                                  <FotoProducto fotoUrl={fila.foto_url} categoria={fila.categoria} className="w-16 h-16 rounded-xl shrink-0 border border-stone-200" iconClassName="text-xl" />
-                                  <p className="text-[11px] text-stone-500">La subida de fotos está desactivada para tu negocio.</p>
-                                </div>
-                              ) : (
-                                <div className="flex items-center gap-3.5">
-                                  <FotoProducto fotoUrl={fila.foto_url} categoria={fila.categoria} className="w-[76px] h-[76px] rounded-[18px] shrink-0 border-2 border-dashed border-stone-200" iconClassName="text-2xl" />
-                                  <div className="flex-1 flex flex-col gap-1.5">
-                                    <div className="flex items-center gap-2">
-                                      <label className="flex-1 cursor-pointer py-2 px-2.5 rounded-xl border-[1.5px] border-stone-200 bg-white hover:bg-[#f4eefe] text-stone-700 text-xs font-semibold flex items-center justify-center gap-1.5 active:scale-95 transition">
-                                        {subiendoFotoFilaIdx === idx ? <i className="fa-solid fa-spinner fa-spin text-stone-500 text-xs"></i> : <i className="fa-solid fa-camera text-stone-500 text-xs"></i>}
-                                        <span>Cámara</span>
-                                        <input type="file" accept="image/*" capture="environment" className="hidden" onChange={(e) => { const file = e.target.files && e.target.files[0]; e.target.value = ''; if (file) subirFotoFilaInventario(idx, file); }} />
-                                      </label>
-                                      <label className="flex-1 cursor-pointer py-2 px-2.5 rounded-xl border-[1.5px] border-stone-200 bg-white hover:bg-[#f4eefe] text-stone-700 text-xs font-semibold flex items-center justify-center gap-1.5 active:scale-95 transition">
-                                        <i className="fa-solid fa-image text-stone-500 text-xs"></i>
-                                        <span>Galería</span>
-                                        <input type="file" accept="image/*" className="hidden" onChange={(e) => { const file = e.target.files && e.target.files[0]; e.target.value = ''; if (file) subirFotoFilaInventario(idx, file); }} />
-                                      </label>
-                                    </div>
-                                    <p className="text-[11px] text-stone-400">O pega una imagen directamente desde el portapapeles (Ctrl+V)</p>
-                                  </div>
-                                </div>
-                              )}
-                            </div>
-                          )}
-                        </div>
-                      )}
-
-                      {paso === 2 && (
-                        <div className="space-y-4">
-                          <div>
-                            <h4 className="text-[17px] font-extrabold text-stone-900 tracking-tight">{esServicio ? 'Precio y duración' : 'Precio y forma de venta'}</h4>
-                            <p className="text-[12.5px] text-stone-500 mt-0.5">{esServicio ? 'La duración se usa en la agenda de reservas.' : 'Pon el precio y, si quieres, tu costo para ver la ganancia.'}</p>
-                          </div>
-
-                          <div>
-                            <label className={etiqueta}><span>Precio de venta{esBarberia ? '' : ' por unidad'} <span className="text-rose-500">*</span></span></label>
-                            <div className="flex items-baseline gap-2.5 rounded-[20px] bg-stone-50/70 border-2 border-stone-200 focus-within:border-[#6105dc] focus-within:bg-white focus-within:ring-4 focus-within:ring-[#6105dc]/15 transition px-4 py-3">
-                              <span className="text-xl font-extrabold text-stone-300 select-none">S/</span>
-                              <input
-                                type="number"
-                                step="0.10"
-                                min="0"
-                                inputMode="decimal"
-                                placeholder="0.00"
-                                value={fila.precio_venta}
-                                onChange={(e) => actualizarFilaInventario(idx, 'precio_venta', e.target.value)}
-                                onKeyDown={(e) => { if (e.key === 'Enter' && ok2) irAPaso(3); }}
-                                className="w-full min-w-0 bg-transparent border-0 p-0 text-[34px] sm:text-[40px] leading-tight font-extrabold tracking-tight text-stone-900 placeholder:text-stone-300 focus:ring-0 focus:outline-none"
-                              />
-                              <span className="text-[11px] font-bold tracking-widest text-stone-300">PEN</span>
-                            </div>
-                          </div>
-
-                          <div className="grid gap-4 sm:grid-cols-2">
-                            <div>
-                              <label className={etiqueta}><span>Costo{esServicio ? ' de insumos' : ''}</span><span className="text-stone-400 font-normal">opcional</span></label>
-                              <div className="relative">
-                                <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[13px] font-bold text-stone-300 pointer-events-none">S/</span>
-                                <input type="number" step="0.10" min="0" inputMode="decimal" placeholder="0.00" value={fila.precio_costo} onChange={(e) => actualizarFilaInventario(idx, 'precio_costo', e.target.value)} className={`${inputBase} pl-9`} />
-                              </div>
-                              {margenPct !== null && (
-                                <span className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 mt-2 text-[11.5px] font-bold ${margenPct < 0 ? 'bg-rose-50 text-rose-600' : margenPct < 10 ? 'bg-amber-50 text-amber-700' : 'bg-emerald-50 text-emerald-700'}`}>
-                                  Ganancia S/ {(pv - pc).toFixed(2)} · {margenPct.toFixed(0)}%{margenPct < 0 ? ' (pérdida)' : margenPct < 10 ? ' (bajo)' : ''}
-                                </span>
-                              )}
-                            </div>
-
-                            {esServicio ? (
-                              <div>
-                                <label className={etiqueta}><span>Duración del servicio</span></label>
-                                <div className="flex flex-wrap gap-2">
-                                  {[15, 30, 45, 60, 90].map((m) => (
-                                    <button key={m} type="button" onClick={() => actualizarFilaInventario(idx, 'duracion_min', String(m))} className={chipClase(Number(fila.duracion_min) === m)}>{m} min</button>
-                                  ))}
-                                </div>
-                                <div className="flex items-center gap-2 mt-2">
-                                  <input type="number" min="5" max="480" step="5" placeholder="Otra" value={fila.duracion_min || ''} onChange={(e) => actualizarFilaInventario(idx, 'duracion_min', e.target.value)} className="w-24 h-9 bg-stone-50/70 border border-stone-200 rounded-xl px-3 text-xs" />
-                                  <span className="text-[11px] text-stone-500">minutos · vacío = 30</span>
-                                </div>
-                                {!duracionOk && <p className="text-[11px] text-rose-600 mt-1">Escribe un número de 5 a 480 minutos.</p>}
-                              </div>
-                            ) : esProductoBarberia ? (
-                              <div>
-                                <label className={etiqueta}><span>Cantidad que tienes ahora</span></label>
-                                <div className="inline-flex items-center border-[1.5px] border-stone-200 rounded-[14px] overflow-hidden bg-stone-50/70">
-                                  <button type="button" aria-label="Menos" onClick={() => actualizarFilaInventario(idx, 'stock_inicial', String(Math.max(0, (Number(fila.stock_inicial) || 0) - 1)))} className="w-11 h-11 grid place-items-center text-[#4d04b0] hover:bg-[#f4eefe]"><i className="fa-solid fa-minus text-xs"></i></button>
-                                  <input type="number" min="0" step="1" value={fila.stock_inicial || ''} placeholder="0" onChange={(e) => actualizarFilaInventario(idx, 'stock_inicial', e.target.value)} className="w-20 h-11 text-center font-bold text-sm bg-white border-x-[1.5px] border-stone-200 outline-none" />
-                                  <button type="button" aria-label="Más" onClick={() => actualizarFilaInventario(idx, 'stock_inicial', String((Number(fila.stock_inicial) || 0) + 1))} className="w-11 h-11 grid place-items-center text-[#4d04b0] hover:bg-[#f4eefe]"><i className="fa-solid fa-plus text-xs"></i></button>
-                                </div>
-                              </div>
-                            ) : (
-                              <div>
-                                <label className={etiqueta}><span>Se vende por</span></label>
-                                <div className="grid grid-flow-col auto-cols-fr bg-[#f1eef9] rounded-[14px] p-1 gap-1">
-                                  <button type="button" disabled={esExistente} onClick={() => actualizarFilaInventario(idx, 'unidad', 'UND')} className={segClase(fila.unidad !== 'KG')}>Unidad</button>
-                                  <button type="button" disabled={esExistente} onClick={() => actualizarFilaInventario(idx, 'unidad', 'KG')} className={segClase(fila.unidad === 'KG')}>Peso (KG)<span className="block text-[11px] font-medium opacity-80">balanza</span></button>
-                                </div>
-                              </div>
-                            )}
-                          </div>
-
-                          {pc > 0 && (
-                            <div className="rounded-2xl border border-dashed border-[#e4d6fb] bg-[#fcfaff] px-3.5 py-3">
-                              <p className="text-xs font-semibold text-stone-500 mb-2">Precio sugerido según tu margen</p>
-                              <div className="flex flex-wrap gap-2">
-                                {[20, 30, 40].map((m) => {
-                                  const sugerido = Math.ceil((pc / (1 - m / 100)) * 10) / 10;
-                                  return (
-                                    <button key={m} type="button" onClick={() => actualizarFilaInventario(idx, 'precio_venta', sugerido.toFixed(2))} className={chipClase(Math.abs(pv - sugerido) < 0.005)}>
-                                      Ganar {m}% → S/ {sugerido.toFixed(2)}
-                                    </button>
-                                  );
-                                })}
-                              </div>
-                            </div>
-                          )}
-
-                          {/* Venta por pack: la misma bolsa de stock sirve para vender el pack
-                              cerrado o unidades sueltas si se abre -- se descuenta en unidades base. */}
-                          {!esBarberia && fila.unidad !== 'KG' && (
-                            <div>
-                              <button
-                                type="button"
-                                role="switch"
-                                aria-checked={!!fila.vendeEnPack}
-                                onClick={() => actualizarFilaInventario(idx, 'vendeEnPack', !fila.vendeEnPack)}
-                                className={`w-full flex items-center justify-between gap-3 text-left rounded-2xl border-[1.5px] px-3.5 py-3 transition ${fila.vendeEnPack ? 'border-[#6105dc] bg-[#fcfaff]' : 'border-stone-200 bg-white hover:bg-stone-50'}`}
-                              >
-                                <span>
-                                  <span className="block text-[13.5px] font-bold text-stone-800">También lo vendo en pack o caja cerrada</span>
-                                  <span className="block text-xs text-stone-500">Ideal para six-packs de cerveza, displays x12 o cajas x24 con precio especial.</span>
-                                </span>
-                                <span className={`relative w-[42px] h-6 rounded-full shrink-0 transition-colors ${fila.vendeEnPack ? 'bg-[#6105dc]' : 'bg-stone-300'}`}>
-                                  <span className={`absolute top-[3px] left-[3px] w-[18px] h-[18px] rounded-full bg-white shadow transition-transform ${fila.vendeEnPack ? 'translate-x-[18px]' : ''}`}></span>
-                                </span>
-                              </button>
-                              {esExistente && fila.vendeEnPackOriginal && !fila.vendeEnPack && (
-                                <p className="text-[11px] text-rose-600 font-semibold mt-1.5">
-                                  <i className="fa-solid fa-triangle-exclamation mr-1"></i> Este producto ya vendía por pack: al guardar se le va a quitar esa configuración.
-                                </p>
-                              )}
-                              {fila.vendeEnPack && (
-                                <div className="mt-2.5 p-3.5 bg-white border border-stone-200 rounded-2xl space-y-3">
-                                  <div className="grid gap-3 sm:grid-cols-2">
-                                    <div>
-                                      <label className="text-[11px] font-semibold text-stone-500 block mb-1">¿De cuántas unidades es el pack?</label>
-                                      <input type="number" step="1" min="2" placeholder="Ej: 6" value={fila.unidades_por_pack} onChange={(e) => actualizarFilaInventario(idx, 'unidades_por_pack', e.target.value)} className={inputBase} />
-                                    </div>
-                                    <div>
-                                      <label className="text-[11px] font-semibold text-stone-500 block mb-1">Precio del pack completo (S/)</label>
-                                      <input type="number" step="0.10" placeholder="Ej: 27.00" value={fila.precio_venta_pack} onChange={(e) => actualizarFilaInventario(idx, 'precio_venta_pack', e.target.value)} className={inputBase} />
-                                    </div>
-                                  </div>
-                                  {Number(fila.unidades_por_pack) > 1 && Number(fila.precio_venta_pack) > 0 && (
-                                    <p className="text-[11.5px] text-stone-500">
-                                      = S/ {(Number(fila.precio_venta_pack) / Number(fila.unidades_por_pack)).toFixed(2)} por unidad dentro del pack (vs. S/ {pv.toFixed(2)} por unidad suelta)
-                                    </p>
-                                  )}
-                                  <div>
-                                    <label className="text-[11px] font-semibold text-stone-500 block mb-1">Código de barras del pack (opcional)</label>
-                                    <div className="relative">
-                                      <input type="text" placeholder="Si ya existe, se vincula solo" value={fila.cod_ean_pack} onChange={(e) => actualizarCodigoEanPackFila(idx, e.target.value)} className={`${inputBase} pr-10`} />
-                                      <button type="button" onClick={() => abrirEscanerParaFilaInventario(idx, 'cod_ean_pack')} className="absolute right-1.5 top-1/2 -translate-y-1/2 w-8 h-8 flex items-center justify-center text-stone-600 hover:text-[#6105dc] transition" title="Escanear código de barras del pack">
-                                        <i className="fa-solid fa-camera text-xs"></i>
-                                      </button>
-                                      {sugerenciasPack.length > 0 && (
-                                        <div className="absolute z-20 top-full left-0 right-0 mt-1 bg-white border border-stone-200 rounded-2xl shadow-xl overflow-hidden">
-                                          {sugerenciasPack.map((s) => (
-                                            <button type="button" key={s.id} onClick={() => vincularProductoExistenteEnFila(idx, s)} className="w-full text-left px-3.5 py-2 text-[13px] text-stone-800 hover:bg-[#f4eefe] flex items-center justify-between gap-2">
-                                              <span className="truncate">{s.descripcion}{s.sku ? ` · ${s.sku}` : ''}</span>
-                                              <span className="text-stone-500 shrink-0">S/ {Number(s.precio_venta).toFixed(2)}</span>
-                                            </button>
-                                          ))}
-                                        </div>
-                                      )}
-                                    </div>
-                                  </div>
-                                </div>
-                              )}
-                            </div>
-                          )}
-
-                          {!esBarberia && (
-                            <div className="flex gap-2 items-start bg-[#f4eefe] rounded-xl px-3 py-2.5 text-xs text-[#4d04b0] leading-snug">
-                              <i className="fa-solid fa-circle-info mt-0.5"></i>
-                              <span>La cantidad en stock se carga después desde <b>Entrada de Mercadería</b>.</span>
-                            </div>
-                          )}
-                        </div>
-                      )}
-
-                      {paso === 3 && (
-                        <div className="space-y-4">
-                          <div>
-                            <h4 className="text-[17px] font-extrabold text-stone-900 tracking-tight">Revisa y guarda</h4>
-                            <p className="text-[12.5px] text-stone-500 mt-0.5">Así queda el producto. Puedes volver a cualquier paso para corregir.</p>
-                          </div>
-                          <div className="flex items-center gap-3.5 p-3.5 rounded-[18px] bg-[#f4eefe]">
-                            <FotoProducto fotoUrl={fila.foto_url} categoria={fila.categoria} className="w-16 h-16 rounded-2xl shrink-0 bg-white" iconClassName="text-2xl" />
-                            <div className="min-w-0">
-                              <p className="text-[17px] font-extrabold text-stone-900 tracking-tight leading-tight truncate">{fila.descripcion}</p>
-                              <span className="inline-block mt-1 text-[10.5px] font-bold text-[#4d04b0] bg-white rounded-full px-2.5 py-0.5">{fila.categoria}</span>
-                              {esExistente && <span className="inline-block mt-1 ml-1.5 text-[10.5px] font-bold text-emerald-700 bg-emerald-50 rounded-full px-2.5 py-0.5">Ya existía</span>}
-                            </div>
-                            <span className="ml-auto text-[22px] font-extrabold text-[#4d04b0] whitespace-nowrap">S/ {pv.toFixed(2)}</span>
-                          </div>
-                          <div className="border border-stone-100 rounded-2xl overflow-hidden">
-                            {[
-                              esBarberia ? ['Tipo', esServicio ? 'Servicio (sin stock)' : 'Producto (con stock)', 1, false] : ['Código', (fila.cod_ean || '').trim() || 'Sin código', 1, !(fila.cod_ean || '').trim()],
-                              ['Precio de venta', `S/ ${pv.toFixed(2)}${esBarberia ? '' : (fila.unidad === 'KG' ? ' por kg' : ' por unidad')}`, 2, false],
-                              ['Costo y ganancia', pc > 0 ? `S/ ${pc.toFixed(2)} · ganancia ${margenPct !== null ? margenPct.toFixed(0) + '%' : ''}` : 'Sin costo', 2, !(pc > 0)],
-                              ...(esServicio ? [['Duración', `${Number(fila.duracion_min) || 30} minutos`, 2, false]] : []),
-                              ...(esProductoBarberia ? [['Stock inicial', `${Number(fila.stock_inicial) || 0} unidades`, 2, false]] : []),
-                              ...(!esBarberia ? [['Pack', fila.vendeEnPack ? `x${fila.unidades_por_pack} por S/ ${Number(fila.precio_venta_pack || 0).toFixed(2)}` : 'No se vende en pack', 2, !fila.vendeEnPack]] : []),
-                              ['Foto', fila.foto_url ? 'Agregada' : 'Sin foto', 1, !fila.foto_url]
-                            ].map(([clave, valor, pasoEditar, vacio]) => (
-                              <div key={clave} className="flex items-center gap-2.5 px-3.5 py-2.5 text-[13px] border-t border-stone-100 first:border-t-0 bg-white">
-                                <span className="w-28 shrink-0 text-stone-500">{clave}</span>
-                                <span className={`flex-1 min-w-0 truncate ${vacio ? 'text-stone-300' : 'font-semibold text-stone-800'}`}>{valor}</span>
-                                <button type="button" onClick={() => setPasoInventario(pasoEditar)} className="text-xs font-bold text-[#6105dc] hover:bg-[#f4eefe] rounded-lg px-2 py-1 flex items-center gap-1"><i className="fa-solid fa-pen text-[10px]"></i> Editar</button>
-                              </div>
-                            ))}
-                          </div>
-                          <div>
-                            <label className={etiqueta}><span>Código interno <span className="text-stone-400 font-normal">opcional</span></span><span className="text-[10px] font-bold rounded-full px-2 py-0.5 bg-[#f4eefe] text-[#4d04b0]">Auto</span></label>
-                            <input type="text" placeholder="Se genera solo si lo dejas vacío" value={fila.sku} onChange={(e) => actualizarFilaInventario(idx, 'sku', e.target.value)} className={inputBase} />
-                          </div>
-                          {incompletas > 0 ? (
-                            <div className="flex gap-2 items-start bg-amber-50 border border-amber-200 rounded-xl px-3 py-2.5 text-xs text-amber-800 leading-snug">
-                              <i className="fa-solid fa-triangle-exclamation mt-0.5"></i>
-                              <span>{incompletas === 1 ? 'Hay 1 producto de esta carga sin precio' : `Hay ${incompletas} productos de esta carga sin precio`}: no se guardará hasta que la completes (tócala arriba).</span>
-                            </div>
-                          ) : (
-                            <div className="flex gap-2 items-start bg-[#f4eefe] rounded-xl px-3 py-2.5 text-xs text-[#4d04b0] leading-snug">
-                              <i className="fa-solid fa-circle-info mt-0.5"></i>
-                              <span>{listos.length > 0 ? <>Ya tienes <b>{listos.length}</b> producto{listos.length === 1 ? '' : 's'} listo{listos.length === 1 ? '' : 's'} en esta carga. Se guardan todas juntas.</> : <>¿Tienes más? Usa <b>Guardar y agregar otro</b>: te dejamos la misma categoría para ir más rápido.</>}</span>
-                            </div>
-                          )}
-                        </div>
-                      )}
-                    </div>
-                  </div>
-
-                  {/* Vista previa: cómo se verá en la caja */}
-                  <aside className="order-1 md:order-2 md:sticky md:top-0 md:self-start min-w-0">
-                    <p className="hidden md:block text-[11px] font-bold tracking-wider uppercase text-stone-400 mb-2">Así se verá en tu caja</p>
-                    <div className="bg-white border border-stone-100 rounded-[20px] md:rounded-[22px] p-2.5 md:p-3 shadow-sm flex md:block items-center gap-3">
-                      <div className="w-14 h-14 md:w-full md:h-auto md:aspect-[1/0.78] shrink-0 rounded-[14px] md:rounded-2xl bg-gradient-to-br from-[#f4eefe] to-white overflow-hidden relative">
-                        <FotoProducto fotoUrl={fila.foto_url} categoria={fila.categoria} className="w-full h-full" iconClassName="text-3xl md:text-5xl" />
-                        {fila.vendeEnPack && Number(fila.unidades_por_pack) > 1 && <span className="absolute top-2 left-2 bg-[#ffc81a] text-stone-900 text-[10.5px] font-extrabold rounded-full px-2 py-0.5">Pack x{fila.unidades_por_pack}</span>}
-                      </div>
-                      <div className="min-w-0 flex-1 md:mt-2.5">
-                        <span className="inline-block text-[10.5px] font-bold text-[#4d04b0] bg-[#f4eefe] rounded-full px-2 py-0.5">{categoriaElegida ? fila.categoria : 'Sin categoría'}</span>
-                        <p className={`text-sm font-bold leading-tight mt-1 md:min-h-[2.2rem] truncate md:whitespace-normal ${fila.descripcion.trim() ? 'text-stone-900' : 'text-stone-300 font-medium'}`}>{fila.descripcion.trim() || 'Nombre del producto'}</p>
-                        <div className="flex items-baseline justify-between mt-1">
-                          <strong className="text-lg md:text-[22px] font-extrabold text-stone-900">S/ {pv.toFixed(2)}</strong>
-                          <small className="text-[11px] text-stone-400">{unidadTexto}</small>
-                        </div>
-                        <div className="hidden md:grid place-items-center mt-2.5 h-9 rounded-xl bg-[#6105dc] text-white text-[12.5px] font-bold opacity-90">Agregar</div>
-                      </div>
-                    </div>
-                    <div className="mt-3 md:mt-3.5">
-                      <div className="flex justify-between text-xs font-bold text-stone-700 mb-1.5"><span className="hidden md:inline">Producto completo</span><span className="ml-auto md:ml-0">{completitud}%</span></div>
-                      <div className="h-2 rounded-full bg-[#e8e3f4] overflow-hidden"><div className="h-full rounded-full bg-gradient-to-r from-[#8a3df2] to-[#6105dc] transition-all duration-500" style={{ width: `${completitud}%` }}></div></div>
-                      <ul className="hidden md:grid gap-1.5 mt-2.5 text-xs">
-                        {checklist.map(([texto, ok]) => (
-                          <li key={texto} className={`flex items-center gap-2 ${ok ? 'text-stone-800' : 'text-stone-400'}`}>
-                            <span className={`w-4 h-4 rounded-full border-[1.5px] grid place-items-center shrink-0 ${ok ? 'bg-emerald-500 border-emerald-500 text-white' : 'border-stone-300'}`}>{ok && <i className="fa-solid fa-check text-[8px]"></i>}</span>
-                            {texto}
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
-                  </aside>
-                </div>
-
-                {/* Pie con los botones del paso */}
-                <div className="shrink-0 bg-white border-t border-stone-200 px-4 sm:px-5 py-3 flex items-center gap-2.5 shadow-[0_-4px_18px_rgba(15,23,42,0.06)]">
-                  {paso === 1 ? (
-                    <button type="button" onClick={() => setModalInventarioInicial(false)} className="h-11 px-4 rounded-[14px] text-sm font-bold text-stone-500 hover:bg-stone-100 hover:text-stone-800 transition">Cancelar</button>
-                  ) : (
-                    <button type="button" onClick={() => irAPaso(paso - 1)} disabled={guardandoInventario} className="h-11 px-4 rounded-[14px] text-sm font-bold text-stone-500 hover:bg-stone-100 hover:text-stone-800 transition flex items-center gap-1.5"><i className="fa-solid fa-chevron-left text-xs"></i> Atrás</button>
-                  )}
-                  <span className="flex-1"></span>
-                  {paso < 3 && !puedeAvanzar && (
-                    <span className="hidden sm:flex items-center gap-1.5 text-xs text-stone-500"><i className="fa-solid fa-circle-info"></i>{paso === 1 ? (fila.descripcion.trim().length < 2 ? (categoriaElegida ? 'Falta el nombre' : 'Falta nombre y categoría') : 'Falta elegir la categoría') : 'Falta el precio de venta'}</span>
-                  )}
-                  {paso < 3 ? (
-                    <button type="button" onClick={() => irAPaso(paso + 1)} disabled={!puedeAvanzar} className="h-11 px-5 rounded-[14px] bg-[#6105dc] hover:bg-[#4d04b0] disabled:bg-stone-300 disabled:cursor-not-allowed text-white text-sm font-bold shadow-md flex items-center gap-2 transition">
-                      {paso === 1 ? 'Siguiente: Precio' : 'Siguiente: Revisar'} <i className="fa-solid fa-chevron-right text-xs"></i>
-                    </button>
-                  ) : (
-                    <>
-                      <button type="button" onClick={guardarYAgregarOtro} disabled={guardandoInventario} className="h-11 px-4 rounded-[14px] bg-[#f4eefe] hover:bg-[#ece0fd] disabled:opacity-60 text-[#4d04b0] text-sm font-bold flex items-center gap-1.5 transition">
-                        <i className="fa-solid fa-plus text-xs"></i> <span className="hidden sm:inline">Guardar y </span>agregar otro
-                      </button>
-                      <button type="button" onClick={guardarInventarioInicial} disabled={guardandoInventario} className="h-11 px-5 rounded-[14px] bg-[#6105dc] hover:bg-[#4d04b0] disabled:opacity-60 text-white text-sm font-bold shadow-md flex items-center gap-2 transition">
-                        {guardandoInventario ? (<><i className="fa-solid fa-spinner fa-spin"></i> Guardando...</>) : (<><i className="fa-solid fa-check"></i> {totalAGuardar > 1 ? `Guardar los ${totalAGuardar} productos` : 'Guardar producto'}</>)}
-                      </button>
-                    </>
-                  )}
-                </div>
-              </div>
-            </div>
-            );
-          })()}
-
-          {/* Modal: Combos */}
-          {modalCombos && (() => {
-            const dinero = (v) => `S/ ${(Number(v) || 0).toFixed(2)}`;
-            const norm = (s) => String(s || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
-            const unidadesDe = (n) => `${n} combo${n === 1 ? '' : 's'}`;
-            const inputBase = 'w-full h-11 bg-stone-50/70 border-[1.5px] border-stone-200 rounded-[14px] px-3.5 text-sm text-stone-900 placeholder:text-stone-400 outline-none focus:border-[#6105dc] focus:bg-white focus:ring-4 focus:ring-[#6105dc]/15 transition';
-            const etiquetaCampo = 'flex items-center justify-between gap-2 text-[12.5px] font-semibold text-stone-800 mb-1.5';
-            const chipClase = (activo) => `inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[12.5px] font-semibold border-[1.5px] transition ${activo ? 'border-[#6105dc] bg-[#f4eefe] text-[#4d04b0] ring-2 ring-[#6105dc]/15' : 'border-stone-200 bg-white text-stone-600 hover:bg-[#f4eefe] hover:border-[#e4d6fb]'}`;
-            const panelClase = 'bg-white border border-stone-100 rounded-[22px] p-4 sm:p-5 shadow-sm';
-            const panelP = 'bg-white border border-[#e9e6f0] rounded-2xl px-5 sm:px-6 py-5 sm:py-[22px] shadow-[0_1px_2px_rgba(20,10,50,0.03)]';
-            const labP = 'flex items-center justify-between gap-2 text-[12.5px] font-medium text-stone-700 mb-1.5';
-            const inputP = 'w-full h-11 bg-white border border-[#e9e6f0] rounded-[10px] px-3.5 text-sm text-stone-900 placeholder:text-stone-400 outline-none focus:border-[#6105dc] focus:ring-[3px] focus:ring-[#6105dc]/10 transition';
-            const chipP = (activo) => `h-8 px-3.5 rounded-lg border text-[13px] transition ${activo ? 'border-[#6105dc] bg-[#f4f0fd] text-[#4d04b0] font-semibold' : 'border-[#e9e6f0] bg-white text-stone-700 font-medium hover:bg-[#f8f7fb]'}`;
-            const chispa = (<svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor" aria-hidden="true"><path d="M12 3c.6 4.6 2.4 6.4 7 7-4.6.6-6.4 2.4-7 7-.6-4.6-2.4-6.4-7-7 4.6-.6 6.4-2.4 7-7Z" /><path d="M19 15c.3 1.8 1 2.5 2.8 2.8-1.8.3-2.5 1-2.8 2.8-.3-1.8-1-2.5-2.8-2.8 1.8-.3 2.5-1 2.8-2.8Z" /></svg>);
-            const miniatura = (url, categoria, tam = 'w-10 h-10') => (
-              <span className={`block ${tam} rounded-[13px] overflow-hidden shrink-0 border-2 border-white ring-1 ring-stone-200 bg-white`}><FotoProducto fotoUrl={url} categoria={categoria} className="w-full h-full" iconClassName="text-sm" /></span>
-            );
-            const vivo = (id) => productos.find((p) => p.id === id);
-            // Estado de un combo ya guardado: en venta, sin stock (se apaga
-            // y se enciende solo) o pausado a mano.
-            const estadoDe = (combo) => {
-              const e = estadoCombos.get(combo.id);
-              if ((combo.activo || combo.apagado_auto) && e?.disponible === false) return 'sinstock';
-              return combo.activo ? 'venta' : 'pausado';
-            };
-
-            // ----- Editor -----
-            if (formCombo) {
-              const f = formCombo;
-              const precio = Number(f.precio_venta) || 0;
-              const suma = precioNormalCombo(f);
-              const costo = costoNormalCombo(f);
-              const ahorro = suma > 0 && precio > 0 ? (1 - precio / suma) * 100 : 0;
-              const m = margenCombo(precio, costo);
-              // Cuántos combos alcanza a armar el stock de hoy (los servicios
-              // de una barbería, que no llevan stock, no limitan).
-              let maxCombos = Infinity;
-              const faltan = [];
-              f.items.forEach((it) => {
-                const pr = vivo(it.producto_id);
-                const sinSeguimiento = esBarberia && pr && (pr.stock_actual === null || pr.stock_actual === undefined);
-                const stock = pr ? (sinSeguimiento ? Infinity : Number(pr.stock_actual) || 0) : 0;
-                if (stock < it.cantidad) faltan.push(it.descripcion);
-                maxCombos = Math.min(maxCombos, Math.floor(stock / it.cantidad));
-              });
-              const errores = [];
-              if (!f.nombre.trim()) errores.push('Ponle un nombre');
-              if (f.items.length === 0) errores.push('Agrega al menos un producto');
-              if (!(precio > 0)) errores.push('Pon el precio del combo');
-              const hayCambios = snapshotCombo(f) !== formComboOriginal;
-              const rapidos = [5, 10, 15].map((pct) => ({ pct, valor: suma * (1 - pct / 100) }));
-              const redondos = [];
-              if (suma > 0) {
-                [Math.floor(suma * 0.95) + 0.9, Math.floor(suma * 0.9) + 0.9].forEach((v) => { if (v > 0 && v < suma && !redondos.includes(v)) redondos.push(v); });
-              }
-              const q = norm(busquedaProductoCombo.trim());
-              const encontrados = q
-                ? productos.filter((p) => norm(p.descripcion).includes(q) || String(p.cod_ean || '').toLowerCase().includes(q) || String(p.sku || '').toLowerCase().includes(q)).slice(0, 6)
-                : [];
-              const idxRes = Math.min(resaltadoProductoCombo, Math.max(0, encontrados.length - 1));
-              const teclasBusqueda = (e) => {
-                if (e.key === 'ArrowDown') { e.preventDefault(); setResaltadoProductoCombo(Math.min(idxRes + 1, encontrados.length - 1)); }
-                else if (e.key === 'ArrowUp') { e.preventDefault(); setResaltadoProductoCombo(Math.max(idxRes - 1, 0)); }
-                else if (e.key === 'Enter') {
-                  e.preventDefault();
-                  const porCodigo = buscarProductoPorCodigo(busquedaProductoCombo);
-                  if (porCodigo) agregarProductoAFormCombo(porCodigo.producto);
-                  else if (encontrados[idxRes]) agregarProductoAFormCombo(encontrados[idxRes]);
-                }
-                else if (e.key === 'Escape' && busquedaProductoCombo) { e.stopPropagation(); setBusquedaProductoCombo(''); }
-              };
-              const pvFotos = f.items.slice(0, 3);
-
-              return (
-                <div className="fixed inset-0 bg-stone-900/30 backdrop-blur-sm flex items-center justify-center z-50 p-2 sm:p-4">
-                  <div className="bg-[#f8f7fb] border border-black/5 rounded-[18px] max-w-5xl w-full shadow-2xl h-[95vh] max-h-[800px] flex flex-col overflow-hidden">
-
-                    <div className="bg-white border-b border-[#e9e6f0] px-4 sm:px-7 py-4 shrink-0 flex items-center gap-3">
-                      <button type="button" onClick={cerrarEditorCombo} className="h-9 px-3 rounded-[10px] border border-[#e9e6f0] bg-white hover:bg-[#f8f7fb] text-[13px] font-medium text-stone-700 inline-flex items-center gap-1.5 shrink-0"><i className="fa-solid fa-chevron-left text-[10px]"></i> Combos</button>
-                      <div className="min-w-0 flex-1">
-                        <h3 className="text-[19px] sm:text-[21px] font-bold text-stone-900 tracking-tight leading-tight truncate">{f.id ? (f.nombre.trim() || 'Combo sin nombre') : 'Nuevo combo'}</h3>
-                        <p className="hidden sm:block text-[13px] text-stone-500 mt-0.5">{f.id ? 'Edita lo que incluye y su precio.' : 'Elige qué incluye y ponle un precio especial.'}</p>
-                      </div>
-                      <button aria-label="Cerrar" onClick={cerrarEditorCombo} className="w-9 h-9 flex items-center justify-center rounded-full text-stone-400 hover:text-stone-700 hover:bg-[#f1eef9] transition-colors shrink-0"><i className="fa-solid fa-xmark"></i></button>
-                    </div>
-
-                    <div className="flex-1 overflow-y-auto hide-scrollbar p-4 sm:p-7 grid gap-5 md:gap-6 md:grid-cols-[minmax(0,1fr)_310px] content-start">
-                      <div className="min-w-0 space-y-4">
-
-                        <div className={panelP}>
-                          <h4 className="text-base font-semibold text-stone-900 tracking-tight">Datos del combo</h4>
-                          <p className="text-[13px] text-stone-500 mt-1 mb-[18px] leading-snug">Cómo se llama y cómo lo verán tus clientes.</p>
-                          <div className="space-y-3.5">
-                            <div>
-                              <label className={labP}><span>Nombre del combo</span></label>
-                              <input type="text" autoFocus={!f.id} autoComplete="off" placeholder={esBarberia ? 'Ej: Corte + Barba' : 'Ej: Combo Desayuno'} value={f.nombre} onChange={(e) => setFormCombo({ ...f, nombre: e.target.value })} className={inputP} />
-                            </div>
-                            <div>
-                              <label className={labP}><span>Descripción</span><span className="text-stone-400 font-normal">opcional</span></label>
-                              <input type="text" autoComplete="off" placeholder={esBarberia ? 'Ej: El clásico de los sábados' : 'Ej: Pan, leche y café para empezar el día'} value={f.descripcion} onChange={(e) => setFormCombo({ ...f, descripcion: e.target.value })} className={inputP} />
-                            </div>
-                          </div>
-                        </div>
-
-                        <div className={panelP}>
-                          <h4 className="text-base font-semibold text-stone-900 tracking-tight">Qué incluye</h4>
-                          <p className="text-[13px] text-stone-500 mt-1 mb-[18px] leading-snug">Busca {esBarberia ? 'servicios o productos' : 'productos'} y ajusta cuántos lleva cada uno.</p>
-                          <div className="relative">
-                            <i className="fa-solid fa-magnifying-glass absolute left-4 top-1/2 -translate-y-1/2 text-stone-400 text-[14px] pointer-events-none"></i>
-                            <input type="text" autoComplete="off" placeholder="Buscar para agregar…" value={busquedaProductoCombo} onChange={(e) => { setBusquedaProductoCombo(e.target.value); setResaltadoProductoCombo(0); }} onKeyDown={teclasBusqueda} className={`${inputP} pl-10`} />
-                          </div>
-                          {q && (
-                            <div className="mt-2 border border-[#e4d6fb] rounded-[14px] bg-white overflow-hidden shadow-lg shadow-[#6105dc]/10">
-                              {encontrados.length === 0 && <p className="px-3.5 py-3.5 text-[13px] text-stone-500">No encontré «{busquedaProductoCombo.trim()}». Prueba con otro nombre.</p>}
-                              {encontrados.map((p, i) => {
-                                const ya = f.items.find((it) => it.producto_id === p.id);
-                                const s = p.stock_actual === null || p.stock_actual === undefined ? null : Number(p.stock_actual);
-                                return (
-                                  <button type="button" key={p.id} onClick={() => agregarProductoAFormCombo(p)} className={`w-full flex items-center gap-3 text-left px-3 py-2 border-b border-[#f0edf6] last:border-b-0 hover:bg-[#fbf9ff] ${i === idxRes ? 'bg-[#fbf9ff]' : 'bg-white'}`}>
-                                    <span className="w-[40px] h-[40px] rounded-[10px] overflow-hidden shrink-0 bg-gradient-to-br from-[#f6f4fb] to-[#e9e5f3] [&_img]:object-contain [&_img]:mix-blend-multiply"><FotoProducto fotoUrl={p.foto_url} categoria={p.categoria} className="w-full h-full" iconClassName="text-sm" /></span>
-                                    <span className="min-w-0 flex-1">
-                                      <span className="block text-[13px] font-semibold text-stone-900 leading-tight truncate">{p.descripcion}</span>
-                                      <span className="block text-xs text-stone-500 mt-0.5">{dinero(p.precio_venta)}{s === null ? (esBarberia ? ' · servicio' : '') : s <= 0 ? ' · sin stock' : ` · ${s} en stock`}</span>
-                                    </span>
-                                    <span className="text-xs font-semibold text-[#4d04b0] flex items-center gap-1 shrink-0">{ya ? `Ya lleva ${ya.cantidad} · sumar otro` : 'Agregar'} <i className="fa-solid fa-plus text-[10px]"></i></span>
-                                  </button>
-                                );
-                              })}
-                            </div>
-                          )}
-                          {f.items.length === 0 ? (
-                            <div className="mt-3.5 border border-dashed border-[#d9d2ea] rounded-[14px] py-6 px-4 text-center text-[13px] text-stone-500">
-                              <b className="block text-stone-900 mb-0.5">Aún no agregaste {esBarberia ? 'nada' : 'productos'}</b>
-                              Escribe arriba para buscar y añadir {esBarberia ? 'servicios o productos' : 'productos'}.
-                            </div>
-                          ) : (
-                            <div className="mt-3.5">
-                              {f.items.map((it) => {
-                                const pr = vivo(it.producto_id);
-                                const sinSeguimiento = esBarberia && pr && (pr.stock_actual === null || pr.stock_actual === undefined);
-                                const stock = pr ? (sinSeguimiento ? null : Number(pr.stock_actual) || 0) : 0;
-                                const corto = stock !== null && stock < it.cantidad;
-                                return (
-                                  <div key={it.producto_id} className="flex flex-wrap items-center gap-x-3.5 gap-y-2 py-3 border-t border-[#f0edf6]">
-                                    <span className="w-12 h-12 rounded-[10px] overflow-hidden shrink-0 bg-gradient-to-br from-[#f6f4fb] to-[#e9e5f3] [&_img]:object-contain [&_img]:mix-blend-multiply"><FotoProducto fotoUrl={pr?.foto_url || it.foto_url} categoria={pr?.categoria || it.categoria} className="w-full h-full" iconClassName="text-base" /></span>
-                                    <span className="min-w-0 flex-1 basis-[140px]">
-                                      <span className="block text-[14px] font-semibold text-stone-900 leading-tight">{it.descripcion}</span>
-                                      <span className="block text-[12.5px] text-stone-500 mt-0.5">
-                                        {dinero(it.precio_venta)} c/u{stock === null ? ' · servicio' : ` · ${stock} en stock`}
-                                        {stock !== null && stock < 1 && <b className="text-[#c0262d] font-semibold"> · sin stock</b>}
-                                        {stock !== null && stock >= 1 && corto && <b className="text-[#a15c07] font-semibold"> · solo alcanza para {stock}</b>}
-                                      </span>
-                                    </span>
-                                    <span className="inline-flex items-center border border-[#e9e6f0] rounded-[9px] shrink-0">
-                                      <button type="button" aria-label="Menos" onClick={() => actualizarCantidadItemCombo(it.producto_id, it.cantidad - 1)} className="w-[30px] h-8 rounded-[8px] text-stone-700 hover:bg-[#f8f7fb]"><i className="fa-solid fa-minus text-[10px]"></i></button>
-                                      <b className="min-w-[24px] text-center text-[13.5px] font-semibold tabular-nums">{it.cantidad}</b>
-                                      <button type="button" aria-label="Más" onClick={() => actualizarCantidadItemCombo(it.producto_id, it.cantidad + 1)} className="w-[30px] h-8 rounded-[8px] text-stone-700 hover:bg-[#f8f7fb]"><i className="fa-solid fa-plus text-[10px]"></i></button>
-                                    </span>
-                                    <span className="text-sm font-semibold text-stone-900 min-w-[64px] text-right shrink-0 tabular-nums">{dinero(it.precio_venta * it.cantidad)}</span>
-                                    <button type="button" aria-label="Quitar" title="Quitar" onClick={() => quitarItemCombo(it.producto_id)} className="w-7 h-7 rounded-[7px] text-stone-300 hover:text-[#c0262d] hover:bg-[#fdf1f1] grid place-items-center shrink-0"><i className="fa-solid fa-xmark text-sm"></i></button>
-                                  </div>
-                                );
-                              })}
-                            </div>
-                          )}
-                        </div>
-
-                        <div className={panelP}>
-                          <h4 className="text-base font-semibold text-stone-900 tracking-tight">Precio del combo</h4>
-                          <p className="text-[13px] text-stone-500 mt-1 mb-[18px] leading-snug">Si lo dejas sin tocar, es la suma de lo que incluye. Bájalo para dar un descuento.</p>
-                          <label className="flex items-baseline gap-2.5 border border-[#e9e6f0] rounded-xl px-[18px] py-3 focus-within:border-[#6105dc] focus-within:ring-[3px] focus-within:ring-[#6105dc]/10 transition cursor-text">
-                            <span className="text-[22px] font-medium text-stone-400">S/</span>
-                            <input type="number" min="0" step="0.10" inputMode="decimal" placeholder="0.00" aria-label="Precio del combo" value={f.precio_venta} onChange={(e) => setFormCombo({ ...f, precioTocado: true, precio_venta: e.target.value })} className="w-full min-w-0 bg-transparent outline-none border-0 text-[34px] sm:text-[40px] font-bold tracking-tight text-stone-900 placeholder:text-stone-300 tabular-nums" />
-                            {suma > 0 && <span className="hidden sm:block text-[13px] text-stone-500 whitespace-nowrap">suma {dinero(suma)}</span>}
-                          </label>
-                          {suma > 0 && (
-                            <>
-                              <div className="flex flex-wrap items-center gap-2 mt-3.5">
-                                <span className="text-[12.5px] text-stone-500 mr-1">Descuento rápido</span>
-                                <button type="button" onClick={() => aplicarPrecioCombo(suma)} className={chipP(Math.abs(precio - suma) < 0.005)}>Sin descuento</button>
-                                {rapidos.map((r) => <button key={r.pct} type="button" onClick={() => aplicarDescuentoRapidoCombo(r.pct)} className={chipP(Math.abs(precio - r.valor) < 0.005)}>-{r.pct}%</button>)}
-                              </div>
-                              {redondos.length > 0 && (
-                                <div className="flex flex-wrap items-center gap-2 mt-2">
-                                  <span className="text-[12.5px] text-stone-500 mr-1">Precio redondo</span>
-                                  {redondos.map((v) => <button key={v} type="button" onClick={() => aplicarPrecioCombo(v)} className={chipP(Math.abs(precio - v) < 0.005)}>{dinero(v)}</button>)}
-                                </div>
-                              )}
-                              {ahorro > 0.5 && <p className="text-[13px] text-stone-500 mt-3">Tu cliente ahorra <b className="text-stone-900">{dinero(suma - precio)}</b> ({Math.round(ahorro)}%).</p>}
-                              {precio > suma + 0.005 && <p className="text-[13px] text-stone-500 mt-3">El combo sale más caro que comprar por separado ({dinero(suma)}).</p>}
-                            </>
-                          )}
-                          {suma > 0 && costo > 0 && precio > 0 && (
-                            <div className="mt-[18px] pt-[18px] border-t border-[#f0edf6]">
-                              {(() => {
-                                const total = Math.max(precio, costo);
-                                const wCosto = Math.min(100, costo / total * 100);
-                                const wGana = m.perdida ? 100 - wCosto : Math.max(0, (precio - costo) / total * 100);
-                                const colorGana = m.perdida ? 'bg-[#c0262d]' : m.bajo ? 'bg-[#d98a14]' : 'bg-[#0f7b4a]';
-                                const textoGana = m.perdida ? 'text-[#c0262d]' : m.bajo ? 'text-[#a15c07]' : 'text-[#0f7b4a]';
-                                return (
-                                  <>
-                                    <div className="flex h-2 rounded overflow-hidden bg-[#ece9f4]"><i className="block h-full bg-[#c9c2de]" style={{ width: `${wCosto}%` }}></i><i className={`block h-full ${colorGana}`} style={{ width: `${wGana}%` }}></i></div>
-                                    <div className="grid grid-cols-3 gap-3.5 mt-3.5">
-                                      <div><span className="block text-[12.5px] text-stone-500">Te cuesta</span><b className="block text-[19px] font-bold tracking-tight mt-0.5 tabular-nums">{dinero(costo)}</b></div>
-                                      <div><span className="block text-[12.5px] text-stone-500">{m.perdida ? 'Pierdes' : 'Ganas'}</span><b className={`block text-[19px] font-bold tracking-tight mt-0.5 tabular-nums ${textoGana}`}>{dinero(Math.abs(m.ganancia))}</b></div>
-                                      <div><span className="block text-[12.5px] text-stone-500">Margen</span><b className="block text-[19px] font-bold tracking-tight mt-0.5 tabular-nums">{m.margenPct.toFixed(m.margenPct < 10 ? 1 : 0)}%</b></div>
-                                    </div>
-                                    {m.perdida
-                                      ? <p className="mt-3.5 text-[13px] rounded-[9px] px-3 py-2.5 leading-snug bg-[#fdf1f1] text-[#c0262d]">El precio ({dinero(precio)}) es menor que lo que te cuestan estos productos ({dinero(costo)}). Estarías vendiendo a pérdida.</p>
-                                      : m.bajo
-                                        ? <p className="mt-3.5 text-[13px] rounded-[9px] px-3 py-2.5 leading-snug bg-[#fdf5e8] text-[#a15c07]">Margen muy bajo. Revisa el precio para no trabajar casi gratis.</p>
-                                        : <p className="mt-3.5 text-[13px] rounded-[9px] px-3 py-2.5 leading-snug bg-[#eef8f2] text-[#0f7b4a]">Buen margen: ganas {dinero(m.ganancia)} por cada combo que vendas.</p>}
-                                  </>
-                                );
-                              })()}
-                            </div>
-                          )}
-                          {suma > 0 && !(costo > 0) && precio > 0 && (
-                            <p className="mt-[18px] text-[13px] rounded-[9px] px-3 py-2.5 leading-snug bg-[#f4f0fd] text-[#4d04b0]">{esBarberia ? 'Los servicios no tienen costo cargado, así que no puedo calcular tu ganancia.' : 'Estos productos no tienen costo cargado, así que no puedo calcular tu ganancia.'}</p>
-                          )}
-                        </div>
-
-                        <div className="flex items-center justify-between gap-4 bg-white border border-[#e9e6f0] rounded-2xl px-5 py-4">
-                          <span>
-                            <span className="block text-sm font-semibold text-stone-900">En venta</span>
-                            <span className="block text-[13px] text-stone-500 leading-snug mt-0.5">{f.activo ? 'Aparece en la caja para vender. Se pausa solo si falta stock y se enciende al reponer.' : 'Pausado: no aparece en la caja.'}</span>
-                          </span>
-                          <span className="flex items-center gap-2.5 shrink-0">
-                            <span className={`text-[13px] font-semibold ${f.activo ? 'text-[#0f7b4a]' : 'text-stone-500'}`}>{f.activo ? 'Activo' : 'Pausado'}</span>
-                            <button type="button" role="switch" aria-checked={f.activo} aria-label="En venta" onClick={() => setFormCombo({ ...f, activo: !f.activo })} className={`kz-sw ${f.activo ? 'on' : ''}`}><i></i></button>
-                          </span>
-                        </div>
-                      </div>
-
-                      <div className="min-w-0 md:sticky md:top-0 md:self-start order-first md:order-none">
-                        <p className="hidden md:block text-[12.5px] font-medium text-stone-500 mb-2.5">Así lo verá el cajero</p>
-                        <div className="hidden md:block bg-white border border-[#e9e6f0] rounded-[18px] overflow-hidden shadow-[0_18px_40px_-22px_rgba(20,10,50,0.35)]">
-                          <div className={`relative grid gap-[2px] bg-[#e9e6f0] h-[118px] ${pvFotos.length >= 3 ? 'grid-cols-3' : pvFotos.length === 2 ? 'grid-cols-2' : 'grid-cols-1'}`}>
-                            {pvFotos.length === 0
-                              ? <span className="grid place-items-center bg-gradient-to-br from-[#f6f4fb] to-[#e9e5f3] text-[#9a94b3] text-3xl"><i className="fa-solid fa-gift"></i></span>
-                              : pvFotos.map((it) => (
-                                <span key={it.producto_id} className="relative bg-gradient-to-br from-[#f6f4fb] to-[#e9e5f3] overflow-hidden [&_img]:object-contain [&_img]:mix-blend-multiply [&_img]:p-2">
-                                  <FotoProducto fotoUrl={vivo(it.producto_id)?.foto_url || it.foto_url} categoria={vivo(it.producto_id)?.categoria || it.categoria} className="w-full h-full" iconClassName="text-xl" />
-                                  {it.cantidad > 1 && <em className="absolute right-1.5 bottom-1.5 not-italic bg-[#14121c] text-white rounded-full text-[10.5px] font-bold px-1.5">×{it.cantidad}</em>}
-                                </span>
-                              ))}
-                            {ahorro > 0.5 && <span className="absolute left-3 top-3 bg-[#ffc81a] text-[#14121c] text-[11.5px] font-bold rounded-full px-2.5 py-0.5 shadow-md">Ahorras {Math.round(ahorro)}%</span>}
-                          </div>
-                          <div className="px-[18px] pt-4 pb-[18px]">
-                            <h5 className="text-[15.5px] font-semibold tracking-tight text-stone-900 leading-tight">{f.nombre.trim() || 'Nombre del combo'}</h5>
-                            {f.descripcion.trim() && <p className="text-[12.5px] text-stone-500 leading-snug mt-1">{f.descripcion.trim()}</p>}
-                            {f.items.length > 0 && (
-                              <ul className="mt-2.5 text-[13px] text-stone-700">
-                                {f.items.map((it) => <li key={it.producto_id} className="flex gap-2 py-0.5"><b className="text-[#6105dc] min-w-[22px] font-semibold">{it.cantidad}×</b><span>{it.descripcion}</span></li>)}
-                              </ul>
-                            )}
-                            <div className="flex items-baseline gap-2 mt-3 pt-3 border-t border-dashed border-[#e9e6f0]">
-                              <strong className="text-[26px] font-bold tracking-tight tabular-nums">{dinero(precio)}</strong>
-                              {ahorro > 0.5 && <s className="text-[13px] text-stone-400">{dinero(suma)}</s>}
-                            </div>
-                            <div className={`mt-3.5 h-11 grid place-items-center text-[13.5px] font-semibold ${f.activo ? 'kz-pri !pointer-events-none' : 'rounded-full bg-[#ebe8f1] text-[#8b869a]'}`}>{f.activo ? 'Agregar al carrito' : 'Pausado'}</div>
-                          </div>
-                        </div>
-                        {f.items.length > 0 && (
-                          maxCombos === Infinity
-                            ? <p className="mt-3 rounded-xl bg-[#f1eef9] text-stone-600 px-3.5 py-3 text-[13px] leading-snug">Solo incluye servicios: siempre está disponible.</p>
-                            : maxCombos === 0
-                              ? <p className="mt-3 rounded-xl bg-[#fdf1f1] text-[#c0262d] px-3.5 py-3 text-[13px] leading-snug">Hoy no se puede vender: falta stock de <b>{faltan.join(', ')}</b>.</p>
-                              : <p className="mt-3 rounded-xl bg-[#eef8f2] text-[#0f7b4a] px-3.5 py-3 text-[13px] leading-snug">Con tu stock de hoy puedes armar <b className="text-[15px]">{maxCombos}</b> combo{maxCombos === 1 ? '' : 's'}.</p>
-                        )}
-                      </div>
-                    </div>
-
-                    <div className="shrink-0 bg-white border-t border-[#e9e6f0] px-4 sm:px-7 py-3.5 flex items-center gap-3">
-                      <button type="button" onClick={cerrarEditorCombo} className="h-11 px-5 rounded-full border border-[#e9e6f0] bg-white hover:bg-[#f8f7fb] text-stone-700 font-medium text-[13.5px]">Cancelar</button>
-                      <span className="flex-1"></span>
-                      <span className={`hidden md:flex items-center text-[13px] ${errores.length ? 'text-stone-500' : 'text-[#4d04b0] font-medium'}`}>{errores.length ? errores.join(' · ') : hayCambios ? 'Hay cambios sin guardar' : 'Todo en orden'}</span>
-                      <button type="button" onClick={guardarCombo} disabled={guardandoCombo || errores.length > 0 || (!!f.id && !hayCambios)} className="kz-pri h-11 px-6 text-[13.5px] font-semibold inline-flex items-center justify-center gap-2">
-                        <span>{guardandoCombo ? 'Guardando...' : (f.id ? 'Guardar cambios' : 'Guardar combo')}</span>{chispa}
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              );
-            }
-
-            // ----- Lista -----
-            const filas = combos.map((c) => ({ c, est: estadoDe(c) }));
-            const nVenta = filas.filter((x) => x.est === 'venta').length;
-            const nSin = filas.filter((x) => x.est === 'sinstock').length;
-            const nPausa = filas.filter((x) => x.est === 'pausado').length;
-            const qLista = norm(busquedaCombos.trim());
-            const visibles = filas.filter((x) => (filtroCombos === 'todos' || x.est === filtroCombos) && (!qLista || norm(x.c.nombre).includes(qLista)));
-
-            return (
-              <div className="fixed inset-0 bg-stone-900/30 backdrop-blur-sm flex items-center justify-center z-50 p-2 sm:p-4">
-                <div className="bg-[#f8f7fb] border border-black/5 rounded-[18px] max-w-5xl w-full shadow-2xl h-[95vh] max-h-[800px] flex flex-col overflow-hidden">
-
-                  <div className="bg-white border-b border-[#e9e6f0] px-4 sm:px-7 py-4 shrink-0 flex items-center gap-3">
-                    <div className="min-w-0 flex-1">
-                      <h3 className="text-[19px] sm:text-[21px] font-bold text-stone-900 tracking-tight leading-tight">Combos</h3>
-                      <p className="hidden sm:block text-[13px] text-stone-500 mt-1 max-w-[520px] leading-snug">Paquetes de varios {esBarberia ? 'servicios y productos' : 'productos'} a un precio especial. Al venderse, descuentan el stock de cada producto que incluyen.</p>
-                    </div>
-                    <button type="button" onClick={nuevoCombo} className="kz-pri h-11 px-5 text-[13.5px] font-semibold inline-flex items-center gap-2 shrink-0"><span>Nuevo<span className="hidden sm:inline"> combo</span></span>{chispa}</button>
-                    <button aria-label="Cerrar" onClick={cerrarModalCombos} className="w-9 h-9 flex items-center justify-center rounded-full text-stone-400 hover:text-stone-700 hover:bg-[#f1eef9] transition-colors shrink-0"><i className="fa-solid fa-xmark"></i></button>
-                  </div>
-
-                  <div className="flex-1 overflow-y-auto hide-scrollbar px-4 sm:px-7 py-5 sm:py-6">
-                    <div className="flex gap-6 sm:gap-9 mb-5">
-                      <div><b className="block text-[26px] sm:text-[30px] font-bold tracking-tight leading-none">{nVenta}</b><span className="block text-[12.5px] text-stone-500 mt-1.5">En venta ahora</span></div>
-                      <div><b className={`block text-[26px] sm:text-[30px] font-bold tracking-tight leading-none ${nSin ? 'text-[#a15c07]' : ''}`}>{nSin}</b><span className="block text-[12.5px] text-stone-500 mt-1.5">Sin stock</span></div>
-                      <div><b className="block text-[26px] sm:text-[30px] font-bold tracking-tight leading-none">{nPausa}</b><span className="block text-[12.5px] text-stone-500 mt-1.5">Pausados</span></div>
-                    </div>
-                    <div className="flex flex-wrap items-center gap-3 mb-5">
-                      <label className="flex items-center gap-2.5 h-10 w-full sm:w-[280px] px-3.5 rounded-[10px] border border-[#e9e6f0] bg-white text-stone-400 focus-within:border-[#6105dc]">
-                        <i className="fa-solid fa-magnifying-glass text-[13px]"></i>
-                        <input type="text" autoComplete="off" placeholder="Buscar combo" value={busquedaCombos} onChange={(e) => setBusquedaCombos(e.target.value)} className="flex-1 min-w-0 bg-transparent text-[13.5px] text-stone-900 outline-none placeholder:text-stone-400" />
-                      </label>
-                      <div className="flex bg-[#ece9f4] rounded-[10px] p-[3px] max-w-full overflow-x-auto hide-scrollbar">
-                        {[['todos', 'Todos', filas.length], ['venta', 'En venta', nVenta], ['sinstock', 'Sin stock', nSin], ['pausado', 'Pausados', nPausa]].map(([k, t, n]) => (
-                          <button key={k} type="button" onClick={() => setFiltroCombos(k)} className={`h-8 px-3.5 rounded-[8px] text-[13px] whitespace-nowrap flex items-center gap-1.5 transition ${filtroCombos === k ? 'bg-white text-stone-900 font-semibold shadow-[0_1px_3px_rgba(20,10,50,0.12)]' : 'text-stone-500 font-medium hover:text-stone-900'}`}>{t} <span className="text-[11.5px] text-stone-500 font-normal">{n}</span></button>
-                        ))}
-                      </div>
-                    </div>
-
-                    {cargandoCombos ? (
-                      <p className="text-[13px] text-center py-10 text-stone-500">Cargando combos...</p>
-                    ) : combos.length === 0 ? (
-                      <div className="text-center max-w-xs mx-auto py-10 text-[13.5px] text-stone-500 leading-snug">
-                        <div className="w-16 h-16 rounded-2xl bg-white border border-[#e9e6f0] text-[#6105dc] grid place-items-center text-[26px] mx-auto mb-3"><i className="fa-solid fa-gift"></i></div>
-                        <b className="block text-base text-stone-900 mb-0.5">Todavía no tienes combos</b>
-                        Junta varios {esBarberia ? 'servicios y productos' : 'productos'} en un paquete a precio especial. Toca «Nuevo combo» para crear el primero.
-                      </div>
-                    ) : visibles.length === 0 ? (
-                      <p className="text-center py-8 text-[13.5px] text-stone-500"><b className="block text-stone-900">Ningún combo coincide</b>Prueba con otro filtro o con otra palabra.</p>
-                    ) : (
-                      <div className="grid gap-[18px] sm:grid-cols-2 lg:grid-cols-3">
-                        {visibles.map(({ c: combo, est }) => {
-                          const items = combo.combos_items || [];
-                          const suma = items.reduce((acc, ci) => acc + (Number(ci.productos?.precio_venta) || 0) * Number(ci.cantidad), 0);
-                          const costo = items.reduce((acc, ci) => acc + (Number(ci.productos?.precio_costo) || 0) * Number(ci.cantidad), 0);
-                          const precio = Number(combo.precio_venta) || 0;
-                          const ahorro = suma > 0 ? (1 - precio / suma) * 100 : 0;
-                          const mc = costo > 0 && precio > 0 ? margenCombo(precio, costo) : null;
-                          const e = estadoCombos.get(combo.id);
-                          const enVenta = est === 'venta';
-                          const fotos = items.slice(0, 3);
-                          return (
-                            <div key={combo.id} className="bg-white rounded-2xl border border-[#e9e6f0] shadow-[0_1px_2px_rgba(20,10,50,0.04),0_12px_28px_-18px_rgba(20,10,50,0.18)] hover:shadow-[0_1px_2px_rgba(20,10,50,0.04),0_18px_36px_-16px_rgba(20,10,50,0.28)] hover:-translate-y-px flex flex-col overflow-hidden transition">
-                              <div className={`relative grid gap-[2px] bg-[#e9e6f0] h-[132px] ${fotos.length >= 3 ? 'grid-cols-3' : fotos.length === 2 ? 'grid-cols-2' : 'grid-cols-1'} ${enVenta ? '' : 'opacity-60'}`}>
-                                {fotos.map((ci, i) => (
-                                  <span key={ci.id || i} className="relative bg-gradient-to-br from-[#f6f4fb] to-[#e9e5f3] overflow-hidden [&_img]:object-contain [&_img]:mix-blend-multiply [&_img]:p-2.5">
-                                    <FotoProducto fotoUrl={vivo(ci.producto_id)?.foto_url || ci.productos?.foto_url} categoria={vivo(ci.producto_id)?.categoria || ci.productos?.categoria} className="w-full h-full" iconClassName="text-2xl" />
-                                    {Number(ci.cantidad) > 1 && <em className="absolute right-1.5 bottom-1.5 not-italic bg-[#14121c] text-white rounded-full text-[10.5px] font-bold px-1.5">×{Number(ci.cantidad)}</em>}
-                                  </span>
-                                ))}
-                                {items.length > 3 && <em className="absolute right-3 top-3 not-italic bg-[#14121c] text-white rounded-full text-[11px] font-bold px-2 py-0.5">+{items.length - 3}</em>}
-                                {enVenta && ahorro > 0.5 && <span className="absolute left-3 top-3 bg-[#ffc81a] text-[#14121c] text-[11.5px] font-bold rounded-full px-2.5 py-0.5 shadow-md">Ahorra {Math.round(ahorro)}%</span>}
-                                {!enVenta && <span className={`absolute left-3 top-3 text-[11.5px] font-semibold rounded-full px-2.5 py-0.5 bg-white/90 ${est === 'sinstock' ? 'text-[#c0262d]' : 'text-stone-600'}`}>{est === 'sinstock' ? 'Sin stock' : 'Pausado'}</span>}
-                              </div>
-                              <div className={`px-4 pt-4 pb-3 flex flex-col gap-2 flex-1 ${enVenta ? '' : 'opacity-70'}`}>
-                                <h5 className="text-[15.5px] font-semibold text-stone-900 tracking-tight leading-tight">{combo.nombre}</h5>
-                                <p className="text-[12.5px] text-stone-500 leading-relaxed">{items.map((ci) => `${Number(ci.cantidad) > 1 ? `${Number(ci.cantidad)}× ` : ''}${ci.productos?.descripcion || '(producto eliminado)'}`).join(' · ')}</p>
-                                <div className="flex items-baseline gap-2 flex-wrap mt-0.5">
-                                  <strong className="text-2xl font-bold tracking-tight tabular-nums">{dinero(precio)}</strong>
-                                  {suma > precio + 0.005 && <s className="text-[13px] text-stone-400">{dinero(suma)}</s>}
-                                </div>
-                                {mc && (
-                                  <p className="text-[12.5px] text-stone-500">
-                                    {mc.perdida
-                                      ? <b className="text-[#c0262d] font-semibold">Pérdida {dinero(-mc.ganancia)}</b>
-                                      : <>Ganas <b className={`font-semibold ${mc.bajo ? 'text-[#a15c07]' : 'text-[#0f7b4a]'}`}>{dinero(mc.ganancia)}</b> · {mc.margenPct.toFixed(mc.margenPct < 10 ? 1 : 0)}%</>}
-                                  </p>
-                                )}
-                                {est === 'sinstock' && (
-                                  <p className="text-[12.5px] rounded-lg bg-[#fdf1f1] text-[#c0262d] px-2.5 py-2 leading-snug">Pausado por falta de stock: {(e?.faltan || []).join(', ')}. Se enciende solo al reponer.</p>
-                                )}
-                                {enVenta && e && Number.isFinite(e.unidades) && (
-                                  <p className="text-[12.5px] text-stone-500">Con tu stock puedes vender hasta <b className="text-stone-800 font-semibold">{unidadesDe(e.unidades)}</b>.</p>
-                                )}
-                              </div>
-                              <div className="flex items-center gap-1.5 pl-4 pr-3 py-2.5 border-t border-[#f0edf6]">
-                                <button type="button" role="switch" aria-checked={enVenta} onClick={() => (est === 'sinstock' ? notificar('Se enciende solo cuando repongas el stock.', 'info') : alternarActivoCombo(combo))} className="flex items-center gap-2.5 whitespace-nowrap text-[13px] font-medium text-stone-700">
-                                  <span className={`kz-sw ${enVenta ? 'on' : ''}`}><i></i></span>
-                                  {enVenta ? 'En venta' : est === 'sinstock' ? 'Pausado por stock' : 'Pausado'}
-                                </button>
-                                <span className="flex-1"></span>
-                                <button type="button" onClick={() => duplicarCombo(combo)} title="Duplicar" aria-label="Duplicar" className="w-8 h-8 rounded-[9px] text-stone-400 hover:text-[#6105dc] hover:bg-[#f4f0fd] grid place-items-center"><i className="fa-regular fa-copy text-[15px]"></i></button>
-                                <button type="button" onClick={() => editarCombo(combo)} title="Editar" aria-label="Editar" className="w-8 h-8 rounded-[9px] text-stone-400 hover:text-[#6105dc] hover:bg-[#f4f0fd] grid place-items-center"><i className="fa-solid fa-pen text-[14px]"></i></button>
-                                <button type="button" onClick={() => eliminarCombo(combo)} title="Eliminar" aria-label="Eliminar" className="w-8 h-8 rounded-[9px] text-stone-400 hover:text-[#c0262d] hover:bg-[#fdf1f1] grid place-items-center"><i className="fa-solid fa-trash-can text-[14px]"></i></button>
-                              </div>
-                            </div>
-                          );
-                        })}
-                      </div>
-                    )}
-                  </div>
-                </div>
-              </div>
-            );
-          })()}
-
-          {/* Modal: Registrar Merma */}
-          {modalMerma && (() => {
-            const prodMerma = productos.find((p) => p.id === formMerma.productoId) || null;
-            const cantMerma = Number(formMerma.cantidad) || 0;
-            const porPeso = !!prodMerma && (String(prodMerma.unidad || '').toUpperCase() === 'KG' || !Number.isInteger(Number(prodMerma.stock_actual) || 0));
-            const pasoMerma = porPeso ? 0.1 : 1;
-            const stockMerma = Number(prodMerma?.stock_actual) || 0;
-            const costoMerma = +(cantMerma * (Number(prodMerma?.precio_costo) || 0)).toFixed(2);
-            const termino = busquedaMerma.trim().toLowerCase();
-            const resultados = termino
-              ? productos
-                  .filter((p) => (p.descripcion || '').toLowerCase().includes(termino)
-                    || (p.cod_ean || '').toLowerCase() === termino
-                    || (p.cod_ean_pack || '').toLowerCase() === termino)
-                  .slice(0, 6)
-              : [];
-            const cambiarCantidad = (delta) => {
-              const nueva = Math.max(pasoMerma, +(cantMerma + delta).toFixed(2));
-              setFormMerma((f) => ({ ...f, cantidad: String(nueva) }));
-            };
-            return (
-            <div className="fixed inset-0 bg-stone-900/30 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-              <div className="bg-gradient-to-br from-[#f4effc] via-[#f9f8fb] to-[#f5f4f8] border border-white/80 rounded-[28px] max-w-sm w-full p-4 shadow-2xl space-y-3.5 max-h-[92vh] overflow-y-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-                <div className="flex items-center gap-2.5">
-                  <span className="w-[38px] h-[38px] rounded-[14px] bg-amber-100 text-amber-700 flex items-center justify-center shrink-0">
-                    <IconoTrazo nombre="warn" className="w-[19px] h-[19px]" />
-                  </span>
-                  <div className="flex-1 min-w-0">
-                    <h3 className="text-[19px] font-bold tracking-tight text-stone-900 leading-tight">Registrar pérdida</h3>
-                    <p className="text-xs text-stone-500 mt-0.5 leading-snug">Vencidos, rotos, robados o perdidos. Se descuenta del stock.</p>
-                  </div>
-                  <button onClick={cerrarModalMerma} className="w-9 h-9 rounded-full bg-white ring-1 ring-[#6105dc]/10 hover:bg-[#f4eefe] text-stone-500 flex items-center justify-center transition shrink-0" aria-label="Cerrar">
-                    <IconoTrazo nombre="x" className="w-[15px] h-[15px]" />
-                  </button>
-                </div>
-
-                {!prodMerma ? (
-                  <>
-                    <div>
-                      <p className="text-[12.5px] font-semibold text-stone-700 mb-1.5">Producto</p>
-                      <div className="flex gap-2">
-                        <div className="flex-1 min-w-0 h-12 flex items-center gap-2 px-4 rounded-full bg-white ring-1 ring-[#6105dc]/15 focus-within:ring-2 focus-within:ring-[#6105dc]/40">
-                          <IconoTrazo nombre="buscar" className="w-[17px] h-[17px] text-[#6105dc] shrink-0" />
-                          <input
-                            type="text"
-                            autoFocus
-                            value={busquedaMerma}
-                            onChange={(e) => setBusquedaMerma(e.target.value)}
-                            onKeyDown={(e) => {
-                              if (e.key !== 'Enter') return;
-                              e.preventDefault();
-                              // Un lector de códigos "escribe" el código y confirma con Enter.
-                              const porCodigo = buscarProductoPorCodigo(busquedaMerma);
-                              if (porCodigo) elegirProductoMerma(porCodigo.producto);
-                              else if (resultados.length === 1) elegirProductoMerma(resultados[0]);
-                            }}
-                            placeholder="Escribe o escanea el código"
-                            className="w-full min-w-0 bg-transparent text-sm text-stone-900 placeholder:text-[#a9a3b8] focus:outline-none"
-                          />
-                        </div>
-                        <button
-                          type="button"
-                          onClick={abrirEscanerParaMerma}
-                          className="w-12 h-12 rounded-full bg-[#6105dc] hover:bg-[#4d04b0] text-white flex items-center justify-center shrink-0 transition"
-                          aria-label="Escanear código de barras"
-                          title="Escanear código de barras"
-                        >
-                          <IconoTrazo nombre="barras" className="w-[21px] h-[21px]" />
-                        </button>
-                      </div>
-                      {!termino && <p className="text-[11.5px] text-stone-400 mt-1.5">Un lector de códigos de barras también funciona aquí.</p>}
-                    </div>
-                    {termino && (
-                      resultados.length === 0 ? (
-                        <p className="text-xs text-stone-400 text-center py-4">No hay productos que coincidan.</p>
-                      ) : (
-                        <div className="bg-white rounded-[22px] ring-1 ring-[#6105dc]/10 overflow-hidden">
-                          {resultados.map((p, i) => (
-                            <button
-                              key={p.id}
-                              type="button"
-                              onClick={() => elegirProductoMerma(p)}
-                              className={`w-full flex items-center gap-2.5 px-3 py-2 text-left hover:bg-[#f4eefe] transition ${i > 0 ? 'border-t border-[#efe6fc]' : ''}`}
-                            >
-                              <FotoProducto fotoUrl={p.foto_url} categoria={p.categoria} className="w-[38px] h-[38px] rounded-[12px] shrink-0 ring-1 ring-black/5 bg-white" iconClassName="text-xs" />
-                              <span className="min-w-0">
-                                <span className="block text-[13.5px] font-semibold text-stone-900 leading-tight truncate">{p.descripcion}</span>
-                                <span className="block text-[11.5px] text-stone-400">{p.categoria || 'General'} · Stock {p.stock_actual}</span>
-                              </span>
-                            </button>
-                          ))}
-                        </div>
-                      )
-                    )}
-                    {!termino && (
-                      <p className="text-xs text-stone-400 text-center py-5 leading-relaxed">Elige un producto para indicar la cantidad y el motivo.</p>
-                    )}
-                  </>
-                ) : (
-                  <>
-                    <div>
-                      <p className="text-[12.5px] font-semibold text-stone-700 mb-1.5">Producto</p>
-                      <div className="flex items-center gap-2.5 bg-white rounded-[22px] ring-1 ring-[#6105dc]/10 p-2.5 pr-3">
-                        <FotoProducto fotoUrl={prodMerma.foto_url} categoria={prodMerma.categoria} className="w-[50px] h-[50px] rounded-[15px] shrink-0 ring-1 ring-black/5 bg-white" iconClassName="text-sm" />
-                        <div className="flex-1 min-w-0">
-                          <p className="text-[13.5px] font-semibold text-stone-900 leading-tight">{prodMerma.descripcion}</p>
-                          <p className="text-[11.5px] text-stone-400 mt-0.5">Stock actual: {stockMerma}</p>
-                        </div>
-                        <button
-                          type="button"
-                          onClick={() => setFormMerma((f) => ({ ...f, productoId: '', cantidad: '' }))}
-                          className="shrink-0 px-3 py-1.5 rounded-full bg-[#f4eefe] hover:bg-[#ece0fd] text-[12.5px] font-semibold text-[#6105dc] transition"
-                        >
-                          Cambiar
-                        </button>
-                      </div>
-                    </div>
-
-                    <div>
-                      <p className="text-[12.5px] font-semibold text-stone-700 mb-1.5">Cantidad</p>
-                      <div className="flex items-center gap-3">
-                        <div className="flex items-center bg-white rounded-full ring-1 ring-[#6105dc]/15 shrink-0">
-                          <button type="button" onClick={() => cambiarCantidad(-pasoMerma)} className="w-[46px] h-[46px] flex items-center justify-center text-[#6105dc] rounded-full hover:bg-[#f4eefe] transition" aria-label="Menos">
-                            <IconoTrazo nombre="minus" className="w-[17px] h-[17px]" />
-                          </button>
-                          <input
-                            type="number"
-                            inputMode="decimal"
-                            step={pasoMerma}
-                            min="0"
-                            value={formMerma.cantidad}
-                            onChange={(e) => setFormMerma((f) => ({ ...f, cantidad: e.target.value }))}
-                            className="w-14 text-center text-xl font-bold text-stone-900 tabular-nums bg-transparent focus:outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
-                          />
-                          <button type="button" onClick={() => cambiarCantidad(pasoMerma)} className="w-[46px] h-[46px] flex items-center justify-center text-[#6105dc] rounded-full hover:bg-[#f4eefe] transition" aria-label="Más">
-                            <IconoTrazo nombre="plus" className="w-[17px] h-[17px]" />
-                          </button>
-                        </div>
-                        <div className="flex-1 text-right">
-                          <p className="text-[11.5px] text-stone-500">Costo perdido</p>
-                          <p className="text-xl font-bold tracking-tight text-rose-700 tabular-nums">S/ {formatoSoles(costoMerma)}</p>
-                        </div>
-                      </div>
-                    </div>
-
-                    <div>
-                      <p className="text-[12.5px] font-semibold text-stone-700 mb-1.5">Motivo</p>
-                      <div className="flex flex-wrap gap-1.5">
-                        {['Vencido', 'Roto/Dañado', 'Robo/Pérdida', 'Otro'].map((t) => (
-                          <button
-                            key={t}
-                            type="button"
-                            onClick={() => setFormMerma((f) => ({ ...f, motivo: t }))}
-                            className={`px-3.5 py-2 rounded-full text-[13px] font-semibold transition ${
-                              formMerma.motivo === t ? 'bg-[#6105dc] text-white' : 'bg-white ring-1 ring-[#6105dc]/10 text-stone-600 hover:bg-[#faf8fe]'
-                            }`}
-                          >
-                            {t}
-                          </button>
-                        ))}
-                      </div>
-                      {formMerma.motivo === 'Otro' && (
-                        <div className="mt-2 h-11 flex items-center px-4 rounded-2xl bg-white ring-1 ring-[#6105dc]/15 focus-within:ring-2 focus-within:ring-[#6105dc]/40">
-                          <input
-                            type="text"
-                            autoFocus
-                            maxLength={80}
-                            value={formMerma.motivoOtro}
-                            onChange={(e) => setFormMerma((f) => ({ ...f, motivoOtro: e.target.value }))}
-                            placeholder="Escribe el motivo"
-                            className="w-full min-w-0 bg-transparent text-sm text-stone-900 placeholder:text-[#a9a3b8] focus:outline-none"
-                          />
-                        </div>
-                      )}
-                    </div>
-
-                    <div className="flex items-center justify-between bg-[#f4eefe] border border-[#efe6fc] rounded-[20px] px-3.5 py-2.5 text-[13px] font-semibold text-[#4d04b0]">
-                      <span>El stock quedará en</span>
-                      <b className={`text-[15px] tabular-nums ${stockMerma - cantMerma < 0 ? 'text-amber-700' : 'text-stone-900'}`}>{Math.max(0, +(stockMerma - cantMerma).toFixed(2))}</b>
-                    </div>
-                  </>
-                )}
-
-                <button
-                  onClick={registrarMermaProducto}
-                  disabled={guardandoMerma || !prodMerma || cantMerma <= 0}
-                  className="w-full h-[54px] rounded-full bg-[#6105dc] hover:bg-[#4d04b0] disabled:bg-[#ebe8f1] disabled:text-[#8b869a] disabled:cursor-not-allowed text-white font-semibold text-base transition"
-                >
-                  {guardandoMerma ? 'Guardando...' : 'Registrar pérdida'}
-                </button>
-              </div>
-            </div>
-            );
-          })()}
+          {modalMerma && (
+            <Suspense fallback={null}>
+              <MermaModal
+                IconoTrazo={IconoTrazo}
+                abrirEscanerParaMerma={abrirEscanerParaMerma}
+                buscarProductoPorCodigo={buscarProductoPorCodigo}
+                busquedaMerma={busquedaMerma}
+                cerrarModalMerma={cerrarModalMerma}
+                elegirProductoMerma={elegirProductoMerma}
+                formMerma={formMerma}
+                guardandoMerma={guardandoMerma}
+                modalMerma={modalMerma}
+                productos={productos}
+                registrarMermaProducto={registrarMermaProducto}
+                setBusquedaMerma={setBusquedaMerma}
+                setFormMerma={setFormMerma}
+              />
+            </Suspense>
+          )}
 
           {/* Modal: Toma de Inventario (conteo físico vs. sistema) -- 2 pasos:
               "conteo" (se busca y anota lo contado, sin ver el stock del
               sistema) y "revision" (recién ahí se compara y se guarda, lo
               que ajusta el stock automáticamente si hay diferencia). */}
           {modalTomaInventario && (
-            <div className="fixed inset-0 bg-stone-900/30 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-              <div className="bg-gradient-to-br from-[#f4effc] via-[#f9f8fb] to-[#f5f4f8] border border-white/80 rounded-[28px] max-w-2xl w-full p-5 shadow-2xl space-y-3 max-h-[90vh] flex flex-col">
-                <div className="flex justify-between items-start shrink-0">
-                  <div>
-                    <h3 className="text-lg font-bold text-stone-900 flex items-center gap-2">
-                      <i className="fa-solid fa-clipboard-check text-orange-600"></i> Toma de Inventario
-                      <span className="text-[10px] font-bold text-orange-600 bg-orange-100 px-2 py-0.5 rounded-full">
-                        Paso {pasoTomaInventario === 'conteo' ? '1' : '2'} de 2
-                      </span>
-                    </h3>
-                    <p className="text-xs text-stone-600 mt-0.5">
-                      {pasoTomaInventario === 'conteo'
-                        ? 'Busca cada producto y ve sumando lo que encuentres en cada lugar del local.'
-                        : 'Revisa lo contado contra el sistema y guarda para ajustar el stock.'}
-                    </p>
-                  </div>
-                  <div className="flex items-center gap-3 shrink-0">
-                    {filasTomaInventario.length > 0 && (
-                      <button onClick={vaciarConteoInventario} className="text-[11px] font-semibold text-rose-600 hover:text-rose-700">
-                        Vaciar
-                      </button>
-                    )}
-                    <button aria-label="Cerrar" onClick={() => setModalTomaInventario(false)} className="w-8 h-8 rounded-full bg-white/70 hover:bg-white text-stone-500 hover:text-stone-900 shadow-sm"><i className="fa-solid fa-xmark"></i></button>
-                  </div>
-                </div>
-
-                <PestanasModal pestanas={[
-                  { texto: 'Nueva toma', activa: true },
-                  { texto: 'Historial', onClick: () => { setModalTomaInventario(false); abrirHistorialInventario(); } },
-                ]} />
-
-                {pasoTomaInventario === 'conteo' ? (
-                  <>
-                    <div className="flex gap-1.5 shrink-0">
-                      <div className="relative flex-1 min-w-0">
-                        <input
-                          type="text"
-                          autoFocus
-                          placeholder="Buscar o escanear producto..."
-                          value={conteoFisicoBusqueda}
-                          onChange={(e) => setConteoFisicoBusqueda(e.target.value)}
-                          className="w-full bg-white border border-stone-200/70 shadow-sm rounded-xl px-2.5 py-2 text-xs text-stone-900"
-                        />
-                        {resultadosBusquedaConteo.length > 0 && (
-                          <div className="absolute z-10 top-full left-0 right-0 mt-1 bg-white border border-stone-200 rounded-lg shadow-lg max-h-52 overflow-y-auto">
-                            {resultadosBusquedaConteo.map((p) => {
-                              const yaContado = filasTomaInventario.find((f) => f.productoId === p.id);
-                              return (
-                                <button
-                                  key={p.id}
-                                  type="button"
-                                  onClick={() => agregarProductoAConteo(p)}
-                                  className="w-full flex items-center justify-between gap-2 text-left px-3 py-2 text-xs text-stone-800 hover:bg-orange-50 border-b border-stone-100 last:border-0"
-                                >
-                                  <span className="truncate">{p.descripcion}</span>
-                                  {yaContado && (
-                                    <span className="shrink-0 text-[10px] font-bold text-orange-600 bg-orange-100 px-1.5 py-0.5 rounded-full">
-                                      {yaContado.stockContado === '' ? 'sumar más' : `${yaContado.stockContado} und · sumar más`}
-                                    </span>
-                                  )}
-                                </button>
-                              );
-                            })}
-                          </div>
-                        )}
-                      </div>
-                      <button
-                        onClick={() => { setModoEscaner('toma-inventario'); setMetodoForzado(null); setModalEscaner(true); }}
-                        title="Escanear con la cámara"
-                        className="shrink-0 w-10 flex items-center justify-center bg-stone-200 hover:bg-stone-300 text-stone-700 rounded-lg"
-                      >
-                        <i className="fa-solid fa-camera"></i>
-                      </button>
-                    </div>
-                    <div className="flex-1 overflow-y-auto space-y-2">
-                      {filasTomaInventario.length === 0 ? (
-                        <p className="text-xs text-stone-500 text-center py-8">Aún no agregas ningún producto al conteo.</p>
-                      ) : (
-                        <>
-                          {(() => {
-                            const f = filasTomaInventario[0];
-                            const porPack = Number(f.pendienteUnidadesPorPack) || 1;
-                            const totalPendiente = (Number(f.pendientePacks) || 0) * porPack + (Number(f.pendienteSueltas) || 0);
-                            return (
-                              <div className="p-2.5 bg-stone-50 border border-orange-300 rounded-xl space-y-1.5">
-                                <div className="flex items-center gap-2">
-                                  <p className="flex-1 min-w-0 text-xs font-semibold text-stone-800 truncate">{f.descripcion}</p>
-                                  <span className="text-xs font-bold text-orange-600 shrink-0">
-                                    {f.stockContado === '' ? 'Sin contar' : `${f.stockContado} und`}
-                                  </span>
-                                  <button aria-label="Eliminar" onClick={() => quitarProductoDeConteo(f.productoId)} className="text-stone-400 hover:text-rose-600 shrink-0">
-                                    <i className="fa-solid fa-trash-can"></i>
-                                  </button>
-                                </div>
-
-                                {f.historial.length > 0 && (
-                                  <div className="flex flex-wrap gap-1">
-                                    {f.historial.map((h) => (
-                                      <span key={h.id} className="inline-flex items-center gap-1 bg-stone-200 rounded-full pl-2 pr-1 py-0.5 text-[11px] text-stone-700">
-                                        +{h.cantidad}
-                                        <button aria-label="Cerrar" onClick={() => quitarHallazgo(f.productoId, h.id)} className="w-3.5 h-3.5 flex items-center justify-center text-stone-500 hover:text-rose-600">
-                                          <i className="fa-solid fa-xmark text-[9px]"></i>
-                                        </button>
-                                      </span>
-                                    ))}
-                                  </div>
-                                )}
-
-                                <div className="flex flex-wrap items-center gap-1.5">
-                                  <div className="flex flex-col items-center">
-                                    <input
-                                      type="number"
-                                      ref={(el) => { refsPendientesConteo.current[f.productoId] = el; }}
-                                      placeholder="0"
-                                      value={f.pendientePacks}
-                                      onChange={(e) => actualizarPendienteConteo(f.productoId, 'pendientePacks', e.target.value)}
-                                      onKeyDown={(e) => { if (e.key === 'Enter') agregarHallazgo(f.productoId); }}
-                                      className="w-14 bg-white border border-stone-200/70 shadow-sm rounded-xl px-2 py-1.5 text-xs text-stone-900 text-center"
-                                    />
-                                    <span className="text-[9px] text-stone-500">packs</span>
-                                  </div>
-                                  <span className="text-[10px] text-stone-400">de</span>
-                                  <div className="flex flex-col items-center">
-                                    {editandoPackParaId === f.productoId ? (
-                                      <input
-                                        type="number"
-                                        autoFocus
-                                        placeholder="1"
-                                        value={f.pendienteUnidadesPorPack}
-                                        onChange={(e) => actualizarPendienteConteo(f.productoId, 'pendienteUnidadesPorPack', e.target.value)}
-                                        onBlur={() => setEditandoPackParaId(null)}
-                                        onKeyDown={(e) => { if (e.key === 'Enter') setEditandoPackParaId(null); }}
-                                        className="w-14 bg-white border border-orange-400 rounded-lg px-2 py-1.5 text-xs text-stone-900 text-center"
-                                      />
-                                    ) : (
-                                      <button
-                                        type="button"
-                                        onClick={() => setEditandoPackParaId(f.productoId)}
-                                        title="Tocar para cambiar las unidades por pack"
-                                        className="w-14 h-[30px] bg-stone-200 border border-stone-300 rounded-lg text-xs font-bold text-stone-700"
-                                      >
-                                        x{f.pendienteUnidadesPorPack || 1}
-                                      </button>
-                                    )}
-                                    <span className="text-[9px] text-stone-500 flex items-center gap-0.5">
-                                      {editandoPackParaId !== f.productoId && <i className="fa-solid fa-lock text-[7px]"></i>} und c/u
-                                    </span>
-                                  </div>
-                                  <span className="text-[10px] text-stone-400">+</span>
-                                  <div className="flex flex-col items-center">
-                                    <input
-                                      type="number"
-                                      placeholder="0"
-                                      value={f.pendienteSueltas}
-                                      onChange={(e) => actualizarPendienteConteo(f.productoId, 'pendienteSueltas', e.target.value)}
-                                      onKeyDown={(e) => { if (e.key === 'Enter') agregarHallazgo(f.productoId); }}
-                                      className="w-14 bg-white border border-stone-200/70 shadow-sm rounded-xl px-2 py-1.5 text-xs text-stone-900 text-center"
-                                    />
-                                    <span className="text-[9px] text-stone-500">sueltas</span>
-                                  </div>
-                                  <span className="text-xs font-bold text-orange-600 ml-auto shrink-0">= {totalPendiente} und</span>
-                                </div>
-                                <button onClick={() => agregarHallazgo(f.productoId)} className="w-full py-1.5 bg-[#6105dc] hover:bg-[#4d04b0] text-white rounded-full text-[11px] font-bold">
-                                  <i className="fa-solid fa-plus"></i> Agregar
-                                </button>
-                              </div>
-                            );
-                          })()}
-
-                          {filasTomaInventario.length > 1 && (
-                            <div className="border border-stone-200 rounded-xl overflow-hidden shrink-0">
-                              <button
-                                onClick={() => setHistorialConteoAbierto((v) => !v)}
-                                className="w-full flex items-center justify-between px-3 py-2 bg-stone-200/60 hover:bg-stone-200 text-xs font-bold text-stone-700"
-                              >
-                                <span><i className="fa-solid fa-clock-rotate-left mr-1.5"></i>Historial ({filasTomaInventario.length - 1})</span>
-                                <i className={`fa-solid fa-chevron-${historialConteoAbierto ? 'up' : 'down'}`}></i>
-                              </button>
-                              {historialConteoAbierto && (
-                                <div className="divide-y divide-stone-200 max-h-40 overflow-y-auto">
-                                  {filasTomaInventario.slice(1).map((f) => (
-                                    <div key={f.productoId} className="flex items-center gap-2 px-3 py-2 bg-white text-xs">
-                                      <span className="flex-1 min-w-0 truncate text-stone-700">{f.descripcion}</span>
-                                      <span className="font-bold text-orange-600 shrink-0">
-                                        {f.stockContado === '' ? 'Sin contar' : `${f.stockContado} und`}
-                                      </span>
-                                      <button
-                                        onClick={() => promoverAActivoConteo(f.productoId)}
-                                        className="shrink-0 text-[10px] font-bold text-stone-600 hover:text-stone-900 bg-stone-100 hover:bg-stone-200 px-2 py-1 rounded-md"
-                                      >
-                                        Sumar más
-                                      </button>
-                                      <button aria-label="Eliminar" onClick={() => quitarProductoDeConteo(f.productoId)} className="shrink-0 text-stone-400 hover:text-rose-600">
-                                        <i className="fa-solid fa-trash-can"></i>
-                                      </button>
-                                    </div>
-                                  ))}
-                                </div>
-                              )}
-                            </div>
-                          )}
-                        </>
-                      )}
-                    </div>
-                    <button
-                      onClick={continuarARevisionInventario}
-                      disabled={filasTomaInventario.length === 0}
-                      className="w-full py-2.5 bg-[#6105dc] hover:bg-[#4d04b0] disabled:opacity-50 text-white font-bold text-xs rounded-full shadow shrink-0"
-                    >
-                      {filasTomaInventario.length === 0 ? 'Agrega al menos un producto' : `Continuar a Revisión (${filasTomaInventario.length})`}
-                      {filasTomaInventario.length > 0 && <i className="fa-solid fa-arrow-right ml-1.5"></i>}
-                    </button>
-                  </>
-                ) : (
-                  <>
-                    <div className="flex gap-2 shrink-0">
-                      <input
-                        type="text"
-                        placeholder="Buscar en lo contado..."
-                        value={tomaInventarioBusqueda}
-                        onChange={(e) => setTomaInventarioBusqueda(e.target.value)}
-                        className="flex-1 min-w-0 bg-white border border-stone-200/70 shadow-sm rounded-xl px-2.5 py-1.5 text-xs text-stone-900"
-                      />
-                      <select
-                        value={tomaInventarioCategoria}
-                        onChange={(e) => setTomaInventarioCategoria(e.target.value)}
-                        className="min-w-0 max-w-[48%] truncate bg-white border border-stone-200/70 shadow-sm rounded-xl px-2.5 py-1.5 text-xs text-stone-900"
-                      >
-                        <option value="">Todas las categorías</option>
-                        {categoriasDB.map(c => <option key={c} value={c}>{c}</option>)}
-                      </select>
-                    </div>
-                    <div className="flex-1 overflow-y-auto space-y-1.5">
-                      {filasTomaInventarioVisibles.length === 0 ? (
-                        <p className="text-xs text-stone-500 text-center py-8">No hay productos que coincidan.</p>
-                      ) : (
-                        filasTomaInventarioVisibles.map((f) => {
-                          const diferencia = f.stockContado === '' ? null : (Number(f.stockContado) || 0) - f.stockSistema;
-                          return (
-                            <div key={f.productoId} className="flex items-center gap-2 p-2.5 bg-stone-50 border border-stone-200 rounded-xl">
-                              <div className="flex-1 min-w-0">
-                                <p className="text-xs font-semibold text-stone-800 truncate">{f.descripcion}</p>
-                                <p className="text-xs text-stone-500">Sistema: {f.stockSistema}</p>
-                              </div>
-                              <input
-                                type="number"
-                                step="0.10"
-                                placeholder="Contado"
-                                value={f.stockContado}
-                                onChange={(e) => actualizarStockContado(f.productoId, e.target.value)}
-                                className="w-20 bg-white border border-stone-200/70 shadow-sm rounded-xl px-2 py-1.5 text-xs text-stone-900 text-right"
-                              />
-                              <span className={`w-14 text-right text-xs font-bold ${
-                                diferencia === null || diferencia === 0 ? 'text-stone-400' : diferencia > 0 ? 'text-emerald-600' : 'text-rose-600'
-                              }`}>
-                                {diferencia === null ? '—' : diferencia > 0 ? `+${diferencia}` : diferencia}
-                              </span>
-                            </div>
-                          );
-                        })
-                      )}
-                    </div>
-                    <p className="text-[11px] text-stone-500 text-center shrink-0">
-                      <i className="fa-solid fa-circle-info mr-1"></i>
-                      Al guardar, el stock del sistema se ajusta solo para que quede igual al contado.
-                    </p>
-                    <div className="flex gap-2 shrink-0">
-                      <button
-                        onClick={() => setPasoTomaInventario('conteo')}
-                        className="py-2.5 px-4 bg-white/70 hover:bg-[#ece0fd] text-stone-600 font-bold text-xs rounded-full shrink-0 shadow-sm"
-                      >
-                        <i className="fa-solid fa-arrow-left mr-1.5"></i> Seguir contando
-                      </button>
-                      <button
-                        onClick={guardarTomaInventario}
-                        disabled={guardandoTomaInventario}
-                        className="flex-1 py-2.5 bg-[#6105dc] hover:bg-[#4d04b0] disabled:opacity-50 text-white font-bold text-xs rounded-full shadow"
-                      >
-                        {guardandoTomaInventario ? 'Guardando...' : 'Guardar y Ajustar Stock'}
-                      </button>
-                    </div>
-                  </>
-                )}
-              </div>
-            </div>
+            <Suspense fallback={null}>
+              <TomaInventario
+                PestanasModal={PestanasModal}
+                abrirHistorialInventario={abrirHistorialInventario}
+                actualizarPendienteConteo={actualizarPendienteConteo}
+                actualizarStockContado={actualizarStockContado}
+                agregarHallazgo={agregarHallazgo}
+                agregarProductoAConteo={agregarProductoAConteo}
+                categoriasDB={categoriasDB}
+                conteoFisicoBusqueda={conteoFisicoBusqueda}
+                continuarARevisionInventario={continuarARevisionInventario}
+                editandoPackParaId={editandoPackParaId}
+                filasTomaInventario={filasTomaInventario}
+                filasTomaInventarioVisibles={filasTomaInventarioVisibles}
+                guardandoTomaInventario={guardandoTomaInventario}
+                guardarTomaInventario={guardarTomaInventario}
+                historialConteoAbierto={historialConteoAbierto}
+                modalTomaInventario={modalTomaInventario}
+                pasoTomaInventario={pasoTomaInventario}
+                productos={productos}
+                promoverAActivoConteo={promoverAActivoConteo}
+                quitarHallazgo={quitarHallazgo}
+                quitarProductoDeConteo={quitarProductoDeConteo}
+                refsPendientesConteo={refsPendientesConteo}
+                resultadosBusquedaConteo={resultadosBusquedaConteo}
+                setConteoFisicoBusqueda={setConteoFisicoBusqueda}
+                setEditandoPackParaId={setEditandoPackParaId}
+                setHistorialConteoAbierto={setHistorialConteoAbierto}
+                setMetodoForzado={setMetodoForzado}
+                setModalEscaner={setModalEscaner}
+                setModalTomaInventario={setModalTomaInventario}
+                setModoEscaner={setModoEscaner}
+                setPasoTomaInventario={setPasoTomaInventario}
+                setTomaInventarioBusqueda={setTomaInventarioBusqueda}
+                setTomaInventarioCategoria={setTomaInventarioCategoria}
+                tomaInventarioBusqueda={tomaInventarioBusqueda}
+                tomaInventarioCategoria={tomaInventarioCategoria}
+                vaciarConteoInventario={vaciarConteoInventario}
+              />
+            </Suspense>
           )}
 
-          {/* Modal: Editar / Desactivar Producto */}
-          {modalEditarProducto && formEditarProducto && (() => {
-            // Editar producto con pestañas (General, Precio y stock, Tienda en línea) y panel de
-            // "cambios sin guardar" que compara con formEditarOriginal (el formulario al abrir).
-            const f = formEditarProducto;
-            const o = formEditarOriginal || formEditarProducto;
-            const setF = (campo, valor) => setFormEditarProducto((prev) => ({ ...prev, [campo]: valor }));
-            const esServicio = esBarberia && f.stock_actual === '';
-            const pv = Number(f.precio_venta) || 0;
-            const pvOriginal = Number(o.precio_venta) || 0;
-            const pc = Number(f.precio_costo) || 0;
-            const margenPct = pv > 0 && pc > 0 ? ((pv - pc) / pv) * 100 : null;
-            const fotoDeshabilitada = sesion?.bodega?.permitir_subir_fotos === false;
-            const duracionTexto = String(f.duracion_min ?? '').trim();
-            const duracionOk = duracionTexto === '' || (Number.isInteger(Number(duracionTexto)) && Number(duracionTexto) >= 5 && Number(duracionTexto) <= 480);
-            const mostrarPack = f.unidad !== 'KG' && (!esBarberia || f.vendeEnPack);
-            const fotosExtra = f.fotos_extra || [];
+          {modalEditarProducto && formEditarProducto && (
+            <Suspense fallback={null}>
+              <EditarProducto
+                agregarCategoriaPersonalizada={agregarCategoriaPersonalizada}
+                categoriasDB={categoriasDB}
+                combos={combos}
+                desactivarProducto={desactivarProducto}
+                esBarberia={esBarberia}
+                formEditarOriginal={formEditarOriginal}
+                formEditarProducto={formEditarProducto}
+                guardandoEdicionProducto={guardandoEdicionProducto}
+                guardarEdicionProducto={guardarEdicionProducto}
+                modalEditarProducto={modalEditarProducto}
+                pedirConfirmacion={pedirConfirmacion}
+                productos={productos}
+                quitarFotoExtra={quitarFotoExtra}
+                sesion={sesion}
+                setFormEditarProducto={setFormEditarProducto}
+                setMetodoForzado={setMetodoForzado}
+                setModalEditarProducto={setModalEditarProducto}
+                setModalEscaner={setModalEscaner}
+                setModoEscaner={setModoEscaner}
+                setTabEditarProducto={setTabEditarProducto}
+                subiendoFotoExtra={subiendoFotoExtra}
+                subiendoFotoProducto={subiendoFotoProducto}
+                subirFotoExtraProducto={subirFotoExtraProducto}
+                subirFotoProducto={subirFotoProducto}
+                tabEditarProducto={tabEditarProducto}
+              />
+            </Suspense>
+          )}
 
-            // --- Errores (bloquean "Guardar cambios" y marcan la pestaña) ---
-            const errores = {};
-            if (f.descripcion.trim().length < 2) errores.descripcion = 'Escribe un nombre.';
-            if (!(pv > 0)) errores.precio = 'Pon un precio de venta mayor a 0.';
-            if (!esMontoNoNegativo(f.precio_costo)) errores.costo = 'El costo no puede ser negativo.';
-            if (!esMontoNoNegativo(f.stock_actual)) errores.stock = 'El stock no puede ser negativo.';
-            if (esServicio && !duracionOk) errores.duracion = 'La duración va de 5 a 480 minutos.';
-            if (f.vendeEnPack && !(Number(f.unidades_por_pack) >= 2 && Number(f.precio_venta_pack) > 0)) errores.pack = 'El pack necesita 2 o más unidades y su precio.';
-            const pestanaDeError = { descripcion: 'general', precio: 'precio', costo: 'precio', stock: 'precio', duracion: 'precio', pack: 'precio' };
-            const hayErrores = Object.keys(errores).length > 0;
-
-            // --- Cambios respecto a lo guardado ---
-            const distinto = (a, b) => String(a ?? '') !== String(b ?? '');
-            const cambios = [];
-            const agregar = (pestana, etiqueta, antes, despues, campos) => cambios.push({ pestana, etiqueta, antes: String(antes), despues: String(despues), campos });
-            if (distinto(o.descripcion, f.descripcion)) agregar('general', 'Nombre', o.descripcion, f.descripcion, ['descripcion']);
-            if (distinto(o.categoria, f.categoria)) agregar('general', 'Categoría', o.categoria, f.categoria, ['categoria']);
-            if (distinto(o.cod_ean, f.cod_ean)) agregar('general', 'Código', o.cod_ean || 'sin código', f.cod_ean || 'sin código', ['cod_ean']);
-            if (distinto(o.sku, f.sku)) agregar('general', 'SKU', o.sku || '—', f.sku || '—', ['sku']);
-            if (distinto(o.foto_url, f.foto_url)) agregar('general', 'Foto', 'anterior', f.foto_url ? 'nueva' : 'sin foto', ['foto_url']);
-            if (Number(o.precio_venta) !== Number(f.precio_venta)) agregar('precio', 'Precio', `S/ ${pvOriginal.toFixed(2)}`, `S/ ${pv.toFixed(2)}`, ['precio_venta']);
-            if (Number(o.precio_costo || 0) !== Number(f.precio_costo || 0)) agregar('precio', 'Costo', `S/ ${(Number(o.precio_costo) || 0).toFixed(2)}`, `S/ ${pc.toFixed(2)}`, ['precio_costo']);
-            if (o.unidad !== f.unidad) agregar('precio', 'Se vende por', o.unidad === 'KG' ? 'kilo' : 'unidad', f.unidad === 'KG' ? 'kilo' : 'unidad', ['unidad']);
-            if (distinto(o.stock_actual, f.stock_actual)) agregar('precio', 'Stock', o.stock_actual === '' ? 'sin control' : o.stock_actual, f.stock_actual === '' ? 'sin control' : f.stock_actual, ['stock_actual']);
-            if (esServicio && distinto(o.duracion_min, f.duracion_min)) agregar('precio', 'Duración', `${o.duracion_min || 30} min`, `${f.duracion_min || 30} min`, ['duracion_min']);
-            if (!!o.vendeEnPack !== !!f.vendeEnPack || (f.vendeEnPack && (distinto(o.unidades_por_pack, f.unidades_por_pack) || distinto(o.precio_venta_pack, f.precio_venta_pack) || distinto(o.cod_ean_pack, f.cod_ean_pack)))) {
-              agregar('precio', 'Pack', o.vendeEnPack ? `x${o.unidades_por_pack} · S/ ${Number(o.precio_venta_pack || 0).toFixed(2)}` : 'sin pack', f.vendeEnPack ? `x${f.unidades_por_pack || '?'} · S/ ${Number(f.precio_venta_pack || 0).toFixed(2)}` : 'sin pack', ['vendeEnPack', 'unidades_por_pack', 'precio_venta_pack', 'cod_ean_pack']);
-            }
-            if (!!o.es_destacado !== !!f.es_destacado) agregar('tienda', 'Destacado', o.es_destacado ? 'sí' : 'no', f.es_destacado ? 'sí' : 'no', ['es_destacado']);
-            if (esBarberia && (o.visible_en_tienda !== false) !== (f.visible_en_tienda !== false)) agregar('tienda', 'En la tienda', o.visible_en_tienda !== false ? 'visible' : 'oculto', f.visible_en_tienda !== false ? 'visible' : 'oculto', ['visible_en_tienda']);
-            if (distinto(o.descripcion_larga, f.descripcion_larga)) agregar('tienda', 'Descripción', o.descripcion_larga ? 'escrita' : 'vacía', f.descripcion_larga ? 'editada' : 'vacía', ['descripcion_larga']);
-            if (JSON.stringify(o.fotos_extra || []) !== JSON.stringify(fotosExtra)) agregar('tienda', 'Fotos extra', (o.fotos_extra || []).length, fotosExtra.length, ['fotos_extra']);
-            const deshacer = (c) => setFormEditarProducto((prev) => {
-              const nuevo = { ...prev };
-              c.campos.forEach((k) => { nuevo[k] = o[k]; });
-              return nuevo;
-            });
-            const tieneCambios = cambios.length > 0;
-            const pestana = tabEditarProducto;
-            const pestanas = [['general', 'General'], ['precio', esServicio ? 'Precio y duración' : 'Precio y stock'], ['tienda', 'Tienda en línea']];
-
-            const cerrar = async () => {
-              if (tieneCambios) {
-                const ok = await pedirConfirmacion({ titulo: 'Tienes cambios sin guardar', mensaje: 'Si cierras ahora, se pierden.', textoBoton: 'Cerrar sin guardar', peligroso: true });
-                if (!ok) return;
-              }
-              setModalEditarProducto(false);
-            };
-            const descartar = async () => {
-              const ok = await pedirConfirmacion({ titulo: '¿Descartar los cambios?', mensaje: `Volverás a los datos guardados de "${o.descripcion}".`, textoBoton: 'Descartar' });
-              if (ok) setFormEditarProducto(o);
-            };
-            const ajustarStock = (delta) => {
-              const actual = Number(f.stock_actual) || 0;
-              setF('stock_actual', String(Math.max(0, Math.round((actual + delta) * 10) / 10)));
-            };
-            const stockTag = esServicio
-              ? { texto: `Servicio · ${Number(f.duracion_min) || 30} min`, clase: 'bg-[#f4eefe] text-[#4d04b0]' }
-              : f.stock_actual === ''
-                ? { texto: 'Sin control de stock', clase: 'bg-[#f4eefe] text-[#4d04b0]' }
-                : Number(f.stock_actual) <= 0
-                  ? { texto: 'Sin stock', clase: 'bg-rose-50 text-rose-600' }
-                  : Number(f.stock_actual) <= 5
-                    ? { texto: `Quedan ${f.stock_actual}${f.unidad === 'KG' ? ' kg' : ''}`, clase: 'bg-amber-50 text-amber-700' }
-                    : { texto: `${f.stock_actual}${f.unidad === 'KG' ? ' kg' : ''} en stock`, clase: 'bg-emerald-50 text-emerald-700' };
-            const categoriaVisibles = (() => {
-              const base = categoriasDB.slice(0, 6);
-              return f.categoria && !base.includes(f.categoria) ? [...base, f.categoria] : base;
-            })();
-            const inputBase = 'w-full h-11 bg-stone-50/70 border-[1.5px] border-stone-200 rounded-[14px] px-3.5 text-sm text-stone-900 placeholder:text-stone-400 outline-none focus:border-[#6105dc] focus:bg-white focus:ring-4 focus:ring-[#6105dc]/15 transition disabled:bg-stone-100 disabled:text-stone-500';
-            const inputError = 'border-rose-400 bg-rose-50 focus:border-rose-500 focus:ring-rose-200';
-            const chipClase = (activo) => `inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[12.5px] font-semibold border-[1.5px] transition ${activo ? 'border-[#6105dc] bg-[#f4eefe] text-[#4d04b0] ring-2 ring-[#6105dc]/15' : 'border-stone-200 bg-white text-stone-600 hover:bg-[#f4eefe] hover:border-[#e4d6fb]'}`;
-            const segClase = (activo) => `rounded-[11px] py-2.5 px-2 text-[13px] font-bold transition text-center ${activo ? 'bg-white text-[#4d04b0] shadow-sm' : 'text-stone-500 hover:text-stone-700'}`;
-            const etiqueta = 'flex items-center justify-between gap-2 text-[12.5px] font-semibold text-stone-800 mb-1.5';
-            const interruptor2 = ({ activo, onClick, icono, titulo, detalle, aviso }) => (
-              <button type="button" role="switch" aria-checked={activo} onClick={onClick} className={`w-full flex items-center justify-between gap-3 text-left rounded-2xl border-[1.5px] px-3.5 py-3 transition ${activo ? 'border-[#6105dc] bg-[#fcfaff]' : aviso ? 'border-amber-300 bg-amber-50' : 'border-stone-200 bg-white hover:bg-stone-50'}`}>
-                <span className="flex items-center gap-3 min-w-0">
-                  <span className={`w-[34px] h-[34px] rounded-[11px] grid place-items-center shrink-0 text-sm ${activo ? 'bg-[#6105dc] text-white' : aviso ? 'bg-amber-500 text-white' : 'bg-stone-100 text-stone-400'}`}><i className={`fa-solid ${icono}`}></i></span>
-                  <span className="min-w-0">
-                    <span className="block text-[13.5px] font-bold text-stone-800">{titulo}</span>
-                    <span className="block text-xs text-stone-500 leading-snug">{detalle}</span>
-                  </span>
-                </span>
-                <span className={`relative w-[42px] h-6 rounded-full shrink-0 transition-colors ${activo ? 'bg-[#6105dc]' : 'bg-stone-300'}`}>
-                  <span className={`absolute top-[3px] left-[3px] w-[18px] h-[18px] rounded-full bg-white shadow transition-transform ${activo ? 'translate-x-[18px]' : ''}`}></span>
-                </span>
-              </button>
-            );
-
-            return (
-            <div className="fixed inset-0 bg-stone-900/30 backdrop-blur-sm flex items-center justify-center z-50 p-2 sm:p-4">
-              <div className="bg-gradient-to-br from-[#f4effc] via-[#f9f8fb] to-[#f5f4f8] border border-white/80 rounded-[28px] max-w-4xl w-full shadow-2xl h-[95vh] max-h-[820px] flex flex-col overflow-hidden">
-
-                {/* Cabecera: ficha del producto + pestañas */}
-                <div className="bg-white border-b border-stone-100 px-4 sm:px-5 pt-3.5 shrink-0">
-                  <div className="flex items-center gap-2 text-xs font-semibold text-stone-500">
-                    <b className="text-[13px] text-stone-900">Editar producto</b>
-                    {f.sku && <span>· {f.sku}</span>}
-                    <button onClick={cerrar} aria-label="Cerrar" className="ml-auto w-8 h-8 flex items-center justify-center rounded-full text-stone-400 hover:text-stone-600 hover:bg-stone-100 transition-colors shrink-0"><i className="fa-solid fa-xmark"></i></button>
-                  </div>
-                  <div className="flex items-center gap-3 sm:gap-3.5 mt-2.5 mb-3.5">
-                    <label className={`relative w-[52px] h-[52px] sm:w-16 sm:h-16 rounded-2xl overflow-hidden shrink-0 border border-stone-200 group ${fotoDeshabilitada ? '' : 'cursor-pointer'}`} title={fotoDeshabilitada ? 'La subida de fotos está desactivada para tu negocio' : 'Cambiar foto'}>
-                      <FotoProducto fotoUrl={f.foto_url} categoria={f.categoria} className="w-full h-full" iconClassName="text-2xl" />
-                      {!fotoDeshabilitada && (
-                        <>
-                          <span className="absolute inset-0 flex items-center justify-center bg-black/0 group-hover:bg-black/40 transition">
-                            {subiendoFotoProducto ? <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></span> : <i className="fa-solid fa-camera text-white text-base opacity-0 group-hover:opacity-100 transition"></i>}
-                          </span>
-                          <input type="file" accept="image/*" className="hidden" onChange={(e) => { const file = e.target.files && e.target.files[0]; e.target.value = ''; if (file) subirFotoProducto(file); }} />
-                        </>
-                      )}
-                    </label>
-                    <div className="min-w-0 flex-1">
-                      <h1 className="text-base sm:text-[19px] font-extrabold text-stone-900 tracking-tight leading-tight truncate">{f.descripcion.trim() || 'Sin nombre'}</h1>
-                      <div className="flex flex-wrap gap-1.5 mt-1.5">
-                        <span className="text-[11px] font-bold rounded-full px-2.5 py-0.5 bg-[#f4eefe] text-[#4d04b0]">{f.categoria || 'Sin categoría'}</span>
-                        <span className={`text-[11px] font-bold rounded-full px-2.5 py-0.5 ${stockTag.clase}`}>{stockTag.texto}</span>
-                        {f.es_destacado && <span className="text-[11px] font-bold rounded-full px-2.5 py-0.5 bg-[#fff6d6] text-[#8a6200]">★ Destacado</span>}
-                        {esBarberia && f.visible_en_tienda === false && <span className="text-[11px] font-bold rounded-full px-2.5 py-0.5 bg-amber-50 text-amber-700">Oculto en la tienda</span>}
-                      </div>
-                    </div>
-                    <div className="text-right shrink-0">
-                      {pvOriginal !== pv && <s className="text-xs font-semibold text-stone-300 mr-1.5">S/ {pvOriginal.toFixed(2)}</s>}
-                      <strong className="block sm:inline text-xl sm:text-2xl font-extrabold text-[#4d04b0] leading-tight">S/ {pv.toFixed(2)}</strong>
-                      <small className="block text-[11px] font-semibold text-stone-400">{esBarberia ? (esServicio ? 'servicio' : 'unidad') : (f.unidad === 'KG' ? 'por kg' : 'por unidad')}</small>
-                    </div>
-                  </div>
-                  <div className="flex gap-1 -mx-1.5 overflow-x-auto hide-scrollbar" role="tablist">
-                    {pestanas.map(([id, titulo]) => {
-                      const nCambios = cambios.filter((c) => c.pestana === id).length;
-                      const conError = Object.keys(errores).some((k) => pestanaDeError[k] === id);
-                      return (
-                        <button key={id} type="button" role="tab" aria-selected={pestana === id} onClick={() => setTabEditarProducto(id)} className={`relative px-3 sm:px-4 pt-2.5 pb-3 text-[13px] sm:text-[13.5px] font-bold whitespace-nowrap flex items-center gap-2 rounded-t-xl ${pestana === id ? 'text-[#4d04b0]' : 'text-stone-500 hover:text-stone-800'}`}>
-                          {titulo}
-                          {conError ? <span className="w-2 h-2 rounded-full bg-rose-500 ring-[3px] ring-rose-500/15" title="Falta completar algo en esta pestaña"></span> : nCambios > 0 ? <span className="w-2 h-2 rounded-full bg-[#6105dc] ring-[3px] ring-[#6105dc]/15" title={`${nCambios} cambio${nCambios > 1 ? 's' : ''} sin guardar`}></span> : null}
-                          {pestana === id && <span className="absolute left-3 right-3 -bottom-px h-[3px] rounded bg-[#6105dc]"></span>}
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
-
-                {/* Cuerpo: pestaña activa + vista previa y cambios */}
-                <div className="flex-1 overflow-y-auto p-4 sm:p-5 grid gap-4 md:gap-5 md:grid-cols-[minmax(0,1fr)_280px] content-start">
-                  <div className="min-w-0">
-                    <div className="bg-white border border-stone-100 rounded-[22px] p-4 sm:p-5 shadow-sm space-y-4">
-
-                      {pestana === 'general' && (
-                        <>
-                          <div>
-                            <h4 className="text-[17px] font-extrabold text-stone-900 tracking-tight">Datos del producto</h4>
-                          </div>
-                          <div>
-                            <label className={etiqueta}><span>{esBarberia ? 'Nombre' : 'Nombre del producto'} <span className="text-rose-500">*</span></span></label>
-                            <input type="text" autoComplete="off" value={f.descripcion} onChange={(e) => setF('descripcion', e.target.value)} className={`${inputBase} ${errores.descripcion ? inputError : ''}`} />
-                            {errores.descripcion && <p className="text-[11.5px] text-rose-600 mt-1.5">{errores.descripcion}</p>}
-                          </div>
-                          <div>
-                            <label className={etiqueta}><span>Categoría</span></label>
-                            <div className="flex flex-wrap gap-2">
-                              {categoriaVisibles.map((c) => (
-                                <button key={c} type="button" onClick={() => setF('categoria', c)} className={chipClase(f.categoria === c)}>
-                                  <i className={`fa-solid ${estiloCategoria(c).icono} text-[11px]`}></i>{c}
-                                </button>
-                              ))}
-                              <button type="button" onClick={() => agregarCategoriaPersonalizada((v) => setFormEditarProducto((prev) => ({ ...prev, categoria: v })))} className={`${chipClase(false)} border-dashed text-stone-500`}>
-                                <i className="fa-solid fa-plus text-[10px]"></i> Nueva
-                              </button>
-                            </div>
-                            {categoriasDB.length > 6 && (
-                              <select value={f.categoria} onChange={(e) => setF('categoria', e.target.value)} aria-label="Ver todas las categorías" className="mt-2 h-9 bg-stone-50/70 border border-stone-200 rounded-xl px-3 text-xs text-stone-600">
-                                {!categoriasDB.includes(f.categoria) && f.categoria && <option value={f.categoria}>{f.categoria}</option>}
-                                {categoriasDB.map((c) => <option key={c} value={c}>{c}</option>)}
-                              </select>
-                            )}
-                          </div>
-                          {!esServicio && (
-                            <div>
-                              <label className={etiqueta}><span>Código de barras</span><span className="text-stone-400 font-normal">opcional</span></label>
-                              <input type="text" inputMode="numeric" value={f.cod_ean} onChange={(e) => setF('cod_ean', e.target.value)} className={inputBase} />
-                            </div>
-                          )}
-                          <div>
-                            <label className={etiqueta}><span>Código interno</span></label>
-                            <input type="text" value={f.sku} onChange={(e) => setF('sku', e.target.value)} className={inputBase} />
-                          </div>
-                          <div>
-                            <label className={etiqueta}><span>Foto</span><span className="text-stone-400 font-normal">también puedes tocar la foto de arriba</span></label>
-                            {fotoDeshabilitada ? (
-                              <p className="text-xs text-stone-500">La subida de fotos está desactivada para tu negocio. Contacta a Kaserita si la necesitas.</p>
-                            ) : (
-                              <div className="flex flex-wrap gap-2">
-                                <label className="inline-flex items-center gap-1.5 cursor-pointer py-2 px-3.5 rounded-xl border-[1.5px] border-stone-200 bg-white hover:bg-[#f4eefe] text-stone-700 text-xs font-semibold transition">
-                                  {subiendoFotoProducto ? <i className="fa-solid fa-spinner fa-spin text-stone-500"></i> : <i className="fa-solid fa-camera text-stone-500"></i>}
-                                  {f.foto_url ? 'Cambiar foto' : 'Subir foto'}
-                                  <input type="file" accept="image/*" className="hidden" onChange={(e) => { const file = e.target.files && e.target.files[0]; e.target.value = ''; if (file) subirFotoProducto(file); }} />
-                                </label>
-                                {f.foto_url && (
-                                  <button type="button" onClick={() => setF('foto_url', '')} className="inline-flex items-center gap-1.5 py-2 px-3.5 rounded-xl border-[1.5px] border-stone-200 bg-white hover:bg-rose-50 hover:border-rose-200 text-stone-700 hover:text-rose-600 text-xs font-semibold transition">
-                                    <i className="fa-solid fa-trash-can"></i> Quitar foto
-                                  </button>
-                                )}
-                              </div>
-                            )}
-                            {!fotoDeshabilitada && <p className="text-[11px] text-stone-400 mt-1.5">O pega una imagen con Ctrl+V.</p>}
-                          </div>
-                        </>
-                      )}
-
-                      {pestana === 'precio' && (
-                        <>
-                          <div>
-                            <h4 className="text-[17px] font-extrabold text-stone-900 tracking-tight">{esServicio ? 'Precio y duración' : 'Precio y stock'}</h4>
-                            <p className="text-[12.5px] text-stone-500 mt-0.5">{esServicio ? 'La duración bloquea ese tiempo del barbero en la agenda.' : 'Cambia el precio, mira tu ganancia y ajusta cuánto tienes.'}</p>
-                          </div>
-                          <div>
-                            <label className={etiqueta}><span>Precio de venta{esBarberia ? '' : ' por unidad'} <span className="text-rose-500">*</span></span></label>
-                            <div className={`flex items-baseline gap-2.5 rounded-[20px] border-2 transition px-4 py-3 focus-within:ring-4 ${errores.precio ? 'border-rose-400 bg-rose-50 focus-within:ring-rose-200' : 'bg-stone-50/70 border-stone-200 focus-within:border-[#6105dc] focus-within:bg-white focus-within:ring-[#6105dc]/15'}`}>
-                              <span className="text-xl font-extrabold text-stone-300 select-none">S/</span>
-                              <input type="number" step="0.10" min="0" inputMode="decimal" value={f.precio_venta} onChange={(e) => setF('precio_venta', e.target.value)} className="w-full min-w-0 bg-transparent border-0 p-0 text-[34px] sm:text-[40px] leading-tight font-extrabold tracking-tight text-stone-900 placeholder:text-stone-300 focus:ring-0 focus:outline-none" />
-                              <span className="text-[11px] font-bold tracking-widest text-stone-300">PEN</span>
-                            </div>
-                            {pv > 0 && pv !== pvOriginal && pvOriginal > 0 && (
-                              <span className={`inline-flex items-center gap-1.5 mt-2 rounded-full px-2.5 py-1 text-xs font-bold ${pv > pvOriginal ? 'bg-emerald-50 text-emerald-700' : 'bg-amber-50 text-amber-700'}`}>
-                                Antes S/ {pvOriginal.toFixed(2)} · {pv > pvOriginal ? '+' : '−'}S/ {Math.abs(pv - pvOriginal).toFixed(2)} ({pv > pvOriginal ? '+' : '−'}{Math.abs(((pv - pvOriginal) / pvOriginal) * 100).toFixed(0)}%)
-                              </span>
-                            )}
-                            {errores.precio && <p className="text-[11.5px] text-rose-600 mt-1.5">{errores.precio}</p>}
-                          </div>
-
-                          <div className="grid gap-4 sm:grid-cols-2">
-                            <div>
-                              <label className={etiqueta}><span>Costo{esServicio ? ' de insumos' : ''}</span><span className="text-stone-400 font-normal">opcional</span></label>
-                              <div className="relative">
-                                <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[13px] font-bold text-stone-300 pointer-events-none">S/</span>
-                                <input type="number" step="0.10" min="0" inputMode="decimal" value={f.precio_costo} onChange={(e) => setF('precio_costo', e.target.value)} className={`${inputBase} pl-9 ${errores.costo ? inputError : ''}`} />
-                              </div>
-                              {errores.costo && <p className="text-[11.5px] text-rose-600 mt-1.5">{errores.costo}</p>}
-                              {margenPct !== null && (
-                                <span className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 mt-2 text-[11.5px] font-bold ${margenPct < 0 ? 'bg-rose-50 text-rose-600' : margenPct < 10 ? 'bg-amber-50 text-amber-700' : 'bg-emerald-50 text-emerald-700'}`}>
-                                  Ganancia S/ {(pv - pc).toFixed(2)} · {margenPct.toFixed(0)}%{margenPct < 0 ? ' (pérdida)' : margenPct < 10 ? ' (bajo)' : ''}
-                                </span>
-                              )}
-                            </div>
-                            {esServicio ? (
-                              <div>
-                                <label className={etiqueta}><span>Duración del servicio</span></label>
-                                <div className="flex flex-wrap gap-2">
-                                  {[15, 30, 45, 60, 90].map((m) => (
-                                    <button key={m} type="button" onClick={() => setF('duracion_min', String(m))} className={chipClase(Number(f.duracion_min) === m)}>{m} min</button>
-                                  ))}
-                                </div>
-                                <div className="flex items-center gap-2 mt-2">
-                                  <input type="number" min="5" max="480" step="5" placeholder="Otra" value={f.duracion_min ?? ''} onChange={(e) => setF('duracion_min', e.target.value)} className="w-24 h-9 bg-stone-50/70 border border-stone-200 rounded-xl px-3 text-xs" />
-                                  <span className="text-[11px] text-stone-500">minutos · vacío = 30</span>
-                                </div>
-                                {errores.duracion && <p className="text-[11.5px] text-rose-600 mt-1.5">{errores.duracion}</p>}
-                              </div>
-                            ) : !esBarberia ? (
-                              <div>
-                                <label className={etiqueta}><span>Se vende por</span></label>
-                                <div className="grid grid-flow-col auto-cols-fr bg-[#f1eef9] rounded-[14px] p-1 gap-1">
-                                  <button type="button" onClick={() => setF('unidad', 'UND')} className={segClase(f.unidad !== 'KG')}>Unidad</button>
-                                  <button type="button" onClick={() => setFormEditarProducto((prev) => ({ ...prev, unidad: 'KG', vendeEnPack: false }))} className={segClase(f.unidad === 'KG')}>Peso (KG)<span className="block text-[11px] font-medium opacity-80">balanza</span></button>
-                                </div>
-                              </div>
-                            ) : <div></div>}
-                          </div>
-
-                          {pc > 0 && (
-                            <div className="rounded-2xl border border-dashed border-[#e4d6fb] bg-[#fcfaff] px-3.5 py-3">
-                              <p className="text-xs font-semibold text-stone-500 mb-2">Precio sugerido según tu margen</p>
-                              <div className="flex flex-wrap gap-2">
-                                {[20, 30, 40].map((m) => {
-                                  const sugerido = Math.ceil((pc / (1 - m / 100)) * 10) / 10;
-                                  return (
-                                    <button key={m} type="button" onClick={() => setF('precio_venta', sugerido.toFixed(2))} className={chipClase(Math.abs(pv - sugerido) < 0.005)}>
-                                      Ganar {m}% → S/ {sugerido.toFixed(2)}
-                                    </button>
-                                  );
-                                })}
-                              </div>
-                            </div>
-                          )}
-
-                          {!esServicio && (
-                            <div>
-                              <label className={etiqueta}><span>Stock actual</span><span className="text-stone-400 font-normal">{esBarberia ? '' : 'para una compra, usa Entrada de Mercadería'}</span></label>
-                              <div className={`flex flex-wrap items-center gap-3.5 border-[1.5px] rounded-[18px] px-3.5 py-3 bg-stone-50/70 ${errores.stock ? 'border-rose-400' : 'border-stone-200'}`}>
-                                <div className="text-[30px] leading-none font-extrabold text-stone-900 min-w-[64px]">{f.stock_actual === '' ? '—' : f.stock_actual}<small className="text-[13px] font-bold text-stone-400 ml-1">{f.unidad === 'KG' ? 'kg' : 'und'}</small></div>
-                                <div className="flex items-center gap-2 ml-auto">
-                                  <button type="button" aria-label="Menos" onClick={() => ajustarStock(f.unidad === 'KG' ? -0.5 : -1)} className="w-[42px] h-[42px] rounded-[13px] border-[1.5px] border-stone-200 bg-white grid place-items-center text-[#4d04b0] hover:bg-[#f4eefe]"><i className="fa-solid fa-minus text-xs"></i></button>
-                                  <input type="number" min="0" step={f.unidad === 'KG' ? '0.1' : '1'} placeholder="—" value={f.stock_actual} onChange={(e) => setF('stock_actual', e.target.value)} className="w-24 h-[42px] text-center font-bold text-sm rounded-[13px] border-[1.5px] border-stone-200 bg-white outline-none focus:border-[#6105dc]" />
-                                  <button type="button" aria-label="Más" onClick={() => ajustarStock(f.unidad === 'KG' ? 0.5 : 1)} className="w-[42px] h-[42px] rounded-[13px] border-[1.5px] border-stone-200 bg-white grid place-items-center text-[#4d04b0] hover:bg-[#f4eefe]"><i className="fa-solid fa-plus text-xs"></i></button>
-                                </div>
-                              </div>
-                              {errores.stock ? <p className="text-[11.5px] text-rose-600 mt-1.5">{errores.stock}</p> : <p className="text-[11px] text-stone-400 mt-1.5">Déjalo vacío si no llevas el control de stock de este producto.</p>}
-                            </div>
-                          )}
-
-                          {mostrarPack && (
-                            <div>
-                              {interruptor2({ activo: !!f.vendeEnPack, onClick: () => setF('vendeEnPack', !f.vendeEnPack), icono: "fa-box", titulo: "También lo vendo en pack o caja cerrada", detalle: "Ej: six-pack o caja x12 con precio especial" })}
-                              {f.vendeEnPack && (
-                                <div className="mt-2.5 p-3.5 bg-white border border-stone-200 rounded-2xl space-y-3">
-                                  <div className="grid gap-3 sm:grid-cols-2">
-                                    <div>
-                                      <label className="text-[11px] font-semibold text-stone-500 block mb-1">¿De cuántas unidades es el pack?</label>
-                                      <input type="number" step="1" min="2" placeholder="Ej: 6" value={f.unidades_por_pack} onChange={(e) => setF('unidades_por_pack', e.target.value)} className={inputBase} />
-                                    </div>
-                                    <div>
-                                      <label className="text-[11px] font-semibold text-stone-500 block mb-1">Precio del pack completo (S/)</label>
-                                      <input type="number" step="0.10" placeholder="Ej: 27.00" value={f.precio_venta_pack} onChange={(e) => setF('precio_venta_pack', e.target.value)} className={inputBase} />
-                                    </div>
-                                  </div>
-                                  {Number(f.unidades_por_pack) > 1 && Number(f.precio_venta_pack) > 0 && (
-                                    <p className="text-[11.5px] text-stone-500">= S/ {(Number(f.precio_venta_pack) / Number(f.unidades_por_pack)).toFixed(2)} por unidad dentro del pack (vs. S/ {pv.toFixed(2)} por unidad suelta)</p>
-                                  )}
-                                  <div>
-                                    <label className="text-[11px] font-semibold text-stone-500 block mb-1">Código de barras del pack (opcional, si es distinto al de la unidad)</label>
-                                    <div className="relative">
-                                      <input type="text" placeholder="Si ya existe, se vincula solo" value={f.cod_ean_pack} onChange={(e) => setF('cod_ean_pack', e.target.value)} className={`${inputBase} pr-10`} />
-                                      <button type="button" onClick={() => { setModoEscaner('editar-pack-ean'); setMetodoForzado(null); setModalEscaner(true); }} className="absolute right-1.5 top-1/2 -translate-y-1/2 w-8 h-8 flex items-center justify-center text-stone-600 hover:text-[#6105dc] transition" title="Escanear código de barras del pack">
-                                        <i className="fa-solid fa-camera text-xs"></i>
-                                      </button>
-                                    </div>
-                                  </div>
-                                  {errores.pack && <p className="text-[11.5px] text-rose-600">{errores.pack}</p>}
-                                </div>
-                              )}
-                            </div>
-                          )}
-                        </>
-                      )}
-
-                      {pestana === 'tienda' && (
-                        <>
-                          <div>
-                            <h4 className="text-[17px] font-extrabold text-stone-900 tracking-tight">En tu tienda en línea</h4>
-                            <p className="text-[12.5px] text-stone-500 mt-0.5">Cómo se muestra este producto a tus clientes en Kaserita Delivery.</p>
-                          </div>
-                          <div className="space-y-2.5">
-                            {interruptor2({ activo: !!f.es_destacado, onClick: () => setF('es_destacado', !f.es_destacado), icono: "fa-star", titulo: "Destacar en Kaserita Delivery", detalle: "Aparece en el carrusel de destacados de tu tienda en línea. Puedes marcar varios productos." })}
-                            {esBarberia && interruptor2({ activo: f.visible_en_tienda !== false, onClick: () => setF('visible_en_tienda', f.visible_en_tienda === false), aviso: f.visible_en_tienda === false, icono: "fa-eye", titulo: "Mostrar en la tienda en línea", detalle: f.visible_en_tienda === false ? 'Oculto: lo puedes vender en caja y usarlo en combos, pero no aparece en la tienda.' : 'Los clientes lo ven y lo pueden pedir.' })}
-                          </div>
-                          {!fotoDeshabilitada && (
-                            <>
-                              <div>
-                                <label className={etiqueta}><span>Descripción para la tienda en línea</span><span className="text-stone-400 font-normal">{(f.descripcion_larga || '').length} caracteres</span></label>
-                                <textarea
-                                  value={f.descripcion_larga}
-                                  onChange={(e) => setF('descripcion_larga', e.target.value)}
-                                  rows={3}
-                                  placeholder={esBarberia ? 'Ej: degradado con máquina, perfilado y toalla caliente' : 'Ej: tela, talla, colores disponibles, sabor...'}
-                                  className="w-full bg-stone-50/70 border-[1.5px] border-stone-200 rounded-[14px] px-3.5 py-2.5 text-sm text-stone-900 placeholder:text-stone-400 outline-none focus:border-[#6105dc] focus:bg-white focus:ring-4 focus:ring-[#6105dc]/15 transition"
-                                />
-                              </div>
-                              <div>
-                                <label className={etiqueta}><span>Fotos adicionales</span><span className="text-stone-400 font-normal">{fotosExtra.length} de 4</span></label>
-                                <div className="grid grid-cols-4 gap-2.5">
-                                  {fotosExtra.map((url, i) => (
-                                    <div key={i} className="relative aspect-square rounded-2xl overflow-hidden border border-stone-200">
-                                      <img src={url} className="w-full h-full object-cover" alt="" />
-                                      <button type="button" aria-label="Quitar foto" onClick={() => quitarFotoExtra(i)} className="absolute top-1.5 right-1.5 w-[22px] h-[22px] rounded-full bg-black/65 text-white grid place-items-center text-[10px]"><i className="fa-solid fa-xmark"></i></button>
-                                    </div>
-                                  ))}
-                                  {fotosExtra.length < 4 && (
-                                    <label className="aspect-square rounded-2xl border-2 border-dashed border-stone-300 bg-stone-50/70 grid place-items-center cursor-pointer text-stone-400 hover:border-[#6105dc] hover:text-[#6105dc] hover:bg-[#f4eefe] transition">
-                                      {subiendoFotoExtra ? <span className="w-4 h-4 border-2 border-stone-400 border-t-transparent rounded-full animate-spin"></span> : <i className="fa-solid fa-plus text-lg"></i>}
-                                      <input type="file" accept="image/*" className="hidden" onChange={(e) => { const file = e.target.files && e.target.files[0]; e.target.value = ''; if (file) subirFotoExtraProducto(file); }} />
-                                    </label>
-                                  )}
-                                </div>
-                                <p className="text-[11px] text-stone-400 mt-1.5">Se ven al abrir el producto en la tienda.</p>
-                              </div>
-                            </>
-                          )}
-                        </>
-                      )}
-                    </div>
-                  </div>
-
-                  {/* Vista previa y cambios sin guardar */}
-                  <aside className="md:sticky md:top-0 md:self-start min-w-0">
-                    <p className="hidden md:block text-[11px] font-bold tracking-wider uppercase text-stone-400 mb-2">Así se ve en tu caja</p>
-                    <div className="hidden md:block bg-white border border-stone-100 rounded-[22px] p-3 shadow-sm">
-                      <div className="aspect-[1/0.72] rounded-2xl bg-gradient-to-br from-[#f4eefe] to-white overflow-hidden relative">
-                        <FotoProducto fotoUrl={f.foto_url} categoria={f.categoria} className="w-full h-full" iconClassName="text-5xl" />
-                        {f.vendeEnPack && !esBarberia && Number(f.unidades_por_pack) > 1 && <span className="absolute top-2 left-2 bg-[#ffc81a] text-stone-900 text-[10.5px] font-extrabold rounded-full px-2 py-0.5">Pack x{f.unidades_por_pack}</span>}
-                        {f.es_destacado && <span className="absolute top-2 right-2 w-[26px] h-[26px] rounded-full bg-white grid place-items-center text-[#d99a00] shadow text-xs"><i className="fa-solid fa-star"></i></span>}
-                      </div>
-                      <span className="inline-block mt-2.5 text-[10.5px] font-bold text-[#4d04b0] bg-[#f4eefe] rounded-full px-2 py-0.5">{f.categoria || 'Sin categoría'}</span>
-                      <p className="text-sm font-bold leading-tight mt-1.5 min-h-[2.2rem] text-stone-900">{f.descripcion.trim() || 'Sin nombre'}</p>
-                      <div className="flex items-baseline justify-between mt-1.5">
-                        <span>{pvOriginal !== pv && <s className="text-xs font-semibold text-stone-300 mr-1.5">S/ {pvOriginal.toFixed(2)}</s>}<strong className="text-[22px] font-extrabold text-stone-900">S/ {pv.toFixed(2)}</strong></span>
-                        <small className="text-[11px] text-stone-400">{esBarberia ? (esServicio ? `${Number(f.duracion_min) || 30} min` : 'unidad') : (f.unidad === 'KG' ? 'por kg' : 'por unidad')}</small>
-                      </div>
-                      <div className={`grid place-items-center mt-2.5 h-9 rounded-xl text-white text-[12.5px] font-bold ${!esServicio && f.stock_actual !== '' && Number(f.stock_actual) <= 0 ? 'bg-stone-300' : 'bg-[#6105dc] opacity-90'}`}>{!esServicio && f.stock_actual !== '' && Number(f.stock_actual) <= 0 ? 'Sin stock' : 'Agregar'}</div>
-                    </div>
-                    <details className="mt-3.5 bg-white border border-stone-100 rounded-[18px] overflow-hidden group" open={tieneCambios}>
-                      <summary className="list-none cursor-pointer flex items-center gap-2 px-3.5 py-3 text-[12.5px] font-bold text-stone-800">
-                        Cambios sin guardar
-                        <span className="bg-[#6105dc] text-white rounded-full text-[11px] px-2 py-px">{cambios.length}</span>
-                        <i className="fa-solid fa-chevron-down text-stone-400 text-xs ml-auto transition group-open:rotate-180"></i>
-                      </summary>
-                      {cambios.length === 0 ? (
-                        <p className="px-3.5 pb-3 text-xs text-stone-500">Todavía no cambias nada.</p>
-                      ) : (
-                        <ul className="px-2.5 pb-2.5 grid gap-1.5">
-                          {cambios.map((c) => (
-                            <li key={c.etiqueta} className="flex items-center gap-2 bg-[#faf8ff] rounded-xl pl-2.5 pr-1.5 py-1.5 text-xs">
-                              <span className="text-stone-500 font-semibold whitespace-nowrap">{c.etiqueta}</span>
-                              <span className="flex-1 min-w-0 truncate font-bold text-stone-800"><i className="not-italic text-stone-300 font-semibold line-through mr-1">{c.antes}</i>{c.despues}</span>
-                              <button type="button" onClick={() => deshacer(c)} title="Deshacer este cambio" className="text-[#6105dc] hover:bg-[#f4eefe] rounded-lg px-1.5 py-1"><i className="fa-solid fa-rotate-left text-[11px]"></i></button>
-                            </li>
-                          ))}
-                        </ul>
-                      )}
-                    </details>
-                  </aside>
-                </div>
-
-                {/* Pie */}
-                <div className="shrink-0 bg-white border-t border-stone-200 px-4 sm:px-5 py-3 flex items-center gap-2 sm:gap-2.5 shadow-[0_-4px_18px_rgba(15,23,42,0.06)]">
-                  <button type="button" onClick={desactivarProducto} title="Quitar de mis productos" className="h-11 px-3.5 rounded-[14px] text-sm font-bold text-rose-600 hover:bg-rose-50 transition flex items-center gap-2">
-                    <i className="fa-solid fa-trash-can text-xs"></i><span className="hidden sm:inline">Quitar de mis productos</span>
-                  </button>
-                  <span className="flex-1"></span>
-                  <span className={`hidden sm:flex items-center gap-1.5 text-xs ${hayErrores ? 'text-rose-600' : tieneCambios ? 'text-[#4d04b0] font-semibold' : 'text-stone-500'}`}>
-                    {hayErrores ? <><i className="fa-solid fa-triangle-exclamation"></i>{Object.values(errores)[0]}</> : tieneCambios ? `${cambios.length} cambio${cambios.length > 1 ? 's' : ''} sin guardar` : 'Sin cambios'}
-                  </span>
-                  {tieneCambios && <button type="button" onClick={descartar} disabled={guardandoEdicionProducto} className="h-11 px-3.5 rounded-[14px] text-sm font-bold text-stone-500 hover:bg-stone-100 hover:text-stone-800 transition">Descartar</button>}
-                  <button type="button" onClick={guardarEdicionProducto} disabled={guardandoEdicionProducto || !tieneCambios || hayErrores} className="h-11 px-5 rounded-[14px] bg-[#6105dc] hover:bg-[#4d04b0] disabled:bg-stone-300 disabled:cursor-not-allowed text-white text-sm font-bold shadow-md flex items-center gap-2 transition">
-                    {guardandoEdicionProducto ? (<><i className="fa-solid fa-spinner fa-spin"></i> Guardando...</>) : (<><i className="fa-solid fa-check"></i> Guardar cambios</>)}
-                  </button>
-                </div>
-              </div>
-            </div>
-            );
-          })()}
-
-          {/* Modal: Entrada de Mercadería (Compras) */}
-          {modalEntradaMercaderia && (() => {
-            const BAJO = 5;
-            const norm = (s) => String(s || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
-            const dinero = (v) => `S/ ${(Number(v) || 0).toFixed(2)}`;
-            const fmtQ = (v, u) => `${Math.round((Number(v) || 0) * 100) / 100}${u === 'KG' ? ' kg' : ''}`;
-            const stockDe = (p) => (p.stock_actual === null || p.stock_actual === undefined || p.stock_actual === '') ? null : Number(p.stock_actual);
-            const esBajo = (p) => { const s = stockDe(p); return s !== null && s <= BAJO; };
-            const textoStock = (p) => { const s = stockDe(p); return s === null ? 'Sin control de stock' : `${fmtQ(s, p.unidad)} en stock`; };
-            // Lo que pasa con un producto al recibirlo: cuántas unidades suma al
-            // stock, cuánto cambia el costo y cuánto gana al venderlo.
-            const calc = (p, esPack, cant, costoIngresado) => {
-              const f = esPack ? (Number(p.unidades_por_pack) || 1) : 1;
-              const unidades = cant * f;
-              const costoUnit = costoIngresado / f;
-              const costoPrev = idsNuevosCompra.includes(p.id) ? 0 : (Number(p.precio_costo) || 0);
-              const pv = Number(p.precio_venta) || 0;
-              const stockPrev = stockDe(p);
-              return {
-                f, unidades, costoUnit, subtotal: cant * costoIngresado, costoPrev, pv, stockPrev,
-                stockNuevo: (stockPrev || 0) + unidades,
-                delta: costoPrev > 0 ? (costoUnit - costoPrev) / costoPrev : null,
-                margen: pv > 0 ? (pv - costoUnit) / pv : null
-              };
-            };
-            const avisosDe = (c) => {
-              if (c.costoUnit > 0 && c.pv > 0 && c.costoUnit >= c.pv) return [{ tipo: 'bad', texto: `El costo (${dinero(c.costoUnit)}) es igual o mayor que el precio de venta (${dinero(c.pv)}). Vas a vender a pérdida.` }];
-              if (c.delta !== null && c.delta >= 0.10) return [{ tipo: 'warn', texto: `El costo subió ${Math.round(c.delta * 100)}%. Revisa si quieres actualizar el precio de venta.` }];
-              return [];
-            };
-            const etiquetaDelta = (d) => {
-              if (d === null) return <span className="inline-flex items-center gap-1 text-[11px] font-bold rounded-full px-2 py-0.5 bg-[#f1eef9] text-stone-500">costo nuevo</span>;
-              if (Math.abs(d) < 0.005) return <span className="inline-flex items-center gap-1 text-[11px] font-bold rounded-full px-2 py-0.5 bg-[#f1eef9] text-stone-500">igual que antes</span>;
-              return d > 0
-                ? <span className="inline-flex items-center gap-1 text-[11px] font-bold rounded-full px-2 py-0.5 bg-amber-50 text-amber-700"><i className="fa-solid fa-arrow-up text-[9px]"></i>{Math.round(d * 100)}%</span>
-                : <span className="inline-flex items-center gap-1 text-[11px] font-bold rounded-full px-2 py-0.5 bg-emerald-50 text-emerald-700"><i className="fa-solid fa-arrow-down text-[9px]"></i>{Math.abs(Math.round(d * 100))}%</span>;
-            };
-
-            const sel = productos.find((p) => p.id === compraItemTemp.productoId) || null;
-            const creando = nuevoProductoInlineCompra;
-            const nLineas = compraItems.length;
-            const totalCompra = compraItems.reduce((a, c) => a + c.subtotal, 0);
-            const unidadesTotal = compraItems.reduce((a, c) => a + Number(c.cantidadStock ?? c.cantidad), 0);
-            const lineaInvalida = compraItems.some((i) => !(i.cantidad > 0) || !(i.costoIngresado > 0));
-            const nBajos = productos.filter(esBajo).length;
-
-            const q = norm(busquedaCompra.trim());
-            let lista = productos.filter((p) => filtroCompra !== 'bajo' || esBajo(p));
-            if (q) {
-              lista = lista.filter((p) => norm(p.descripcion).includes(q) || norm(p.categoria).includes(q) || String(p.cod_ean || '').toLowerCase().includes(q) || String(p.sku || '').toLowerCase().includes(q));
-            } else {
-              lista = [...lista].sort((a, b) => (esBajo(a) ? 0 : 1) - (esBajo(b) ? 0 : 1) || (stockDe(a) ?? 1e9) - (stockDe(b) ?? 1e9) || String(a.descripcion).localeCompare(String(b.descripcion)));
-            }
-            const visibles = lista.slice(0, 40);
-            const idxRes = Math.min(resaltadoCompra, Math.max(0, visibles.length - 1));
-            const teclasBusqueda = (e) => {
-              if (e.key === 'ArrowDown') { e.preventDefault(); setResaltadoCompra(Math.min(idxRes + 1, visibles.length - 1)); }
-              else if (e.key === 'ArrowUp') { e.preventDefault(); setResaltadoCompra(Math.max(idxRes - 1, 0)); }
-              else if (e.key === 'Enter') {
-                e.preventDefault();
-                const porCodigo = buscarProductoPorCodigo(busquedaCompra);
-                if (porCodigo) elegirProductoEntrada(porCodigo.producto, porCodigo.esPack);
-                else if (visibles[idxRes]) elegirProductoEntrada(visibles[idxRes]);
-                else if (busquedaCompra.trim()) abrirProductoNuevoEntrada(busquedaCompra.trim());
-              }
-            };
-
-            const inputBase = 'w-full h-11 bg-stone-50/70 border-[1.5px] border-stone-200 rounded-[14px] px-3.5 text-sm text-stone-900 placeholder:text-stone-400 outline-none focus:border-[#6105dc] focus:bg-white focus:ring-4 focus:ring-[#6105dc]/15 transition';
-            const etiquetaCampo = 'flex items-center justify-between gap-2 text-[12.5px] font-semibold text-stone-800 mb-1.5';
-            const segClase = (activo) => `rounded-[11px] py-2.5 px-2 text-[13px] font-bold transition text-center ${activo ? 'bg-white text-[#4d04b0] shadow-sm' : 'text-stone-500 hover:text-stone-700'}`;
-            const chipClase = (activo) => `inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[12.5px] font-semibold border-[1.5px] transition ${activo ? 'border-[#6105dc] bg-[#f4eefe] text-[#4d04b0] ring-2 ring-[#6105dc]/15' : 'border-stone-200 bg-white text-stone-600 hover:bg-[#f4eefe] hover:border-[#e4d6fb]'}`;
-            const claveBloque = 'bg-white border border-stone-100 rounded-[22px] p-4 shadow-sm flex flex-col md:min-h-0';
-            const sugeridos = proveedoresLista
-              .map((p) => p.nombre)
-              .filter((n) => n && norm(n).includes(norm(compraCabecera.proveedor)) && norm(n) !== norm(compraCabecera.proveedor))
-              .slice(0, 3);
-
-            // ----- Izquierda: elegir producto, cantidad y costo -----
-            const panelAgregar = (() => {
-              if (creando) {
-                const pcN = Number(creando.precio_costo) || 0;
-                const pvN = Number(creando.precio_venta) || 0;
-                return (
-                  <>
-                    <button type="button" onClick={() => setNuevoProductoInlineCompra(null)} className="self-start inline-flex items-center gap-1.5 text-[12.5px] font-bold text-stone-500 hover:text-stone-800 hover:bg-stone-100 rounded-lg px-2 py-1 -ml-1 mb-2"><i className="fa-solid fa-chevron-left text-[10px]"></i> Volver a la búsqueda</button>
-                    <h4 className="text-base font-extrabold text-stone-900 tracking-tight">Producto nuevo</h4>
-                    <p className="text-[12.5px] text-stone-500 mt-0.5 mb-3">Solo lo esencial para seguir con la entrada. El código y los demás datos los completas luego en «Editar producto».</p>
-                    <div className="space-y-3.5 md:flex-1 md:min-h-0 md:overflow-y-auto">
-                      <div>
-                        <label className={etiquetaCampo}><span>Nombre <span className="text-rose-500">*</span></span></label>
-                        <input type="text" autoFocus autoComplete="off" value={creando.descripcion} onChange={(e) => setNuevoProductoInlineCompra({ ...creando, descripcion: e.target.value })} className={inputBase} />
-                      </div>
-                      <div className="grid grid-cols-2 gap-3">
-                        <div>
-                          <label className={etiquetaCampo}><span>Categoría</span></label>
-                          <select value={creando.categoria} onChange={(e) => setNuevoProductoInlineCompra({ ...creando, categoria: e.target.value })} className={inputBase}>
-                            {categoriasDB.map((c) => <option key={c} value={c}>{c}</option>)}
-                          </select>
-                        </div>
-                        <div>
-                          <label className={etiquetaCampo}><span>Se vende por</span></label>
-                          <div className="grid grid-cols-2 bg-[#f1eef9] rounded-[14px] p-1 gap-1">
-                            <button type="button" onClick={() => setNuevoProductoInlineCompra({ ...creando, unidad: 'UND' })} className={segClase(creando.unidad === 'UND')}>Unidad</button>
-                            <button type="button" onClick={() => setNuevoProductoInlineCompra({ ...creando, unidad: 'KG' })} className={segClase(creando.unidad === 'KG')}>Peso (kg)</button>
-                          </div>
-                        </div>
-                      </div>
-                      <div className="grid grid-cols-2 gap-3">
-                        <div>
-                          <label className={etiquetaCampo}><span>Costo</span><span className="text-stone-400 font-normal">{creando.unidad === 'KG' ? 'por kilo' : 'por unidad'}</span></label>
-                          <div className="relative"><span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[13px] font-bold text-stone-300">S/</span><input type="number" step="0.01" min="0" inputMode="decimal" placeholder="0.00" value={creando.precio_costo} onChange={(e) => setNuevoProductoInlineCompra({ ...creando, precio_costo: e.target.value })} className={`${inputBase} pl-9 font-bold`} /></div>
-                        </div>
-                        <div>
-                          <label className={etiquetaCampo}><span>Precio de venta <span className="text-rose-500">*</span></span></label>
-                          <div className="relative"><span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[13px] font-bold text-stone-300">S/</span><input type="number" step="0.01" min="0" inputMode="decimal" placeholder="0.00" value={creando.precio_venta} onChange={(e) => setNuevoProductoInlineCompra({ ...creando, precio_venta: e.target.value })} className={`${inputBase} pl-9 font-bold`} /></div>
-                        </div>
-                      </div>
-                      {pcN > 0 && pvN > 0 && (pvN > pcN
-                        ? <div className="flex gap-2 items-start rounded-[14px] bg-[#f4eefe] text-[#4d04b0] px-3 py-2.5 text-xs leading-snug"><i className="fa-solid fa-circle-info mt-0.5"></i><span>Ganas {dinero(pvN - pcN)} por cada {creando.unidad === 'KG' ? 'kilo' : 'unidad'} ({Math.round((pvN - pcN) / pvN * 100)}%).</span></div>
-                        : <div className="flex gap-2 items-start rounded-[14px] bg-rose-50 text-rose-600 px-3 py-2.5 text-xs leading-snug"><i className="fa-solid fa-triangle-exclamation mt-0.5"></i><span>El precio de venta es menor o igual al costo.</span></div>)}
-                    </div>
-                    <button type="button" onClick={crearProductoInlineCompra} disabled={guardandoProductoInlineCompra} className="mt-3 w-full h-[46px] rounded-[14px] bg-[#6105dc] hover:bg-[#4d04b0] disabled:opacity-50 text-white font-bold text-[13.5px] shadow-lg shadow-[#6105dc]/30 inline-flex items-center justify-center gap-2">
-                      <i className="fa-solid fa-check"></i>{guardandoProductoInlineCompra ? 'Creando...' : 'Crear y usar en la entrada'}
-                    </button>
-                  </>
-                );
-              }
-
-              if (sel) {
-                const uds = Number(sel.unidades_por_pack) || 1;
-                const tieneP = uds > 1;
-                const esPack = tieneP && compraItemTemp.tipo === 'PACK';
-                const cant = Number(compraItemTemp.cantidad) || 0;
-                const costoIn = Number(compraItemTemp.costoUnitario) || 0;
-                const c = calc(sel, esPack, cant, costoIn);
-                const listo = cant > 0 && costoIn > 0;
-                const avisos = costoIn > 0 ? avisosDe(c) : [];
-                const alEnter = (e) => { if (e.key === 'Enter') { e.preventDefault(); agregarItemEntradaMercaderia(); } };
-                const costoPrevVisible = c.costoPrev > 0;
-                return (
-                  <>
-                    <button type="button" onClick={() => setCompraItemTemp({ productoId: '', cantidad: '', costoUnitario: '', tipo: 'UNIDAD' })} className="self-start inline-flex items-center gap-1.5 text-[12.5px] font-bold text-stone-500 hover:text-stone-800 hover:bg-stone-100 rounded-lg px-2 py-1 -ml-1 mb-2"><i className="fa-solid fa-chevron-left text-[10px]"></i> Elegir otro producto</button>
-                    <div className="flex items-center gap-3 mb-3.5">
-                      <div className="w-[54px] h-[54px] rounded-2xl overflow-hidden shrink-0 border border-stone-200"><FotoProducto fotoUrl={sel.foto_url} categoria={sel.categoria} className="w-full h-full" iconClassName="text-xl" /></div>
-                      <div className="min-w-0">
-                        <h4 className="text-base font-extrabold text-stone-900 tracking-tight leading-tight">{sel.descripcion}</h4>
-                        <p className="text-xs text-stone-500 mt-0.5">{sel.categoria || 'Sin categoría'} · {textoStock(sel)} · precio de venta {dinero(sel.precio_venta)}</p>
-                      </div>
-                    </div>
-                    <div className="space-y-3.5 md:flex-1 md:min-h-0 md:overflow-y-auto">
-                      {tieneP && (
-                        <div>
-                          <label className={etiquetaCampo}><span>¿Cómo te llegó?</span></label>
-                          <div className="grid grid-cols-2 bg-[#f1eef9] rounded-[14px] p-1 gap-1">
-                            <button type="button" onClick={() => cambiarTipoEntrada('UNIDAD')} className={segClase(!esPack)}>Unidades sueltas</button>
-                            <button type="button" onClick={() => cambiarTipoEntrada('PACK')} className={segClase(esPack)}>Packs o cajas<small className="block text-[11px] font-medium opacity-80">de {uds} unidades</small></button>
-                          </div>
-                        </div>
-                      )}
-                      <div className="grid grid-cols-2 gap-3">
-                        <div>
-                          <label className={etiquetaCampo}><span>{esPack ? 'Cantidad de packs' : (sel.unidad === 'KG' ? 'Kilos recibidos' : 'Cantidad')} <span className="text-rose-500">*</span></span></label>
-                          <div className="flex items-center gap-1.5">
-                            <button type="button" aria-label="Menos" onClick={() => setCompraItemTemp({ ...compraItemTemp, cantidad: String(Math.max(0, Math.round(((Number(compraItemTemp.cantidad) || 0) - 1) * 100) / 100)) })} className="w-11 h-11 shrink-0 rounded-[13px] border-[1.5px] border-stone-200 bg-white text-[#4d04b0] hover:bg-[#f4eefe]"><i className="fa-solid fa-minus text-xs"></i></button>
-                            <input type="number" autoFocus min="0" step={sel.unidad === 'KG' ? '0.1' : '1'} inputMode="decimal" placeholder="0" value={compraItemTemp.cantidad} onChange={(e) => setCompraItemTemp({ ...compraItemTemp, cantidad: e.target.value })} onKeyDown={alEnter} className={`${inputBase} text-center font-bold text-base px-1 min-w-0`} />
-                            <button type="button" aria-label="Más" onClick={() => setCompraItemTemp({ ...compraItemTemp, cantidad: String(Math.round(((Number(compraItemTemp.cantidad) || 0) + 1) * 100) / 100) })} className="w-11 h-11 shrink-0 rounded-[13px] border-[1.5px] border-stone-200 bg-white text-[#4d04b0] hover:bg-[#f4eefe]"><i className="fa-solid fa-plus text-xs"></i></button>
-                          </div>
-                        </div>
-                        <div>
-                          <label className={etiquetaCampo}><span>{esPack ? 'Costo por pack' : (sel.unidad === 'KG' ? 'Costo por kilo' : 'Costo por unidad')} <span className="text-rose-500">*</span></span></label>
-                          <div className="relative"><span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[13px] font-bold text-stone-300">S/</span><input type="number" min="0" step="0.01" inputMode="decimal" placeholder="0.00" value={compraItemTemp.costoUnitario} onChange={(e) => setCompraItemTemp({ ...compraItemTemp, costoUnitario: e.target.value })} onKeyDown={alEnter} className={`${inputBase} pl-9 font-bold text-base`} /></div>
-                        </div>
-                      </div>
-                      {avisos.map((a, i) => (
-                        <div key={i} className={`flex gap-2 items-start rounded-[14px] px-3 py-2.5 text-xs leading-snug ${a.tipo === 'bad' ? 'bg-rose-50 text-rose-600' : 'bg-amber-50 text-amber-700'}`}><i className="fa-solid fa-triangle-exclamation mt-0.5"></i><span>{a.texto}</span></div>
-                      ))}
-                      <div className="border border-stone-100 rounded-[18px] bg-[#fcfaff] px-3.5 divide-y divide-dashed divide-[#e4d6fb]">
-                        {esPack && cant > 0 && (
-                          <div className="flex items-center justify-between gap-2 py-2.5 text-[12.5px]"><span className="font-semibold text-stone-500">Equivale a</span><b>{cant} × {uds} = {fmtQ(c.unidades, sel.unidad)} und</b></div>
-                        )}
-                        <div className="flex items-center justify-between gap-2 py-2.5 text-[12.5px]"><span className="font-semibold text-stone-500">Stock</span><b>{c.stockPrev === null ? 'Sin control' : fmtQ(c.stockPrev, sel.unidad)} <span className="text-stone-300 font-semibold">→</span> {cant > 0 ? fmtQ(c.stockNuevo, sel.unidad) : '—'}</b></div>
-                        <div className="flex items-center justify-between gap-2 py-2.5 text-[12.5px] flex-wrap"><span className="font-semibold text-stone-500">Costo{esPack ? ' por unidad' : ''}</span><b className="flex items-center gap-1.5 flex-wrap justify-end">{costoPrevVisible && <s className="text-stone-300 font-semibold">{dinero(c.costoPrev)}</s>}{costoIn > 0 ? dinero(c.costoUnit) : '—'}{costoIn > 0 && etiquetaDelta(c.delta)}</b></div>
-                        {costoIn > 0 && c.margen !== null && (
-                          <div className="flex items-center justify-between gap-2 py-2.5 text-[12.5px]"><span className="font-semibold text-stone-500">Ganancia al vender a {dinero(c.pv)}</span><b className="flex items-center gap-1.5">{dinero(c.pv - c.costoUnit)}<span className={`text-[11px] font-bold rounded-full px-2 py-0.5 ${c.margen < 0.1 ? 'bg-amber-50 text-amber-700' : 'bg-emerald-50 text-emerald-700'}`}>{Math.round(c.margen * 100)}%</span></b></div>
-                        )}
-                        <div className="flex items-center justify-between gap-2 py-2.5 text-[12.5px]"><span className="font-semibold text-stone-500">Subtotal</span><b className="text-[15px] font-extrabold">{dinero(c.subtotal)}</b></div>
-                      </div>
-                    </div>
-                    <button type="button" onClick={agregarItemEntradaMercaderia} disabled={!listo} className="mt-3 w-full h-[46px] rounded-[14px] bg-[#6105dc] hover:bg-[#4d04b0] disabled:bg-[#d9d2ea] disabled:shadow-none text-white font-bold text-[13.5px] shadow-lg shadow-[#6105dc]/30 inline-flex items-center justify-center gap-2 transition">
-                      <i className="fa-solid fa-plus text-xs"></i> Añadir a la entrada
-                    </button>
-                    <p className="text-[11.5px] text-stone-400 text-center mt-1.5">Enter también lo añade</p>
-                  </>
-                );
-              }
-
-              return (
-                <>
-                  <h4 className="text-base font-extrabold text-stone-900 tracking-tight">Agregar productos</h4>
-                  <p className="text-[12.5px] text-stone-500 mt-0.5 mb-3">Busca por nombre o escanea el código de barras.</p>
-                  {nLineas > 0 && (
-                    <button type="button" onClick={() => document.getElementById('entrada-lista')?.scrollIntoView({ behavior: 'smooth', block: 'start' })} className="md:hidden flex items-center gap-2 w-full rounded-[14px] border-[1.5px] border-[#e4d6fb] bg-[#f4eefe] text-[#4d04b0] px-3.5 py-2.5 text-[12.5px] font-bold mb-3 text-left">
-                      <span className="flex-1">{nLineas} producto{nLineas > 1 ? 's' : ''} · {dinero(totalCompra)}</span>Ver la entrada <i className="fa-solid fa-arrow-down text-[10px]"></i>
-                    </button>
-                  )}
-                  <div className="relative">
-                    <i className="fa-solid fa-magnifying-glass absolute left-4 top-1/2 -translate-y-1/2 text-stone-300 text-[15px] pointer-events-none"></i>
-                    <input type="text" autoFocus autoComplete="off" placeholder="Ej: leche, arroz, 775…" value={busquedaCompra} onChange={(e) => { setBusquedaCompra(e.target.value); setResaltadoCompra(0); }} onKeyDown={teclasBusqueda} className="w-full h-[50px] bg-stone-50/70 border-[1.5px] border-stone-200 rounded-2xl pl-11 pr-[118px] text-[15px] text-stone-900 placeholder:text-stone-300 outline-none focus:border-[#6105dc] focus:bg-white focus:ring-4 focus:ring-[#6105dc]/15 transition" />
-                    <button type="button" onClick={() => { setModoEscaner('entrada-mercaderia'); setMetodoForzado(null); setModalEscaner(true); }} title="Escanear con la cámara" className="absolute right-1.5 top-1.5 bottom-1.5 px-3 rounded-[11px] border border-[#e4d6fb] bg-[#f4eefe] text-[#4d04b0] hover:bg-[#ece0fd] text-[12.5px] font-bold inline-flex items-center gap-1.5"><i className="fa-solid fa-camera text-xs"></i> Escanear</button>
-                  </div>
-                  <div className="flex flex-wrap gap-2 my-3">
-                    <button type="button" onClick={() => { setFiltroCompra('todos'); setResaltadoCompra(0); }} className={chipClase(filtroCompra === 'todos')}>Todos</button>
-                    <button type="button" onClick={() => { setFiltroCompra('bajo'); setResaltadoCompra(0); }} className={chipClase(filtroCompra === 'bajo')}>Por reponer <span className={`text-[10.5px] rounded-full px-1.5 ${filtroCompra === 'bajo' ? 'bg-[#6105dc] text-white' : 'bg-amber-50 text-amber-700'}`}>{nBajos}</span></button>
-                  </div>
-                  <div className="grid grid-cols-[minmax(0,1fr)] gap-1.5 max-h-80 overflow-y-auto md:max-h-none md:flex-1 md:min-h-0 content-start">
-                    {visibles.map((p, i) => {
-                      const s = stockDe(p);
-                      return (
-                        <button key={p.id} type="button" onClick={() => elegirProductoEntrada(p)} className={`flex items-center gap-3 w-full text-left rounded-2xl border-[1.5px] bg-white px-3 py-2 transition hover:bg-[#fcfaff] hover:border-[#e4d6fb] ${i === idxRes ? 'border-[#6105dc] ring-2 ring-[#6105dc]/15' : 'border-stone-100'}`}>
-                          <span className="w-[42px] h-[42px] rounded-[13px] overflow-hidden shrink-0 border border-stone-100"><FotoProducto fotoUrl={p.foto_url} categoria={p.categoria} className="w-full h-full" iconClassName="text-base" /></span>
-                          <span className="min-w-0 flex-1">
-                            <span className="block text-[13.5px] font-bold text-stone-900 leading-tight truncate">{p.descripcion}</span>
-                            <span className="block text-[11.5px] text-stone-500 mt-0.5">{textoStock(p)} · último costo {dinero(p.precio_costo)}{p.unidad === 'KG' ? ' /kg' : ''}</span>
-                          </span>
-                          {s !== null && s <= 0 && <span className="text-[11px] font-bold rounded-full px-2.5 py-0.5 bg-rose-50 text-rose-600 whitespace-nowrap">Sin stock</span>}
-                          {s !== null && s > 0 && s <= BAJO && <span className="text-[11px] font-bold rounded-full px-2.5 py-0.5 bg-amber-50 text-amber-700 whitespace-nowrap">Quedan {fmtQ(s, p.unidad)}</span>}
-                        </button>
-                      );
-                    })}
-                    {busquedaCompra.trim() && (
-                      <button type="button" onClick={() => abrirProductoNuevoEntrada(busquedaCompra.trim())} className="flex items-center gap-3 w-full text-left rounded-2xl border-[1.5px] border-dashed border-[#e4d6fb] bg-[#fcfaff] px-3 py-2 hover:bg-[#f4eefe] transition">
-                        <span className="w-[42px] h-[42px] rounded-[13px] shrink-0 bg-[#6105dc] text-white grid place-items-center"><i className="fa-solid fa-plus"></i></span>
-                        <span className="min-w-0 flex-1"><span className="block text-[13.5px] font-bold text-stone-900 leading-tight truncate">Crear «{busquedaCompra.trim()}» como producto nuevo</span><span className="block text-[11.5px] text-stone-500 mt-0.5">Lo creas aquí mismo y sigues con la entrada</span></span>
-                      </button>
-                    )}
-                    {!busquedaCompra.trim() && visibles.length === 0 && <p className="text-center text-[13px] text-stone-400 py-6">{filtroCompra === 'bajo' ? 'No hay productos por reponer.' : 'Aún no tienes productos registrados.'}</p>}
-                    {lista.length > visibles.length && <p className="text-center text-[11.5px] text-stone-400 py-1">Hay {lista.length - visibles.length} más. Escribe para afinar la búsqueda.</p>}
-                  </div>
-                </>
-              );
-            })();
-
-            // ----- Derecha: la entrada (proveedor, líneas, total) -----
-            const panelEntrada = (
-              <>
-                <h4 className="text-base font-extrabold text-stone-900 tracking-tight">La entrada</h4>
-                <p className="text-[12.5px] text-stone-500 mt-0.5 mb-3">{nLineas ? `${nLineas} producto${nLineas > 1 ? 's' : ''} para recibir` : 'Aquí verás lo que vas anotando.'}</p>
-                <div className="grid sm:grid-cols-2 md:grid-cols-1 xl:grid-cols-2 gap-3">
-                  <div>
-                    <label className={etiquetaCampo}><span>Proveedor</span><span className="text-stone-400 font-normal">opcional</span></label>
-                    <input type="text" autoComplete="off" placeholder="Ej: Distribuidora Andina" value={compraCabecera.proveedor} onChange={(e) => setCompraCabecera({ ...compraCabecera, proveedor: e.target.value })} className={inputBase} />
-                  </div>
-                  <div>
-                    <label className={etiquetaCampo}><span>N° factura o guía</span><span className="text-stone-400 font-normal">opcional</span></label>
-                    <input type="text" autoComplete="off" placeholder="F001-0234" value={compraCabecera.nroComprobante} onChange={(e) => setCompraCabecera({ ...compraCabecera, nroComprobante: e.target.value })} className={inputBase} />
-                  </div>
-                </div>
-                {sugeridos.length > 0 && (
-                  <div className="flex flex-wrap gap-1.5 mt-2">
-                    {sugeridos.map((n) => <button key={n} type="button" onClick={() => setCompraCabecera({ ...compraCabecera, proveedor: n })} className="px-2.5 py-1 rounded-full border-[1.5px] border-stone-200 bg-white text-xs font-semibold text-stone-600 hover:bg-[#f4eefe] hover:border-[#e4d6fb]">{n}</button>)}
-                  </div>
-                )}
-                <div className="h-px bg-stone-100 my-3.5"></div>
-                <div className="md:flex-1 md:min-h-0 md:overflow-y-auto -mx-1 px-1">
-                  {nLineas === 0 ? (
-                    <div className="text-center py-6 px-3 text-[13px] text-stone-500 leading-snug">
-                      <div className="w-[60px] h-[60px] rounded-[20px] bg-[#f4eefe] text-[#6105dc] grid place-items-center text-2xl mx-auto mb-2.5"><i className="fa-solid fa-box-open"></i></div>
-                      <b className="block text-[15px] text-stone-900 mb-0.5">Todavía no hay productos</b>
-                      Busca uno, pon cuánto llegó y a qué costo.
-                    </div>
-                  ) : (
-                    <div className="grid grid-cols-[minmax(0,1fr)] gap-2">
-                      {compraItems.map((it, idx) => {
-                        const p = productos.find((x) => x.id === it.productoId);
-                        if (!p) return null;
-                        const c = calc(p, it.esPack, it.cantidad, it.costoIngresado);
-                        const av = avisosDe(c);
-                        const invalida = !(it.cantidad > 0) || !(it.costoIngresado > 0);
-                        const unidadCant = it.esPack ? 'packs' : (p.unidad === 'KG' ? 'kg' : 'und');
-                        const unidadCosto = it.esPack ? 'x pack' : (p.unidad === 'KG' ? 'x kg' : 'x und');
-                        const commit = (campo) => (e) => { const v = e.target.value; if (Number(v) !== (campo === 'cantidad' ? it.cantidad : it.costoIngresado)) editarLineaEntrada(idx, campo, v); };
-                        const alEnter = (e) => { if (e.key === 'Enter') e.target.blur(); };
-                        const estilo = invalida || av.some((a) => a.tipo === 'bad') ? 'border-rose-300 bg-rose-50' : av.length ? 'border-amber-300 bg-amber-50/60' : 'border-stone-100 bg-white';
-                        return (
-                          <div key={`${it.productoId}-${idx}`} id={idx === nLineas - 1 ? 'entrada-ultima' : undefined} className={`rounded-2xl border-[1.5px] px-3 py-2.5 ${estilo}`}>
-                            <div className="flex items-center gap-2.5">
-                              <span className="w-[34px] h-[34px] rounded-[11px] overflow-hidden shrink-0 border border-stone-100"><FotoProducto fotoUrl={p.foto_url} categoria={p.categoria} className="w-full h-full" iconClassName="text-sm" /></span>
-                              <span className="flex-1 min-w-0 text-[13px] font-bold text-stone-900 leading-tight">{it.descripcion}</span>
-                              <button type="button" onClick={() => quitarItemEntradaMercaderia(idx)} title="Quitar esta línea" aria-label="Quitar esta línea" className="w-[30px] h-[30px] rounded-lg text-stone-300 hover:text-rose-600 hover:bg-rose-50 grid place-items-center shrink-0"><i className="fa-solid fa-trash-can text-sm"></i></button>
-                            </div>
-                            <div className="grid grid-cols-[78px_minmax(0,1fr)_auto] gap-2 items-center mt-2.5">
-                              <div className="relative">
-                                <input key={`q-${idx}-${it.cantidad}`} type="number" min="0" step={p.unidad === 'KG' ? '0.1' : '1'} inputMode="decimal" defaultValue={it.cantidad} onBlur={commit('cantidad')} onKeyDown={alEnter} aria-label="Cantidad" className="w-full h-9 rounded-[11px] border-[1.5px] border-stone-200 bg-white text-[13px] font-bold text-center pl-2 pr-8 outline-none focus:border-[#6105dc] focus:ring-4 focus:ring-[#6105dc]/15" />
-                                <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[10.5px] font-semibold text-stone-400 pointer-events-none">{unidadCant}</span>
-                              </div>
-                              <div className="relative">
-                                <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-[11.5px] font-bold text-stone-300">S/</span>
-                                <input key={`c-${idx}-${it.costoIngresado}`} type="number" min="0" step="0.01" inputMode="decimal" defaultValue={it.costoIngresado} onBlur={commit('costo')} onKeyDown={alEnter} aria-label={it.esPack ? 'Costo por pack' : 'Costo por unidad'} className="w-full h-9 rounded-[11px] border-[1.5px] border-stone-200 bg-white text-[13px] font-bold pl-7 pr-12 outline-none focus:border-[#6105dc] focus:ring-4 focus:ring-[#6105dc]/15" />
-                                <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[10.5px] font-semibold text-stone-400 pointer-events-none">{unidadCosto}</span>
-                              </div>
-                              <span className="text-sm font-extrabold text-stone-900 whitespace-nowrap">{dinero(c.subtotal)}</span>
-                            </div>
-                            <div className="flex items-center gap-1.5 flex-wrap mt-2 text-[11.5px] text-stone-500">
-                              {it.esPack && <><span>= <b className="text-stone-800">{fmtQ(c.unidades, p.unidad)}{p.unidad === 'KG' ? '' : ' und'}</b></span><span>·</span></>}
-                              <span>Stock <b className="text-stone-800">{c.stockPrev === null ? 'sin control' : fmtQ(c.stockPrev, p.unidad)}</b> → <b className="text-stone-800">{fmtQ(c.stockNuevo, p.unidad)}</b></span>
-                              {it.costoIngresado > 0 && etiquetaDelta(c.delta)}
-                            </div>
-                            {invalida
-                              ? <p className="text-[11.5px] font-semibold text-rose-600 mt-1.5">Pon una cantidad y un costo mayores a 0.</p>
-                              : av.map((a, i) => <p key={i} className={`flex gap-1.5 items-start text-[11.5px] font-semibold mt-1.5 ${a.tipo === 'bad' ? 'text-rose-600' : 'text-amber-700'}`}><i className="fa-solid fa-triangle-exclamation mt-0.5"></i><span>{a.texto}</span></p>)}
-                          </div>
-                        );
-                      })}
-                    </div>
-                  )}
-                </div>
-                <div className="mt-3 pt-3 border-t border-stone-100 shrink-0">
-                  <div className="flex justify-between items-baseline"><span className="text-[12.5px] font-semibold text-stone-500">Total de la compra</span><strong className="text-[28px] font-extrabold text-[#4d04b0] tracking-tight leading-none">{dinero(totalCompra)}</strong></div>
-                  <p className="text-[11.5px] text-stone-500 mt-1">{nLineas ? `${nLineas} producto${nLineas > 1 ? 's' : ''} · ${Math.round(unidadesTotal * 100) / 100} unidades en total` : 'S/ 0.00 hasta que añadas productos'}</p>
-                </div>
-              </>
-            );
-
-            const fin = entradaRegistrada;
-            return (
-              <div className="fixed inset-0 bg-stone-900/30 backdrop-blur-sm flex items-center justify-center z-50 p-2 sm:p-4">
-                <div className="bg-gradient-to-br from-[#f4effc] via-[#f9f8fb] to-[#f5f4f8] border border-white/80 rounded-[28px] max-w-4xl w-full shadow-2xl h-[95vh] max-h-[800px] flex flex-col overflow-hidden">
-
-                  <div className="bg-white border-b border-stone-100 px-4 sm:px-5 py-3.5 shrink-0 flex items-center gap-3">
-                    <span className="w-11 h-11 rounded-[14px] bg-[#f4eefe] text-[#6105dc] grid place-items-center text-xl shrink-0"><i className="fa-solid fa-truck-ramp-box"></i></span>
-                    <div className="min-w-0">
-                      <h3 className="text-[17px] sm:text-lg font-extrabold text-stone-900 tracking-tight leading-tight">Entrada de mercadería</h3>
-                      <p className="hidden sm:block text-[12.5px] text-stone-500 mt-0.5">Anota lo que te dejó el proveedor. El stock y el costo se actualizan al confirmar.</p>
-                    </div>
-                    <button onClick={fin ? cerrarModalEntradaMercaderia : pedirCerrarEntrada} aria-label="Cerrar" className="ml-auto w-8 h-8 flex items-center justify-center rounded-full text-stone-400 hover:text-stone-600 hover:bg-stone-100 transition-colors shrink-0"><i className="fa-solid fa-xmark"></i></button>
-                  </div>
-
-                  {fin ? (
-                    <div className="flex-1 overflow-y-auto grid place-items-center p-5">
-                      <div className="text-center max-w-md w-full">
-                        <div className="w-[84px] h-[84px] rounded-full bg-emerald-50 text-emerald-600 grid place-items-center text-4xl mx-auto mb-3.5"><i className="fa-solid fa-check"></i></div>
-                        <h4 className="text-[22px] font-extrabold text-stone-900 tracking-tight">Entrada registrada</h4>
-                        <p className="text-[13.5px] text-stone-500 mt-1 mb-4">El stock y los costos ya están al día.</p>
-                        <div className="bg-white border border-stone-100 rounded-[20px] px-4 py-1.5 text-left mb-4 divide-y divide-dashed divide-stone-200">
-                          <div className="flex justify-between gap-3 py-2.5 text-[13px]"><span className="text-stone-500">Proveedor</span><b className="text-right">{fin.proveedor || 'Sin proveedor'}</b></div>
-                          <div className="flex justify-between gap-3 py-2.5 text-[13px]"><span className="text-stone-500">Comprobante</span><b className="text-right">{fin.comprobante}</b></div>
-                          <div className="flex justify-between gap-3 py-2.5 text-[13px]"><span className="text-stone-500">Productos</span><b className="text-right">{fin.lineas.length} · {Math.round(fin.unidades * 100) / 100} unidades</b></div>
-                          <div className="flex justify-between gap-3 py-2.5 text-[13px] items-baseline"><span className="text-stone-500">Total de la compra</span><b className="text-base font-extrabold">{dinero(fin.total)}</b></div>
-                        </div>
-                        <details className="text-left mb-5">
-                          <summary className="cursor-pointer text-[12.5px] font-bold text-[#4d04b0] py-1">Ver cómo quedó el stock</summary>
-                          <div className="bg-white border border-stone-100 rounded-[20px] px-4 py-1.5 mt-2 divide-y divide-dashed divide-stone-200">
-                            {fin.lineas.map((l, i) => <div key={i} className="flex justify-between gap-3 py-2.5 text-[13px]"><span className="text-stone-500 min-w-0 truncate">{l.descripcion}</span><b className="text-right whitespace-nowrap">{l.antes === null ? 'Sin control' : fmtQ(l.antes, l.unidad)} → {fmtQ(l.despues, l.unidad)}</b></div>)}
-                          </div>
-                        </details>
-                        <div className="flex gap-2 justify-center flex-wrap">
-                          <button type="button" onClick={() => setEntradaRegistrada(null)} className="h-[46px] px-5 rounded-[14px] bg-[#f4eefe] hover:bg-[#ece0fd] text-[#4d04b0] font-bold text-[13.5px] inline-flex items-center gap-2"><i className="fa-solid fa-plus text-xs"></i> Registrar otra entrada</button>
-                          <button type="button" onClick={cerrarModalEntradaMercaderia} className="h-[46px] px-6 rounded-[14px] bg-[#6105dc] hover:bg-[#4d04b0] text-white font-bold text-[13.5px] shadow-lg shadow-[#6105dc]/30">Listo</button>
-                        </div>
-                      </div>
-                    </div>
-                  ) : (
-                    <>
-                      <div className="flex-1 min-h-0 overflow-y-auto md:overflow-hidden p-3.5 sm:p-5 grid gap-4 md:grid-cols-[minmax(0,1fr)_380px] md:grid-rows-1 content-start">
-                        <div className={`${claveBloque} min-w-0`}>{panelAgregar}</div>
-                        <div id="entrada-lista" className={`${claveBloque} min-w-0`}>{panelEntrada}</div>
-                      </div>
-                      <div className="shrink-0 bg-white border-t border-stone-100 px-4 sm:px-5 py-3 flex items-center gap-2.5 shadow-[0_-8px_24px_-14px_rgba(40,10,90,0.18)]">
-                        <button type="button" onClick={pedirCerrarEntrada} className="h-[46px] px-4 sm:px-5 rounded-[14px] text-stone-500 hover:text-stone-800 hover:bg-stone-100 font-bold text-[13.5px]">Cancelar</button>
-                        <span className="flex-1"></span>
-                        <span className={`hidden md:flex items-center text-xs ${nLineas ? 'text-[#4d04b0] font-semibold' : 'text-stone-500'}`}>{nLineas ? `${nLineas} producto${nLineas > 1 ? 's' : ''} · ${dinero(totalCompra)}` : 'Añade al menos un producto para confirmar'}</span>
-                        <button type="button" onClick={guardarEntradaMercaderia} disabled={!nLineas || lineaInvalida || guardandoEntrada} className="h-[46px] px-4 sm:px-5 rounded-[14px] bg-[#6105dc] hover:bg-[#4d04b0] disabled:bg-[#d9d2ea] disabled:shadow-none disabled:cursor-not-allowed text-white font-bold text-[13.5px] shadow-lg shadow-[#6105dc]/30 inline-flex items-center justify-center gap-2 transition">
-                          <i className="fa-solid fa-check text-xs"></i><span>{guardandoEntrada ? 'Guardando...' : <>Confirmar<span className="hidden sm:inline"> entrada</span>{nLineas ? ` · ${dinero(totalCompra)}` : ''}</>}</span>
-                        </button>
-                      </div>
-                    </>
-                  )}
-                </div>
-              </div>
-            );
-          })()}
+          {modalEntradaMercaderia && (
+            <Suspense fallback={null}>
+              <EntradaMercaderia
+                abrirProductoNuevoEntrada={abrirProductoNuevoEntrada}
+                agregarItemEntradaMercaderia={agregarItemEntradaMercaderia}
+                buscarProductoPorCodigo={buscarProductoPorCodigo}
+                busquedaCompra={busquedaCompra}
+                cambiarTipoEntrada={cambiarTipoEntrada}
+                categoriasDB={categoriasDB}
+                cerrarModalEntradaMercaderia={cerrarModalEntradaMercaderia}
+                compraCabecera={compraCabecera}
+                compraItemTemp={compraItemTemp}
+                compraItems={compraItems}
+                crearProductoInlineCompra={crearProductoInlineCompra}
+                editarLineaEntrada={editarLineaEntrada}
+                elegirProductoEntrada={elegirProductoEntrada}
+                entradaRegistrada={entradaRegistrada}
+                filtroCompra={filtroCompra}
+                guardandoEntrada={guardandoEntrada}
+                guardandoProductoInlineCompra={guardandoProductoInlineCompra}
+                guardarEntradaMercaderia={guardarEntradaMercaderia}
+                idsNuevosCompra={idsNuevosCompra}
+                modalEntradaMercaderia={modalEntradaMercaderia}
+                nuevoProductoInlineCompra={nuevoProductoInlineCompra}
+                pedirCerrarEntrada={pedirCerrarEntrada}
+                productos={productos}
+                proveedoresLista={proveedoresLista}
+                quitarItemEntradaMercaderia={quitarItemEntradaMercaderia}
+                resaltadoCompra={resaltadoCompra}
+                setBusquedaCompra={setBusquedaCompra}
+                setCompraCabecera={setCompraCabecera}
+                setCompraItemTemp={setCompraItemTemp}
+                setEntradaRegistrada={setEntradaRegistrada}
+                setFiltroCompra={setFiltroCompra}
+                setMetodoForzado={setMetodoForzado}
+                setModalEscaner={setModalEscaner}
+                setModoEscaner={setModoEscaner}
+                setNuevoProductoInlineCompra={setNuevoProductoInlineCompra}
+                setResaltadoCompra={setResaltadoCompra}
+              />
+            </Suspense>
+          )}
 
           {/* Modal: Fiados (cobrar deudas / créditos) */}
           {modalCobrarDeudas && (() => {
@@ -13825,240 +11748,30 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
             </div>
           )}
 
-          {/* Modal: Historial de Cierres de Caja */}
-          {/* Modal: Historial de cierres de caja (turnos cerrados y si cuadraron) */}
-          {modalHistorialCierres && (() => {
-            const borde = 'border-[#e9e6f0]';
-            const dinero = (v) => `S/ ${formatoSoles(Math.abs(Number(v) || 0))}`;
-            const difDe = (t) => Number(t.diferencia) || 0;
-            const total = cierresCaja.length;
-            const cuadran = cierresCaja.filter((t) => difDe(t) === 0).length;
-            const conDif = total - cuadran;
-            const pctCuadran = total > 0 ? (cuadran / total) * 100 : 0;
-            const acumulada = cierresCaja.reduce((a, t) => a + difDe(t), 0);
-            const visibles = soloConDiferenciaCierres ? cierresCaja.filter((t) => difDe(t) !== 0) : cierresCaja;
-            const grupos = [];
-            visibles.forEach((t) => {
-              const etiqueta = etiquetaDiaHistorial(t.fecha_cierre);
-              const ultimo = grupos[grupos.length - 1];
-              if (ultimo && ultimo.etiqueta === etiqueta) ultimo.turnos.push(t);
-              else grupos.push({ etiqueta, turnos: [t] });
-            });
-            const elegido = cierreDetalle ? cierresCaja.find((t) => t.id === cierreDetalle) || null : null;
-            const panel = elegido || visibles[0] || null;
-            const hora = (f) => new Date(f).toLocaleTimeString('es-PE', { hour: 'numeric', minute: '2-digit' });
-            const mismoDia = (a, b) => new Date(a).toDateString() === new Date(b).toDateString();
-            const horaApertura = (t) => (mismoDia(t.fecha_apertura, t.fecha_cierre) ? hora(t.fecha_apertura) : `${new Date(t.fecha_apertura).toLocaleDateString('es-PE', { day: 'numeric', month: 'short' }).replace(/\./g, '')}, ${hora(t.fecha_apertura)}`);
-            const fechaHora = (f) => `${new Date(f).toLocaleDateString('es-PE', { day: 'numeric', month: 'short' }).replace(/\./g, '')}, ${hora(f)}`;
-            const esperadoDe = (t) => Number(t.monto_inicial || 0) + Number(t.ventas_sistema || 0);
-            const duracion = (t) => {
-              const min = Math.max(0, Math.round((new Date(t.fecha_cierre) - new Date(t.fecha_apertura)) / 60000));
-              return min < 60 ? `${min} min` : `${Math.round(min / 60)} h`;
-            };
-            const ATAJOS = [['hoy', 'Hoy'], ['7dias', '7 días'], ['30dias', '30 días'], ['fechas', 'Fechas']];
-            const rangoTexto = `${new Date(`${fechaInicioCierres}T00:00:00`).toLocaleDateString('es-PE', { day: 'numeric', month: 'short' }).replace(/\./g, '')} – ${new Date(`${fechaFinCierres}T00:00:00`).toLocaleDateString('es-PE', { day: 'numeric', month: 'short', year: 'numeric' }).replace(/\./g, '')}`;
-            const tarjeta = `relative overflow-hidden bg-white border ${borde} rounded-[18px] px-5 py-[18px] shadow-[0_1px_2px_rgba(20,10,50,0.04),0_16px_36px_-26px_rgba(20,10,50,0.3)]`;
-            const celdaDif = (t) => {
-              const d = difDe(t);
-              if (d === 0) return <span className="inline-flex items-center text-[13px] font-semibold rounded-full px-3 py-[3px] text-[#0f7b4a] bg-[#eef8f2]">Cuadra</span>;
-              const leve = Math.abs(d) < 1;
-              return <span className={`inline-flex items-center text-[13px] font-semibold rounded-full px-3 py-[3px] tabular-nums ${leve ? 'text-[#a15c07] bg-[#fdf5e8]' : 'text-[#c0262d] bg-[#fdf1f1]'}`}>{d > 0 ? '+' : '-'} {dinero(d)}</span>;
-            };
-            const detalleCierre = (t) => {
-              const d = difDe(t);
-              const ok = d === 0;
-              const leve = Math.abs(d) < 1;
-              return (
-                <div className="flex flex-col gap-3.5">
-                  <div className={`bg-white border ${borde} rounded-[18px] shadow-[0_18px_40px_-24px_rgba(20,10,50,0.35)]`}>
-                    <div className="px-[22px] pt-[22px] pb-[18px]">
-                      <div className={`w-[60px] h-[60px] rounded-full grid place-items-center text-[26px] text-white mb-3 ${ok ? 'bg-gradient-to-br from-[#2fa972] to-[#0f7b4a] shadow-[0_14px_26px_-10px_rgba(15,123,74,0.6)]' : leve ? 'bg-gradient-to-br from-[#f0b24a] to-[#d98a14] shadow-[0_14px_26px_-10px_rgba(217,138,20,0.6)]' : 'bg-gradient-to-br from-[#e0565c] to-[#c0262d] shadow-[0_14px_26px_-10px_rgba(192,38,45,0.6)]'}`}>
-                        <i className={`fa-solid ${ok ? 'fa-check' : 'fa-circle-exclamation'}`}></i>
-                      </div>
-                      <p className="text-[13px] text-stone-500">{t.cajeros?.nombre || 'Cajero'} · {etiquetaDiaHistorial(t.fecha_cierre)}</p>
-                      <p className="text-[30px] font-bold tracking-[-0.04em] leading-[1.1] mt-1.5 text-stone-900">{ok ? 'Cuadra' : d > 0 ? `Sobran ${dinero(d)}` : `Faltan ${dinero(d)}`}</p>
-                      <p className={`text-[13px] mt-1.5 ${ok ? 'text-[#0f7b4a]' : leve ? 'text-[#a15c07]' : 'text-[#c0262d]'}`}>
-                        {ok ? 'Lo contado es igual a lo esperado.' : d > 0 ? 'Había más efectivo del esperado.' : 'Había menos efectivo del esperado.'}
-                      </p>
-                      <div className="h-1.5 rounded-sm bg-[#ece9f4] mt-4"><i className="block h-full rounded-sm bg-gradient-to-r from-[#9b7bf5] to-[#6b44d8]"></i></div>
-                      <div className="flex justify-between text-xs text-stone-500 mt-1.5"><span>{hora(t.fecha_apertura)}</span><span>{hora(t.fecha_cierre)} · {duracion(t)}</span></div>
-                    </div>
-                    <div className="relative mx-3.5 border-t-2 border-dashed border-[#e3dff0]">
-                      <span className={`absolute -top-[11px] -left-[25px] w-5 h-5 rounded-full bg-[#f8f7fb] border ${borde} [clip-path:inset(0_0_0_50%)]`}></span>
-                      <span className={`absolute -top-[11px] -right-[25px] w-5 h-5 rounded-full bg-[#f8f7fb] border ${borde} [clip-path:inset(0_50%_0_0)]`}></span>
-                    </div>
-                    <div className="px-[22px] pt-[18px] pb-[22px] text-[13.5px]">
-                      {[
-                        ['Apertura', fechaHora(t.fecha_apertura)],
-                        ['Cierre', fechaHora(t.fecha_cierre)],
-                        ['Fondo inicial', `S/ ${formatoSoles(Number(t.monto_inicial || 0))}`],
-                        ['Ventas en efectivo', `+ S/ ${formatoSoles(Number(t.ventas_sistema || 0))}`],
-                        ['Esperado en caja', `S/ ${formatoSoles(esperadoDe(t))}`],
-                      ].map(([r, v]) => (
-                        <div key={r} className="flex justify-between gap-3 py-[11px] border-b border-[#f3f0f8]">
-                          <span className="text-stone-500">{r}</span><span className="font-medium text-stone-900 tabular-nums">{v}</span>
-                        </div>
-                      ))}
-                      <div className="flex justify-between items-baseline gap-3 pt-[13px] mt-0.5 border-t border-stone-900 font-semibold">
-                        <span>Contado</span><span className="text-xl font-bold tracking-tight tabular-nums">S/ {formatoSoles(Number(t.monto_final_real || 0))}</span>
-                      </div>
-                    </div>
-                  </div>
-                  <p className="text-[12.5px] text-stone-500 bg-[#f1eff7] rounded-[10px] px-3.5 py-3 leading-snug">Las ventas con Yape, Plin o tarjeta no cuentan en el efectivo de la caja. Se ven en el historial de ventas.</p>
-                </div>
-              );
-            };
-
-            return (
-              <div className="fixed inset-0 bg-stone-900/30 backdrop-blur-sm flex items-center justify-center z-50 p-3 sm:p-4">
-                <div className="bg-[#f8f7fb] rounded-[18px] max-w-xl lg:max-w-6xl w-full max-h-[94vh] h-[94vh] lg:h-[780px] flex flex-col shadow-2xl border border-black/5 overflow-hidden">
-                  <div className={`bg-white px-4 sm:px-7 py-3.5 sm:py-[18px] shrink-0 flex flex-wrap lg:flex-nowrap items-center gap-x-3 gap-y-2.5 border-b ${borde}`}>
-                    {elegido && (
-                      <button aria-label="Volver a la lista" onClick={() => setCierreDetalle(null)} className="lg:hidden h-9 pl-2.5 pr-3.5 rounded-full border border-[#e9e6f0] bg-white text-[13px] font-medium text-stone-700 inline-flex items-center gap-1 shrink-0"><i className="fa-solid fa-chevron-left text-[10px]"></i> Historial</button>
-                    )}
-                    <h3 className={`text-xl sm:text-[21px] font-bold tracking-tight text-stone-900 whitespace-nowrap ${elegido ? 'hidden lg:block' : ''}`}>Historial de ventas</h3>
-                    <div className={`${elegido ? 'hidden lg:inline-flex' : 'inline-flex'} bg-[#ece9f4] rounded-full p-[3px] order-last basis-full lg:order-none lg:basis-auto lg:ml-2`}>
-                      <button type="button" onClick={() => { setModalHistorialCierres(false); abrirHistorialDelDia(); }} className="flex-1 lg:flex-none h-8 px-[17px] rounded-full text-[13px] font-medium text-stone-500 hover:text-stone-900">Ventas</button>
-                      <button type="button" className="flex-1 lg:flex-none h-8 px-[17px] rounded-full text-[13px] font-semibold text-stone-900 bg-white shadow-[0_1px_3px_rgba(20,10,50,0.14)] whitespace-nowrap">Cierres de caja</button>
-                    </div>
-                    <span className="flex-1"></span>
-                    <button aria-label="Cerrar" onClick={() => { setModalHistorialCierres(false); setCierreDetalle(null); }} className="w-9 h-9 rounded-full text-stone-400 hover:text-stone-700 hover:bg-[#f1eef9] shrink-0"><i className="fa-solid fa-xmark"></i></button>
-                  </div>
-
-                  {elegido && (
-                    <div className="lg:hidden flex-1 min-h-0 overflow-y-auto hide-scrollbar p-4">{detalleCierre(elegido)}</div>
-                  )}
-
-                  <div className={`${elegido ? 'hidden lg:flex' : 'flex'} flex-1 min-h-0 flex-col`}>
-                    <div className="px-4 sm:px-7 pt-4 lg:pt-5 shrink-0 grid grid-cols-2 lg:grid-cols-[1.25fr_1fr_1fr] gap-3 lg:gap-3.5">
-                      <div className={`${tarjeta} col-span-2 lg:col-span-1`}>
-                        <span className="absolute -right-14 -top-[70px] w-[200px] h-[200px] rounded-full pointer-events-none" style={{ background: 'radial-gradient(closest-side, rgba(124,80,240,0.16), rgba(124,80,240,0))' }}></span>
-                        <span className="relative text-[13px] text-stone-500">Turnos cerrados</span>
-                        <b className="relative block text-[30px] lg:text-4xl font-bold tracking-[-0.04em] leading-[1.05] mt-1 mb-3 tabular-nums">{total}</b>
-                        <div className="relative flex h-2 rounded overflow-hidden bg-[#ece9f4] gap-0.5">
-                          {pctCuadran > 0 && <i className="block h-full bg-gradient-to-r from-[#3fbf8a] to-[#0f7b4a]" style={{ width: `${pctCuadran}%` }}></i>}
-                          {pctCuadran < 100 && total > 0 && <i className="block h-full bg-gradient-to-r from-[#e0565c] to-[#c0262d]" style={{ width: `${100 - pctCuadran}%` }}></i>}
-                        </div>
-                        <div className="relative flex flex-wrap gap-x-4 gap-y-1 mt-2.5 text-[12.5px] text-stone-500">
-                          <span className="flex items-center gap-1.5"><i className="w-2 h-2 rounded-full bg-[#0f7b4a]"></i>Cuadraron <b className="text-stone-900 font-semibold">{cuadran}</b></span>
-                          <span className="flex items-center gap-1.5"><i className="w-2 h-2 rounded-full bg-[#c0262d]"></i>Con diferencia <b className="text-stone-900 font-semibold">{conDif}</b></span>
-                        </div>
-                      </div>
-                      <div className={tarjeta}>
-                        <div className="flex items-center gap-3.5">
-                          <div className="relative w-[64px] h-[64px] lg:w-[84px] lg:h-[84px] shrink-0">
-                            <svg viewBox="0 0 90 90" className="w-full h-full -rotate-90">
-                              <circle cx="45" cy="45" r="36" fill="none" stroke="#ece9f4" strokeWidth="10" />
-                              <circle cx="45" cy="45" r="36" fill="none" stroke="#0f7b4a" strokeWidth="10" strokeLinecap="round" strokeDasharray={`${(pctCuadran / 100) * 226.2} 226.2`} />
-                            </svg>
-                            <span className="absolute inset-0 grid place-items-center text-sm lg:text-lg font-bold tracking-tight">{Math.round(pctCuadran)}%</span>
-                          </div>
-                          <div className="min-w-0">
-                            <span className="text-[13px] text-stone-500">Cuadraron</span>
-                            <b className="block text-lg lg:text-2xl font-bold tracking-tight text-[#0f7b4a] mt-0.5 whitespace-nowrap">{cuadran} de {total}</b>
-                          </div>
-                        </div>
-                      </div>
-                      <div className={tarjeta}>
-                        <span className="text-[13px] text-stone-500">Diferencia acumulada</span>
-                        <b className={`block text-xl lg:text-2xl font-bold tracking-tight mt-1 tabular-nums ${acumulada < 0 ? 'text-[#c0262d]' : acumulada > 0 ? 'text-[#a15c07]' : 'text-stone-900'}`}>{acumulada === 0 ? 'S/ 0.00' : `${acumulada > 0 ? '+' : '-'} ${dinero(acumulada)}`}</b>
-                        <span className="block text-xs text-stone-500 mt-2">{conDif} turno{conDif === 1 ? '' : 's'} con diferencia</span>
-                      </div>
-                    </div>
-
-                    <div className="px-4 sm:px-7 py-3.5 shrink-0 flex flex-wrap items-center gap-x-3 gap-y-2.5">
-                      <div className="flex bg-[#ece9f4] rounded-full p-[3px] max-w-full overflow-x-auto hide-scrollbar">
-                        {ATAJOS.map(([id, texto]) => (
-                          <button key={id} type="button" onClick={() => elegirAtajoCierres(id)} className={`h-8 px-[15px] rounded-full text-[13px] whitespace-nowrap transition ${atajoCierres === id ? 'bg-white text-stone-900 font-semibold shadow-[0_1px_3px_rgba(20,10,50,0.14)]' : 'text-stone-500 font-medium hover:text-stone-900'}`}>{texto}</button>
-                        ))}
-                      </div>
-                      <span className="text-[13px] text-stone-500">{rangoTexto}</span>
-                      <span className="flex-1 hidden lg:block"></span>
-                      <button type="button" role="switch" aria-checked={soloConDiferenciaCierres} onClick={() => { setSoloConDiferenciaCierres((v) => !v); setCierreDetalle(null); }} className="inline-flex items-center gap-2.5 text-[13px] font-medium text-stone-700">
-                        <span className={`kz-sw ${soloConDiferenciaCierres ? 'on' : ''}`}><i></i></span>Solo con diferencia
-                      </button>
-                      {atajoCierres === 'fechas' && (
-                        <div className="flex flex-wrap items-center gap-2 w-full">
-                          <input type="date" aria-label="Desde" value={fechaInicioCierres} onChange={(e) => setFechaInicioCierres(e.target.value)} className={`h-10 px-3.5 rounded-full border ${borde} bg-white text-[13px] text-stone-900`} />
-                          <span className="text-xs text-stone-400">a</span>
-                          <input type="date" aria-label="Hasta" value={fechaFinCierres} onChange={(e) => setFechaFinCierres(e.target.value)} className={`h-10 px-3.5 rounded-full border ${borde} bg-white text-[13px] text-stone-900`} />
-                          <button onClick={() => cargarHistorialCierresPorRango(fechaInicioCierres, fechaFinCierres)} className="kz-pri h-10 px-5 text-[13px] font-semibold">Buscar</button>
-                        </div>
-                      )}
-                    </div>
-
-                    <div className="flex-1 min-h-0 px-4 sm:px-7 pb-5 grid grid-rows-[minmax(0,1fr)] lg:grid-cols-[minmax(0,1fr)_330px] gap-4">
-                      <div className="min-h-0 overflow-y-auto hide-scrollbar lg:bg-white lg:border lg:border-[#e9e6f0] lg:rounded-[18px]">
-                        {cargandoCierres ? (
-                          <p className="text-sm text-center py-10 text-stone-500">Cargando...</p>
-                        ) : visibles.length === 0 ? (
-                          <p className="text-sm text-center py-10 text-stone-500">{soloConDiferenciaCierres && total > 0 ? 'Todos los turnos de este período cuadraron.' : 'No hay cierres de caja en ese rango.'}</p>
-                        ) : (
-                          <>
-                            {/* Celular: una tarjeta por turno */}
-                            <div className="lg:hidden">
-                              {grupos.map((g) => (
-                                <div key={g.etiqueta}>
-                                  <p className="flex justify-between px-1.5 pt-3 pb-1.5 text-xs font-semibold text-stone-500"><span>{g.etiqueta}</span><span>{g.turnos.length} turno{g.turnos.length === 1 ? '' : 's'}</span></p>
-                                  {g.turnos.map((t) => (
-                                    <div key={t.id} role="button" tabIndex={0} onClick={() => setCierreDetalle(t.id)} onKeyDown={(e) => { if (e.key === 'Enter') setCierreDetalle(t.id); }} className={`grid grid-cols-[1fr_auto] items-center gap-2.5 px-3.5 py-3.5 mb-2 bg-white border ${borde} rounded-[14px] cursor-pointer active:bg-[#faf8fe]`}>
-                                      <div className="min-w-0">
-                                        <p className="text-sm font-semibold text-stone-900 truncate">{t.cajeros?.nombre || 'Cajero'}</p>
-                                        <p className="text-xs text-stone-500 mt-0.5">{horaApertura(t)} – {hora(t.fecha_cierre)}</p>
-                                      </div>
-                                      <div className="text-right">
-                                        {celdaDif(t)}
-                                        <p className="text-xs text-stone-500 mt-1.5 tabular-nums">Contado S/ {formatoSoles(Number(t.monto_final_real || 0))}</p>
-                                      </div>
-                                    </div>
-                                  ))}
-                                </div>
-                              ))}
-                            </div>
-
-                            {/* PC: tabla */}
-                            <table className="hidden lg:table w-full border-collapse">
-                              <thead>
-                                <tr className="text-left text-xs font-medium text-stone-500">
-                                  {['Cajero', 'Apertura', 'Cierre'].map((c) => <th key={c} className={`sticky top-0 z-[2] bg-white px-3 py-3.5 border-b ${borde} whitespace-nowrap font-medium`}>{c}</th>)}
-                                  {['Fondo', 'En efectivo', 'Contado', 'Diferencia'].map((c) => <th key={c} className={`sticky top-0 z-[2] bg-white px-3 py-3.5 border-b ${borde} whitespace-nowrap text-right font-medium`}>{c}</th>)}
-                                </tr>
-                              </thead>
-                              <tbody>
-                                {grupos.map((g) => (
-                                  <React.Fragment key={g.etiqueta}>
-                                    <tr className="bg-[#faf9fc] text-xs font-semibold text-stone-500">
-                                      <td colSpan={5} className="px-3 py-2.5">{g.etiqueta}</td>
-                                      <td colSpan={2} className="px-3 py-2.5 text-right">{g.turnos.length} turno{g.turnos.length === 1 ? '' : 's'}</td>
-                                    </tr>
-                                    {g.turnos.map((t) => (
-                                      <tr key={t.id} onClick={() => setCierreDetalle(t.id)} className={`cursor-pointer text-[13.5px] text-stone-700 transition ${panel && panel.id === t.id ? 'bg-[#f4f0fd] shadow-[inset_3px_0_0_#6105dc]' : 'hover:bg-[#fbfafd]'}`}>
-                                        <td className="px-3 py-3 border-b border-[#f3f0f8] whitespace-nowrap max-w-[140px] truncate">{t.cajeros?.nombre || 'Cajero'}</td>
-                                        <td className="px-3 py-3 border-b border-[#f3f0f8] whitespace-nowrap text-stone-500">{horaApertura(t)}</td>
-                                        <td className="px-3 py-3 border-b border-[#f3f0f8] whitespace-nowrap text-stone-500">{hora(t.fecha_cierre)}</td>
-                                        <td className="px-3 py-3 border-b border-[#f3f0f8] whitespace-nowrap text-right tabular-nums font-semibold text-stone-900">S/ {formatoSoles(Number(t.monto_inicial || 0))}</td>
-                                        <td className="px-3 py-3 border-b border-[#f3f0f8] whitespace-nowrap text-right tabular-nums font-semibold text-stone-900">S/ {formatoSoles(Number(t.ventas_sistema || 0))}</td>
-                                        <td className="px-3 py-3 border-b border-[#f3f0f8] whitespace-nowrap text-right tabular-nums font-semibold text-stone-900">S/ {formatoSoles(Number(t.monto_final_real || 0))}</td>
-                                        <td className="px-3 py-3 border-b border-[#f3f0f8] whitespace-nowrap text-right">{celdaDif(t)}</td>
-                                      </tr>
-                                    ))}
-                                  </React.Fragment>
-                                ))}
-                              </tbody>
-                            </table>
-                          </>
-                        )}
-                      </div>
-
-                      <div className="hidden lg:block min-h-0 overflow-y-auto hide-scrollbar">
-                        {panel ? detalleCierre(panel) : <p className="text-sm text-stone-500 text-center py-10">Elige un turno para ver su detalle.</p>}
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            );
-          })()}
+          {modalHistorialCierres && (
+            <Suspense fallback={null}>
+              <HistorialCierres
+                abrirHistorialDelDia={abrirHistorialDelDia}
+                atajoCierres={atajoCierres}
+                cargandoCierres={cargandoCierres}
+                cargarHistorialCierresPorRango={cargarHistorialCierresPorRango}
+                cierreDetalle={cierreDetalle}
+                cierresCaja={cierresCaja}
+                elegirAtajoCierres={elegirAtajoCierres}
+                etiquetaDiaHistorial={etiquetaDiaHistorial}
+                fechaFinCierres={fechaFinCierres}
+                fechaInicioCierres={fechaInicioCierres}
+                formatoSoles={formatoSoles}
+                modalHistorialCierres={modalHistorialCierres}
+                setCierreDetalle={setCierreDetalle}
+                setFechaFinCierres={setFechaFinCierres}
+                setFechaInicioCierres={setFechaInicioCierres}
+                setModalHistorialCierres={setModalHistorialCierres}
+                setSoloConDiferenciaCierres={setSoloConDiferenciaCierres}
+                soloConDiferenciaCierres={soloConDiferenciaCierres}
+              />
+            </Suspense>
+          )}
 
           {/* Modal: Historial de Toma de Inventario -- comparar, producto por
               producto, si un día cuadró contra el sistema y otro no. */}
@@ -15022,211 +12735,33 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
             </div>
           )}
 
-          {/* Modal: Gestión de Clientes (listar / editar) */}
-          {modalGestionClientes && (() => {
-            const dinero = (v) => `S/ ${formatoSoles(Number(v) || 0)}`;
-            const GRADIENTES = ['from-[#a78bfa] to-[#6d4ae0]', 'from-[#f09a7a] to-[#d9594f]', 'from-[#6fc3a3] to-[#2e8b72]', 'from-[#e6b85a] to-[#c9892a]', 'from-[#7ab4ee] to-[#3d7fd0]'];
-            const gradienteDe = (c) => GRADIENTES[String(c.id ?? c.dni ?? '').split('').reduce((a, ch) => a + ch.charCodeAt(0), 0) % GRADIENTES.length];
-            const avatar = (c, tam) => <span className={`${tam} rounded-full bg-gradient-to-br ${gradienteDe(c)} text-white grid place-items-center font-bold shrink-0 shadow-[inset_0_0_0_1px_rgba(255,255,255,0.25),0_4px_10px_-4px_rgba(20,10,50,0.35)]`}>{inicialesCliente(c.nombre_completo)}</span>;
-            const borde = 'border-[#e9e6f0]';
-            const botonSeg = (activo) => `h-[30px] px-3.5 rounded-full text-[12.5px] whitespace-nowrap flex items-center gap-1.5 transition ${activo ? 'bg-white text-stone-900 font-semibold shadow-[0_1px_3px_rgba(20,10,50,0.14)]' : 'text-stone-500 font-medium hover:text-stone-900'}`;
-            const colorBarra = (uso) => (uso >= 1 ? 'bg-gradient-to-r from-[#e0565c] to-[#c0262d]' : uso >= 0.8 ? 'bg-gradient-to-r from-[#f0b24a] to-[#d98a14]' : 'bg-gradient-to-r from-[#b5aecb] to-[#9d97b8]');
-            const botonFantasma = `h-11 px-5 rounded-full border ${borde} bg-white hover:bg-[#f8f7fb] text-[13.5px] font-medium text-stone-700 inline-flex items-center justify-center gap-2 transition whitespace-nowrap`;
-            const panelP = `bg-white border ${borde} rounded-2xl px-5 sm:px-6 py-5 sm:py-[22px] shadow-[0_1px_2px_rgba(20,10,50,0.03)]`;
-            const labP = 'flex items-center justify-between gap-2 text-[12.5px] font-medium text-stone-700 mb-1.5';
-            const inputP = 'w-full h-11 bg-white border border-[#e9e6f0] rounded-[10px] px-3.5 text-sm text-stone-900 placeholder:text-stone-400 outline-none focus:border-[#6105dc] focus:ring-[3px] focus:ring-[#6105dc]/10 transition';
-            const chispa = (<svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor" aria-hidden="true"><path d="M12 3c.6 4.6 2.4 6.4 7 7-4.6.6-6.4 2.4-7 7-.6-4.6-2.4-6.4-7-7 4.6-.6 6.4-2.4 7-7Z" /><path d="M19 15c.3 1.8 1 2.5 2.8 2.8-1.8.3-2.5 1-2.8 2.8-.3-1.8-1-2.5-2.8-2.8 1.8-.3 2.5-1 2.8-2.8Z" /></svg>);
-            const saldoDe = (c) => Math.max(0, Number(c.saldo_actual) || 0);
-            const usoDe = (c) => ((Number(c.limite_credito) || 0) > 0 ? saldoDe(c) / Number(c.limite_credito) : 0);
-            const totalPorCobrar = clientesLista.reduce((acc, c) => acc + saldoDe(c), 0);
-            const conDeuda = clientesLista.filter((c) => saldoDe(c) > 0).length;
-            const filtrados = clientesFiltradosGestion();
-            const sel = clienteEditando;
-            const cerrar = () => { setModalGestionClientes(false); setClienteEditando(null); };
-            const volverALista = () => setClienteEditando(null);
-
-            // ----- Columna de la derecha: la ficha del cliente elegido -----
-            const detalle = (() => {
-              if (!sel || !formEditarCliente) {
-                return (
-                  <div className="m-auto text-center text-[13.5px] text-stone-500 leading-snug max-w-[260px] p-5">
-                    <b className="block text-[15px] text-stone-900 mb-0.5">Elige un cliente</b>
-                    {esAdmin ? 'Verás sus datos y podrás cambiar su teléfono, correo y crédito.' : 'Solo el administrador puede editar los datos de un cliente.'}
-                  </div>
-                );
-              }
-              const saldo = saldoDe(sel);
-              const limite = Number(formEditarCliente.limite_credito) || 0;
-              const uso = limite > 0 ? saldo / limite : 0;
-              return (
-                <>
-                  <div className="flex-1 min-h-0 overflow-y-auto hide-scrollbar px-4 md:px-[30px] pt-4 md:pt-[26px] pb-4 md:pb-8 flex flex-col gap-5">
-                    <div className="flex flex-wrap items-center gap-3.5">
-                      {avatar(sel, 'w-[52px] h-[52px] md:w-14 md:h-14 text-[17px] md:text-lg')}
-                      <div className="min-w-0 flex-1 basis-[180px]">
-                        <h4 className="text-xl md:text-[22px] font-bold text-stone-900 tracking-tight leading-tight truncate">{sel.nombre_completo}</h4>
-                        <div className="flex flex-wrap gap-1.5 mt-1.5">
-                          {[`DNI ${sel.dni}`, sel.telefono || 'Sin teléfono', `Plazo ${Number(sel.dias_credito) || 30} días`].map((t) => <span key={t} className={`text-xs text-stone-700 bg-white border ${borde} rounded-full px-2.5 py-[3px]`}>{t}</span>)}
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className={`relative overflow-hidden bg-white border ${borde} rounded-[18px] px-[18px] md:px-6 py-[18px] md:py-[22px] shadow-[0_1px_2px_rgba(20,10,50,0.04),0_18px_40px_-26px_rgba(20,10,50,0.3)] shrink-0`}>
-                      {saldo > 0 && <span className="absolute -right-14 -top-[70px] w-[220px] h-[220px] rounded-full pointer-events-none" style={{ background: 'radial-gradient(closest-side, rgba(192,38,45,0.10), rgba(192,38,45,0))' }}></span>}
-                      <div className="relative flex justify-between items-end gap-3">
-                        <div>
-                          <span className="text-[13px] text-stone-500">Deuda actual</span>
-                          <strong className={`block text-[36px] md:text-[42px] font-bold tracking-[-0.04em] leading-none mt-1.5 tabular-nums ${saldo > 0 ? 'text-[#c0262d]' : 'text-[#0f7b4a]'}`}>{dinero(saldo)}</strong>
-                        </div>
-                        {limite > 0 && (
-                          <div className="text-right">
-                            <span className="text-[13px] text-stone-500">Disponible para fiar</span>
-                            <b className="block text-[17px] md:text-[19px] font-bold tracking-tight mt-1 tabular-nums">{dinero(Math.max(0, limite - saldo))}</b>
-                          </div>
-                        )}
-                      </div>
-                      {limite > 0 ? (
-                        <>
-                          <div className="relative h-2 rounded bg-[#ece9f4] mt-5"><i className={`block h-full rounded ${colorBarra(uso)}`} style={{ width: `${Math.min(100, uso * 100)}%` }}></i><u className="absolute left-[80%] -top-1 w-px h-4 bg-[#bdb7d0]"></u></div>
-                          <div className="relative flex justify-between gap-2 flex-wrap text-[12.5px] text-stone-500 mt-2.5"><span>Usa {Math.round(uso * 100)}% de su crédito</span><span>Límite {dinero(limite)}</span></div>
-                        </>
-                      ) : (
-                        <p className="relative text-[12.5px] text-stone-500 mt-4">Sin límite de crédito: no se le puede fiar hasta que le pongas uno.</p>
-                      )}
-                    </div>
-
-                    <div className={`${panelP} shrink-0`}>
-                      <h5 className="text-base font-semibold text-stone-900 tracking-tight">Datos del cliente</h5>
-                      <p className="text-[13px] text-stone-500 mt-1 mb-[18px] leading-snug">El DNI no se cambia; el resto sí.</p>
-                      <div className="space-y-3.5">
-                        <div>
-                          <label className={labP}><span>Nombre completo</span></label>
-                          <input type="text" autoComplete="off" value={formEditarCliente.nombre_completo} onChange={(e) => setFormEditarCliente({ ...formEditarCliente, nombre_completo: e.target.value })} className={inputP} />
-                        </div>
-                        <div className="grid sm:grid-cols-2 gap-3.5">
-                          <div>
-                            <label className={labP}><span>Teléfono</span></label>
-                            <input type="text" inputMode="tel" autoComplete="off" value={formEditarCliente.telefono} onChange={(e) => setFormEditarCliente({ ...formEditarCliente, telefono: e.target.value })} className={inputP} />
-                          </div>
-                          <div>
-                            <label className={labP}><span>Correo</span><span className="text-stone-400 font-normal">opcional</span></label>
-                            <input type="text" autoComplete="off" placeholder="correo@ejemplo.com" value={formEditarCliente.correo} onChange={(e) => setFormEditarCliente({ ...formEditarCliente, correo: e.target.value })} className={inputP} />
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className={`${panelP} shrink-0`}>
-                      <h5 className="text-base font-semibold text-stone-900 tracking-tight">Crédito</h5>
-                      <p className="text-[13px] text-stone-500 mt-1 mb-[18px] leading-snug">Cuánto se le puede fiar y en cuántos días debe pagar. La deuda cambia sola con las ventas fiadas y los pagos.</p>
-                      <div className="grid sm:grid-cols-2 gap-3.5">
-                        <div>
-                          <label className={labP}><span>Límite de crédito (S/)</span></label>
-                          <input type="number" step="10" inputMode="decimal" value={formEditarCliente.limite_credito} onChange={(e) => setFormEditarCliente({ ...formEditarCliente, limite_credito: e.target.value })} className={`${inputP} font-bold tabular-nums`} />
-                        </div>
-                        <div>
-                          <label className={labP}><span>Días de crédito</span></label>
-                          <input type="number" step="1" inputMode="numeric" value={formEditarCliente.dias_credito} onChange={(e) => setFormEditarCliente({ ...formEditarCliente, dias_credito: e.target.value })} className={`${inputP} font-bold tabular-nums`} />
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className={`shrink-0 px-4 md:px-[30px] py-3.5 bg-white border-t ${borde} flex items-center gap-2.5 justify-end`}>
-                    <button type="button" onClick={volverALista} className={botonFantasma}>Cancelar</button>
-                    <button type="button" onClick={guardarEdicionCliente} disabled={guardandoEdicionCliente} className="kz-pri h-11 px-6 text-[13.5px] font-semibold inline-flex items-center justify-center gap-2 flex-1 md:flex-none"><span>{guardandoEdicionCliente ? 'Guardando...' : 'Guardar cambios'}</span>{chispa}</button>
-                  </div>
-                </>
-              );
-            })();
-
-            return (
-              <div className="fixed inset-0 bg-stone-900/30 backdrop-blur-sm flex items-center justify-center z-50 p-2 sm:p-4">
-                <div className="bg-[#f8f7fb] border border-black/5 rounded-[18px] max-w-5xl w-full shadow-2xl h-[95vh] max-h-[780px] flex flex-col overflow-hidden">
-                  <div className={`bg-white px-4 sm:px-7 py-3.5 sm:py-[18px] shrink-0 flex items-center gap-3 border-b ${borde}`}>
-                    {sel && <button type="button" onClick={volverALista} className="md:hidden h-9 pl-2.5 pr-3.5 rounded-full border border-[#e9e6f0] bg-white text-[13px] font-medium text-stone-700 inline-flex items-center gap-1 shrink-0"><i className="fa-solid fa-chevron-left text-[10px]"></i> Clientes</button>}
-                    <div className={`min-w-0 ${sel ? 'hidden md:block' : ''}`}>
-                      <h3 className="text-xl sm:text-[21px] font-bold tracking-tight text-stone-900 leading-tight">Clientes</h3>
-                      <p className="hidden md:block text-[13px] text-stone-500 mt-0.5 truncate">Tus clientes, su crédito y lo que te deben</p>
-                    </div>
-                    <span className="flex-1"></span>
-                    <button type="button" onClick={() => setModalNuevoCliente(true)} className={`kz-pri h-11 px-5 text-[13.5px] font-semibold items-center gap-2 shrink-0 ${sel ? 'hidden md:inline-flex' : 'inline-flex'}`}><span>Nuevo<span className="hidden sm:inline"> cliente</span></span>{chispa}</button>
-                    <button aria-label="Cerrar" onClick={cerrar} className="w-9 h-9 rounded-full text-stone-400 hover:text-stone-700 hover:bg-[#f1eef9] shrink-0"><i className="fa-solid fa-xmark"></i></button>
-                  </div>
-
-                  {clientesLista.length === 0 ? (
-                    <div className="flex-1 grid place-items-center p-6">
-                      {cargandoClientes ? (
-                        <p className="text-[13px] text-stone-500">Cargando clientes...</p>
-                      ) : (
-                        <div className="text-center max-w-xs text-[13.5px] text-stone-500 leading-snug">
-                          <div className="w-16 h-16 rounded-2xl bg-white border border-[#e9e6f0] text-[#6105dc] grid place-items-center text-[26px] mx-auto mb-3"><i className="fa-solid fa-users"></i></div>
-                          <b className="block text-base text-stone-900 mb-0.5">Todavía no tienes clientes</b>
-                          Los clientes aparecen aquí cuando les vendes o los registras. Toca «Nuevo cliente» para agregar el primero.
-                        </div>
-                      )}
-                    </div>
-                  ) : (
-                    <div className="flex-1 min-h-0 grid md:grid-cols-[380px_minmax(0,1fr)]">
-                      <div className={`${sel ? 'hidden md:flex' : 'flex'} flex-col min-h-0 bg-white md:border-r ${borde}`}>
-                        <div className="px-5 md:px-6 pt-5 pb-4">
-                          <span className="text-[13px] text-stone-500">Por cobrar</span>
-                          <strong className={`block text-[32px] md:text-4xl font-bold tracking-[-0.04em] leading-[1.05] mt-0.5 tabular-nums ${totalPorCobrar > 0 ? 'text-stone-900' : 'text-[#0f7b4a]'}`}>{dinero(totalPorCobrar)}</strong>
-                          <p className="text-xs text-stone-500 mt-2">{clientesLista.length} {clientesLista.length === 1 ? 'cliente' : 'clientes'} · {conDeuda === 0 ? 'ninguno con deuda' : `${conDeuda} con deuda`}</p>
-                        </div>
-                        <div className="px-5 md:px-6 pb-3 space-y-2.5">
-                          <label className={`flex items-center gap-2.5 h-10 border ${borde} rounded-full px-4 text-stone-400 bg-white focus-within:border-[#6105dc] focus-within:ring-[3px] focus-within:ring-[#6105dc]/10 transition`}>
-                            <i className="fa-solid fa-magnifying-glass text-xs"></i>
-                            <input type="text" autoComplete="off" placeholder="Buscar por nombre o DNI" value={busquedaClientes} onChange={(e) => setBusquedaClientes(e.target.value)} className="flex-1 min-w-0 bg-transparent text-[13.5px] text-stone-900 outline-none placeholder:text-stone-400" />
-                          </label>
-                          <div className="flex bg-[#ece9f4] rounded-full p-[3px] w-fit max-w-full overflow-x-auto hide-scrollbar">
-                            {[['todos', 'Todos', clientesLista.length], ['deuda', 'Con deuda', conDeuda], ['aldia', 'Al día', clientesLista.length - conDeuda]].map(([k, t, n]) => (
-                              <button key={k} type="button" onClick={() => setFiltroClientes(k)} className={botonSeg(filtroClientes === k)}>{t} <span className="text-[11.5px] text-stone-500 font-medium">{n}</span></button>
-                            ))}
-                          </div>
-                          <div className="flex justify-between items-center text-xs text-stone-500">
-                            <span>{filtrados.length} resultado{filtrados.length === 1 ? '' : 's'}</span>
-                            {esAdmin && (
-                              <button type="button" onClick={exportarClientesExcel} className="font-semibold text-stone-700 hover:text-stone-900 inline-flex items-center gap-1.5"><i className="fa-solid fa-file-excel"></i> Exportar</button>
-                            )}
-                          </div>
-                        </div>
-                        <div className="flex-1 min-h-0 overflow-y-auto hide-scrollbar px-3.5 pb-[18px]">
-                          {cargandoClientes && <p className="text-center text-[13px] text-stone-500 py-8">Cargando...</p>}
-                          {!cargandoClientes && filtrados.length === 0 && <p className="text-center text-[13px] text-stone-500 py-8 px-4"><b className="block text-stone-900">Nadie coincide</b>Prueba con otro filtro o nombre.</p>}
-                          {filtrados.map((c) => {
-                            const saldo = saldoDe(c);
-                            const uso = usoDe(c);
-                            const elegido = sel?.id === c.id;
-                            return (
-                              <button type="button" key={c.id} onClick={() => { if (esAdmin) abrirEdicionCliente(c); }} className={`grid grid-cols-[44px_minmax(0,1fr)_auto] gap-3 items-center w-full text-left px-3 py-3 rounded-[14px] mb-0.5 border transition ${elegido ? 'md:bg-white md:border-[#d9cdf5] md:shadow-[0_10px_24px_-14px_rgba(97,5,220,0.45),0_0_0_3px_rgba(97,5,220,0.06)] border-transparent' : 'border-transparent hover:bg-[#f8f7fb]'} ${esAdmin ? '' : 'cursor-default'}`}>
-                                {avatar(c, 'w-11 h-11 text-sm')}
-                                <span className="min-w-0">
-                                  <span className="block text-sm font-semibold text-stone-900 tracking-tight leading-tight truncate">{c.nombre_completo}</span>
-                                  <span className="block text-xs mt-0.5 truncate text-stone-500">DNI {c.dni}{c.telefono ? ` · ${c.telefono}` : ''}</span>
-                                </span>
-                                <span className="text-right shrink-0">
-                                  {saldo > 0 ? (
-                                    <>
-                                      <strong className="block text-[15px] font-bold tracking-tight tabular-nums text-[#c0262d]">{dinero(saldo)}</strong>
-                                      {(Number(c.limite_credito) || 0) > 0 && <span className="block w-[60px] h-1 rounded-sm bg-[#ece9f4] mt-[7px] ml-auto overflow-hidden"><i className={`block h-full rounded-sm ${colorBarra(uso)}`} style={{ width: `${Math.min(100, uso * 100)}%` }}></i></span>}
-                                    </>
-                                  ) : (
-                                    <span className="block text-xs font-semibold text-[#0f7b4a]">Al día</span>
-                                  )}
-                                </span>
-                              </button>
-                            );
-                          })}
-                        </div>
-                      </div>
-                      <div className={`${sel ? 'flex' : 'hidden md:flex'} flex-col min-h-0 relative`}>{detalle}</div>
-                    </div>
-                  )}
-                </div>
-              </div>
-            );
-          })()}
+          {modalGestionClientes && (
+            <Suspense fallback={null}>
+              <GestionClientes
+                abrirEdicionCliente={abrirEdicionCliente}
+                busquedaClientes={busquedaClientes}
+                cargandoClientes={cargandoClientes}
+                clienteEditando={clienteEditando}
+                clientesFiltradosGestion={clientesFiltradosGestion}
+                clientesLista={clientesLista}
+                esAdmin={esAdmin}
+                exportarClientesExcel={exportarClientesExcel}
+                filtroClientes={filtroClientes}
+                formEditarCliente={formEditarCliente}
+                formatoSoles={formatoSoles}
+                guardandoEdicionCliente={guardandoEdicionCliente}
+                guardarEdicionCliente={guardarEdicionCliente}
+                inicialesCliente={inicialesCliente}
+                modalGestionClientes={modalGestionClientes}
+                setBusquedaClientes={setBusquedaClientes}
+                setClienteEditando={setClienteEditando}
+                setFiltroClientes={setFiltroClientes}
+                setFormEditarCliente={setFormEditarCliente}
+                setModalGestionClientes={setModalGestionClientes}
+                setModalNuevoCliente={setModalNuevoCliente}
+              />
+            </Suspense>
+          )}
 
           {/* Modal: Nuevo Cliente con Límite de Crédito */}
           {/* Modal: Buscar/Seleccionar Cliente (POS) */}
