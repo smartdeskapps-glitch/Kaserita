@@ -1591,6 +1591,15 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
       // "Cobrar" -- así el carrito queda limpio y solo se ve lo esencial.
       const [mostrarPago, setMostrarPago] = useState(false);
       const [medioPago, setMedioPago] = useState('EFECTIVO');
+      // Celular: al pasar al cobro en efectivo, la hoja baja sola hasta "Paga con"
+      // y sus atajos (antes quedaban tapados por el total y había que desplazar).
+      useEffect(() => {
+        if (!mostrarPago || medioPago !== 'EFECTIVO' || window.innerWidth >= 768) return undefined;
+        const espera = setTimeout(() => {
+          document.querySelector('[data-campo-pago]')?.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+        }, 120);
+        return () => clearTimeout(espera);
+      }, [mostrarPago, medioPago]);
       // Barbería: quién atendió la venta que se está armando (cajeros.id).
       const [barberoVentaId, setBarberoVentaId] = useState(null);
       // 'PORCENTAJE' | 'MONTO' | null (null = sin descuento en esta venta)
