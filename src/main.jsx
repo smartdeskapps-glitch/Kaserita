@@ -11880,6 +11880,7 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
                       <div>
                         <small>Boleta</small>
                         <b>{ventaCompletada.nro_boleta}</b>
+                        <span className="bol-fh">{formatoFechaHoraBoleta(ventaCompletada.fecha_hora)}</span>
                       </div>
                       <div className="bol-der">
                         <small>Monto</small>
@@ -11891,18 +11892,20 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
                           <span className="bol-neg">Descuento − S/ {formatoSoles(ventaCompletada.descuento)}</span>
                         </div>
                       )}
-                      <div className="bol-fecha">
-                        <small>Fecha y hora</small>
-                        <b>{formatoFechaHoraBoleta(ventaCompletada.fecha_hora)}</b>
-                      </div>
                     </div>
                     <div className="bol-cli">
                       <span className="bol-mp"><IconoTrazo nombre={ICONO_MEDIO_PAGO[String(ventaCompletada.medio_pago || '').toUpperCase()] || 'efectivo'} className="w-5 h-5" /></span>
                       <div className="min-w-0">
-                        <b>{ventaCompletada.cliente}</b>
+                        <b>{ventaCompletada.cliente && ventaCompletada.cliente !== 'Desconocido' ? ventaCompletada.cliente : 'Cliente sin registrar'}</b>
                         <span>{String(ventaCompletada.medio_pago || '').charAt(0) + String(ventaCompletada.medio_pago || '').slice(1).toLowerCase()}</span>
                       </div>
                     </div>
+                    {ventaCompletada.recibido > 0 && (
+                      <div className="bol-vuelto">
+                        <span>Recibido <b>S/ {formatoSoles(ventaCompletada.recibido)}</b></span>
+                        <span className="bol-vv">Vuelto <b>S/ {formatoSoles(Math.max(0, ventaCompletada.recibido - ventaCompletada.total_venta))}</b></span>
+                      </div>
+                    )}
                     <button onClick={() => setVentaCompletada(null)} className="bol-nv">
                       Nueva venta
                     </button>

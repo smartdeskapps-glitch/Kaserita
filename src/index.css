@@ -365,8 +365,7 @@
    una máscara, así la altura del contenido no importa. */
 .bol-ticket {
   position: relative;
-  width: 326px;
-  max-width: 100%;
+  width: min(344px, 100%);
   filter: drop-shadow(0 30px 40px rgba(20, 10, 60, 0.35));
   animation: bol-sube 0.7s cubic-bezier(0.3, 1.2, 0.4, 1) both;
 }
@@ -374,7 +373,7 @@
 .bol-a, .bol-b { background: #fff; position: relative; }
 .bol-a {
   border-radius: 26px 26px 0 0;
-  padding: 26px 22px 20px;
+  padding: 22px 20px 16px;
   text-align: center;
   -webkit-mask: radial-gradient(circle 12px at 0 100%, #0000 11.5px, #000 12px) 0 0 / 51% 100% no-repeat,
     radial-gradient(circle 12px at 100% 100%, #0000 11.5px, #000 12px) 100% 0 / 51% 100% no-repeat;
@@ -384,7 +383,7 @@
 .bol-a::after { content: ""; position: absolute; left: 24px; right: 24px; bottom: 0; border-top: 2px dashed #e6defa; }
 .bol-b {
   border-radius: 0 0 4px 4px;
-  padding: 20px 22px 34px;
+  padding: 16px 20px 32px;
   -webkit-mask: radial-gradient(circle 12px at 0 0, #0000 11.5px, #000 12px),
     radial-gradient(circle 12px at 100% 0, #0000 11.5px, #000 12px),
     radial-gradient(circle 9px at 50% 100%, #0000 8.5px, #000 9px) 0 0 / 24px 100% repeat-x;
@@ -423,15 +422,19 @@
 .bol-desc { grid-column: 1 / -1; display: flex; justify-content: space-between; font-size: 12.5px; color: #78729a; margin-top: -4px; }
 .bol-desc b { font-size: inherit; color: #1c1830; font-weight: 600; }
 .bol-neg { color: #e11d48; }
-.bol-fecha { grid-column: 1 / -1; }
-.bol-cli { display: flex; align-items: center; gap: 12px; margin-top: 16px; background: #f7f3fe; border-radius: 18px; padding: 12px 14px; text-align: left; }
+.bol-fh { display: block; margin-top: 6px; font-size: 12px; color: #78729a; font-variant-numeric: tabular-nums; }
+.bol-vuelto { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; margin-top: 10px; padding: 0 4px; font-size: 12.5px; color: #78729a; text-align: left; }
+.bol-vuelto b { color: #1c1830; font-weight: 700; font-variant-numeric: tabular-nums; }
+.bol-vv { font-size: 13px; }
+.bol-vv b { margin-left: 5px; font-size: 20px; font-weight: 800; color: #15803d; }
+.bol-cli { display: flex; align-items: center; gap: 12px; margin-top: 14px; background: #f7f3fe; border-radius: 18px; padding: 12px 14px; text-align: left; }
 .bol-mp { width: 42px; height: 42px; border-radius: 14px; background: #fff; box-shadow: 0 0 0 1px #efe6fc; display: flex; align-items: center; justify-content: center; color: #6105dc; flex: none; }
 .bol-cli b { display: block; font-size: 14px; color: #1c1830; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .bol-cli span:not(.bol-mp) { font-size: 12px; color: #78729a; }
-.bol-nv { width: 100%; margin-top: 18px; height: 52px; border-radius: 9999px; background: linear-gradient(90deg, #8a3df2, #4d04b0); color: #fff; font-weight: 700; font-size: 15px; box-shadow: 0 12px 22px -12px rgba(97, 5, 220, 0.9); }
+.bol-nv { width: 100%; margin-top: 14px; height: 52px; border-radius: 9999px; background: linear-gradient(90deg, #8a3df2, #4d04b0); color: #fff; font-weight: 700; font-size: 15px; box-shadow: 0 12px 22px -12px rgba(97, 5, 220, 0.9); }
 .bol-nv:active { transform: scale(0.98); }
-.bol-sec { display: flex; gap: 8px; margin-top: 10px; }
-.bol-sec button { flex: 1; height: 42px; border-radius: 9999px; background: #f7f3fe; font-size: 12.5px; font-weight: 700; color: #4d04b0; display: flex; gap: 6px; align-items: center; justify-content: center; white-space: nowrap; }
+.bol-sec { display: flex; gap: 6px; margin-top: 8px; }
+.bol-sec button { flex: 1; height: 42px; border-radius: 9999px; background: #f7f3fe; font-size: 12.5px; font-weight: 700; color: #4d04b0; display: flex; gap: 5px; align-items: center; justify-content: center; white-space: nowrap; padding: 0 4px; min-width: 0; }
 @media (prefers-reduced-motion: reduce) { .bol-ticket, .bol-ok-c, .bol-ok i { animation: none; } }
 /* Botón principal "borde de luz" (opción A): pastilla blanca con relieve dentro de un
    anillo iridiscente, el mismo lenguaje de "Abrir Turno" (.btn-noise). Todo en el propio
