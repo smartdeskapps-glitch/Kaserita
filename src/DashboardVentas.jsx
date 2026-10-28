@@ -55,6 +55,7 @@ export default function DashboardVentas({
   setPestanaDiaCal,
   formatoSoles,
   montoResumen,
+  montoCorto,
   FiltroFechasRapido,
   VariacionPct,
 }) {
