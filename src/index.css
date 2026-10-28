@@ -541,3 +541,29 @@
     transition: none;
   }
 }
+/* Barra flotante "Ver carrito" (celular): sube al aparecer y la cantidad hace un pequeño pop al cambiar */
+.kz-barra-carrito {
+  animation: kz-barra-sube 0.34s cubic-bezier(0.2, 0.9, 0.3, 1.15);
+}
+.kz-barra-pop {
+  transform-origin: left center;
+  animation: kz-barra-pop 0.3s ease-out;
+}
+@keyframes kz-barra-sube {
+  from {
+    transform: translateY(26px) scale(0.96);
+    opacity: 0;
+  }
+}
+@keyframes kz-barra-pop {
+  0% {
+    transform: scale(1.22);
+    color: #fff;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .kz-barra-carrito,
+  .kz-barra-pop {
+    animation: none;
+  }
+}

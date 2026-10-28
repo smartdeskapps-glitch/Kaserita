@@ -9547,28 +9547,52 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
           </div>
 
           {/* Barra flotante del carrito (solo mobile, cuando hay productos y el panel está cerrado) */}
-          {carrito.length > 0 && !mostrarResumenMobile && (
-            <>
-              <div className="md:hidden fixed inset-x-0 bottom-0 h-24 z-30 pointer-events-none bg-gradient-to-t from-[#f9f8fb]/95 via-[#f9f8fb]/60 to-transparent"></div>
-              <button
-                onClick={() => setMostrarResumenMobile(true)}
-                className="md:hidden fixed left-3 right-3 bottom-3 z-40 h-[58px] flex items-center justify-between gap-3 bg-[#6105dc] hover:bg-[#4d04b0] text-white rounded-full pl-2 pr-2 active:scale-[0.98] transition-transform"
-              >
-                <span className="flex items-center gap-2.5 font-semibold text-[15px]">
-                  <span className="flex items-center justify-center min-w-[42px] h-[42px] rounded-full bg-white/20 text-[15px] font-bold tabular-nums">
-                    {carrito.reduce((acc, item) => acc + Number(item.cantidad || 0), 0)}
+          {carrito.length > 0 && !mostrarResumenMobile && (() => {
+            const unidades = carrito.reduce((acc, item) => acc + Number(item.cantidad || 0), 0);
+            const unidadesTexto = Number.isInteger(unidades) ? String(unidades) : String(+unidades.toFixed(2));
+            const ultimos = carrito.slice(-3);
+            return (
+              <>
+                <div className="md:hidden fixed inset-x-0 bottom-0 h-28 z-30 pointer-events-none bg-gradient-to-t from-[#f9f8fb] via-[#f9f8fb]/70 to-transparent"></div>
+                <button
+                  onClick={() => setMostrarResumenMobile(true)}
+                  aria-label={`Ver carrito: ${unidadesTexto} ${unidades === 1 ? 'producto' : 'productos'}, total S/ ${formatoSoles(totalConDescuento)}`}
+                  className="kz-pri kz-barra-carrito md:hidden !fixed left-3 right-3 bottom-[max(0.75rem,env(safe-area-inset-bottom))] z-40 h-[66px] flex items-center justify-between gap-3 pl-3 pr-2.5"
+                >
+                  <span className="flex items-center min-w-0">
+                    {/* Fotos de lo último que se agregó, apiladas */}
+                    <span className="flex items-center shrink-0 pr-1">
+                      {ultimos.map((item, i) => (
+                        <FotoProducto
+                          key={item.claveCarrito || item.productoId}
+                          fotoUrl={item.foto_url}
+                          categoria={item.categoria}
+                          className={`w-9 h-9 rounded-full ring-2 ring-white/90 bg-white shrink-0 ${i > 0 ? '-ml-3' : ''}`}
+                          iconClassName="text-xs"
+                        />
+                      ))}
+                      {carrito.length > 3 && (
+                        <span className="-ml-3 w-9 h-9 rounded-full ring-2 ring-white/90 bg-[#3a1b94] text-white text-[11px] font-bold tabular-nums flex items-center justify-center shrink-0">+{carrito.length - 3}</span>
+                      )}
+                    </span>
+                    <span className="ml-2.5 text-left leading-tight min-w-0">
+                      <span className="block font-bold text-[15px] tracking-tight">Ver carrito</span>
+                      <span key={unidadesTexto} className="kz-barra-pop block text-[12px] text-white/75 font-medium tabular-nums">{unidadesTexto} {unidades === 1 ? 'producto' : 'productos'}</span>
+                    </span>
                   </span>
-                  Ver carrito
-                </span>
-                <span className="flex items-center gap-2.5 font-bold text-base tabular-nums pr-0.5">
-                  <span><small className="text-xs font-semibold opacity-80 mr-0.5">S/</small>{formatoSoles(totalConDescuento)}</span>
-                  <span className="flex items-center justify-center w-[42px] h-[42px] rounded-full bg-white text-[#6105dc] shrink-0">
-                    <IconoTrazo nombre="bag" className="w-5 h-5" />
+                  <span className="flex items-center gap-2.5 shrink-0">
+                    <span className="text-right leading-tight">
+                      <span className="block text-[11px] text-white/70 font-medium">Total</span>
+                      <span className="block font-bold text-[19px] tracking-tight tabular-nums"><small className="text-xs font-semibold opacity-80 mr-0.5">S/</small>{formatoSoles(totalConDescuento)}</span>
+                    </span>
+                    <span className="flex items-center justify-center w-11 h-11 rounded-full bg-white text-[#6105dc] shrink-0 shadow-[0_4px_10px_-4px_rgba(30,5,100,0.6)]">
+                      <IconoTrazo nombre="bag" className="w-5 h-5" />
+                    </span>
                   </span>
-                </span>
-              </button>
-            </>
-          )}
+                </button>
+              </>
+            );
+          })()}
 
           {/* Panel Derecho: Resumen de Venta y Cobro (overlay en mobile, fijo en desktop) */}
           {/* Fondo semitransparente detrás de la hoja del carrito (solo mobile) */}
