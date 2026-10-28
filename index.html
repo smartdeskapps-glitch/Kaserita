@@ -31,7 +31,9 @@
   }
   * { box-sizing: border-box; }
   html, body { margin: 0; padding: 0; }
-  body { background: var(--paper); color: var(--ink); font-family: var(--font-body); line-height: 1.6; -webkit-font-smoothing: antialiased; overflow-x: hidden; }
+  /* El portátil animado mide 512 px fijos y se reduce con scale(): sin recortar también en <html>, el celular ensancha la página (zoom ~84 %) y deja un margen vacío. */
+  html { overflow-x: clip; }
+  body { background: var(--paper); color: var(--ink); font-family: var(--font-body); line-height: 1.6; -webkit-font-smoothing: antialiased; overflow-x: hidden; overflow-x: clip; }
   a { color: inherit; }
   .ic { height: 1em; width: auto; fill: currentColor; display: inline-block; vertical-align: -0.125em; flex-shrink: 0; }
   .wrap { max-width: 900px; margin: 0 auto; padding: 20px 20px 0; }
