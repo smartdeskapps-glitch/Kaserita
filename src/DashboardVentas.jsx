@@ -388,7 +388,8 @@ export default function DashboardVentas({
                           const t = maxDia ? v / maxDia : 0;
                           const esMax = conVentas.length > 0 && d === diaMax;
                           const esMin = conVentas.length > 1 && d === diaMin;
-                          const oscuro = esMax || t > 0.55;
+                          // Con Crocus Purple el texto blanco no se lee (contraste ~3:1): las celdas llevan texto Ebony.
+                          const oscuro = false;
                           const enRango = clave(d) >= fechaInicioDash && clave(d) <= fechaFinDash;
                           const esHoy = cmpMes === 0 && d === dHoy;
                           return (
@@ -398,7 +399,7 @@ export default function DashboardVentas({
                               onClick={() => setDiaCalendarioSel(clave(d))}
                               title={`${nombreDia(d)}: S/ ${formatoSoles(v)}`}
                               className={`relative rounded-[14px] sm:rounded-2xl aspect-square sm:aspect-[5/4] min-w-0 p-2 lg:p-3 flex flex-col items-center justify-center sm:items-stretch sm:justify-between overflow-hidden active:scale-95 transition-transform ${selDia === d ? 'outline outline-[2.5px] outline-offset-2 outline-stone-900' : ''} ${enRango ? 'ring-2 ring-inset ring-[#9687F5]' : ''} ${esMax ? 'shadow-[0_10px_22px_-8px_rgba(150,135,245,0.55)]' : ''} ${oscuro ? 'text-white' : 'text-stone-800'}`}
-                              style={{ background: esMax ? 'linear-gradient(160deg,#c5bcff,#9687F5)' : v > 0 ? `rgba(150,135,245,${(0.06 + t * 0.5).toFixed(2)})` : '#e6ebfb' }}
+                              style={{ background: esMax ? 'linear-gradient(160deg,#c5bcff,#9687F5)' : v > 0 ? `rgba(150,135,245,${(0.1 + t * 0.5).toFixed(2)})` : '#f2f3f8' }}
                             >
                               <span className="text-[13px] sm:text-sm font-bold sm:font-semibold sm:opacity-80">
                                 {d}
@@ -406,7 +407,7 @@ export default function DashboardVentas({
                                 {esMin && <span className={`absolute top-1 right-1.5 text-[8px] leading-none sm:static sm:text-[9px] sm:ml-1 ${oscuro ? 'text-rose-200' : 'text-rose-600'}`}>▼</span>}
                               </span>
                               <span className="hidden sm:block text-[11px] md:text-sm lg:text-base font-semibold text-right tabular-nums whitespace-nowrap">{v > 0 ? `S/ ${montoCorto(v)}` : '—'}</span>
-                              {esHoy && <span className={`absolute bottom-1.5 left-1/2 -ml-[2px] w-1 h-1 sm:bottom-auto sm:left-auto sm:ml-0 sm:top-2 sm:right-2 sm:w-1.5 sm:h-1.5 rounded-full ${esMax || oscuro ? 'bg-white' : 'bg-[#9687F5]'}`}></span>}
+                              {esHoy && <span className={`absolute bottom-1.5 left-1/2 -ml-[2px] w-1 h-1 sm:bottom-auto sm:left-auto sm:ml-0 sm:top-2 sm:right-2 sm:w-1.5 sm:h-1.5 rounded-full bg-[#2D284B]`}></span>}
                             </button>
                           );
                         })}
