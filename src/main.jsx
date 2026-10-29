@@ -10729,7 +10729,7 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
             };
 
             const alTeclear = (e) => {
-              const seguirActivo = () => requestAnimationFrame(() => document.querySelector('[data-menu-activo]')?.scrollIntoView({ block: 'nearest' }));
+              const seguirActivo = () => setTimeout(() => document.querySelector('[data-menu-activo]')?.scrollIntoView({ block: 'nearest' }), 0);
               if (e.key === 'ArrowDown') { e.preventDefault(); setIndiceMenu(Math.min(activo + 1, visibles.length - 1)); seguirActivo(); }
               else if (e.key === 'ArrowUp') { e.preventDefault(); setIndiceMenu(Math.max(activo - 1, 0)); seguirActivo(); }
               else if (e.key === 'Enter') { e.preventDefault(); ejecutar(visibles[activo]); }
