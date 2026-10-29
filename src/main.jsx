@@ -9532,7 +9532,7 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
                       aria-label="Pedidos por retirar"
                       className="relative flex items-center justify-center h-[42px] md:h-[46px] w-[42px] md:w-[46px] shrink-0 bg-white hover:bg-[#ebf0ff] text-[#5f5d76] rounded-full border border-[#dde4fa] transition"
                     >
-                      <i className="fa-solid fa-bell-concierge text-[16px]"></i>
+                      <i className="fa-solid fa-bag-shopping text-[16px]"></i>
                       {pedidosPorRetirarPendientes > 0 ? (
                         <span className="absolute -top-1 -right-1 min-w-[19px] h-[19px] px-1 flex items-center justify-center bg-rose-600 text-white text-[10px] font-bold rounded-full border-2 border-white animate-pulse">
                           {pedidosPorRetirarPendientes > 9 ? '9+' : pedidosPorRetirarPendientes}
