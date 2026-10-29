@@ -10737,7 +10737,6 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
 
             return (
               <div className="fixed inset-0 bg-[#2d284b]/35 backdrop-blur-md z-[60] flex items-end md:items-start md:justify-center md:pt-[10vh]" onClick={cerrarMenu}>
-                <div className="menu-luz hidden md:block" aria-hidden="true"></div>
                 <div
                   className="menu-hoja relative w-full md:max-w-xl max-h-[85vh] md:max-h-[72vh] flex flex-col bg-white/95 border-t border-[#dde4fa] md:border md:border-white md:rounded-[26px] rounded-t-3xl overflow-hidden"
                   onClick={(e) => e.stopPropagation()}
