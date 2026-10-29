@@ -727,14 +727,3 @@
 @media (max-width: 767px) { .menu-hoja { box-shadow: 0 -16px 50px -12px rgba(91,75,214,.4); } }
 .menu-it-on { background: linear-gradient(90deg, #ebf0ff, #f6f4ff); box-shadow: 0 8px 22px -10px rgba(91,75,214,.45); }
 .menu-it-on .menu-ic.bg-\[\#ebf0ff\] { background: linear-gradient(135deg, #9687f5, #5b4bd6); color: #fff; box-shadow: 0 6px 14px -4px rgba(91,75,214,.6); }
-
-/* Barra de busqueda con el estilo del menu Mas: pastilla blanca con halo lavanda */
-.kz-busq {
-  background: linear-gradient(180deg, #fff, #f9faff);
-  border-color: #fff;
-  box-shadow: 0 10px 26px -14px rgba(91,75,214,.45), 0 0 0 4px rgba(255,255,255,.4), inset 0 1px 0 #fff;
-}
-.kz-busq:focus-within {
-  border-color: #c5bcff;
-  box-shadow: 0 14px 30px -12px rgba(91,75,214,.55), 0 0 0 4px rgba(197,188,255,.35), 0 0 22px 2px rgba(150,135,245,.25);
-}
