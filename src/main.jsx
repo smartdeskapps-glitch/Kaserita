@@ -9405,92 +9405,90 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
             </header>
 
             <div className="flex-1 flex flex-col overflow-hidden p-3 md:p-4">
-              {/* Selector Productos | Combos (solo si hay combos activos) */}
-              {combos.some(c => c.activo) && (
-                <div className="shrink-0 mb-2.5 flex">
-                  <div className="inline-flex items-center gap-0.5 p-1 rounded-full bg-white/55 border border-white/70">
-                    <button
-                      onClick={() => { if (categoriaFiltro === '__COMBOS__') setCategoriaFiltro('TODOS'); }}
-                      aria-pressed={categoriaFiltro !== '__COMBOS__'}
-                      className={`flex items-center gap-2 h-[34px] px-4 rounded-full text-[13px] font-bold transition ${categoriaFiltro !== '__COMBOS__' ? 'bg-white text-[#5b4bd6] shadow-[0_4px_12px_-4px_rgba(91,75,214,0.45)]' : 'text-[#6b6890] hover:text-[#2d284b]'}`}
-                    >
-                      <i className="fa-solid fa-table-cells-large text-[12px]"></i>
-                      Productos
-                    </button>
-                    <button
-                      onClick={() => setCategoriaFiltro('__COMBOS__')}
-                      aria-pressed={categoriaFiltro === '__COMBOS__'}
-                      className={`flex items-center gap-2 h-[34px] px-4 rounded-full text-[13px] font-bold transition ${categoriaFiltro === '__COMBOS__' ? 'bg-white text-[#5b4bd6] shadow-[0_4px_12px_-4px_rgba(91,75,214,0.45)]' : 'text-[#6b6890] hover:text-[#2d284b]'}`}
-                    >
-                      <i className="fa-solid fa-gift text-[12px]"></i>
-                      Combos
-                      <span className="text-[12px] font-bold opacity-70 tabular-nums">{combos.filter(c => c.activo && estadoCombos.get(c.id)?.disponible !== false).length}</span>
-                    </button>
-                  </div>
-                </div>
-              )}
-
               {/* Panel blanco del catálogo: barra única (categoría + buscador + combos + pedidos) y grilla. */}
               <div className="flex-1 flex flex-col overflow-hidden bg-white rounded-2xl p-3 md:p-4 gap-3 relative z-10">
-                {/* Barra única: categoría | buscador | contador | cámara dentro de una cápsula;
-                    Combos y "Por retirar" quedan al lado. */}
+                {/* Barra: selector Productos | Combos, categoría, buscador con contador y cámara, y "Por retirar". */}
                 <div className="flex items-center gap-2.5 shrink-0">
-                  <div className="flex-1 min-w-0 flex items-center h-[42px] md:h-[46px] p-1 bg-white border border-[#dde4fa] rounded-full transition focus-within:border-[#5b4bd6] focus-within:ring-4 focus-within:ring-[#5b4bd6]/10 group/bus">
-                    <div className="relative shrink-0">
+                  {combos.some(c => c.activo) && (
+                    <div className="shrink-0 inline-flex items-center gap-0.5 p-1 h-[42px] md:h-[46px] rounded-full bg-[#ebf0ff]">
                       <button
-                        onClick={() => { setBusquedaCategoria(''); setMenuCategoriasAbierto((v) => !v); }}
-                        className="flex items-center gap-2 h-[34px] md:h-[38px] pl-3 pr-2.5 rounded-full bg-[#ebf0ff] hover:bg-[#dde4fa] text-[#2d284b] text-[11.5px] font-extrabold tracking-wide transition max-w-[104px] md:max-w-[210px]"
+                        onClick={() => { if (categoriaFiltro === '__COMBOS__') setCategoriaFiltro('TODOS'); }}
+                        aria-pressed={categoriaFiltro !== '__COMBOS__'}
+                        title="Productos"
+                        className={`flex items-center gap-2 h-full px-3 md:px-4 rounded-full text-[13px] font-semibold transition ${categoriaFiltro !== '__COMBOS__' ? 'bg-white text-[#5b4bd6] shadow-[0_4px_12px_-4px_rgba(91,75,214,0.45)]' : 'text-[#6b6890] hover:text-[#2d284b]'}`}
                       >
-                        <span className="truncate uppercase">{categoriaFiltro === '__COMBOS__' ? 'Todos' : categoriaFiltro}</span>
-                        <i className={`fa-solid fa-chevron-down text-[9px] transition-transform ${menuCategoriasAbierto ? 'rotate-180' : ''}`}></i>
+                        <i className="fa-solid fa-table-cells-large text-[12px]"></i>
+                        <span className="hidden md:inline">Productos</span>
                       </button>
-                      {menuCategoriasAbierto && (
-                    <>
-                      <div className="fixed inset-0 z-20" onClick={() => setMenuCategoriasAbierto(false)}></div>
-                      <div className="absolute top-full left-0 mt-2 w-64 bg-white/80 backdrop-blur-2xl border border-white/90 rounded-3xl shadow-[0_24px_60px_-24px_rgba(60,20,120,0.28)] ring-1 ring-[#5b4bd6]/5 p-2 z-30">
-                        <div className="relative mb-2">
-                          <i className="fa-solid fa-magnifying-glass absolute left-3.5 top-1/2 -translate-y-1/2 text-[11px] text-stone-400"></i>
-                          <input
-                            type="text"
-                            value={busquedaCategoria}
-                            onChange={(e) => setBusquedaCategoria(e.target.value)}
-                            placeholder="Buscar categoría"
-                            className="w-full bg-white rounded-full pl-9 pr-3 py-2 text-[13px] text-stone-900 placeholder-stone-400 ring-1 ring-[#5b4bd6]/10 focus:outline-none focus:ring-2 focus:ring-[#c5bcff]"
-                          />
-                        </div>
-                        <div
-                          className="max-h-[340px] overflow-y-auto hide-scrollbar pb-5"
-                          style={{ WebkitMaskImage: 'linear-gradient(to bottom, #000 calc(100% - 28px), transparent)', maskImage: 'linear-gradient(to bottom, #000 calc(100% - 28px), transparent)' }}
-                        >
-                          {(() => {
-                            const q = busquedaCategoria.trim().toLowerCase();
-                            const lista = q ? categorias.filter(cat => cat !== 'TODOS' && String(cat).toLowerCase().includes(q)) : categorias;
-                            if (lista.length === 0) {
-                              return <p className="text-xs text-stone-400 text-center py-4">Sin resultados</p>;
-                            }
-                            return lista.map(cat => {
-                              const cantidad = cat === 'TODOS' ? productos.length : (conteoPorCategoria.get(cat) || 0);
-                              const activo = categoriaFiltro === cat;
-                              return (
-                                <React.Fragment key={cat}>
-                                  <button
-                                    onClick={() => { setCategoriaFiltro(cat); setMenuCategoriasAbierto(false); }}
-                                    className={`w-full flex items-center justify-between gap-2 px-3.5 py-2.5 rounded-full text-left text-sm transition ${activo ? 'bg-[#dde4fa] text-[#2d284b] font-bold' : 'text-stone-800 font-medium hover:bg-[#5b4bd6]/5'}`}
-                                  >
-                                    <span className="truncate">{cat}</span>
-                                    <span className={`text-xs shrink-0 tabular-nums ${activo ? 'bg-white text-[#5b4bd6] font-semibold px-2 py-0.5 rounded-full' : 'text-stone-400'}`}>{cantidad}</span>
-                                  </button>
-                                  {cat === 'TODOS' && !q && <div className="h-px bg-[#5b4bd6]/10 mx-3.5 my-1.5"></div>}
-                                </React.Fragment>
-                              );
-                            });
-                          })()}
-                        </div>
-                      </div>
-                    </>
-                  )}
+                      <button
+                        onClick={() => setCategoriaFiltro('__COMBOS__')}
+                        aria-pressed={categoriaFiltro === '__COMBOS__'}
+                        title="Combos"
+                        className={`flex items-center gap-2 h-full px-3 md:px-4 rounded-full text-[13px] font-semibold transition ${categoriaFiltro === '__COMBOS__' ? 'bg-white text-[#5b4bd6] shadow-[0_4px_12px_-4px_rgba(91,75,214,0.45)]' : 'text-[#6b6890] hover:text-[#2d284b]'}`}
+                      >
+                        <i className="fa-solid fa-gift text-[12px]"></i>
+                        <span className="hidden md:inline">Combos</span>
+                        <span className="tabular-nums">{combos.filter(c => c.activo && estadoCombos.get(c.id)?.disponible !== false).length}</span>
+                      </button>
                     </div>
-                    <span className="w-px h-[22px] bg-[#dde4fa] mx-2 md:mx-2.5 shrink-0"></span>
+                  )}
+                  {categoriaFiltro !== '__COMBOS__' && (
+                      <div className="relative shrink-0">
+                        <button
+                          onClick={() => { setBusquedaCategoria(''); setMenuCategoriasAbierto((v) => !v); }}
+                          className="flex items-center gap-2 h-[42px] md:h-[46px] pl-4 pr-3.5 rounded-full bg-[#ebf0ff] hover:bg-[#dde4fa] text-[#2d284b] text-[12.5px] md:text-[13px] font-bold tracking-wide transition max-w-[110px] md:max-w-[220px]"
+                        >
+                          <span className="truncate uppercase">{categoriaFiltro === '__COMBOS__' ? 'Todos' : categoriaFiltro}</span>
+                          <i className={`fa-solid fa-chevron-down text-[9px] transition-transform ${menuCategoriasAbierto ? 'rotate-180' : ''}`}></i>
+                        </button>
+                        {menuCategoriasAbierto && (
+                      <>
+                        <div className="fixed inset-0 z-20" onClick={() => setMenuCategoriasAbierto(false)}></div>
+                        <div className="absolute top-full left-0 mt-2 w-64 bg-white/80 backdrop-blur-2xl border border-white/90 rounded-3xl shadow-[0_24px_60px_-24px_rgba(60,20,120,0.28)] ring-1 ring-[#5b4bd6]/5 p-2 z-30">
+                          <div className="relative mb-2">
+                            <i className="fa-solid fa-magnifying-glass absolute left-3.5 top-1/2 -translate-y-1/2 text-[11px] text-stone-400"></i>
+                            <input
+                              type="text"
+                              value={busquedaCategoria}
+                              onChange={(e) => setBusquedaCategoria(e.target.value)}
+                              placeholder="Buscar categoría"
+                              className="w-full bg-white rounded-full pl-9 pr-3 py-2 text-[13px] text-stone-900 placeholder-stone-400 ring-1 ring-[#5b4bd6]/10 focus:outline-none focus:ring-2 focus:ring-[#c5bcff]"
+                            />
+                          </div>
+                          <div
+                            className="max-h-[340px] overflow-y-auto hide-scrollbar pb-5"
+                            style={{ WebkitMaskImage: 'linear-gradient(to bottom, #000 calc(100% - 28px), transparent)', maskImage: 'linear-gradient(to bottom, #000 calc(100% - 28px), transparent)' }}
+                          >
+                            {(() => {
+                              const q = busquedaCategoria.trim().toLowerCase();
+                              const lista = q ? categorias.filter(cat => cat !== 'TODOS' && String(cat).toLowerCase().includes(q)) : categorias;
+                              if (lista.length === 0) {
+                                return <p className="text-xs text-stone-400 text-center py-4">Sin resultados</p>;
+                              }
+                              return lista.map(cat => {
+                                const cantidad = cat === 'TODOS' ? productos.length : (conteoPorCategoria.get(cat) || 0);
+                                const activo = categoriaFiltro === cat;
+                                return (
+                                  <React.Fragment key={cat}>
+                                    <button
+                                      onClick={() => { setCategoriaFiltro(cat); setMenuCategoriasAbierto(false); }}
+                                      className={`w-full flex items-center justify-between gap-2 px-3.5 py-2.5 rounded-full text-left text-sm transition ${activo ? 'bg-[#dde4fa] text-[#2d284b] font-bold' : 'text-stone-800 font-medium hover:bg-[#5b4bd6]/5'}`}
+                                    >
+                                      <span className="truncate">{cat}</span>
+                                      <span className={`text-xs shrink-0 tabular-nums ${activo ? 'bg-white text-[#5b4bd6] font-semibold px-2 py-0.5 rounded-full' : 'text-stone-400'}`}>{cantidad}</span>
+                                    </button>
+                                    {cat === 'TODOS' && !q && <div className="h-px bg-[#5b4bd6]/10 mx-3.5 my-1.5"></div>}
+                                  </React.Fragment>
+                                );
+                              });
+                            })()}
+                          </div>
+                        </div>
+                      </>
+                  )}
+                      </div>
+                  )}
+                  <div className="flex-1 min-w-0 flex items-center h-[42px] md:h-[46px] pl-4 pr-1 bg-white border border-[#dde4fa] rounded-full transition focus-within:border-[#5b4bd6] focus-within:ring-4 focus-within:ring-[#5b4bd6]/10 group/bus">
                     <i className="fa-solid fa-magnifying-glass text-[13px] text-[#8f8cb0] group-focus-within/bus:text-[#5b4bd6] transition shrink-0 mr-2 hidden sm:block"></i>
                       <input
                         ref={inputBusquedaRef}
@@ -9524,17 +9522,15 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
                         </>
                       )}
                       {!busqueda && (
-                        <span className="hidden xl:inline shrink-0 pr-2 text-[11.5px] font-bold text-[#8f8cb0] tabular-nums whitespace-nowrap">
-                          {categoriaFiltro === '__COMBOS__'
-                            ? `${combos.filter((c) => c.activo).length} combos`
-                            : `${productosFiltrados.length} ${productosFiltrados.length === 1 ? 'producto' : 'productos'}`}
+                        <span className="shrink-0 pr-2.5 text-[12px] font-bold text-[#8f8cb0] tabular-nums" title={categoriaFiltro === '__COMBOS__' ? 'Combos' : 'Productos'}>
+                          {categoriaFiltro === '__COMBOS__' ? combos.filter((c) => c.activo).length : productosFiltrados.length}
                         </span>
                       )}
                       <button
                         onClick={abrirEscanerParaVenta}
                         title="Escanear código de barras con la cámara"
                         aria-label="Escanear código de barras con la cámara"
-                        className="kz-pri !shadow-none shrink-0 flex items-center justify-center w-[34px] h-[34px] md:w-[38px] md:h-[38px] rounded-full"
+                        className="shrink-0 flex items-center justify-center w-[34px] h-[34px] md:w-[38px] md:h-[38px] rounded-full text-white bg-gradient-to-br from-[#9687f5] to-[#5b4bd6] hover:brightness-105 active:scale-95 transition"
                       >
                         <svg className="w-[15px] h-[15px]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 8V6a2 2 0 0 1 2-2h2M16 4h2a2 2 0 0 1 2 2v2M20 16v2a2 2 0 0 1-2 2h-2M8 20H6a2 2 0 0 1-2-2v-2"/><path d="M7 12h10"/></svg>
                       </button>
