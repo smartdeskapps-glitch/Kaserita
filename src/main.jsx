@@ -1702,7 +1702,9 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
       useEffect(() => {
         if (!sbClient || esModoDemo || sesion?.usuario?.rol !== 'dueno') return;
         sbClient.auth.getUser().then(({ data }) => {
-          setCuentaConPinDueno(data?.user?.app_metadata?.provider === 'email');
+          // Una cuenta que también tiene Google vinculado entra con Gmail: ahí el PIN no hace falta.
+          const tieneGoogle = (data?.user?.identities || []).some((i) => i.provider === 'google');
+          setCuentaConPinDueno(data?.user?.app_metadata?.provider === 'email' && !tieneGoogle);
           setPinDuenoReforzado(!!data?.user?.user_metadata?.pin_fuerte);
         });
       }, [sbClient, esModoDemo, sesion?.usuario?.rol]);
