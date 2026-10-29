@@ -9504,8 +9504,8 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
                   <div className="flex gap-2.5 flex-1 min-w-0 items-center">
                     {/* Una sola pastilla: lupa, campo, resultados, limpiar y cámara.
                         El borde violeta se enciende cuando el campo tiene el foco. */}
-                    <div className="flex-1 min-w-0 flex items-center gap-2.5 h-[46px] md:h-[50px] pl-4 md:pl-[18px] pr-1.5 md:pr-2 kz-busq border rounded-full transition group/bus">
-                      <i className="fa-solid fa-magnifying-glass text-[15px] text-[#5b4bd6] shrink-0"></i>
+                    <div className="flex-1 min-w-0 flex items-center gap-2.5 h-[38px] md:h-[42px] pl-3.5 md:pl-4 pr-1 md:pr-1.5 kz-busq border rounded-full transition group/bus">
+                      <i className="fa-solid fa-magnifying-glass text-[13px] text-[#5b4bd6] shrink-0"></i>
                       <input
                         ref={inputBusquedaRef}
                         type="text"
@@ -9520,7 +9520,7 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
                         }}
                         onKeyDown={handleKeyDownBusqueda}
                         placeholder="Busca por nombre o escanea un código"
-                        className="flex-1 min-w-0 bg-transparent text-[14px] md:text-[15px] font-semibold text-[#2d284b] placeholder:text-[#9a98bd] placeholder:font-medium focus:outline-none"
+                        className="flex-1 min-w-0 bg-transparent text-[13px] md:text-[14px] font-semibold text-[#2d284b] placeholder:text-[#9a98bd] placeholder:font-medium focus:outline-none"
                       />
                       {busqueda && (
                         <>
@@ -9533,7 +9533,7 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
                               cargarProductos('');
                               inputBusquedaRef.current?.blur();
                             }}
-                            className="shrink-0 w-[30px] h-[30px] flex items-center justify-center bg-[#f2f3f7] hover:bg-[#e5e9f6] text-[#6b6890] rounded-full transition"
+                            className="shrink-0 w-[26px] h-[26px] flex items-center justify-center bg-[#f2f3f7] hover:bg-[#e5e9f6] text-[#6b6890] rounded-full transition"
                           ><i className="fa-solid fa-xmark text-xs"></i></button>
                         </>
                       )}
@@ -9541,9 +9541,9 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
                         onClick={abrirEscanerParaVenta}
                         title="Escanear código de barras con la cámara"
                         aria-label="Escanear código de barras con la cámara"
-                        className="kz-pri shrink-0 flex items-center justify-center w-10 h-10 rounded-full"
+                        className="kz-pri shrink-0 flex items-center justify-center w-8 h-8 md:w-[34px] md:h-[34px] rounded-full"
                       >
-                        <svg className="w-[17px] h-[17px]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 8V6a2 2 0 0 1 2-2h2M16 4h2a2 2 0 0 1 2 2v2M20 16v2a2 2 0 0 1-2 2h-2M8 20H6a2 2 0 0 1-2-2v-2"/><path d="M7 12h10"/></svg>
+                        <svg className="w-[15px] h-[15px]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 8V6a2 2 0 0 1 2-2h2M16 4h2a2 2 0 0 1 2 2v2M20 16v2a2 2 0 0 1-2 2h-2M8 20H6a2 2 0 0 1-2-2v-2"/><path d="M7 12h10"/></svg>
                       </button>
                     </div>
                     <button
