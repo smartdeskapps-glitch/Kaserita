@@ -9414,7 +9414,7 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
                     <div className="relative shrink-0">
                       <button
                         onClick={() => { setBusquedaCategoria(''); setMenuCategoriasAbierto((v) => !v); }}
-                        className="flex items-center gap-2 h-[34px] md:h-[38px] pl-3.5 pr-3 rounded-full bg-[#ebf0ff] hover:bg-[#dde4fa] text-[#2d284b] text-[12px] font-extrabold tracking-wide transition max-w-[132px] md:max-w-[210px]"
+                        className="flex items-center gap-2 h-[34px] md:h-[38px] pl-3 pr-2.5 rounded-full bg-[#ebf0ff] hover:bg-[#dde4fa] text-[#2d284b] text-[11.5px] font-extrabold tracking-wide transition max-w-[104px] md:max-w-[210px]"
                       >
                         <span className="truncate uppercase">{categoriaFiltro === '__COMBOS__' ? 'Todos' : categoriaFiltro}</span>
                         <i className={`fa-solid fa-chevron-down text-[9px] transition-transform ${menuCategoriasAbierto ? 'rotate-180' : ''}`}></i>
@@ -9466,7 +9466,7 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
                   )}
                     </div>
                     <span className="w-px h-[22px] bg-[#dde4fa] mx-2 md:mx-2.5 shrink-0"></span>
-                    <i className="fa-solid fa-magnifying-glass text-[13px] text-[#8f8cb0] group-focus-within/bus:text-[#5b4bd6] transition shrink-0 mr-2"></i>
+                    <i className="fa-solid fa-magnifying-glass text-[13px] text-[#8f8cb0] group-focus-within/bus:text-[#5b4bd6] transition shrink-0 mr-2 hidden sm:block"></i>
                       <input
                         ref={inputBusquedaRef}
                         type="text"
