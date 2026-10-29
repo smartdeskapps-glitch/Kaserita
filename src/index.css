@@ -721,3 +721,15 @@
 }
 
 .dsh-combo > * { position: relative; }
+
+/* Menu "Mas": tarjeta flotante con linea de luz (Crocus sobre blanco) */
+.menu-hoja { box-shadow: 0 30px 70px -20px rgba(91,75,214,.45), 0 0 0 8px rgba(255,255,255,.35); }
+@media (max-width: 767px) { .menu-hoja { box-shadow: 0 -16px 50px -12px rgba(91,75,214,.4); } }
+.menu-luz {
+  position: fixed; top: calc(10vh - 22px); left: 50%; transform: translateX(-50%);
+  width: min(26rem, 60vw); height: 4px; border-radius: 99px; pointer-events: none;
+  background: linear-gradient(90deg, transparent, #c5bcff 25%, #fff 50%, #c5bcff 75%, transparent);
+  box-shadow: 0 0 18px 3px rgba(150,135,245,.65), 0 0 50px 10px rgba(150,135,245,.3);
+}
+.menu-it-on { background: linear-gradient(90deg, #ebf0ff, #f6f4ff); box-shadow: 0 8px 22px -10px rgba(91,75,214,.45); }
+.menu-it-on .menu-ic.bg-\[\#ebf0ff\] { background: linear-gradient(135deg, #9687f5, #5b4bd6); color: #fff; box-shadow: 0 6px 14px -4px rgba(91,75,214,.6); }

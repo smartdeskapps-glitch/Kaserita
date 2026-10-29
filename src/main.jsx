@@ -10736,24 +10736,25 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
             };
 
             return (
-              <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[60] flex items-end md:items-start md:justify-center md:pt-[10vh]" onClick={cerrarMenu}>
+              <div className="fixed inset-0 bg-[#2d284b]/35 backdrop-blur-md z-[60] flex items-end md:items-start md:justify-center md:pt-[10vh]" onClick={cerrarMenu}>
+                <div className="menu-luz hidden md:block" aria-hidden="true"></div>
                 <div
-                  className="w-full md:max-w-xl max-h-[85vh] md:max-h-[72vh] flex flex-col bg-white border-t border-stone-200 md:border md:rounded-2xl rounded-t-3xl shadow-2xl overflow-hidden"
+                  className="menu-hoja relative w-full md:max-w-xl max-h-[85vh] md:max-h-[72vh] flex flex-col bg-white/95 border-t border-[#dde4fa] md:border md:border-white md:rounded-[26px] rounded-t-3xl overflow-hidden"
                   onClick={(e) => e.stopPropagation()}
                   onKeyDown={alTeclear}
                 >
-                  <div className="md:hidden w-10 h-1 bg-stone-300 rounded-full mx-auto mt-2.5"></div>
-                  <div className="flex items-center gap-3 px-4 py-3 border-b border-stone-200">
-                    <i className="fa-solid fa-magnifying-glass text-stone-400 text-sm"></i>
+                  <div className="md:hidden w-10 h-1 bg-[#c5bcff] rounded-full mx-auto mt-2.5"></div>
+                  <div className="flex items-center gap-3 px-5 py-3.5 border-b border-[#dde4fa]">
+                    <i className="fa-solid fa-magnifying-glass text-[#5b4bd6] text-sm"></i>
                     <input
                       type="text"
                       value={busquedaMenu}
                       onChange={(e) => { setBusquedaMenu(e.target.value); setIndiceMenu(0); }}
                       placeholder="Buscar una opción..."
                       autoFocus={typeof window !== 'undefined' && window.matchMedia('(min-width: 768px)').matches}
-                      className="flex-1 bg-transparent text-sm text-stone-900 placeholder:text-stone-400 focus:outline-none"
+                      className="flex-1 bg-transparent text-[15px] font-semibold text-[#2d284b] placeholder:text-[#9a98bd] focus:outline-none"
                     />
-                    <kbd className="hidden md:inline text-[10px] font-semibold text-stone-500 bg-stone-100 border border-stone-200 rounded px-1.5 py-0.5">Esc</kbd>
+                    <kbd className="hidden md:inline text-[10px] font-bold text-[#6b6890] bg-[#f3f5ff] border border-[#dde4fa] rounded-md px-1.5 py-0.5">Esc</kbd>
                   </div>
 
                   <div className="flex-1 overflow-y-auto hide-scrollbar p-2 pb-4 md:pb-2">
@@ -10763,31 +10764,31 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
                     {visibles.map((o, i) => (
                       <React.Fragment key={`${o.grupo}-${o.etiqueta}`}>
                         {o.grupo && o.grupo !== visibles[i - 1]?.grupo && (
-                          <p className="px-3 pt-3 pb-1 text-[10px] font-bold text-stone-400 uppercase tracking-wide">{o.grupo}</p>
+                          <p className="px-3 pt-3.5 pb-1.5 text-[10px] font-extrabold text-[#8d8ab0] uppercase tracking-[0.14em]">{o.grupo}</p>
                         )}
                         <button
                           ref={(el) => { if (el && i === activo) el.scrollIntoView({ block: 'nearest' }); }}
                           onClick={() => ejecutar(o)}
                           onMouseEnter={() => setIndiceMenu(i)}
-                          className={`w-full text-left px-3 py-2.5 rounded-xl flex items-center gap-3 text-sm ${
-                            i === activo ? 'bg-[#ebf0ff]' : ''
-                          } ${o.tono === 'rose' ? 'text-rose-600 font-semibold' : o.tono === 'primario' ? 'text-[#2d284b] font-bold' : 'text-stone-800 font-medium'}`}
+                          className={`w-full text-left px-3 py-2.5 rounded-2xl flex items-center gap-3 text-sm border transition-colors ${
+                            i === activo ? 'menu-it-on border-[#c5bcff]' : 'border-transparent'
+                          } ${o.tono === 'rose' ? 'text-rose-600 font-semibold' : o.tono === 'primario' ? 'text-[#2d284b] font-bold' : 'text-[#2d284b] font-semibold'}`}
                         >
-                          <span className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 ${tonos[o.tono] || 'bg-[#ebf0ff] text-[#5b4bd6]'}`}>
-                            <i className={`fa-solid ${o.icono} text-xs`}></i>
+                          <span className={`menu-ic w-8 h-8 rounded-[11px] flex items-center justify-center shrink-0 ${tonos[o.tono] || 'bg-[#ebf0ff] text-[#5b4bd6]'}`}>
+                            <i className={`fa-solid ${o.icono} text-[13px]`}></i>
                           </span>
                           <span className="flex-1 min-w-0 truncate">{o.etiqueta}</span>
                           {o.insignia && <span className="text-[10px] font-bold bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full">{o.insignia}</span>}
-                          {i === activo && <kbd className="hidden md:inline text-[10px] font-semibold text-stone-500 bg-white border border-stone-200 rounded px-1.5 py-0.5">↵</kbd>}
+                          {i === activo && <kbd className="hidden md:inline text-[10px] font-bold text-[#6b6890] bg-white border border-[#dde4fa] rounded-md px-1.5 py-0.5">↵</kbd>}
                         </button>
                       </React.Fragment>
                     ))}
                   </div>
 
-                  <div className="hidden md:flex items-center gap-4 px-4 py-2.5 border-t border-stone-200 bg-stone-50 text-[11px] text-stone-500">
-                    <span className="flex items-center gap-1.5"><kbd className="bg-white border border-stone-200 rounded px-1.5 py-0.5 font-semibold">↑↓</kbd> Navegar</span>
-                    <span className="flex items-center gap-1.5"><kbd className="bg-white border border-stone-200 rounded px-1.5 py-0.5 font-semibold">↵</kbd> Abrir</span>
-                    <span className="flex items-center gap-1.5"><kbd className="bg-white border border-stone-200 rounded px-1.5 py-0.5 font-semibold">Esc</kbd> Cerrar</span>
+                  <div className="hidden md:flex items-center gap-4 px-4 py-2.5 border-t border-[#dde4fa] bg-[#f3f5ff] text-[11px] font-medium text-[#6b6890]">
+                    <span className="flex items-center gap-1.5"><kbd className="bg-white border border-[#dde4fa] rounded-md px-1.5 py-0.5 font-bold">↑↓</kbd> Navegar</span>
+                    <span className="flex items-center gap-1.5"><kbd className="bg-white border border-[#dde4fa] rounded-md px-1.5 py-0.5 font-bold">↵</kbd> Abrir</span>
+                    <span className="flex items-center gap-1.5"><kbd className="bg-white border border-[#dde4fa] rounded-md px-1.5 py-0.5 font-bold">Esc</kbd> Cerrar</span>
                   </div>
                 </div>
               </div>
