@@ -9410,7 +9410,7 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
                 {/* Barra única: categoría | buscador | contador | cámara dentro de una cápsula;
                     Combos y "Por retirar" quedan al lado. */}
                 <div className="flex items-center gap-2.5 shrink-0">
-                  <div className="flex-1 min-w-0 flex items-center h-[42px] md:h-[46px] p-1 bg-white border border-[#e1e5f3] rounded-full shadow-[0_1px_2px_rgba(40,10,100,0.04),0_8px_22px_-14px_rgba(45,40,75,0.28)] transition focus-within:border-[#5b4bd6] focus-within:ring-4 focus-within:ring-[#5b4bd6]/10 focus-within:shadow-[0_10px_26px_-12px_rgba(91,75,214,0.4)] group/bus">
+                  <div className="flex-1 min-w-0 flex items-center h-[42px] md:h-[46px] p-1 bg-white border border-[#dde4fa] rounded-full transition focus-within:border-[#5b4bd6] focus-within:ring-4 focus-within:ring-[#5b4bd6]/10 group/bus">
                     <div className="relative shrink-0">
                       <button
                         onClick={() => { setBusquedaCategoria(''); setMenuCategoriasAbierto((v) => !v); }}
@@ -9509,7 +9509,7 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
                         onClick={abrirEscanerParaVenta}
                         title="Escanear código de barras con la cámara"
                         aria-label="Escanear código de barras con la cámara"
-                        className="kz-pri shrink-0 flex items-center justify-center w-[34px] h-[34px] md:w-[38px] md:h-[38px] rounded-full"
+                        className="kz-pri !shadow-none shrink-0 flex items-center justify-center w-[34px] h-[34px] md:w-[38px] md:h-[38px] rounded-full"
                       >
                         <svg className="w-[15px] h-[15px]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 8V6a2 2 0 0 1 2-2h2M16 4h2a2 2 0 0 1 2 2v2M20 16v2a2 2 0 0 1-2 2h-2M8 20H6a2 2 0 0 1-2-2v-2"/><path d="M7 12h10"/></svg>
                       </button>
@@ -9519,7 +9519,7 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
                       onClick={() => setCategoriaFiltro(categoriaFiltro === '__COMBOS__' ? 'TODOS' : '__COMBOS__')}
                       title="Combos"
                       aria-pressed={categoriaFiltro === '__COMBOS__'}
-                      className={`shrink-0 flex items-center gap-2 h-[42px] md:h-[46px] px-3 md:px-4 rounded-full border text-[13px] font-bold transition ${categoriaFiltro === '__COMBOS__' ? 'bg-[#5b4bd6] border-[#5b4bd6] text-white shadow-[0_8px_18px_-8px_rgba(91,75,214,0.7)]' : 'bg-[#f6f4ff] border-[#c5bcff] text-[#5b4bd6] hover:bg-[#ebf0ff]'}`}
+                      className={`shrink-0 flex items-center gap-2 h-[42px] md:h-[46px] px-3 md:px-4 rounded-full border text-[13px] font-bold transition ${categoriaFiltro === '__COMBOS__' ? 'bg-[#5b4bd6] border-[#5b4bd6] text-white' : 'bg-[#f6f4ff] border-[#c5bcff] text-[#5b4bd6] hover:bg-[#ebf0ff]'}`}
                     >
                       <i className="fa-solid fa-gift text-[13px]"></i>
                       <span className="hidden md:inline whitespace-nowrap">Combos</span>
@@ -9530,7 +9530,7 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
                       onClick={abrirPedidosRetirar}
                       title="Pedidos por retirar (clientes con cuenta)"
                       aria-label="Pedidos por retirar"
-                      className="relative flex items-center justify-center h-[42px] md:h-[46px] min-w-[42px] md:min-w-[46px] px-3 xl:px-4 gap-2 shrink-0 bg-white hover:bg-[#ebf0ff] text-[#5f5d76] rounded-full border border-[#e1e5f3] shadow-[0_1px_2px_rgba(40,10,100,0.04),0_8px_22px_-14px_rgba(45,40,75,0.28)] transition"
+                      className="relative flex items-center justify-center h-[42px] md:h-[46px] min-w-[42px] md:min-w-[46px] px-3 xl:px-4 gap-2 shrink-0 bg-white hover:bg-[#ebf0ff] text-[#5f5d76] rounded-full border border-[#dde4fa] transition"
                     >
                       <i className="fa-solid fa-bell-concierge text-[16px]"></i>
                       <span className="hidden xl:inline text-[13px] font-bold">Por retirar</span>
