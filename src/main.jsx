@@ -9499,7 +9499,7 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
                         </>
                       )}
                       {!busqueda && (
-                        <span className="hidden md:inline shrink-0 pr-2 text-[11.5px] font-bold text-[#8f8cb0] tabular-nums whitespace-nowrap">
+                        <span className="hidden xl:inline shrink-0 pr-2 text-[11.5px] font-bold text-[#8f8cb0] tabular-nums whitespace-nowrap">
                           {categoriaFiltro === '__COMBOS__'
                             ? `${combos.filter((c) => c.activo).length} combos`
                             : `${productosFiltrados.length} ${productosFiltrados.length === 1 ? 'producto' : 'productos'}`}
@@ -9530,10 +9530,10 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
                       onClick={abrirPedidosRetirar}
                       title="Pedidos por retirar (clientes con cuenta)"
                       aria-label="Pedidos por retirar"
-                      className="relative flex items-center justify-center h-[42px] md:h-[46px] min-w-[42px] md:min-w-[46px] px-3 lg:px-4 gap-2 shrink-0 bg-white hover:bg-[#ebf0ff] text-[#5f5d76] rounded-full border border-[#e1e5f3] shadow-[0_1px_2px_rgba(40,10,100,0.04),0_8px_22px_-14px_rgba(45,40,75,0.28)] transition"
+                      className="relative flex items-center justify-center h-[42px] md:h-[46px] min-w-[42px] md:min-w-[46px] px-3 xl:px-4 gap-2 shrink-0 bg-white hover:bg-[#ebf0ff] text-[#5f5d76] rounded-full border border-[#e1e5f3] shadow-[0_1px_2px_rgba(40,10,100,0.04),0_8px_22px_-14px_rgba(45,40,75,0.28)] transition"
                     >
                       <i className="fa-solid fa-bell-concierge text-[16px]"></i>
-                      <span className="hidden lg:inline text-[13px] font-bold">Por retirar</span>
+                      <span className="hidden xl:inline text-[13px] font-bold">Por retirar</span>
                       {pedidosPorRetirarPendientes > 0 ? (
                         <span className="absolute -top-1 -right-1 min-w-[19px] h-[19px] px-1 flex items-center justify-center bg-rose-600 text-white text-[10px] font-bold rounded-full border-2 border-white animate-pulse">
                           {pedidosPorRetirarPendientes > 9 ? '9+' : pedidosPorRetirarPendientes}
