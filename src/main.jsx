@@ -9409,39 +9409,28 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
               <div className="flex-1 flex flex-col overflow-hidden bg-white rounded-2xl p-3 md:p-4 gap-3 relative z-10">
                 {/* Barra: selector Productos | Combos, categoría, buscador con contador y cámara, y "Por retirar". */}
                 <div className="flex items-center gap-2.5 shrink-0">
-                  {combos.some(c => c.activo) && (
-                    <div className="shrink-0 inline-flex items-center gap-0.5 p-1 h-[42px] md:h-[46px] rounded-full bg-[#ebf0ff]">
+                  <div className="shrink-0 inline-flex items-center gap-0.5 p-1 h-[42px] md:h-[46px] rounded-full bg-[#ebf0ff]">
+                    <div className="relative h-full">
                       <button
-                        onClick={() => { if (categoriaFiltro === '__COMBOS__') setCategoriaFiltro('TODOS'); }}
+                        onClick={() => {
+                          if (categoriaFiltro === '__COMBOS__') { setCategoriaFiltro('TODOS'); return; }
+                          setBusquedaCategoria(''); setMenuCategoriasAbierto((v) => !v);
+                        }}
                         aria-pressed={categoriaFiltro !== '__COMBOS__'}
-                        title="Productos"
+                        aria-haspopup="listbox"
+                        title="Productos: elegir categoría"
                         className={`flex items-center gap-2 h-full px-3 md:px-4 rounded-full text-[13px] font-semibold transition ${categoriaFiltro !== '__COMBOS__' ? 'bg-white text-[#5b4bd6] shadow-[0_4px_12px_-4px_rgba(91,75,214,0.45)]' : 'text-[#6b6890] hover:text-[#2d284b]'}`}
                       >
                         <i className="fa-solid fa-table-cells-large text-[12px]"></i>
                         <span className="hidden md:inline">Productos</span>
+                        {categoriaFiltro !== '__COMBOS__' && (
+                          <>
+                            <span className="hidden md:inline max-w-[120px] truncate uppercase text-[11.5px] font-extrabold tracking-wide text-[#2d284b]">· {categoriaFiltro}</span>
+                            <i className={`fa-solid fa-chevron-down text-[9px] transition-transform ${menuCategoriasAbierto ? 'rotate-180' : ''}`}></i>
+                          </>
+                        )}
                       </button>
-                      <button
-                        onClick={() => setCategoriaFiltro('__COMBOS__')}
-                        aria-pressed={categoriaFiltro === '__COMBOS__'}
-                        title="Combos"
-                        className={`flex items-center gap-2 h-full px-3 md:px-4 rounded-full text-[13px] font-semibold transition ${categoriaFiltro === '__COMBOS__' ? 'bg-white text-[#5b4bd6] shadow-[0_4px_12px_-4px_rgba(91,75,214,0.45)]' : 'text-[#6b6890] hover:text-[#2d284b]'}`}
-                      >
-                        <i className="fa-solid fa-gift text-[12px]"></i>
-                        <span className="hidden md:inline">Combos</span>
-                        <span className="tabular-nums">{combos.filter(c => c.activo && estadoCombos.get(c.id)?.disponible !== false).length}</span>
-                      </button>
-                    </div>
-                  )}
-                  {categoriaFiltro !== '__COMBOS__' && (
-                      <div className="relative shrink-0">
-                        <button
-                          onClick={() => { setBusquedaCategoria(''); setMenuCategoriasAbierto((v) => !v); }}
-                          className="flex items-center gap-2 h-[42px] md:h-[46px] pl-4 pr-3.5 rounded-full bg-[#ebf0ff] hover:bg-[#dde4fa] text-[#2d284b] text-[12.5px] md:text-[13px] font-bold tracking-wide transition max-w-[110px] md:max-w-[220px]"
-                        >
-                          <span className="truncate uppercase">{categoriaFiltro === '__COMBOS__' ? 'Todos' : categoriaFiltro}</span>
-                          <i className={`fa-solid fa-chevron-down text-[9px] transition-transform ${menuCategoriasAbierto ? 'rotate-180' : ''}`}></i>
-                        </button>
-                        {menuCategoriasAbierto && (
+                      {menuCategoriasAbierto && (
                       <>
                         <div className="fixed inset-0 z-20" onClick={() => setMenuCategoriasAbierto(false)}></div>
                         <div className="absolute top-full left-0 mt-2 w-64 bg-white/80 backdrop-blur-2xl border border-white/90 rounded-3xl shadow-[0_24px_60px_-24px_rgba(60,20,120,0.28)] ring-1 ring-[#5b4bd6]/5 p-2 z-30">
@@ -9486,8 +9475,20 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
                         </div>
                       </>
                   )}
-                      </div>
-                  )}
+                    </div>
+                    {combos.some(c => c.activo) && (
+                      <button
+                        onClick={() => setCategoriaFiltro('__COMBOS__')}
+                        aria-pressed={categoriaFiltro === '__COMBOS__'}
+                        title="Combos"
+                        className={`flex items-center gap-2 h-full px-3 md:px-4 rounded-full text-[13px] font-semibold transition ${categoriaFiltro === '__COMBOS__' ? 'bg-white text-[#5b4bd6] shadow-[0_4px_12px_-4px_rgba(91,75,214,0.45)]' : 'text-[#6b6890] hover:text-[#2d284b]'}`}
+                      >
+                        <i className="fa-solid fa-gift text-[12px]"></i>
+                        <span className="hidden md:inline">Combos</span>
+                        <span className="tabular-nums">{combos.filter(c => c.activo && estadoCombos.get(c.id)?.disponible !== false).length}</span>
+                      </button>
+                    )}
+                  </div>
                   <div className="flex-1 min-w-0 flex items-center h-[42px] md:h-[46px] pl-4 pr-1 bg-white border border-[#dde4fa] rounded-full transition focus-within:border-[#5b4bd6] focus-within:ring-4 focus-within:ring-[#5b4bd6]/10 group/bus">
                     <i className="fa-solid fa-magnifying-glass text-[13px] text-[#8f8cb0] group-focus-within/bus:text-[#5b4bd6] transition shrink-0 mr-2 hidden sm:block"></i>
                       <input
