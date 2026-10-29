@@ -10729,14 +10729,15 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
             };
 
             const alTeclear = (e) => {
-              if (e.key === 'ArrowDown') { e.preventDefault(); setIndiceMenu(Math.min(activo + 1, visibles.length - 1)); }
-              else if (e.key === 'ArrowUp') { e.preventDefault(); setIndiceMenu(Math.max(activo - 1, 0)); }
+              const seguirActivo = () => requestAnimationFrame(() => document.querySelector('[data-menu-activo]')?.scrollIntoView({ block: 'nearest' }));
+              if (e.key === 'ArrowDown') { e.preventDefault(); setIndiceMenu(Math.min(activo + 1, visibles.length - 1)); seguirActivo(); }
+              else if (e.key === 'ArrowUp') { e.preventDefault(); setIndiceMenu(Math.max(activo - 1, 0)); seguirActivo(); }
               else if (e.key === 'Enter') { e.preventDefault(); ejecutar(visibles[activo]); }
               else if (e.key === 'Escape') { e.preventDefault(); cerrarMenu(); }
             };
 
             return (
-              <div className="fixed inset-0 bg-[#2d284b]/35 backdrop-blur-md z-[60] flex items-end md:items-start md:justify-center md:pt-[10vh]" onClick={cerrarMenu}>
+              <div className="fixed inset-0 bg-[#2d284b]/45 md:bg-[#2d284b]/35 md:backdrop-blur-md z-[60] flex items-end md:items-start md:justify-center md:pt-[10vh]" onClick={cerrarMenu}>
                 <div
                   className="menu-hoja relative w-full md:max-w-xl max-h-[85vh] md:max-h-[72vh] flex flex-col bg-white/95 border-t border-[#dde4fa] md:border md:border-white md:rounded-[26px] rounded-t-3xl overflow-hidden"
                   onClick={(e) => e.stopPropagation()}
@@ -10756,7 +10757,7 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
                     <kbd className="hidden md:inline text-[10px] font-bold text-[#6b6890] bg-[#f3f5ff] border border-[#dde4fa] rounded-md px-1.5 py-0.5">Esc</kbd>
                   </div>
 
-                  <div className="flex-1 overflow-y-auto hide-scrollbar p-2 pb-4 md:pb-2">
+                  <div className="flex-1 overflow-y-auto overscroll-contain hide-scrollbar p-2 pb-[max(1rem,env(safe-area-inset-bottom))] md:pb-2">
                     {visibles.length === 0 && (
                       <p className="text-center text-sm text-stone-500 py-10">Sin resultados para "{busquedaMenu}"</p>
                     )}
@@ -10766,10 +10767,10 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
                           <p className="px-3 pt-3.5 pb-1.5 text-[10px] font-extrabold text-[#8d8ab0] uppercase tracking-[0.14em]">{o.grupo}</p>
                         )}
                         <button
-                          ref={(el) => { if (el && i === activo) el.scrollIntoView({ block: 'nearest' }); }}
+                          data-menu-activo={i === activo ? '' : undefined}
                           onClick={() => ejecutar(o)}
                           onMouseEnter={() => setIndiceMenu(i)}
-                          className={`w-full text-left px-3 py-2.5 rounded-2xl flex items-center gap-3 text-sm border transition-colors ${
+                          className={`w-full text-left px-3 py-2 md:py-2.5 rounded-2xl flex items-center gap-3 text-sm border transition-colors ${
                             i === activo ? 'menu-it-on border-[#c5bcff]' : 'border-transparent'
                           } ${o.tono === 'rose' ? 'text-rose-600 font-semibold' : o.tono === 'primario' ? 'text-[#2d284b] font-bold' : 'text-[#2d284b] font-semibold'}`}
                         >
