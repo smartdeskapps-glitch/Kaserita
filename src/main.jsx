@@ -9405,6 +9405,31 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
             </header>
 
             <div className="flex-1 flex flex-col overflow-hidden p-3 md:p-4">
+              {/* Selector Productos | Combos (solo si hay combos activos) */}
+              {combos.some(c => c.activo) && (
+                <div className="shrink-0 mb-2.5 flex">
+                  <div className="inline-flex items-center gap-0.5 p-1 rounded-full bg-white/55 border border-white/70">
+                    <button
+                      onClick={() => { if (categoriaFiltro === '__COMBOS__') setCategoriaFiltro('TODOS'); }}
+                      aria-pressed={categoriaFiltro !== '__COMBOS__'}
+                      className={`flex items-center gap-2 h-[34px] px-4 rounded-full text-[13px] font-bold transition ${categoriaFiltro !== '__COMBOS__' ? 'bg-white text-[#5b4bd6] shadow-[0_4px_12px_-4px_rgba(91,75,214,0.45)]' : 'text-[#6b6890] hover:text-[#2d284b]'}`}
+                    >
+                      <i className="fa-solid fa-table-cells-large text-[12px]"></i>
+                      Productos
+                    </button>
+                    <button
+                      onClick={() => setCategoriaFiltro('__COMBOS__')}
+                      aria-pressed={categoriaFiltro === '__COMBOS__'}
+                      className={`flex items-center gap-2 h-[34px] px-4 rounded-full text-[13px] font-bold transition ${categoriaFiltro === '__COMBOS__' ? 'bg-white text-[#5b4bd6] shadow-[0_4px_12px_-4px_rgba(91,75,214,0.45)]' : 'text-[#6b6890] hover:text-[#2d284b]'}`}
+                    >
+                      <i className="fa-solid fa-gift text-[12px]"></i>
+                      Combos
+                      <span className="text-[12px] font-bold opacity-70 tabular-nums">{combos.filter(c => c.activo && estadoCombos.get(c.id)?.disponible !== false).length}</span>
+                    </button>
+                  </div>
+                </div>
+              )}
+
               {/* Panel blanco del catálogo: barra única (categoría + buscador + combos + pedidos) y grilla. */}
               <div className="flex-1 flex flex-col overflow-hidden bg-white rounded-2xl p-3 md:p-4 gap-3 relative z-10">
                 {/* Barra única: categoría | buscador | contador | cámara dentro de una cápsula;
@@ -9514,18 +9539,6 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
                         <svg className="w-[15px] h-[15px]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 8V6a2 2 0 0 1 2-2h2M16 4h2a2 2 0 0 1 2 2v2M20 16v2a2 2 0 0 1-2 2h-2M8 20H6a2 2 0 0 1-2-2v-2"/><path d="M7 12h10"/></svg>
                       </button>
                   </div>
-                  {combos.some(c => c.activo) && (
-                    <button
-                      onClick={() => setCategoriaFiltro(categoriaFiltro === '__COMBOS__' ? 'TODOS' : '__COMBOS__')}
-                      title="Combos"
-                      aria-pressed={categoriaFiltro === '__COMBOS__'}
-                      className={`shrink-0 flex items-center gap-2 h-[42px] md:h-[46px] px-3 md:px-4 rounded-full border text-[13px] font-bold transition ${categoriaFiltro === '__COMBOS__' ? 'bg-[#5b4bd6] border-[#5b4bd6] text-white' : 'bg-[#f6f4ff] border-[#c5bcff] text-[#5b4bd6] hover:bg-[#ebf0ff]'}`}
-                    >
-                      <i className="fa-solid fa-gift text-[13px]"></i>
-                      <span className="hidden md:inline whitespace-nowrap">Combos</span>
-                      <span className="text-[11px] font-bold opacity-70">{combos.filter(c => c.activo && estadoCombos.get(c.id)?.disponible !== false).length}</span>
-                    </button>
-                  )}
                     <button
                       onClick={abrirPedidosRetirar}
                       title="Pedidos por retirar (clientes con cuenta)"
