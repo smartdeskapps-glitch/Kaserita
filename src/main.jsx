@@ -9504,8 +9504,8 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
                   <div className="flex gap-2.5 flex-1 min-w-0 items-center">
                     {/* Una sola pastilla: lupa, campo, resultados, limpiar y cámara.
                         El borde violeta se enciende cuando el campo tiene el foco. */}
-                    <div className="flex-1 min-w-0 flex items-center gap-2.5 h-[46px] md:h-[50px] pl-4 md:pl-[18px] pr-1.5 md:pr-2 bg-white border border-[#e1e5f3] rounded-full shadow-[0_1px_2px_rgba(40,10,100,0.04),0_8px_22px_-14px_rgba(45,40,75,0.28)] transition focus-within:border-[#5b4bd6] focus-within:ring-4 focus-within:ring-[#5b4bd6]/10 focus-within:shadow-[0_10px_26px_-12px_rgba(91,75,214,0.4)] group/bus">
-                      <i className="fa-solid fa-magnifying-glass text-[15px] text-[#8f8cb0] group-focus-within/bus:text-[#5b4bd6] transition shrink-0"></i>
+                    <div className="flex-1 min-w-0 flex items-center gap-2.5 h-[46px] md:h-[50px] pl-4 md:pl-[18px] pr-1.5 md:pr-2 kz-busq border rounded-full transition group/bus">
+                      <i className="fa-solid fa-magnifying-glass text-[15px] text-[#5b4bd6] shrink-0"></i>
                       <input
                         ref={inputBusquedaRef}
                         type="text"
@@ -9520,7 +9520,7 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
                         }}
                         onKeyDown={handleKeyDownBusqueda}
                         placeholder="Busca por nombre o escanea un código"
-                        className="flex-1 min-w-0 bg-transparent text-[14px] md:text-[15px] font-medium text-stone-900 placeholder:text-[#8f8cb0] placeholder:font-normal focus:outline-none"
+                        className="flex-1 min-w-0 bg-transparent text-[14px] md:text-[15px] font-semibold text-[#2d284b] placeholder:text-[#9a98bd] placeholder:font-medium focus:outline-none"
                       />
                       {busqueda && (
                         <>
