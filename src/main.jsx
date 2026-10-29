@@ -4033,6 +4033,15 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
         return mapa;
       }, [combos, productos, esBarberia]);
 
+      // Combos activos (los que ve el catálogo) y cuántos se pueden armar ahora;
+      // se calculan una vez en vez de filtrar la lista en cada pintada.
+      const claseSegmento = (activo) => `flex items-center gap-2 h-full px-3 md:px-4 rounded-full text-[13px] font-semibold transition ${activo ? 'bg-white text-[#5b4bd6] shadow-[0_4px_12px_-4px_rgba(91,75,214,0.45)]' : 'text-[#6b6890] hover:text-[#2d284b]'}`;
+      const combosActivos = useMemo(() => combos.filter((c) => c.activo), [combos]);
+      const combosDisponibles = useMemo(
+        () => combosActivos.filter((c) => estadoCombos.get(c.id)?.disponible !== false).length,
+        [combosActivos, estadoCombos]
+      );
+
       // Qué productos son parte de algún combo activo -- para poder
       // avisarlo en su propia tarjeta del catálogo normal (ver ProductoCard
       // más abajo), no solo dentro de la pestaña "Combos". Así un cajero que
@@ -9419,7 +9428,7 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
                         aria-pressed={categoriaFiltro !== '__COMBOS__'}
                         aria-haspopup="listbox"
                         title="Productos: elegir categoría"
-                        className={`flex items-center gap-2 h-full px-3 md:px-4 rounded-full text-[13px] font-semibold transition ${categoriaFiltro !== '__COMBOS__' ? 'bg-white text-[#5b4bd6] shadow-[0_4px_12px_-4px_rgba(91,75,214,0.45)]' : 'text-[#6b6890] hover:text-[#2d284b]'}`}
+                        className={claseSegmento(categoriaFiltro !== '__COMBOS__')}
                       >
                         <i className="fa-solid fa-table-cells-large text-[12px]"></i>
                         <span className="hidden md:inline">Productos</span>
@@ -9431,61 +9440,61 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
                         )}
                       </button>
                       {menuCategoriasAbierto && (
-                      <>
-                        <div className="fixed inset-0 z-20" onClick={() => setMenuCategoriasAbierto(false)}></div>
-                        <div className="absolute top-full left-0 mt-2 w-64 bg-white/80 backdrop-blur-2xl border border-white/90 rounded-3xl shadow-[0_24px_60px_-24px_rgba(60,20,120,0.28)] ring-1 ring-[#5b4bd6]/5 p-2 z-30">
-                          <div className="relative mb-2">
-                            <i className="fa-solid fa-magnifying-glass absolute left-3.5 top-1/2 -translate-y-1/2 text-[11px] text-stone-400"></i>
-                            <input
-                              type="text"
-                              value={busquedaCategoria}
-                              onChange={(e) => setBusquedaCategoria(e.target.value)}
-                              placeholder="Buscar categoría"
-                              className="w-full bg-white rounded-full pl-9 pr-3 py-2 text-[13px] text-stone-900 placeholder-stone-400 ring-1 ring-[#5b4bd6]/10 focus:outline-none focus:ring-2 focus:ring-[#c5bcff]"
-                            />
+                        <>
+                          <div className="fixed inset-0 z-20" onClick={() => setMenuCategoriasAbierto(false)}></div>
+                          <div className="absolute top-full left-0 mt-2 w-64 bg-white/80 backdrop-blur-2xl border border-white/90 rounded-3xl shadow-[0_24px_60px_-24px_rgba(60,20,120,0.28)] ring-1 ring-[#5b4bd6]/5 p-2 z-30">
+                            <div className="relative mb-2">
+                              <i className="fa-solid fa-magnifying-glass absolute left-3.5 top-1/2 -translate-y-1/2 text-[11px] text-stone-400"></i>
+                              <input
+                                type="text"
+                                value={busquedaCategoria}
+                                onChange={(e) => setBusquedaCategoria(e.target.value)}
+                                placeholder="Buscar categoría"
+                                className="w-full bg-white rounded-full pl-9 pr-3 py-2 text-[13px] text-stone-900 placeholder-stone-400 ring-1 ring-[#5b4bd6]/10 focus:outline-none focus:ring-2 focus:ring-[#c5bcff]"
+                              />
+                            </div>
+                            <div
+                              className="max-h-[340px] overflow-y-auto hide-scrollbar pb-5"
+                              style={{ WebkitMaskImage: 'linear-gradient(to bottom, #000 calc(100% - 28px), transparent)', maskImage: 'linear-gradient(to bottom, #000 calc(100% - 28px), transparent)' }}
+                            >
+                              {(() => {
+                                const q = busquedaCategoria.trim().toLowerCase();
+                                const lista = q ? categorias.filter(cat => cat !== 'TODOS' && String(cat).toLowerCase().includes(q)) : categorias;
+                                if (lista.length === 0) {
+                                  return <p className="text-xs text-stone-400 text-center py-4">Sin resultados</p>;
+                                }
+                                return lista.map(cat => {
+                                  const cantidad = cat === 'TODOS' ? productos.length : (conteoPorCategoria.get(cat) || 0);
+                                  const activo = categoriaFiltro === cat;
+                                  return (
+                                    <React.Fragment key={cat}>
+                                      <button
+                                        onClick={() => { setCategoriaFiltro(cat); setMenuCategoriasAbierto(false); }}
+                                        className={`w-full flex items-center justify-between gap-2 px-3.5 py-2.5 rounded-full text-left text-sm transition ${activo ? 'bg-[#dde4fa] text-[#2d284b] font-bold' : 'text-stone-800 font-medium hover:bg-[#5b4bd6]/5'}`}
+                                      >
+                                        <span className="truncate">{cat}</span>
+                                        <span className={`text-xs shrink-0 tabular-nums ${activo ? 'bg-white text-[#5b4bd6] font-semibold px-2 py-0.5 rounded-full' : 'text-stone-400'}`}>{cantidad}</span>
+                                      </button>
+                                      {cat === 'TODOS' && !q && <div className="h-px bg-[#5b4bd6]/10 mx-3.5 my-1.5"></div>}
+                                    </React.Fragment>
+                                  );
+                                });
+                              })()}
+                            </div>
                           </div>
-                          <div
-                            className="max-h-[340px] overflow-y-auto hide-scrollbar pb-5"
-                            style={{ WebkitMaskImage: 'linear-gradient(to bottom, #000 calc(100% - 28px), transparent)', maskImage: 'linear-gradient(to bottom, #000 calc(100% - 28px), transparent)' }}
-                          >
-                            {(() => {
-                              const q = busquedaCategoria.trim().toLowerCase();
-                              const lista = q ? categorias.filter(cat => cat !== 'TODOS' && String(cat).toLowerCase().includes(q)) : categorias;
-                              if (lista.length === 0) {
-                                return <p className="text-xs text-stone-400 text-center py-4">Sin resultados</p>;
-                              }
-                              return lista.map(cat => {
-                                const cantidad = cat === 'TODOS' ? productos.length : (conteoPorCategoria.get(cat) || 0);
-                                const activo = categoriaFiltro === cat;
-                                return (
-                                  <React.Fragment key={cat}>
-                                    <button
-                                      onClick={() => { setCategoriaFiltro(cat); setMenuCategoriasAbierto(false); }}
-                                      className={`w-full flex items-center justify-between gap-2 px-3.5 py-2.5 rounded-full text-left text-sm transition ${activo ? 'bg-[#dde4fa] text-[#2d284b] font-bold' : 'text-stone-800 font-medium hover:bg-[#5b4bd6]/5'}`}
-                                    >
-                                      <span className="truncate">{cat}</span>
-                                      <span className={`text-xs shrink-0 tabular-nums ${activo ? 'bg-white text-[#5b4bd6] font-semibold px-2 py-0.5 rounded-full' : 'text-stone-400'}`}>{cantidad}</span>
-                                    </button>
-                                    {cat === 'TODOS' && !q && <div className="h-px bg-[#5b4bd6]/10 mx-3.5 my-1.5"></div>}
-                                  </React.Fragment>
-                                );
-                              });
-                            })()}
-                          </div>
-                        </div>
-                      </>
-                  )}
+                        </>
+                      )}
                     </div>
-                    {combos.some(c => c.activo) && (
+                    {combosActivos.length > 0 && (
                       <button
                         onClick={() => setCategoriaFiltro('__COMBOS__')}
                         aria-pressed={categoriaFiltro === '__COMBOS__'}
                         title="Combos"
-                        className={`flex items-center gap-2 h-full px-3 md:px-4 rounded-full text-[13px] font-semibold transition ${categoriaFiltro === '__COMBOS__' ? 'bg-white text-[#5b4bd6] shadow-[0_4px_12px_-4px_rgba(91,75,214,0.45)]' : 'text-[#6b6890] hover:text-[#2d284b]'}`}
+                        className={claseSegmento(categoriaFiltro === '__COMBOS__')}
                       >
                         <i className="fa-solid fa-gift text-[12px]"></i>
                         <span className="hidden md:inline">Combos</span>
-                        <span className="tabular-nums">{combos.filter(c => c.activo && estadoCombos.get(c.id)?.disponible !== false).length}</span>
+                        <span className="tabular-nums">{combosDisponibles}</span>
                       </button>
                     )}
                   </div>
@@ -9499,7 +9508,7 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
                           setBusqueda(e.target.value);
                           // En la pestaña Combos se filtran los combos (por nombre o por sus productos);
                           // si ninguno coincide (p. ej. al escanear un código) se pasa a Todos.
-                          if (e.target.value && categoriaFiltro === '__COMBOS__' && !combos.some((c) => c.activo && comboCoincide(c, e.target.value))) {
+                          if (e.target.value && categoriaFiltro === '__COMBOS__' && !combosActivos.some((c) => comboCoincide(c, e.target.value))) {
                             setCategoriaFiltro('TODOS');
                           }
                         }}
@@ -9524,7 +9533,7 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
                       )}
                       {!busqueda && (
                         <span className="shrink-0 pr-2.5 text-[12px] font-bold text-[#8f8cb0] tabular-nums" title={categoriaFiltro === '__COMBOS__' ? 'Combos' : 'Productos'}>
-                          {categoriaFiltro === '__COMBOS__' ? combos.filter((c) => c.activo).length : productosFiltrados.length}
+                          {categoriaFiltro === '__COMBOS__' ? combosActivos.length : productosFiltrados.length}
                         </span>
                       )}
                       <button
@@ -9564,7 +9573,7 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
               <div className="flex-1 overflow-y-auto pt-1.5 pl-1 pr-1 pb-24 md:pb-6 hide-scrollbar">
                 {categoriaFiltro === '__COMBOS__' ? (
                   <CombosCatalogo
-                    combos={combos.filter((c) => c.activo)}
+                    combos={combosActivos}
                     estadoCombos={estadoCombos}
                     enCarrito={cantidadEnCarritoPorCombo}
                     busqueda={busqueda}
