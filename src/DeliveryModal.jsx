@@ -60,7 +60,7 @@ export default function DeliveryModal({
                   blanca con los ajustes de la tienda. */}
               {modalDelivery && (
                 <div className="fixed inset-0 bg-stone-900/30 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-                  <div className="bg-[#f6f8ff] rounded-[34px] max-w-md w-full shadow-2xl max-h-[92vh] flex flex-col overflow-hidden">
+                  <div className={`${sesion?.bodega?.delivery_permitido ? '' : 'bg-[#f6f8ff]'} rounded-[34px] max-w-md w-full shadow-2xl max-h-[92vh] flex flex-col overflow-hidden`}>
                     {!sesion?.bodega?.delivery_permitido ? (
                       <>
                         <div className="flex items-start gap-2.5 px-4 pt-4 pb-2.5 shrink-0">
