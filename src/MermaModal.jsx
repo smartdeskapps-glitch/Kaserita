@@ -49,7 +49,7 @@ export default function MermaModal({
                         <IconoTrazo nombre="warn" className="w-[19px] h-[19px]" />
                       </span>
                       <div className="flex-1 min-w-0">
-                        <h3 className="text-[19px] font-bold tracking-tight text-stone-900 leading-tight">Registrar pérdida</h3>
+                        <h3 className="text-[19px] font-bold tracking-tight text-stone-900 leading-tight">Registrar merma</h3>
                         <p className="text-xs text-stone-500 mt-0.5 leading-snug">Vencidos, rotos, robados o perdidos. Se descuenta del stock.</p>
                       </div>
                       <button onClick={cerrarModalMerma} className="w-9 h-9 rounded-full bg-white ring-1 ring-[#5b4bd6]/10 hover:bg-[#ebf0ff] text-stone-500 flex items-center justify-center transition shrink-0" aria-label="Cerrar">
@@ -209,7 +209,7 @@ export default function MermaModal({
                       disabled={guardandoMerma || !prodMerma || cantMerma <= 0}
                       className="w-full h-[54px] rounded-full bg-[#5b4bd6] hover:bg-[#473bb5] disabled:bg-[#e6e9f5] disabled:text-[#8b869a] disabled:cursor-not-allowed text-white font-semibold text-base transition"
                     >
-                      {guardandoMerma ? 'Guardando...' : 'Registrar pérdida'}
+                      {guardandoMerma ? 'Guardando...' : 'Registrar merma'}
                     </button>
                   </div>
                 </div>

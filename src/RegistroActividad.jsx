@@ -27,7 +27,7 @@ export default function RegistroActividad({
                       <button aria-label="Cerrar" onClick={() => setModalAuditoria(false)} className="text-stone-500 hover:text-stone-800"><i className="fa-solid fa-xmark"></i></button>
                     </div>
                     <div className="px-4 pt-3 flex gap-1.5 flex-wrap">
-                      {[['todo', 'Todo'], ['productos', 'Precios y productos'], ['ventas', 'Ventas'], ['turnos_caja', 'Turnos'], ['cajeros', 'Empleados'], ['mermas', 'Pérdidas']].map(([valor, etiqueta]) => (
+                      {[['todo', 'Todo'], ['productos', 'Precios y productos'], ['ventas', 'Ventas'], ['turnos_caja', 'Turnos'], ['cajeros', 'Empleados'], ['mermas', 'Mermas']].map(([valor, etiqueta]) => (
                         <button
                           key={valor}
                           onClick={() => setFiltroAuditoria(valor)}
