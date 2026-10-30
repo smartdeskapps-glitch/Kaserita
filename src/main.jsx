@@ -2218,26 +2218,26 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
       const seccionDelivery = (id, icono, titulo, resumen, hijos, chip) => {
         const abierta = !!seccionesDelivery[id];
         return (
-          <div className="bg-white rounded-3xl ring-1 ring-[#5b4bd6]/5 mb-2.5 overflow-hidden">
+          <div className={`rounded-[22px] mb-2.5 overflow-hidden ${id === 'avisos' ? 'bg-[#2d284b] text-white' : 'bg-[#f3f5ff] text-stone-900'}`}>
             <button
               type="button"
               aria-expanded={abierta}
               onClick={() => setSeccionesDelivery((s) => ({ ...s, [id]: !s[id] }))}
               className="w-full flex items-center gap-3 p-3.5 text-left"
             >
-              <span className="w-10 h-10 rounded-[14px] bg-[#ebf0ff] text-[#5b4bd6] flex items-center justify-center shrink-0">
+              <span className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 ${id === 'avisos' ? 'bg-white/15 text-white' : 'bg-white text-[#5b4bd6] shadow-[0_2px_6px_-2px_rgba(45,40,75,0.2)]'}`}>
                 <IconoTrazo nombre={icono} className="w-[18px] h-[18px]" />
               </span>
               <span className="min-w-0 flex-1">
-                <span className="block text-[15px] font-bold text-stone-900 leading-tight">{titulo}</span>
-                <span className="block text-xs text-stone-500 mt-0.5 truncate">{resumen}</span>
+                <span className="block text-[15px] font-bold leading-tight">{titulo}</span>
+                <span className={`block text-xs mt-0.5 truncate ${id === 'avisos' ? 'text-white/65' : 'text-stone-500'}`}>{resumen}</span>
               </span>
               {chip && (
-                <span className={`shrink-0 text-[10.5px] font-extrabold rounded-full px-2.5 py-0.5 ${chip.tono === 'ok' ? 'bg-[#e3f6ea] text-[#157a40]' : chip.tono === 'aviso' ? 'bg-[#fff1d6] text-[#9a5b04]' : 'bg-[#f1f2f8] text-[#8f8cb0]'}`}>{chip.texto}</span>
+                <span className={`shrink-0 text-[10.5px] font-extrabold rounded-full px-2.5 py-0.5 ${id === 'avisos' ? 'bg-white/15 text-white' : chip.tono === 'ok' ? 'bg-[#e3f6ea] text-[#157a40]' : chip.tono === 'aviso' ? 'bg-[#fff1d6] text-[#9a5b04]' : 'bg-white text-[#8f8cb0]'}`}>{chip.texto}</span>
               )}
               <i className={`fa-solid fa-chevron-down text-xs text-stone-400 transition-transform ${abierta ? 'rotate-180' : ''}`}></i>
             </button>
-            {abierta && <div className="px-3.5 pb-4 space-y-3.5">{hijos}</div>}
+            {abierta && <div className="mx-2 mb-2 rounded-2xl bg-white text-stone-900 p-3.5 space-y-3.5">{hijos}</div>}
           </div>
         );
       };

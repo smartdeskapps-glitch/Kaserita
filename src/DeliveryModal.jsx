@@ -49,48 +49,65 @@ export default function DeliveryModal({
 }) {
   return (
     <>
-              {/* Modal: Mi Link de Pedidos (vitrina pública de KaseritaDelivery) */}
+              {/* Modal: Mi Link de Pedidos (vitrina pública de KaseritaDelivery).
+                  Panel superior oscuro (Ebony) con lo principal del link y, debajo, una hoja
+                  blanca con los ajustes de la tienda. */}
               {modalDelivery && (
                 <div className="fixed inset-0 bg-stone-900/30 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-                  <div className="bg-gradient-to-br from-[#eef1fb] via-[#f8f9fd] to-[#f4f5fa] border border-white/80 rounded-[28px] max-w-md w-full shadow-2xl max-h-[92vh] flex flex-col overflow-hidden">
-                    <div className="flex items-start gap-2.5 px-4 pt-4 pb-2.5 shrink-0">
-                      <span className="w-[38px] h-[38px] rounded-[14px] bg-[#dde4fa] text-[#5b4bd6] flex items-center justify-center shrink-0">
-                        <IconoTrazo nombre="compartir" className="w-[19px] h-[19px]" />
-                      </span>
-                      <div className="flex-1 min-w-0">
-                        <h3 className="text-[19px] font-bold tracking-tight text-stone-900 leading-tight">Mi link de pedidos</h3>
-                        <p className="text-xs text-stone-500 mt-0.5 leading-snug">
-                          Tus clientes piden desde este link y te llega el pedido por WhatsApp con un código. Ingresa ese código en caja para cobrar.
-                        </p>
-                      </div>
-                      <button onClick={() => { setModalDelivery(false); setMostrarQRDelivery(false); }} className="w-9 h-9 rounded-full bg-white ring-1 ring-[#5b4bd6]/10 hover:bg-[#ebf0ff] text-stone-500 flex items-center justify-center transition shrink-0" aria-label="Cerrar">
-                        <IconoTrazo nombre="x" className="w-[15px] h-[15px]" />
-                      </button>
-                    </div>
-
+                  <div className="bg-[#f6f8ff] border border-white/80 rounded-[34px] max-w-md w-full shadow-2xl max-h-[92vh] flex flex-col overflow-hidden">
                     {!sesion?.bodega?.delivery_permitido ? (
-                      <div className="px-4 pb-4">
-                        <div className="bg-amber-50 border border-amber-200 rounded-[20px] p-3.5 space-y-1.5">
-                          <p className="text-sm font-semibold text-amber-800 flex items-center gap-2">
-                            <IconoTrazo nombre="warn" className="w-4 h-4" /> Función no habilitada
-                          </p>
-                          <p className="text-xs text-amber-700">
-                            Los Pedidos por WhatsApp son una función paga aparte de tu plan.
-                            Escribe a soporte de Kaserita para habilitarla en tu bodega.
-                          </p>
+                      <>
+                        <div className="flex items-start gap-2.5 px-4 pt-4 pb-2.5 shrink-0">
+                          <span className="w-[38px] h-[38px] rounded-[14px] bg-[#dde4fa] text-[#5b4bd6] flex items-center justify-center shrink-0">
+                            <IconoTrazo nombre="compartir" className="w-[19px] h-[19px]" />
+                          </span>
+                          <div className="flex-1 min-w-0">
+                            <h3 className="text-[19px] font-bold tracking-tight text-stone-900 leading-tight">Mi link de pedidos</h3>
+                            <p className="text-xs text-stone-500 mt-0.5 leading-snug">
+                              Tus clientes piden desde este link y te llega el pedido por WhatsApp con un código. Ingresa ese código en caja para cobrar.
+                            </p>
+                          </div>
+                          <button onClick={() => { setModalDelivery(false); setMostrarQRDelivery(false); }} className="w-9 h-9 rounded-full bg-white ring-1 ring-[#5b4bd6]/10 hover:bg-[#ebf0ff] text-stone-500 flex items-center justify-center transition shrink-0" aria-label="Cerrar">
+                            <IconoTrazo nombre="x" className="w-[15px] h-[15px]" />
+                          </button>
                         </div>
-                      </div>
+                        <div className="px-4 pb-4">
+                          <div className="bg-amber-50 border border-amber-200 rounded-[20px] p-3.5 space-y-1.5">
+                            <p className="text-sm font-semibold text-amber-800 flex items-center gap-2">
+                              <IconoTrazo nombre="warn" className="w-4 h-4" /> Función no habilitada
+                            </p>
+                            <p className="text-xs text-amber-700">
+                              Los Pedidos por WhatsApp son una función paga aparte de tu plan.
+                              Escribe a soporte de Kaserita para habilitarla en tu bodega.
+                            </p>
+                          </div>
+                        </div>
+                      </>
                     ) : (
                       <>
-                        <div className="flex-1 overflow-y-auto px-4 pb-16 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden" style={{ scrollbarWidth: 'none' }}>
-                          <div className="relative overflow-hidden rounded-[26px] p-4 mb-2.5 text-white bg-gradient-to-b from-[#3a3563] to-[#221e3d] ring-1 ring-white/10 shadow-[inset_0_1px_0_rgba(255,255,255,0.12),0_16px_28px_-20px_rgba(45,40,75,0.8)]">
-                            <div className="relative flex items-center gap-3.5">
-                              <label className="relative w-[68px] h-[68px] rounded-[20px] cursor-pointer bg-white shrink-0 shadow-[0_10px_18px_-10px_rgba(0,0,0,0.5)]">
-                                <span className="absolute inset-0 rounded-[20px] overflow-hidden flex items-center justify-center text-[#5b4bd6]">
+                        <div className="flex-1 overflow-y-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden" style={{ scrollbarWidth: 'none' }}>
+                          {/* Panel oscuro */}
+                          <div
+                            className="relative text-white px-5 pt-4 pb-9"
+                            style={{ background: 'radial-gradient(90% 60% at 50% 0%, rgba(150,135,245,0.28), transparent 70%), linear-gradient(180deg, #34305a 0%, #26224a 55%, #1d1a38 100%)' }}
+                          >
+                            <div className="flex items-center justify-between">
+                              <span className="w-10 h-10 rounded-full border-[1.5px] border-white/25 bg-white/5 flex items-center justify-center">
+                                <IconoTrazo nombre="compartir" className="w-[17px] h-[17px]" />
+                              </span>
+                              <span className="text-[12.5px] font-semibold text-white/80">Mi link de pedidos</span>
+                              <button onClick={() => { setModalDelivery(false); setMostrarQRDelivery(false); }} className="w-10 h-10 rounded-full border-[1.5px] border-white/25 bg-white/5 hover:bg-white/10 flex items-center justify-center transition" aria-label="Cerrar">
+                                <IconoTrazo nombre="x" className="w-[15px] h-[15px]" />
+                              </button>
+                            </div>
+
+                            <div className="text-center mt-4">
+                              <label className="relative w-[76px] h-[76px] rounded-[24px] cursor-pointer bg-white mx-auto block shadow-[0_14px_26px_-14px_rgba(0,0,0,0.6)]">
+                                <span className="absolute inset-0 rounded-[24px] overflow-hidden flex items-center justify-center text-[#5b4bd6]">
                                   {logoUrlDelivery ? (
                                     <img src={logoUrlDelivery} alt="Logo" className="w-full h-full object-cover" />
                                   ) : (
-                                    <IconoTrazo nombre="tienda" className="w-[26px] h-[26px]" />
+                                    <IconoTrazo nombre="tienda" className="w-[28px] h-[28px]" />
                                   )}
                                   {subiendoLogoDelivery && (
                                     <span className="absolute inset-0 flex items-center justify-center bg-black/40">
@@ -98,7 +115,7 @@ export default function DeliveryModal({
                                     </span>
                                   )}
                                 </span>
-                                <span className="absolute -right-1.5 -bottom-1.5 w-6 h-6 rounded-full bg-[#5b4bd6] text-white flex items-center justify-center border-2 border-white">
+                                <span className="absolute -right-1.5 -bottom-1.5 w-6 h-6 rounded-full bg-[#2d284b] text-white flex items-center justify-center border-2 border-white">
                                   <IconoTrazo nombre="plus" className="w-3 h-3" grosor={2.4} />
                                 </span>
                                 <input
@@ -112,43 +129,30 @@ export default function DeliveryModal({
                                   }}
                                 />
                               </label>
-                              <div className="min-w-0">
-                                <p className="text-[19px] font-extrabold tracking-tight leading-tight truncate">{sesion?.bodega?.nombre}</p>
-                                {estadoHorarioActualDelivery ? (
-                                  <span className="inline-flex items-center gap-1.5 mt-1.5 text-[11.5px] font-bold bg-white/10 ring-1 ring-white/10 rounded-full px-2.5 py-0.5">
-                                    <span className={`w-[7px] h-[7px] rounded-full ${estadoHorarioActualDelivery.abierto ? 'bg-green-400' : 'bg-white/60'}`}></span>
-                                    {estadoHorarioActualDelivery.texto}
-                                  </span>
-                                ) : (
-                                  <p className="text-[11.5px] text-white/80 mt-1 leading-snug">Configura tu horario para mostrar "Abierto" o "Cerrado".</p>
-                                )}
-                                {estadoHorarioActualDelivery && <p className="text-[11px] text-white/70 mt-1">Toca el círculo para cambiar tu logo.</p>}
-                              </div>
-                            </div>
+                              {(() => {
+                                const palabras = String(sesion?.bodega?.nombre || '').trim().split(/\s+/);
+                                const ultima = palabras.length > 1 ? palabras.pop() : '';
+                                return (
+                                  <p className="text-[27px] font-light tracking-tight leading-tight mt-3.5 truncate">
+                                    {palabras.join(' ')}{ultima && <> <b className="font-bold">{ultima}</b></>}
+                                  </p>
+                                );
+                              })()}
+                              {estadoHorarioActualDelivery ? (
+                                <span className="inline-flex items-center gap-1.5 mt-1.5 text-[11.5px] font-semibold text-white/85">
+                                  <span className={`w-[7px] h-[7px] rounded-full ${estadoHorarioActualDelivery.abierto ? 'bg-green-400 shadow-[0_0_0_3px_rgba(74,222,128,0.2)]' : 'bg-white/60'}`}></span>
+                                  {estadoHorarioActualDelivery.texto}
+                                </span>
+                              ) : (
+                                <p className="text-[11.5px] text-white/70 mt-1.5 leading-snug">Configura tu horario para mostrar "Abierto" o "Cerrado".</p>
+                              )}
+                              <p className="text-[11px] text-white/50 mt-1">Toca el círculo para cambiar tu logo.</p>
 
-                            <div className="relative flex items-center justify-between gap-3 mt-3.5 bg-white/[0.06] ring-1 ring-white/10 rounded-2xl px-3 py-2.5">
-                              <div className="min-w-0">
-                                <p className="text-[13.5px] font-bold">Mostrar mi tienda al público</p>
-                                <p className="text-[11.5px] text-white/85">{deliveryHabilitado ? 'Visible para tus clientes' : 'Solo entra quien tenga tu link'}</p>
-                              </div>
-                              <button
-                                type="button"
-                                role="switch"
-                                aria-checked={deliveryHabilitado}
-                                aria-label="Mostrar mi tienda al público"
-                                onClick={() => setDeliveryHabilitado((v) => !v)}
-                                className={`kz-sw ${deliveryHabilitado ? 'on' : ''}`}
-                              >
-                                <i></i>
-                              </button>
-                            </div>
-
-                            <div className="relative flex items-center gap-2 mt-2.5 bg-white text-stone-900 rounded-2xl p-1.5 pl-3.5">
-                              <span className="flex-1 min-w-0 truncate text-[12.5px] text-stone-400">
+                              <p className="mt-4 text-[11.5px] text-white/55 truncate">
                                 {KASERITA_DELIVERY_URL.replace(/^https?:\/\//, '')}/
                                 {/* El link es fijo: ya se comparte impreso y en QR, y si cambiara dejaría de funcionar. */}
-                                <b className="text-stone-900 font-bold">{slugDelivery}</b>
-                              </span>
+                                <b className="block text-[19px] font-medium text-white mt-0.5 truncate">{slugDelivery}</b>
+                              </p>
                               {deliveryHabilitado && sesion?.bodega?.slug && (
                                 <button
                                   type="button"
@@ -157,22 +161,22 @@ export default function DeliveryModal({
                                     setLinkDeliveryCopiado(true);
                                     setTimeout(() => setLinkDeliveryCopiado(false), 1600);
                                   }}
-                                  className={`shrink-0 h-9 px-4 rounded-full text-[12.5px] font-bold flex items-center gap-1.5 transition ${linkDeliveryCopiado ? 'bg-green-100 text-green-700' : 'bg-[#2d284b] hover:bg-[#3a3563] text-white'}`}
+                                  className={`mt-3 inline-flex items-center gap-1.5 h-[34px] px-4 rounded-full border-[1.5px] text-[12.5px] font-bold transition ${linkDeliveryCopiado ? 'border-green-400/60 bg-green-400/15 text-green-300' : 'border-white/25 bg-white/5 hover:bg-white/10 text-white'}`}
                                 >
                                   <IconoTrazo nombre={linkDeliveryCopiado ? 'check' : 'copiar'} className="w-3.5 h-3.5" />
-                                  {linkDeliveryCopiado ? 'Copiado' : 'Copiar'}
+                                  {linkDeliveryCopiado ? 'Copiado' : 'Copiar link'}
                                 </button>
                               )}
                             </div>
 
                             {deliveryHabilitado && sesion?.bodega?.slug && (
-                              <div className="relative grid gap-2 mt-2.5" style={{ gridTemplateColumns: `repeat(${typeof navigator !== 'undefined' && navigator.share ? 3 : 2}, minmax(0, 1fr))` }}>
+                              <div className="grid gap-2.5 mt-5" style={{ gridTemplateColumns: `repeat(${typeof navigator !== 'undefined' && navigator.share ? 3 : 2}, minmax(0, 1fr))` }}>
                                 <button
                                   type="button"
                                   onClick={() => setMostrarQRDelivery(true)}
-                                  className="h-10 rounded-2xl bg-white/[0.06] ring-1 ring-white/10 hover:bg-white/10 text-white text-[12.5px] font-semibold flex items-center justify-center gap-1.5 transition"
+                                  className="h-[62px] rounded-[20px] border-[1.5px] border-white/20 bg-gradient-to-b from-white/[0.07] to-white/[0.02] hover:from-white/[0.12] text-white/90 text-[11.5px] font-semibold flex flex-col items-center justify-center gap-1.5 transition"
                                 >
-                                  <IconoTrazo nombre="qr" className="w-4 h-4" /> QR
+                                  <IconoTrazo nombre="qr" className="w-[18px] h-[18px]" /> QR
                                 </button>
                                 {typeof navigator !== 'undefined' && navigator.share && (
                                   <button
@@ -185,23 +189,43 @@ export default function DeliveryModal({
                                         if (err?.name !== 'AbortError') notificar('No se pudo abrir el menú de compartir.', 'error');
                                       }
                                     }}
-                                    className="h-10 rounded-2xl bg-white/[0.06] ring-1 ring-white/10 hover:bg-white/10 text-white text-[12.5px] font-semibold flex items-center justify-center gap-1.5 transition"
+                                    className="h-[62px] rounded-[20px] border-[1.5px] border-white/20 bg-gradient-to-b from-white/[0.07] to-white/[0.02] hover:from-white/[0.12] text-white/90 text-[11.5px] font-semibold flex flex-col items-center justify-center gap-1.5 transition"
                                   >
-                                    <IconoTrazo nombre="compartir" className="w-4 h-4" /> Compartir
+                                    <IconoTrazo nombre="compartir" className="w-[18px] h-[18px]" /> Compartir
                                   </button>
                                 )}
                                 <a
                                   href={`${KASERITA_DELIVERY_URL}/${sesion.bodega.slug}`}
                                   target="_blank"
                                   rel="noopener noreferrer"
-                                  className="h-10 rounded-2xl bg-white/[0.06] ring-1 ring-white/10 hover:bg-white/10 text-white text-[12.5px] font-semibold flex items-center justify-center gap-1.5 transition"
+                                  className="h-[62px] rounded-[20px] border-[1.5px] border-white/20 bg-gradient-to-b from-white/[0.07] to-white/[0.02] hover:from-white/[0.12] text-white/90 text-[11.5px] font-semibold flex flex-col items-center justify-center gap-1.5 transition"
                                 >
-                                  <i className="fa-solid fa-arrow-up-right-from-square text-[11px]"></i> Ver tienda
+                                  <i className="fa-solid fa-arrow-up-right-from-square text-[15px]"></i> Ver tienda
                                 </a>
                               </div>
                             )}
+
+                            <div className="flex items-center justify-between gap-3 mt-4 rounded-[20px] border-[1.5px] border-white/15 bg-white/5 px-4 py-3">
+                              <div className="min-w-0">
+                                <p className="text-[13.5px] font-bold">Mostrar mi tienda al público</p>
+                                <p className="text-[11.5px] text-white/60">{deliveryHabilitado ? 'Visible para tus clientes' : 'Solo entra quien tenga tu link'}</p>
+                              </div>
+                              <button
+                                type="button"
+                                role="switch"
+                                aria-checked={deliveryHabilitado}
+                                aria-label="Mostrar mi tienda al público"
+                                onClick={() => setDeliveryHabilitado((v) => !v)}
+                                className={`kz-sw ${deliveryHabilitado ? 'on' : ''}`}
+                              >
+                                <i></i>
+                              </button>
+                            </div>
                           </div>
 
+                          {/* Hoja blanca con los ajustes de la tienda */}
+                          <div className="relative -mt-5 rounded-t-[30px] bg-white px-4 pt-4 pb-3">
+                            <p className="text-sm font-bold text-[#2d284b] mx-1 mb-3">Tu tienda</p>
                           {seccionDelivery('donde', 'ubicacion', 'Ubicación y horarios', `${direccionDelivery.trim() || 'Sin dirección'} · ${resumenHorarioDelivery(horarioDelivery)}`, (
                             <>
                               <div>
@@ -416,9 +440,10 @@ export default function DeliveryModal({
                             ),
                             resumenAvisos.audiencia > 0 && !resumenAvisos.proximo ? { texto: `${resumenAvisos.audiencia} listos`, tono: 'aviso' } : null
                           )}
+                          </div>
                         </div>
 
-                        <div className="relative -mt-14 px-4 pt-8 pb-4 shrink-0 bg-gradient-to-t from-[#f8f9fd] from-70% to-transparent">
+                        <div className="shrink-0 bg-white px-4 pb-4 pt-1">
                           {hayCambiosDelivery && (
                             <p className="flex items-center justify-center gap-1.5 text-xs font-semibold text-amber-700 mb-2">
                               <span className="w-2 h-2 rounded-full bg-amber-500"></span> Tienes cambios sin guardar
