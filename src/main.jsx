@@ -4035,7 +4035,7 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
 
       // Combos activos (los que ve el catálogo) y cuántos se pueden armar ahora;
       // se calculan una vez en vez de filtrar la lista en cada pintada.
-      const claseSegmento = (activo) => `w-full md:w-auto justify-center flex items-center gap-2 h-full px-3 md:px-4 rounded-full text-[13px] font-semibold transition ${activo ? 'bg-[#ebf0ff] text-[#5b4bd6] font-bold ring-1 ring-[#9687f5]/60' : 'text-[#6b6890] hover:text-[#2d284b]'}`;
+      const claseSegmento = (activo) => `w-full md:w-auto justify-center flex items-center gap-2 h-full px-3 md:px-4 rounded-full text-[13px] font-semibold transition ${activo ? 'bg-white text-[#5b4bd6] font-bold' : 'text-[#6b6890] hover:text-[#2d284b]'}`;
       const combosActivos = useMemo(() => combos.filter((c) => c.activo), [combos]);
       const combosDisponibles = useMemo(
         () => combosActivos.filter((c) => estadoCombos.get(c.id)?.disponible !== false).length,
