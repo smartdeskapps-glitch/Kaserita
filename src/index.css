@@ -684,12 +684,12 @@
 .menu-it-on .menu-ic.bg-\[\#ebf0ff\] { background: linear-gradient(135deg, #9687f5, #5b4bd6); color: #fff; box-shadow: 0 6px 14px -4px rgba(91,75,214,.6); }
 
 /* Riel de íconos del escritorio (RielLateral.jsx): barra Ebony a media altura en el borde
-   izquierdo, con curvas hacia afuera arriba y abajo (--f: radio de la curva, --c: radio de la
-   esquina; el relleno de las curvas es una sombra recortada, así salen idénticas).
+   izquierdo, con curvas hacia afuera arriba y abajo (--c: radio de la esquina). Las curvas son un
+   degradado radial de tamaño fijo (20 px): sin recortes ni sombras, que dejaban un borde visible.
    Reposo: una rayita de 22 px. Al acercar el mouse (o con el teclado) sale por encima del
    contenido; con el menú "Más" abierto se ensancha para contener la paleta. */
 .riel-pos {
-  --f: 11px; --c: 11px; --col: #2b2750; --curva: cubic-bezier(0.3, 0.8, 0.3, 1);
+  --c: 11px; --col: #2b2750; --curva: cubic-bezier(0.3, 0.8, 0.3, 1);
   position: absolute; left: 0; top: 50%; transform: translateY(-50%);
   width: 22px; border-radius: 0 var(--c) var(--c) 0;
   background: linear-gradient(180deg, var(--col) 0%, #363260 50%, var(--col) 100%);
@@ -697,13 +697,9 @@
   box-shadow: 12px 0 30px -18px rgba(29, 26, 56, 0.7);
   transition: width 0.26s var(--curva), border-radius 0.26s var(--curva);
 }
-.riel-pos::before, .riel-pos::after {
-  content: ""; position: absolute; left: 0; width: var(--f); height: var(--f);
-  pointer-events: none; clip-path: inset(0); box-shadow: 0 0 0 var(--f) var(--col);
-  transition: width 0.26s var(--curva), height 0.26s var(--curva), border-radius 0.26s var(--curva), box-shadow 0.26s var(--curva);
-}
-.riel-pos::before { bottom: 100%; border-bottom-left-radius: var(--f); }
-.riel-pos::after { top: 100%; border-top-left-radius: var(--f); }
+.riel-pos::before, .riel-pos::after { content: ""; position: absolute; left: 0; width: 20px; height: 20px; pointer-events: none; }
+.riel-pos::before { bottom: 100%; background: radial-gradient(circle at 100% 0, transparent 19.5px, var(--col) 20px); }
+.riel-pos::after { top: 100%; background: radial-gradient(circle at 100% 100%, transparent 19.5px, var(--col) 20px); }
 .riel-asa { position: absolute; right: 6px; top: 50%; transform: translateY(-50%); width: 3px; height: 34px; border-radius: 3px; background: #c5bcff; pointer-events: none; transition: opacity 0.08s; }
 .riel-ics { width: 56px; flex: none; align-self: center; padding: 12px 0; display: flex; flex-direction: column; align-items: center; gap: 4px; pointer-events: none; }
 .riel-it {
@@ -724,7 +720,7 @@
 .riel-ranura { width: 0; overflow: hidden; opacity: 0; transition: width 0.3s var(--curva), opacity 0.2s; }
 
 /* Desplegado: con el mouse encima, con el foco dentro o con el menú "Más" abierto. */
-.riel-pos:is(:hover, :focus-within, [data-paleta="true"]) { --f: 20px; --c: 28px; width: 56px; }
+.riel-pos:is(:hover, :focus-within, [data-paleta="true"]) { --c: 28px; width: 56px; }
 .riel-pos:is(:hover, :focus-within, [data-paleta="true"]) .riel-ics { pointer-events: auto; }
 /* Los íconos aparecen con un pequeño retraso, cuando el riel ya casi terminó de ensancharse: si no, el
    mosaico blanco del ícono activo se ve un instante fuera del riel. Al esconderse se van sin retraso. */
@@ -734,4 +730,4 @@
 .riel-pos[data-paleta="true"] { width: 376px; }
 .riel-pos[data-paleta="true"] .riel-ranura { width: 320px; height: min(540px, calc(100vh - 48px)); opacity: 1; transition: width 0.3s var(--curva), opacity 0.2s 0.1s; }
 .riel-pos[data-paleta="true"] .riel-tip { display: none; }
-@media (prefers-reduced-motion: reduce) { .riel-pos, .riel-pos::before, .riel-pos::after, .riel-ranura { transition: none; } }
+@media (prefers-reduced-motion: reduce) { .riel-pos, .riel-ranura { transition: none; } }
