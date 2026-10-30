@@ -116,10 +116,9 @@
 @keyframes escaner-pop { from { transform: translateX(-50%) translateY(10px) scale(0.8); opacity: 0; } }
 
 
-/* Fondo del catálogo del POS: "aurora violeta". Tres masas de color muy
-   difuminadas y fijas (.aurora-*, insertadas como hijos reales en main.jsx,
-   justo después de este div) más una cuadrícula técnica sutil que se
-   desvanece hacia arriba-izquierda, y encima el mismo grano SVG del botón
+/* Fondo del catálogo del POS: degradado lavanda (claro arriba, violeta abajo)
+   con un mosaico de vidrio (.aurora-pos y .aurora-grid, hijos reales en
+   main.jsx), y encima el mismo grano SVG del botón
    "Abrir Turno" (.btn-noise), aquí fijo -- sin su giro de color -- y a
    intensidad media (0.42). isolation:isolate + z-index negativo dejan las
    tres capas detrás de todo el contenido real (header, tarjetas, carrito):
@@ -127,35 +126,29 @@
 .fondo-pos-grano { isolation: isolate; }
 .aurora-pos {
   position: absolute;
-  inset: -15%;
+  inset: 0;
   z-index: -3;
-  filter: blur(46px);
   pointer-events: none;
+  background:
+    radial-gradient(70% 55% at 35% 108%, #9687f5 0%, transparent 70%),
+    radial-gradient(60% 45% at 90% 100%, #c5bcff 0%, transparent 70%),
+    linear-gradient(180deg, #f3f5ff 0%, #ebf0ff 55%, #c5bcff 100%);
 }
-.aurora-mancha { position: absolute; border-radius: 9999px; }
-.aurora-mancha-1 {
-  width: 60%; aspect-ratio: 1; left: -6%; top: -16%;
-  background: radial-gradient(circle, #c5bcff 0%, rgba(194, 193, 236, 0) 68%);
-}
-.aurora-mancha-2 {
-  width: 52%; aspect-ratio: 1; right: -10%; top: -4%;
-  background: radial-gradient(circle, #AEBBF6 0%, rgba(174, 187, 246, 0) 68%);
-}
-.aurora-mancha-3 {
-  width: 58%; aspect-ratio: 1; left: 20%; bottom: -26%; opacity: 0.55;
-  background: radial-gradient(circle, #9687f5 0%, rgba(142, 98, 227, 0) 70%);
-}
+/* Mosaico de baldosas de vidrio: se desvanece hacia arriba y se nota solo
+   en los huecos entre paneles. Cada baldosa de 64px = borde claro + brillo. */
 .aurora-grid {
   position: absolute;
   inset: 0;
   z-index: -2;
   pointer-events: none;
+  opacity: 0.7;
   background-image:
-    linear-gradient(rgba(91,75,214, 0.05) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(91,75,214, 0.05) 1px, transparent 1px);
-  background-size: 34px 34px;
-  mask-image: radial-gradient(ellipse at 20% 0%, #000 0%, transparent 72%);
-  -webkit-mask-image: radial-gradient(ellipse at 20% 0%, #000 0%, transparent 72%);
+    linear-gradient(rgba(255, 255, 255, 0.55) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.55) 1px, transparent 1px),
+    linear-gradient(135deg, rgba(255, 255, 255, 0.28), rgba(255, 255, 255, 0.04));
+  background-size: 64px 64px;
+  mask-image: linear-gradient(180deg, transparent 18%, #000 62%);
+  -webkit-mask-image: linear-gradient(180deg, transparent 18%, #000 62%);
 }
 .fondo-pos-grano::after {
   content: "";
