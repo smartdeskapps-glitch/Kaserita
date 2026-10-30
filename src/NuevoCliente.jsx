@@ -162,7 +162,7 @@ export default function NuevoCliente({
                     aria-label="Límite de crédito en soles"
                     value={formCliente.limiteCredito}
                     onChange={campo('limiteCredito')}
-                    className="w-[72px] text-right text-[28px] leading-none font-light tracking-tight tabular-nums bg-transparent focus:outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                    className="w-[104px] text-right text-[28px] leading-none font-light tracking-tight tabular-nums bg-transparent focus:outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                   />
                 </div>
               </div>
