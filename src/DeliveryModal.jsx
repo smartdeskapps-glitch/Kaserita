@@ -139,9 +139,9 @@ export default function DeliveryModal({
                                 aria-checked={deliveryHabilitado}
                                 aria-label="Mostrar mi tienda al público"
                                 onClick={() => setDeliveryHabilitado((v) => !v)}
-                                className={`relative w-12 h-7 rounded-full shrink-0 transition-colors ${deliveryHabilitado ? 'bg-green-500' : 'bg-white/30'}`}
+                                className={`kz-sw ${deliveryHabilitado ? 'on' : ''}`}
                               >
-                                <span className={`absolute top-[3px] w-[22px] h-[22px] rounded-full bg-white shadow transition-all ${deliveryHabilitado ? 'left-[23px]' : 'left-[3px]'}`}></span>
+                                <i></i>
                               </button>
                             </div>
 
@@ -159,7 +159,7 @@ export default function DeliveryModal({
                                     setLinkDeliveryCopiado(true);
                                     setTimeout(() => setLinkDeliveryCopiado(false), 1600);
                                   }}
-                                  className={`shrink-0 h-9 px-3.5 rounded-xl text-[12.5px] font-bold flex items-center gap-1.5 transition ${linkDeliveryCopiado ? 'bg-green-100 text-green-700' : 'bg-[#5b4bd6] text-white'}`}
+                                  className={`shrink-0 h-9 px-4 rounded-full text-[12.5px] font-bold flex items-center gap-1.5 transition ${linkDeliveryCopiado ? 'bg-green-100 text-green-700' : 'bg-[#5b4bd6] text-white'}`}
                                 >
                                   <IconoTrazo nombre={linkDeliveryCopiado ? 'check' : 'copiar'} className="w-3.5 h-3.5" />
                                   {linkDeliveryCopiado ? 'Copiado' : 'Copiar'}
@@ -280,7 +280,9 @@ export default function DeliveryModal({
                                 </p>
                               </div>
                             </>
-                          ))}
+                          ), estadoHorarioActualDelivery
+                            ? { texto: estadoHorarioActualDelivery.abierto ? 'Abierta' : 'Cerrada', tono: estadoHorarioActualDelivery.abierto ? 'ok' : 'apagado' }
+                            : { texto: 'Sin horario', tono: 'aviso' })}
 
                           {seccionDelivery('entrega', 'moto', 'Entrega a domicilio', resumenEntregaDelivery, (
                             <>
@@ -295,9 +297,9 @@ export default function DeliveryModal({
                                   aria-checked={domicilioHabilitado}
                                   aria-label="Entrega a domicilio"
                                   onClick={() => setDomicilioHabilitado((v) => !v)}
-                                  className={`relative w-12 h-7 rounded-full shrink-0 transition-colors ${domicilioHabilitado ? 'bg-[#5b4bd6]' : 'bg-[#d8d7e0]'}`}
+                                  className={`kz-sw ${domicilioHabilitado ? 'on' : ''}`}
                                 >
-                                  <span className={`absolute top-[3px] w-[22px] h-[22px] rounded-full bg-white shadow transition-all ${domicilioHabilitado ? 'left-[23px]' : 'left-[3px]'}`}></span>
+                                  <i></i>
                                 </button>
                               </div>
 
@@ -366,7 +368,7 @@ export default function DeliveryModal({
                                 </>
                               )}
                             </>
-                          ))}
+                          ), domicilioHabilitado ? { texto: 'Activa', tono: 'ok' } : { texto: 'Apagada', tono: 'apagado' })}
 
                           {sesion?.usuario?.rol === 'dueno' && seccionDelivery('whatsapp', 'chat', 'Pedidos por WhatsApp', telefonoDeliveryEditar.trim() ? `Te llegan al ${telefonoDeliveryEditar.trim()}` : 'Falta tu número', (
                             <div>
@@ -382,7 +384,7 @@ export default function DeliveryModal({
                               </div>
                               <p className="text-[11.5px] text-stone-400 mt-1.5 leading-snug">Sin espacios ni guiones, con el código de país adelante.</p>
                             </div>
-                          ))}
+                          ), telefonoDeliveryEditar.trim() ? { texto: 'Conectado', tono: 'ok' } : { texto: 'Falta número', tono: 'aviso' })}
 
                           {esAdmin && resumenAvisos && sesion?.bodega?.delivery_habilitado && sesion?.bodega?.slug && seccionDelivery(
                             'avisos',
@@ -413,7 +415,8 @@ export default function DeliveryModal({
                                     : 'Avisar ahora'}
                                 </button>
                               </>
-                            )
+                            ),
+                            resumenAvisos.audiencia > 0 && !resumenAvisos.proximo ? { texto: `${resumenAvisos.audiencia} listos`, tono: 'aviso' } : null
                           )}
                         </div>
 
@@ -425,10 +428,11 @@ export default function DeliveryModal({
                           )}
                           <button
                             onClick={guardarConfigDelivery}
-                            disabled={guardandoDelivery}
-                            className="w-full h-[54px] rounded-full bg-gradient-to-r from-[#7466e8] to-[#2d284b] text-white font-semibold text-base transition disabled:opacity-50"
+                            disabled={guardandoDelivery || !hayCambiosDelivery}
+                            className="kz-pri w-full h-[54px] text-base font-semibold flex items-center justify-center gap-2.5"
                           >
-                            {guardandoDelivery ? 'Guardando...' : 'Guardar cambios'}
+                            <span>{guardandoDelivery ? 'Guardando...' : 'Guardar cambios'}</span>
+                            <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor" aria-hidden="true"><path d="M12 3c.6 4.6 2.4 6.4 7 7-4.6.6-6.4 2.4-7 7-.6-4.6-2.4-6.4-7-7 4.6-.6 6.4-2.4 7-7Z" /><path d="M19 15c.3 1.8 1 2.5 2.8 2.8-1.8.3-2.5 1-2.8 2.8-.3-1.8-1-2.5-2.8-2.8 1.8-.3 2.5-1 2.8-2.8Z" /></svg>
                           </button>
                         </div>
                       </>

@@ -2214,7 +2214,8 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
         ? `Activa · ${aNumeroDelivery(costoEnvioDelivery) > 0 ? `S/ ${aNumeroDelivery(costoEnvioDelivery).toFixed(2)}` : 'Envío gratis'}${aNumeroDelivery(pedidoMinimoDelivery) > 0 ? ` · mín. S/ ${aNumeroDelivery(pedidoMinimoDelivery)}` : ''}${zonaRepartoDelivery.trim() ? ` · ${zonaRepartoDelivery.trim()}` : ''}`
         : 'Desactivada';
       // Una sección que se abre y se cierra, con un resumen visible cuando está cerrada.
-      const seccionDelivery = (id, icono, titulo, resumen, hijos) => {
+      // `chip` (opcional) = { texto, tono: 'ok' | 'aviso' | 'apagado' }: el estado de la sección sin abrirla.
+      const seccionDelivery = (id, icono, titulo, resumen, hijos, chip) => {
         const abierta = !!seccionesDelivery[id];
         return (
           <div className="bg-white rounded-3xl ring-1 ring-[#5b4bd6]/5 mb-2.5 overflow-hidden">
@@ -2231,6 +2232,9 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
                 <span className="block text-[15px] font-bold text-stone-900 leading-tight">{titulo}</span>
                 <span className="block text-xs text-stone-500 mt-0.5 truncate">{resumen}</span>
               </span>
+              {chip && (
+                <span className={`shrink-0 text-[10.5px] font-extrabold rounded-full px-2.5 py-0.5 ${chip.tono === 'ok' ? 'bg-[#e3f6ea] text-[#157a40]' : chip.tono === 'aviso' ? 'bg-[#fff1d6] text-[#9a5b04]' : 'bg-[#f1f2f8] text-[#8f8cb0]'}`}>{chip.texto}</span>
+              )}
               <i className={`fa-solid fa-chevron-down text-xs text-stone-400 transition-transform ${abierta ? 'rotate-180' : ''}`}></i>
             </button>
             {abierta && <div className="px-3.5 pb-4 space-y-3.5">{hijos}</div>}
