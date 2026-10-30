@@ -726,7 +726,9 @@
 /* Desplegado: con el mouse encima, con el foco dentro o con el menú "Más" abierto. */
 .riel-pos:is(:hover, :focus-within, [data-paleta="true"]) { --f: 20px; --c: 28px; width: 56px; }
 .riel-pos:is(:hover, :focus-within, [data-paleta="true"]) .riel-ics { pointer-events: auto; }
-.riel-pos:is(:hover, :focus-within, [data-paleta="true"]) :is(.riel-it, .riel-sep) { opacity: 1; pointer-events: auto; }
+/* Los íconos aparecen con un pequeño retraso, cuando el riel ya casi terminó de ensancharse: si no, el
+   mosaico blanco del ícono activo se ve un instante fuera del riel. Al esconderse se van sin retraso. */
+.riel-pos:is(:hover, :focus-within, [data-paleta="true"]) :is(.riel-it, .riel-sep) { opacity: 1; pointer-events: auto; transition: background 0.15s, color 0.15s, opacity 0.14s 0.12s; }
 .riel-pos:is(:hover, :focus-within, [data-paleta="true"]) .riel-asa { opacity: 0; }
 /* Menú "Más" abierto: el riel contiene la paleta (va después de la regla de arriba para ganarle el ancho). */
 .riel-pos[data-paleta="true"] { width: 376px; }
