@@ -47,6 +47,12 @@ export default function DeliveryModal({
   whatsappRepartidor,
   zonaRepartoDelivery,
 }) {
+  // Botón de acción del panel oscuro (QR, Compartir, Ver tienda): un solo estilo.
+  const claseAccion = 'h-[62px] rounded-[20px] border-[1.5px] border-white/20 bg-gradient-to-b from-white/[0.07] to-white/[0.02] hover:from-white/[0.12] text-white/90 text-[11.5px] font-semibold flex flex-col items-center justify-center gap-1.5 transition';
+  // Nombre de la bodega: todo liviano menos la última palabra, en negrita.
+  const palabrasNombre = String(sesion?.bodega?.nombre || '').trim().split(/\s+/);
+  const ultimaPalabra = palabrasNombre.length > 1 ? palabrasNombre.pop() : '';
+  const linkSinProtocolo = KASERITA_DELIVERY_URL.replace(/^https?:\/\//, '');
   return (
     <>
               {/* Modal: Mi Link de Pedidos (vitrina pública de KaseritaDelivery).
@@ -129,15 +135,9 @@ export default function DeliveryModal({
                                   }}
                                 />
                               </label>
-                              {(() => {
-                                const palabras = String(sesion?.bodega?.nombre || '').trim().split(/\s+/);
-                                const ultima = palabras.length > 1 ? palabras.pop() : '';
-                                return (
-                                  <p className="text-[27px] font-light tracking-tight leading-tight mt-3.5 truncate">
-                                    {palabras.join(' ')}{ultima && <> <b className="font-bold">{ultima}</b></>}
-                                  </p>
-                                );
-                              })()}
+                              <p className="text-[27px] font-light tracking-tight leading-tight mt-3.5 truncate">
+                                {palabrasNombre.join(' ')}{ultimaPalabra && <> <b className="font-bold">{ultimaPalabra}</b></>}
+                              </p>
                               {estadoHorarioActualDelivery ? (
                                 <span className="inline-flex items-center gap-1.5 mt-1.5 text-[11.5px] font-semibold text-white/85">
                                   <span className={`w-[7px] h-[7px] rounded-full ${estadoHorarioActualDelivery.abierto ? 'bg-green-400 shadow-[0_0_0_3px_rgba(74,222,128,0.2)]' : 'bg-white/60'}`}></span>
@@ -149,7 +149,7 @@ export default function DeliveryModal({
                               <p className="text-[11px] text-white/50 mt-1">Toca el círculo para cambiar tu logo.</p>
 
                               <p className="mt-4 text-[11.5px] text-white/55 truncate">
-                                {KASERITA_DELIVERY_URL.replace(/^https?:\/\//, '')}/
+                                {linkSinProtocolo}/
                                 {/* El link es fijo: ya se comparte impreso y en QR, y si cambiara dejaría de funcionar. */}
                                 <b className="block text-[19px] font-medium text-white mt-0.5 truncate">{slugDelivery}</b>
                               </p>
@@ -174,7 +174,7 @@ export default function DeliveryModal({
                                 <button
                                   type="button"
                                   onClick={() => setMostrarQRDelivery(true)}
-                                  className="h-[62px] rounded-[20px] border-[1.5px] border-white/20 bg-gradient-to-b from-white/[0.07] to-white/[0.02] hover:from-white/[0.12] text-white/90 text-[11.5px] font-semibold flex flex-col items-center justify-center gap-1.5 transition"
+                                  className={claseAccion}
                                 >
                                   <IconoTrazo nombre="qr" className="w-[18px] h-[18px]" /> QR
                                 </button>
@@ -189,7 +189,7 @@ export default function DeliveryModal({
                                         if (err?.name !== 'AbortError') notificar('No se pudo abrir el menú de compartir.', 'error');
                                       }
                                     }}
-                                    className="h-[62px] rounded-[20px] border-[1.5px] border-white/20 bg-gradient-to-b from-white/[0.07] to-white/[0.02] hover:from-white/[0.12] text-white/90 text-[11.5px] font-semibold flex flex-col items-center justify-center gap-1.5 transition"
+                                    className={claseAccion}
                                   >
                                     <IconoTrazo nombre="compartir" className="w-[18px] h-[18px]" /> Compartir
                                   </button>
@@ -198,7 +198,7 @@ export default function DeliveryModal({
                                   href={`${KASERITA_DELIVERY_URL}/${sesion.bodega.slug}`}
                                   target="_blank"
                                   rel="noopener noreferrer"
-                                  className="h-[62px] rounded-[20px] border-[1.5px] border-white/20 bg-gradient-to-b from-white/[0.07] to-white/[0.02] hover:from-white/[0.12] text-white/90 text-[11.5px] font-semibold flex flex-col items-center justify-center gap-1.5 transition"
+                                  className={claseAccion}
                                 >
                                   <i className="fa-solid fa-arrow-up-right-from-square text-[15px]"></i> Ver tienda
                                 </a>
