@@ -684,33 +684,36 @@
 .menu-it-on .menu-ic.bg-\[\#ebf0ff\] { background: linear-gradient(135deg, #9687f5, #5b4bd6); color: #fff; box-shadow: 0 6px 14px -4px rgba(91,75,214,.6); }
 
 /* Riel de íconos del escritorio (RielLateral.jsx): barra Ebony a media altura en el borde
-   izquierdo, con curvas hacia afuera arriba y abajo. --f es el radio de la curva y --c el de
-   la esquina; el relleno de las curvas es una sombra recortada para que sean idénticas. */
+   izquierdo, con curvas hacia afuera arriba y abajo (--f: radio de la curva, --c: radio de la
+   esquina; el relleno de las curvas es una sombra recortada, así salen idénticas).
+   Reposo: una rayita de 22 px. Al acercar el mouse (o con el teclado) sale por encima del
+   contenido; con el menú "Más" abierto se ensancha para contener la paleta. */
 .riel-pos {
-  --f: 20px; --c: 28px; --col: #2b2750;
+  --f: 11px; --c: 11px; --col: #2b2750; --curva: cubic-bezier(0.3, 0.8, 0.3, 1);
   position: absolute; left: 0; top: 50%; transform: translateY(-50%);
-  width: 56px; border-radius: 0 var(--c) var(--c) 0;
+  width: 22px; border-radius: 0 var(--c) var(--c) 0;
   background: linear-gradient(180deg, var(--col) 0%, #363260 50%, var(--col) 100%);
   flex-direction: row; align-items: stretch; z-index: 30;
   box-shadow: 12px 0 30px -18px rgba(29, 26, 56, 0.7);
+  transition: width 0.26s var(--curva), border-radius 0.26s var(--curva);
 }
 .riel-pos::before, .riel-pos::after {
   content: ""; position: absolute; left: 0; width: var(--f); height: var(--f);
   pointer-events: none; clip-path: inset(0); box-shadow: 0 0 0 var(--f) var(--col);
+  transition: width 0.26s var(--curva), height 0.26s var(--curva), border-radius 0.26s var(--curva), box-shadow 0.26s var(--curva);
 }
-.riel-pos { transition: width 0.26s cubic-bezier(0.3, 0.8, 0.3, 1), border-radius 0.26s cubic-bezier(0.3, 0.8, 0.3, 1); }
-.riel-pos::before, .riel-pos::after { transition: width 0.26s cubic-bezier(0.3, 0.8, 0.3, 1), height 0.26s cubic-bezier(0.3, 0.8, 0.3, 1), border-radius 0.26s cubic-bezier(0.3, 0.8, 0.3, 1), box-shadow 0.26s cubic-bezier(0.3, 0.8, 0.3, 1); }
 .riel-pos::before { bottom: 100%; border-bottom-left-radius: var(--f); }
 .riel-pos::after { top: 100%; border-top-left-radius: var(--f); }
-.riel-ics { width: 56px; flex: none; align-self: center; padding: 12px 0; display: flex; flex-direction: column; align-items: center; gap: 4px; }
+.riel-asa { position: absolute; right: 6px; top: 50%; transform: translateY(-50%); width: 3px; height: 34px; border-radius: 3px; background: #c5bcff; pointer-events: none; transition: opacity 0.08s; }
+.riel-ics { width: 56px; flex: none; align-self: center; padding: 12px 0; display: flex; flex-direction: column; align-items: center; gap: 4px; pointer-events: none; }
 .riel-it {
   position: relative; width: 42px; height: 42px; border-radius: 14px; flex: none;
   display: flex; align-items: center; justify-content: center;
-  color: #c5bcff; transition: background 0.15s, color 0.15s;
+  color: #c5bcff; opacity: 0; pointer-events: none; transition: background 0.15s, color 0.15s, opacity 0.15s;
 }
+.riel-sep { width: 24px; height: 1px; margin: 5px 0; background: rgba(255, 255, 255, 0.14); flex: none; opacity: 0; transition: opacity 0.15s; }
 .riel-it:hover { background: rgba(255, 255, 255, 0.1); color: #fff; }
 .riel-it-on, .riel-it-on:hover { background: #fff; color: #5b4bd6; }
-.riel-sep { width: 24px; height: 1px; margin: 5px 0; background: rgba(255, 255, 255, 0.14); flex: none; }
 .riel-tip {
   position: absolute; left: calc(100% + 16px); top: 50%; transform: translateY(-50%) translateX(-4px);
   background: #2d284b; color: #fff; font-size: 12px; font-weight: 600; white-space: nowrap;
@@ -718,25 +721,15 @@
   transition: opacity 0.15s, transform 0.15s; box-shadow: 0 8px 20px -8px rgba(29, 26, 56, 0.6);
 }
 .riel-it:hover .riel-tip, .riel-it:focus-visible .riel-tip { opacity: 1; transform: translateY(-50%); }
+.riel-ranura { width: 0; overflow: hidden; opacity: 0; transition: width 0.3s var(--curva), opacity 0.2s; }
 
-/* El riel queda como una rayita de 22 px; al acercar el mouse (o con el teclado) sale por encima
-   del contenido y al sacar el mouse se esconde. */
-.riel-asa { position: absolute; right: 6px; top: 50%; transform: translateY(-50%); width: 3px; height: 34px; border-radius: 3px; background: #c5bcff; opacity: 0; transition: opacity 0.08s; pointer-events: none; }
-.riel-pos[data-plegado="true"] { --f: 11px; --c: 11px; width: 22px; }
-.riel-pos[data-plegado="true"] .riel-it, .riel-pos[data-plegado="true"] .riel-sep { opacity: 0; pointer-events: none; transition: opacity 0.15s; }
-.riel-pos[data-plegado="true"] .riel-ics { pointer-events: none; }
-.riel-pos[data-plegado="true"] .riel-asa { opacity: 1; }
-.riel-pos[data-plegado="true"]:hover, .riel-pos[data-plegado="true"]:focus-within { --f: 20px; --c: 28px; width: 56px; }
-.riel-pos[data-plegado="true"]:hover .riel-it, .riel-pos[data-plegado="true"]:focus-within .riel-it,
-.riel-pos[data-plegado="true"]:hover .riel-sep, .riel-pos[data-plegado="true"]:focus-within .riel-sep { opacity: 1; pointer-events: auto; }
-.riel-pos[data-plegado="true"]:hover .riel-asa, .riel-pos[data-plegado="true"]:focus-within .riel-asa { opacity: 0; }
-/* Menú "Más" abierto: el riel se ensancha y contiene la paleta (siempre desplegado). */
-.riel-ranura { width: 0; overflow: hidden; opacity: 0; transition: width 0.3s cubic-bezier(0.3, 0.8, 0.3, 1), opacity 0.2s; }
-/* Más específico que las reglas del riel plegado (incluido el "acercar el mouse") para que siempre gane. */
-.riel-pos[data-paleta="true"][data-plegado="true"] { --f: 20px; --c: 28px; width: 376px; }
-.riel-pos[data-paleta="true"] .riel-ranura { width: 320px; height: min(540px, calc(100vh - 48px)); opacity: 1; transition: width 0.3s cubic-bezier(0.3, 0.8, 0.3, 1), opacity 0.2s 0.1s; }
-.riel-pos[data-paleta="true"] .riel-it, .riel-pos[data-paleta="true"] .riel-sep { opacity: 1; pointer-events: auto; }
-.riel-pos[data-paleta="true"] .riel-ics { pointer-events: auto; }
-.riel-pos[data-paleta="true"] .riel-asa { opacity: 0; }
+/* Desplegado: con el mouse encima, con el foco dentro o con el menú "Más" abierto. */
+.riel-pos:is(:hover, :focus-within, [data-paleta="true"]) { --f: 20px; --c: 28px; width: 56px; }
+.riel-pos:is(:hover, :focus-within, [data-paleta="true"]) .riel-ics { pointer-events: auto; }
+.riel-pos:is(:hover, :focus-within, [data-paleta="true"]) :is(.riel-it, .riel-sep) { opacity: 1; pointer-events: auto; }
+.riel-pos:is(:hover, :focus-within, [data-paleta="true"]) .riel-asa { opacity: 0; }
+/* Menú "Más" abierto: el riel contiene la paleta (va después de la regla de arriba para ganarle el ancho). */
+.riel-pos[data-paleta="true"] { width: 376px; }
+.riel-pos[data-paleta="true"] .riel-ranura { width: 320px; height: min(540px, calc(100vh - 48px)); opacity: 1; transition: width 0.3s var(--curva), opacity 0.2s 0.1s; }
 .riel-pos[data-paleta="true"] .riel-tip { display: none; }
 @media (prefers-reduced-motion: reduce) { .riel-pos, .riel-pos::before, .riel-pos::after, .riel-ranura { transition: none; } }

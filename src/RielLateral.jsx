@@ -28,12 +28,12 @@ export default function RielLateral({ opciones, onMas, paletaAbierta, ranuraRef 
     </button>
   );
   return (
-    <nav className="riel-pos hidden md:flex" data-plegado="true" data-paleta={paletaAbierta ? 'true' : 'false'} aria-label="Menú principal">
+    <nav className="riel-pos hidden md:flex" data-paleta={paletaAbierta ? 'true' : 'false'} aria-label="Menú principal">
       <i className="riel-asa" />
       <div className="riel-ics" style={{ height: alto }}>
-      {opciones.map((o) => boton(o.clave, o.etiqueta, <svg width="22" height="22" viewBox="0 0 24 24" {...trazo} aria-hidden="true">{ICONOS[o.clave]}</svg>, o.accion, o.activo))}
-      <i className="riel-sep" />
-      {boton('mas', 'Más opciones', <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><circle cx="6" cy="12" r="1.8" /><circle cx="12" cy="12" r="1.8" /><circle cx="18" cy="12" r="1.8" /></svg>, onMas, paletaAbierta)}
+        {opciones.map((o) => boton(o.clave, o.etiqueta, <svg width="22" height="22" viewBox="0 0 24 24" {...trazo} aria-hidden="true">{ICONOS[o.clave]}</svg>, o.accion, o.activo))}
+        <i className="riel-sep" />
+        {boton('mas', 'Más opciones', <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><circle cx="6" cy="12" r="1.8" /><circle cx="12" cy="12" r="1.8" /><circle cx="18" cy="12" r="1.8" /></svg>, onMas, paletaAbierta)}
       </div>
       {/* Aquí se dibuja el menú "Más" (paleta) cuando se abre: el riel se ensancha y la contiene. */}
       <div className="riel-ranura" ref={ranuraRef} />
