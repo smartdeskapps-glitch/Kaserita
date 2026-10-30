@@ -1320,9 +1320,9 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
       const [dniCliente, setDniCliente] = useState('99999999');
       const [clienteActual, setClienteActual] = useState(null);
       const [modalNuevoCliente, setModalNuevoCliente] = useState(false);
-      // Menú lateral de escritorio plegado (se recuerda en este equipo).
+      // Menú lateral de escritorio: empieza plegado (sale al acercar el mouse); si se fija, se recuerda en este equipo.
       const [rielPlegado, setRielPlegado] = useState(() => {
-        try { return localStorage.getItem('kz_riel_plegado') === '1'; } catch { return false; }
+        try { return localStorage.getItem('kz_riel_plegado') !== '0'; } catch { return true; }
       });
       const alternarRiel = () => setRielPlegado((v) => {
         try { localStorage.setItem('kz_riel_plegado', v ? '0' : '1'); } catch { /* sin almacenamiento: solo dura esta sesión */ }

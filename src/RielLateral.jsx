@@ -20,7 +20,7 @@ export default function RielLateral({ opciones, onMas, plegado, onPlegar }) {
     <button
       key={clave}
       type="button"
-      onClick={onClick}
+      onClick={(e) => { e.currentTarget.blur(); onClick(); }}
       aria-label={etiqueta}
       aria-current={activo ? 'page' : undefined}
       className={`riel-it ${activo ? 'riel-it-on' : ''}`}
