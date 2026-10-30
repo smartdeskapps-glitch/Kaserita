@@ -83,9 +83,7 @@ export default function DeliveryModal({
                     ) : (
                       <>
                         <div className="flex-1 overflow-y-auto px-4 pb-16 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden" style={{ scrollbarWidth: 'none' }}>
-                          <div className="relative overflow-hidden rounded-[26px] p-4 mb-2.5 text-white bg-gradient-to-br from-[#7466e8] via-[#5b4bd6] to-[#221e3d] shadow-[0_20px_30px_-22px_rgba(45,40,75,0.85)]">
-                            <span className="absolute -right-11 -top-14 w-[150px] h-[150px] rounded-full bg-white/10 pointer-events-none"></span>
-                            <span className="absolute right-14 top-20 w-20 h-20 rounded-full bg-yellow-300/15 pointer-events-none"></span>
+                          <div className="relative overflow-hidden rounded-[26px] p-4 mb-2.5 text-white bg-gradient-to-b from-[#3a3563] to-[#221e3d] ring-1 ring-white/10 shadow-[inset_0_1px_0_rgba(255,255,255,0.12),0_16px_28px_-20px_rgba(45,40,75,0.8)]">
                             <div className="relative flex items-center gap-3.5">
                               <label className="relative w-[68px] h-[68px] rounded-[20px] cursor-pointer bg-white shrink-0 shadow-[0_10px_18px_-10px_rgba(0,0,0,0.5)]">
                                 <span className="absolute inset-0 rounded-[20px] overflow-hidden flex items-center justify-center text-[#5b4bd6]">
@@ -117,7 +115,7 @@ export default function DeliveryModal({
                               <div className="min-w-0">
                                 <p className="text-[19px] font-extrabold tracking-tight leading-tight truncate">{sesion?.bodega?.nombre}</p>
                                 {estadoHorarioActualDelivery ? (
-                                  <span className="inline-flex items-center gap-1.5 mt-1.5 text-[11.5px] font-bold bg-white/20 rounded-full px-2.5 py-0.5">
+                                  <span className="inline-flex items-center gap-1.5 mt-1.5 text-[11.5px] font-bold bg-white/10 ring-1 ring-white/10 rounded-full px-2.5 py-0.5">
                                     <span className={`w-[7px] h-[7px] rounded-full ${estadoHorarioActualDelivery.abierto ? 'bg-green-400' : 'bg-white/60'}`}></span>
                                     {estadoHorarioActualDelivery.texto}
                                   </span>
@@ -128,7 +126,7 @@ export default function DeliveryModal({
                               </div>
                             </div>
 
-                            <div className="relative flex items-center justify-between gap-3 mt-3.5 bg-white/15 rounded-2xl px-3 py-2.5">
+                            <div className="relative flex items-center justify-between gap-3 mt-3.5 bg-white/[0.06] ring-1 ring-white/10 rounded-2xl px-3 py-2.5">
                               <div className="min-w-0">
                                 <p className="text-[13.5px] font-bold">Mostrar mi tienda al público</p>
                                 <p className="text-[11.5px] text-white/85">{deliveryHabilitado ? 'Visible para tus clientes' : 'Solo entra quien tenga tu link'}</p>
@@ -159,7 +157,7 @@ export default function DeliveryModal({
                                     setLinkDeliveryCopiado(true);
                                     setTimeout(() => setLinkDeliveryCopiado(false), 1600);
                                   }}
-                                  className={`shrink-0 h-9 px-4 rounded-full text-[12.5px] font-bold flex items-center gap-1.5 transition ${linkDeliveryCopiado ? 'bg-green-100 text-green-700' : 'bg-[#5b4bd6] text-white'}`}
+                                  className={`shrink-0 h-9 px-4 rounded-full text-[12.5px] font-bold flex items-center gap-1.5 transition ${linkDeliveryCopiado ? 'bg-green-100 text-green-700' : 'bg-[#2d284b] hover:bg-[#3a3563] text-white'}`}
                                 >
                                   <IconoTrazo nombre={linkDeliveryCopiado ? 'check' : 'copiar'} className="w-3.5 h-3.5" />
                                   {linkDeliveryCopiado ? 'Copiado' : 'Copiar'}
@@ -172,7 +170,7 @@ export default function DeliveryModal({
                                 <button
                                   type="button"
                                   onClick={() => setMostrarQRDelivery(true)}
-                                  className="h-10 rounded-xl bg-white/15 hover:bg-white/25 text-white text-[12.5px] font-semibold flex items-center justify-center gap-1.5 transition"
+                                  className="h-10 rounded-2xl bg-white/[0.06] ring-1 ring-white/10 hover:bg-white/10 text-white text-[12.5px] font-semibold flex items-center justify-center gap-1.5 transition"
                                 >
                                   <IconoTrazo nombre="qr" className="w-4 h-4" /> QR
                                 </button>
@@ -187,7 +185,7 @@ export default function DeliveryModal({
                                         if (err?.name !== 'AbortError') notificar('No se pudo abrir el menú de compartir.', 'error');
                                       }
                                     }}
-                                    className="h-10 rounded-xl bg-white/15 hover:bg-white/25 text-white text-[12.5px] font-semibold flex items-center justify-center gap-1.5 transition"
+                                    className="h-10 rounded-2xl bg-white/[0.06] ring-1 ring-white/10 hover:bg-white/10 text-white text-[12.5px] font-semibold flex items-center justify-center gap-1.5 transition"
                                   >
                                     <IconoTrazo nombre="compartir" className="w-4 h-4" /> Compartir
                                   </button>
@@ -196,7 +194,7 @@ export default function DeliveryModal({
                                   href={`${KASERITA_DELIVERY_URL}/${sesion.bodega.slug}`}
                                   target="_blank"
                                   rel="noopener noreferrer"
-                                  className="h-10 rounded-xl bg-white/15 hover:bg-white/25 text-white text-[12.5px] font-semibold flex items-center justify-center gap-1.5 transition"
+                                  className="h-10 rounded-2xl bg-white/[0.06] ring-1 ring-white/10 hover:bg-white/10 text-white text-[12.5px] font-semibold flex items-center justify-center gap-1.5 transition"
                                 >
                                   <i className="fa-solid fa-arrow-up-right-from-square text-[11px]"></i> Ver tienda
                                 </a>
