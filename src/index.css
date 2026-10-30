@@ -719,21 +719,21 @@
 }
 .riel-it:hover .riel-tip, .riel-it:focus-visible .riel-tip { opacity: 1; transform: translateY(-50%); }
 
-/* Menú plegado: queda una rayita de 22 px; al acercar el mouse (o con el teclado) el riel sale
-   por encima del contenido, y el botón de abajo lo vuelve a fijar. */
+/* El riel queda como una rayita de 22 px; al acercar el mouse (o con el teclado) sale por encima
+   del contenido y al sacar el mouse se esconde. */
 .riel-asa { position: absolute; right: 6px; top: 50%; transform: translateY(-50%); width: 3px; height: 34px; border-radius: 3px; background: #c5bcff; opacity: 0; transition: opacity 0.08s; pointer-events: none; }
 .riel-pos[data-plegado="true"] { --f: 11px; --c: 11px; width: 22px; }
 .riel-pos[data-plegado="true"] .riel-it, .riel-pos[data-plegado="true"] .riel-sep { opacity: 0; pointer-events: none; transition: opacity 0.15s; }
 .riel-pos[data-plegado="true"] .riel-ics { pointer-events: none; }
 .riel-pos[data-plegado="true"] .riel-asa { opacity: 1; }
-.riel-pos[data-plegado="true"][data-quieto="false"]:hover, .riel-pos[data-plegado="true"][data-quieto="false"]:focus-within { --f: 20px; --c: 28px; width: 56px; }
-.riel-pos[data-plegado="true"][data-quieto="false"]:hover .riel-it, .riel-pos[data-plegado="true"][data-quieto="false"]:focus-within .riel-it,
-.riel-pos[data-plegado="true"][data-quieto="false"]:hover .riel-sep, .riel-pos[data-plegado="true"][data-quieto="false"]:focus-within .riel-sep { opacity: 1; pointer-events: auto; }
-.riel-pos[data-plegado="true"][data-quieto="false"]:hover .riel-asa, .riel-pos[data-plegado="true"][data-quieto="false"]:focus-within .riel-asa { opacity: 0; }
+.riel-pos[data-plegado="true"]:hover, .riel-pos[data-plegado="true"]:focus-within { --f: 20px; --c: 28px; width: 56px; }
+.riel-pos[data-plegado="true"]:hover .riel-it, .riel-pos[data-plegado="true"]:focus-within .riel-it,
+.riel-pos[data-plegado="true"]:hover .riel-sep, .riel-pos[data-plegado="true"]:focus-within .riel-sep { opacity: 1; pointer-events: auto; }
+.riel-pos[data-plegado="true"]:hover .riel-asa, .riel-pos[data-plegado="true"]:focus-within .riel-asa { opacity: 0; }
 /* Menú "Más" abierto: el riel se ensancha y contiene la paleta (siempre desplegado). */
 .riel-ranura { width: 0; overflow: hidden; opacity: 0; transition: width 0.3s cubic-bezier(0.3, 0.8, 0.3, 1), opacity 0.2s; }
 /* Más específico que las reglas del riel plegado (incluido el "acercar el mouse") para que siempre gane. */
-.riel-pos[data-paleta="true"][data-plegado][data-quieto] { --f: 20px; --c: 28px; width: 376px; }
+.riel-pos[data-paleta="true"][data-plegado="true"] { --f: 20px; --c: 28px; width: 376px; }
 .riel-pos[data-paleta="true"] .riel-ranura { width: 320px; height: min(540px, calc(100vh - 48px)); opacity: 1; transition: width 0.3s cubic-bezier(0.3, 0.8, 0.3, 1), opacity 0.2s 0.1s; }
 .riel-pos[data-paleta="true"] .riel-it, .riel-pos[data-paleta="true"] .riel-sep { opacity: 1; pointer-events: auto; }
 .riel-pos[data-paleta="true"] .riel-ics { pointer-events: auto; }

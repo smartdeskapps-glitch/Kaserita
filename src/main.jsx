@@ -1324,16 +1324,8 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
       const [modalNuevoCliente, setModalNuevoCliente] = useState(false);
       // Hueco del riel donde se dibuja el menú "Más" en escritorio.
       const [ranuraRiel, setRanuraRiel] = useState(null);
-      // Menú lateral de escritorio: empieza plegado (sale al acercar el mouse); si se fija, se recuerda en este equipo.
-      const [rielPlegado, setRielPlegado] = useState(() => {
-        try { return localStorage.getItem('kz_riel_plegado') !== '0'; } catch { return true; }
-      });
       // En pantallas anchas el menú "Más" se abre dentro del riel; en celular es una hoja.
       const menuEnRiel = typeof window !== 'undefined' && window.matchMedia('(min-width: 768px)').matches;
-      const alternarRiel = () => setRielPlegado((v) => {
-        try { localStorage.setItem('kz_riel_plegado', v ? '0' : '1'); } catch { /* sin almacenamiento: solo dura esta sesión */ }
-        return !v;
-      });
       const [formCliente, setFormCliente] = useState({ dni: '', nombre: '', telefono: '', correo: '', limiteCredito: '300.00' });
       const [modalCobrarDeudas, setModalCobrarDeudas] = useState(false);
       const [deudorSeleccionado, setDeudorSeleccionado] = useState(null);
@@ -9334,14 +9326,12 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
               esAdmin && { clave: 'dashboard', etiqueta: 'Dashboard de ventas', accion: abrirDashboard },
             ].filter(Boolean)}
             onMas={() => { setBusquedaMenu(''); setIndiceMenu(0); setMenuMas(true); }}
-            plegado={rielPlegado}
-            onPlegar={alternarRiel}
             paletaAbierta={menuMas && menuEnRiel}
             ranuraRef={setRanuraRiel}
           />
 
           {/* Columna Central: Catálogo (Order Line) */}
-          <div className={`flex-1 flex flex-col overflow-hidden transition-[margin] duration-[260ms] ${rielPlegado ? 'md:ml-[36px]' : 'md:ml-[68px]'}`}>
+          <div className="flex-1 flex flex-col overflow-hidden md:ml-[36px]">
             <header className="flex items-center justify-between mx-3 mt-3 px-2 md:px-3 py-2 gap-3">
               <div className="flex items-center gap-3 min-w-0 max-w-full pl-1">
                 <img src="/logo-horizontal-color.svg" width="2068" height="642" alt="Kaserita" className="h-7 md:h-8 w-auto shrink-0" />
