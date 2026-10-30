@@ -9303,12 +9303,9 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
       // =========================================================================
       return (
         <div
-          className={`relative fondo-pos-grano flex h-screen text-stone-900 font-sans select-none overflow-hidden ${(!enLinea || ventasPendientesSync.length > 0) ? 'pt-7' : ''}`}
-          style={{ background: '#f7f8fc' }}
+          className={`relative flex h-screen text-stone-900 font-sans select-none overflow-hidden ${(!enLinea || ventasPendientesSync.length > 0) ? 'pt-7' : ''}`}
+          style={{ background: '#ebf0ff' }}
         >
-          {/* Fondo: degradado lavanda. El grano (.fondo-pos-grano::after) va
-              encima. Decorativo -- aria-hidden. */}
-          <div className="aurora-pos" aria-hidden="true"></div>
 
           {/* Toast */}
           {toast.visible && (
