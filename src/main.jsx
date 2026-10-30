@@ -9431,10 +9431,11 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
                         className={claseSegmento(categoriaFiltro !== '__COMBOS__')}
                       >
                         <i className="fa-solid fa-table-cells-large text-[12px]"></i>
-                        <span className="hidden md:inline">Productos</span>
-                        {categoriaFiltro !== '__COMBOS__' && (
+                        {categoriaFiltro === '__COMBOS__' ? (
+                          <span className="hidden md:inline">Productos</span>
+                        ) : (
                           <>
-                            <span className="hidden md:inline max-w-[120px] truncate uppercase text-[11.5px] font-extrabold tracking-wide text-[#2d284b]">· {categoriaFiltro}</span>
+                            <span className="hidden md:inline max-w-[140px] truncate uppercase text-[12px] font-extrabold tracking-wide text-[#2d284b]">{categoriaFiltro}</span>
                             <i className={`fa-solid fa-chevron-down text-[9px] transition-transform ${menuCategoriasAbierto ? 'rotate-180' : ''}`}></i>
                           </>
                         )}
