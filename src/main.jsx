@@ -1321,7 +1321,6 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
       const [modalNuevoCliente, setModalNuevoCliente] = useState(false);
       const [formCliente, setFormCliente] = useState({ dni: '', nombre: '', telefono: '', correo: '', limiteCredito: '300.00' });
       const [modalCobrarDeudas, setModalCobrarDeudas] = useState(false);
-      const [clientesDeudores, setClientesDeudores] = useState([]);
       const [deudorSeleccionado, setDeudorSeleccionado] = useState(null);
       const [boletasDeudor, setBoletasDeudor] = useState([]);
       const [cargandoDetalleDeudor, setCargandoDetalleDeudor] = useState(false);
@@ -1353,8 +1352,6 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
       // --- Módulo: Gestión de Clientes (listar / editar) ---
       const [clientesLista, setClientesLista] = useState([]);
       const [cargandoClientes, setCargandoClientes] = useState(false);
-      const [busquedaClientes, setBusquedaClientes] = useState('');
-      const [filtroClientes, setFiltroClientes] = useState('todos'); // 'todos' | 'deuda' | 'aldia'
       const [clienteEditando, setClienteEditando] = useState(null);
       const [formEditarCliente, setFormEditarCliente] = useState(null);
       const [guardandoEdicionCliente, setGuardandoEdicionCliente] = useState(false);
@@ -5252,9 +5249,8 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
       // vencimiento que mostrarlo mal).
       const recargarDeudores = async () => {
         if (esModoDemo) {
-          // No hay servidor real del que traer deudores -- se calculan a
-          // partir de los clientes creados en esta misma demo.
-          setClientesDeudores(clientesLista.filter((c) => (Number(c.saldo_actual) || 0) > 0).sort((a, b) => (Number(b.saldo_actual) || 0) - (Number(a.saldo_actual) || 0)));
+          // No hay servidor real del que traer boletas: Fiados trabaja con los
+          // clientes creados en esta misma demo y no muestra vencimientos.
           setBoletasDeudores(null);
           return;
         }
@@ -5271,23 +5267,22 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
             // los boletas a crédito solo se piden de los que deben.
             const todos = data || [];
             setClientesLista(todos);
-            const lista = todos
-              .filter((c) => (Number(c.saldo_actual) || 0) > 0)
-              .sort((a, b) => (Number(b.saldo_actual) || 0) - (Number(a.saldo_actual) || 0));
-            setClientesDeudores(lista);
+            const idsDeudores = todos.filter((c) => (Number(c.saldo_actual) || 0) > 0).map((c) => c.id);
 
-            let porCliente = {};
-            let completo = lista.length > 0;
-            for (let i = 0; i < lista.length && completo; i += 40) {
-              const { data: boletas, error } = await sbClient
-                .from('ventas')
-                .select('id, cliente_id, total_venta, fecha_hora')
-                .in('cliente_id', lista.slice(i, i + 40).map((c) => c.id))
-                .eq('medio_pago', 'CREDITO')
-                .eq('anulada', false)
-                .limit(1000);
-              if (error || !boletas || boletas.length >= 1000) { completo = false; break; }
-              boletas.forEach((b) => { (porCliente[b.cliente_id] = porCliente[b.cliente_id] || []).push(b); });
+            // Las boletas se piden de a 40 clientes, todos los grupos a la vez.
+            const grupos = [];
+            for (let i = 0; i < idsDeudores.length; i += 40) grupos.push(idsDeudores.slice(i, i + 40));
+            const respuestas = await Promise.all(grupos.map((ids) => sbClient
+              .from('ventas')
+              .select('id, cliente_id, total_venta, fecha_hora')
+              .in('cliente_id', ids)
+              .eq('medio_pago', 'CREDITO')
+              .eq('anulada', false)
+              .limit(1000)));
+            const completo = grupos.length > 0 && respuestas.every(({ data: boletas, error }) => !error && boletas && boletas.length < 1000);
+            const porCliente = {};
+            if (completo) {
+              respuestas.forEach(({ data: boletas }) => boletas.forEach((b) => { (porCliente[b.cliente_id] = porCliente[b.cliente_id] || []).push(b); }));
             }
             setBoletasDeudores(completo ? porCliente : null);
           } catch (err) {
@@ -5438,13 +5433,6 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
       // ==========================================
       // CLIENTES (editar, exportar; se usan desde Fiados)
       // ==========================================
-      // Iniciales para el avatar de cada cliente ("Rosa Chávez Mendoza" -> "RC").
-      const inicialesCliente = (nombre) => {
-        const partes = (nombre || '').trim().split(/\s+/).filter(Boolean);
-        if (partes.length === 0) return '?';
-        return (partes[0][0] + (partes.length > 1 ? partes[1][0] : '')).toUpperCase();
-      };
-
       // Abre el selector de cliente del POS: muestra la lista completa para
       // elegir con un toque, en vez de pedir escribir el DNI a ciegas.
       const abrirBuscarClientePOS = async () => {
@@ -5533,7 +5521,6 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
             if (error) throw error;
           }
           setClientesLista((prev) => prev.map((c) => (c.id === clienteEditando.id ? { ...c, ...payload } : c)));
-          setClientesDeudores((prev) => prev.map((c) => (c.id === clienteEditando.id ? { ...c, ...payload } : c)));
           // La ficha de Fiados sigue abierta: se actualiza con los datos nuevos.
           setDeudorSeleccionado((prev) => (prev && prev.id === clienteEditando.id ? { ...prev, ...payload } : prev));
           setClienteEditando((prev) => (prev ? { ...prev, ...payload } : prev));
@@ -5920,8 +5907,9 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
         // cargue (no debe demorar el resto del flujo) y si falla se ignora.
         asegurarConfetti().then(() => confetti({ particleCount: 120, spread: 70, origin: { y: 0.6 } })).catch(() => {});
 
+        // La lista de Fiados se actualiza al toque; con servidor, además se vuelve a leer de fondo.
+        setClientesLista((prev) => prev.map((c) => (c.id === deudorSeleccionado.id ? { ...c, saldo_actual: nuevoSaldo } : c)));
         if (esModoDemo) {
-          setClientesLista((prev) => prev.map((c) => (c.id === deudorSeleccionado.id ? { ...c, saldo_actual: nuevoSaldo } : c)));
           if (clienteActual?.id === deudorSeleccionado.id) {
             setClienteActual((prev) => (prev ? { ...prev, saldo_actual: nuevoSaldo } : prev));
           }
@@ -5930,12 +5918,8 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
         notificar(`¡Pago de S/ ${abono.toFixed(2)} registrado! Saldo restante: S/ ${nuevoSaldo.toFixed(2)}`, 'success');
         setMontoAbonoDeuda('');
         setBoletasDeudor([]);
-        // Se muestra "Pago registrado" con el cliente aún elegido; la lista
-        // se actualiza al toque y, con servidor, se vuelve a leer de fondo.
+        // Se muestra "Pago registrado" con el cliente aún elegido.
         setPagoRegistrado({ id: deudorSeleccionado.id, nombre: deudorSeleccionado.nombre_completo, abono, antes: saldoAnterior, despues: nuevoSaldo });
-        setClientesDeudores((prev) => prev
-          .map((c) => (c.id === deudorSeleccionado.id ? { ...c, saldo_actual: nuevoSaldo } : c))
-          .filter((c) => (Number(c.saldo_actual) || 0) > 0.004));
         if (!esModoDemo) recargarDeudores();
       };
 
@@ -11472,7 +11456,6 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
               <NuevoCliente
                 formCliente={formCliente}
                 handleGuardarNuevoCliente={handleGuardarNuevoCliente}
-                modalNuevoCliente={modalNuevoCliente}
                 setFormCliente={setFormCliente}
                 setModalNuevoCliente={setModalNuevoCliente}
               />

@@ -1,5 +1,13 @@
 import React from 'react';
 import { coberturaPago, estadoDeudor, restoPrimeraBoleta } from './lib/deudas.js';
+import { iniciales } from './lib/nombres.js';
+import Chispa from './Chispa.jsx';
+
+const GRADIENTES = ['from-[#9687f5] to-[#5b4bd6]', 'from-[#f09a7a] to-[#d9594f]', 'from-[#6fc3a3] to-[#2e8b72]', 'from-[#e6b85a] to-[#c9892a]', 'from-[#7ab4ee] to-[#3d7fd0]'];
+const gradienteDe = (cl) => GRADIENTES[String(cl.id).split('').reduce((a, c) => a + c.charCodeAt(0), 0) % GRADIENTES.length];
+const saldoDe = (cl) => Math.max(0, Number(cl.saldo_actual) || 0);
+const usoLimite = (cl) => ((Number(cl.limite_credito) || 0) > 0 ? saldoDe(cl) / Number(cl.limite_credito) : 0);
+const tieneVencidas = (x) => !!x.e && x.e.vencidas.length > 0;
 
 // Modal separado de main.jsx: se carga al abrirlo (React.lazy). El estado y las acciones
 // siguen en PosApp: aquí solo se dibuja lo que recibe por props.
@@ -51,6 +59,39 @@ export default function FiadosModal({
 }) {
   // Pestaña de la ficha: cobrar (pago + boletas) o datos del cliente (teléfono, crédito...).
   const [pestana, setPestana] = React.useState('cobrar');
+  const conEstado = boletasDeudores !== null;
+
+  // Cada cliente con su estado de deuda y los totales de la banda: se recalculan solo
+  // cuando cambian los clientes o las boletas (no al escribir en el buscador o el monto).
+  const resumen = React.useMemo(() => {
+    const filas = clientesLista.map((cl) => ({
+      cl,
+      e: conEstado && saldoDe(cl) > 0 ? estadoDeudor({ saldo: cl.saldo_actual, diasCredito: cl.dias_credito }, boletasDeudores[cl.id] || []) : null,
+      uso: usoLimite(cl),
+    }));
+    const r = { filas, totalPorCobrar: 0, totalVencido: 0, nConDeuda: 0, nVencidos: 0, nCercaLimite: 0 };
+    filas.forEach((x) => {
+      const saldo = saldoDe(x.cl);
+      r.totalPorCobrar += saldo;
+      if (saldo > 0) r.nConDeuda += 1;
+      if (x.e) r.totalVencido += x.e.vencidoMonto;
+      if (tieneVencidas(x)) r.nVencidos += 1;
+      if (x.uso >= 0.8) r.nCercaLimite += 1;
+    });
+    return r;
+  }, [clientesLista, boletasDeudores, conEstado]);
+  const { filas, totalPorCobrar, totalVencido, nConDeuda, nVencidos, nCercaLimite } = resumen;
+
+  const visibles = React.useMemo(() => {
+    const qd = busquedaDeudores.trim().toLowerCase();
+    return filas
+      .filter((x) => (filtroDeudores === 'todos' || (filtroDeudores === 'deuda' && saldoDe(x.cl) > 0) || (filtroDeudores === 'venc' && tieneVencidas(x)) || (filtroDeudores === 'lim' && x.uso >= 0.8))
+        && (!qd || String(x.cl.nombre_completo || '').toLowerCase().includes(qd) || String(x.cl.dni || '').includes(qd)))
+      .sort(ordenDeudores === 'antigua' && conEstado
+        ? (a, b) => (b.e && b.e.masVieja ? b.e.masVieja.diasTranscurridos : -1) - (a.e && a.e.masVieja ? a.e.masVieja.diasTranscurridos : -1)
+        : (a, b) => saldoDe(b.cl) - saldoDe(a.cl) || String(a.cl.nombre_completo || '').localeCompare(String(b.cl.nombre_completo || '')));
+  }, [filas, busquedaDeudores, filtroDeudores, ordenDeudores, conEstado]);
+
   return (
     <>
               {/* Modal: Fiados. Reúne a todos los clientes: se cobra su deuda y se editan sus datos.
@@ -58,30 +99,9 @@ export default function FiadosModal({
                   y las pestañas Cobrar / Datos. */}
               {modalCobrarDeudas && (() => {
                 const dinero = (v) => `S/ ${formatoSoles(Number(v) || 0)}`;
-                const iniciales = (n) => String(n || '?').trim().split(/\s+/).slice(0, 2).map((w) => w[0]).join('').toUpperCase();
-                const GRADIENTES = ['from-[#9687f5] to-[#5b4bd6]', 'from-[#f09a7a] to-[#d9594f]', 'from-[#6fc3a3] to-[#2e8b72]', 'from-[#e6b85a] to-[#c9892a]', 'from-[#7ab4ee] to-[#3d7fd0]'];
-                const gradienteDe = (cl) => GRADIENTES[String(cl.id).split('').reduce((a, c) => a + c.charCodeAt(0), 0) % GRADIENTES.length];
-                const avatar = (cl, tam) => <span className={`${tam} rounded-full bg-gradient-to-br ${gradienteDe(cl)} text-white grid place-items-center font-bold shrink-0 shadow-[inset_0_0_0_1px_rgba(255,255,255,0.25),0_6px_14px_-6px_rgba(20,10,50,0.4)]`}>{iniciales(cl.nombre_completo)}</span>;
-                const conEstado = boletasDeudores !== null;
-                const saldoDe = (cl) => Math.max(0, Number(cl.saldo_actual) || 0);
-                const estadoDe = (cl) => (conEstado && saldoDe(cl) > 0 ? estadoDeudor({ saldo: cl.saldo_actual, diasCredito: cl.dias_credito }, boletasDeudores[cl.id] || []) : null);
-                const usoLimite = (cl) => ((Number(cl.limite_credito) || 0) > 0 ? saldoDe(cl) / Number(cl.limite_credito) : 0);
-                const filas = clientesLista.map((cl) => ({ cl, e: estadoDe(cl), uso: usoLimite(cl) }));
-                const totalPorCobrar = filas.reduce((a, x) => a + saldoDe(x.cl), 0);
-                const totalVencido = filas.reduce((a, x) => a + (x.e ? x.e.vencidoMonto : 0), 0);
+                const avatar = (cl, tam) => <span className={`${tam} rounded-full bg-gradient-to-br ${gradienteDe(cl)} text-white grid place-items-center font-bold shrink-0 shadow-[inset_0_0_0_1px_rgba(255,255,255,0.25),0_6px_14px_-6px_rgba(20,10,50,0.4)]`}>{iniciales(cl.nombre_completo, '?')}</span>;
                 const pctVencido = totalPorCobrar > 0 ? Math.min(100, (totalVencido / totalPorCobrar) * 100) : 0;
-                const nConDeuda = filas.filter((x) => saldoDe(x.cl) > 0).length;
-                const nVencidos = filas.filter((x) => x.e && x.e.vencidas.length > 0).length;
-                const nCercaLimite = filas.filter((x) => x.uso >= 0.8).length;
-                const qd = busquedaDeudores.trim().toLowerCase();
-                const visibles = filas
-                  .filter((x) => (filtroDeudores === 'todos' || (filtroDeudores === 'deuda' && saldoDe(x.cl) > 0) || (filtroDeudores === 'venc' && x.e && x.e.vencidas.length > 0) || (filtroDeudores === 'lim' && x.uso >= 0.8))
-                    && (!qd || String(x.cl.nombre_completo || '').toLowerCase().includes(qd) || String(x.cl.dni || '').includes(qd)))
-                  .sort(ordenDeudores === 'antigua' && conEstado
-                    ? (a, b) => (b.e && b.e.masVieja ? b.e.masVieja.diasTranscurridos : -1) - (a.e && a.e.masVieja ? a.e.masVieja.diasTranscurridos : -1)
-                    : (a, b) => saldoDe(b.cl) - saldoDe(a.cl) || String(a.cl.nombre_completo || '').localeCompare(String(b.cl.nombre_completo || '')));
                 const linea = 'border-[#dde4fa]';
-                const fondoOscuro = 'radial-gradient(70% 90% at 25% 0%, rgba(150,135,245,0.3), transparent 70%), linear-gradient(180deg, #34305a 0%, #26224a 55%, #1d1a38 100%)';
                 const botonSeg = (activo) => `h-[30px] px-3 rounded-full text-[12px] whitespace-nowrap flex items-center gap-1.5 transition ${activo ? 'bg-white text-[#2d284b] font-bold' : 'text-[#6b6890] font-semibold hover:text-[#2d284b]'}`;
                 const colorBarra = (uso) => (uso >= 1 ? 'bg-gradient-to-r from-[#e0565c] to-[#c0262d]' : uso >= 0.8 ? 'bg-gradient-to-r from-[#f0b24a] to-[#d98a14]' : 'bg-gradient-to-r from-[#aeb4cf] to-[#9a9dbd]');
                 const botonFantasma = `h-12 px-6 rounded-full border-[1.5px] ${linea} bg-white hover:bg-[#f3f5ff] text-[13.5px] font-bold text-[#6b6890] inline-flex items-center justify-center gap-2 transition whitespace-nowrap`;
@@ -89,9 +109,9 @@ export default function FiadosModal({
                 const botonOscuro = 'h-[34px] px-3.5 rounded-full border-[1.5px] border-white/25 bg-white/5 hover:bg-white/10 text-[12px] font-bold inline-flex items-center gap-1.5 transition';
                 const labP = 'flex items-center justify-between gap-2 text-[11.5px] font-bold text-[#6b6890] mb-1.5';
                 const inputP = 'w-full h-11 bg-[#f3f5ff] rounded-[14px] px-3.5 text-sm font-semibold text-[#2d284b] placeholder:text-[#9a98bd] outline-none focus:bg-white focus:ring-2 focus:ring-[#5b4bd6]/40 transition';
-                const chispa = (<svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor" aria-hidden="true"><path d="M12 3c.6 4.6 2.4 6.4 7 7-4.6.6-6.4 2.4-7 7-.6-4.6-2.4-6.4-7-7 4.6-.6 6.4-2.4 7-7Z" /><path d="M19 15c.3 1.8 1 2.5 2.8 2.8-1.8.3-2.5 1-2.8 2.8-.3-1.8-1-2.5-2.8-2.8 1.8-.3 2.5-1 2.8-2.8Z" /></svg>);
-                const cerrar = () => { setModalCobrarDeudas(false); setDeudorSeleccionado(null); setClienteEditando(null); setBoletasDeudor([]); setPagoRegistrado(null); setHojaPagoDeudor(false); };
+                const chispa = <Chispa />;
                 const volverALista = () => { setDeudorSeleccionado(null); setClienteEditando(null); setBoletasDeudor([]); setPagoRegistrado(null); setHojaPagoDeudor(false); };
+                const cerrar = () => { volverALista(); setModalCobrarDeudas(false); };
                 const elegirCliente = (cl) => { setHojaPagoDeudor(false); setPestana('cobrar'); abrirEdicionCliente(cl); seleccionarDeudor(cl); };
                 const hayFicha = !!deudorSeleccionado;
                 const verDatos = pestana === 'datos' && esAdmin && !!formEditarCliente;
@@ -159,7 +179,7 @@ export default function FiadosModal({
                     );
                   }
                   if (pagoRegistrado) {
-                    const siguiente = [...clientesLista].filter((c) => c.id !== pagoRegistrado.id && saldoDe(c) > 0).sort((a, b) => saldoDe(b) - saldoDe(a))[0];
+                    const siguiente = clientesLista.reduce((mejor, c) => (c.id !== pagoRegistrado.id && saldoDe(c) > 0 && (!mejor || saldoDe(c) > saldoDe(mejor)) ? c : mejor), null);
                     return (
                       <div className="flex-1 min-h-0 overflow-y-auto hide-scrollbar p-5 flex">
                         <div className="text-center max-w-sm w-full mx-auto my-auto py-8">
@@ -172,7 +192,7 @@ export default function FiadosModal({
                             <div className="flex justify-between gap-3 py-3 text-[13.5px] items-baseline"><span className="text-[#6b6890]">Deuda actual</span><b className="text-base">{dinero(pagoRegistrado.despues)}</b></div>
                           </div>
                           <div className="grid gap-2.5">
-                            {siguiente && <button type="button" onClick={() => { setHojaPagoDeudor(false); elegirCliente(siguiente); }} className="kz-pri h-12 text-sm font-semibold inline-flex items-center justify-center gap-2"><span>Siguiente cliente</span>{chispa}</button>}
+                            {siguiente && <button type="button" onClick={() => elegirCliente(siguiente)} className="kz-pri h-12 text-sm font-semibold inline-flex items-center justify-center gap-2"><span>Siguiente cliente</span>{chispa}</button>}
                             <button type="button" onClick={volverALista} className={botonFantasma}>Volver a la lista</button>
                           </div>
                         </div>
@@ -379,8 +399,8 @@ export default function FiadosModal({
                     <div className="rounded-[30px] md:rounded-[34px] max-w-5xl w-full shadow-2xl h-[95vh] max-h-[780px] flex flex-col overflow-hidden">
                       {/* Banda oscura */}
                       <div
-                        className="relative text-white px-4 sm:px-6 pt-3.5 pb-9 shrink-0 flex flex-col gap-3.5 md:grid md:grid-cols-[340px_minmax(0,1fr)] md:gap-x-7"
-                        style={{ background: fondoOscuro }}
+                        className="kz-panel-oscuro [--kz-halo:radial-gradient(70%_90%_at_25%_0%,rgba(150,135,245,0.3),transparent_70%)] relative text-white px-4 sm:px-6 pt-3.5 pb-9 shrink-0 flex flex-col gap-3.5 md:grid md:grid-cols-[340px_minmax(0,1fr)] md:gap-x-7"
+                      
                       >
                         <div className="md:col-span-2 flex items-center gap-2.5">
                           {hayFicha && !pagoRegistrado && <button type="button" onClick={volverALista} aria-label="Volver a la lista" className={`${circulo} md:hidden`}><i className="fa-solid fa-chevron-left text-xs"></i></button>}

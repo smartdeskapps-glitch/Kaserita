@@ -17,3 +17,15 @@ export const esDocumentoValido = (v) => /^([0-9]{8,9}|[0-9]{11,12}|(?=.*[A-Za-z]
 // Número >= 0. Vacío cuenta como válido cuando el campo es opcional.
 export const esMontoNoNegativo = (v) =>
   v === '' || v === null || v === undefined || (Number.isFinite(Number(v)) && Number(v) >= 0);
+
+// Qué tipo de documento parece lo escrito, para la etiqueta del campo al registrar un cliente.
+// estado: 'ok' (válido), 'tipeando' (todavía corto, no se marca error) o 'mal'.
+export const tipoDocumento = (v) => {
+  const doc = texto(v);
+  if (!doc) return null;
+  if (esDocumentoValido(doc)) {
+    return { texto: esDniValido(doc) ? 'DNI' : esRucValido(doc) ? 'RUC' : 'Carné', estado: 'ok' };
+  }
+  if (doc.length < 8) return { texto: /^[0-9]+$/.test(doc) ? `DNI · faltan ${8 - doc.length}` : 'Carné', estado: 'tipeando' };
+  return { texto: 'Revisar', estado: 'mal' };
+};

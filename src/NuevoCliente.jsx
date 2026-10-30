@@ -1,34 +1,9 @@
 import React from 'react';
-import { esDocumentoValido } from './lib/validaciones.js';
+import { tipoDocumento } from './lib/validaciones.js';
+import { iniciales } from './lib/nombres.js';
+import Chispa from './Chispa.jsx';
 
-const ATAJOS_LIMITE = [
-  { valor: 0, etiqueta: 'Sin crédito' },
-  { valor: 50, etiqueta: '50' },
-  { valor: 100, etiqueta: '100' },
-  { valor: 200, etiqueta: '200' },
-  { valor: 300, etiqueta: '300' },
-  { valor: 500, etiqueta: '500' },
-];
-
-// Qué tipo de documento parece lo escrito: para la etiqueta del campo y para saber si ya es válido.
-const tipoDocumento = (texto) => {
-  const doc = String(texto || '').trim();
-  if (!doc) return null;
-  if (esDocumentoValido(doc)) {
-    if (/^\d{8}$/.test(doc)) return { texto: 'DNI', estado: 'ok' };
-    if (/^\d{11}$/.test(doc)) return { texto: 'RUC', estado: 'ok' };
-    return { texto: 'Carné', estado: 'ok' };
-  }
-  // Todavía escribiendo: no se marca como error hasta tener el largo mínimo.
-  if (doc.length < 8) return { texto: /^\d+$/.test(doc) ? `DNI · faltan ${8 - doc.length}` : 'Carné', estado: 'tipeando' };
-  return { texto: 'Revisar', estado: 'mal' };
-};
-
-const iniciales = (nombre) => {
-  const partes = String(nombre || '').trim().split(/\s+/).filter(Boolean);
-  if (!partes.length) return '';
-  return (partes[0][0] + (partes[1] ? partes[1][0] : '')).toUpperCase();
-};
+const ATAJOS_LIMITE = [0, 50, 100, 200, 300, 500];
 
 const claseCampoOscuro = 'h-[50px] flex items-center gap-2.5 px-4 rounded-full border-[1.5px] border-white/20 bg-white/5 focus-within:border-[#c5bcff] focus-within:ring-4 focus-within:ring-[#9687f5]/20 transition';
 const claseCampoClaro = 'h-[46px] flex items-center gap-2 px-3.5 rounded-[14px] bg-[#f3f5ff] focus-within:ring-2 focus-within:ring-[#5b4bd6]/40';
@@ -43,12 +18,9 @@ const clasesTipo = {
 export default function NuevoCliente({
   formCliente,
   handleGuardarNuevoCliente,
-  modalNuevoCliente,
   setFormCliente,
   setModalNuevoCliente,
 }) {
-  if (!modalNuevoCliente) return null;
-
   const tipo = tipoDocumento(formCliente.dni);
   const nombre = formCliente.nombre.trim();
   const palabras = nombre.split(/\s+/).filter(Boolean);
@@ -64,8 +36,7 @@ export default function NuevoCliente({
         <div className="flex-1 overflow-y-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden bg-white">
           {/* Panel oscuro: documento y nombre */}
           <div
-            className="relative text-white px-5 pt-4 pb-9"
-            style={{ background: 'radial-gradient(90% 60% at 50% 0%, rgba(150,135,245,0.28), transparent 70%), linear-gradient(180deg, #34305a 0%, #26224a 55%, #1d1a38 100%)' }}
+            className="kz-panel-oscuro relative text-white px-5 pt-4 pb-9"
           >
             <div className="flex items-center justify-between">
               <span className="w-10 h-10 rounded-full border-[1.5px] border-white/25 bg-white/5 flex items-center justify-center">
@@ -167,16 +138,16 @@ export default function NuevoCliente({
                 </div>
               </div>
               <div className="flex flex-wrap gap-[7px] mt-3">
-                {ATAJOS_LIMITE.map((a) => (
+                {ATAJOS_LIMITE.map((valor) => (
                   <button
-                    key={a.valor}
+                    key={valor}
                     type="button"
-                    onClick={() => setFormCliente({ ...formCliente, limiteCredito: String(a.valor) })}
+                    onClick={() => setFormCliente({ ...formCliente, limiteCredito: String(valor) })}
                     className={`h-[34px] px-3.5 rounded-full text-[12.5px] font-bold transition ${
-                      limite !== '' && Number(limite) === a.valor ? 'bg-[#2d284b] text-white' : 'bg-white text-[#6b6890] hover:bg-[#e6ebff]'
+                      limite !== '' && Number(limite) === valor ? 'bg-[#2d284b] text-white' : 'bg-white text-[#6b6890] hover:bg-[#e6ebff]'
                     }`}
                   >
-                    {a.etiqueta}
+                    {valor === 0 ? 'Sin crédito' : valor}
                   </button>
                 ))}
               </div>
@@ -192,7 +163,7 @@ export default function NuevoCliente({
             className="kz-pri w-full h-[54px] text-base font-semibold flex items-center justify-center gap-2.5"
           >
             <span>Guardar cliente</span>
-            <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor" aria-hidden="true"><path d="M12 3c.6 4.6 2.4 6.4 7 7-4.6.6-6.4 2.4-7 7-.6-4.6-2.4-6.4-7-7 4.6-.6 6.4-2.4 7-7Z" /><path d="M19 15c.3 1.8 1 2.5 2.8 2.8-1.8.3-2.5 1-2.8 2.8-.3-1.8-1-2.5-2.8-2.8 1.8-.3 2.5-1 2.8-2.8Z" /></svg>
+            <Chispa />
           </button>
         </div>
       </form>

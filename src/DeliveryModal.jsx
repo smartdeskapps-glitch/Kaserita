@@ -1,4 +1,5 @@
 import React from 'react';
+import Chispa from './Chispa.jsx';
 
 // Modal separado de main.jsx: se carga al abrirlo (React.lazy). El estado y las acciones
 // siguen en PosApp: aquí solo se dibuja lo que recibe por props.
@@ -94,8 +95,7 @@ export default function DeliveryModal({
                         <div className="flex-1 overflow-y-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden" style={{ scrollbarWidth: 'none' }}>
                           {/* Panel oscuro */}
                           <div
-                            className="relative text-white px-5 pt-4 pb-9"
-                            style={{ background: 'radial-gradient(90% 60% at 50% 0%, rgba(150,135,245,0.28), transparent 70%), linear-gradient(180deg, #34305a 0%, #26224a 55%, #1d1a38 100%)' }}
+                            className="kz-panel-oscuro relative text-white px-5 pt-4 pb-9"
                           >
                             <div className="flex items-center justify-between">
                               <span className="w-10 h-10 rounded-full border-[1.5px] border-white/25 bg-white/5 flex items-center justify-center">
@@ -455,7 +455,7 @@ export default function DeliveryModal({
                             className="kz-pri w-full h-[54px] text-base font-semibold flex items-center justify-center gap-2.5"
                           >
                             <span>{guardandoDelivery ? 'Guardando...' : 'Guardar cambios'}</span>
-                            <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor" aria-hidden="true"><path d="M12 3c.6 4.6 2.4 6.4 7 7-4.6.6-6.4 2.4-7 7-.6-4.6-2.4-6.4-7-7 4.6-.6 6.4-2.4 7-7Z" /><path d="M19 15c.3 1.8 1 2.5 2.8 2.8-1.8.3-2.5 1-2.8 2.8-.3-1.8-1-2.5-2.8-2.8 1.8-.3 2.5-1 2.8-2.8Z" /></svg>
+                            <Chispa />
                           </button>
                         </div>
                       </>

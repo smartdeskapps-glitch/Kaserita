@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { esDniValido, esDocumentoValido, esRucValido, esMontoNoNegativo } from './validaciones.js';
+import { esDniValido, esDocumentoValido, esRucValido, esMontoNoNegativo, tipoDocumento } from './validaciones.js';
 
 describe('esDniValido', () => {
   it('acepta exactamente 8 dígitos', () => {
@@ -62,5 +62,23 @@ describe('esMontoNoNegativo', () => {
     expect(esMontoNoNegativo('abc')).toBe(false);
     expect(esMontoNoNegativo(NaN)).toBe(false);
     expect(esMontoNoNegativo(Infinity)).toBe(false);
+  });
+});
+
+describe('tipoDocumento (etiqueta al registrar un cliente)', () => {
+  it('sin texto no hay etiqueta', () => {
+    expect(tipoDocumento('')).toBe(null);
+    expect(tipoDocumento('   ')).toBe(null);
+  });
+  it('reconoce DNI, RUC y carné válidos', () => {
+    expect(tipoDocumento('45871236')).toEqual({ texto: 'DNI', estado: 'ok' });
+    expect(tipoDocumento('20123456789')).toEqual({ texto: 'RUC', estado: 'ok' });
+    expect(tipoDocumento('CE1234567')).toEqual({ texto: 'Carné', estado: 'ok' });
+  });
+  it('mientras se escribe no marca error y dice cuántos dígitos faltan', () => {
+    expect(tipoDocumento('4587')).toEqual({ texto: 'DNI · faltan 4', estado: 'tipeando' });
+  });
+  it('marca error cuando el largo no corresponde a ningún documento', () => {
+    expect(tipoDocumento('1234567890')).toEqual({ texto: 'Revisar', estado: 'mal' });
   });
 });

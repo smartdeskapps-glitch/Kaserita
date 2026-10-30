@@ -116,34 +116,6 @@
 @keyframes escaner-pop { from { transform: translateX(-50%) translateY(10px) scale(0.8); opacity: 0; } }
 
 
-/* Fondo del catálogo del POS: degradado lavanda (claro arriba, violeta abajo)
-   (.aurora-pos, hijo real en main.jsx), y encima el mismo grano SVG del botón
-   "Abrir Turno" (.btn-noise), aquí fijo -- sin su giro de color -- y a
-   intensidad media (0.42). isolation:isolate + z-index negativo dejan las
-   tres capas detrás de todo el contenido real (header, tarjetas, carrito):
-   solo se ven en los huecos del fondo, igual que en el botón. */
-.fondo-pos-grano { isolation: isolate; }
-.aurora-pos {
-  position: absolute;
-  inset: 0;
-  z-index: -3;
-  pointer-events: none;
-  background:
-    radial-gradient(70% 55% at 35% 108%, #9687f5 0%, transparent 70%),
-    radial-gradient(60% 45% at 90% 100%, #c5bcff 0%, transparent 70%),
-    linear-gradient(180deg, #f3f5ff 0%, #ebf0ff 55%, #c5bcff 100%);
-}
-.fondo-pos-grano::after {
-  content: "";
-  position: absolute;
-  inset: 0;
-  z-index: -1;
-  pointer-events: none;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 .9 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
-  opacity: 0.42;
-  mix-blend-mode: soft-light;
-}
-
 /* Hoja de detalle del día en el calendario del dashboard: sube desde abajo. */
 .kd-hoja { animation: kd-hoja 0.32s cubic-bezier(0.2, 0.8, 0.3, 1) both; }
 @keyframes kd-hoja {
@@ -417,6 +389,13 @@
    botón (sin elemento interior): la pastilla es el fondo del área interna y el anillo es
    el borde de 4 px pintado con un degradado cónico. El anillo está quieto y solo gira al
    pasar el mouse o con el foco (así no hay decenas de animaciones a la vez). */
+/* Panel oscuro Ebony de las ventanas (Mi link, Merma, Fiados, Registrar cliente). El brillo
+   superior se puede mover con --kz-halo. */
+.kz-panel-oscuro {
+  background:
+    var(--kz-halo, radial-gradient(90% 60% at 50% 0%, rgba(150,135,245,0.28), transparent 70%)),
+    linear-gradient(180deg, #34305a 0%, #26224a 55%, #1d1a38 100%);
+}
 @property --kz-ang {
   syntax: '<angle>';
   initial-value: 0deg;
