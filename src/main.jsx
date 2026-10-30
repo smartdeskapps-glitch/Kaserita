@@ -884,7 +884,6 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
     const EditarProducto = React.lazy(() => import('./EditarProducto.jsx'));
     const EntradaMercaderia = React.lazy(() => import('./EntradaMercaderia.jsx'));
     const HistorialCierres = React.lazy(() => import('./HistorialCierres.jsx'));
-    const GestionClientes = React.lazy(() => import('./GestionClientes.jsx'));
     const EscanerCamara = React.lazy(() => import('./EscanerCamara.jsx'));
     const FiadosModal = React.lazy(() => import('./FiadosModal.jsx'));
     const CuentasPagar = React.lazy(() => import('./CuentasPagar.jsx'));
@@ -1352,7 +1351,6 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
       const [formProveedor, setFormProveedor] = useState({ nombre: '', ruc: '', telefono: '', saldoInicial: '' });
 
       // --- Módulo: Gestión de Clientes (listar / editar) ---
-      const [modalGestionClientes, setModalGestionClientes] = useState(false);
       const [clientesLista, setClientesLista] = useState([]);
       const [cargandoClientes, setCargandoClientes] = useState(false);
       const [busquedaClientes, setBusquedaClientes] = useState('');
@@ -5223,9 +5221,9 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
             if (error) throw error;
             setClienteActual(data);
             setDniCliente(data.dni);
-            // Si se creó desde dentro de "Clientes", que aparezca en la
+            // Si se creó desde dentro de "Fiados", que aparezca en la
             // lista al toque en vez de tener que cerrar y volver a entrar.
-            if (modalGestionClientes) {
+            if (modalCobrarDeudas) {
               setClientesLista((prev) => [...prev, data].sort((a, b) => (a.nombre_completo || '').localeCompare(b.nombre_completo || '')));
             }
           } else {
@@ -5233,9 +5231,8 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
             setClienteActual(cLocal);
             setDniCliente(cLocal.dni);
             // En Modo Demo Local se agrega siempre a la lista (sin importar
-            // desde qué modal se creó) para que luego aparezca tanto en
-            // "Clientes" como en "Fiados" si queda con deuda.
-            if (modalGestionClientes || esModoDemo) {
+            // desde qué modal se creó) para que luego aparezca en "Fiados".
+            if (modalCobrarDeudas || esModoDemo) {
               setClientesLista((prev) => [...prev, cLocal].sort((a, b) => (a.nombre_completo || '').localeCompare(b.nombre_completo || '')));
             }
           }
@@ -5268,10 +5265,15 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
               .from('clientes')
               .select('*')
               .eq('bodega_id', bodegaId)
-              .gt('saldo_actual', 0)
-              .order('saldo_actual', { ascending: false });
+              .order('nombre_completo', { ascending: true });
 
-            const lista = data || [];
+            // Fiados muestra a todos los clientes (para cobrar y para editar sus datos);
+            // los boletas a crédito solo se piden de los que deben.
+            const todos = data || [];
+            setClientesLista(todos);
+            const lista = todos
+              .filter((c) => (Number(c.saldo_actual) || 0) > 0)
+              .sort((a, b) => (Number(b.saldo_actual) || 0) - (Number(a.saldo_actual) || 0));
             setClientesDeudores(lista);
 
             let porCliente = {};
@@ -5299,6 +5301,7 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
       const abrirModuloCobroDeudas = async () => {
         setModalCobrarDeudas(true);
         setDeudorSeleccionado(null);
+        setClienteEditando(null);
         setPagoRegistrado(null);
         setBoletasDeudor([]);
         setBusquedaDeudores('');
@@ -5433,43 +5436,8 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
       };
 
       // ==========================================
-      // GESTIÓN DE CLIENTES (listar / editar)
+      // CLIENTES (editar, exportar; se usan desde Fiados)
       // ==========================================
-      const abrirGestionClientes = async () => {
-        setModalGestionClientes(true);
-        setClienteEditando(null);
-        setFiltroClientes('todos');
-        // Modo Demo Local: no hay nada que traer del servidor -- se deja la
-        // lista tal cual está en memoria (los clientes creados en la demo
-        // ya viven ahí) en vez de reemplazarla por un resultado vacío.
-        if (esModoDemo || !sbClient || !bodegaId) return;
-        setCargandoClientes(true);
-        try {
-          const { data, error } = await sbClient
-            .from('clientes')
-            .select('*')
-            .eq('bodega_id', bodegaId)
-            .order('nombre_completo', { ascending: true });
-          if (error) throw error;
-          setClientesLista(data || []);
-        } catch (err) {
-          notificar(mensajeError(err, 'No se pudo cargar la lista de clientes'), 'error');
-        } finally {
-          setCargandoClientes(false);
-        }
-      };
-
-      const clientesFiltradosGestion = () => {
-        const t = busquedaClientes.trim().toLowerCase();
-        return clientesLista.filter((c) => {
-          const debe = (Number(c.saldo_actual) || 0) > 0;
-          if (filtroClientes === 'deuda' && !debe) return false;
-          if (filtroClientes === 'aldia' && debe) return false;
-          if (!t) return true;
-          return (c.nombre_completo || '').toLowerCase().includes(t) || (c.dni || '').includes(t);
-        });
-      };
-
       // Iniciales para el avatar de cada cliente ("Rosa Chávez Mendoza" -> "RC").
       const inicialesCliente = (nombre) => {
         const partes = (nombre || '').trim().split(/\s+/).filter(Boolean);
@@ -5565,7 +5533,10 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
             if (error) throw error;
           }
           setClientesLista((prev) => prev.map((c) => (c.id === clienteEditando.id ? { ...c, ...payload } : c)));
-          setClienteEditando(null);
+          setClientesDeudores((prev) => prev.map((c) => (c.id === clienteEditando.id ? { ...c, ...payload } : c)));
+          // La ficha de Fiados sigue abierta: se actualiza con los datos nuevos.
+          setDeudorSeleccionado((prev) => (prev && prev.id === clienteEditando.id ? { ...prev, ...payload } : prev));
+          setClienteEditando((prev) => (prev ? { ...prev, ...payload } : prev));
           notificar('Cliente actualizado.', 'success');
         } catch (err) {
           notificar(mensajeError(err, 'Error al guardar'), 'error');
@@ -10670,7 +10641,6 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
                 : { grupo: '', etiqueta: 'Abrir Turno', icono: 'fa-bolt', tono: 'primario', soloMovil: true, accion: () => setModalTurno(true) },
               { grupo: 'Ventas y caja', etiqueta: 'Fiados', buscar: 'cuentas por cobrar deudas credito', icono: 'fa-hand-holding-dollar', accion: abrirModuloCobroDeudas },
               { grupo: 'Ventas y caja', etiqueta: 'Historial', icono: 'fa-receipt', accion: abrirHistorialDelDia },
-              { grupo: 'Ventas y caja', etiqueta: 'Clientes', icono: 'fa-users', accion: abrirGestionClientes },
               !esBarberia && { grupo: 'Inventario', etiqueta: 'Toma de Inventario', icono: 'fa-clipboard-check', accion: abrirTomaInventario },
               { grupo: 'Inventario', etiqueta: 'Registrar merma', buscar: 'merma perdida vencido roto robo', icono: 'fa-box', accion: () => setModalMerma(true) },
               ...(esAdmin ? [
@@ -11120,19 +11090,25 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
             <Suspense fallback={null}>
               <FiadosModal
                 IconoTrazo={IconoTrazo}
+                abrirEdicionCliente={abrirEdicionCliente}
                 boletasDeudores={boletasDeudores}
                 busquedaDeudores={busquedaDeudores}
                 cargandoDetalleDeudor={cargandoDetalleDeudor}
                 cargandoDeudores={cargandoDeudores}
-                clientesDeudores={clientesDeudores}
+                clientesLista={clientesLista}
                 confirmandoPagoDeudor={confirmandoPagoDeudor}
                 descargarEstadoCuenta={descargarEstadoCuenta}
                 deudorSeleccionado={deudorSeleccionado}
                 enviarEstadoCuentaWhatsApp={enviarEstadoCuentaWhatsApp}
+                esAdmin={esAdmin}
                 estadoDeudorSel={estadoDeudorSel}
                 etiquetaCuandoTurno={etiquetaCuandoTurno}
+                exportarClientesExcel={exportarClientesExcel}
                 filtroDeudores={filtroDeudores}
+                formEditarCliente={formEditarCliente}
                 formatoSoles={formatoSoles}
+                guardandoEdicionCliente={guardandoEdicionCliente}
+                guardarEdicionCliente={guardarEdicionCliente}
                 hojaPagoDeudor={hojaPagoDeudor}
                 listaCajeros={listaCajeros}
                 modalCobrarDeudas={modalCobrarDeudas}
@@ -11145,11 +11121,14 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
                 seleccionarDeudor={seleccionarDeudor}
                 setBoletasDeudor={setBoletasDeudor}
                 setBusquedaDeudores={setBusquedaDeudores}
+                setClienteEditando={setClienteEditando}
                 setConfirmandoPagoDeudor={setConfirmandoPagoDeudor}
                 setDeudorSeleccionado={setDeudorSeleccionado}
                 setFiltroDeudores={setFiltroDeudores}
+                setFormEditarCliente={setFormEditarCliente}
                 setHojaPagoDeudor={setHojaPagoDeudor}
                 setModalCobrarDeudas={setModalCobrarDeudas}
+                setModalNuevoCliente={setModalNuevoCliente}
                 setMontoAbonoDeuda={setMontoAbonoDeuda}
                 setMostrarHistorialCompletoDeuda={setMostrarHistorialCompletoDeuda}
                 setOrdenDeudores={setOrdenDeudores}
@@ -11427,34 +11406,6 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
                 nuevoPinCajero={nuevoPinCajero}
                 setModalPinCajero={setModalPinCajero}
                 setNuevoPinCajero={setNuevoPinCajero}
-              />
-            </Suspense>
-          )}
-
-          {modalGestionClientes && (
-            <Suspense fallback={null}>
-              <GestionClientes
-                abrirEdicionCliente={abrirEdicionCliente}
-                busquedaClientes={busquedaClientes}
-                cargandoClientes={cargandoClientes}
-                clienteEditando={clienteEditando}
-                clientesFiltradosGestion={clientesFiltradosGestion}
-                clientesLista={clientesLista}
-                esAdmin={esAdmin}
-                exportarClientesExcel={exportarClientesExcel}
-                filtroClientes={filtroClientes}
-                formEditarCliente={formEditarCliente}
-                formatoSoles={formatoSoles}
-                guardandoEdicionCliente={guardandoEdicionCliente}
-                guardarEdicionCliente={guardarEdicionCliente}
-                inicialesCliente={inicialesCliente}
-                modalGestionClientes={modalGestionClientes}
-                setBusquedaClientes={setBusquedaClientes}
-                setClienteEditando={setClienteEditando}
-                setFiltroClientes={setFiltroClientes}
-                setFormEditarCliente={setFormEditarCliente}
-                setModalGestionClientes={setModalGestionClientes}
-                setModalNuevoCliente={setModalNuevoCliente}
               />
             </Suspense>
           )}
