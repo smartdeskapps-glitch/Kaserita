@@ -9473,7 +9473,7 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
                       </div>
                     )}
                   </div>
-                  <div className="flex-1 min-w-[230px] flex items-center h-[42px] md:h-[46px] pl-4 pr-1 bg-white border border-[#dde4fa] rounded-full transition focus-within:border-[#5b4bd6] focus-within:ring-4 focus-within:ring-[#5b4bd6]/10 group/bus">
+                  <div className="flex-1 min-w-0 md:min-w-[290px] flex items-center h-[42px] md:h-[46px] pl-4 pr-1 bg-white border border-[#dde4fa] rounded-full transition focus-within:border-[#5b4bd6] focus-within:ring-4 focus-within:ring-[#5b4bd6]/10 group/bus">
                     <i className="fa-solid fa-magnifying-glass text-[13px] text-[#8f8cb0] group-focus-within/bus:text-[#5b4bd6] transition shrink-0 mr-2"></i>
                       <input
                         ref={inputBusquedaRef}
@@ -9489,7 +9489,7 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
                         }}
                         onKeyDown={handleKeyDownBusqueda}
                         placeholder="Busca o escanea un código"
-                        className="flex-1 min-w-0 bg-transparent text-[13px] md:text-[14px] font-medium text-stone-900 placeholder:text-[#8f8cb0] placeholder:font-normal focus:outline-none"
+                        className="flex-1 min-w-0 text-ellipsis bg-transparent text-[13px] md:text-[14px] font-medium text-stone-900 placeholder:text-[#8f8cb0] placeholder:font-normal focus:outline-none"
                       />
                       {busqueda && (
                         <>
