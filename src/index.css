@@ -737,4 +737,5 @@
 .riel-pos[data-paleta="true"] .riel-it, .riel-pos[data-paleta="true"] .riel-sep { opacity: 1; pointer-events: auto; }
 .riel-pos[data-paleta="true"] .riel-ics { pointer-events: auto; }
 .riel-pos[data-paleta="true"] .riel-asa { opacity: 0; }
+.riel-pos[data-paleta="true"] .riel-tip { display: none; }
 @media (prefers-reduced-motion: reduce) { .riel-pos, .riel-pos::before, .riel-pos::after, .riel-ranura { transition: none; } }
