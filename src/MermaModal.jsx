@@ -43,174 +43,180 @@ export default function MermaModal({
                 };
                 return (
                 <div className="fixed inset-0 bg-stone-900/30 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-                  <div className="bg-gradient-to-br from-[#eef1fb] via-[#f8f9fd] to-[#f4f5fa] border border-white/80 rounded-[28px] max-w-sm w-full p-4 shadow-2xl space-y-3.5 max-h-[92vh] overflow-y-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-                    <div className="flex items-center gap-2.5">
-                      <span className="w-[38px] h-[38px] rounded-[14px] bg-amber-100 text-amber-700 flex items-center justify-center shrink-0">
-                        <IconoTrazo nombre="warn" className="w-[19px] h-[19px]" />
-                      </span>
-                      <div className="flex-1 min-w-0">
-                        <h3 className="text-[19px] font-bold tracking-tight text-stone-900 leading-tight">Registrar merma</h3>
-                        <p className="text-xs text-stone-500 mt-0.5 leading-snug">Vencidos, rotos, robados o perdidos. Se descuenta del stock.</p>
-                      </div>
-                      <button onClick={cerrarModalMerma} className="w-9 h-9 rounded-full bg-white ring-1 ring-[#5b4bd6]/10 hover:bg-[#ebf0ff] text-stone-500 flex items-center justify-center transition shrink-0" aria-label="Cerrar">
-                        <IconoTrazo nombre="x" className="w-[15px] h-[15px]" />
-                      </button>
-                    </div>
-
-                    {!prodMerma ? (
-                      <>
-                        <div>
-                          <p className="text-[12.5px] font-semibold text-stone-700 mb-1.5">Producto</p>
-                          <div className="flex gap-2">
-                            <div className="flex-1 min-w-0 h-12 flex items-center gap-2 px-4 rounded-full bg-white ring-1 ring-[#5b4bd6]/15 focus-within:ring-2 focus-within:ring-[#5b4bd6]/40">
-                              <IconoTrazo nombre="buscar" className="w-[17px] h-[17px] text-[#5b4bd6] shrink-0" />
-                              <input
-                                type="text"
-                                autoFocus
-                                value={busquedaMerma}
-                                onChange={(e) => setBusquedaMerma(e.target.value)}
-                                onKeyDown={(e) => {
-                                  if (e.key !== 'Enter') return;
-                                  e.preventDefault();
-                                  // Un lector de códigos "escribe" el código y confirma con Enter.
-                                  const porCodigo = buscarProductoPorCodigo(busquedaMerma);
-                                  if (porCodigo) elegirProductoMerma(porCodigo.producto);
-                                  else if (resultados.length === 1) elegirProductoMerma(resultados[0]);
-                                }}
-                                placeholder="Escribe o escanea el código"
-                                className="w-full min-w-0 bg-transparent text-sm text-stone-900 placeholder:text-[#9290a2] focus:outline-none"
-                              />
-                            </div>
-                            <button
-                              type="button"
-                              onClick={abrirEscanerParaMerma}
-                              className="w-12 h-12 rounded-full bg-[#5b4bd6] hover:bg-[#473bb5] text-white flex items-center justify-center shrink-0 transition"
-                              aria-label="Escanear código de barras"
-                              title="Escanear código de barras"
-                            >
-                              <IconoTrazo nombre="barras" className="w-[21px] h-[21px]" />
-                            </button>
-                          </div>
-                          {!termino && <p className="text-[11.5px] text-stone-400 mt-1.5">Un lector de códigos de barras también funciona aquí.</p>}
+                  <div className="rounded-[34px] max-w-sm w-full shadow-2xl max-h-[92vh] flex flex-col overflow-hidden">
+                    <div className="flex-1 overflow-y-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden bg-white">
+                      {/* Panel oscuro: el producto y la cantidad */}
+                      <div
+                        className="relative text-white px-5 pt-4 pb-8"
+                        style={{ background: 'radial-gradient(90% 60% at 50% 0%, rgba(150,135,245,0.28), transparent 70%), linear-gradient(180deg, #34305a 0%, #26224a 55%, #1d1a38 100%)' }}
+                      >
+                        <div className="flex items-center justify-between">
+                          <span className="w-10 h-10 rounded-full border-[1.5px] border-white/25 bg-white/5 flex items-center justify-center">
+                            <IconoTrazo nombre="warn" className="w-[17px] h-[17px]" />
+                          </span>
+                          <span className="text-[12.5px] font-semibold text-white/85">Registrar merma</span>
+                          <button onClick={cerrarModalMerma} className="w-10 h-10 rounded-full border-[1.5px] border-white/25 bg-white/5 hover:bg-white/10 flex items-center justify-center transition" aria-label="Cerrar">
+                            <IconoTrazo nombre="x" className="w-[15px] h-[15px]" />
+                          </button>
                         </div>
-                        {termino && (
-                          resultados.length === 0 ? (
-                            <p className="text-xs text-stone-400 text-center py-4">No hay productos que coincidan.</p>
+
+                        {!prodMerma ? (
+                          <>
+                            <div className="text-center mt-4">
+                              <p className="text-xs text-white/60 leading-snug">Vencidos, rotos, robados o perdidos.<br />Se descuenta del stock.</p>
+                              <h3 className="text-[25px] font-light tracking-tight mt-1">¿Qué producto <b className="font-bold">se perdió?</b></h3>
+                            </div>
+                            <div className="flex gap-2.5 mt-5">
+                              <div className="flex-1 min-w-0 h-[50px] flex items-center gap-2.5 px-4 rounded-full border-[1.5px] border-white/20 bg-white/5 focus-within:border-[#c5bcff] focus-within:ring-4 focus-within:ring-[#9687f5]/20 transition">
+                                <IconoTrazo nombre="buscar" className="w-[16px] h-[16px] text-white/80 shrink-0" />
+                                <input
+                                  type="text"
+                                  autoFocus
+                                  value={busquedaMerma}
+                                  onChange={(e) => setBusquedaMerma(e.target.value)}
+                                  onKeyDown={(e) => {
+                                    if (e.key !== 'Enter') return;
+                                    e.preventDefault();
+                                    // Un lector de códigos "escribe" el código y confirma con Enter.
+                                    const porCodigo = buscarProductoPorCodigo(busquedaMerma);
+                                    if (porCodigo) elegirProductoMerma(porCodigo.producto);
+                                    else if (resultados.length === 1) elegirProductoMerma(resultados[0]);
+                                  }}
+                                  placeholder="Escribe o escanea el código"
+                                  className="w-full min-w-0 bg-transparent text-sm text-white placeholder:text-white/50 focus:outline-none"
+                                />
+                              </div>
+                              <button
+                                type="button"
+                                onClick={abrirEscanerParaMerma}
+                                className="w-[50px] h-[50px] rounded-full bg-gradient-to-br from-[#9687f5] to-[#5b4bd6] hover:brightness-110 text-white flex items-center justify-center shrink-0 transition"
+                                aria-label="Escanear código de barras"
+                                title="Escanear código de barras"
+                              >
+                                <IconoTrazo nombre="barras" className="w-[20px] h-[20px]" />
+                              </button>
+                            </div>
+                            {!termino && <p className="text-[11.5px] text-white/50 text-center mt-2.5">Un lector de códigos de barras también funciona aquí.</p>}
+                          </>
+                        ) : (
+                          <>
+                            <div className="mt-5 flex items-center gap-3 rounded-[22px] border-[1.5px] border-white/15 bg-white/5 p-2.5 pr-3">
+                              <FotoProducto fotoUrl={prodMerma.foto_url} categoria={prodMerma.categoria} className="w-[50px] h-[50px] rounded-[15px] shrink-0 bg-white" iconClassName="text-sm" />
+                              <div className="flex-1 min-w-0">
+                                <p className="text-[14px] font-bold leading-tight">{prodMerma.descripcion}</p>
+                                <p className="text-[11.5px] text-white/60 mt-0.5">Stock actual: {stockMerma}</p>
+                              </div>
+                              <button
+                                type="button"
+                                onClick={() => setFormMerma((f) => ({ ...f, productoId: '', cantidad: '' }))}
+                                className="shrink-0 h-8 px-3.5 rounded-full border-[1.5px] border-white/25 hover:bg-white/10 text-[12px] font-bold transition"
+                              >
+                                Cambiar
+                              </button>
+                            </div>
+
+                            <div className="text-center mt-5">
+                              <p className="text-[11.5px] text-white/55">Cantidad</p>
+                              <div className="flex items-center justify-center gap-5 mt-1.5">
+                                <button type="button" onClick={() => cambiarCantidad(-pasoMerma)} className="w-[46px] h-[46px] rounded-full border-[1.5px] border-white/25 bg-white/5 hover:bg-white/10 flex items-center justify-center transition" aria-label="Menos">
+                                  <IconoTrazo nombre="minus" className="w-[17px] h-[17px]" />
+                                </button>
+                                <input
+                                  type="number"
+                                  inputMode="decimal"
+                                  step={pasoMerma}
+                                  min="0"
+                                  value={formMerma.cantidad}
+                                  onChange={(e) => setFormMerma((f) => ({ ...f, cantidad: e.target.value }))}
+                                  className="w-24 text-center text-[52px] leading-none font-light tracking-tight text-white tabular-nums bg-transparent focus:outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                                />
+                                <button type="button" onClick={() => cambiarCantidad(pasoMerma)} className="w-[46px] h-[46px] rounded-full border-[1.5px] border-white/25 bg-white/5 hover:bg-white/10 flex items-center justify-center transition" aria-label="Más">
+                                  <IconoTrazo nombre="plus" className="w-[17px] h-[17px]" />
+                                </button>
+                              </div>
+                              <p className="text-xs text-white/65 mt-2.5">Costo perdido <b className="ml-1.5 text-[15px] text-[#ffb3c0] tabular-nums">S/ {formatoSoles(costoMerma)}</b></p>
+                            </div>
+                          </>
+                        )}
+                      </div>
+
+                      {/* Hoja blanca: resultados de búsqueda, o el motivo y el stock resultante */}
+                      <div className="relative -mt-5 rounded-t-[30px] bg-white px-5 pt-5 pb-2">
+                        {!prodMerma ? (
+                          termino ? (
+                            resultados.length === 0 ? (
+                              <p className="text-xs text-stone-400 text-center py-3">No hay productos que coincidan.</p>
+                            ) : (
+                              <div className="rounded-[22px] bg-[#f3f5ff] overflow-hidden">
+                                {resultados.map((p, i) => (
+                                  <button
+                                    key={p.id}
+                                    type="button"
+                                    onClick={() => elegirProductoMerma(p)}
+                                    className={`w-full flex items-center gap-2.5 px-3 py-2 text-left hover:bg-[#e6ebff] transition ${i > 0 ? 'border-t border-white' : ''}`}
+                                  >
+                                    <FotoProducto fotoUrl={p.foto_url} categoria={p.categoria} className="w-[38px] h-[38px] rounded-[12px] shrink-0 bg-white" iconClassName="text-xs" />
+                                    <span className="min-w-0">
+                                      <span className="block text-[13.5px] font-semibold text-stone-900 leading-tight truncate">{p.descripcion}</span>
+                                      <span className="block text-[11.5px] text-stone-400">{p.categoria || 'General'} · Stock {p.stock_actual}</span>
+                                    </span>
+                                  </button>
+                                ))}
+                              </div>
+                            )
                           ) : (
-                            <div className="bg-white rounded-[22px] ring-1 ring-[#5b4bd6]/10 overflow-hidden">
-                              {resultados.map((p, i) => (
+                            <p className="text-xs text-stone-400 text-center py-2 leading-relaxed">Elige un producto para indicar la cantidad y el motivo.</p>
+                          )
+                        ) : (
+                          <>
+                            <p className="text-[13px] font-bold text-[#2d284b] mb-2.5">Motivo</p>
+                            <div className="flex flex-wrap gap-2">
+                              {['Vencido', 'Roto/Dañado', 'Robo/Pérdida', 'Otro'].map((t) => (
                                 <button
-                                  key={p.id}
+                                  key={t}
                                   type="button"
-                                  onClick={() => elegirProductoMerma(p)}
-                                  className={`w-full flex items-center gap-2.5 px-3 py-2 text-left hover:bg-[#ebf0ff] transition ${i > 0 ? 'border-t border-[#dde4fa]' : ''}`}
+                                  onClick={() => setFormMerma((f) => ({ ...f, motivo: t }))}
+                                  className={`h-10 px-4 rounded-full text-[13px] font-bold transition ${
+                                    formMerma.motivo === t ? 'bg-[#2d284b] text-white' : 'bg-[#f3f5ff] text-[#6b6890] hover:bg-[#e6ebff]'
+                                  }`}
                                 >
-                                  <FotoProducto fotoUrl={p.foto_url} categoria={p.categoria} className="w-[38px] h-[38px] rounded-[12px] shrink-0 ring-1 ring-black/5 bg-white" iconClassName="text-xs" />
-                                  <span className="min-w-0">
-                                    <span className="block text-[13.5px] font-semibold text-stone-900 leading-tight truncate">{p.descripcion}</span>
-                                    <span className="block text-[11.5px] text-stone-400">{p.categoria || 'General'} · Stock {p.stock_actual}</span>
-                                  </span>
+                                  {t}
                                 </button>
                               ))}
                             </div>
-                          )
+                            {formMerma.motivo === 'Otro' && (
+                              <div className="mt-2.5 h-11 flex items-center px-4 rounded-2xl bg-[#f3f5ff] focus-within:ring-2 focus-within:ring-[#5b4bd6]/40">
+                                <input
+                                  type="text"
+                                  autoFocus
+                                  maxLength={80}
+                                  value={formMerma.motivoOtro}
+                                  onChange={(e) => setFormMerma((f) => ({ ...f, motivoOtro: e.target.value }))}
+                                  placeholder="Escribe el motivo"
+                                  className="w-full min-w-0 bg-transparent text-sm text-stone-900 placeholder:text-[#9290a2] focus:outline-none"
+                                />
+                              </div>
+                            )}
+
+                            <div className="mt-4 flex items-center justify-between rounded-[20px] bg-[#f3f5ff] px-4 py-3 text-[13px] font-semibold text-[#2d284b]">
+                              <span>El stock quedará en</span>
+                              <b className={`text-[22px] tabular-nums ${stockMerma - cantMerma < 0 ? 'text-amber-700' : 'text-[#2d284b]'}`}>{Math.max(0, +(stockMerma - cantMerma).toFixed(2))}</b>
+                            </div>
+                          </>
                         )}
-                        {!termino && (
-                          <p className="text-xs text-stone-400 text-center py-5 leading-relaxed">Elige un producto para indicar la cantidad y el motivo.</p>
-                        )}
-                      </>
-                    ) : (
-                      <>
-                        <div>
-                          <p className="text-[12.5px] font-semibold text-stone-700 mb-1.5">Producto</p>
-                          <div className="flex items-center gap-2.5 bg-white rounded-[22px] ring-1 ring-[#5b4bd6]/10 p-2.5 pr-3">
-                            <FotoProducto fotoUrl={prodMerma.foto_url} categoria={prodMerma.categoria} className="w-[50px] h-[50px] rounded-[15px] shrink-0 ring-1 ring-black/5 bg-white" iconClassName="text-sm" />
-                            <div className="flex-1 min-w-0">
-                              <p className="text-[13.5px] font-semibold text-stone-900 leading-tight">{prodMerma.descripcion}</p>
-                              <p className="text-[11.5px] text-stone-400 mt-0.5">Stock actual: {stockMerma}</p>
-                            </div>
-                            <button
-                              type="button"
-                              onClick={() => setFormMerma((f) => ({ ...f, productoId: '', cantidad: '' }))}
-                              className="shrink-0 px-3 py-1.5 rounded-full bg-[#ebf0ff] hover:bg-[#dde4fa] text-[12.5px] font-semibold text-[#5b4bd6] transition"
-                            >
-                              Cambiar
-                            </button>
-                          </div>
-                        </div>
+                      </div>
+                    </div>
 
-                        <div>
-                          <p className="text-[12.5px] font-semibold text-stone-700 mb-1.5">Cantidad</p>
-                          <div className="flex items-center gap-3">
-                            <div className="flex items-center bg-white rounded-full ring-1 ring-[#5b4bd6]/15 shrink-0">
-                              <button type="button" onClick={() => cambiarCantidad(-pasoMerma)} className="w-[46px] h-[46px] flex items-center justify-center text-[#5b4bd6] rounded-full hover:bg-[#ebf0ff] transition" aria-label="Menos">
-                                <IconoTrazo nombre="minus" className="w-[17px] h-[17px]" />
-                              </button>
-                              <input
-                                type="number"
-                                inputMode="decimal"
-                                step={pasoMerma}
-                                min="0"
-                                value={formMerma.cantidad}
-                                onChange={(e) => setFormMerma((f) => ({ ...f, cantidad: e.target.value }))}
-                                className="w-14 text-center text-xl font-bold text-stone-900 tabular-nums bg-transparent focus:outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
-                              />
-                              <button type="button" onClick={() => cambiarCantidad(pasoMerma)} className="w-[46px] h-[46px] flex items-center justify-center text-[#5b4bd6] rounded-full hover:bg-[#ebf0ff] transition" aria-label="Más">
-                                <IconoTrazo nombre="plus" className="w-[17px] h-[17px]" />
-                              </button>
-                            </div>
-                            <div className="flex-1 text-right">
-                              <p className="text-[11.5px] text-stone-500">Costo perdido</p>
-                              <p className="text-xl font-bold tracking-tight text-rose-700 tabular-nums">S/ {formatoSoles(costoMerma)}</p>
-                            </div>
-                          </div>
-                        </div>
-
-                        <div>
-                          <p className="text-[12.5px] font-semibold text-stone-700 mb-1.5">Motivo</p>
-                          <div className="flex flex-wrap gap-1.5">
-                            {['Vencido', 'Roto/Dañado', 'Robo/Pérdida', 'Otro'].map((t) => (
-                              <button
-                                key={t}
-                                type="button"
-                                onClick={() => setFormMerma((f) => ({ ...f, motivo: t }))}
-                                className={`px-3.5 py-2 rounded-full text-[13px] font-semibold transition ${
-                                  formMerma.motivo === t ? 'bg-[#5b4bd6] text-white' : 'bg-white ring-1 ring-[#5b4bd6]/10 text-stone-600 hover:bg-[#f7f9ff]'
-                                }`}
-                              >
-                                {t}
-                              </button>
-                            ))}
-                          </div>
-                          {formMerma.motivo === 'Otro' && (
-                            <div className="mt-2 h-11 flex items-center px-4 rounded-2xl bg-white ring-1 ring-[#5b4bd6]/15 focus-within:ring-2 focus-within:ring-[#5b4bd6]/40">
-                              <input
-                                type="text"
-                                autoFocus
-                                maxLength={80}
-                                value={formMerma.motivoOtro}
-                                onChange={(e) => setFormMerma((f) => ({ ...f, motivoOtro: e.target.value }))}
-                                placeholder="Escribe el motivo"
-                                className="w-full min-w-0 bg-transparent text-sm text-stone-900 placeholder:text-[#9290a2] focus:outline-none"
-                              />
-                            </div>
-                          )}
-                        </div>
-
-                        <div className="flex items-center justify-between bg-[#ebf0ff] border border-[#dde4fa] rounded-[20px] px-3.5 py-2.5 text-[13px] font-semibold text-[#2d284b]">
-                          <span>El stock quedará en</span>
-                          <b className={`text-[15px] tabular-nums ${stockMerma - cantMerma < 0 ? 'text-amber-700' : 'text-stone-900'}`}>{Math.max(0, +(stockMerma - cantMerma).toFixed(2))}</b>
-                        </div>
-                      </>
-                    )}
-
-                    <button
-                      onClick={registrarMermaProducto}
-                      disabled={guardandoMerma || !prodMerma || cantMerma <= 0}
-                      className="w-full h-[54px] rounded-full bg-[#5b4bd6] hover:bg-[#473bb5] disabled:bg-[#e6e9f5] disabled:text-[#8b869a] disabled:cursor-not-allowed text-white font-semibold text-base transition"
-                    >
-                      {guardandoMerma ? 'Guardando...' : 'Registrar merma'}
-                    </button>
+                    <div className="shrink-0 bg-white px-5 pb-5 pt-2">
+                      <button
+                        onClick={registrarMermaProducto}
+                        disabled={guardandoMerma || !prodMerma || cantMerma <= 0}
+                        className="kz-pri w-full h-[54px] text-base font-semibold flex items-center justify-center gap-2.5"
+                      >
+                        <span>{guardandoMerma ? 'Guardando...' : 'Registrar merma'}</span>
+                        <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor" aria-hidden="true"><path d="M12 3c.6 4.6 2.4 6.4 7 7-4.6.6-6.4 2.4-7 7-.6-4.6-2.4-6.4-7-7 4.6-.6 6.4-2.4 7-7Z" /><path d="M19 15c.3 1.8 1 2.5 2.8 2.8-1.8.3-2.5 1-2.8 2.8-.3-1.8-1-2.5-2.8-2.8 1.8-.3 2.5-1 2.8-2.8Z" /></svg>
+                      </button>
+                    </div>
                   </div>
                 </div>
                 );
