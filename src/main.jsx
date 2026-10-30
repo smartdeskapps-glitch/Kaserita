@@ -9516,7 +9516,7 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
                           }
                         }}
                         onKeyDown={handleKeyDownBusqueda}
-                        placeholder="Busca por nombre o escanea un código"
+                        placeholder="Busca o escanea un código"
                         className="flex-1 min-w-0 bg-transparent text-[13px] md:text-[14px] font-medium text-stone-900 placeholder:text-[#8f8cb0] placeholder:font-normal focus:outline-none"
                       />
                       {busqueda && (
