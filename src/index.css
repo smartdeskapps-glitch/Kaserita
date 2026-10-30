@@ -684,9 +684,9 @@
 .menu-it-on .menu-ic.bg-\[\#ebf0ff\] { background: linear-gradient(135deg, #9687f5, #5b4bd6); color: #fff; box-shadow: 0 6px 14px -4px rgba(91,75,214,.6); }
 
 /* Riel de íconos del escritorio (RielLateral.jsx): barra Ebony a media altura en el borde
-   izquierdo, con curvas hacia afuera arriba y abajo (--c: radio de la esquina). Las curvas son un
-   degradado radial de tamaño fijo (20 px): sin recortes ni sombras, que dejaban un borde visible.
-   Reposo: una rayita de 22 px. Al acercar el mouse (o con el teclado) sale por encima del
+   izquierdo, con curvas hacia afuera arriba y abajo (--c: radio de la esquina, --k: escala de la curva).
+   Las curvas son un degradado radial de 20 px escalado con --k: sin recortes ni sombras, que dejaban
+   un borde visible. Reposo: una rayita de 22 px. Al acercar el mouse (o con el teclado) sale por encima del
    contenido; con el menú "Más" abierto se ensancha para contener la paleta. */
 .riel-pos {
   --c: 11px; --k: 0.55; --col: #2b2750; --curva: cubic-bezier(0.3, 0.8, 0.3, 1);
@@ -698,7 +698,8 @@
   transition: width 0.26s var(--curva), border-radius 0.26s var(--curva);
 }
 .riel-pos::before, .riel-pos::after { content: ""; position: absolute; left: 0; width: 20px; height: 20px; pointer-events: none; transform: scale(var(--k)); transition: transform 0.26s var(--curva); }
-/* La curva se encoge con el riel (--k): nunca debe pasar del tramo plano del borde, o su punta asoma sobre la esquina redonda. */
+/* Se encoge con el riel: nunca debe pasar del tramo plano del borde (22 - 11 px cerrado), o su punta asoma sobre la esquina
+   redonda. El solape de 1 px con el riel evita la costura. */
 .riel-pos::before { bottom: calc(100% - 1px); transform-origin: left bottom; background: radial-gradient(circle at 100% 0, transparent 19.5px, var(--col) 20px); }
 .riel-pos::after { top: calc(100% - 1px); transform-origin: left top; background: radial-gradient(circle at 100% 100%, transparent 19.5px, var(--col) 20px); }
 .riel-asa { position: absolute; right: 6px; top: 50%; transform: translateY(-50%); width: 3px; height: 34px; border-radius: 3px; background: #c5bcff; pointer-events: none; transition: opacity 0.08s; }
