@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef, useMemo, useCallback, Suspense } from 'react';
 import ReactDOM from 'react-dom/client';
+import RielLateral from './RielLateral.jsx';
 import { createClient } from '@supabase/supabase-js';
 import './index.css';
 import {
@@ -9309,8 +9310,20 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
           )}
 
 
+          {/* Escritorio: riel de íconos en el borde izquierdo (el catálogo se corre a la derecha). */}
+          <RielLateral
+            opciones={[
+              { clave: 'vender', etiqueta: 'Vender', accion: () => {}, activo: true },
+              { clave: 'fiados', etiqueta: 'Fiados', accion: abrirModuloCobroDeudas },
+              { clave: 'historial', etiqueta: 'Historial', accion: abrirHistorialDelDia },
+              !esBarberia && { clave: 'inventario', etiqueta: 'Toma de inventario', accion: abrirTomaInventario },
+              esAdmin && { clave: 'dashboard', etiqueta: 'Dashboard de ventas', accion: abrirDashboard },
+            ].filter(Boolean)}
+            onMas={() => { setBusquedaMenu(''); setIndiceMenu(0); setMenuMas(true); }}
+          />
+
           {/* Columna Central: Catálogo (Order Line) */}
-          <div className="flex-1 flex flex-col overflow-hidden">
+          <div className="flex-1 flex flex-col overflow-hidden md:ml-[68px]">
             <header className="flex items-center justify-between mx-3 mt-3 px-2 md:px-3 py-2 gap-3">
               <div className="flex items-center gap-3 min-w-0 max-w-full pl-1">
                 <img src="/logo-horizontal-color.svg" width="2068" height="642" alt="Kaserita" className="h-7 md:h-8 w-auto shrink-0" />
@@ -9354,7 +9367,7 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
                 </button>
                 <button
                   onClick={() => { setBusquedaMenu(''); setIndiceMenu(0); setMenuMas(true); }}
-                  className="w-10 h-10 flex items-center justify-center bg-white border border-stone-200 rounded-xl text-stone-700 hover:text-stone-900 shadow-sm transition"
+                  className="md:hidden w-10 h-10 flex items-center justify-center bg-white border border-stone-200 rounded-xl text-stone-700 hover:text-stone-900 shadow-sm transition"
                   title="Más opciones"
                 >
                   <i className="fa-solid fa-bars"></i>

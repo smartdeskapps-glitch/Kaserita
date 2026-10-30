@@ -682,3 +682,36 @@
 @media (max-width: 767px) { .menu-hoja { box-shadow: 0 -16px 50px -12px rgba(91,75,214,.4); } }
 .menu-it-on { background: linear-gradient(90deg, #ebf0ff, #f6f4ff); box-shadow: 0 8px 22px -10px rgba(91,75,214,.45); }
 .menu-it-on .menu-ic.bg-\[\#ebf0ff\] { background: linear-gradient(135deg, #9687f5, #5b4bd6); color: #fff; box-shadow: 0 6px 14px -4px rgba(91,75,214,.6); }
+
+/* Riel de íconos del escritorio (RielLateral.jsx): barra Ebony a media altura en el borde
+   izquierdo, con curvas hacia afuera arriba y abajo. --f es el radio de la curva y --c el de
+   la esquina; el relleno de las curvas es una sombra recortada para que sean idénticas. */
+.riel-pos {
+  --f: 20px; --c: 28px; --col: #2b2750;
+  position: absolute; left: 0; top: 50%; transform: translateY(-50%);
+  width: 56px; padding: 12px 0; border-radius: 0 var(--c) var(--c) 0;
+  background: linear-gradient(180deg, var(--col) 0%, #363260 50%, var(--col) 100%);
+  flex-direction: column; align-items: center; gap: 4px; z-index: 30;
+  box-shadow: 12px 0 30px -18px rgba(29, 26, 56, 0.7);
+}
+.riel-pos::before, .riel-pos::after {
+  content: ""; position: absolute; left: 0; width: var(--f); height: var(--f);
+  pointer-events: none; clip-path: inset(0); box-shadow: 0 0 0 var(--f) var(--col);
+}
+.riel-pos::before { bottom: 100%; border-bottom-left-radius: var(--f); }
+.riel-pos::after { top: 100%; border-top-left-radius: var(--f); }
+.riel-it {
+  position: relative; width: 42px; height: 42px; border-radius: 14px; flex: none;
+  display: flex; align-items: center; justify-content: center;
+  color: #c5bcff; transition: background 0.15s, color 0.15s;
+}
+.riel-it:hover { background: rgba(255, 255, 255, 0.1); color: #fff; }
+.riel-it-on, .riel-it-on:hover { background: #fff; color: #5b4bd6; }
+.riel-sep { width: 24px; height: 1px; margin: 5px 0; background: rgba(255, 255, 255, 0.14); flex: none; }
+.riel-tip {
+  position: absolute; left: calc(100% + 16px); top: 50%; transform: translateY(-50%) translateX(-4px);
+  background: #2d284b; color: #fff; font-size: 12px; font-weight: 600; white-space: nowrap;
+  padding: 6px 11px; border-radius: 9999px; opacity: 0; pointer-events: none;
+  transition: opacity 0.15s, transform 0.15s; box-shadow: 0 8px 20px -8px rgba(29, 26, 56, 0.6);
+}
+.riel-it:hover .riel-tip, .riel-it:focus-visible .riel-tip { opacity: 1; transform: translateY(-50%); }
