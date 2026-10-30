@@ -724,8 +724,8 @@
 .riel-pos[data-plegado="true"] { --f: 11px; --c: 11px; width: 22px; }
 .riel-pos[data-plegado="true"] .riel-it, .riel-pos[data-plegado="true"] .riel-sep { opacity: 0; pointer-events: none; transition: opacity 0.15s; }
 .riel-pos[data-plegado="true"] .riel-asa { opacity: 1; }
-.riel-pos[data-plegado="true"]:hover, .riel-pos[data-plegado="true"]:focus-within { --f: 20px; --c: 28px; width: 56px; }
-.riel-pos[data-plegado="true"]:hover .riel-it, .riel-pos[data-plegado="true"]:focus-within .riel-it,
-.riel-pos[data-plegado="true"]:hover .riel-sep, .riel-pos[data-plegado="true"]:focus-within .riel-sep { opacity: 1; pointer-events: auto; }
-.riel-pos[data-plegado="true"]:hover .riel-asa, .riel-pos[data-plegado="true"]:focus-within .riel-asa { opacity: 0; }
+.riel-pos[data-plegado="true"][data-quieto="false"]:hover, .riel-pos[data-plegado="true"][data-quieto="false"]:focus-within { --f: 20px; --c: 28px; width: 56px; }
+.riel-pos[data-plegado="true"][data-quieto="false"]:hover .riel-it, .riel-pos[data-plegado="true"][data-quieto="false"]:focus-within .riel-it,
+.riel-pos[data-plegado="true"][data-quieto="false"]:hover .riel-sep, .riel-pos[data-plegado="true"][data-quieto="false"]:focus-within .riel-sep { opacity: 1; pointer-events: auto; }
+.riel-pos[data-plegado="true"][data-quieto="false"]:hover .riel-asa, .riel-pos[data-plegado="true"][data-quieto="false"]:focus-within .riel-asa { opacity: 0; }
 @media (prefers-reduced-motion: reduce) { .riel-pos, .riel-pos::before, .riel-pos::after { transition: none; } }

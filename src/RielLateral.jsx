@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 
 const trazo = { fill: 'none', stroke: 'currentColor', strokeWidth: 1.9, strokeLinecap: 'round', strokeLinejoin: 'round' };
 const ICONOS = {
@@ -12,6 +12,8 @@ const ICONOS = {
 // Riel de íconos pegado al borde izquierdo (solo escritorio). Cada opción abre la misma
 // ventana que el menú "Más"; "Más" abre ese menú completo.
 export default function RielLateral({ opciones, onMas, plegado, onPlegar }) {
+  // Tras plegar con el mouse encima, se queda plegado hasta que el mouse salga del riel.
+  const [quieto, setQuieto] = useState(false);
   // Alto par (36 + 46 por botón, contando "Más" y el de plegar) para que quede en píxeles enteros.
   const alto = 36 + 46 * (opciones.length + 2);
   const boton = (clave, etiqueta, contenido, onClick, activo) => (
@@ -28,12 +30,12 @@ export default function RielLateral({ opciones, onMas, plegado, onPlegar }) {
     </button>
   );
   return (
-    <nav className="riel-pos hidden md:flex" data-plegado={plegado ? 'true' : 'false'} style={{ height: alto }} aria-label="Menú principal">
+    <nav className="riel-pos hidden md:flex" data-plegado={plegado ? 'true' : 'false'} data-quieto={quieto ? 'true' : 'false'} onMouseLeave={() => setQuieto(false)} style={{ height: alto }} aria-label="Menú principal">
       <i className="riel-asa" />
       {opciones.map((o) => boton(o.clave, o.etiqueta, <svg width="22" height="22" viewBox="0 0 24 24" {...trazo} aria-hidden="true">{ICONOS[o.clave]}</svg>, o.accion, o.activo))}
       <i className="riel-sep" />
       {boton('mas', 'Más opciones', <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><circle cx="6" cy="12" r="1.8" /><circle cx="12" cy="12" r="1.8" /><circle cx="18" cy="12" r="1.8" /></svg>, onMas, false)}
-      {boton('plegar', plegado ? 'Fijar el menú' : 'Ocultar el menú', <svg width="20" height="20" viewBox="0 0 24 24" {...trazo} style={{ transform: plegado ? 'rotate(180deg)' : 'none' }} aria-hidden="true"><path d="m14 7-5 5 5 5" /></svg>, onPlegar, false)}
+      {boton('plegar', plegado ? 'Fijar el menú' : 'Ocultar el menú', <svg width="20" height="20" viewBox="0 0 24 24" {...trazo} style={{ transform: plegado ? 'rotate(180deg)' : 'none' }} aria-hidden="true"><path d="m14 7-5 5 5 5" /></svg>, () => { if (!plegado) { setQuieto(true); document.activeElement?.blur?.(); } onPlegar(); }, false)}
     </nav>
   );
 }
