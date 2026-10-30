@@ -119,7 +119,7 @@ export default function CombosModal({
                   const pvFotos = f.items.slice(0, 3);
 
                   return (
-                    <div className="fixed inset-0 bg-stone-900/30 backdrop-blur-sm flex items-center justify-center z-50 p-2 sm:p-4">
+                    <div className="ventana-riel fixed inset-0 bg-stone-900/30 backdrop-blur-sm flex items-center justify-center z-50 p-2 sm:p-4">
                       <div className="bg-[#f7f8fc] border border-black/5 rounded-[18px] max-w-5xl w-full shadow-2xl h-[95vh] max-h-[800px] flex flex-col overflow-hidden">
 
                         <div className="bg-white border-b border-[#e6e9f5] px-4 sm:px-7 py-4 shrink-0 flex items-center gap-3">
@@ -341,7 +341,7 @@ export default function CombosModal({
                 const visibles = filas.filter((x) => (filtroCombos === 'todos' || x.est === filtroCombos) && (!qLista || norm(x.c.nombre).includes(qLista)));
 
                 return (
-                  <div className="fixed inset-0 bg-stone-900/30 backdrop-blur-sm flex items-center justify-center z-50 p-2 sm:p-4">
+                  <div className="ventana-riel fixed inset-0 bg-stone-900/30 backdrop-blur-sm flex items-center justify-center z-50 p-2 sm:p-4">
                     <div className="bg-[#f7f8fc] border border-black/5 rounded-[18px] max-w-5xl w-full shadow-2xl h-[95vh] max-h-[800px] flex flex-col overflow-hidden">
 
                       <div className="bg-white border-b border-[#e6e9f5] px-4 sm:px-7 py-4 shrink-0 flex items-center gap-3">

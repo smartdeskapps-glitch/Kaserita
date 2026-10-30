@@ -43,7 +43,7 @@ export default function TomaInventario({
   return (
     <>
               {modalTomaInventario && (
-                <div className="fixed inset-0 bg-stone-900/30 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+                <div className="ventana-riel fixed inset-0 bg-stone-900/30 backdrop-blur-sm flex items-center justify-center z-50 p-4">
                   <div className="bg-gradient-to-br from-[#eef1fb] via-[#f8f9fd] to-[#f4f5fa] border border-white/80 rounded-[28px] max-w-2xl w-full p-5 shadow-2xl space-y-3 max-h-[90vh] flex flex-col">
                     <div className="flex justify-between items-start shrink-0">
                       <div>

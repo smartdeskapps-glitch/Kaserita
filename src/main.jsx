@@ -9327,6 +9327,7 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
             ].filter(Boolean)}
             onMas={() => { setBusquedaMenu(''); setIndiceMenu(0); setMenuMas(true); }}
             paletaAbierta={menuMas && menuEnRiel}
+            activa={modalCobrarDeudas ? 'fiados' : modalHistorial ? 'historial' : modalTomaInventario ? 'inventario' : modalDashboard ? 'dashboard' : null}
             ranuraRef={setRanuraRiel}
           />
 

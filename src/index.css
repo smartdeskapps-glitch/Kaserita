@@ -722,14 +722,23 @@
 .riel-ranura { width: 0; overflow: hidden; opacity: 0; transition: width 0.3s var(--curva), opacity 0.2s; }
 
 /* Desplegado: con el mouse encima, con el foco dentro o con el menú "Más" abierto. */
-.riel-pos:is(:hover, :focus-within, [data-paleta="true"]) { --c: 28px; --k: 1; width: 56px; }
-.riel-pos:is(:hover, :focus-within, [data-paleta="true"]) .riel-ics { pointer-events: auto; }
+.riel-pos:is(:hover, :focus-within, [data-paleta="true"]),
+body:has(.ventana-riel) .riel-pos { --c: 28px; --k: 1; width: 56px; }
+.riel-pos:is(:hover, :focus-within, [data-paleta="true"]) .riel-ics,
+body:has(.ventana-riel) .riel-pos .riel-ics { pointer-events: auto; }
 /* Los íconos aparecen con un pequeño retraso, cuando el riel ya casi terminó de ensancharse: si no, el
    mosaico blanco del ícono activo se ve un instante fuera del riel. Al esconderse se van sin retraso. */
-.riel-pos:is(:hover, :focus-within, [data-paleta="true"]) :is(.riel-it, .riel-sep) { opacity: 1; pointer-events: auto; transition: background 0.15s, color 0.15s, opacity 0.14s 0.12s; }
-.riel-pos:is(:hover, :focus-within, [data-paleta="true"]) .riel-asa { opacity: 0; }
+.riel-pos:is(:hover, :focus-within, [data-paleta="true"]) :is(.riel-it, .riel-sep),
+body:has(.ventana-riel) .riel-pos :is(.riel-it, .riel-sep) { opacity: 1; pointer-events: auto; transition: background 0.15s, color 0.15s, opacity 0.14s 0.12s; }
+.riel-pos:is(:hover, :focus-within, [data-paleta="true"]) .riel-asa,
+body:has(.ventana-riel) .riel-pos .riel-asa { opacity: 0; }
 /* Menú "Más" abierto: el riel contiene la paleta (va después de la regla de arriba para ganarle el ancho). */
 .riel-pos[data-paleta="true"] { width: 376px; }
 .riel-pos[data-paleta="true"] .riel-ranura { width: 320px; height: min(540px, calc(100vh - 48px)); opacity: 1; transition: width 0.3s var(--curva), opacity 0.2s 0.1s; }
 .riel-pos[data-paleta="true"] .riel-tip { display: none; }
+/* Ventanas que se abren desde el riel (Fiados, Historial, Inventario, Dashboard, Merma...): el riel queda
+   por encima del velo, nítido y desplegado con el ícono de la ventana marcado, y la ventana se centra en
+   el espacio libre a su derecha. */
+body:has(.ventana-riel) .riel-pos { z-index: 60; }
+@media (min-width: 768px) { .fixed.ventana-riel { padding-left: 84px; } }
 @media (prefers-reduced-motion: reduce) { .riel-pos, .riel-pos::before, .riel-pos::after, .riel-ranura { transition: none; } }

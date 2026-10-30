@@ -395,7 +395,7 @@ export default function FiadosModal({
                 })();
 
                 return (
-                  <div className="fixed inset-0 bg-stone-900/30 backdrop-blur-sm flex items-center justify-center z-50 p-2 sm:p-4">
+                  <div className="ventana-riel fixed inset-0 bg-stone-900/30 backdrop-blur-sm flex items-center justify-center z-50 p-2 sm:p-4">
                     <div className="rounded-[30px] md:rounded-[34px] max-w-5xl w-full shadow-2xl h-[95vh] max-h-[780px] flex flex-col overflow-hidden">
                       {/* Banda oscura */}
                       <div

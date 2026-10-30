@@ -61,7 +61,7 @@ export default function DashboardVentas({
   VariacionPct,
 }) {
   return (
-        <div className="fixed inset-0 bg-stone-900/30 md:backdrop-blur-sm flex items-center justify-center z-50 p-2 md:p-4">
+        <div className="ventana-riel fixed inset-0 bg-stone-900/30 md:backdrop-blur-sm flex items-center justify-center z-50 p-2 md:p-4">
           <div className="dsh-panel border border-white/80 rounded-[28px] max-w-6xl w-full max-h-[95vh] flex flex-col overflow-hidden shadow-2xl">
             <div className="shrink-0 px-5 md:px-7 pt-6 pb-4 space-y-4">
               <div className="flex items-start justify-between gap-3">

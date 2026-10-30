@@ -11,7 +11,7 @@ const ICONOS = {
 
 // Riel de íconos pegado al borde izquierdo (solo escritorio). Cada opción abre la misma
 // ventana que el menú "Más"; "Más" abre ese menú completo.
-export default function RielLateral({ opciones, onMas, paletaAbierta, ranuraRef }) {
+export default function RielLateral({ opciones, onMas, paletaAbierta, ranuraRef, activa }) {
   // Alto par (36 + 46 por botón, contando "Más") para que quede en píxeles enteros.
   const alto = 36 + 46 * (opciones.length + 1);
   const boton = (clave, etiqueta, contenido, onClick, activo) => (
@@ -31,7 +31,7 @@ export default function RielLateral({ opciones, onMas, paletaAbierta, ranuraRef 
     <nav className="riel-pos hidden md:flex" data-paleta={paletaAbierta ? 'true' : 'false'} aria-label="Menú principal">
       <i className="riel-asa" />
       <div className="riel-ics" style={{ height: alto }}>
-        {opciones.map((o) => boton(o.clave, o.etiqueta, <svg width="22" height="22" viewBox="0 0 24 24" {...trazo} aria-hidden="true">{ICONOS[o.clave]}</svg>, o.accion, o.activo))}
+        {opciones.map((o) => boton(o.clave, o.etiqueta, <svg width="22" height="22" viewBox="0 0 24 24" {...trazo} aria-hidden="true">{ICONOS[o.clave]}</svg>, o.accion, activa ? o.clave === activa : o.activo))}
         <i className="riel-sep" />
         {boton('mas', 'Más opciones', <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><circle cx="6" cy="12" r="1.8" /><circle cx="12" cy="12" r="1.8" /><circle cx="18" cy="12" r="1.8" /></svg>, onMas, paletaAbierta)}
       </div>

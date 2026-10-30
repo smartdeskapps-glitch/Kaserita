@@ -150,7 +150,7 @@ export default function HistorialVentas({
                 );
 
                 return (
-                  <div className="fixed inset-0 bg-stone-900/30 backdrop-blur-sm flex items-center justify-center z-50 p-3 sm:p-4">
+                  <div className="ventana-riel fixed inset-0 bg-stone-900/30 backdrop-blur-sm flex items-center justify-center z-50 p-3 sm:p-4">
                     <div className="bg-[#f7f8fc] rounded-[18px] max-w-xl lg:max-w-6xl w-full max-h-[94vh] h-[94vh] lg:h-[780px] flex flex-col shadow-2xl border border-black/5 overflow-hidden">
                       <div className={`bg-white px-4 sm:px-7 py-3.5 sm:py-[18px] shrink-0 flex flex-wrap lg:flex-nowrap items-center gap-x-3 gap-y-2.5 border-b ${borde}`}>
                         {ventaElegida && (
