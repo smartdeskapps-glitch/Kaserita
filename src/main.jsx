@@ -1320,6 +1320,14 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
       const [dniCliente, setDniCliente] = useState('99999999');
       const [clienteActual, setClienteActual] = useState(null);
       const [modalNuevoCliente, setModalNuevoCliente] = useState(false);
+      // Menú lateral de escritorio plegado (se recuerda en este equipo).
+      const [rielPlegado, setRielPlegado] = useState(() => {
+        try { return localStorage.getItem('kz_riel_plegado') === '1'; } catch { return false; }
+      });
+      const alternarRiel = () => setRielPlegado((v) => {
+        try { localStorage.setItem('kz_riel_plegado', v ? '0' : '1'); } catch { /* sin almacenamiento: solo dura esta sesión */ }
+        return !v;
+      });
       const [formCliente, setFormCliente] = useState({ dni: '', nombre: '', telefono: '', correo: '', limiteCredito: '300.00' });
       const [modalCobrarDeudas, setModalCobrarDeudas] = useState(false);
       const [deudorSeleccionado, setDeudorSeleccionado] = useState(null);
@@ -9320,10 +9328,12 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
               esAdmin && { clave: 'dashboard', etiqueta: 'Dashboard de ventas', accion: abrirDashboard },
             ].filter(Boolean)}
             onMas={() => { setBusquedaMenu(''); setIndiceMenu(0); setMenuMas(true); }}
+            plegado={rielPlegado}
+            onPlegar={alternarRiel}
           />
 
           {/* Columna Central: Catálogo (Order Line) */}
-          <div className="flex-1 flex flex-col overflow-hidden md:ml-[68px]">
+          <div className={`flex-1 flex flex-col overflow-hidden transition-[margin] duration-[260ms] ${rielPlegado ? 'md:ml-[36px]' : 'md:ml-[68px]'}`}>
             <header className="flex items-center justify-between mx-3 mt-3 px-2 md:px-3 py-2 gap-3">
               <div className="flex items-center gap-3 min-w-0 max-w-full pl-1">
                 <img src="/logo-horizontal-color.svg" width="2068" height="642" alt="Kaserita" className="h-7 md:h-8 w-auto shrink-0" />
@@ -9379,7 +9389,7 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
               {/* Panel blanco del catálogo: barra única (categoría + buscador + combos + pedidos) y grilla. */}
               <div className="flex-1 flex flex-col overflow-hidden bg-white rounded-2xl p-3 md:p-4 gap-3 relative z-10">
                 {/* Barra: selector Productos | Combos, categoría, buscador con contador y cámara, y "Por retirar". */}
-                <div className="flex flex-wrap md:flex-nowrap items-center gap-2.5 shrink-0">
+                <div className="flex flex-wrap xl:flex-nowrap items-center gap-2.5 shrink-0">
                   <div className="w-full md:w-auto shrink-0 inline-flex items-center gap-0.5 p-1 h-[42px] md:h-[46px] rounded-full bg-[#ebf0ff]">
                     <div className="relative h-full flex-1 md:flex-none">
                       <button
@@ -9463,7 +9473,7 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
                       </div>
                     )}
                   </div>
-                  <div className="flex-1 min-w-0 flex items-center h-[42px] md:h-[46px] pl-4 pr-1 bg-white border border-[#dde4fa] rounded-full transition focus-within:border-[#5b4bd6] focus-within:ring-4 focus-within:ring-[#5b4bd6]/10 group/bus">
+                  <div className="flex-1 min-w-[230px] flex items-center h-[42px] md:h-[46px] pl-4 pr-1 bg-white border border-[#dde4fa] rounded-full transition focus-within:border-[#5b4bd6] focus-within:ring-4 focus-within:ring-[#5b4bd6]/10 group/bus">
                     <i className="fa-solid fa-magnifying-glass text-[13px] text-[#8f8cb0] group-focus-within/bus:text-[#5b4bd6] transition shrink-0 mr-2"></i>
                       <input
                         ref={inputBusquedaRef}

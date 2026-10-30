@@ -698,6 +698,8 @@
   content: ""; position: absolute; left: 0; width: var(--f); height: var(--f);
   pointer-events: none; clip-path: inset(0); box-shadow: 0 0 0 var(--f) var(--col);
 }
+.riel-pos { transition: width 0.26s cubic-bezier(0.3, 0.8, 0.3, 1), border-radius 0.26s cubic-bezier(0.3, 0.8, 0.3, 1); }
+.riel-pos::before, .riel-pos::after { transition: width 0.26s cubic-bezier(0.3, 0.8, 0.3, 1), height 0.26s cubic-bezier(0.3, 0.8, 0.3, 1), border-radius 0.26s cubic-bezier(0.3, 0.8, 0.3, 1), box-shadow 0.26s cubic-bezier(0.3, 0.8, 0.3, 1); }
 .riel-pos::before { bottom: 100%; border-bottom-left-radius: var(--f); }
 .riel-pos::after { top: 100%; border-top-left-radius: var(--f); }
 .riel-it {
@@ -715,3 +717,15 @@
   transition: opacity 0.15s, transform 0.15s; box-shadow: 0 8px 20px -8px rgba(29, 26, 56, 0.6);
 }
 .riel-it:hover .riel-tip, .riel-it:focus-visible .riel-tip { opacity: 1; transform: translateY(-50%); }
+
+/* Menú plegado: queda una rayita de 22 px; al acercar el mouse (o con el teclado) el riel sale
+   por encima del contenido, y el botón de abajo lo vuelve a fijar. */
+.riel-asa { position: absolute; right: 6px; top: 50%; transform: translateY(-50%); width: 3px; height: 34px; border-radius: 3px; background: #c5bcff; opacity: 0; transition: opacity 0.08s; pointer-events: none; }
+.riel-pos[data-plegado="true"] { --f: 11px; --c: 11px; width: 22px; }
+.riel-pos[data-plegado="true"] .riel-it, .riel-pos[data-plegado="true"] .riel-sep { opacity: 0; pointer-events: none; transition: opacity 0.15s; }
+.riel-pos[data-plegado="true"] .riel-asa { opacity: 1; }
+.riel-pos[data-plegado="true"]:hover, .riel-pos[data-plegado="true"]:focus-within { --f: 20px; --c: 28px; width: 56px; }
+.riel-pos[data-plegado="true"]:hover .riel-it, .riel-pos[data-plegado="true"]:focus-within .riel-it,
+.riel-pos[data-plegado="true"]:hover .riel-sep, .riel-pos[data-plegado="true"]:focus-within .riel-sep { opacity: 1; pointer-events: auto; }
+.riel-pos[data-plegado="true"]:hover .riel-asa, .riel-pos[data-plegado="true"]:focus-within .riel-asa { opacity: 0; }
+@media (prefers-reduced-motion: reduce) { .riel-pos, .riel-pos::before, .riel-pos::after { transition: none; } }
