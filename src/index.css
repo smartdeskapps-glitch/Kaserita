@@ -117,8 +117,7 @@
 
 
 /* Fondo del catálogo del POS: degradado lavanda (claro arriba, violeta abajo)
-   con un mosaico de vidrio (.aurora-pos y .aurora-grid, hijos reales en
-   main.jsx), y encima el mismo grano SVG del botón
+   (.aurora-pos, hijo real en main.jsx), y encima el mismo grano SVG del botón
    "Abrir Turno" (.btn-noise), aquí fijo -- sin su giro de color -- y a
    intensidad media (0.42). isolation:isolate + z-index negativo dejan las
    tres capas detrás de todo el contenido real (header, tarjetas, carrito):
@@ -133,22 +132,6 @@
     radial-gradient(70% 55% at 35% 108%, #9687f5 0%, transparent 70%),
     radial-gradient(60% 45% at 90% 100%, #c5bcff 0%, transparent 70%),
     linear-gradient(180deg, #f3f5ff 0%, #ebf0ff 55%, #c5bcff 100%);
-}
-/* Mosaico de baldosas de vidrio: se desvanece hacia arriba y se nota solo
-   en los huecos entre paneles. Cada baldosa de 64px = borde claro + brillo. */
-.aurora-grid {
-  position: absolute;
-  inset: 0;
-  z-index: -2;
-  pointer-events: none;
-  opacity: 0.7;
-  background-image:
-    linear-gradient(rgba(255, 255, 255, 0.55) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(255, 255, 255, 0.55) 1px, transparent 1px),
-    linear-gradient(135deg, rgba(255, 255, 255, 0.28), rgba(255, 255, 255, 0.04));
-  background-size: 64px 64px;
-  mask-image: linear-gradient(180deg, transparent 18%, #000 62%);
-  -webkit-mask-image: linear-gradient(180deg, transparent 18%, #000 62%);
 }
 .fondo-pos-grano::after {
   content: "";
