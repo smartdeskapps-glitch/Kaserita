@@ -1,6 +1,8 @@
 import React, { useState, useEffect, useRef, useMemo, useCallback, Suspense } from 'react';
 import ReactDOM from 'react-dom/client';
 import RielLateral from './RielLateral.jsx';
+import PaletaMenu from './PaletaMenu.jsx';
+import { createPortal } from 'react-dom';
 import { createClient } from '@supabase/supabase-js';
 import './index.css';
 import {
@@ -1320,10 +1322,14 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
       const [dniCliente, setDniCliente] = useState('99999999');
       const [clienteActual, setClienteActual] = useState(null);
       const [modalNuevoCliente, setModalNuevoCliente] = useState(false);
+      // Hueco del riel donde se dibuja el menú "Más" en escritorio.
+      const [ranuraRiel, setRanuraRiel] = useState(null);
       // Menú lateral de escritorio: empieza plegado (sale al acercar el mouse); si se fija, se recuerda en este equipo.
       const [rielPlegado, setRielPlegado] = useState(() => {
         try { return localStorage.getItem('kz_riel_plegado') !== '0'; } catch { return true; }
       });
+      // En pantallas anchas el menú "Más" se abre dentro del riel; en celular es una hoja.
+      const menuEnRiel = typeof window !== 'undefined' && window.matchMedia('(min-width: 768px)').matches;
       const alternarRiel = () => setRielPlegado((v) => {
         try { localStorage.setItem('kz_riel_plegado', v ? '0' : '1'); } catch { /* sin almacenamiento: solo dura esta sesión */ }
         return !v;
@@ -9330,6 +9336,8 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
             onMas={() => { setBusquedaMenu(''); setIndiceMenu(0); setMenuMas(true); }}
             plegado={rielPlegado}
             onPlegar={alternarRiel}
+            paletaAbierta={menuMas && menuEnRiel}
+            ranuraRef={setRanuraRiel}
           />
 
           {/* Columna Central: Catálogo (Order Line) */}
@@ -10687,81 +10695,28 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
             const esEscritorio = typeof window !== 'undefined' && window.matchMedia('(min-width: 640px)').matches;
             const opcionesMenu = esEscritorio ? opciones.filter((o) => !o.soloMovil) : opciones;
 
-            // Sin tildes ni mayúsculas para que "inventario" encuentre "Mercadería", etc.
-            const normalizar = (t) => String(t || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
-            const q = normalizar(busquedaMenu).trim();
-            const visibles = q ? opcionesMenu.filter((o) => normalizar(`${o.etiqueta} ${o.grupo} ${o.buscar || ''}`).includes(q)) : opcionesMenu;
-            const activo = Math.min(indiceMenu, Math.max(visibles.length - 1, 0));
             const cerrarMenu = () => setMenuMas(false);
-            const ejecutar = (o) => { if (!o) return; o.accion(); cerrarMenu(); };
-            const tonos = {
-              primario: 'bg-[#5b4bd6] text-white',
-              rose: 'bg-rose-100 text-rose-600',
-              amber: 'bg-amber-50 text-amber-600',
-            };
+            const propsPaleta = { opciones: opcionesMenu, busqueda: busquedaMenu, setBusqueda: setBusquedaMenu, indice: indiceMenu, setIndice: setIndiceMenu, onClose: cerrarMenu };
 
-            const alTeclear = (e) => {
-              const seguirActivo = () => setTimeout(() => document.querySelector('[data-menu-activo]')?.scrollIntoView({ block: 'nearest' }), 0);
-              if (e.key === 'ArrowDown') { e.preventDefault(); setIndiceMenu(Math.min(activo + 1, visibles.length - 1)); seguirActivo(); }
-              else if (e.key === 'ArrowUp') { e.preventDefault(); setIndiceMenu(Math.max(activo - 1, 0)); seguirActivo(); }
-              else if (e.key === 'Enter') { e.preventDefault(); ejecutar(visibles[activo]); }
-              else if (e.key === 'Escape') { e.preventDefault(); cerrarMenu(); }
-            };
+            // Escritorio: la paleta vive dentro del riel (que se ensancha para contenerla).
+            if (menuEnRiel) {
+              return (
+                <>
+                  <div className="fixed inset-0 z-[25] bg-[#2d284b]/30 backdrop-blur-[2px]" onClick={cerrarMenu}></div>
+                  {ranuraRiel && createPortal(<PaletaMenu {...propsPaleta} oscuro autoFocus />, ranuraRiel)}
+                </>
+              );
+            }
 
+            // Celular: hoja que sube desde abajo.
             return (
-              <div className="fixed inset-0 bg-[#2d284b]/45 md:bg-[#2d284b]/35 md:backdrop-blur-md z-[60] flex items-end md:items-start md:justify-center md:pt-[10vh]" onClick={cerrarMenu}>
+              <div className="fixed inset-0 bg-[#2d284b]/45 z-[60] flex items-end" onClick={cerrarMenu}>
                 <div
-                  className="menu-hoja relative w-full md:max-w-xl max-h-[85vh] md:max-h-[72vh] flex flex-col bg-white/95 border-t border-[#dde4fa] md:border md:border-white md:rounded-[26px] rounded-t-3xl overflow-hidden"
+                  className="menu-hoja relative w-full max-h-[85vh] flex flex-col bg-white/95 border-t border-[#dde4fa] rounded-t-3xl overflow-hidden"
                   onClick={(e) => e.stopPropagation()}
-                  onKeyDown={alTeclear}
                 >
-                  <div className="md:hidden w-10 h-1 bg-[#c5bcff] rounded-full mx-auto mt-2.5"></div>
-                  <div className="flex items-center gap-3 px-5 py-3.5 border-b border-[#dde4fa]">
-                    <i className="fa-solid fa-magnifying-glass text-[#5b4bd6] text-sm"></i>
-                    <input
-                      type="text"
-                      value={busquedaMenu}
-                      onChange={(e) => { setBusquedaMenu(e.target.value); setIndiceMenu(0); }}
-                      placeholder="Buscar una opción..."
-                      autoFocus={typeof window !== 'undefined' && window.matchMedia('(min-width: 768px)').matches}
-                      className="flex-1 bg-transparent text-[15px] font-semibold text-[#2d284b] placeholder:text-[#9a98bd] focus:outline-none"
-                    />
-                    <kbd className="hidden md:inline text-[10px] font-bold text-[#6b6890] bg-[#f3f5ff] border border-[#dde4fa] rounded-md px-1.5 py-0.5">Esc</kbd>
-                  </div>
-
-                  <div className="flex-1 overflow-y-auto overscroll-contain hide-scrollbar p-2 pb-[max(1rem,env(safe-area-inset-bottom))] md:pb-2">
-                    {visibles.length === 0 && (
-                      <p className="text-center text-sm text-stone-500 py-10">Sin resultados para "{busquedaMenu}"</p>
-                    )}
-                    {visibles.map((o, i) => (
-                      <React.Fragment key={`${o.grupo}-${o.etiqueta}`}>
-                        {o.grupo && o.grupo !== visibles[i - 1]?.grupo && (
-                          <p className="px-3 pt-3.5 pb-1.5 text-[10px] font-extrabold text-[#8d8ab0] uppercase tracking-[0.14em]">{o.grupo}</p>
-                        )}
-                        <button
-                          data-menu-activo={i === activo ? '' : undefined}
-                          onClick={() => ejecutar(o)}
-                          onMouseEnter={() => setIndiceMenu(i)}
-                          className={`w-full text-left px-3 py-2 md:py-2.5 rounded-2xl flex items-center gap-3 text-sm border transition-colors ${
-                            i === activo ? 'menu-it-on border-[#c5bcff]' : 'border-transparent'
-                          } ${o.tono === 'rose' ? 'text-rose-600 font-semibold' : o.tono === 'primario' ? 'text-[#2d284b] font-bold' : 'text-[#2d284b] font-semibold'}`}
-                        >
-                          <span className={`menu-ic w-8 h-8 rounded-[11px] flex items-center justify-center shrink-0 ${tonos[o.tono] || 'bg-[#ebf0ff] text-[#5b4bd6]'}`}>
-                            <i className={`fa-solid ${o.icono} text-[13px]`}></i>
-                          </span>
-                          <span className="flex-1 min-w-0 truncate">{o.etiqueta}</span>
-                          {o.insignia && <span className="text-[10px] font-bold bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full">{o.insignia}</span>}
-                          {i === activo && <kbd className="hidden md:inline text-[10px] font-bold text-[#6b6890] bg-white border border-[#dde4fa] rounded-md px-1.5 py-0.5">↵</kbd>}
-                        </button>
-                      </React.Fragment>
-                    ))}
-                  </div>
-
-                  <div className="hidden md:flex items-center gap-4 px-4 py-2.5 border-t border-[#dde4fa] bg-[#f3f5ff] text-[11px] font-medium text-[#6b6890]">
-                    <span className="flex items-center gap-1.5"><kbd className="bg-white border border-[#dde4fa] rounded-md px-1.5 py-0.5 font-bold">↑↓</kbd> Navegar</span>
-                    <span className="flex items-center gap-1.5"><kbd className="bg-white border border-[#dde4fa] rounded-md px-1.5 py-0.5 font-bold">↵</kbd> Abrir</span>
-                    <span className="flex items-center gap-1.5"><kbd className="bg-white border border-[#dde4fa] rounded-md px-1.5 py-0.5 font-bold">Esc</kbd> Cerrar</span>
-                  </div>
+                  <div className="w-10 h-1 bg-[#c5bcff] rounded-full mx-auto mt-2.5"></div>
+                  <PaletaMenu {...propsPaleta} />
                 </div>
               </div>
             );
