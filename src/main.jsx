@@ -9425,7 +9425,7 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
                           <span>Productos</span>
                         ) : (
                           <>
-                            <span className="max-w-[140px] truncate uppercase text-[12px] font-extrabold tracking-wide text-[#2d284b]">{categoriaFiltro}</span>
+                            <span className="max-w-[140px] truncate text-[13px] font-bold text-[#2d284b]">{categoriaFiltro === 'TODOS' ? 'Todos' : categoriaFiltro}</span>
                             <i className={`fa-solid fa-chevron-down text-[9px] transition-transform ${menuCategoriasAbierto ? 'rotate-180' : ''}`}></i>
                           </>
                         )}
@@ -9463,7 +9463,7 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
                                         onClick={() => { setCategoriaFiltro(cat); setMenuCategoriasAbierto(false); }}
                                         className={`w-full flex items-center justify-between gap-2 px-3.5 py-2.5 rounded-full text-left text-sm transition ${activo ? 'bg-[#dde4fa] text-[#2d284b] font-bold' : 'text-stone-800 font-medium hover:bg-[#5b4bd6]/5'}`}
                                       >
-                                        <span className="truncate">{cat}</span>
+                                        <span className="truncate">{cat === 'TODOS' ? 'Todos' : cat}</span>
                                         <span className={`text-xs shrink-0 tabular-nums ${activo ? 'bg-white text-[#5b4bd6] font-semibold px-2 py-0.5 rounded-full' : 'text-stone-400'}`}>{cantidad}</span>
                                       </button>
                                       {cat === 'TODOS' && !q && <div className="h-px bg-[#5b4bd6]/10 mx-3.5 my-1.5"></div>}
