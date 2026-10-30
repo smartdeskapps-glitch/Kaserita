@@ -4035,7 +4035,7 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
 
       // Combos activos (los que ve el catálogo) y cuántos se pueden armar ahora;
       // se calculan una vez en vez de filtrar la lista en cada pintada.
-      const claseSegmento = (activo) => `flex items-center gap-2 h-full px-3 md:px-4 rounded-full text-[13px] font-semibold transition ${activo ? 'bg-white text-[#5b4bd6] shadow-[0_4px_12px_-4px_rgba(91,75,214,0.45)]' : 'text-[#6b6890] hover:text-[#2d284b]'}`;
+      const claseSegmento = (activo) => `w-full md:w-auto justify-center flex items-center gap-2 h-full px-3 md:px-4 rounded-full text-[13px] font-semibold transition ${activo ? 'bg-white text-[#5b4bd6] shadow-[0_4px_12px_-4px_rgba(91,75,214,0.45)]' : 'text-[#6b6890] hover:text-[#2d284b]'}`;
       const combosActivos = useMemo(() => combos.filter((c) => c.activo), [combos]);
       const combosDisponibles = useMemo(
         () => combosActivos.filter((c) => estadoCombos.get(c.id)?.disponible !== false).length,
@@ -9417,9 +9417,9 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
               {/* Panel blanco del catálogo: barra única (categoría + buscador + combos + pedidos) y grilla. */}
               <div className="flex-1 flex flex-col overflow-hidden bg-white rounded-2xl p-3 md:p-4 gap-3 relative z-10">
                 {/* Barra: selector Productos | Combos, categoría, buscador con contador y cámara, y "Por retirar". */}
-                <div className="flex items-center gap-2.5 shrink-0">
-                  <div className="shrink-0 inline-flex items-center gap-0.5 p-1 h-[42px] md:h-[46px] rounded-full bg-[#ebf0ff]">
-                    <div className="relative h-full">
+                <div className="flex flex-wrap md:flex-nowrap items-center gap-2.5 shrink-0">
+                  <div className="w-full md:w-auto shrink-0 inline-flex items-center gap-0.5 p-1 h-[42px] md:h-[46px] rounded-full bg-[#ebf0ff]">
+                    <div className="relative h-full flex-1 md:flex-none">
                       <button
                         onClick={() => {
                           if (categoriaFiltro === '__COMBOS__') { setCategoriaFiltro('TODOS'); return; }
@@ -9432,10 +9432,10 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
                       >
                         <i className="fa-solid fa-table-cells-large text-[12px]"></i>
                         {categoriaFiltro === '__COMBOS__' ? (
-                          <span className="hidden md:inline">Productos</span>
+                          <span>Productos</span>
                         ) : (
                           <>
-                            <span className="hidden md:inline max-w-[140px] truncate uppercase text-[12px] font-extrabold tracking-wide text-[#2d284b]">{categoriaFiltro}</span>
+                            <span className="max-w-[140px] truncate uppercase text-[12px] font-extrabold tracking-wide text-[#2d284b]">{categoriaFiltro}</span>
                             <i className={`fa-solid fa-chevron-down text-[9px] transition-transform ${menuCategoriasAbierto ? 'rotate-180' : ''}`}></i>
                           </>
                         )}
@@ -9487,6 +9487,7 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
                       )}
                     </div>
                     {combosActivos.length > 0 && (
+                      <div className="flex-1 md:flex-none h-full">
                       <button
                         onClick={() => setCategoriaFiltro('__COMBOS__')}
                         aria-pressed={categoriaFiltro === '__COMBOS__'}
@@ -9494,13 +9495,14 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
                         className={claseSegmento(categoriaFiltro === '__COMBOS__')}
                       >
                         <i className="fa-solid fa-gift text-[12px]"></i>
-                        <span className="hidden md:inline">Combos</span>
+                        <span>Combos</span>
                         <span className="tabular-nums">{combosDisponibles}</span>
                       </button>
+                      </div>
                     )}
                   </div>
                   <div className="flex-1 min-w-0 flex items-center h-[42px] md:h-[46px] pl-4 pr-1 bg-white border border-[#dde4fa] rounded-full transition focus-within:border-[#5b4bd6] focus-within:ring-4 focus-within:ring-[#5b4bd6]/10 group/bus">
-                    <i className="fa-solid fa-magnifying-glass text-[13px] text-[#8f8cb0] group-focus-within/bus:text-[#5b4bd6] transition shrink-0 mr-2 hidden sm:block"></i>
+                    <i className="fa-solid fa-magnifying-glass text-[13px] text-[#8f8cb0] group-focus-within/bus:text-[#5b4bd6] transition shrink-0 mr-2"></i>
                       <input
                         ref={inputBusquedaRef}
                         type="text"
