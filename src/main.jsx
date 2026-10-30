@@ -1324,6 +1324,17 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
       const [modalNuevoCliente, setModalNuevoCliente] = useState(false);
       // Hueco del riel donde se dibuja el menú "Más" en escritorio.
       const [ranuraRiel, setRanuraRiel] = useState(null);
+      // Al abrir una ventana desde el riel o desde "Más" se cierran las otras que estuvieran abiertas,
+      // para que no queden apiladas. (Turno, cierre de caja, cobro y escáner no se tocan.)
+      const cerrarVentanasDelMenu = () => {
+        setModalCobrarDeudas(false); setModalNuevoCliente(false); setModalHistorial(false);
+        setModalTomaInventario(false); setModalHistorialInventario(false); setModalMerma(false);
+        setModalDashboard(false); setModalCombos(false); setModalDelivery(false);
+        setModalGestionCajeros(false); setModalComisiones(false); setModalAgenda(false);
+        setModalCuentasPagar(false); setModalAuditoria(false); setModalInventarioInicial(false);
+        setModalEntradaMercaderia(false); setModalHistorialCierres(false);
+      };
+      const abrirDesdeMenu = (abrir) => () => { cerrarVentanasDelMenu(); abrir(); };
       // En pantallas anchas el menú "Más" se abre dentro del riel; en celular es una hoja.
       const menuEnRiel = typeof window !== 'undefined' && window.matchMedia('(min-width: 768px)').matches;
       const [formCliente, setFormCliente] = useState({ dni: '', nombre: '', telefono: '', correo: '', limiteCredito: '300.00' });
@@ -9320,10 +9331,10 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
           <RielLateral
             opciones={[
               { clave: 'vender', etiqueta: 'Vender', accion: () => {}, activo: true },
-              { clave: 'fiados', etiqueta: 'Fiados', accion: abrirModuloCobroDeudas },
-              { clave: 'historial', etiqueta: 'Historial', accion: abrirHistorialDelDia },
-              !esBarberia && { clave: 'inventario', etiqueta: 'Toma de inventario', accion: abrirTomaInventario },
-              esAdmin && { clave: 'dashboard', etiqueta: 'Dashboard de ventas', accion: abrirDashboard },
+              { clave: 'fiados', etiqueta: 'Fiados', accion: abrirDesdeMenu(abrirModuloCobroDeudas) },
+              { clave: 'historial', etiqueta: 'Historial', accion: abrirDesdeMenu(abrirHistorialDelDia) },
+              !esBarberia && { clave: 'inventario', etiqueta: 'Toma de inventario', accion: abrirDesdeMenu(abrirTomaInventario) },
+              esAdmin && { clave: 'dashboard', etiqueta: 'Dashboard de ventas', accion: abrirDesdeMenu(abrirDashboard) },
             ].filter(Boolean)}
             onMas={() => { setBusquedaMenu(''); setIndiceMenu(0); setMenuMas(true); }}
             paletaAbierta={menuMas && menuEnRiel}
@@ -10687,7 +10698,7 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
             const opcionesMenu = esEscritorio ? opciones.filter((o) => !o.soloMovil) : opciones;
 
             const cerrarMenu = () => setMenuMas(false);
-            const propsPaleta = { opciones: opcionesMenu, busqueda: busquedaMenu, setBusqueda: setBusquedaMenu, indice: indiceMenu, setIndice: setIndiceMenu, onClose: cerrarMenu };
+            const propsPaleta = { opciones: opcionesMenu.map((o) => ({ ...o, accion: abrirDesdeMenu(o.accion) })), busqueda: busquedaMenu, setBusqueda: setBusquedaMenu, indice: indiceMenu, setIndice: setIndiceMenu, onClose: cerrarMenu };
 
             // Escritorio: la paleta vive dentro del riel (que se ensancha para contenerla).
             if (menuEnRiel) {
