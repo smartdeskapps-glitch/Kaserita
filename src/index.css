@@ -732,7 +732,8 @@
 .riel-pos[data-plegado="true"][data-quieto="false"]:hover .riel-asa, .riel-pos[data-plegado="true"][data-quieto="false"]:focus-within .riel-asa { opacity: 0; }
 /* Menú "Más" abierto: el riel se ensancha y contiene la paleta (siempre desplegado). */
 .riel-ranura { width: 0; overflow: hidden; opacity: 0; transition: width 0.3s cubic-bezier(0.3, 0.8, 0.3, 1), opacity 0.2s; }
-.riel-pos[data-paleta="true"] { --f: 20px; --c: 28px; width: 376px; }
+/* Más específico que las reglas del riel plegado (incluido el "acercar el mouse") para que siempre gane. */
+.riel-pos[data-paleta="true"][data-plegado][data-quieto] { --f: 20px; --c: 28px; width: 376px; }
 .riel-pos[data-paleta="true"] .riel-ranura { width: 320px; height: min(540px, calc(100vh - 48px)); opacity: 1; transition: width 0.3s cubic-bezier(0.3, 0.8, 0.3, 1), opacity 0.2s 0.1s; }
 .riel-pos[data-paleta="true"] .riel-it, .riel-pos[data-paleta="true"] .riel-sep { opacity: 1; pointer-events: auto; }
 .riel-pos[data-paleta="true"] .riel-ics { pointer-events: auto; }
