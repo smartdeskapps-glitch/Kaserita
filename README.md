@@ -30,7 +30,16 @@ Los cambios de base de datos son archivos `.sql` en la raíz que se ejecutan **a
 | `errores_app.sql` | Registro de errores de la app (ver abajo) |
 | `indices_llaves_foraneas.sql` | Índices en llaves foráneas (aviso del asesor de rendimiento de Supabase). Aplicado el 2026-10-27 |
 | `probar_aislamiento_entre_negocios.sql` | Prueba (con ROLLBACK) de que un dueño no ve datos de otro negocio. Requiere dos negocios de prueba reales |
+| `quitar_acceso_dni_pin.sql` | Borra el acceso viejo DNI+PIN: cuentas `bodega_…@kaserita.app`, funciones, tabla y columna `pin_acceso`. Ejecutar **después** de publicar la app sin el formulario DNI+PIN |
+| `autorizacion_por_rol.sql` | Roles en el servidor: PIN de Dueño/Administrador para las escrituras de administración. Ejecutar **después** de publicar la app nueva |
+| `auditar_correos_con_acceso.sql` | Solo lectura: superadmins, correos con acceso a cada bodega, invitaciones pendientes y cuentas sospechosas |
 | `revocar_privilegios_anon.sql` | Opcional: quita permisos de tabla al rol `anon` (segunda capa de seguridad) |
+
+## Acceso y roles
+
+- Los dueños entran **solo con Google**. El superadmin entra con correo y contraseña desde el login del POS.
+- La administración (Dashboard, precios y costos, cajeros, proveedores, compras, combos, anular ventas, Mi Link) está protegida **en el servidor**: hay que desbloquearla con el PIN del perfil Dueño o Administrador (`autorizacion_por_rol.sql`). El dueño crea su PIN la primera vez justo después de iniciar sesión con Google. Si lo olvida, el superadmin usa «Restablecer PIN de administrador» en el panel.
+- En Supabase → Authentication → Providers → Email, dejar activado **Confirm email**.
 
 ## Monitoreo de errores
 

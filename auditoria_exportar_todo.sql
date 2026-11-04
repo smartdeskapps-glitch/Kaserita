@@ -71,15 +71,9 @@ select 'bucket', b.name::text,
 from storage.buckets b
 
 union all
--- Solo conteos (ningun dato personal): cuentas que todavia entran con DNI + PIN
-select 'dato', 'bodegas sin reclamar con PIN guardado',
-       (select count(*) from public.usuarios where auth_id is null and pin_acceso is not null)::text
-union all
+-- Solo conteos (ningun dato personal): cuentas que quedan con el acceso viejo DNI + PIN
+-- (debe dar 0 despues de quitar_acceso_dni_pin.sql)
 select 'dato', 'cuentas de acceso con DNI+PIN (bodega_...@kaserita.app)',
        (select count(*) from auth.users where email like 'bodega\_%@kaserita.app')::text
-union all
-select 'dato', 'de esas, con ingreso en los ultimos 90 dias',
-       (select count(*) from auth.users where email like 'bodega\_%@kaserita.app'
-          and last_sign_in_at > now() - interval '90 days')::text
 
 order by 1, 2;

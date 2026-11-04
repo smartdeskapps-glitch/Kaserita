@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import {
   asegurarXLSX, generarSKU, fechaISOLocal, fechaHoyISO, comprimirImagenJPEG,
-  formatearBytes, PIN_MAX, PIN_MIN_DUENO, pinValido, CATEGORIAS_FALLBACK,
+  formatearBytes, CATEGORIAS_FALLBACK,
   normalizarCategoria, CATEGORIA_ESTILO_POR_NOMBRE_NORMALIZADO, CATEGORIA_ALIAS,
   categoriaDesdeTexto, FotoProducto, MiniInterruptor,
 } from './PanelAdminCompartido.jsx';
@@ -261,10 +261,7 @@ const RUBROS_NEGOCIO = [
         setGenerandoBackupId(bodega.id);
         try {
           const resultados = await Promise.all([
-            // Todas las columnas menos pin_acceso -- si la bodega
-            // todavía no fue reclamada, ahí vive su PIN en texto plano
-            // (necesario hasta su primer login, ver reclamar_cuenta_bodega)
-            // y no tiene por qué terminar en un archivo descargable.
+            // Solo las columnas necesarias de las cuentas de acceso.
             sbClient.from('usuarios').select('id, bodega_id, nombre, dni, email, telefono, rol, activo, auth_id').eq('bodega_id', bodega.id),
             sbClient.from('productos').select('*').eq('bodega_id', bodega.id),
             sbClient.from('compras').select('*, compras_detalle(*)').eq('bodega_id', bodega.id),
@@ -336,19 +333,16 @@ const RUBROS_NEGOCIO = [
       };
 
       // ==========================================
-      // EDITAR TELÉFONO y RESETEAR PIN -- para cuando el dueño cambia de
-      // número o se olvida su PIN. El teléfono se edita directo (no toca
-      // autenticación); el PIN se resetea borrando la cuenta de Auth (si
-      // existe) y guardando el PIN nuevo en texto plano en pin_acceso --
-      // igual que al crear la bodega, el dueño vuelve a "reclamarla" en su
-      // próximo login (ver reclamar_cuenta_bodega), sin necesitar el
-      // service_role key para cambiar la contraseña directamente.
+      // EDITAR TELÉFONO y RESTABLECER EL PIN DE ADMINISTRADOR DEL DUEÑO.
+      // El dueño entra con Google (no tiene contraseña en Kaserita); su PIN de
+      // administrador protege la administración del POS (ver
+      // autorizacion_por_rol.sql). Si lo olvida, acá se borra y él crea uno
+      // nuevo justo después de volver a iniciar sesión con Google.
       // ==========================================
       const [modalEditarBodega, setModalEditarBodega] = useState(null);
       const [telefonoEditar, setTelefonoEditar] = useState('');
       const [guardandoEditarBodega, setGuardandoEditarBodega] = useState(false);
       const [modalResetearPin, setModalResetearPin] = useState(null);
-      const [nuevoPinReset, setNuevoPinReset] = useState('');
       const [reseteandoPin, setReseteandoPin] = useState(false);
 
       const guardarTelefonoBodega = async (e) => {
@@ -372,18 +366,15 @@ const RUBROS_NEGOCIO = [
 
       const resetearPinConfirmado = async () => {
         if (!modalResetearPin) return;
-        const pin = nuevoPinReset.trim();
-        if (!pinValido(pin) || pin.length < PIN_MIN_DUENO) { notificar(`El PIN del dueño debe tener entre ${PIN_MIN_DUENO} y ${PIN_MAX} caracteres.`, 'error'); return; }
         setReseteandoPin(true);
         try {
-          const { error } = await sbClient.rpc('admin_resetear_pin_bodega', { p_bodega_id: modalResetearPin.id, p_pin: pin });
+          const { error } = await sbClient.rpc('admin_quitar_pin_dueno', { p_bodega_id: modalResetearPin.id });
           if (error) throw error;
-          notificar('PIN reseteado. El dueño debe iniciar sesión con su DNI y el PIN nuevo para reclamar la cuenta de nuevo.', 'success');
+          notificar('PIN restablecido. El dueño debe cerrar sesión, entrar de nuevo con Google y crear su PIN nuevo.', 'success');
           setModalResetearPin(null);
-          setNuevoPinReset('');
           cargarBodegas();
         } catch (err) {
-          notificar(`No se pudo resetear el PIN: ${err.message}`, 'error');
+          notificar(`No se pudo restablecer el PIN: ${err.message}`, 'error');
         } finally {
           setReseteandoPin(false);
         }
@@ -1225,7 +1216,7 @@ const RUBROS_NEGOCIO = [
                                         null,
                                         [generandoBackupId === b.id ? 'Generando backup...' : 'Backup', 'fa-download text-sky-600', () => descargarBackupBodega(b)],
                                         ...(b.dueno ? [['Editar teléfono', 'fa-pen', () => { setModalEditarBodega(b); setTelefonoEditar(b.dueno.telefono || ''); }]] : []),
-                                        ...(b.dueno && b.dueno.dni ? [['Resetear PIN', 'fa-key text-violet-600', () => { setModalResetearPin(b); setNuevoPinReset(''); }]] : []),
+                                        ...(b.dueno ? [['Restablecer PIN de administrador', 'fa-key text-violet-600', () => setModalResetearPin(b)]] : []),
                                         null,
                                         ['Eliminar tienda', 'fa-trash text-rose-600', () => { setModalEliminarBodega(b); setTextoConfirmarEliminar(''); setConservarHistorialEliminar(true); setMotivoEliminar(''); }]
                                       ].map((it, i) => it === null ? (
@@ -2004,35 +1995,25 @@ const RUBROS_NEGOCIO = [
               <div className="bg-gradient-to-br from-[#eef1fb] via-[#f8f9fd] to-[#f4f5fa] border border-white/80 rounded-[28px] max-w-sm w-full p-5 shadow-2xl space-y-4">
                 <div className="flex items-center gap-2 text-amber-600">
                   <i className="fa-solid fa-key text-lg"></i>
-                  <h3 className="text-sm font-bold">Resetear PIN -- {modalResetearPin.nombre}</h3>
+                  <h3 className="text-sm font-bold">Restablecer PIN de administrador -- {modalResetearPin.nombre}</h3>
                 </div>
                 <p className="text-xs text-stone-600 leading-relaxed">
-                  Se cerrará la sesión actual de {modalResetearPin.dueno?.nombre} y deberá volver a ingresar con su DNI y el PIN nuevo la próxima vez.
+                  Se borra el PIN de administrador de {modalResetearPin.dueno?.nombre} y se bloquea la administración en todos sus equipos.
+                  Para crear uno nuevo debe cerrar sesión, volver a entrar con Google y seguir el aviso. Sus datos no se tocan.
                 </p>
-                <div>
-                  <label className="text-[11px] font-bold text-stone-400 uppercase tracking-wide">PIN nuevo (8 a 32 caracteres)</label>
-                  <input
-                    type="text"
-                    autoFocus
-                    maxLength={PIN_MAX}
-                    value={nuevoPinReset}
-                    onChange={(e) => setNuevoPinReset(e.target.value)}
-                    className="w-full bg-white border border-stone-200/70 shadow-sm rounded-xl px-3 py-2 text-sm text-stone-900 mt-1"
-                  />
-                </div>
                 <div className="flex gap-2">
                   <button
-                    onClick={() => { setModalResetearPin(null); setNuevoPinReset(''); }}
+                    onClick={() => setModalResetearPin(null)}
                     className="flex-1 py-2.5 bg-white/70 hover:bg-white/70 text-stone-600 font-bold text-sm rounded-full shadow-sm"
                   >
                     Cancelar
                   </button>
                   <button
                     onClick={resetearPinConfirmado}
-                    disabled={reseteandoPin || !pinValido(nuevoPinReset) || nuevoPinReset.trim().length < PIN_MIN_DUENO}
+                    disabled={reseteandoPin}
                     className="flex-1 py-2.5 bg-[#5b4bd6] hover:bg-[#473bb5] disabled:opacity-40 disabled:cursor-not-allowed text-white font-bold text-sm rounded-full"
                   >
-                    {reseteandoPin ? 'Reseteando...' : 'Resetear PIN'}
+                    {reseteandoPin ? 'Restableciendo...' : 'Restablecer'}
                   </button>
                 </div>
               </div>

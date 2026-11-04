@@ -123,13 +123,6 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
     // slug, ej. KASERITA_DELIVERY_URL + '/san-luis'.
     const KASERITA_DELIVERY_URL = 'https://delivery.smartdeskapps.com';
 
-    // El login sigue pidiendo DNI + PIN como siempre, pero por debajo se usa
-    // Supabase Auth real (necesario para que RLS pueda proteger los datos de
-    // cada bodega). Se deriva un correo y contraseña sintéticos a partir del
-    // DNI/PIN para no tener que pedirle un email al usuario.
-    const emailAuthDesdeDni = (dni) => `bodega_${(dni || '').trim()}@kaserita.app`;
-    const passwordAuthDesdePin = (pin) => `kst-${(pin || '').trim()}`;
-
 
     // Aviso sonoro cuando llega un pedido nuevo de KaseritaDelivery. Se crea
     // una sola vez (no un Audio nuevo por pedido) para no repetir la descarga
@@ -898,7 +891,6 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
     const AgendaCitas = React.lazy(() => import('./AgendaCitas.jsx'));
     const DeliveryModal = React.lazy(() => import('./DeliveryModal.jsx'));
     const RegistroActividad = React.lazy(() => import('./RegistroActividad.jsx'));
-    const PinDueno = React.lazy(() => import('./PinDueno.jsx'));
     const PinCajero = React.lazy(() => import('./PinCajero.jsx'));
     const NuevoCliente = React.lazy(() => import('./NuevoCliente.jsx'));
     const HistorialVentas = React.lazy(() => import('./HistorialVentas.jsx'));
@@ -1023,13 +1015,7 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
 
       // --- Auth Form ---
       const [authTab, setAuthTab] = useState('login');
-      // El ingreso con DNI + PIN solo existe para las cuentas de demostración:
-      // se muestra únicamente con ?demo en la dirección (/pos?demo). Los
-      // dueños entran con Google.
-      const mostrarAccesoPin = typeof window !== 'undefined' && new URLSearchParams(window.location.search).has('demo');
-      const [formLogin, setFormLogin] = useState({ dni: '', pin: '' });
-      const [cargandoAuth, setCargandoAuth] = useState(false);
-      const [mostrarPin, setMostrarPin] = useState(false);
+      // Los dueños entran solo con Google (ya no existe el ingreso con DNI + PIN).
 
       // --- Panel de Administrador (super-admin, separado de las bodegas) ---
       const [adminSesion, setAdminSesion] = useState(null);
@@ -1090,11 +1076,18 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
       );
       const [listaCajeros, setListaCajeros] = useState([]);
       const [cajeroSeleccionado, setCajeroSeleccionado] = useState(null);
+      // Administración desbloqueada EN EL SERVIDOR para esta sesión (ver
+      // autorizacion_por_rol.sql): se consigue con el PIN del perfil Dueño o
+      // Administrador. Sin eso, la base rechaza las escrituras de administración.
+      // rolesEnServidor = false mientras esa migración no esté ejecutada (se
+      // comporta como antes para no dejar la app sin administración).
+      const [elevado, setElevado] = useState(false);
+      const [rolesEnServidor, setRolesEnServidor] = useState(true);
       // El "rol activo" es el de quien está atendiendo la caja en este momento
       // (el cajero elegido al abrir turno), no necesariamente el de quien inició
       // sesión en el dispositivo -- para dar permisos según quién opera la caja.
       const rolActivo = (cajeroSeleccionado?.rol || usuarioActivo?.rol || 'cajero').toLowerCase();
-      const esAdmin = rolActivo === 'dueno' || rolActivo === 'administrador';
+      const esAdmin = (rolActivo === 'dueno' || rolActivo === 'administrador') && (elevado || esModoDemo || !rolesEnServidor);
       // Cuenta de barbería (bodegas.tipo_negocio, ver tipo_negocio_barberia.sql):
       // mismos módulos de caja, pero sin los de mercadería y con "Barberos" en
       // vez de "Cajeros y Empleados". Cualquier otro valor (o la columna aún
@@ -1226,6 +1219,10 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
       // sesión, se le pide su PIN antes de aplicar el cambio -- si no, ese
       // selector le daría acceso completo a cualquiera con solo tocarlo.
       const [cajeroPendientePin, setCajeroPendientePin] = useState(null);
+      // El dueño crea su PIN de administrador la primera vez (no es el de ingreso: se entra con Google).
+      const [crearPinAdmin, setCrearPinAdmin] = useState(null);
+      const [formCrearPin, setFormCrearPin] = useState({ nuevo: '', repetir: '' });
+      const [guardandoCrearPin, setGuardandoCrearPin] = useState(false);
       const [pinConfirmarCajero, setPinConfirmarCajero] = useState('');
       const [verificandoPinCajero, setVerificandoPinCajero] = useState(false);
 
@@ -1702,66 +1699,6 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
       const [busquedaMenu, setBusquedaMenu] = useState('');
       const [indiceMenu, setIndiceMenu] = useState(0);
 
-      // Cambio del PIN de la cuenta del dueño (es la contraseña real de
-      // Supabase Auth, "kst-" + PIN). Pide el PIN actual para que un
-      // empleado con el dispositivo en la mano no pueda cambiarlo.
-      const [modalPinDueno, setModalPinDueno] = useState(false);
-      const [formPinDueno, setFormPinDueno] = useState({ actual: '', nuevo: '', repetir: '' });
-      const [cambiandoPinDueno, setCambiandoPinDueno] = useState(false);
-      const [pinDuenoReforzado, setPinDuenoReforzado] = useState(true);
-      // Solo las cuentas creadas con DNI+PIN tienen PIN que cambiar; quien
-      // entra con Google no tiene contraseña propia en Kaserita.
-      const [cuentaConPinDueno, setCuentaConPinDueno] = useState(false);
-      useEffect(() => {
-        if (!sbClient || esModoDemo || sesion?.usuario?.rol !== 'dueno') return;
-        sbClient.auth.getUser().then(({ data }) => {
-          // Una cuenta que también tiene Google vinculado entra con Gmail: ahí el PIN no hace falta.
-          const tieneGoogle = (data?.user?.identities || []).some((i) => i.provider === 'google');
-          setCuentaConPinDueno(data?.user?.app_metadata?.provider === 'email' && !tieneGoogle);
-          setPinDuenoReforzado(!!data?.user?.user_metadata?.pin_fuerte);
-        });
-      }, [sbClient, esModoDemo, sesion?.usuario?.rol]);
-      const cambiarPinDueno = async () => {
-        const actual = formPinDueno.actual.trim();
-        const nuevo = formPinDueno.nuevo.trim();
-        if (nuevo.length < PIN_MIN_DUENO || nuevo.length > PIN_MAX) {
-          notificar(`El PIN nuevo debe tener entre ${PIN_MIN_DUENO} y ${PIN_MAX} caracteres.`, 'error');
-          return;
-        }
-        if (nuevo !== formPinDueno.repetir.trim()) {
-          notificar('Los dos PIN nuevos no coinciden.', 'error');
-          return;
-        }
-        if (nuevo === actual) {
-          notificar('El PIN nuevo tiene que ser distinto al actual.', 'error');
-          return;
-        }
-        setCambiandoPinDueno(true);
-        try {
-          const { error: errActual } = await sbClient.auth.signInWithPassword({
-            email: emailAuthDesdeDni(sesion?.usuario?.dni),
-            password: passwordAuthDesdePin(actual),
-          });
-          if (errActual) {
-            notificar('El PIN actual no es correcto.', 'error');
-            return;
-          }
-          const { error } = await sbClient.auth.updateUser({
-            password: passwordAuthDesdePin(nuevo),
-            data: { pin_fuerte: true },
-          });
-          if (error) throw error;
-          setPinDuenoReforzado(true);
-          setModalPinDueno(false);
-          setFormPinDueno({ actual: '', nuevo: '', repetir: '' });
-          notificar('PIN actualizado. Usalo la próxima vez que inicies sesión.', 'success');
-        } catch (err) {
-          notificar(mensajeError(err, 'No se pudo cambiar el PIN'), 'error');
-        } finally {
-          setCambiandoPinDueno(false);
-        }
-      };
-
       // Registro de actividad: lo llenan triggers de la base (ver
       // auditoria_acciones_sensibles.sql); acá solo se lee.
       const [modalAuditoria, setModalAuditoria] = useState(false);
@@ -1895,7 +1832,7 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
 
       // El botón "Modo Demo Local" y el link /demo se sacaron de la pantalla
       // de login (ver commit correspondiente) -- para mostrar la app ahora
-      // se usa una bodega real ("Bodega Demo", DNI+PIN, ver el SQL que la
+      // se usa una bodega real ("Bodega Demo", con Google, ver el SQL que la
       // crea) que sí soporta el ciclo completo (catálogo online, pedidos
       // por WhatsApp, etc.). El resto del código que revisa "esModoDemo"
       // queda sin usar pero no se tocó -- borrarlo es un cambio grande y
@@ -1916,6 +1853,10 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
 
       const cerrarSesion = async () => {
         cerrandoSesionRef.current = true;
+        if (sbClient && !esModoDemo && rolesEnServidor) {
+          try { await sbClient.rpc('bajar_admin'); } catch (err) { /* ya se cae con la sesión */ }
+        }
+        setElevado(false);
         if (sbClient) {
           try { await sbClient.auth.signOut({ scope: 'local' }); } catch (err) { console.warn(err); }
         }
@@ -1981,7 +1922,7 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
       }, [sbClient]);
 
       // Al cargar la app, si el dispositivo ya tiene una sesión válida de
-      // Supabase Auth (login anterior), se restaura sin pedir DNI/PIN de
+      // Supabase Auth (login anterior), se restaura sin pedir iniciar sesión de
       // nuevo. El modo Demo no pasa por aquí (no usa Auth real).
       //
       // Un fallo momentáneo (la red del celular aún no despierta al reabrir la
@@ -2935,9 +2876,8 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
         cargarAgenda(iso);
       };
 
-      // Crea el acceso de un nuevo empleado: un registro en 'usuarios' (para
-      // poder iniciar sesión con DNI+PIN) y otro en 'cajeros' (para
-      // seleccionarlo al abrir turno y quedar asociado a sus ventas).
+      // Crea un nuevo empleado en 'cajeros' (para seleccionarlo al abrir turno
+      // y quedar asociado a sus ventas).
       // Los empleados (Cajero o Administrador) no tienen contraseña propia:
       // solo se agregan a la lista de turno con nombre, DNI y rol. Nadie
       // aparte del dueño puede iniciar sesión de forma independiente.
@@ -3068,11 +3008,23 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
         if (!f) return;
         const esUnoMismo = esCajeroDelUsuarioActivo(f);
         const esElevado = f.rol === 'administrador' || f.rol === 'dueno';
-        if (esElevado && !esUnoMismo) {
+        // Con roles en el servidor, hasta el dueño escribe su PIN: la sesión es
+        // compartida y la base no puede saber quién está frente a la pantalla.
+        const exigePin = esElevado && !(esUnoMismo && (esModoDemo || !rolesEnServidor));
+        const yaDesbloqueado = elevado && cajeroSeleccionado?.id === f.id;
+        if (exigePin && !yaDesbloqueado) {
           setCajeroPendientePin(f);
           setPinConfirmarCajero('');
         } else {
           setCajeroSeleccionado(f);
+        }
+      };
+
+      // Quita la elevación de esta sesión (cambio de cajero, bloqueo manual, salir).
+      const soltarAdmin = async () => {
+        setElevado(false);
+        if (sbClient && !esModoDemo && rolesEnServidor) {
+          try { await sbClient.rpc('bajar_admin'); } catch (err) { /* sin red: vence sola */ }
         }
       };
 
@@ -3081,21 +3033,44 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
         if (!f) return;
         setVerificandoPinCajero(true);
         try {
-          let ok = false;
           if (esModoDemo) {
-            ok = !!f.pin_seguridad && f.pin_seguridad === pinConfirmarCajero.trim();
-          } else {
-            const { data, error } = await sbClient.rpc('verificar_pin_cajero', {
-              p_cajero_id: f.id,
-              p_pin: pinConfirmarCajero.trim()
-            });
-            if (error) throw error;
-            ok = !!data;
+            if (f.pin_seguridad && f.pin_seguridad === pinConfirmarCajero.trim()) {
+              setCajeroSeleccionado(f);
+              setCajeroPendientePin(null);
+              setPinConfirmarCajero('');
+            } else {
+              notificar('PIN incorrecto.', 'error');
+            }
+            return;
           }
-          if (ok) {
+          if (!rolesEnServidor) {
+            const { data, error } = await sbClient.rpc('verificar_pin_cajero', { p_cajero_id: f.id, p_pin: pinConfirmarCajero.trim() });
+            if (error) throw error;
+            if (data) {
+              setCajeroSeleccionado(f);
+              setCajeroPendientePin(null);
+              setPinConfirmarCajero('');
+            } else {
+              notificar('PIN incorrecto.', 'error');
+            }
+            return;
+          }
+          const { data: resultado, error } = await sbClient.rpc('elevar_admin', { p_cajero_id: f.id, p_pin: pinConfirmarCajero.trim() });
+          if (error) throw error;
+          if (resultado === 'ok') {
+            setElevado(true);
             setCajeroSeleccionado(f);
             setCajeroPendientePin(null);
             setPinConfirmarCajero('');
+          } else if (resultado === 'sin_pin') {
+            setCajeroPendientePin(null);
+            setPinConfirmarCajero('');
+            if (f.rol === 'dueno') {
+              setFormCrearPin({ nuevo: '', repetir: '' });
+              setCrearPinAdmin(f);
+            } else {
+              notificar('Este administrador todavía no tiene PIN. Pídele al dueño que se lo asigne en Cajeros y Empleados.', 'error');
+            }
           } else {
             notificar('PIN incorrecto.', 'error');
           }
@@ -3106,14 +3081,68 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
         }
       };
 
+      // Primer PIN de administrador del dueño. El servidor solo lo permite justo
+      // después de iniciar sesión con Google (login reciente).
+      const guardarCrearPinAdmin = async () => {
+        const c = crearPinAdmin;
+        if (!c) return;
+        const nuevo = formCrearPin.nuevo.trim();
+        if (nuevo.length < PIN_MIN_DUENO || nuevo.length > PIN_MAX) {
+          notificar(`El PIN debe tener entre ${PIN_MIN_DUENO} y ${PIN_MAX} caracteres.`, 'error');
+          return;
+        }
+        if (nuevo !== formCrearPin.repetir.trim()) {
+          notificar('Los dos PIN no coinciden.', 'error');
+          return;
+        }
+        setGuardandoCrearPin(true);
+        try {
+          const { error } = await sbClient.rpc('establecer_pin_cajero', { p_cajero_id: c.id, p_pin: nuevo });
+          if (error) throw error;
+          const { data: resultado, error: errElevar } = await sbClient.rpc('elevar_admin', { p_cajero_id: c.id, p_pin: nuevo });
+          if (errElevar) throw errElevar;
+          if (resultado !== 'ok') throw new Error('No se pudo desbloquear la administración. Intenta de nuevo.');
+          setElevado(true);
+          setCajeroSeleccionado(c);
+          setCrearPinAdmin(null);
+          setFormCrearPin({ nuevo: '', repetir: '' });
+          notificar('Listo: tu PIN de administrador quedó creado. Guárdalo, lo pedirá cada vez que abras la administración.', 'success');
+        } catch (err) {
+          notificar(mensajeError(err, 'No se pudo crear el PIN'), 'error');
+        } finally {
+          setGuardandoCrearPin(false);
+        }
+      };
+
+      // Al abrir la app: ¿esta sesión ya estaba desbloqueada? Si la migración del
+      // servidor no existe todavía, se sigue como antes.
+      useEffect(() => {
+        if (!sbClient || !sesion || esModoDemo) { setElevado(false); return undefined; }
+        let cancelado = false;
+        sbClient.rpc('estoy_elevado').then(({ data, error }) => {
+          if (cancelado) return;
+          if (error && (error.code === 'PGRST202' || error.code === '42883')) { setRolesEnServidor(false); return; }
+          setRolesEnServidor(true);
+          setElevado(!error && !!data);
+        });
+        return () => { cancelado = true; };
+      }, [sbClient, sesion?.usuario?.id, esModoDemo]);
+
+      // Si quien atiende la caja ya no es Dueño/Administrador, se baja la elevación.
+      useEffect(() => {
+        if (elevado && !esModoDemo && rolesEnServidor && rolActivo !== 'dueno' && rolActivo !== 'administrador') soltarAdmin();
+      }, [elevado, rolActivo]);
+
       // El dueño cambia/asigna el PIN de un Administrador desde acá (por
       // ejemplo, si lo olvidó) -- solo se puede llegar a este modal desde
       // "Cajeros y Empleados", que ya está detrás de esAdmin.
       const guardarPinCajero = async () => {
         const cajero = modalPinCajero;
         if (!cajero) return;
-        if (!pinValido(nuevoPinCajero)) {
-          notificar(`El PIN debe tener entre ${PIN_MIN} y ${PIN_MAX} caracteres.`, 'error');
+        const minimo = cajero.rol === 'dueno' ? PIN_MIN_DUENO : PIN_MIN;
+        const largo = nuevoPinCajero.trim().length;
+        if (largo < minimo || largo > PIN_MAX) {
+          notificar(`El PIN debe tener entre ${minimo} y ${PIN_MAX} caracteres.`, 'error');
           return;
         }
         setGuardandoPinCajero(true);
@@ -8989,159 +9018,11 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
               >
                 <div className="text-center space-y-1">
                   <h2 className="text-xl font-black text-stone-900">{authTab === 'admin' ? 'Panel de Administrador' : '¡Bienvenido de nuevo!'}</h2>
-                  <p className="text-xs text-stone-500">{authTab === 'admin' ? 'Ingresa con tu cuenta de administrador' : (mostrarAccesoPin ? 'Ingresa tus datos para continuar' : 'Ingresa con tu cuenta de Google para continuar')}</p>
+                  <p className="text-xs text-stone-500">{authTab === 'admin' ? 'Ingresa con tu cuenta de administrador' : 'Ingresa con tu cuenta de Google para continuar'}</p>
                 </div>
 
                 {authTab === 'login' && (
-                <form onSubmit={async (e) => {
-                  e.preventDefault();
-                  setCargandoAuth(true);
-                  let esCuentaRecienReclamada = false;
-                  try {
-                    const dni = formLogin.dni.trim();
-                    const pin = formLogin.pin.trim();
-                    const email = emailAuthDesdeDni(dni);
-                    const password = passwordAuthDesdePin(pin);
-
-                    const { error: errSignIn } = await sbClient.auth.signInWithPassword({ email, password });
-
-                    if (errSignIn) {
-                      console.warn('[login] signIn falló:', errSignIn.status, errSignIn.message);
-                      // Puede ser una cuenta que todavía no se migró al nuevo
-                      // sistema de acceso (bodega creada antes de este cambio):
-                      // se crea su cuenta real y, si el DNI+PIN coincide con lo
-                      // que ya tenía guardado, se vincula automáticamente.
-                      //
-                      // Antes de crear esa cuenta, se valida que el DNI+PIN de
-                      // verdad corresponda a una bodega sin reclamar -- si no,
-                      // un PIN mal tecleado dejaría creada una cuenta de Auth
-                      // "huérfana" con una contraseña equivocada, y como el
-                      // correo (derivado del DNI) queda ocupado, ningún intento
-                      // futuro -- ni con el PIN correcto -- podría volver a
-                      // crearla ni iniciar sesión con ella nunca más.
-                      const { data: puedeReclamar, error: errPuedeReclamar } = await sbClient.rpc('puede_reclamar_bodega', { p_dni: dni, p_pin: pin });
-                      // Si la función todavía no existe (falta correr el SQL
-                      // de esta mejora), no se bloquea el login: se sigue el
-                      // flujo anterior en vez de dejar a todas las bodegas
-                      // nuevas sin poder entrar mientras tanto.
-                      const faltaFuncion = errPuedeReclamar && errPuedeReclamar.code === 'PGRST202';
-                      if (errPuedeReclamar && !faltaFuncion) {
-                        console.warn('[login] puede_reclamar_bodega:', errPuedeReclamar.message);
-                        throw new Error('DNI o PIN incorrecto.');
-                      }
-                      if (!faltaFuncion && !puedeReclamar) {
-                        console.warn('[login] puede_reclamar_bodega: DNI/PIN no coincide con ninguna bodega sin reclamar.');
-                        throw new Error('DNI o PIN incorrecto.');
-                      }
-
-                      const { error: errSignUp } = await sbClient.auth.signUp({ email, password });
-                      if (errSignUp) {
-                        console.warn('[login] signUp falló:', errSignUp.status, errSignUp.message);
-                        throw new Error('DNI o PIN incorrecto.');
-                      }
-
-                      const { data: bodegaReclamada, error: errReclamo } = await sbClient.rpc('reclamar_cuenta_bodega', { p_dni: dni, p_pin: pin });
-                      if (errReclamo || !bodegaReclamada) {
-                        console.warn('[login] reclamo falló:', errReclamo?.message, 'bodegaReclamada:', bodegaReclamada);
-                        await sbClient.auth.signOut();
-                        throw new Error('DNI o PIN incorrecto.');
-                      }
-                      esCuentaRecienReclamada = true;
-                    }
-
-                    const { data: { user } } = await sbClient.auth.getUser();
-                    // Trae la bodega en el mismo viaje (embed) en vez de una
-                    // segunda consulta secuencial después.
-                    const { data: usuarioConBodega, error: errUsuario } = await sbClient.from('usuarios').select('*, bodegas(*)').eq('auth_id', user.id).single();
-                    if (errUsuario || !usuarioConBodega) throw new Error('No se pudo cargar tu cuenta. Intenta de nuevo.');
-                    const { bodegas: bodega, ...usuario } = usuarioConBodega;
-
-                    // Primer login de verdad de una bodega creada por el admin
-                    // (o de una cuenta vieja migrándose): recién ahora
-                    // mi_bodega_id() resuelve para este usuario, así que se
-                    // pueden crear su fila de cajero propio y su cliente
-                    // "Desconocido" por defecto -- antes el admin no podía
-                    // hacerlo (esas tablas están scoped a mi_bodega_id(), que
-                    // para el admin da null porque no pertenece a la bodega).
-                    if (esCuentaRecienReclamada) {
-                      try {
-                        await sbClient.from('cajeros').insert([{ bodega_id: usuario.bodega_id, nombre: usuario.nombre, dni: usuario.dni, rol: usuario.rol, activo: true }]);
-                        await sbClient.from('clientes').insert([{ bodega_id: usuario.bodega_id, dni: '99999999', nombre_completo: 'Desconocido', saldo_actual: 0 }]);
-                      } catch (errSetup) {
-                        console.warn('No se pudo terminar de preparar la bodega:', errSetup.message);
-                      }
-                    }
-
-                    guardarSesion({ usuario, bodega: bodega || { id: usuario.bodega_id, nombre: 'Mi Bodega' } });
-                    notificar(`¡Bienvenido ${usuario.nombre}!`, 'success');
-                  } catch (err) {
-                    notificar(mensajeError(err), 'error');
-                  } finally {
-                    setCargandoAuth(false);
-                  }
-                }} className="space-y-5">
-                  {mostrarAccesoPin && (<>
-                  <div>
-                    <label className="text-[11px] font-bold text-stone-400 uppercase tracking-wide">Tu DNI</label>
-                    <div className="relative mt-1">
-                      <i className="fa-solid fa-user absolute left-3 top-1/2 -translate-y-1/2 text-stone-400 text-sm"></i>
-                      <input
-                        type="text"
-                        required
-                        maxLength={8}
-                        placeholder="Ingresa los 8 dígitos"
-                        value={formLogin.dni}
-                        onChange={(e) => setFormLogin({ ...formLogin, dni: e.target.value })}
-                        className="w-full bg-stone-100 border border-stone-200 focus:border-orange-500 outline-none rounded-xl pl-9 pr-3 py-2.5 text-sm text-stone-900 transition"
-                      />
-                    </div>
-                    <p className="text-[10px] text-stone-400 mt-1">Ej: 45678901 (Cajero / Administrador)</p>
-                  </div>
-                  <div>
-                    <div className="flex items-center justify-between">
-                      <label className="text-[11px] font-bold text-stone-400 uppercase tracking-wide">PIN de acceso</label>
-                      <button
-                        type="button"
-                        onClick={() => notificar('Pídele a la persona a cargo (dueño/administrador) que te genere un PIN nuevo.', 'info')}
-                        className="text-[10px] font-semibold text-orange-600 hover:text-orange-700"
-                      >
-                        ¿Olvidaste tu PIN?
-                      </button>
-                    </div>
-                    <div className="relative mt-1">
-                      <i className="fa-solid fa-lock absolute left-3 top-1/2 -translate-y-1/2 text-stone-400 text-sm"></i>
-                      <input
-                        type={mostrarPin ? 'text' : 'password'}
-                        required
-                        maxLength={PIN_MAX}
-                        placeholder="••••"
-                        value={formLogin.pin}
-                        onChange={(e) => setFormLogin({ ...formLogin, pin: e.target.value })}
-                        className="w-full bg-stone-100 border border-stone-200 focus:border-orange-500 outline-none rounded-xl pl-9 pr-9 py-2.5 text-sm text-stone-900 tracking-widest transition"
-                      />
-                      <button
-                        type="button"
-                        onClick={() => setMostrarPin((v) => !v)}
-                        className="absolute right-3 top-1/2 -translate-y-1/2 text-stone-400 hover:text-stone-600"
-                        title={mostrarPin ? 'Ocultar PIN' : 'Mostrar PIN'}
-                      >
-                        <i className={`fa-solid ${mostrarPin ? 'fa-eye-slash' : 'fa-eye'} text-sm`}></i>
-                      </button>
-                    </div>
-                  </div>
-                  <button
-                    type="submit"
-                    disabled={cargandoAuth}
-                    className="w-full py-3.5 bg-stone-900 hover:bg-stone-800 text-white font-black text-sm uppercase rounded-full transition shadow-lg shadow-stone-900/30 disabled:opacity-50 flex items-center justify-center gap-2"
-                  >
-                    {cargandoAuth ? 'Verificando...' : (<>Entrar <i className="fa-solid fa-arrow-right"></i></>)}
-                  </button>
-                  <div className="flex items-center gap-3">
-                    <div className="flex-1 h-px bg-stone-200"></div>
-                    <span className="text-[10px] font-bold text-stone-400 uppercase">o</span>
-                    <div className="flex-1 h-px bg-stone-200"></div>
-                  </div>
-                  </>)}
+                <div className="space-y-5">
                   <button
                     type="button"
                     onClick={() => sbClient.auth.signInWithOAuth({ provider: 'google', options: { redirectTo: window.location.origin + '/pos', queryParams: { prompt: 'select_account' } } })}
@@ -9155,7 +9036,7 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
                     </svg>
                     Continuar con Google
                   </button>
-                </form>
+                </div>
               )}
 
               {authTab === 'admin' && (
@@ -10685,10 +10566,22 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
                   });
                 }
               },
-              (sesion?.usuario?.rol === 'dueno' && esAdmin && !esModoDemo && cuentaConPinDueno) && {
-                grupo: 'Cuenta', etiqueta: 'Cambiar mi PIN', icono: 'fa-key',
-                insignia: !pinDuenoReforzado ? 'Recomendado' : '', tono: 'amber',
-                accion: () => { setFormPinDueno({ actual: '', nuevo: '', repetir: '' }); setModalPinDueno(true); }
+              // Administración protegida por PIN en el servidor.
+              (!esModoDemo && rolesEnServidor && (rolActivo === 'dueno' || rolActivo === 'administrador')) && (
+                elevado
+                  ? { grupo: 'Cuenta', etiqueta: 'Bloquear administración', icono: 'fa-lock', accion: soltarAdmin }
+                  : {
+                      grupo: 'Cuenta', etiqueta: 'Desbloquear administración', icono: 'fa-lock-open', tono: 'amber',
+                      insignia: 'PIN',
+                      accion: () => {
+                        const c = cajeroSeleccionado || listaCajeros.find(esCajeroDelUsuarioActivo);
+                        if (c) { setPinConfirmarCajero(''); setCajeroPendientePin(c); }
+                      }
+                    }
+              ),
+              (!esModoDemo && rolesEnServidor && elevado && rolActivo === 'dueno' && cajeroSeleccionado) && {
+                grupo: 'Cuenta', etiqueta: 'Cambiar mi PIN de administrador', icono: 'fa-key',
+                accion: () => { setNuevoPinCajero(''); setModalPinCajero(cajeroSeleccionado); }
               },
               { grupo: 'Cuenta', etiqueta: 'Cerrar Sesión', icono: 'fa-right-from-bracket', tono: 'rose', accion: cerrarSesion },
             ].filter(Boolean);
@@ -11348,18 +11241,6 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
             </Suspense>
           )}
 
-          {modalPinDueno && (
-            <Suspense fallback={null}>
-              <PinDueno
-                cambiandoPinDueno={cambiandoPinDueno}
-                cambiarPinDueno={cambiarPinDueno}
-                formPinDueno={formPinDueno}
-                modalPinDueno={modalPinDueno}
-                setFormPinDueno={setFormPinDueno}
-                setModalPinDueno={setModalPinDueno}
-              />
-            </Suspense>
-          )}
 
           {modalPinCajero && (
             <Suspense fallback={null}>
@@ -11631,6 +11512,48 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
               no es quien inició sesión -- sin esto, elegir ese nombre en el
               selector de arriba desbloquearía el panel completo sin pedir
               nada. */}
+          {crearPinAdmin && (
+            <div className="fixed inset-0 bg-stone-900/30 backdrop-blur-sm flex items-center justify-center z-[60] p-4">
+              <div className="bg-gradient-to-br from-[#eef1fb] via-[#f8f9fd] to-[#f4f5fa] border border-white/80 rounded-[28px] max-w-xs w-full p-5 shadow-2xl space-y-3">
+                <h3 className="text-sm font-bold text-stone-900 flex items-center gap-2">
+                  <i className="fa-solid fa-key text-orange-600"></i> Crea tu PIN de administrador
+                </h3>
+                <p className="text-xs text-stone-600">
+                  Protege el Dashboard, los precios, los cajeros y demás funciones de administración cuando otras personas usan la caja.
+                  No es tu contraseña: sigues entrando con Google. Usa {PIN_MIN_DUENO} caracteres o más.
+                </p>
+                {[['nuevo', 'PIN nuevo'], ['repetir', 'Repite el PIN']].map(([campo, etiqueta]) => (
+                  <input
+                    key={campo}
+                    type="password"
+                    maxLength={PIN_MAX}
+                    autoComplete="off"
+                    value={formCrearPin[campo]}
+                    onChange={(e) => setFormCrearPin((f) => ({ ...f, [campo]: e.target.value }))}
+                    onKeyDown={(e) => { if (e.key === 'Enter') guardarCrearPinAdmin(); }}
+                    placeholder={etiqueta}
+                    className="w-full bg-white border border-stone-200 rounded-xl px-3 py-2.5 text-sm text-stone-900 focus:outline-none focus:ring-2 focus:ring-[#c5bcff]"
+                  />
+                ))}
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => { setCrearPinAdmin(null); setFormCrearPin({ nuevo: '', repetir: '' }); }}
+                    className="flex-1 py-2 bg-white/70 text-stone-600 text-xs font-semibold rounded-full shadow-sm"
+                  >
+                    Cancelar
+                  </button>
+                  <button
+                    onClick={guardarCrearPinAdmin}
+                    disabled={guardandoCrearPin || !formCrearPin.nuevo.trim()}
+                    className="flex-1 py-2 bg-[#5b4bd6] hover:bg-[#473bb5] disabled:opacity-60 text-white font-bold text-xs rounded-full shadow"
+                  >
+                    {guardandoCrearPin ? 'Guardando...' : 'Crear PIN'}
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
           {cajeroPendientePin && (
             <div className="fixed inset-0 bg-stone-900/30 backdrop-blur-sm flex items-center justify-center z-[60] p-4">
               <div className="bg-gradient-to-br from-[#eef1fb] via-[#f8f9fd] to-[#f4f5fa] border border-white/80 rounded-[28px] max-w-xs w-full p-5 shadow-2xl space-y-3">

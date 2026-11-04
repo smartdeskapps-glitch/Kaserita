@@ -115,14 +115,13 @@ import { fechaISOLocal, fechaHoyISO } from './lib/fechas.js';
       if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
       return `${(bytes / (1024 * 1024)).toFixed(2)} MB`;
     };
-    // El PIN puede llevar letras, números y símbolos. El tope de 32 deja
-    // margen bajo el límite de 72 caracteres de la contraseña de Auth
-    // ("kst-" + PIN); tiene que coincidir con establecer_pin_cajero en SQL.
+    // El PIN de administrador puede llevar letras, números y símbolos (4 a 32
+    // caracteres); tiene que coincidir con establecer_pin_cajero en SQL.
     const PIN_MIN = 4;
     const PIN_MAX = 32;
-    // La cuenta del dueño es la única que entra por Internet con este PIN
-    // (los empleados no tienen login propio), así que exige más largo.
-    const PIN_MIN_DUENO = 8;
+    // PIN de administrador del dueño (no es de ingreso: se entra con Google).
+    // Exige más largo que el de un Administrador porque protege toda la administración.
+    const PIN_MIN_DUENO = 6;
     const pinValido = (pin) => {
       const p = (pin || '').trim();
       return p.length >= PIN_MIN && p.length <= PIN_MAX;
