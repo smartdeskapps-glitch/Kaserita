@@ -11,6 +11,16 @@
 -- Paso 1: tabla de super-administradores. Es una cuenta real de Supabase
 -- Auth (email + contraseña, no DNI+PIN) que NO pertenece a ninguna
 -- bodega -- por eso va en su propia tabla en vez de "usuarios".
+-- ============================================================
+-- ¡NO VOLVER A CORRER! Script histórico, bloqueado a propósito (auditoría 2026-11).
+-- Motivo: recrea políticas de bodegas con la rama "bodega sin usuarios".
+-- ============================================================
+do $$
+begin
+  raise exception 'SCRIPT HISTORICO BLOQUEADO: no correr panel_admin.sql. Motivo: recrea políticas de bodegas con la rama "bodega sin usuarios". Estado vigente y orden de scripts: README.md (sección Base de datos). Para una base nueva usa un dump de produccion (supabase db dump). Si de verdad hace falta, borra este bloque a mano.';
+end $$;
+
+
 create table if not exists public.super_admins (
   auth_id uuid primary key references auth.users(id) on delete cascade,
   nombre text,

@@ -9,28 +9,14 @@ import { fechaISOLocal, fechaHoyISO } from './lib/fechas.js';
 // chunk de JavaScript, sin arrastrar codigo a medias.
 // ============================================================
 
-    // Carga bajo demanda de librerías pesadas que solo hace falta usar de vez
-    // en cuando (Excel, PDF, lector de códigos de barras). Cada URL se
-    // descarga una sola vez -- si dos partes de la app la piden casi al
-    // mismo tiempo (ej. dos botones de exportar), ambas reciben la MISMA
-    // promesa en vez de inyectar el <script> dos veces.
-    const scriptsExternosCargados = {};
-    // Con `integrity` el navegador verifica el hash SHA-384 del archivo: si el CDN
-    // fuera comprometido y sirviera otro contenido, el script NO se ejecuta.
-    const cargarScriptExterno = (url, integrity) => {
-      if (!scriptsExternosCargados[url]) {
-        scriptsExternosCargados[url] = new Promise((resolve, reject) => {
-          const script = document.createElement('script');
-          script.src = url;
-          if (integrity) { script.integrity = integrity; script.crossOrigin = 'anonymous'; }
-          script.onload = () => resolve();
-          script.onerror = () => reject(new Error(`No se pudo cargar ${url}`));
-          document.head.appendChild(script);
-        });
+    // Carga bajo demanda de Excel (SheetJS). Va empaquetado con la app (mismo
+    // dominio): la CSP ya no permite scripts de CDN externos.
+    const asegurarXLSX = async () => {
+      if (!window.XLSX) {
+        const m = await import('xlsx/dist/xlsx.full.min.js');
+        window.XLSX = m.default || m;
       }
-      return scriptsExternosCargados[url];
     };
-    const asegurarXLSX = () => cargarScriptExterno('https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js', 'sha384-vtjasyidUo0kW94K5MXDXntzOJpQgBKXmE7e2Ga4LG0skTTLeBi97eFAXsqewJjw');
     // SKU: código interno corto y legible para identificar el producto en
     // reportes/estantes, sin depender del código de barras (que a veces no
     // existe o es larguísimo). Prefijo por categoría + sufijo corto -- no
@@ -240,7 +226,7 @@ import { fechaISOLocal, fechaHoyISO } from './lib/fechas.js';
     }
 
 export {
-  scriptsExternosCargados, cargarScriptExterno, asegurarXLSX,
+  asegurarXLSX,
   generarSKU, fechaISOLocal, fechaHoyISO,
   comprimirImagenJPEG, formatearBytes,
   PIN_MIN, PIN_MAX, PIN_MIN_DUENO, pinValido,

@@ -16,6 +16,16 @@
 -- se tocan -- en Postgres, varias políticas "permissive" para el mismo
 -- comando se combinan con OR, así que admin y bodega dueña pueden subir
 -- ambos sin pisarse.
+-- ============================================================
+-- ¡NO VOLVER A CORRER! Script histórico, bloqueado a propósito (auditoría 2026-11).
+-- Motivo: recrea admin_crear_bodega con PIN en texto plano (eliminada en quitar_acceso_dni_pin.sql).
+-- ============================================================
+do $$
+begin
+  raise exception 'SCRIPT HISTORICO BLOQUEADO: no correr reactivar_fotos_bodega_y_flag_catalogo_maestro.sql. Motivo: recrea admin_crear_bodega con PIN en texto plano (eliminada en quitar_acceso_dni_pin.sql). Estado vigente y orden de scripts: README.md (sección Base de datos). Para una base nueva usa un dump de produccion (supabase db dump). Si de verdad hace falta, borra este bloque a mano.';
+end $$;
+
+
 drop policy if exists "productos_fotos_insertar_propia_bodega" on storage.objects;
 create policy "productos_fotos_insertar_propia_bodega"
   on storage.objects for insert

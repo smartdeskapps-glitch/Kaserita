@@ -25,6 +25,16 @@
 -- ------------------------------------------------------------
 -- 1) mi_bodega_id(): versión de panel_admin.sql (exige activa y vigente)
 -- ------------------------------------------------------------
+-- ============================================================
+-- ¡NO VOLVER A CORRER! Script histórico, bloqueado a propósito (auditoría 2026-11).
+-- Motivo: recrea las funciones del acceso DNI+PIN (eliminadas en quitar_acceso_dni_pin.sql).
+-- ============================================================
+do $$
+begin
+  raise exception 'SCRIPT HISTORICO BLOQUEADO: no correr seguridad_ronda3_restaurar_y_blindar.sql. Motivo: recrea las funciones del acceso DNI+PIN (eliminadas en quitar_acceso_dni_pin.sql). Estado vigente y orden de scripts: README.md (sección Base de datos). Para una base nueva usa un dump de produccion (supabase db dump). Si de verdad hace falta, borra este bloque a mano.';
+end $$;
+
+
 create or replace function public.mi_bodega_id()
 returns uuid
 language sql

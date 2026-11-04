@@ -16,6 +16,16 @@
 -- Ejecutar en el SQL Editor de Supabase.
 -- ============================================================
 
+-- ============================================================
+-- ¡NO VOLVER A CORRER! Script histórico, bloqueado a propósito (auditoría 2026-11).
+-- Motivo: reemplaza actualizar_mi_delivery por una versión sin PIN de administrador ni validación del link.
+-- ============================================================
+do $$
+begin
+  raise exception 'SCRIPT HISTORICO BLOQUEADO: no correr delivery_permitido.sql. Motivo: reemplaza actualizar_mi_delivery por una versión sin PIN de administrador ni validación del link. Estado vigente y orden de scripts: README.md (sección Base de datos). Para una base nueva usa un dump de produccion (supabase db dump). Si de verdad hace falta, borra este bloque a mano.';
+end $$;
+
+
 alter table public.bodegas
   add column if not exists delivery_permitido boolean not null default false;
 

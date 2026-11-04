@@ -9,6 +9,16 @@
 
 -- Paso 1: nueva función -- el frontend la consulta ANTES que
 -- mi_pago_pendiente() para saber si ya no hay nada que registrar.
+-- ============================================================
+-- ¡NO VOLVER A CORRER! Script histórico, bloqueado a propósito (auditoría 2026-11).
+-- Motivo: recrea crear_bodega_post_pago (eliminada a propósito).
+-- ============================================================
+do $$
+begin
+  raise exception 'SCRIPT HISTORICO BLOQUEADO: no correr arreglar_registro_ya_tiene_bodega.sql. Motivo: recrea crear_bodega_post_pago (eliminada a propósito). Estado vigente y orden de scripts: README.md (sección Base de datos). Para una base nueva usa un dump de produccion (supabase db dump). Si de verdad hace falta, borra este bloque a mano.';
+end $$;
+
+
 create or replace function public.tengo_bodega()
 returns boolean
 language sql

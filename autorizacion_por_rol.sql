@@ -392,37 +392,8 @@ drop trigger if exists exigir_admin on public.usuarios;
 create trigger exigir_admin before insert or update or delete on public.usuarios
   for each row execute function public.trg_usuarios_admin();
 
--- El link de pedidos y la tienda también son de administración.
-create or replace function public.actualizar_mi_delivery(p_slug text, p_delivery_habilitado boolean)
-returns void
-language plpgsql
-security definer
-set search_path = public
-as $$
-declare
-  v_bodega_id uuid;
-  v_permitido boolean;
-begin
-  if not public.es_admin_elevado() then
-    raise exception 'Desbloquea la administración con tu PIN para hacer esto.' using errcode = '42501';
-  end if;
-
-  select bodega_id into v_bodega_id from usuarios where auth_id = auth.uid();
-  if v_bodega_id is null then
-    raise exception 'No autorizado.';
-  end if;
-
-  select delivery_permitido into v_permitido from bodegas where id = v_bodega_id;
-  if p_delivery_habilitado and not coalesce(v_permitido, false) then
-    raise exception 'Esta bodega todavía no tiene habilitados los Pedidos por WhatsApp. Contactá al administrador.';
-  end if;
-
-  update bodegas
-    set slug = nullif(trim(p_slug), ''),
-        delivery_habilitado = p_delivery_habilitado
-    where id = v_bodega_id;
-end;
-$$;
+-- El link de pedidos (actualizar_mi_delivery) también exige administración
+-- desbloqueada; esa función vive en slug_delivery_validado.sql (ejecutarlo después).
 
 -- ------------------------------------------------------------
 -- 6) Permisos de ejecución
@@ -435,7 +406,6 @@ revoke execute on function public.elevar_admin(uuid, text)             from publ
 revoke execute on function public.bajar_admin()                        from public, anon;
 revoke execute on function public.establecer_pin_cajero(uuid, text)    from public, anon;
 revoke execute on function public.admin_quitar_pin_dueno(uuid)         from public, anon;
-revoke execute on function public.actualizar_mi_delivery(text, boolean) from public, anon;
 revoke execute on function public.trg_requiere_admin()                 from public, anon, authenticated;
 revoke execute on function public.trg_productos_admin()                from public, anon, authenticated;
 revoke execute on function public.trg_clientes_admin()                 from public, anon, authenticated;
@@ -450,7 +420,6 @@ grant execute on function public.elevar_admin(uuid, text)             to authent
 grant execute on function public.bajar_admin()                        to authenticated;
 grant execute on function public.establecer_pin_cajero(uuid, text)    to authenticated;
 grant execute on function public.admin_quitar_pin_dueno(uuid)         to authenticated;
-grant execute on function public.actualizar_mi_delivery(text, boolean) to authenticated;
 
 NOTIFY pgrst, 'reload schema';
 

@@ -12,6 +12,16 @@
 --    acá para cambiar precios más adelante.
 -- ============================================================
 
+-- ============================================================
+-- ¡NO VOLVER A CORRER! Script histórico, bloqueado a propósito (auditoría 2026-11).
+-- Motivo: recrea crear_bodega_post_pago (eliminada a propósito).
+-- ============================================================
+do $$
+begin
+  raise exception 'SCRIPT HISTORICO BLOQUEADO: no correr registro_publico_planes_y_pagos.sql. Motivo: recrea crear_bodega_post_pago (eliminada a propósito). Estado vigente y orden de scripts: README.md (sección Base de datos). Para una base nueva usa un dump de produccion (supabase db dump). Si de verdad hace falta, borra este bloque a mano.';
+end $$;
+
+
 create table if not exists public.planes_kaserita (
   id text primary key,                    -- 'pos' | 'combo'
   nombre text not null,

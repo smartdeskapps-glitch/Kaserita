@@ -18,7 +18,7 @@ const vacio = {
   tipo: 'reclamo',
   detalle: '',
   pedido: '',
-  web: '', // trampa para bots: una persona nunca lo ve ni lo llena
+  xq_vacio: '', // trampa para bots: una persona nunca lo ve ni lo llena
 };
 
 // Código de seguimiento: 8 caracteres al azar criptográfico (sin letras ni
@@ -60,7 +60,7 @@ export default function App() {
       return;
     }
     // Bot: se simula que todo salió bien, sin guardar nada.
-    if (form.web) { setCodigo('RC-' + new Date().getFullYear() + '-ENVIADO'); return; }
+    if (form.xq_vacio) { setCodigo('RC-' + new Date().getFullYear() + '-ENVIADO'); return; }
     try {
       const ultimo = Number(localStorage.getItem('reclamo_ultimo_envio') || 0);
       if (Date.now() - ultimo < ESPERA_ENTRE_ENVIOS_MS) {
@@ -147,7 +147,7 @@ export default function App() {
         </div>
 
         <form onSubmit={enviar}>
-          <input type="text" name="web" tabIndex={-1} autoComplete="off" aria-hidden="true" value={form.web} onChange={set('web')} style={{ position: 'absolute', left: '-9999px', width: 1, height: 1, opacity: 0 }} />
+          <input type="text" name="xq_vacio" tabIndex={-1} autoComplete="off" aria-hidden="true" value={form.xq_vacio} onChange={set('xq_vacio')} style={{ position: 'absolute', left: '-9999px', width: 1, height: 1, opacity: 0 }} />
           <h2 className="seccion">1. Identificación del consumidor reclamante</h2>
           <div className="field">
             <label>Nombre completo *</label>

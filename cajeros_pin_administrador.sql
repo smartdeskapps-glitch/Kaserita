@@ -20,6 +20,16 @@
 -- Paso 1: columna del PIN (solo se usa para cajeros con rol
 -- 'administrador' -- un cajero normal no la necesita, ya que no
 -- desbloquea nada).
+-- ============================================================
+-- ¡NO VOLVER A CORRER! Script histórico, bloqueado a propósito (auditoría 2026-11).
+-- Motivo: vuelve a comparar el PIN en texto plano.
+-- ============================================================
+do $$
+begin
+  raise exception 'SCRIPT HISTORICO BLOQUEADO: no correr cajeros_pin_administrador.sql. Motivo: vuelve a comparar el PIN en texto plano. Estado vigente y orden de scripts: README.md (sección Base de datos). Para una base nueva usa un dump de produccion (supabase db dump). Si de verdad hace falta, borra este bloque a mano.';
+end $$;
+
+
 alter table public.cajeros add column if not exists pin_seguridad text;
 
 -- Paso 2: aunque las políticas de RLS de "cajeros" ya limitan las filas

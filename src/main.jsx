@@ -6,7 +6,7 @@ import { createPortal } from 'react-dom';
 import { createClient } from '@supabase/supabase-js';
 import './index.css';
 import {
-  cargarScriptExterno, asegurarXLSX, generarSKU, fechaISOLocal, fechaHoyISO,
+  asegurarXLSX, generarSKU, fechaISOLocal, fechaHoyISO,
   comprimirImagenJPEG, formatearBytes, PIN_MIN, PIN_MAX, PIN_MIN_DUENO, pinValido,
   CATEGORIA_ESTILO, CATEGORIAS_FALLBACK, normalizarCategoria,
   CATEGORIA_ESTILO_POR_NOMBRE_NORMALIZADO, CATEGORIA_ALIAS,
@@ -36,9 +36,23 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
         return v.toString(16);
       });
     };
-    const asegurarJsPDF = () => cargarScriptExterno('https://cdn.jsdelivr.net/npm/jspdf@4.2.1/dist/jspdf.umd.min.js', 'sha384-qovJwSBbRDPP5cEjCp8S0UP66wrvnjaa60XMOGzTNanrThcrGfXfnZkvgY8N1KT3');
-    const asegurarConfetti = () => cargarScriptExterno('https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js', 'sha384-HAH79XdRvHr6axVGh4xQWVCp14kcd32bNk4Xu0sHDHtFQ42n6BAM8ykvB47dGz6D');
-    const asegurarZXing = () => cargarScriptExterno('https://cdn.jsdelivr.net/npm/zxing-wasm@3.1.3/dist/iife/reader/index.min.js', 'sha384-O/6uuumgOqcsO9GVD2Hjpf/o2fd6DPoIP81jBYJkCaRTdS/dFV6i9kW3tQ2PP0FZ');
+    // Librerías pesadas: se bajan solo al usarlas, empaquetadas con la propia app
+    // (mismo dominio; la CSP ya no permite scripts de CDN externos).
+    const asegurarJsPDF = async () => {
+      if (!window.jspdf) { const m = await import('jspdf'); window.jspdf = { jsPDF: m.jsPDF }; }
+    };
+    const asegurarConfetti = async () => {
+      if (!window.confetti) { window.confetti = (await import('canvas-confetti')).default; }
+    };
+    // Devuelve la URL del .wasm (servido por la propia app) para zxing.
+    const asegurarZXing = async () => {
+      if (!window.ZXingWASM) {
+        const [m, wasm] = await Promise.all([import('zxing-wasm/reader'), import('zxing-wasm/reader/zxing_reader.wasm?url')]);
+        window.ZXingWASM = m;
+        window.__zxingWasmUrl = wasm.default;
+      }
+      return window.__zxingWasmUrl;
+    };
 
     // La tabla productos exige cod_ean (no admite vacío), aunque hay artículos
     // reales sin código de barras (a granel, hechos en casa, etc.). Cuando el
@@ -124,20 +138,32 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
     const KASERITA_DELIVERY_URL = 'https://delivery.smartdeskapps.com';
 
 
-    // Aviso sonoro cuando llega un pedido nuevo de KaseritaDelivery. Se crea
-    // una sola vez (no un Audio nuevo por pedido) para no repetir la descarga
-    // cada vez -- currentTime se resetea para que suene entero aunque llegue
-    // otro pedido mientras el anterior todavía está sonando. Los navegadores
-    // no dejan reproducir sonido antes de que haya habido algún clic/
-    // interacción en la página; por eso puede no sonar el primer pedido si
-    // se acaba de abrir la pestaña.
-    // Se crea recién al primer aviso: así no se descarga el mp3 en cada arranque.
-    let audioAvisoPedidoNuevo = null;
+    // Aviso sonoro cuando llega un pedido nuevo de KaseritaDelivery. Los
+    // navegadores no dejan reproducir sonido antes de que haya habido algún
+    // clic/interacción en la página; por eso puede no sonar el primer pedido
+    // si se acaba de abrir la pestaña.
+    // Dos tonos cortos generados con Web Audio: sin archivo de sonido externo.
+    let contextoAvisoPedidoNuevo = null;
     const sonarAvisoPedidoNuevo = () => {
       try {
-        if (!audioAvisoPedidoNuevo) audioAvisoPedidoNuevo = new Audio('https://cdn.pixabay.com/audio/2025/01/11/audio_5e34842448.mp3');
-        audioAvisoPedidoNuevo.currentTime = 0;
-        audioAvisoPedidoNuevo.play().catch((err) => console.warn('No se pudo reproducir el aviso sonoro:', err.message));
+        const AC = window.AudioContext || window.webkitAudioContext;
+        if (!AC) return;
+        if (!contextoAvisoPedidoNuevo) contextoAvisoPedidoNuevo = new AC();
+        const ctx = contextoAvisoPedidoNuevo;
+        if (ctx.state === 'suspended') ctx.resume().catch(() => {});
+        [[880, 0], [1175, 0.18]].forEach(([frecuencia, inicio]) => {
+          const osc = ctx.createOscillator();
+          const ganancia = ctx.createGain();
+          osc.type = 'sine';
+          osc.frequency.value = frecuencia;
+          const t0 = ctx.currentTime + inicio;
+          ganancia.gain.setValueAtTime(0.0001, t0);
+          ganancia.gain.exponentialRampToValueAtTime(0.3, t0 + 0.02);
+          ganancia.gain.exponentialRampToValueAtTime(0.0001, t0 + 0.35);
+          osc.connect(ganancia).connect(ctx.destination);
+          osc.start(t0);
+          osc.stop(t0 + 0.4);
+        });
       } catch (err) {
         console.warn('No se pudo reproducir el aviso sonoro:', err.message);
       }
@@ -901,6 +927,7 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
     const DeliveryModal = React.lazy(() => import('./DeliveryModal.jsx'));
     const RegistroActividad = React.lazy(() => import('./RegistroActividad.jsx'));
     const PinCajero = React.lazy(() => import('./PinCajero.jsx'));
+    const QRLocal = React.lazy(() => import('./QRLocal.jsx'));
     const NuevoCliente = React.lazy(() => import('./NuevoCliente.jsx'));
     const HistorialVentas = React.lazy(() => import('./HistorialVentas.jsx'));
 
@@ -2101,7 +2128,9 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
           .toLowerCase()
           .normalize('NFD').replace(/[̀-ͯ]/g, '')
           .replace(/[^a-z0-9]+/g, '-')
-          .replace(/^-+|-+$/g, '');
+          .replace(/^-+|-+$/g, '')
+          .slice(0, 40)
+          .replace(/-+$/, '');
 
       const cargarResumenAvisos = async () => {
         if (esModoDemo || !sbClient) { setResumenAvisos(null); return; }
@@ -2262,6 +2291,10 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
         const slugLimpio = normalizarSlugDelivery(slugDelivery);
         if (deliveryHabilitado && !slugLimpio) {
           notificar('Elige un link antes de mostrar tu tienda al público.', 'error');
+          return;
+        }
+        if (slugLimpio && slugLimpio.length < 3) {
+          notificar('El link debe tener al menos 3 letras o números.', 'error');
           return;
         }
         const aNumero = (t) => Math.max(0, parseFloat(String(t).replace(',', '.')) || 0);
@@ -4773,10 +4806,10 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
         // siguiente intento cuando el anterior ya terminó.
         const correrFallback = async (video) => {
           try {
-            await asegurarZXing();
+            const urlWasm = await asegurarZXing();
             await ZXingWASM.prepareZXingModule({
               overrides: {
-                locateFile: (path) => `https://cdn.jsdelivr.net/npm/zxing-wasm@3.1.3/dist/reader/${path}`
+                locateFile: (path) => (path.endsWith('.wasm') ? urlWasm : path)
               }
             });
           } catch (err) {
@@ -11223,13 +11256,13 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
                     <i className="fa-solid fa-xmark text-lg"></i>
                   </button>
                 </div>
-                <img
-                  src={`https://api.qrserver.com/v1/create-qr-code/?size=400x400&data=${encodeURIComponent(`${KASERITA_DELIVERY_URL}/${sesion.bodega.slug}`)}`}
-                  alt="QR del link de pedidos"
-                  width={320}
-                  height={320}
-                  className="rounded-lg w-full max-w-[320px] h-auto"
-                />
+                <Suspense fallback={null}>
+                  <QRLocal
+                    texto={`${KASERITA_DELIVERY_URL}/${sesion.bodega.slug}`}
+                    alt="QR del link de pedidos"
+                    className="rounded-lg w-full max-w-[320px] h-auto"
+                  />
+                </Suspense>
                 <p className="text-xs text-stone-500 text-center">
                   Tus clientes escanean este código con la cámara de su celular para entrar directo a tu tienda en línea.
                 </p>

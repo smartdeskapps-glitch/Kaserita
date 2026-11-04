@@ -13,6 +13,16 @@
 --      insert/update y pasa a llamar esta función -- ver el comentario al
 --      final de este archivo con los cambios de código necesarios.
 
+-- ============================================================
+-- ¡NO VOLVER A CORRER! Script histórico, bloqueado a propósito (auditoría 2026-11).
+-- Motivo: reemplaza las funciones de PIN por versiones antiguas.
+-- ============================================================
+do $$
+begin
+  raise exception 'SCRIPT HISTORICO BLOQUEADO: no correr hashear_pin_cajero.sql. Motivo: reemplaza las funciones de PIN por versiones antiguas. Estado vigente y orden de scripts: README.md (sección Base de datos). Para una base nueva usa un dump de produccion (supabase db dump). Si de verdad hace falta, borra este bloque a mano.';
+end $$;
+
+
 create extension if not exists pgcrypto;
 
 -- Paso 1: migrar los valores existentes. El "where" evita hashear dos

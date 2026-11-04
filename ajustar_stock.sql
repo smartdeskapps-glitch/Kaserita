@@ -4,6 +4,16 @@
 -- Ejecutar en el SQL Editor de Supabase.
 -- ============================================================
 
+-- ============================================================
+-- ¡NO VOLVER A CORRER! Script histórico, bloqueado a propósito (auditoría 2026-11).
+-- Motivo: vuelve a dar EXECUTE a anon.
+-- ============================================================
+do $$
+begin
+  raise exception 'SCRIPT HISTORICO BLOQUEADO: no correr ajustar_stock.sql. Motivo: vuelve a dar EXECUTE a anon. Estado vigente y orden de scripts: README.md (sección Base de datos). Para una base nueva usa un dump de produccion (supabase db dump). Si de verdad hace falta, borra este bloque a mano.';
+end $$;
+
+
 create or replace function public.ajustar_stock(p_producto_id uuid, p_delta numeric)
 returns numeric
 language plpgsql

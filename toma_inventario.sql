@@ -7,6 +7,16 @@
 -- decía el sistema, cuánto se contó físicamente, y la diferencia. Queda
 -- como historial/auditoría -- igual que "mermas" -- para poder revisar
 -- después por qué cambió el stock de un producto.
+-- ============================================================
+-- ¡NO VOLVER A CORRER! Script histórico, bloqueado a propósito (auditoría 2026-11).
+-- Motivo: vuelve a dar GRANT a anon.
+-- ============================================================
+do $$
+begin
+  raise exception 'SCRIPT HISTORICO BLOQUEADO: no correr toma_inventario.sql. Motivo: vuelve a dar GRANT a anon. Estado vigente y orden de scripts: README.md (sección Base de datos). Para una base nueva usa un dump de produccion (supabase db dump). Si de verdad hace falta, borra este bloque a mano.';
+end $$;
+
+
 create table if not exists tomas_inventario (
   id uuid primary key default gen_random_uuid(),
   bodega_id uuid not null,

@@ -28,6 +28,16 @@
 --    TRIGGER) sobre todas las tablas de public para anon/authenticated.
 -- ============================================================
 
+-- ============================================================
+-- ¡NO VOLVER A CORRER! Script histórico, bloqueado a propósito (auditoría 2026-11).
+-- Motivo: reemplaza establecer_pin_cajero por una versión sin autorización (revierte autorizacion_por_rol.sql).
+-- ============================================================
+do $$
+begin
+  raise exception 'SCRIPT HISTORICO BLOQUEADO: no correr seguridad_pin_flexible_y_pgcrypto.sql. Motivo: reemplaza establecer_pin_cajero por una versión sin autorización (revierte autorizacion_por_rol.sql). Estado vigente y orden de scripts: README.md (sección Base de datos). Para una base nueva usa un dump de produccion (supabase db dump). Si de verdad hace falta, borra este bloque a mano.';
+end $$;
+
+
 create extension if not exists pgcrypto;
 
 -- ------------------------------------------------------------

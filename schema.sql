@@ -4,6 +4,16 @@
 -- ==============================================================================
 
 -- 1. Habilitar extensión UUID si se requiere
+-- ============================================================
+-- ¡NO VOLVER A CORRER! Script histórico, bloqueado a propósito (auditoría 2026-11).
+-- Motivo: crea políticas abiertas a anon (cualquiera con la clave pública leería y escribiría todo).
+-- ============================================================
+do $$
+begin
+  raise exception 'SCRIPT HISTORICO BLOQUEADO: no correr schema.sql. Motivo: crea políticas abiertas a anon (cualquiera con la clave pública leería y escribiría todo). Estado vigente y orden de scripts: README.md (sección Base de datos). Para una base nueva usa un dump de produccion (supabase db dump). Si de verdad hace falta, borra este bloque a mano.';
+end $$;
+
+
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 
 -- 2. TABLA: productos

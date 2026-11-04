@@ -22,25 +22,33 @@ La lógica de negocio que se puede probar sola (arqueo de caja, combos, descuent
 
 ## Base de datos (Supabase)
 
-Los cambios de base de datos son archivos `.sql` en la raíz que se ejecutan **a mano** en el SQL Editor de Supabase. No hay migraciones automáticas. Casi todos son aditivos (crean tablas o funciones).
+Los cambios de base de datos son archivos `.sql` en la raíz que se ejecutan **a mano** en el SQL Editor de Supabase. No hay migraciones automáticas.
+
+**Scripts históricos bloqueados.** Varios scripts antiguos (`schema.sql`, `rls_migracion.sql`, `panel_admin.sql`, `seguridad_ronda3_…`, `hashear_pin_cajero.sql`, etc.) llevan al inicio un bloque `SCRIPT HISTORICO BLOQUEADO` que los hace fallar: volver a correrlos reabriría huecos de seguridad ya cerrados (pasó el 2026-09-23). La lista completa está en `src/lib/sql.test.js`. Para una base nueva, usa un volcado de producción (`supabase db dump`), no esos scripts. `npm test` revisa además que ningún script vigente vuelva a abrir permisos a `anon`, recrear el acceso DNI+PIN o comparar PIN en texto plano.
+
+**Orden de los scripts de seguridad** (cada uno se puede repetir sin problema; correrlos en el SQL Editor de Kaserita después de publicar la app):
+
+1. `quitar_acceso_dni_pin.sql`: borra el acceso viejo DNI+PIN (cuentas `bodega_…@kaserita.app`, funciones, tabla y columna `pin_acceso`).
+2. `autorizacion_por_rol.sql`: roles en el servidor (PIN de Dueño/Administrador para la administración).
+3. `slug_delivery_validado.sql`: valida el link de pedidos (largo, reservados, único) y exige administración desbloqueada.
+4. `auditoria_ampliar.sql`: registro de actividad más completo y sin errores silenciosos.
+5. `limites_y_retencion.sql`: tope por IP a errores y analítica, Libro de Reclamaciones sin tope global, y borrado automático de datos viejos (pg_cron).
 
 | Archivo | Para qué |
 |---|---|
-| `schema.sql`, `rls_*.sql`, `seguridad_*.sql` | Esquema base y políticas de seguridad por negocio |
-| `errores_app.sql` | Registro de errores de la app (ver abajo) |
-| `indices_llaves_foraneas.sql` | Índices en llaves foráneas (aviso del asesor de rendimiento de Supabase). Aplicado el 2026-10-27 |
+| `errores_app.sql`, `analitica_eventos.sql`, `libro_reclamaciones.sql` | Tablas de registro de errores, conteo de visitas y Libro de Reclamaciones |
+| `registrar_venta_atomica.sql`, `anular_venta_atomica.sql`, `dashboard_*.sql`, `serie_boleta_por_bodega.sql` | Funciones de ventas y reportes |
+| `revocar_privilegios_anon.sql`, `revocar_ejecucion_funciones.sql` | Segunda capa de seguridad: quitan permisos a `anon` (hay `_REVERSA` de emergencia) |
+| `indices_llaves_foraneas.sql` | Índices en llaves foráneas. Aplicado el 2026-10-27 |
 | `probar_aislamiento_entre_negocios.sql` | Prueba (con ROLLBACK) de que un dueño no ve datos de otro negocio. Requiere dos negocios de prueba reales |
-| `quitar_acceso_dni_pin.sql` | Borra el acceso viejo DNI+PIN: cuentas `bodega_…@kaserita.app`, funciones, tabla y columna `pin_acceso`. Ejecutar **después** de publicar la app sin el formulario DNI+PIN |
-| `autorizacion_por_rol.sql` | Roles en el servidor: PIN de Dueño/Administrador para las escrituras de administración. Ejecutar **después** de publicar la app nueva |
-| `auditoria_ampliar.sql` | El registro de actividad deja de tragarse errores (WARNING en logs) y suma pagos de clientes, límites de crédito, bajas de clientes y cuentas de acceso |
-| `auditar_correos_con_acceso.sql` | Solo lectura: superadmins, correos con acceso a cada bodega, invitaciones pendientes y cuentas sospechosas |
-| `revocar_privilegios_anon.sql` | Opcional: quita permisos de tabla al rol `anon` (segunda capa de seguridad) |
+| `auditoria_seguridad_supabase.sql`, `auditoria_exportar_todo.sql`, `auditar_correos_con_acceso.sql` | Solo lectura: revisan políticas, permisos y quién tiene acceso. Conviene correr la primera después de cada cambio |
 
 ## Acceso y roles
 
 - Los dueños entran **solo con Google**. El superadmin entra con correo y contraseña desde el login del POS.
 - La administración (Dashboard, precios y costos, cajeros, proveedores, compras, combos, anular ventas, Mi Link) está protegida **en el servidor**: hay que desbloquearla con el PIN del perfil Dueño o Administrador (`autorizacion_por_rol.sql`). El dueño crea su PIN la primera vez justo después de iniciar sesión con Google. Si lo olvida, el superadmin usa «Restablecer PIN de administrador» en el panel.
 - En Supabase → Authentication → Providers → Email, dejar activado **Confirm email**.
+- Las librerías pesadas (Excel, PDF, lector de códigos, QR, confeti) van empaquetadas con la app y se bajan solo al usarlas; la CSP (`vercel.json`) ya no permite scripts de ningún CDN.
 
 ## Monitoreo de errores
 

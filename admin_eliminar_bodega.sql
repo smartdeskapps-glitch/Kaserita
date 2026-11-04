@@ -18,6 +18,16 @@
 -- Ejecutar en el SQL Editor de Supabase.
 -- ============================================================
 
+-- ============================================================
+-- ¡NO VOLVER A CORRER! Script histórico, bloqueado a propósito (auditoría 2026-11).
+-- Motivo: recrea la versión vieja de admin_eliminar_bodega (la vigente está en bodegas_eliminadas.sql).
+-- ============================================================
+do $$
+begin
+  raise exception 'SCRIPT HISTORICO BLOQUEADO: no correr admin_eliminar_bodega.sql. Motivo: recrea la versión vieja de admin_eliminar_bodega (la vigente está en bodegas_eliminadas.sql). Estado vigente y orden de scripts: README.md (sección Base de datos). Para una base nueva usa un dump de produccion (supabase db dump). Si de verdad hace falta, borra este bloque a mano.';
+end $$;
+
+
 create or replace function public.admin_eliminar_bodega(p_bodega_id uuid)
 returns void
 language plpgsql

@@ -7,6 +7,16 @@
 -- que el límite se pone en la base: el navegador solo puede ayudar un poco.
 
 -- 1) Largos y formato mínimos (lo mismo que ya valida el formulario).
+-- ============================================================
+-- ¡NO VOLVER A CORRER! Script histórico, bloqueado a propósito (auditoría 2026-11).
+-- Motivo: recrea el tope global que permite bloquear el Libro de Reclamaciones (ver limites_y_retencion.sql).
+-- ============================================================
+do $$
+begin
+  raise exception 'SCRIPT HISTORICO BLOQUEADO: no correr libro_reclamaciones_endurecer.sql. Motivo: recrea el tope global que permite bloquear el Libro de Reclamaciones (ver limites_y_retencion.sql). Estado vigente y orden de scripts: README.md (sección Base de datos). Para una base nueva usa un dump de produccion (supabase db dump). Si de verdad hace falta, borra este bloque a mano.';
+end $$;
+
+
 alter table public.libro_reclamaciones
   add constraint libro_reclamaciones_largos_chk check (
     char_length(nombre_completo) between 3 and 200

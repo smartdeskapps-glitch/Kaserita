@@ -13,6 +13,16 @@
 -- Paso 1: columna del interruptor. Por defecto viene activado (true)
 -- para no cortarle la subida de golpe a las bodegas que ya la estaban
 -- usando.
+-- ============================================================
+-- ¡NO VOLVER A CORRER! Script histórico, bloqueado a propósito (auditoría 2026-11).
+-- Motivo: recrea admin_crear_bodega con PIN en texto plano (eliminada en quitar_acceso_dni_pin.sql).
+-- ============================================================
+do $$
+begin
+  raise exception 'SCRIPT HISTORICO BLOQUEADO: no correr permitir_fotos_bodega_flag.sql. Motivo: recrea admin_crear_bodega con PIN en texto plano (eliminada en quitar_acceso_dni_pin.sql). Estado vigente y orden de scripts: README.md (sección Base de datos). Para una base nueva usa un dump de produccion (supabase db dump). Si de verdad hace falta, borra este bloque a mano.';
+end $$;
+
+
 alter table public.bodegas add column if not exists permitir_subir_fotos boolean not null default true;
 
 -- Paso 2: función que dice si la bodega de quien hace la petición tiene

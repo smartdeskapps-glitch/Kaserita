@@ -2,8 +2,7 @@
 -- Kaserita: crear bodegas con el CORREO del dueño (sin DNI ni PIN).
 -- Ejecutar a mano en el SQL Editor de Supabase. Es ADITIVO: agrega una
 -- columna, dos funciones nuevas y afloja dos restricciones; no borra ni
--- cambia nada existente. Las bodegas que ya entran con DNI + PIN siguen
--- funcionando igual.
+-- cambia nada existente.
 --
 -- Cómo funciona:
 --   1) El super-admin crea la bodega desde el panel escribiendo el correo
@@ -104,6 +103,7 @@ grant execute on function public.admin_crear_bodega_por_correo(text, text, text,
 -- 4) Vincular la cuenta de Google del dueño con su bodega (la llama la app
 --    sola, en el primer ingreso). Devuelve el id de la bodega, o null si ese
 --    correo no tiene ninguna bodega pendiente.
+-- (Versión endurecida: rechaza cuentas con correo+contraseña; ver quitar_acceso_dni_pin.sql.)
 create or replace function public.reclamar_cuenta_por_correo()
 returns uuid
 language plpgsql
@@ -119,17 +119,20 @@ begin
     raise exception 'Sesión requerida.';
   end if;
 
-  -- Si esta cuenta ya está vinculada, no hay nada que hacer.
   if exists (select 1 from usuarios where auth_id = auth.uid()) then
     return (select bodega_id from usuarios where auth_id = auth.uid() limit 1);
   end if;
 
-  -- Solo cuentas que entraron con Google, con el correo que Google verificó.
+  -- Una cuenta con contraseña (registrada a mano por correo) no puede reclamar.
+  if exists (select 1 from auth.identities where user_id = auth.uid() and provider = 'email') then
+    return null;
+  end if;
+
   select lower(identity_data->>'email') into v_correo
   from auth.identities
   where user_id = auth.uid()
     and provider = 'google'
-    and coalesce((identity_data->>'email_verified')::boolean, true)
+    and coalesce((identity_data->>'email_verified')::boolean, false)
   limit 1;
 
   if v_correo is null or v_correo = '' then

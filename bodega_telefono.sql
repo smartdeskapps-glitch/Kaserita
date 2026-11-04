@@ -7,6 +7,16 @@
 -- admin_crear_bodega_atomico.sql.
 -- ============================================================
 
+-- ============================================================
+-- ¡NO VOLVER A CORRER! Script histórico, bloqueado a propósito (auditoría 2026-11).
+-- Motivo: recrea admin_crear_bodega con PIN en texto plano (eliminada en quitar_acceso_dni_pin.sql).
+-- ============================================================
+do $$
+begin
+  raise exception 'SCRIPT HISTORICO BLOQUEADO: no correr bodega_telefono.sql. Motivo: recrea admin_crear_bodega con PIN en texto plano (eliminada en quitar_acceso_dni_pin.sql). Estado vigente y orden de scripts: README.md (sección Base de datos). Para una base nueva usa un dump de produccion (supabase db dump). Si de verdad hace falta, borra este bloque a mano.';
+end $$;
+
+
 alter table public.usuarios add column if not exists telefono text;
 
 -- Se agrega p_telefono al final con default null: los llamados viejos
