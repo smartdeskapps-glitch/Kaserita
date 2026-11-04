@@ -37,7 +37,7 @@ Los cambios de base de datos son archivos `.sql` en la raíz que se ejecutan **a
 | Archivo | Para qué |
 |---|---|
 | `errores_app.sql`, `analitica_eventos.sql`, `libro_reclamaciones.sql` | Tablas de registro de errores, conteo de visitas y Libro de Reclamaciones |
-| `registrar_venta_atomica.sql`, `anular_venta_atomica.sql`, `dashboard_*.sql`, `serie_boleta_por_bodega.sql` | Funciones de ventas y reportes |
+| `registrar_venta_atomica.sql`, `anular_venta_atomica.sql`, `registrar_entrada_mercaderia.sql`, `dashboard_*.sql`, `serie_boleta_por_bodega.sql` | Funciones de ventas, entradas de mercadería (en una sola transacción) y reportes |
 | `revocar_privilegios_anon.sql`, `revocar_ejecucion_funciones.sql` | Segunda capa de seguridad: quitan permisos a `anon` (hay `_REVERSA` de emergencia) |
 | `indices_llaves_foraneas.sql` | Índices en llaves foráneas. Aplicado el 2026-10-27 |
 | `probar_aislamiento_entre_negocios.sql` | Prueba (con ROLLBACK) de que un dueño no ve datos de otro negocio. Requiere dos negocios de prueba reales |

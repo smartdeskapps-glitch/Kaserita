@@ -1,8 +1,9 @@
-import React, { useState, useEffect, useRef, useMemo, useCallback, Suspense } from 'react';
+import React, { useState, useEffect, useRef, useMemo, useCallback, useDeferredValue, Suspense } from 'react';
 import ReactDOM from 'react-dom/client';
 import RielLateral from './RielLateral.jsx';
 import PaletaMenu from './PaletaMenu.jsx';
 import { createPortal } from 'react-dom';
+import { filtrarProductos } from './lib/busqueda.js';
 import { createClient } from '@supabase/supabase-js';
 import './index.css';
 import {
@@ -3218,7 +3219,11 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
       // Número de la última carga pedida: si una respuesta lenta de una búsqueda anterior
       // llega después de la más reciente, se descarta en vez de pisarla.
       const cargaProductosSeqRef = useRef(0);
-      const cargarProductos = async (termino = '') => {
+      // Descarga SIEMPRE el catálogo completo de la bodega. La búsqueda se filtra en
+      // memoria (productosFiltrados): es instantánea, funciona sin internet y no
+      // consulta al servidor por cada búsqueda. El parámetro se ignora; queda para
+      // no tocar las llamadas existentes.
+      const cargarProductos = async () => {
         if (!bodegaId) return;
         const miCarga = ++cargaProductosSeqRef.current;
 
@@ -3228,22 +3233,17 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
         // de ejemplo cada vez que algo refresca el catálogo.
         if (esModoDemo) {
           if (!catalogoDemoRef.current) catalogoDemoRef.current = catalogoDemoInicial();
-          const base = catalogoDemoRef.current.filter((p) => p.activo !== false);
-          const b = termino.trim().toLowerCase();
-          const visibles = b
-            ? base.filter((p) => (p.cod_ean || '').toLowerCase().includes(b) || (p.descripcion || '').toLowerCase().includes(b) || (p.categoria || '').toLowerCase().includes(b))
-            : base;
-          setProductos(visibles);
+          setProductos(catalogoDemoRef.current.filter((p) => p.activo !== false));
           setCargandoProductos(false);
           return;
         }
 
-        // Primera carga de esta bodega en la sesión, sin búsqueda: se muestra
+        // Primera carga de esta bodega en la sesión: se muestra
         // al instante el último catálogo guardado en este equipo mientras
         // llega el actualizado (stock y precios se corrigen solos al terminar).
         let desdeCache = false;
         const claveCache = `kz_catalogo_${bodegaId}`;
-        if (!termino.trim() && catalogoCacheadoRef.current !== bodegaId) {
+        if (catalogoCacheadoRef.current !== bodegaId) {
           catalogoCacheadoRef.current = bodegaId;
           try {
             const guardado = JSON.parse(localStorage.getItem(claveCache) || 'null');
@@ -3265,10 +3265,6 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
                 .order('id', { ascending: true })
                 .limit(TAMANO_LOTE_CATALOGO);
               if (desdeId) q = q.gt('id', desdeId);
-              if (termino.trim()) {
-                const b = termino.trim();
-                q = q.or(`cod_ean.ilike.%${b}%,descripcion.ilike.%${b}%,categoria.ilike.%${b}%`);
-              }
               return q;
             };
 
@@ -3325,7 +3321,7 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
               const igual = nuevos.length === prev.length && nuevos.every((x, i) => x === prev[i]);
               return igual ? prev : nuevos;
             });
-            if (!termino.trim()) {
+            {
               // En un momento libre y solo si cambió: serializar y escribir cientos de
               // productos en localStorage bloquea el hilo justo cuando se pinta la lista.
               const guardarCache = () => {
@@ -3955,16 +3951,11 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
         }
       };
 
-      // Filtrado en vivo: mientras se escribe en el buscador, se vuelve a
-      // consultar el catálogo con un pequeño retraso (debounce) para no
-      // disparar una consulta por cada tecla presionada.
-      useEffect(() => {
-        if (!sesion || !bodegaId) return;
-        const t = setTimeout(() => {
-          cargarProductos(busqueda);
-        }, 350);
-        return () => clearTimeout(t);
-      }, [busqueda]);
+      // Filtrado en vivo: el buscador filtra el catálogo que ya está en memoria
+      // (ver productosFiltrados). useDeferredValue deja que el campo de texto
+      // responda al toque aunque el catálogo sea grande.
+      const busquedaDiferida = useDeferredValue(busqueda);
+      const textoBuscableRef = useRef(new WeakMap());
 
       // Categorías: en el filtro solo se muestran las que ya tienen al menos
       // un producto cargado (la lista completa de categoriasDB se sigue
@@ -3981,9 +3972,9 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
       const verCombosDesdeTarjeta = useCallback(() => setCategoriaFiltro('__COMBOS__'), []);
 
       const productosFiltrados = useMemo(() => {
-        if (categoriaFiltro === 'TODOS') return productos;
-        return productos.filter(p => p.categoria === categoriaFiltro);
-      }, [productos, categoriaFiltro]);
+        const porCategoria = categoriaFiltro === 'TODOS' ? productos : productos.filter(p => p.categoria === categoriaFiltro);
+        return filtrarProductos(porCategoria, busquedaDiferida, textoBuscableRef.current);
+      }, [productos, categoriaFiltro, busquedaDiferida]);
 
       // La grilla dibuja los productos por tandas: con catálogos de miles de ítems,
       // montar todas las tarjetas de golpe congela el celular. Al acercarse al final
@@ -4657,9 +4648,8 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
           if (coincidencias.length === 1) {
             handleClicProducto(coincidencias[0]);
             setBusqueda('');
-          } else {
-            cargarProductos(term);
           }
+          // Si hay varias o ninguna, la grilla ya muestra el resultado del filtro en memoria.
         }
       };
 
@@ -7166,58 +7156,84 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
               });
             }
           } else if (sbClient) {
-            const { data: cData, error: cErr } = await sbClient
-              .from('compras')
-              .insert([{
-                bodega_id: bodegaId,
-                cajero_id: cajeroSeleccionado?.id,
+            // Todo en una transacción (registrar_entrada_mercaderia.sql): compra,
+            // detalle, stock y costo, en un solo viaje de red.
+            const { error: errEntrada } = await sbClient.rpc('registrar_entrada_mercaderia', {
+              p_compra: {
+                cajero_id: cajeroSeleccionado?.id || null,
                 proveedor_nombre: compraCabecera.proveedor || null,
-                nro_factura: compraCabecera.nroComprobante || `COMP-${Date.now().toString().slice(-6)}`,
+                nro_factura: compraCabecera.nroComprobante || null,
                 total: totalCompra,
-                fecha_registro: new Date().toISOString()
-              }])
-              .select()
-              .single();
+              },
+              p_items: compraItems.map((it) => ({
+                producto_id: it.productoId,
+                cantidad: it.cantidad,
+                costo_unitario: it.costoUnitario,
+                subtotal: it.subtotal,
+                unidades_stock: Number(it.cantidadStock ?? it.cantidad),
+              })),
+            });
+            const sinFuncion = errEntrada && (errEntrada.code === 'PGRST202' || errEntrada.code === '42883');
+            if (errEntrada && !sinFuncion) throw errEntrada;
+            if (sinFuncion) {
+              // La función todavía no se ejecutó en Supabase: camino anterior.
+              const { data: cData, error: cErr } = await sbClient
+                .from('compras')
+                .insert([{
+                  bodega_id: bodegaId,
+                  cajero_id: cajeroSeleccionado?.id,
+                  proveedor_nombre: compraCabecera.proveedor || null,
+                  nro_factura: compraCabecera.nroComprobante || `COMP-${Date.now().toString().slice(-6)}`,
+                  total: totalCompra,
+                  fecha_registro: new Date().toISOString()
+                }])
+                .select()
+                .single();
 
-            if (cErr) throw cErr;
+              if (cErr) throw cErr;
 
-            const detalles = compraItems.map(item => ({
-              compra_id: cData.id,
-              bodega_id: bodegaId,
-              producto_id: item.productoId,
-              cantidad: item.cantidad,
-              costo_unitario: item.costoUnitario,
-              subtotal: item.subtotal
-            }));
-            const { error: detErr } = await sbClient.from('compras_detalle').insert(detalles);
-            if (detErr) throw detErr;
+              const detalles = compraItems.map(item => ({
+                compra_id: cData.id,
+                bodega_id: bodegaId,
+                producto_id: item.productoId,
+                cantidad: item.cantidad,
+                costo_unitario: item.costoUnitario,
+                subtotal: item.subtotal
+              }));
+              const { error: detErr } = await sbClient.from('compras_detalle').insert(detalles);
+              if (detErr) throw detErr;
 
-            // Actualizar precio de costo y sumar el stock recibido en cada
-            // producto (el stock se ajusta de forma atómica por separado).
-            // Si el producto no tenía seguimiento de stock (null), la propia
-            // entrada de mercadería lo inicializa con lo recibido.
-            // Cada línea de la compra es un producto distinto -- se procesan
-            // todas a la vez en vez de esperar una por una (una factura con
-            // 30 líneas antes hacía 30 viajes de red seguidos).
-            await Promise.all(compraItems.map(async (it) => {
-              const unidadesStock = Number(it.cantidadStock ?? it.cantidad);
-              // ajustar_stock_inicializando suma y, si el producto no tenía stock
-              // (null), lo inicializa, todo en una sola sentencia (sin carrera).
-              // Si esa función todavía no existe, se usa el camino anterior.
-              const { error: errInicializando } = await sbClient.rpc('ajustar_stock_inicializando', { p_producto_id: it.productoId, p_delta: unidadesStock });
-              if (errInicializando) {
-                const { data: nuevoStock } = await sbClient.rpc('ajustar_stock', { p_producto_id: it.productoId, p_delta: unidadesStock });
-                if (nuevoStock === null) {
-                  await sbClient.from('productos').update({ stock_actual: unidadesStock }).eq('id', it.productoId);
+              // Actualizar precio de costo y sumar el stock recibido en cada
+              // producto (el stock se ajusta de forma atómica por separado).
+              // Si el producto no tenía seguimiento de stock (null), la propia
+              // entrada de mercadería lo inicializa con lo recibido.
+              // Cada línea de la compra es un producto distinto -- se procesan
+              // todas a la vez en vez de esperar una por una (una factura con
+              // 30 líneas antes hacía 30 viajes de red seguidos).
+              await Promise.all(compraItems.map(async (it) => {
+                const unidadesStock = Number(it.cantidadStock ?? it.cantidad);
+                // ajustar_stock_inicializando suma y, si el producto no tenía stock
+                // (null), lo inicializa, todo en una sola sentencia (sin carrera).
+                // Si esa función todavía no existe, se usa el camino anterior.
+                const { error: errInicializando } = await sbClient.rpc('ajustar_stock_inicializando', { p_producto_id: it.productoId, p_delta: unidadesStock });
+                if (errInicializando) {
+                  const { data: nuevoStock } = await sbClient.rpc('ajustar_stock', { p_producto_id: it.productoId, p_delta: unidadesStock });
+                  if (nuevoStock === null) {
+                    await sbClient.from('productos').update({ stock_actual: unidadesStock }).eq('id', it.productoId);
+                  }
                 }
-              }
-              await sbClient.from('productos').update({ precio_costo: it.costoUnitario }).eq('id', it.productoId);
-            }));
+                await sbClient.from('productos').update({ precio_costo: it.costoUnitario }).eq('id', it.productoId);
+              }));
+            }
           }
 
+          const idsEntrada = compraItems.map((it) => it.productoId);
           vaciarEntradaMercaderia();
           setEntradaRegistrada(resumen);
-          cargarProductos();
+          // Solo se vuelven a leer los productos de la entrada (no todo el catálogo).
+          // Si alguno se creó recién en esta entrada y aún no está en la grilla, sí se recarga todo.
+          if (idsEntrada.some((id) => !productos.some((p) => p.id === id))) cargarProductos();
+          else refrescarProductosPorId(idsEntrada);
         } catch (err) {
           notificar(mensajeError(err, 'Error al registrar la entrada'), 'error');
         } finally {
