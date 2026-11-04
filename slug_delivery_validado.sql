@@ -1,8 +1,9 @@
 -- ============================================================
 -- Kaserita: el link de pedidos (bodegas.slug) ahora se valida (hallazgo M5).
 -- Ejecutar a mano en el SQL Editor de Supabase. Idempotente.
--- Va DESPUÉS de autorizacion_por_rol.sql (esta función la reemplaza y conserva
--- la exigencia de administración desbloqueada).
+-- Va DESPUÉS de autorizacion_por_rol.sql (usa es_admin_elevado). Reemplaza las
+-- versiones de producción de actualizar_mi_delivery (6 parámetros) y
+-- actualizar_mi_entrega_domicilio, conservando lo que hacen y exigiendo el PIN.
 --
 -- Antes: cualquier texto, sin largo, sin nombres reservados y sin mirar la
 -- vigencia de la bodega. Como el link no se puede cambiar una vez asignado
@@ -14,7 +15,19 @@
 -- bodega debe estar activa y vigente.
 -- ============================================================
 
-create or replace function public.actualizar_mi_delivery(p_slug text, p_delivery_habilitado boolean)
+-- Firma real de producción: 6 parámetros (link, tienda visible, logo, banner,
+-- dirección y horario). Se reemplaza esa misma función: crear otra versión con
+-- menos parámetros dejaría dos candidatas y la app no podría guardar.
+drop function if exists public.actualizar_mi_delivery(text, boolean);
+
+create or replace function public.actualizar_mi_delivery(
+  p_slug text,
+  p_delivery_habilitado boolean,
+  p_logo_url text default null,
+  p_banner_url text default null,
+  p_direccion text default null,
+  p_horario_atencion jsonb default null
+)
 returns void
 language plpgsql
 security definer
@@ -53,18 +66,73 @@ begin
 
   select delivery_permitido into v_permitido from bodegas where id = v_bodega_id;
   if p_delivery_habilitado and not coalesce(v_permitido, false) then
-    raise exception 'Esta bodega todavía no tiene habilitados los Pedidos por WhatsApp. Contactá al administrador.';
+    raise exception 'Esta bodega todavía no tiene habilitados los Pedidos por WhatsApp. Contacta al administrador.';
   end if;
 
   update bodegas
     set slug = v_slug,
-        delivery_habilitado = p_delivery_habilitado
+        delivery_habilitado = p_delivery_habilitado,
+        logo_url = p_logo_url,
+        banner_url = p_banner_url,
+        direccion = nullif(trim(p_direccion), ''),
+        horario_atencion = p_horario_atencion
     where id = v_bodega_id;
 end;
 $$;
 
-revoke execute on function public.actualizar_mi_delivery(text, boolean) from public, anon;
-grant execute on function public.actualizar_mi_delivery(text, boolean) to authenticated;
+-- La entrega a domicilio (costo, mínimo, zona, WhatsApp del repartidor) también
+-- es de administración: misma función de producción + exigir el PIN.
+create or replace function public.actualizar_mi_entrega_domicilio(
+  p_habilitado boolean,
+  p_costo_envio numeric,
+  p_pedido_minimo numeric,
+  p_zona text default null,
+  p_whatsapp_repartidor text default null
+)
+returns void
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_bodega_id uuid := public.mi_bodega_id();
+  v_permitido boolean;
+  v_wsp text;
+begin
+  if not public.es_admin_elevado() then
+    raise exception 'Desbloquea la administración con tu PIN para hacer esto.' using errcode = '42501';
+  end if;
+  if v_bodega_id is null then
+    raise exception 'No autorizado.';
+  end if;
+  select delivery_permitido into v_permitido from bodegas where id = v_bodega_id;
+  if p_habilitado and not coalesce(v_permitido, false) then
+    raise exception 'Esta bodega todavía no tiene habilitados los Pedidos por WhatsApp. Contacta al administrador.';
+  end if;
+  if p_costo_envio is null or p_costo_envio < 0 or p_costo_envio > 200 then
+    raise exception 'El costo de envío debe estar entre 0 y 200.';
+  end if;
+  if p_pedido_minimo is null or p_pedido_minimo < 0 or p_pedido_minimo > 5000 then
+    raise exception 'El pedido mínimo debe estar entre 0 y 5000.';
+  end if;
+  v_wsp := nullif(regexp_replace(coalesce(p_whatsapp_repartidor, ''), '\D', '', 'g'), '');
+  if v_wsp is not null and length(v_wsp) not between 7 and 15 then
+    raise exception 'El WhatsApp del repartidor no es válido.';
+  end if;
+  update bodegas
+    set delivery_domicilio = coalesce(p_habilitado, false),
+        costo_envio = p_costo_envio,
+        pedido_minimo = p_pedido_minimo,
+        zona_reparto = nullif(left(trim(coalesce(p_zona, '')), 120), ''),
+        whatsapp_repartidor = v_wsp
+    where id = v_bodega_id;
+end;
+$$;
+
+revoke execute on function public.actualizar_mi_delivery(text, boolean, text, text, text, jsonb) from public, anon;
+grant execute on function public.actualizar_mi_delivery(text, boolean, text, text, text, jsonb) to authenticated;
+revoke execute on function public.actualizar_mi_entrega_domicilio(boolean, numeric, numeric, text, text) from public, anon;
+grant execute on function public.actualizar_mi_entrega_domicilio(boolean, numeric, numeric, text, text) to authenticated;
 
 -- Unicidad también en la base (por si otra ruta escribe el slug). Si ya hay
 -- repetidos, avisa y sigue: resuélvelos a mano y vuelve a correr este bloque.
