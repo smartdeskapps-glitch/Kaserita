@@ -32,6 +32,7 @@ Los cambios de base de datos son archivos `.sql` en la raíz que se ejecutan **a
 | `probar_aislamiento_entre_negocios.sql` | Prueba (con ROLLBACK) de que un dueño no ve datos de otro negocio. Requiere dos negocios de prueba reales |
 | `quitar_acceso_dni_pin.sql` | Borra el acceso viejo DNI+PIN: cuentas `bodega_…@kaserita.app`, funciones, tabla y columna `pin_acceso`. Ejecutar **después** de publicar la app sin el formulario DNI+PIN |
 | `autorizacion_por_rol.sql` | Roles en el servidor: PIN de Dueño/Administrador para las escrituras de administración. Ejecutar **después** de publicar la app nueva |
+| `auditoria_ampliar.sql` | El registro de actividad deja de tragarse errores (WARNING en logs) y suma pagos de clientes, límites de crédito, bajas de clientes y cuentas de acceso |
 | `auditar_correos_con_acceso.sql` | Solo lectura: superadmins, correos con acceso a cada bodega, invitaciones pendientes y cuentas sospechosas |
 | `revocar_privilegios_anon.sql` | Opcional: quita permisos de tabla al rol `anon` (segunda capa de seguridad) |
 

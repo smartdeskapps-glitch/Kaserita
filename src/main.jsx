@@ -36,7 +36,7 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
         return v.toString(16);
       });
     };
-    const asegurarJsPDF = () => cargarScriptExterno('https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js', 'sha384-JcnsjUPPylna1s1fvi1u12X5qjY5OL56iySh75FdtrwhO/SWXgMjoVqcKyIIWOLk');
+    const asegurarJsPDF = () => cargarScriptExterno('https://cdn.jsdelivr.net/npm/jspdf@4.2.1/dist/jspdf.umd.min.js', 'sha384-qovJwSBbRDPP5cEjCp8S0UP66wrvnjaa60XMOGzTNanrThcrGfXfnZkvgY8N1KT3');
     const asegurarConfetti = () => cargarScriptExterno('https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js', 'sha384-HAH79XdRvHr6axVGh4xQWVCp14kcd32bNk4Xu0sHDHtFQ42n6BAM8ykvB47dGz6D');
     const asegurarZXing = () => cargarScriptExterno('https://cdn.jsdelivr.net/npm/zxing-wasm@3.1.3/dist/iife/reader/index.min.js', 'sha384-O/6uuumgOqcsO9GVD2Hjpf/o2fd6DPoIP81jBYJkCaRTdS/dFV6i9kW3tQ2PP0FZ');
 
@@ -326,6 +326,15 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
     // se muestra; si es un texto técnico (en inglés o de la base de datos) se cambia por
     // un aviso corto, y el detalle queda solo en la consola.
     const TEXTO_TECNICO = /(violates|constraint|duplicate key|jwt|relation |column |function |permission denied|row-level|null value|syntax|fetch|network|timeout|failed|exception|undefined|\bpg|pgrst|supabase|postgres|schema|cannot|could not|invalid|already exists|\bnull\b)/i;
+    // Enlace a Google Maps solo si latitud y longitud son números reales
+    // (vienen de clientes anónimos de la tienda: no se confía en el texto).
+    function urlMapa(lat, lng) {
+      const la = Number(lat), lo = Number(lng);
+      if (lat === null || lng === null || lat === '' || lng === '' || !Number.isFinite(la) || !Number.isFinite(lo)) return null;
+      if (Math.abs(la) > 90 || Math.abs(lo) > 180) return null;
+      return `https://www.google.com/maps?q=${la},${lo}`;
+    }
+
     function mensajeError(err, base) {
       const generico = 'No se pudo completar la acción';
       const limpio = String(base || generico).replace(/[\s.:]+$/, '');
@@ -897,12 +906,10 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
 
     function PosApp() {
       // --- Supabase Config ---
-      const [supabaseUrl, setSupabaseUrl] = useState(
-        localStorage.getItem('pos_sb_url') || import.meta.env.VITE_SUPABASE_URL || 'https://hzmrsbeamtbloudmxjrp.supabase.co'
-      );
-      const [supabaseKey, setSupabaseKey] = useState(
-        localStorage.getItem('pos_sb_key') || import.meta.env.VITE_SUPABASE_ANON_KEY || 'sb_publishable_RHAkd7pZIadDnSQClFdjMQ_lrG3p-gw'
-      );
+      // Fijos al construir la app: ya no se leen de localStorage (un script
+      // inyectado o alguien con el equipo podía apuntar el login a otro backend).
+      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || 'https://hzmrsbeamtbloudmxjrp.supabase.co';
+      const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY || 'sb_publishable_RHAkd7pZIadDnSQClFdjMQ_lrG3p-gw';
 
       // Reemplazo de prompt()/confirm() nativos: en muchos navegadores
       // móviles (sobre todo con la app instalada como PWA) esos diálogos
@@ -1842,9 +1849,14 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
       // Copia de la sesión (usuario y bodega) para poder abrir la app si al
       // arrancar no se puede comprobar con internet. Se borra al cerrar sesión.
       const CLAVE_SESION_COPIA = 'kz_sesion_ultima';
+      // Solo lo que la app necesita para abrir sin conexión: nada de teléfono ni correo.
+      const copiaMinimaUsuario = (u) => (u ? {
+        id: u.id, auth_id: u.auth_id, bodega_id: u.bodega_id, nombre: u.nombre,
+        rol: u.rol, dni: u.dni || null, activo: u.activo,
+      } : u);
       useEffect(() => {
         if (!sesion || esModoDemo) return;
-        try { localStorage.setItem(CLAVE_SESION_COPIA, JSON.stringify({ usuario: sesion.usuario, bodega: sesion.bodega })); } catch (err) { /* sin almacenamiento: se sigue igual */ }
+        try { localStorage.setItem(CLAVE_SESION_COPIA, JSON.stringify({ usuario: copiaMinimaUsuario(sesion.usuario), bodega: sesion.bodega })); } catch (err) { /* sin almacenamiento: se sigue igual */ }
       }, [sesion]);
       const motivoCierreRef = useRef(null);
       const cerrandoSesionRef = useRef(false);
@@ -2431,7 +2443,7 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
           '',
           `Cobrar S/ ${total.toFixed(2)}${medio ? ` en ${medio}` : ''}${p.medio_pago === 'efectivo' && pagaCon > 0 ? ` (paga con S/ ${pagaCon.toFixed(2)}, vuelto S/ ${Math.max(0, pagaCon - total).toFixed(2)})` : ''}`,
           '',
-          `Ubicación: https://www.google.com/maps?q=${p.entrega_lat},${p.entrega_lng}`,
+          `Ubicación: ${urlMapa(p.entrega_lat, p.entrega_lng) || '(sin ubicación)'}`,
         ].join('\n');
         const tel = (sesion?.bodega?.whatsapp_repartidor || '').replace(/\D/g, '');
         window.open(`https://wa.me/${tel}?text=${encodeURIComponent(mensaje)}`, '_blank', 'noopener,noreferrer');
@@ -9787,7 +9799,7 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
                         <span className="text-sm font-semibold text-stone-900 tabular-nums">S/ {totalPedido.toFixed(2)}</span>
                       </div>
 
-                      {esDomicilioPedido && !esHistorial && p.entrega_lat != null && p.entrega_lng != null && (
+                      {esDomicilioPedido && !esHistorial && urlMapa(p.entrega_lat, p.entrega_lng) && (
                         <div className="flex gap-2">
                           <button
                             onClick={() => enviarPedidoAlRepartidor(p)}
@@ -9796,7 +9808,7 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
                             <IconoTrazo nombre="chat" className="w-3.5 h-3.5" /> Enviar al repartidor
                           </button>
                           <a
-                            href={`https://www.google.com/maps?q=${p.entrega_lat},${p.entrega_lng}`}
+                            href={urlMapa(p.entrega_lat, p.entrega_lng)}
                             target="_blank"
                             rel="noopener noreferrer"
                             className="px-3 py-2 rounded-lg bg-[#ebf0ff] hover:bg-[#dde4fa] text-[#2d284b] text-xs font-semibold flex items-center gap-1.5 transition"

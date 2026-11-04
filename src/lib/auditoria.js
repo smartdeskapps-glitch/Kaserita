@@ -10,6 +10,7 @@ export const AUDITORIA_CAMPOS = {
   estado: ['Estado', 'estado'], monto_inicial: ['Monto inicial', 'dinero'],
   monto_final_real: ['Efectivo contado', 'dinero'], diferencia: ['Diferencia', 'dinero'],
   rol: ['Rol', 'texto'], nombre: ['Nombre', 'texto'], pin_seguridad: ['PIN de seguridad', 'texto'],
+  limite_credito: ['Límite de crédito', 'dinero'],
 };
 
 const UUID_RE = /[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/gi;
@@ -39,6 +40,11 @@ export function describirAuditoria(f) {
   }
   else if (f.tabla === 'cajeros') titulo = `Empleado ${op === 'INSERT' ? 'creado' : op === 'DELETE' ? 'eliminado' : 'modificado'}${con}`;
   else if (f.tabla === 'mermas') titulo = `Merma ${op === 'DELETE' ? 'eliminada' : 'registrada'}${con}`;
+  else if (f.tabla === 'pagos_credito') titulo = op === 'DELETE' ? `Pago de deuda borrado${con}` : `Pago de deuda de cliente registrado${con}`;
+  else if (f.tabla === 'pagos_proveedor') titulo = `Pago a proveedor registrado${con}`;
+  else if (f.tabla === 'clientes') titulo = `Cliente ${op === 'DELETE' ? 'eliminado' : 'modificado'}${con}`;
+  else if (f.tabla === 'compras') titulo = `Compra ${op === 'DELETE' ? 'eliminada' : 'registrada'}${con}`;
+  else if (f.tabla === 'usuarios') titulo = `Cuenta de acceso ${op === 'INSERT' ? 'creada' : op === 'DELETE' ? 'eliminada' : 'modificada'}${con}`;
   else titulo = (f.resumen || 'Cambio registrado').replace(UUID_RE, '').replace(/ {2,}/g, ' ').trim();
   const detalle = Object.entries(cambios)
     .filter(([k]) => !(f.tabla === 'turnos_caja' && k === 'estado'))

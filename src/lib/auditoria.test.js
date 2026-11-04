@@ -74,6 +74,14 @@ describe('describirAuditoria', () => {
     expect(describirAuditoria({ tabla: 'cajeros', operacion: 'DELETE', resumen: 'Empleado eliminado: Cajero QA', cambios: null }).titulo).toBe('Empleado eliminado: Cajero QA');
     expect(describirAuditoria({ tabla: 'mermas', operacion: 'INSERT', resumen: 'Merma creado', cambios: null }).titulo).toBe('Merma registrada');
   });
+  it('pagos, clientes y cuentas de acceso: títulos propios', () => {
+    expect(describirAuditoria({ tabla: 'pagos_credito', operacion: 'INSERT', resumen: 'Pago de deuda de cliente creado: S/ 50', cambios: null }).titulo).toBe('Pago de deuda de cliente registrado: S/ 50');
+    expect(describirAuditoria({ tabla: 'pagos_credito', operacion: 'DELETE', resumen: 'Pago de deuda de cliente eliminado: S/ 50', cambios: null }).titulo).toBe('Pago de deuda borrado: S/ 50');
+    const c = describirAuditoria({ tabla: 'clientes', operacion: 'UPDATE', resumen: 'Cliente modificado: Ana', cambios: { limite_credito: { antes: 200, despues: 900 } } });
+    expect(c.titulo).toBe('Cliente modificado: Ana');
+    expect(c.detalle).toEqual(['Límite de crédito: S/ 200.00 → S/ 900.00']);
+    expect(describirAuditoria({ tabla: 'usuarios', operacion: 'DELETE', resumen: 'Cuenta de acceso eliminado: Luis', cambios: null }).titulo).toBe('Cuenta de acceso eliminada: Luis');
+  });
   it('tabla desconocida: usa el resumen sin UUID', () => {
     const r = describirAuditoria({ tabla: 'otra', operacion: 'UPDATE', resumen: `Algo ${UUID} cambió`, cambios: null });
     expect(r.titulo).toBe('Algo cambió');

@@ -10,18 +10,41 @@
 // La clave publishable es publica (ya viaja en el JS del POS); no hay secretos aqui.
 import { readFile } from 'node:fs/promises';
 import path from 'node:path';
+import { createHash } from 'node:crypto';
 
 const SUPABASE_URL = 'https://hzmrsbeamtbloudmxjrp.supabase.co';
 const SUPABASE_KEY = 'sb_publishable_RHAkd7pZIadDnSQClFdjMQ_lrG3p-gw';
 const RAIZ = path.join(process.cwd(), 'manual-privado');
 
-// Una pagina del manual pide ~50 imagenes seguidas: se recuerda unos minutos
-// que el token ya fue comprobado para no consultar Supabase en cada una.
-const VIGENCIA_MS = 5 * 60 * 1000;
+// Una pagina del manual pide ~50 imagenes seguidas: se recuerda 1 minuto que el
+// token ya fue comprobado para no consultar Supabase en cada una. Se guarda el
+// hash del token (no el token) y la vigencia es corta para que un acceso
+// revocado o una bodega vencida dejen de recibir contenido casi de inmediato.
+const VIGENCIA_MS = 60 * 1000;
 const aceptados = new Map();
 
+// Freno simple por IP (memoria de la instancia; no es un limite global, pero
+// corta el abuso mas obvio sin consultar Supabase).
+const VENTANA_MS = 60 * 1000;
+const MAX_POR_VENTANA = 150;
+const intentos = new Map();
+function demasiados(ip) {
+  const ahora = Date.now();
+  const e = intentos.get(ip);
+  if (!e || e.hasta < ahora) {
+    if (intentos.size > 2000) intentos.clear();
+    intentos.set(ip, { n: 1, hasta: ahora + VENTANA_MS });
+    return false;
+  }
+  e.n += 1;
+  return e.n > MAX_POR_VENTANA;
+}
+
+const hoyLima = () => new Date().toLocaleDateString('en-CA', { timeZone: 'America/Lima' });
+
 async function personalDelNegocio(token) {
-  const hasta = aceptados.get(token);
+  const huella = createHash('sha256').update(token).digest('hex');
+  const hasta = aceptados.get(huella);
   if (hasta && hasta > Date.now()) return true;
 
   const cabeceras = { apikey: SUPABASE_KEY, Authorization: `Bearer ${token}` };
@@ -30,23 +53,32 @@ async function personalDelNegocio(token) {
   const { id } = await rUsuario.json();
   if (!id) return false;
 
-  // Con el token de la persona, la politica de la tabla solo deja ver su propia fila.
+  // Con el token de la persona, la politica de la tabla solo deja ver su propia
+  // fila (y la de su bodega). Debe estar activa y con la suscripcion vigente.
   const rFila = await fetch(
-    `${SUPABASE_URL}/rest/v1/usuarios?select=id&auth_id=eq.${encodeURIComponent(id)}&limit=1`,
+    `${SUPABASE_URL}/rest/v1/usuarios?select=id,activo,bodegas(activa,activa_hasta)&auth_id=eq.${encodeURIComponent(id)}&limit=1`,
     { headers: cabeceras }
   );
   if (!rFila.ok) return false;
   const filas = await rFila.json();
   if (!Array.isArray(filas) || filas.length === 0) return false;
+  const fila = filas[0];
+  if (fila.activo === false) return false;
+  const bodega = fila.bodegas;
+  if (!bodega || bodega.activa === false) return false;
+  if (bodega.activa_hasta && bodega.activa_hasta < hoyLima()) return false;
 
   if (aceptados.size > 500) aceptados.clear();
-  aceptados.set(token, Date.now() + VIGENCIA_MS);
+  aceptados.set(huella, Date.now() + VIGENCIA_MS);
   return true;
 }
 
 export default async function handler(req, res) {
   res.setHeader('Cache-Control', 'private, no-store');
   res.setHeader('X-Robots-Tag', 'noindex');
+
+  const ip = String(req.headers['x-forwarded-for'] || req.socket?.remoteAddress || 'desconocida').split(',')[0].trim();
+  if (demasiados(ip)) return res.status(429).json({ error: 'Demasiados pedidos. Espera un minuto.' });
 
   const token = (req.headers.authorization || '').replace(/^Bearer\s+/i, '').trim();
   if (!token) return res.status(401).json({ error: 'Falta iniciar sesión.' });
