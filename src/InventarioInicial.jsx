@@ -14,6 +14,7 @@ export default function InventarioInicial({
   desvincularFilaInventario,
   eliminarFilaInventario,
   esBarberia,
+  filaInventarioVacia,
   filaInventarioExpandidaIdx,
   filasInventario,
   guardandoInventario,

@@ -10812,6 +10812,7 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
                 categoriasDB={categoriasDB}
                 desvincularFilaInventario={desvincularFilaInventario}
                 eliminarFilaInventario={eliminarFilaInventario}
+                filaInventarioVacia={filaInventarioVacia}
                 esBarberia={esBarberia}
                 filaInventarioExpandidaIdx={filaInventarioExpandidaIdx}
                 filasInventario={filasInventario}
