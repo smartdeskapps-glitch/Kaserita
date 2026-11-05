@@ -1,4 +1,5 @@
 import React from 'react';
+import VentanaModulo from './VentanaModulo.jsx';
 
 // Modal separado de main.jsx: se carga al abrirlo (React.lazy). El estado y las acciones
 // siguen en PosApp: aquí solo se dibuja lo que recibe por props.
@@ -24,15 +25,15 @@ export default function HistorialInventario({
   return (
     <>
               {modalHistorialInventario && (
-                <div className="fixed inset-0 bg-stone-900/30 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-                  <div className="bg-gradient-to-br from-[#eef1fb] via-[#f8f9fd] to-[#f4f5fa] border border-white/80 rounded-[28px] max-w-lg w-full p-5 shadow-2xl space-y-3 max-h-[90vh] flex flex-col">
-                    <div className="flex justify-between items-center shrink-0">
-                      <h3 className="text-lg font-bold text-stone-900 flex items-center gap-2">
-                        <i className="fa-solid fa-scale-balanced text-orange-600"></i> Historial de Inventario
-                      </h3>
-                      <button aria-label="Cerrar" onClick={() => setModalHistorialInventario(false)} className="w-8 h-8 rounded-full bg-white/70 hover:bg-white text-stone-500 hover:text-stone-900 shadow-sm"><i className="fa-solid fa-xmark"></i></button>
-                    </div>
-
+                <VentanaModulo
+                  icono="fa-scale-balanced"
+                  titulo="Historial de inventario"
+                  subtitulo="Tomas de inventario anteriores y sus diferencias"
+                  onClose={() => setModalHistorialInventario(false)}
+                  ancho="max-w-2xl"
+                  desplazable={false}
+                >
+                  <div className="flex-1 min-h-0 flex flex-col p-4 sm:p-6 space-y-3">
                     <PestanasModal pestanas={[
                       { texto: 'Nueva toma', onClick: () => { setModalHistorialInventario(false); abrirTomaInventario(); } },
                       { texto: 'Historial', activa: true },
@@ -107,7 +108,7 @@ export default function HistorialInventario({
                       )}
                     </div>
                   </div>
-                </div>
+                </VentanaModulo>
               )}
     </>
   );

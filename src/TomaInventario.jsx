@@ -1,4 +1,5 @@
 import React from 'react';
+import VentanaModulo from './VentanaModulo.jsx';
 
 // Modal separado de main.jsx: se carga al abrirlo (React.lazy). El estado y las acciones
 // siguen en PosApp: aquí solo se dibuja lo que recibe por props.
@@ -43,32 +44,24 @@ export default function TomaInventario({
   return (
     <>
               {modalTomaInventario && (
-                <div className="ventana-riel fixed inset-0 bg-stone-900/30 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-                  <div className="bg-gradient-to-br from-[#eef1fb] via-[#f8f9fd] to-[#f4f5fa] border border-white/80 rounded-[28px] max-w-2xl w-full p-5 shadow-2xl space-y-3 max-h-[90vh] flex flex-col">
-                    <div className="flex justify-between items-start shrink-0">
-                      <div>
-                        <h3 className="text-lg font-bold text-stone-900 flex items-center gap-2">
-                          <i className="fa-solid fa-clipboard-check text-orange-600"></i> Toma de Inventario
-                          <span className="text-[10px] font-bold text-orange-600 bg-orange-100 px-2 py-0.5 rounded-full">
-                            Paso {pasoTomaInventario === 'conteo' ? '1' : '2'} de 2
-                          </span>
-                        </h3>
-                        <p className="text-xs text-stone-600 mt-0.5">
-                          {pasoTomaInventario === 'conteo'
-                            ? 'Busca cada producto y ve sumando lo que encuentres en cada lugar del local.'
-                            : 'Revisa lo contado contra el sistema y guarda para ajustar el stock.'}
-                        </p>
-                      </div>
-                      <div className="flex items-center gap-3 shrink-0">
-                        {filasTomaInventario.length > 0 && (
-                          <button onClick={vaciarConteoInventario} className="text-[11px] font-semibold text-rose-600 hover:text-rose-700">
-                            Vaciar
-                          </button>
-                        )}
-                        <button aria-label="Cerrar" onClick={() => setModalTomaInventario(false)} className="w-8 h-8 rounded-full bg-white/70 hover:bg-white text-stone-500 hover:text-stone-900 shadow-sm"><i className="fa-solid fa-xmark"></i></button>
-                      </div>
-                    </div>
-
+                <VentanaModulo
+                  icono="fa-clipboard-check"
+                  titulo="Toma de inventario"
+                  subtitulo={pasoTomaInventario === 'conteo'
+                    ? 'Busca cada producto y ve sumando lo que encuentres en cada lugar del local.'
+                    : 'Revisa lo contado contra el sistema y guarda para ajustar el stock.'}
+                  cifras={[
+                    { etiqueta: 'Paso', valor: `${pasoTomaInventario === 'conteo' ? '1' : '2'} de 2` },
+                    filasTomaInventario.length > 0 && { etiqueta: 'Productos contados', valor: filasTomaInventario.length },
+                  ]}
+                  acciones={filasTomaInventario.length > 0 && (
+                    <button type="button" onClick={vaciarConteoInventario} className="h-9 px-3.5 rounded-full text-[12.5px] font-bold text-[#c0262d] hover:bg-[#fde0e5] shrink-0 transition">Vaciar</button>
+                  )}
+                  onClose={() => setModalTomaInventario(false)}
+                  ancho="max-w-2xl"
+                  desplazable={false}
+                >
+                  <div className="flex-1 min-h-0 flex flex-col p-4 sm:p-6 space-y-3">
                     <PestanasModal pestanas={[
                       { texto: 'Nueva toma', activa: true },
                       { texto: 'Historial', onClick: () => { setModalTomaInventario(false); abrirHistorialInventario(); } },
@@ -327,7 +320,7 @@ export default function TomaInventario({
                       </>
                     )}
                   </div>
-                </div>
+                </VentanaModulo>
               )}
     </>
   );

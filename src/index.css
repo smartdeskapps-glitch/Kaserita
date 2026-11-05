@@ -389,13 +389,6 @@
    botón (sin elemento interior): la pastilla es el fondo del área interna y el anillo es
    el borde de 4 px pintado con un degradado cónico. El anillo está quieto y solo gira al
    pasar el mouse o con el foco (así no hay decenas de animaciones a la vez). */
-/* Panel oscuro Ebony de las ventanas (Mi link, Merma, Fiados, Registrar cliente). El brillo
-   superior se puede mover con --kz-halo. */
-.kz-panel-oscuro {
-  background:
-    var(--kz-halo, radial-gradient(90% 60% at 50% 0%, rgba(150,135,245,0.28), transparent 70%)),
-    linear-gradient(180deg, #34305a 0%, #26224a 55%, #1d1a38 100%);
-}
 @property --kz-ang {
   syntax: '<angle>';
   initial-value: 0deg;

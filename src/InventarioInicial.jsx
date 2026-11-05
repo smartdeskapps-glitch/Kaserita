@@ -1,4 +1,5 @@
 import React from 'react';
+import VentanaModulo from './VentanaModulo.jsx';
 import { FotoProducto, estiloCategoria } from './PanelAdminCompartido.jsx';
 import { esMontoNoNegativo } from './lib/validaciones.js';
 
@@ -14,8 +15,8 @@ export default function InventarioInicial({
   desvincularFilaInventario,
   eliminarFilaInventario,
   esBarberia,
-  filaInventarioVacia,
   filaInventarioExpandidaIdx,
+  filaInventarioVacia,
   filasInventario,
   guardandoInventario,
   guardarInventarioInicial,
@@ -118,22 +119,20 @@ export default function InventarioInicial({
                 const fotoDeshabilitada = sesion?.bodega?.permitir_subir_fotos === false;
 
                 return (
-                <div className="fixed inset-0 bg-stone-900/30 backdrop-blur-sm flex items-center justify-center z-50 p-2 sm:p-4">
-                  <div className="bg-gradient-to-br from-[#eef1fb] via-[#f8f9fd] to-[#f4f5fa] border border-white/80 rounded-[28px] max-w-4xl w-full shadow-2xl h-[95vh] max-h-[820px] flex flex-col overflow-hidden">
+                <VentanaModulo
+                  icono="fa-boxes-stacked"
+                  titulo={esBarberia ? 'Registrar servicios y productos' : 'Registrar productos'}
+                  subtitulo="Crea el producto en 3 pasos rápidos."
+                  onClose={() => setModalInventarioInicial(false)}
+                  ancho="max-w-4xl"
+                  alto="h-[95vh] max-h-[820px]"
+                  desplazable={false}
+                >
+                  <div className="flex-1 min-h-0 flex flex-col bg-[#f6f8ff]">
 
-                    {/* Cabecera + stepper */}
-                    <div className="bg-white border-b border-stone-100 px-4 sm:px-5 pt-3.5 shrink-0">
-                      <div className="flex items-center gap-3">
-                        <span className="w-9 h-9 rounded-xl bg-[#5b4bd6] text-white flex items-center justify-center shrink-0">
-                          <i className="fa-solid fa-boxes-stacked text-sm"></i>
-                        </span>
-                        <div className="min-w-0">
-                          <h3 className="text-[17px] font-extrabold text-stone-900 tracking-tight leading-tight">{esBarberia ? 'Registrar Servicios y Productos' : 'Registrar Productos'}</h3>
-                          <p className="hidden sm:block text-xs text-stone-500">Crea el producto en 3 pasos rápidos.</p>
-                        </div>
-                        <button onClick={() => setModalInventarioInicial(false)} aria-label="Cerrar" className="ml-auto w-8 h-8 flex items-center justify-center rounded-full text-stone-400 hover:text-stone-600 hover:bg-stone-100 transition-colors shrink-0"><i className="fa-solid fa-xmark"></i></button>
-                      </div>
-                      <ol className="flex items-start mt-3.5 pb-3.5">
+                    {/* Pasos */}
+                    <div className="bg-white border-b border-[#eef1fd] px-4 sm:px-5 shrink-0">
+                      <ol className="flex items-start pt-3.5 pb-3.5">
                         {pasosInfo.map(([titulo, sub], i) => {
                           const n = i + 1;
                           const estado = n < paso ? 'hecho' : n === paso ? 'activo' : 'pendiente';
@@ -610,7 +609,7 @@ export default function InventarioInicial({
                       )}
                     </div>
                   </div>
-                </div>
+                </VentanaModulo>
                 );
               })()}
     </>

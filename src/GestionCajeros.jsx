@@ -1,5 +1,7 @@
 import React from 'react';
 import { PIN_MAX } from './PanelAdminCompartido.jsx';
+import VentanaModulo from './VentanaModulo.jsx';
+import { iniciales } from './lib/nombres.js';
 
 // Modal separado de main.jsx: se carga al abrirlo (React.lazy). El estado y las acciones
 // siguen en PosApp: aquí solo se dibuja lo que recibe por props.
@@ -27,42 +29,50 @@ export default function GestionCajeros({
     <>
               {/* Modal: Gestión de Cajeros */}
               {modalGestionCajeros && (
-                <div className="fixed inset-0 bg-stone-900/30 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-                  <div className="bg-gradient-to-br from-[#eef1fb] via-[#f8f9fd] to-[#f4f5fa] border border-white/80 rounded-[28px] max-w-md w-full p-5 shadow-2xl space-y-3 max-h-[90vh] flex flex-col">
-                    <div className="flex justify-between items-center shrink-0">
-                      <h3 className="text-lg font-bold text-stone-900 flex items-center gap-2">
-                        <i className="fa-solid fa-user-group text-orange-600"></i> {esBarberia ? 'Barberos' : 'Cajeros y Empleados'}
-                      </h3>
-                      <button aria-label="Cerrar" onClick={() => setModalGestionCajeros(false)} className="w-8 h-8 rounded-full bg-white/70 hover:bg-white text-stone-500 hover:text-stone-900 shadow-sm"><i className="fa-solid fa-xmark"></i></button>
-                    </div>
-
+                <VentanaModulo
+                  icono="fa-user-group"
+                  titulo={esBarberia ? 'Barberos' : 'Cajeros y empleados'}
+                  subtitulo="Quién puede entrar y vender"
+                  cifras={!cargandoCajerosGestion && cajerosGestion.length > 0 && [
+                    { etiqueta: 'Personas', valor: cajerosGestion.length },
+                    { etiqueta: 'Activas', valor: cajerosGestion.filter((c) => c.activo).length, tono: 'ok' },
+                  ]}
+                  acciones={!mostrarFormNuevoCajero && (
+                    <button type="button" onClick={() => setMostrarFormNuevoCajero(true)} className="kz-pri h-10 px-4 text-[13px] font-bold inline-flex items-center gap-2 shrink-0">
+                      <i className="fa-solid fa-user-plus text-[11px]"></i><span>{esBarberia ? 'Agregar' : 'Nuevo'}<span className="hidden sm:inline">{esBarberia ? ' barbero' : ' cajero'}</span></span>
+                    </button>
+                  )}
+                  onClose={() => setModalGestionCajeros(false)}
+                  ancho="max-w-2xl"
+                >
+                  <div className="p-4 sm:p-6 space-y-3">
                     {mostrarFormNuevoCajero ? (
-                      <div className="p-3 bg-stone-50 rounded-xl border border-orange-700/40 space-y-2.5">
+                      <div className="rounded-[20px] bg-[#f3f5ff] p-4 space-y-3">
                         <div>
-                          <label className="text-xs text-stone-600 block mb-1">Nombre:</label>
+                          <label className="text-xs font-bold text-[#6b6890] block mb-1.5 ml-1">Nombre:</label>
                           <input
                             type="text"
                             value={formNuevoCajero.nombre}
                             onChange={(e) => setFormNuevoCajero({ ...formNuevoCajero, nombre: e.target.value })}
-                            className="w-full bg-white border border-stone-200/70 shadow-sm rounded-xl px-3 py-1.5 text-xs text-stone-900"
+                            className="w-full h-11 bg-white rounded-[14px] px-3.5 text-[13.5px] text-[#2d284b] outline-none focus:ring-2 focus:ring-[#5b4bd6]/40"
                           />
                         </div>
                         <div>
-                          <label className="text-xs text-stone-600 block mb-1">DNI:</label>
+                          <label className="text-xs font-bold text-[#6b6890] block mb-1.5 ml-1">DNI:</label>
                           <input
                             type="text"
                             maxLength={8}
                             value={formNuevoCajero.dni}
                             onChange={(e) => setFormNuevoCajero({ ...formNuevoCajero, dni: e.target.value })}
-                            className="w-full bg-white border border-stone-200/70 shadow-sm rounded-xl px-3 py-1.5 text-xs text-stone-900"
+                            className="w-full h-11 bg-white rounded-[14px] px-3.5 text-[13.5px] text-[#2d284b] outline-none focus:ring-2 focus:ring-[#5b4bd6]/40"
                           />
                         </div>
                         <div>
-                          <label className="text-xs text-stone-600 block mb-1">Rol:</label>
+                          <label className="text-xs font-bold text-[#6b6890] block mb-1.5 ml-1">Rol:</label>
                           <select
                             value={formNuevoCajero.rol}
                             onChange={(e) => setFormNuevoCajero({ ...formNuevoCajero, rol: e.target.value })}
-                            className="w-full bg-white border border-stone-200/70 shadow-sm rounded-xl px-3 py-1.5 text-xs text-stone-900"
+                            className="w-full h-11 bg-white rounded-[14px] px-3.5 text-[13.5px] text-[#2d284b] outline-none focus:ring-2 focus:ring-[#5b4bd6]/40"
                           >
                             <option value="cajero">Cajero (solo vender y cobrar)</option>
                             <option value="administrador">Administrador (acceso completo)</option>
@@ -70,26 +80,26 @@ export default function GestionCajeros({
                         </div>
                         {formNuevoCajero.rol === 'administrador' && (
                           <div>
-                            <label className="text-xs text-stone-600 block mb-1">PIN de seguridad (4 a 32 caracteres, con letras, números o símbolos):</label>
+                            <label className="text-xs font-bold text-[#6b6890] block mb-1.5 ml-1">PIN de seguridad (4 a 32 caracteres, con letras, números o símbolos):</label>
                             <input
                               type="text"
                               maxLength={PIN_MAX}
                               autoComplete="off"
                               value={formNuevoCajero.pin}
                               onChange={(e) => setFormNuevoCajero({ ...formNuevoCajero, pin: e.target.value })}
-                              className="w-full bg-white border border-stone-200/70 shadow-sm rounded-xl px-3 py-1.5 text-xs text-stone-900"
+                              className="w-full h-11 bg-white rounded-[14px] px-3.5 text-[13.5px] text-[#2d284b] outline-none focus:ring-2 focus:ring-[#5b4bd6]/40"
                             />
-                            <p className="text-[10px] text-stone-500 mt-1">Se le va a pedir cada vez que alguien más lo elija al abrir turno.</p>
+                            <p className="text-[11px] text-[#8f8cb0] mt-1 ml-1">Se le va a pedir cada vez que alguien más lo elija al abrir turno.</p>
                           </div>
                         )}
                         <div className="flex gap-2 pt-1">
-                          <button onClick={() => setMostrarFormNuevoCajero(false)} className="flex-1 py-2 bg-white/70 text-stone-600 text-xs font-semibold rounded-full shadow-sm">
+                          <button onClick={() => setMostrarFormNuevoCajero(false)} className="flex-1 h-11 bg-white hover:bg-[#e6ebff] text-[#6b6890] text-[13px] font-bold rounded-full transition">
                             Cancelar
                           </button>
                           <button
                             onClick={registrarNuevoCajeroCompleto}
                             disabled={guardandoNuevoCajero}
-                            className="flex-1 py-2 bg-[#5b4bd6] hover:bg-[#473bb5] disabled:opacity-60 text-white font-bold text-xs rounded-full shadow"
+                            className="kz-pri flex-1 h-11 text-[13px] font-bold"
                           >
                             {guardandoNuevoCajero ? 'Guardando...' : 'Agregar'}
                           </button>
@@ -97,25 +107,20 @@ export default function GestionCajeros({
                       </div>
                     ) : (
                       <>
-                        <button
-                          onClick={() => setMostrarFormNuevoCajero(true)}
-                          className="w-full py-2.5 bg-white/70 hover:bg-[#dde4fa] text-stone-600 text-xs font-semibold rounded-full border border-stone-300 border-dashed flex items-center justify-center gap-1.5 shrink-0 shadow-sm"
-                        >
-                          <i className="fa-solid fa-user-plus"></i> {esBarberia ? 'Agregar barbero' : 'Agregar cajero'}
-                        </button>
-                        <div className="flex-1 overflow-y-auto space-y-1.5">
+                        <div className="space-y-1">
                           {cargandoCajerosGestion ? (
-                            <p className="text-xs text-stone-500 text-center py-6">Cargando...</p>
+                            <p className="text-[13px] text-[#8f8cb0] text-center py-8">Cargando...</p>
                           ) : cajerosGestion.length === 0 ? (
-                            <p className="text-xs text-stone-500 text-center py-6">Sin cajeros registrados.</p>
+                            <p className="text-[13px] text-[#8f8cb0] text-center py-8">Sin cajeros registrados.</p>
                           ) : (
                             cajerosGestion.map((c) => (
-                              <div key={c.id} className={`flex items-center justify-between p-2.5 bg-stone-50 border border-stone-200 rounded-xl ${!c.activo ? 'opacity-50' : ''}`}>
-                                <div>
-                                  <p className="text-xs font-semibold text-stone-800">
-                                    {c.nombre} {!c.activo && <span className="text-rose-600 font-sans">(Inactivo)</span>}
+                              <div key={c.id} className={`flex items-center gap-3 px-3 py-2.5 rounded-[18px] hover:bg-[#f6f8ff] transition ${!c.activo ? 'opacity-50' : ''}`}>
+                                <span className="w-10 h-10 rounded-full bg-gradient-to-br from-[#9687f5] to-[#5b4bd6] text-white grid place-items-center text-[13px] font-bold shrink-0">{iniciales(c.nombre, '?')}</span>
+                                <div className="flex-1 min-w-0">
+                                  <p className="text-[13.5px] font-bold text-[#2d284b]">
+                                    {c.nombre} {!c.activo && <span className="text-[11px] font-bold text-[#c0262d] bg-[#fde0e5] rounded-full px-2 py-0.5 ml-1">Inactivo</span>}
                                   </p>
-                                  <p className="text-xs text-stone-500 capitalize">DNI: {c.dni} · {c.rol}</p>
+                                  <p className="text-xs text-[#8f8cb0] capitalize">DNI: {c.dni} · {c.rol}</p>
                                   {esBarberia && c.rol !== 'dueno' && (
                                     <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mt-1.5">
                                       {[['comision_pct', 'Cortes y servicios', 'Porcentaje que gana cuando hace un servicio (corte, barba...)'], ['comision_productos_pct', 'Productos', 'Porcentaje que gana cuando ayuda a vender un producto (pomada, shampoo...)']].map(([campo, etiqueta, ayuda]) => (
@@ -149,7 +154,7 @@ export default function GestionCajeros({
                                     <button
                                       onClick={() => { setModalPinCajero(c); setNuevoPinCajero(''); }}
                                       title="Cambiar su PIN de seguridad"
-                                      className="w-7 h-7 flex items-center justify-center bg-stone-200 hover:bg-orange-100 text-stone-500 hover:text-orange-600 rounded-lg"
+                                      className="w-8 h-8 flex items-center justify-center bg-[#f3f5ff] hover:bg-[#e6ebff] text-[#6b6890] hover:text-[#5b4bd6] rounded-full transition"
                                     >
                                       <i className="fa-solid fa-key text-xs"></i>
                                     </button>
@@ -157,8 +162,8 @@ export default function GestionCajeros({
                                   {c.rol !== 'dueno' && (
                                     <button
                                       onClick={() => alternarActivoCajero(c)}
-                                      className={`text-xs font-semibold px-2.5 py-1 rounded-lg ${
-                                        c.activo ? 'bg-rose-950/60 text-rose-600 hover:bg-rose-900' : 'bg-emerald-950/60 text-emerald-600 hover:bg-emerald-900'
+                                      className={`h-8 text-xs font-bold px-3 rounded-full transition ${
+                                        c.activo ? 'bg-[#f3f5ff] text-[#6b6890] hover:bg-[#fde0e5] hover:text-[#c0262d]' : 'bg-[#d9f5e9] text-[#0f7b4a] hover:bg-[#c6efdc]'
                                       }`}
                                     >
                                       {c.activo ? 'Desactivar' : 'Reactivar'}
@@ -168,7 +173,7 @@ export default function GestionCajeros({
                                     <button
                                       onClick={() => eliminarCajero(c)}
                                       title="Eliminar de la lista de cajeros"
-                                      className="w-7 h-7 flex items-center justify-center bg-stone-200 hover:bg-rose-100 text-stone-500 hover:text-rose-600 rounded-lg"
+                                      className="w-8 h-8 flex items-center justify-center bg-[#f3f5ff] hover:bg-[#fde0e5] text-[#6b6890] hover:text-[#c0262d] rounded-full transition"
                                     >
                                       <i className="fa-solid fa-trash text-xs"></i>
                                     </button>
@@ -181,7 +186,7 @@ export default function GestionCajeros({
                       </>
                     )}
                   </div>
-                </div>
+                </VentanaModulo>
               )}
     </>
   );

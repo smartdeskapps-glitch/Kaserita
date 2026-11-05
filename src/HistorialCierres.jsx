@@ -1,4 +1,5 @@
 import React from 'react';
+import VentanaModulo from './VentanaModulo.jsx';
 
 // Modal separado de main.jsx: se carga al abrirlo (React.lazy). El estado y las acciones
 // siguen en PosApp: aquí solo se dibuja lo que recibe por props.
@@ -109,21 +110,24 @@ export default function HistorialCierres({
                 };
 
                 return (
-                  <div className="fixed inset-0 bg-stone-900/30 backdrop-blur-sm flex items-center justify-center z-50 p-3 sm:p-4">
-                    <div className="bg-[#f7f8fc] rounded-[18px] max-w-xl lg:max-w-6xl w-full max-h-[94vh] h-[94vh] lg:h-[780px] flex flex-col shadow-2xl border border-black/5 overflow-hidden">
-                      <div className={`bg-white px-4 sm:px-7 py-3.5 sm:py-[18px] shrink-0 flex flex-wrap lg:flex-nowrap items-center gap-x-3 gap-y-2.5 border-b ${borde}`}>
-                        {elegido && (
-                          <button aria-label="Volver a la lista" onClick={() => setCierreDetalle(null)} className="lg:hidden h-9 pl-2.5 pr-3.5 rounded-full border border-[#e6e9f5] bg-white text-[13px] font-medium text-stone-700 inline-flex items-center gap-1 shrink-0"><i className="fa-solid fa-chevron-left text-[10px]"></i> Historial</button>
-                        )}
-                        <h3 className={`text-xl sm:text-[21px] font-bold tracking-tight text-stone-900 whitespace-nowrap ${elegido ? 'hidden lg:block' : ''}`}>Historial de ventas</h3>
-                        <div className={`${elegido ? 'hidden lg:inline-flex' : 'inline-flex'} bg-[#e8ecf7] rounded-full p-[3px] order-last basis-full lg:order-none lg:basis-auto lg:ml-2`}>
-                          <button type="button" onClick={() => { setModalHistorialCierres(false); abrirHistorialDelDia(); }} className="flex-1 lg:flex-none h-8 px-[17px] rounded-full text-[13px] font-medium text-stone-500 hover:text-stone-900">Ventas</button>
-                          <button type="button" className="flex-1 lg:flex-none h-8 px-[17px] rounded-full text-[13px] font-semibold text-stone-900 bg-white shadow-[0_1px_3px_rgba(20,10,50,0.14)] whitespace-nowrap">Cierres de caja</button>
-                        </div>
-                        <span className="flex-1"></span>
-                        <button aria-label="Cerrar" onClick={() => { setModalHistorialCierres(false); setCierreDetalle(null); }} className="w-9 h-9 rounded-full text-stone-400 hover:text-stone-700 hover:bg-[#eef1fb] shrink-0"><i className="fa-solid fa-xmark"></i></button>
+                  <VentanaModulo
+                    icono="fa-cash-register"
+                    titulo="Cierres de caja"
+                    subtitulo="Turnos cerrados y si cuadró la caja"
+                    izquierda={elegido && (
+                      <button type="button" aria-label="Volver a la lista" onClick={() => setCierreDetalle(null)} className="lg:hidden w-[38px] h-[38px] rounded-full bg-[#f3f5ff] text-[#6b6890] grid place-items-center shrink-0"><i className="fa-solid fa-chevron-left text-xs"></i></button>
+                    )}
+                    acciones={(
+                      <div className={`${elegido ? 'hidden lg:inline-flex' : 'inline-flex'} bg-[#f3f5ff] rounded-full p-[3px] shrink-0`}>
+                        <button type="button" onClick={() => { setModalHistorialCierres(false); abrirHistorialDelDia(); }} className="h-8 px-3.5 sm:px-4 rounded-full text-[12.5px] font-semibold text-[#8f8cb0] hover:text-[#2d284b] transition">Ventas</button>
+                        <button type="button" className="h-8 px-3.5 sm:px-4 rounded-full text-[12.5px] font-bold text-[#2d284b] bg-white shadow-[0_1px_3px_rgba(20,10,50,0.14)] whitespace-nowrap">Cierres<span className="hidden sm:inline"> de caja</span></button>
                       </div>
-
+                    )}
+                    onClose={() => { setModalHistorialCierres(false); setCierreDetalle(null); }}
+                    ancho="max-w-xl lg:max-w-6xl"
+                    alto="h-[94vh] max-h-[94vh] lg:h-[780px]"
+                    desplazable={false}
+                  >
                       {elegido && (
                         <div className="lg:hidden flex-1 min-h-0 overflow-y-auto hide-scrollbar p-4">{detalleCierre(elegido)}</div>
                       )}
@@ -254,8 +258,7 @@ export default function HistorialCierres({
                           </div>
                         </div>
                       </div>
-                    </div>
-                  </div>
+                  </VentanaModulo>
                 );
               })()}
     </>

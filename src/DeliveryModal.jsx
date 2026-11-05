@@ -49,7 +49,7 @@ export default function DeliveryModal({
   zonaRepartoDelivery,
 }) {
   // Botón de acción del panel oscuro (QR, Compartir, Ver tienda): un solo estilo.
-  const claseAccion = 'h-[62px] rounded-[20px] border-[1.5px] border-white/20 bg-gradient-to-b from-white/[0.07] to-white/[0.02] hover:from-white/[0.12] text-white/90 text-[11.5px] font-semibold flex flex-col items-center justify-center gap-1.5 transition';
+  const claseAccion = 'h-[62px] rounded-[20px] bg-[#f3f5ff] hover:bg-[#e6ebff] text-[#2d284b] text-[11.5px] font-semibold flex flex-col items-center justify-center gap-1.5 transition';
   // Nombre de la bodega: todo liviano menos la última palabra, en negrita.
   const palabrasNombre = String(sesion?.bodega?.nombre || '').trim().split(/\s+/);
   const ultimaPalabra = palabrasNombre.length > 1 ? palabrasNombre.pop() : '';
@@ -95,14 +95,14 @@ export default function DeliveryModal({
                         <div className="flex-1 overflow-y-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden" style={{ scrollbarWidth: 'none' }}>
                           {/* Panel oscuro */}
                           <div
-                            className="kz-panel-oscuro relative text-white px-5 pt-4 pb-9"
+                            className="relative bg-white text-[#2d284b] px-5 pt-4 pb-5"
                           >
                             <div className="flex items-center justify-between">
-                              <span className="w-10 h-10 rounded-full border-[1.5px] border-white/25 bg-white/5 flex items-center justify-center">
+                              <span className="w-10 h-10 rounded-full bg-[#f3f5ff] flex items-center justify-center">
                                 <IconoTrazo nombre="compartir" className="w-[17px] h-[17px]" />
                               </span>
-                              <span className="text-[12.5px] font-semibold text-white/80">Mi link de pedidos</span>
-                              <button onClick={() => { setModalDelivery(false); setMostrarQRDelivery(false); }} className="w-10 h-10 rounded-full border-[1.5px] border-white/25 bg-white/5 hover:bg-white/10 flex items-center justify-center transition" aria-label="Cerrar">
+                              <span className="text-[12.5px] font-semibold text-[#6b6890]">Mi link de pedidos</span>
+                              <button onClick={() => { setModalDelivery(false); setMostrarQRDelivery(false); }} className="w-10 h-10 rounded-full bg-[#f3f5ff] hover:bg-[#e6ebff] flex items-center justify-center transition" aria-label="Cerrar">
                                 <IconoTrazo nombre="x" className="w-[15px] h-[15px]" />
                               </button>
                             </div>
@@ -139,19 +139,19 @@ export default function DeliveryModal({
                                 {palabrasNombre.join(' ')}{ultimaPalabra && <> <b className="font-bold">{ultimaPalabra}</b></>}
                               </p>
                               {estadoHorarioActualDelivery ? (
-                                <span className="inline-flex items-center gap-1.5 mt-1.5 text-[11.5px] font-semibold text-white/85">
-                                  <span className={`w-[7px] h-[7px] rounded-full ${estadoHorarioActualDelivery.abierto ? 'bg-green-400 shadow-[0_0_0_3px_rgba(74,222,128,0.2)]' : 'bg-white/60'}`}></span>
+                                <span className="inline-flex items-center gap-1.5 mt-1.5 text-[11.5px] font-semibold text-[#6b6890]">
+                                  <span className={`w-[7px] h-[7px] rounded-full ${estadoHorarioActualDelivery.abierto ? 'bg-green-400 shadow-[0_0_0_3px_rgba(74,222,128,0.2)]' : 'bg-[#c5c9e0]'}`}></span>
                                   {estadoHorarioActualDelivery.texto}
                                 </span>
                               ) : (
-                                <p className="text-[11.5px] text-white/70 mt-1.5 leading-snug">Configura tu horario para mostrar "Abierto" o "Cerrado".</p>
+                                <p className="text-[11.5px] text-[#8f8cb0] mt-1.5 leading-snug">Configura tu horario para mostrar "Abierto" o "Cerrado".</p>
                               )}
-                              <p className="text-[11px] text-white/50 mt-1">Toca el círculo para cambiar tu logo.</p>
+                              <p className="text-[11px] text-[#8f8cb0] mt-1">Toca el círculo para cambiar tu logo.</p>
 
-                              <p className="mt-4 text-[11.5px] text-white/55 truncate">
+                              <p className="mt-4 text-[11.5px] text-[#8f8cb0] truncate">
                                 {linkSinProtocolo}/
                                 {/* El link es fijo: ya se comparte impreso y en QR, y si cambiara dejaría de funcionar. */}
-                                <b className="block text-[19px] font-medium text-white mt-0.5 truncate">{slugDelivery}</b>
+                                <b className="block text-[19px] font-medium text-[#2d284b] mt-0.5 truncate">{slugDelivery}</b>
                               </p>
                               {deliveryHabilitado && sesion?.bodega?.slug && (
                                 <button
@@ -161,7 +161,7 @@ export default function DeliveryModal({
                                     setLinkDeliveryCopiado(true);
                                     setTimeout(() => setLinkDeliveryCopiado(false), 1600);
                                   }}
-                                  className={`mt-3 inline-flex items-center gap-1.5 h-[34px] px-4 rounded-full border-[1.5px] text-[12.5px] font-bold transition ${linkDeliveryCopiado ? 'border-green-400/60 bg-green-400/15 text-green-300' : 'border-white/25 bg-white/5 hover:bg-white/10 text-white'}`}
+                                  className={`mt-3 inline-flex items-center gap-1.5 h-[34px] px-4 rounded-full border-[1.5px] text-[12.5px] font-bold transition ${linkDeliveryCopiado ? 'border-transparent bg-[#d9f5e9] text-[#0f7b4a]' : 'border-transparent bg-[#f3f5ff] hover:bg-[#e6ebff] text-[#2d284b]'}`}
                                 >
                                   <IconoTrazo nombre={linkDeliveryCopiado ? 'check' : 'copiar'} className="w-3.5 h-3.5" />
                                   {linkDeliveryCopiado ? 'Copiado' : 'Copiar link'}
@@ -205,10 +205,10 @@ export default function DeliveryModal({
                               </div>
                             )}
 
-                            <div className="flex items-center justify-between gap-3 mt-4 rounded-[20px] border-[1.5px] border-white/15 bg-white/5 px-4 py-3">
+                            <div className="flex items-center justify-between gap-3 mt-4 rounded-[20px] bg-[#f3f5ff] px-4 py-3">
                               <div className="min-w-0">
                                 <p className="text-[13.5px] font-bold">Mostrar mi tienda al público</p>
-                                <p className="text-[11.5px] text-white/60">{deliveryHabilitado ? 'Visible para tus clientes' : 'Solo entra quien tenga tu link'}</p>
+                                <p className="text-[11.5px] text-[#8f8cb0]">{deliveryHabilitado ? 'Visible para tus clientes' : 'Solo entra quien tenga tu link'}</p>
                               </div>
                               <button
                                 type="button"
@@ -224,7 +224,7 @@ export default function DeliveryModal({
                           </div>
 
                           {/* Hoja blanca con los ajustes de la tienda */}
-                          <div className="relative -mt-5 rounded-t-[30px] bg-white px-4 pt-4 pb-3">
+                          <div className="relative border-t border-[#eef1fd] bg-white px-4 pt-4 pb-3">
                             <p className="text-sm font-bold text-[#2d284b] mx-1 mb-3">Tu tienda</p>
                           {seccionDelivery('donde', 'ubicacion', 'Ubicación y horarios', `${direccionDelivery.trim() || 'Sin dirección'} · ${resumenHorarioDelivery(horarioDelivery)}`, (
                             <>

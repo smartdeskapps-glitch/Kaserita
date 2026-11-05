@@ -2,6 +2,7 @@ import React from 'react';
 import { coberturaPago, estadoDeudor, restoPrimeraBoleta } from './lib/deudas.js';
 import { iniciales } from './lib/nombres.js';
 import Chispa from './Chispa.jsx';
+import VentanaModulo from './VentanaModulo.jsx';
 
 const GRADIENTES = ['from-[#9687f5] to-[#5b4bd6]', 'from-[#f09a7a] to-[#d9594f]', 'from-[#6fc3a3] to-[#2e8b72]', 'from-[#e6b85a] to-[#c9892a]', 'from-[#7ab4ee] to-[#3d7fd0]'];
 const gradienteDe = (cl) => GRADIENTES[String(cl.id).split('').reduce((a, c) => a + c.charCodeAt(0), 0) % GRADIENTES.length];
@@ -100,13 +101,11 @@ export default function FiadosModal({
               {modalCobrarDeudas && (() => {
                 const dinero = (v) => `S/ ${formatoSoles(Number(v) || 0)}`;
                 const avatar = (cl, tam) => <span className={`${tam} rounded-full bg-gradient-to-br ${gradienteDe(cl)} text-white grid place-items-center font-bold shrink-0 shadow-[inset_0_0_0_1px_rgba(255,255,255,0.25),0_6px_14px_-6px_rgba(20,10,50,0.4)]`}>{iniciales(cl.nombre_completo, '?')}</span>;
-                const pctVencido = totalPorCobrar > 0 ? Math.min(100, (totalVencido / totalPorCobrar) * 100) : 0;
                 const linea = 'border-[#dde4fa]';
                 const botonSeg = (activo) => `h-[30px] px-3 rounded-full text-[12px] whitespace-nowrap flex items-center gap-1.5 transition ${activo ? 'bg-white text-[#2d284b] font-bold' : 'text-[#6b6890] font-semibold hover:text-[#2d284b]'}`;
                 const colorBarra = (uso) => (uso >= 1 ? 'bg-gradient-to-r from-[#e0565c] to-[#c0262d]' : uso >= 0.8 ? 'bg-gradient-to-r from-[#f0b24a] to-[#d98a14]' : 'bg-gradient-to-r from-[#aeb4cf] to-[#9a9dbd]');
                 const botonFantasma = `h-12 px-6 rounded-full border-[1.5px] ${linea} bg-white hover:bg-[#f3f5ff] text-[13.5px] font-bold text-[#6b6890] inline-flex items-center justify-center gap-2 transition whitespace-nowrap`;
-                const circulo = 'w-10 h-10 rounded-full border-[1.5px] border-white/25 bg-white/5 hover:bg-white/10 flex items-center justify-center text-white shrink-0 transition';
-                const botonOscuro = 'h-[34px] px-3.5 rounded-full border-[1.5px] border-white/25 bg-white/5 hover:bg-white/10 text-[12px] font-bold inline-flex items-center gap-1.5 transition';
+                const botonFicha = 'h-[34px] px-3.5 rounded-full bg-[#f3f5ff] hover:bg-[#e6ebff] text-[#6b6890] text-[12px] font-bold inline-flex items-center gap-1.5 transition';
                 const labP = 'flex items-center justify-between gap-2 text-[11.5px] font-bold text-[#6b6890] mb-1.5';
                 const inputP = 'w-full h-11 bg-[#f3f5ff] rounded-[14px] px-3.5 text-sm font-semibold text-[#2d284b] placeholder:text-[#9a98bd] outline-none focus:bg-white focus:ring-2 focus:ring-[#5b4bd6]/40 transition';
                 const chispa = <Chispa />;
@@ -117,15 +116,8 @@ export default function FiadosModal({
                 const verDatos = pestana === 'datos' && esAdmin && !!formEditarCliente;
 
                 // ----- Banda oscura, lado derecho: el cliente elegido -----
-                const fichaOscura = (() => {
-                  if (!deudorSeleccionado) {
-                    return (
-                      <div className="hidden md:flex flex-col justify-center text-white/60 text-[13px] leading-snug">
-                        <b className="block text-[17px] font-semibold text-white/90 mb-0.5">Elige un cliente</b>
-                        Verás su deuda y sus boletas pendientes, y podrás registrar un pago o cambiar sus datos.
-                      </div>
-                    );
-                  }
+                const fichaCliente = (() => {
+                  if (!deudorSeleccionado) return null;
                   const cl = deudorSeleccionado;
                   const e = estadoDeudorSel;
                   const saldo = saldoDe(cl);
@@ -139,30 +131,30 @@ export default function FiadosModal({
                       <div className="flex flex-wrap items-center gap-3.5">
                         {avatar(cl, 'w-[56px] h-[56px] md:w-[62px] md:h-[62px] text-[17px] md:text-[19px]')}
                         <div className="min-w-0 flex-1 basis-[170px]">
-                          <h4 className="text-[22px] md:text-2xl font-light tracking-tight leading-tight truncate">{palabras.join(' ')}{ultima && <> <b className="font-bold">{ultima}</b></>}</h4>
+                          <h4 className="text-[22px] md:text-2xl font-light tracking-tight leading-tight truncate text-[#2d284b]">{palabras.join(' ')}{ultima && <> <b className="font-bold">{ultima}</b></>}</h4>
                           <div className="flex flex-wrap gap-1.5 mt-1.5">
-                            {[`DNI ${cl.dni}`, cl.telefono || 'Sin teléfono', `Plazo ${Number(cl.dias_credito) || 30} días`].map((t) => <span key={t} className="text-[11px] font-semibold text-white/85 bg-white/[0.06] border border-white/[0.18] rounded-full px-2.5 py-[3px]">{t}</span>)}
+                            {[`DNI ${cl.dni}`, cl.telefono || 'Sin teléfono', `Plazo ${Number(cl.dias_credito) || 30} días`].map((t) => <span key={t} className="text-[11px] font-semibold text-[#6b6890] bg-[#f3f5ff] rounded-full px-2.5 py-[3px]">{t}</span>)}
                           </div>
                         </div>
                         <div className="text-left md:text-right shrink-0 w-full md:w-auto">
-                          <span className="block text-[11.5px] text-white/55">Deuda actual</span>
-                          <strong className={`block text-[34px] font-light tracking-[-0.03em] leading-none tabular-nums ${saldo > 0 ? 'text-[#ffb3c0]' : 'text-[#7ee2b0]'}`}>{dinero(saldo)}</strong>
+                          <span className="block text-[11.5px] text-[#8f8cb0]">Deuda actual</span>
+                          <strong className={`block text-[34px] font-light tracking-[-0.03em] leading-none tabular-nums ${saldo > 0 ? 'text-[#c0262d]' : 'text-[#0f7b4a]'}`}>{dinero(saldo)}</strong>
                         </div>
                       </div>
                       <div className="flex gap-2 mt-3">
-                        <button type="button" onClick={descargarEstadoCuenta} className={botonOscuro}><IconoTrazo nombre="pdf" className="w-[14px] h-[14px]" /> PDF</button>
-                        <button type="button" onClick={() => enviarEstadoCuentaWhatsApp(cl)} className={botonOscuro}><IconoTrazo nombre="chat" className="w-[14px] h-[14px]" /> WhatsApp</button>
+                        <button type="button" onClick={descargarEstadoCuenta} className={botonFicha}><IconoTrazo nombre="pdf" className="w-[14px] h-[14px]" /> PDF</button>
+                        <button type="button" onClick={() => enviarEstadoCuentaWhatsApp(cl)} className={botonFicha}><IconoTrazo nombre="chat" className="w-[14px] h-[14px]" /> WhatsApp</button>
                       </div>
                       {limite > 0 ? (
                         <div className="mt-3">
-                          <div className="h-1.5 rounded-full bg-white/[0.14] overflow-hidden"><i className="block h-full rounded-full bg-gradient-to-r from-[#ffb3c0] to-[#ff7f94]" style={{ width: `${Math.min(100, uso * 100)}%` }}></i></div>
-                          <div className="flex justify-between gap-2 flex-wrap text-[11.5px] text-white/60 mt-1.5"><span>Usa {Math.round(uso * 100)}% de su crédito · disponible {dinero(Math.max(0, limite - saldo))}</span><span>Límite {dinero(limite)}</span></div>
+                          <div className="h-1.5 rounded-full bg-[#e8ecf7] overflow-hidden"><i className="block h-full rounded-full bg-gradient-to-r from-[#ffb3c0] to-[#ff7f94]" style={{ width: `${Math.min(100, uso * 100)}%` }}></i></div>
+                          <div className="flex justify-between gap-2 flex-wrap text-[11.5px] text-[#8f8cb0] mt-1.5"><span>Usa {Math.round(uso * 100)}% de su crédito · disponible {dinero(Math.max(0, limite - saldo))}</span><span>Límite {dinero(limite)}</span></div>
                         </div>
                       ) : (
-                        <p className="text-[11.5px] text-white/60 mt-3">Sin límite de crédito: no se le puede fiar hasta que le pongas uno.</p>
+                        <p className="text-[11.5px] text-[#8f8cb0] mt-3">Sin límite de crédito: no se le puede fiar hasta que le pongas uno.</p>
                       )}
                       {v0 && (
-                        <p className="flex gap-2 items-start text-xs text-[#ffd0d8] bg-[#ff7896]/[0.12] border border-[#ff96aa]/25 rounded-[14px] px-3 py-2 mt-2.5 leading-snug"><i className="fa-solid fa-triangle-exclamation mt-0.5"></i><span><b>{dinero(e.vencidoMonto)} vencido.</b> La boleta {v0.nro_boleta} pasó su plazo hace {v0.diasVencido} día{v0.diasVencido > 1 ? 's' : ''}.</span></p>
+                        <p className="flex gap-2 items-start text-xs text-[#c0262d] bg-[#fde0e5] rounded-[14px] px-3 py-2 mt-2.5 leading-snug"><i className="fa-solid fa-triangle-exclamation mt-0.5"></i><span><b>{dinero(e.vencidoMonto)} vencido.</b> La boleta {v0.nro_boleta} pasó su plazo hace {v0.diasVencido} día{v0.diasVencido > 1 ? 's' : ''}.</span></p>
                       )}
                     </div>
                   );
@@ -395,44 +387,25 @@ export default function FiadosModal({
                 })();
 
                 return (
-                  <div className="ventana-riel fixed inset-0 bg-stone-900/30 backdrop-blur-sm flex items-center justify-center z-50 p-2 sm:p-4">
-                    <div className="rounded-[30px] md:rounded-[34px] max-w-5xl w-full shadow-2xl h-[95vh] max-h-[780px] flex flex-col overflow-hidden">
-                      {/* Banda oscura */}
-                      <div
-                        className="kz-panel-oscuro [--kz-halo:radial-gradient(70%_90%_at_25%_0%,rgba(150,135,245,0.3),transparent_70%)] relative text-white px-4 sm:px-6 pt-3.5 pb-9 shrink-0 flex flex-col gap-3.5 md:grid md:grid-cols-[340px_minmax(0,1fr)] md:gap-x-7"
-                      
-                      >
-                        <div className="md:col-span-2 flex items-center gap-2.5">
-                          {hayFicha && !pagoRegistrado && <button type="button" onClick={volverALista} aria-label="Volver a la lista" className={`${circulo} md:hidden`}><i className="fa-solid fa-chevron-left text-xs"></i></button>}
-                          <span className={`${circulo} ${hayFicha && !pagoRegistrado ? 'hidden md:flex' : 'flex'} pointer-events-none`}><i className="fa-solid fa-hand-holding-dollar text-sm"></i></span>
-                          <span className="flex-1 text-center text-[13px] font-semibold text-white/85">Fiados</span>
-                          <button type="button" onClick={() => setModalNuevoCliente(true)} className={`h-10 px-4 rounded-full border-[1.5px] border-white/25 bg-white/[0.06] hover:bg-white/10 text-[13px] font-bold items-center gap-2 shrink-0 transition ${hayFicha ? 'hidden md:inline-flex' : 'inline-flex'}`}><i className="fa-solid fa-plus text-[11px]"></i><span>Nuevo<span className="hidden sm:inline"> cliente</span></span></button>
-                          <button aria-label="Cerrar" onClick={cerrar} className={circulo}><i className="fa-solid fa-xmark text-sm"></i></button>
-                        </div>
-
-                        <div className={hayFicha ? 'hidden md:block' : ''}>
-                          <span className="text-xs text-white/60">Total por cobrar</span>
-                          <strong className="block text-[38px] md:text-[40px] font-light tracking-[-0.03em] leading-[1.05] mt-0.5 tabular-nums"><small className="text-xl text-white/60 mr-1 font-normal">S/</small>{formatoSoles(totalPorCobrar)}</strong>
-                          {conEstado && totalPorCobrar > 0 && (
-                            <>
-                              <div className="flex h-1.5 rounded-full overflow-hidden bg-white/[0.14] gap-0.5 mt-3">
-                                {pctVencido > 0 && <i className="block h-full bg-gradient-to-r from-[#ff7f94] to-[#ffb3c0]" style={{ width: `${pctVencido}%` }}></i>}
-                                <i className="block h-full bg-gradient-to-r from-[#9687f5] to-[#c5bcff]" style={{ width: `${100 - pctVencido}%` }}></i>
-                              </div>
-                              <div className="flex flex-wrap gap-x-4 gap-y-1 mt-2 text-[11.5px] text-white/60">
-                                <span className="flex items-center gap-1.5"><i className="w-2 h-2 rounded-full bg-[#ff7f94]"></i>Vencido <b className="text-white font-semibold">{dinero(totalVencido)}</b></span>
-                                <span className="flex items-center gap-1.5"><i className="w-2 h-2 rounded-full bg-[#9687f5]"></i>Al día <b className="text-white font-semibold">{dinero(totalPorCobrar - totalVencido)}</b></span>
-                              </div>
-                            </>
-                          )}
-                          <p className="text-xs text-white/55 mt-2">{clientesLista.length} {clientesLista.length === 1 ? 'cliente' : 'clientes'} · {nConDeuda === 0 ? 'ninguno con deuda' : `${nConDeuda} con deuda`}{conEstado && totalVencido <= 0 && nConDeuda > 0 ? ' · Nada vencido' : ''}</p>
-                        </div>
-
-                        <div className={`min-w-0 ${hayFicha ? '' : 'hidden md:block'}`}>{fichaOscura}</div>
-                      </div>
-
-                      {/* Hoja blanca */}
-                      <div className="relative -mt-5 rounded-t-[30px] bg-white flex-1 min-h-0 flex flex-col">
+                  <VentanaModulo
+                    icono="fa-hand-holding-dollar"
+                    titulo="Fiados"
+                    subtitulo={`${clientesLista.length} ${clientesLista.length === 1 ? 'cliente' : 'clientes'} · ${nConDeuda === 0 ? 'ninguno con deuda' : `${nConDeuda} con deuda`}`}
+                    cifras={[
+                      { etiqueta: 'Por cobrar', valor: dinero(totalPorCobrar) },
+                      conEstado && totalPorCobrar > 0 && { etiqueta: 'Vencido', valor: dinero(totalVencido), tono: totalVencido > 0 ? 'mal' : 'ok' },
+                      conEstado && totalPorCobrar > 0 && { etiqueta: 'Al día', valor: dinero(totalPorCobrar - totalVencido) },
+                    ]}
+                    izquierda={hayFicha && !pagoRegistrado && (
+                      <button type="button" onClick={volverALista} aria-label="Volver a la lista" className="md:hidden w-[38px] h-[38px] rounded-full bg-[#f3f5ff] text-[#6b6890] grid place-items-center shrink-0"><i className="fa-solid fa-chevron-left text-xs"></i></button>
+                    )}
+                    acciones={(
+                      <button type="button" onClick={() => setModalNuevoCliente(true)} className={`kz-pri h-10 px-4 text-[13px] font-bold items-center gap-2 shrink-0 ${hayFicha ? 'hidden md:inline-flex' : 'inline-flex'}`}><i className="fa-solid fa-plus text-[11px]"></i><span>Nuevo<span className="hidden sm:inline"> cliente</span></span></button>
+                    )}
+                    onClose={cerrar}
+                    alto="h-[95vh] max-h-[780px]"
+                    desplazable={false}
+                  >
                         {clientesLista.length === 0 ? (
                           <div className="flex-1 grid place-items-center p-6">
                             {cargandoDeudores ? (
@@ -499,12 +472,13 @@ export default function FiadosModal({
                                 })}
                               </div>
                             </div>
-                            <div className={`${hayFicha ? 'flex' : 'hidden md:flex'} flex-col min-h-0 relative`}>{cuerpoFicha}</div>
+                            <div className={`${hayFicha ? 'flex' : 'hidden md:flex'} flex-col min-h-0 relative`}>
+                              {fichaCliente && <div className={`shrink-0 px-4 sm:px-6 pt-5 pb-4 border-b ${linea}`}>{fichaCliente}</div>}
+                              {cuerpoFicha}
+                            </div>
                           </div>
                         )}
-                      </div>
-                    </div>
-                  </div>
+                  </VentanaModulo>
                 );
               })()}
     </>

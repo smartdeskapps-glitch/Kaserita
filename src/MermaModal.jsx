@@ -48,14 +48,14 @@ export default function MermaModal({
                     <div className="flex-1 overflow-y-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden bg-white">
                       {/* Panel oscuro: el producto y la cantidad */}
                       <div
-                        className="kz-panel-oscuro relative text-white px-5 pt-4 pb-8"
+                        className="relative bg-white text-[#2d284b] px-5 pt-4 pb-5"
                       >
                         <div className="flex items-center justify-between">
-                          <span className="w-10 h-10 rounded-full border-[1.5px] border-white/25 bg-white/5 flex items-center justify-center">
+                          <span className="w-10 h-10 rounded-full bg-[#f3f5ff] flex items-center justify-center">
                             <IconoTrazo nombre="warn" className="w-[17px] h-[17px]" />
                           </span>
-                          <span className="text-[12.5px] font-semibold text-white/85">Registrar merma</span>
-                          <button onClick={cerrarModalMerma} className="w-10 h-10 rounded-full border-[1.5px] border-white/25 bg-white/5 hover:bg-white/10 flex items-center justify-center transition" aria-label="Cerrar">
+                          <span className="text-[12.5px] font-semibold text-[#6b6890]">Registrar merma</span>
+                          <button onClick={cerrarModalMerma} className="w-10 h-10 rounded-full bg-[#f3f5ff] hover:bg-[#e6ebff] flex items-center justify-center transition" aria-label="Cerrar">
                             <IconoTrazo nombre="x" className="w-[15px] h-[15px]" />
                           </button>
                         </div>
@@ -63,12 +63,12 @@ export default function MermaModal({
                         {!prodMerma ? (
                           <>
                             <div className="text-center mt-4">
-                              <p className="text-xs text-white/60 leading-snug">Vencidos, rotos, robados o perdidos.<br />Se descuenta del stock.</p>
+                              <p className="text-xs text-[#8f8cb0] leading-snug">Vencidos, rotos, robados o perdidos.<br />Se descuenta del stock.</p>
                               <h3 className="text-[25px] font-light tracking-tight mt-1">¿Qué producto <b className="font-bold">se perdió?</b></h3>
                             </div>
                             <div className="flex gap-2.5 mt-5">
-                              <div className="flex-1 min-w-0 h-[50px] flex items-center gap-2.5 px-4 rounded-full border-[1.5px] border-white/20 bg-white/5 focus-within:border-[#c5bcff] focus-within:ring-4 focus-within:ring-[#9687f5]/20 transition">
-                                <IconoTrazo nombre="buscar" className="w-[16px] h-[16px] text-white/80 shrink-0" />
+                              <div className="flex-1 min-w-0 h-[50px] flex items-center gap-2.5 px-4 rounded-full bg-[#f3f5ff] focus-within:border-[#c5bcff] focus-within:ring-4 focus-within:ring-[#9687f5]/20 transition">
+                                <IconoTrazo nombre="buscar" className="w-[16px] h-[16px] text-[#6b6890] shrink-0" />
                                 <input
                                   type="text"
                                   autoFocus
@@ -83,7 +83,7 @@ export default function MermaModal({
                                     else if (resultados.length === 1) elegirProductoMerma(resultados[0]);
                                   }}
                                   placeholder="Escribe o escanea el código"
-                                  className="w-full min-w-0 bg-transparent text-sm text-white placeholder:text-white/50 focus:outline-none"
+                                  className="w-full min-w-0 bg-transparent text-sm text-[#2d284b] placeholder:text-[#9290a2] focus:outline-none"
                                 />
                               </div>
                               <button
@@ -96,29 +96,29 @@ export default function MermaModal({
                                 <IconoTrazo nombre="barras" className="w-[20px] h-[20px]" />
                               </button>
                             </div>
-                            {!termino && <p className="text-[11.5px] text-white/50 text-center mt-2.5">Un lector de códigos de barras también funciona aquí.</p>}
+                            {!termino && <p className="text-[11.5px] text-[#8f8cb0] text-center mt-2.5">Un lector de códigos de barras también funciona aquí.</p>}
                           </>
                         ) : (
                           <>
-                            <div className="mt-5 flex items-center gap-3 rounded-[22px] border-[1.5px] border-white/15 bg-white/5 p-2.5 pr-3">
+                            <div className="mt-5 flex items-center gap-3 rounded-[22px] bg-[#f3f5ff] p-2.5 pr-3">
                               <FotoProducto fotoUrl={prodMerma.foto_url} categoria={prodMerma.categoria} className="w-[50px] h-[50px] rounded-[15px] shrink-0 bg-white" iconClassName="text-sm" />
                               <div className="flex-1 min-w-0">
                                 <p className="text-[14px] font-bold leading-tight">{prodMerma.descripcion}</p>
-                                <p className="text-[11.5px] text-white/60 mt-0.5">Stock actual: {stockMerma}</p>
+                                <p className="text-[11.5px] text-[#8f8cb0] mt-0.5">Stock actual: {stockMerma}</p>
                               </div>
                               <button
                                 type="button"
                                 onClick={() => setFormMerma((f) => ({ ...f, productoId: '', cantidad: '' }))}
-                                className="shrink-0 h-8 px-3.5 rounded-full border-[1.5px] border-white/25 hover:bg-white/10 text-[12px] font-bold transition"
+                                className="shrink-0 h-8 px-3.5 rounded-full bg-[#f3f5ff] hover:bg-[#e6ebff] text-[12px] font-bold transition"
                               >
                                 Cambiar
                               </button>
                             </div>
 
                             <div className="text-center mt-5">
-                              <p className="text-[11.5px] text-white/55">Cantidad</p>
+                              <p className="text-[11.5px] text-[#8f8cb0]">Cantidad</p>
                               <div className="flex items-center justify-center gap-5 mt-1.5">
-                                <button type="button" onClick={() => cambiarCantidad(-pasoMerma)} className="w-[46px] h-[46px] rounded-full border-[1.5px] border-white/25 bg-white/5 hover:bg-white/10 flex items-center justify-center transition" aria-label="Menos">
+                                <button type="button" onClick={() => cambiarCantidad(-pasoMerma)} className="w-[46px] h-[46px] rounded-full bg-[#f3f5ff] hover:bg-[#e6ebff] flex items-center justify-center transition" aria-label="Menos">
                                   <IconoTrazo nombre="minus" className="w-[17px] h-[17px]" />
                                 </button>
                                 <input
@@ -128,20 +128,20 @@ export default function MermaModal({
                                   min="0"
                                   value={formMerma.cantidad}
                                   onChange={(e) => setFormMerma((f) => ({ ...f, cantidad: e.target.value }))}
-                                  className="w-24 text-center text-[52px] leading-none font-light tracking-tight text-white tabular-nums bg-transparent focus:outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                                  className="w-24 text-center text-[52px] leading-none font-light tracking-tight text-[#2d284b] tabular-nums bg-transparent focus:outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                                 />
-                                <button type="button" onClick={() => cambiarCantidad(pasoMerma)} className="w-[46px] h-[46px] rounded-full border-[1.5px] border-white/25 bg-white/5 hover:bg-white/10 flex items-center justify-center transition" aria-label="Más">
+                                <button type="button" onClick={() => cambiarCantidad(pasoMerma)} className="w-[46px] h-[46px] rounded-full bg-[#f3f5ff] hover:bg-[#e6ebff] flex items-center justify-center transition" aria-label="Más">
                                   <IconoTrazo nombre="plus" className="w-[17px] h-[17px]" />
                                 </button>
                               </div>
-                              <p className="text-xs text-white/65 mt-2.5">Costo perdido <b className="ml-1.5 text-[15px] text-[#ffb3c0] tabular-nums">S/ {formatoSoles(costoMerma)}</b></p>
+                              <p className="text-xs text-[#8f8cb0] mt-2.5">Costo perdido <b className="ml-1.5 text-[15px] text-[#c0262d] tabular-nums">S/ {formatoSoles(costoMerma)}</b></p>
                             </div>
                           </>
                         )}
                       </div>
 
                       {/* Hoja blanca: resultados de búsqueda, o el motivo y el stock resultante */}
-                      <div className="relative -mt-5 rounded-t-[30px] bg-white px-5 pt-5 pb-2">
+                      <div className="relative border-t border-[#eef1fd] bg-white px-5 pt-5 pb-2">
                         {!prodMerma ? (
                           termino ? (
                             resultados.length === 0 ? (

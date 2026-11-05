@@ -5,12 +5,12 @@ import Chispa from './Chispa.jsx';
 
 const ATAJOS_LIMITE = [0, 50, 100, 200, 300, 500];
 
-const claseCampoOscuro = 'h-[50px] flex items-center gap-2.5 px-4 rounded-full border-[1.5px] border-white/20 bg-white/5 focus-within:border-[#c5bcff] focus-within:ring-4 focus-within:ring-[#9687f5]/20 transition';
+const claseCampoNombre = 'h-[50px] flex items-center gap-2.5 px-4 rounded-full bg-[#f3f5ff] focus-within:ring-2 focus-within:ring-[#5b4bd6]/40 transition';
 const claseCampoClaro = 'h-[46px] flex items-center gap-2 px-3.5 rounded-[14px] bg-[#f3f5ff] focus-within:ring-2 focus-within:ring-[#5b4bd6]/40';
 const clasesTipo = {
-  ok: 'bg-emerald-400/20 text-emerald-200',
-  tipeando: 'bg-white/10 text-white/80',
-  mal: 'bg-[#ffb3c0]/20 text-[#ffb3c0]',
+  ok: 'bg-[#d9f5e9] text-[#0f7b4a]',
+  tipeando: 'bg-white text-[#6b6890]',
+  mal: 'bg-[#fde0e5] text-[#c0262d]',
 };
 
 // Modal separado de main.jsx: se carga al abrirlo (React.lazy). El estado y las acciones
@@ -36,14 +36,14 @@ export default function NuevoCliente({
         <div className="flex-1 overflow-y-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden bg-white">
           {/* Panel oscuro: documento y nombre */}
           <div
-            className="kz-panel-oscuro relative text-white px-5 pt-4 pb-9"
+            className="relative bg-white text-[#2d284b] px-5 pt-4 pb-5"
           >
             <div className="flex items-center justify-between">
-              <span className="w-10 h-10 rounded-full border-[1.5px] border-white/25 bg-white/5 flex items-center justify-center">
+              <span className="w-10 h-10 rounded-full bg-[#f3f5ff] flex items-center justify-center">
                 <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><circle cx="10" cy="8" r="4" /><path d="M3 20c0-3.6 3.1-6 7-6M18 8v6M15 11h6" /></svg>
               </span>
-              <span className="text-[12.5px] font-semibold text-white/85">Registrar cliente</span>
-              <button type="button" aria-label="Cerrar" onClick={() => setModalNuevoCliente(false)} className="w-10 h-10 rounded-full border-[1.5px] border-white/25 bg-white/5 hover:bg-white/10 flex items-center justify-center transition">
+              <span className="text-[12.5px] font-semibold text-[#6b6890]">Registrar cliente</span>
+              <button type="button" aria-label="Cerrar" onClick={() => setModalNuevoCliente(false)} className="w-10 h-10 rounded-full bg-[#f3f5ff] hover:bg-[#e6ebff] flex items-center justify-center transition">
                 <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12" /></svg>
               </button>
             </div>
@@ -52,20 +52,20 @@ export default function NuevoCliente({
               {ini ? (
                 <div className="w-[68px] h-[68px] mx-auto rounded-full grid place-items-center text-2xl font-bold tracking-wide bg-gradient-to-br from-[#9687f5] to-[#5b4bd6] shadow-[0_8px_22px_-8px_rgba(150,135,245,0.7)]">{ini}</div>
               ) : (
-                <div className="w-[68px] h-[68px] mx-auto rounded-full grid place-items-center border-[1.5px] border-dashed border-white/30 bg-white/5 text-white/60">
+                <div className="w-[68px] h-[68px] mx-auto rounded-full grid place-items-center border-[1.5px] border-dashed border-[#c5c9e0] bg-[#f3f5ff] text-[#8f8cb0]">
                   <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" aria-hidden="true"><circle cx="12" cy="8" r="4" /><path d="M4 21c0-4 3.6-7 8-7s8 3 8 7" /></svg>
                 </div>
               )}
               <h3 className="mt-3 text-2xl font-light tracking-tight min-h-[30px] break-words">
                 {ultima ? <>{palabras.length > 0 && `${palabras.join(' ')} `}<b className="font-bold">{ultima}</b></> : <>Nuevo <b className="font-bold">cliente</b></>}
               </h3>
-              <p className="text-xs text-white/55 mt-0.5">
+              <p className="text-xs text-[#8f8cb0] mt-0.5">
                 {ultima ? (tipo?.estado === 'ok' ? `${tipo.texto} ${formCliente.dni.trim()}` : 'Nuevo cliente') : 'Para vender a crédito (fiado) y llevar su cuenta.'}
               </p>
             </div>
 
             <div className="mt-5 space-y-2.5">
-              <label className={claseCampoOscuro}>
+              <label className={claseCampoNombre}>
                 <svg className="shrink-0 opacity-80" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="3" /><path d="M8 11h4M8 15h8" /></svg>
                 <input
                   type="text"
@@ -77,11 +77,11 @@ export default function NuevoCliente({
                   value={formCliente.dni}
                   onChange={campo('dni')}
                   placeholder="DNI o RUC"
-                  className="flex-1 min-w-0 bg-transparent text-sm font-medium text-white placeholder:text-white/50 focus:outline-none"
+                  className="flex-1 min-w-0 bg-transparent text-sm font-medium text-[#2d284b] placeholder:text-[#9290a2] focus:outline-none"
                 />
                 {tipo && <span className={`shrink-0 text-[11px] font-bold tracking-wide px-2.5 py-0.5 rounded-full ${clasesTipo[tipo.estado]}`}>{tipo.texto}</span>}
               </label>
-              <label className={claseCampoOscuro}>
+              <label className={claseCampoNombre}>
                 <svg className="shrink-0 opacity-80" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><circle cx="12" cy="8" r="4" /><path d="M4 21c0-4 3.6-7 8-7s8 3 8 7" /></svg>
                 <input
                   type="text"
@@ -91,14 +91,14 @@ export default function NuevoCliente({
                   value={formCliente.nombre}
                   onChange={campo('nombre')}
                   placeholder="Nombre completo"
-                  className="flex-1 min-w-0 bg-transparent text-sm font-medium text-white placeholder:text-white/50 focus:outline-none"
+                  className="flex-1 min-w-0 bg-transparent text-sm font-medium text-[#2d284b] placeholder:text-[#9290a2] focus:outline-none"
                 />
               </label>
             </div>
           </div>
 
           {/* Hoja blanca: contacto y crédito */}
-          <div className="relative -mt-5 rounded-t-[30px] bg-white px-5 pt-5 pb-1">
+          <div className="relative border-t border-[#eef1fd] bg-white px-5 pt-5 pb-1">
             <div className="grid grid-cols-2 gap-2.5">
               <div className="min-w-0">
                 <span className="block text-xs font-bold text-[#6b6890] mb-1.5 ml-1">Teléfono</span>

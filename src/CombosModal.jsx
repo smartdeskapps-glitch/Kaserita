@@ -1,4 +1,5 @@
 import React from 'react';
+import VentanaModulo from './VentanaModulo.jsx';
 import { FotoProducto } from './PanelAdminCompartido.jsx';
 import { margenCombo } from './lib/combos.js';
 
@@ -119,18 +120,15 @@ export default function CombosModal({
                   const pvFotos = f.items.slice(0, 3);
 
                   return (
-                    <div className="ventana-riel fixed inset-0 bg-stone-900/30 backdrop-blur-sm flex items-center justify-center z-50 p-2 sm:p-4">
-                      <div className="bg-[#f7f8fc] border border-black/5 rounded-[18px] max-w-5xl w-full shadow-2xl h-[95vh] max-h-[800px] flex flex-col overflow-hidden">
-
-                        <div className="bg-white border-b border-[#e6e9f5] px-4 sm:px-7 py-4 shrink-0 flex items-center gap-3">
-                          <button type="button" onClick={cerrarEditorCombo} className="h-9 px-3 rounded-[10px] border border-[#e6e9f5] bg-white hover:bg-[#f7f8fc] text-[13px] font-medium text-stone-700 inline-flex items-center gap-1.5 shrink-0"><i className="fa-solid fa-chevron-left text-[10px]"></i> Combos</button>
-                          <div className="min-w-0 flex-1">
-                            <h3 className="text-[19px] sm:text-[21px] font-bold text-stone-900 tracking-tight leading-tight truncate">{f.id ? (f.nombre.trim() || 'Combo sin nombre') : 'Nuevo combo'}</h3>
-                            <p className="hidden sm:block text-[13px] text-stone-500 mt-0.5">{f.id ? 'Edita lo que incluye y su precio.' : 'Elige qué incluye y ponle un precio especial.'}</p>
-                          </div>
-                          <button aria-label="Cerrar" onClick={cerrarEditorCombo} className="w-9 h-9 flex items-center justify-center rounded-full text-stone-400 hover:text-stone-700 hover:bg-[#eef1fb] transition-colors shrink-0"><i className="fa-solid fa-xmark"></i></button>
-                        </div>
-
+                    <VentanaModulo
+                      icono="fa-gift"
+                      titulo={f.id ? (f.nombre.trim() || 'Combo sin nombre') : 'Nuevo combo'}
+                      subtitulo={f.id ? 'Edita lo que incluye y su precio.' : 'Elige qué incluye y ponle un precio especial.'}
+                      izquierda={<button type="button" aria-label="Volver a combos" onClick={cerrarEditorCombo} className="w-[38px] h-[38px] rounded-full bg-[#f3f5ff] hover:bg-[#e6ebff] text-[#6b6890] grid place-items-center shrink-0 transition"><i className="fa-solid fa-chevron-left text-xs"></i></button>}
+                      onClose={cerrarEditorCombo}
+                      alto="h-[95vh] max-h-[800px]"
+                      desplazable={false}
+                    >
                         <div className="flex-1 overflow-y-auto hide-scrollbar p-4 sm:p-7 grid gap-5 md:gap-6 md:grid-cols-[minmax(0,1fr)_310px] content-start">
                           <div className="min-w-0 space-y-4">
 
@@ -327,8 +325,7 @@ export default function CombosModal({
                             <span>{guardandoCombo ? 'Guardando...' : (f.id ? 'Guardar cambios' : 'Guardar combo')}</span>{chispa}
                           </button>
                         </div>
-                      </div>
-                    </div>
+                    </VentanaModulo>
                   );
                 }
 
@@ -341,24 +338,21 @@ export default function CombosModal({
                 const visibles = filas.filter((x) => (filtroCombos === 'todos' || x.est === filtroCombos) && (!qLista || norm(x.c.nombre).includes(qLista)));
 
                 return (
-                  <div className="ventana-riel fixed inset-0 bg-stone-900/30 backdrop-blur-sm flex items-center justify-center z-50 p-2 sm:p-4">
-                    <div className="bg-[#f7f8fc] border border-black/5 rounded-[18px] max-w-5xl w-full shadow-2xl h-[95vh] max-h-[800px] flex flex-col overflow-hidden">
-
-                      <div className="bg-white border-b border-[#e6e9f5] px-4 sm:px-7 py-4 shrink-0 flex items-center gap-3">
-                        <div className="min-w-0 flex-1">
-                          <h3 className="text-[19px] sm:text-[21px] font-bold text-stone-900 tracking-tight leading-tight">Combos</h3>
-                          <p className="hidden sm:block text-[13px] text-stone-500 mt-1 max-w-[520px] leading-snug">Paquetes de varios {esBarberia ? 'servicios y productos' : 'productos'} a un precio especial. Al venderse, descuentan el stock de cada producto que incluyen.</p>
-                        </div>
-                        <button type="button" onClick={nuevoCombo} className="kz-pri h-11 px-5 text-[13.5px] font-semibold inline-flex items-center gap-2 shrink-0"><span>Nuevo<span className="hidden sm:inline"> combo</span></span>{chispa}</button>
-                        <button aria-label="Cerrar" onClick={cerrarModalCombos} className="w-9 h-9 flex items-center justify-center rounded-full text-stone-400 hover:text-stone-700 hover:bg-[#eef1fb] transition-colors shrink-0"><i className="fa-solid fa-xmark"></i></button>
-                      </div>
-
+                  <VentanaModulo
+                    icono="fa-gift"
+                    titulo="Combos"
+                    subtitulo={`Paquetes de varios ${esBarberia ? 'servicios y productos' : 'productos'} a un precio especial. Al venderse, descuentan el stock de cada uno.`}
+                    cifras={[
+                      { etiqueta: 'En venta ahora', valor: nVenta },
+                      { etiqueta: 'Sin stock', valor: nSin, tono: nSin ? 'aviso' : undefined },
+                      { etiqueta: 'Pausados', valor: nPausa },
+                    ]}
+                    acciones={<button type="button" onClick={nuevoCombo} className="kz-pri h-10 px-4 text-[13px] font-bold inline-flex items-center gap-2 shrink-0"><span>Nuevo<span className="hidden sm:inline"> combo</span></span>{chispa}</button>}
+                    onClose={cerrarModalCombos}
+                    alto="h-[95vh] max-h-[800px]"
+                    desplazable={false}
+                  >
                       <div className="flex-1 overflow-y-auto hide-scrollbar px-4 sm:px-7 py-5 sm:py-6">
-                        <div className="flex gap-6 sm:gap-9 mb-5">
-                          <div><b className="block text-[26px] sm:text-[30px] font-bold tracking-tight leading-none">{nVenta}</b><span className="block text-[12.5px] text-stone-500 mt-1.5">En venta ahora</span></div>
-                          <div><b className={`block text-[26px] sm:text-[30px] font-bold tracking-tight leading-none ${nSin ? 'text-[#a15c07]' : ''}`}>{nSin}</b><span className="block text-[12.5px] text-stone-500 mt-1.5">Sin stock</span></div>
-                          <div><b className="block text-[26px] sm:text-[30px] font-bold tracking-tight leading-none">{nPausa}</b><span className="block text-[12.5px] text-stone-500 mt-1.5">Pausados</span></div>
-                        </div>
                         <div className="flex flex-wrap items-center gap-3 mb-5">
                           <label className="flex items-center gap-2.5 h-10 w-full sm:w-[280px] px-3.5 rounded-[10px] border border-[#e6e9f5] bg-white text-stone-400 focus-within:border-[#5b4bd6]">
                             <i className="fa-solid fa-magnifying-glass text-[13px]"></i>
@@ -443,8 +437,7 @@ export default function CombosModal({
                           </div>
                         )}
                       </div>
-                    </div>
-                  </div>
+                  </VentanaModulo>
                 );
               })()}
     </>

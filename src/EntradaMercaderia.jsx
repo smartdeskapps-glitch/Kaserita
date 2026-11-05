@@ -1,4 +1,5 @@
 import React from 'react';
+import VentanaModulo from './VentanaModulo.jsx';
 import { FotoProducto } from './PanelAdminCompartido.jsx';
 
 // Modal separado de main.jsx: se carga al abrirlo (React.lazy). El estado y las acciones
@@ -368,18 +369,16 @@ export default function EntradaMercaderia({
 
                 const fin = entradaRegistrada;
                 return (
-                  <div className="fixed inset-0 bg-stone-900/30 backdrop-blur-sm flex items-center justify-center z-50 p-2 sm:p-4">
-                    <div className="bg-gradient-to-br from-[#eef1fb] via-[#f8f9fd] to-[#f4f5fa] border border-white/80 rounded-[28px] max-w-4xl w-full shadow-2xl h-[95vh] max-h-[800px] flex flex-col overflow-hidden">
-
-                      <div className="bg-white border-b border-stone-100 px-4 sm:px-5 py-3.5 shrink-0 flex items-center gap-3">
-                        <span className="w-11 h-11 rounded-[14px] bg-[#ebf0ff] text-[#5b4bd6] grid place-items-center text-xl shrink-0"><i className="fa-solid fa-truck-ramp-box"></i></span>
-                        <div className="min-w-0">
-                          <h3 className="text-[17px] sm:text-lg font-extrabold text-stone-900 tracking-tight leading-tight">Entrada de mercadería</h3>
-                          <p className="hidden sm:block text-[12.5px] text-stone-500 mt-0.5">Anota lo que te dejó el proveedor. El stock y el costo se actualizan al confirmar.</p>
-                        </div>
-                        <button onClick={fin ? cerrarModalEntradaMercaderia : pedirCerrarEntrada} aria-label="Cerrar" className="ml-auto w-8 h-8 flex items-center justify-center rounded-full text-stone-400 hover:text-stone-600 hover:bg-stone-100 transition-colors shrink-0"><i className="fa-solid fa-xmark"></i></button>
-                      </div>
-
+                  <VentanaModulo
+                    icono="fa-truck-ramp-box"
+                    titulo="Entrada de mercadería"
+                    subtitulo="Anota lo que te dejó el proveedor. El stock y el costo se actualizan al confirmar."
+                    onClose={fin ? cerrarModalEntradaMercaderia : pedirCerrarEntrada}
+                    ancho="max-w-4xl"
+                    alto="h-[95vh] max-h-[800px]"
+                    desplazable={false}
+                  >
+                    <div className="flex-1 min-h-0 flex flex-col bg-[#f6f8ff]">
                       {fin ? (
                         <div className="flex-1 overflow-y-auto grid place-items-center p-5">
                           <div className="text-center max-w-md w-full">
@@ -421,7 +420,7 @@ export default function EntradaMercaderia({
                         </>
                       )}
                     </div>
-                  </div>
+                  </VentanaModulo>
                 );
               })()}
     </>

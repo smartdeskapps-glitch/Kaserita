@@ -1,4 +1,5 @@
 import React from 'react';
+import VentanaModulo from './VentanaModulo.jsx';
 import { fechaHoyISO } from './PanelAdminCompartido.jsx';
 
 // Modal del dashboard de ventas (solo Administrador). Vive aparte y se carga al abrirlo
@@ -61,21 +62,20 @@ export default function DashboardVentas({
   VariacionPct,
 }) {
   return (
-        <div className="ventana-riel fixed inset-0 bg-stone-900/30 md:backdrop-blur-sm flex items-center justify-center z-50 p-2 md:p-4">
-          <div className="dsh-panel border border-white/80 rounded-[28px] max-w-6xl w-full max-h-[95vh] flex flex-col overflow-hidden shadow-2xl">
-            <div className="shrink-0 px-5 md:px-7 pt-6 pb-4 space-y-4">
-              <div className="flex items-start justify-between gap-3">
-                <div className="min-w-0">
-                  <h3 className="text-2xl md:text-[28px] font-normal text-[#2D284B] tracking-tight">Dashboard de <span className="text-[#5b4bd6]">ventas</span></h3>
-                  <p className="text-xs text-[#6b6890] mt-1.5">
-                    Del {String(fechaInicioDash).split('-').reverse().join('/')} al {String(fechaFinDash).split('-').reverse().join('/')}
-                    {dashStats.numVentas > 0 && <> · <span className="text-[#5b4bd6] font-semibold">{dashStats.numVentas} venta{dashStats.numVentas === 1 ? '' : 's'}</span></>}
-                  </p>
-                </div>
-                <button onClick={() => setModalDashboard(false)} className="w-10 h-10 rounded-full bg-white/80 hover:bg-white text-[#2D284B] shadow-sm flex items-center justify-center shrink-0" aria-label="Cerrar">
-                  <i className="fa-solid fa-xmark"></i>
-                </button>
-              </div>
+        <VentanaModulo
+          icono="fa-chart-pie"
+          titulo="Dashboard de ventas"
+          subtitulo={<>
+            Del {String(fechaInicioDash).split('-').reverse().join('/')} al {String(fechaFinDash).split('-').reverse().join('/')}
+            {dashStats.numVentas > 0 && <> · {dashStats.numVentas} venta{dashStats.numVentas === 1 ? '' : 's'}</>}
+          </>}
+          onClose={() => setModalDashboard(false)}
+          ancho="max-w-6xl"
+          alto="max-h-[95vh]"
+          desplazable={false}
+        >
+          <div className="flex-1 min-h-0 flex flex-col bg-[#f6f8ff]">
+            <div className="shrink-0 px-5 md:px-7 pt-4 pb-4">
               <FiltroFechasRapido
                 desde={fechaInicioDash}
                 hasta={fechaFinDash}
@@ -677,6 +677,6 @@ export default function DashboardVentas({
             )}
             </div>
           </div>
-        </div>
+        </VentanaModulo>
   );
 }
