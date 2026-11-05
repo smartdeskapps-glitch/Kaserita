@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { normalizarBusqueda, filtrarProductos, productoCoincide } from './busqueda.js';
+import { normalizarBusqueda, filtrarProductos, productoCoincide, crearFiltroProductos } from './busqueda.js';
 
 const catalogo = [
   { id: 1, descripcion: 'Arroz Costeño 5kg', cod_ean: '7750001000002', categoria: 'Abarrotes' },
@@ -43,5 +43,21 @@ describe('filtrarProductos', () => {
     const cache = new WeakMap();
     expect(filtrarProductos(catalogo, 'pilsen', cache)).toEqual(filtrarProductos(catalogo, 'pilsen'));
     expect(productoCoincide(catalogo[2], 'pilsen', cache)).toBe(true);
+  });
+});
+
+describe('crearFiltroProductos (incremental)', () => {
+  it('da lo mismo que filtrar desde cero al escribir, borrar y cambiar de lista', () => {
+    const filtrar = crearFiltroProductos();
+    for (const t of ['a', 'ar', 'arr', 'arroz', 'arroz 5', 'arroz 5kg', 'arroz', 'c', 'ca', 'caf', '', 'pil']) {
+      expect(filtrar(catalogo, t)).toEqual(filtrarProductos(catalogo, t));
+    }
+    const otro = catalogo.slice(0, 2);
+    expect(filtrar(otro, 'pil')).toEqual([]);
+    expect(filtrar(catalogo, 'pil').map((p) => p.id)).toEqual([3]);
+  });
+  it('sin término devuelve la lista tal cual', () => {
+    const filtrar = crearFiltroProductos();
+    expect(filtrar(catalogo, '')).toBe(catalogo);
   });
 });

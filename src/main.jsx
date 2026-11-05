@@ -3,7 +3,7 @@ import ReactDOM from 'react-dom/client';
 import RielLateral from './RielLateral.jsx';
 import PaletaMenu from './PaletaMenu.jsx';
 import { createPortal } from 'react-dom';
-import { filtrarProductos } from './lib/busqueda.js';
+import { crearFiltroProductos } from './lib/busqueda.js';
 import { createClient } from '@supabase/supabase-js';
 import './index.css';
 import {
@@ -684,7 +684,11 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
     }
 
     // Montos del Dashboard con separador de miles (1,752.90) y siempre 2 decimales.
-    const formatoSoles = (n) => Number(n || 0).toLocaleString('es-PE', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    // Los formateadores se crean una sola vez: toLocaleString con opciones arma uno
+    // nuevo en cada llamada y era de lo más caro al dibujar tarjetas y carrito.
+    const FMT_SOLES = new Intl.NumberFormat('es-PE', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    const FMT_ENTERO = new Intl.NumberFormat('es-PE');
+    const formatoSoles = (n) => FMT_SOLES.format(Number(n || 0));
 
     // Cifras compactas para el calendario de "Ventas por día", que no se rompe
     // con montos grandes: entero hasta 9,999; luego 12.3k / 123k / 1.2M.
@@ -692,13 +696,13 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
       if (n >= 1e6) return `${(n / 1e6).toFixed(1).replace(/\.0$/, '')}M`;
       if (n >= 1e5) return `${Math.round(n / 1e3)}k`;
       if (n >= 1e4) return `${(n / 1e3).toFixed(1).replace(/\.0$/, '')}k`;
-      return Math.round(n).toLocaleString('es-PE');
+      return FMT_ENTERO.format(Math.round(n));
     };
     // Para las tarjetas de resumen y de semana: con céntimos hasta 9,999.99, sin
     // céntimos desde 10 mil y abreviado desde un millón.
     const montoResumen = (n) => {
       if (n >= 1e6) return `S/ ${(n / 1e6).toFixed(2)}M`;
-      if (n >= 1e4) return `S/ ${Math.round(n).toLocaleString('es-PE')}`;
+      if (n >= 1e4) return `S/ ${FMT_ENTERO.format(Math.round(n))}`;
       return `S/ ${formatoSoles(n)}`;
     };
 
@@ -1982,6 +1986,15 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
         // Un intento. Devuelve { estado }:
         //  'ok' (con sesion) | 'sin-sesion' | 'admin' | 'sin-suscripcion' | 'error'
         // 'error' = no se pudo comprobar; es lo único que se reintenta.
+        // Cada intento de arranque corta a los 6 s y sin los reintentos internos de
+        // supabase-js (esperas de 1, 2 y 4 s): la app ya reintenta a su ritmo
+        // (PAUSAS_REINTENTO_SESION). Con los dos juntos, sin buena señal el POS
+        // tardaba ~35 s en abrir con la última sesión guardada.
+        const limiteArranque = (q) => {
+          const conTope = typeof AbortSignal !== 'undefined' && typeof AbortSignal.timeout === 'function'
+            ? q.abortSignal(AbortSignal.timeout(6000)) : q;
+          return typeof conTope.retry === 'function' ? conTope.retry(false) : conTope;
+        };
         const intentarRestaurar = async () => {
           const { data: { session }, error: errSesion } = await sbClient.auth.getSession();
           if (!session?.user) {
@@ -1996,7 +2009,7 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
           // segunda consulta secuencial después -- en cada carga de la
           // app esto le ahorra una ida y vuelta completa al servidor
           // antes de poder ocultar el splash.
-          let { data: usuarioConBodega, error: errUsuario } = await sbClient.from('usuarios').select('*, bodegas(*)').eq('auth_id', session.user.id).maybeSingle();
+          let { data: usuarioConBodega, error: errUsuario } = await limiteArranque(sbClient.from('usuarios').select('*, bodegas(*)').eq('auth_id', session.user.id).maybeSingle());
           if (errUsuario) return { estado: 'error' };
           if (!usuarioConBodega) {
             // Bodega creada por el admin con el correo del dueño: en su
@@ -2005,7 +2018,7 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
             // o el correo no tiene bodega, sigue el camino de siempre.
             const { data: bodegaReclamada } = await sbClient.rpc('reclamar_cuenta_por_correo');
             if (bodegaReclamada) {
-              ({ data: usuarioConBodega, error: errUsuario } = await sbClient.from('usuarios').select('*, bodegas(*)').eq('auth_id', session.user.id).maybeSingle());
+              ({ data: usuarioConBodega, error: errUsuario } = await limiteArranque(sbClient.from('usuarios').select('*, bodegas(*)').eq('auth_id', session.user.id).maybeSingle()));
               if (errUsuario) return { estado: 'error' };
             }
           }
@@ -2016,7 +2029,7 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
           // Sin fila en "usuarios" -- puede ser el super-admin (cuenta
           // aparte, sin bodega, ver más abajo) o una cuenta de Google
           // que nunca compró ninguna bodega.
-          const { data: esAdmin, error: errAdmin } = await sbClient.from('super_admins').select('auth_id').eq('auth_id', session.user.id).maybeSingle();
+          const { data: esAdmin, error: errAdmin } = await limiteArranque(sbClient.from('super_admins').select('auth_id').eq('auth_id', session.user.id).maybeSingle());
           if (errAdmin) return { estado: 'error' };
           return { estado: esAdmin ? 'admin' : 'sin-suscripcion' };
         };
@@ -3955,7 +3968,8 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
       // (ver productosFiltrados). useDeferredValue deja que el campo de texto
       // responda al toque aunque el catálogo sea grande.
       const busquedaDiferida = useDeferredValue(busqueda);
-      const textoBuscableRef = useRef(new WeakMap());
+      const filtroProductosRef = useRef(null);
+      if (!filtroProductosRef.current) filtroProductosRef.current = crearFiltroProductos();
 
       // Categorías: en el filtro solo se muestran las que ya tienen al menos
       // un producto cargado (la lista completa de categoriasDB se sigue
@@ -3971,10 +3985,16 @@ import { precioNormalCombo as sumaPreciosCombo, costoNormalCombo as sumaCostosCo
       // React.memo no evitaría que todas las tarjetas se redibujen con cada cambio.
       const verCombosDesdeTarjeta = useCallback(() => setCategoriaFiltro('__COMBOS__'), []);
 
-      const productosFiltrados = useMemo(() => {
-        const porCategoria = categoriaFiltro === 'TODOS' ? productos : productos.filter(p => p.categoria === categoriaFiltro);
-        return filtrarProductos(porCategoria, busquedaDiferida, textoBuscableRef.current);
-      }, [productos, categoriaFiltro, busquedaDiferida]);
+      // La lista por categoría se memoriza aparte: así el buscador puede seguir
+      // filtrando sobre su resultado anterior mientras se escribe.
+      const productosPorCategoria = useMemo(
+        () => (categoriaFiltro === 'TODOS' ? productos : productos.filter(p => p.categoria === categoriaFiltro)),
+        [productos, categoriaFiltro]
+      );
+      const productosFiltrados = useMemo(
+        () => filtroProductosRef.current(productosPorCategoria, busquedaDiferida),
+        [productosPorCategoria, busquedaDiferida]
+      );
 
       // La grilla dibuja los productos por tandas: con catálogos de miles de ítems,
       // montar todas las tarjetas de golpe congela el celular. Al acercarse al final
