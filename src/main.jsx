@@ -6,6 +6,7 @@ import './index.css';
 import { fechaHoyISO, comprimirImagenJPEG, CATEGORIAS_FALLBACK } from './PanelAdminCompartido.jsx';
 import { iniciarMonitoreo, reportarError } from './monitoreo.js';
 import { evitarZoomEnCampos } from './lib/movil.js';
+import { useBotonAtras } from './lib/atras.js';
 import { claveAuthSupabase, puedeUsarSesionGuardada, debeReintentar, PAUSAS_REINTENTO_SESION } from './lib/sesion.js';
 import { BODEGA_DEMO_ID, mensajeError } from './pos/utilidades.js';
 import { PRODUCTOS_SEMILLA } from './pos/demo.js';
@@ -1579,6 +1580,43 @@ import PantallaAdmin from './pantallas/PantallaAdmin.jsx';
       Object.assign(tarde, {
         actualizarCodigoEanFila, actualizarCodigoEanPackFila, agregarAlCarrito, agregarComboAlCarrito, agregarProductoAConteo, aparcarVentaActual, buscarProductoExistente, consultarTurnosAbiertos, elegirProductoEntrada, elegirProductoMerma, obtenerOCrearCliente, reiniciarClienteYMedioPago, verificarTurno
       });
+
+      // Botón "atrás" del celular: cierra la ventana de más arriba en vez de salir de la app.
+      // Orden: de la más alta a la más baja.
+      useBotonAtras([
+        { abierta: !!modalConfirmar, cerrar: () => { modalConfirmar.onCancelar(); setModalConfirmar(null); } },
+        { abierta: !!modalPrompt, cerrar: () => { modalPrompt.onCancelar(); setModalPrompt(null); } },
+        { abierta: modalEscaner, cerrar: () => setModalEscaner(false) },
+        { abierta: !!cajeroPendientePin, cerrar: () => setCajeroPendientePin(null) },
+        { abierta: !!modalPinCajero, cerrar: () => setModalPinCajero(null) },
+        { abierta: !!modalHorario, cerrar: () => setModalHorario(null) },
+        { abierta: modalNuevoProveedor, cerrar: () => setModalNuevoProveedor(false) },
+        { abierta: modalNuevoCliente, cerrar: () => setModalNuevoCliente(false) },
+        { abierta: modalBuscarCliente, cerrar: () => setModalBuscarCliente(false) },
+        { abierta: modalEditarProducto, cerrar: () => setModalEditarProducto(false) },
+        { abierta: modalCantidad, cerrar: () => setModalCantidad(false) },
+        { abierta: modalCierreCaja, cerrar: () => setModalCierreCaja(false) },
+        { abierta: modalTurno, cerrar: () => setModalTurno(false) },
+        { abierta: modalPedidosRetirar, cerrar: () => setModalPedidosRetirar(false) },
+        { abierta: modalVentasEspera, cerrar: () => setModalVentasEspera(false) },
+        { abierta: modalEntradaMercaderia, cerrar: entradaRegistrada ? cerrarModalEntradaMercaderia : pedirCerrarEntrada },
+        { abierta: modalMerma, cerrar: cerrarModalMerma },
+        { abierta: modalCombos, cerrar: cerrarModalCombos },
+        { abierta: modalCobrarDeudas, cerrar: () => setModalCobrarDeudas(false) },
+        { abierta: modalHistorial, cerrar: () => setModalHistorial(false) },
+        { abierta: modalHistorialCierres, cerrar: () => setModalHistorialCierres(false) },
+        { abierta: modalTomaInventario, cerrar: () => setModalTomaInventario(false) },
+        { abierta: modalHistorialInventario, cerrar: () => setModalHistorialInventario(false) },
+        { abierta: modalInventarioInicial, cerrar: () => setModalInventarioInicial(false) },
+        { abierta: modalDashboard, cerrar: () => setModalDashboard(false) },
+        { abierta: modalCuentasPagar, cerrar: () => setModalCuentasPagar(false) },
+        { abierta: modalGestionCajeros, cerrar: () => setModalGestionCajeros(false) },
+        { abierta: modalComisiones, cerrar: () => setModalComisiones(false) },
+        { abierta: modalAgenda, cerrar: () => setModalAgenda(false) },
+        { abierta: modalAuditoria, cerrar: () => setModalAuditoria(false) },
+        { abierta: modalDelivery, cerrar: () => setModalDelivery(false) },
+        { abierta: menuMas, cerrar: () => setMenuMas(false) },
+      ]);
 
       // Nota: /registro (alta pública de bodega vía pago) ya no vive acá --
       // es su propio archivo liviano (registro.html) para no obligar a
