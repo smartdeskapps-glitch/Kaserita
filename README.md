@@ -8,8 +8,28 @@ POS + página de inicio + páginas legales de SmartdeskApps. React 18, Vite, Tai
 npm install
 npm run dev        # servidor local
 npm test           # pruebas (Vitest) de la lógica en src/lib
+npm run lint       # ESLint (nombres no definidos, reglas de hooks)
 npm run build      # build de producción en dist/
 ```
+
+### Estructura del POS
+
+`src/main.jsx` es el componente principal (`PosApp`): estado compartido (sesión, carrito, turno, catálogo), el orden de los hooks y lo que se dibuja. Cada módulo vive en `src/pos/`:
+
+| Archivo | Qué contiene |
+|---|---|
+| `useCajaYCobro.js` | Cobro, venta exitosa, arqueo y cierre de caja |
+| `useCombos.js`, `useCatalogo.js`, `useSeleccionProducto.js` | Combos, catálogo y elección de producto/cantidad |
+| `useLectores.js` | Lector de códigos USB/Bluetooth y cámara |
+| `useCreditoCliente.js`, `useClientes.js` | Clientes, crédito y Fiados |
+| `useInventarioInicial.js`, `useEditarProducto.js`, `useMermasYToma.js`, `useHistorialTomas.js`, `useEntradaMercaderia.js` | Productos e inventario |
+| `useHistorialVentas.js`, `useDashboard.js` | Historial y Dashboard |
+| `useCajeros.js`, `useCuentasPorPagar.js`, `usePedidosDelivery.jsx`, `useVentasEnEspera.js`, `useImpresoraBluetooth.js` | Cajeros, proveedores, Delivery, ventas en espera, ticketera |
+| `utilidades.js`, `componentes.jsx`, `demo.js` | Formatos, componentes sin estado y catálogo demo |
+
+Cada hook recibe lo que usa del POS y devuelve lo que el resto usa. Lo que el POS declara más abajo llega en el objeto `tarde`, que se completa antes de dibujar y se lee solo dentro de funciones y efectos.
+
+Comprobaciones: `npm run lint` (ESLint; sobre todo nombres no definidos, que el build no detecta), `npm test`, y tras un refactor grande `npm run build && node scripts/humo-pos.cjs` (abre el POS en Bodega Demo, hace una venta y abre cada pantalla).
 
 La lógica de negocio que se puede probar sola (arqueo de caja, combos, descuentos, validaciones, dashboard, turnos, errores) vive en `src/lib/` con su `*.test.js`. La app principal está en `src/main.jsx`, el panel de superadmin en `src/PanelAdmin.jsx`.
 

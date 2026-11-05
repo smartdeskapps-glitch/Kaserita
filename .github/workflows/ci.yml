@@ -18,6 +18,8 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci
+      - name: Revisión (ESLint)
+        run: npm run lint
       - name: Pruebas
         run: npm test
       - name: Build
