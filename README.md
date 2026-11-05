@@ -27,9 +27,11 @@ npm run build      # build de producción en dist/
 | `useCajeros.js`, `useCuentasPorPagar.js`, `usePedidosDelivery.jsx`, `useVentasEnEspera.js`, `useImpresoraBluetooth.js` | Cajeros, proveedores, Delivery, ventas en espera, ticketera |
 | `utilidades.js`, `componentes.jsx`, `demo.js` | Formatos, componentes sin estado y catálogo demo |
 
+Lo que se dibuja está en `src/pantallas/`: `PantallaLogin`, `PantallaCuentaVencida`, `PantallaAdmin`, `AvisosSuperiores`, `Catalogo`, `CarritoMovil`, `PanelCarrito`, `MenuMas` y las ventanas agrupadas por tema (`VentanasProductos`, `VentanasFiadosYProveedores`, `VentanasHistoriales`, `VentanasAdministracion`, `VentanasClientes`, `VentanasReportes`, `VentanasTurno`, `VentanasVenta`, `DialogosGenericos`). Reciben por props lo que usan. Las ventanas se devuelven como fragmentos y en el mismo orden, así el DOM y el apilado de ventanas no cambian. `src/pos/perezosos.js` reúne las ventanas que se cargan bajo demanda (`React.lazy`).
+
 Cada hook recibe lo que usa del POS y devuelve lo que el resto usa. Lo que el POS declara más abajo llega en el objeto `tarde`, que se completa antes de dibujar y se lee solo dentro de funciones y efectos.
 
-Comprobaciones: `npm run lint` (ESLint; sobre todo nombres no definidos, que el build no detecta), `npm test`, y tras un refactor grande `npm run build && node scripts/humo-pos.cjs` (abre el POS en Bodega Demo, hace una venta y abre cada pantalla).
+Comprobaciones: `npm run lint` (ESLint; sobre todo nombres no definidos, que el build no detecta), `npm test`, y tras un refactor grande `npm run build && node scripts/humo-pos.cjs` (abre el POS en Bodega Demo, hace una venta y abre cada pantalla) y `node scripts/comparar-render.cjs <dist-antes> dist` (el HTML dibujado debe salir igual).
 
 La lógica de negocio que se puede probar sola (arqueo de caja, combos, descuentos, validaciones, dashboard, turnos, errores) vive en `src/lib/` con su `*.test.js`. La app principal está en `src/main.jsx`, el panel de superadmin en `src/PanelAdmin.jsx`.
 
