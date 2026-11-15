@@ -21,6 +21,13 @@ export function componerDireccion(calle, numero, zona) {
   return [via, String(zona || '').trim()].filter(Boolean).join(', ');
 }
 
+// Separa "Av. Los Álamos 245, San Miguel" en calle, número y zona (para reabrir el mapa).
+export function partirDireccion(texto) {
+  const [via = '', ...resto] = String(texto || '').split(',');
+  const m = via.trim().match(/^(.*?)(?:\s+(\d+[\w-]*))?$/);
+  return { calle: m ? m[1].trim() : via.trim(), numero: m && m[2] ? m[2] : '', zona: resto.join(',').trim() };
+}
+
 // Sigue el GPS sin hacer esperar: avisa en cuanto hay una primera lectura y después solo cuando
 // llega una más precisa. Se detiene solo al llegar a PRECISION_BUENA o pasado ESPERA_MAXIMA.
 // Devuelve una función para detenerlo antes.
@@ -97,7 +104,7 @@ export async function direccionDeCoordenadas(lat, lng) {
     const metros = Number.isFinite(lt) && Number.isFinite(ln) ? metrosEntre(lat, lng, lt, ln) : 0;
     // El número de puerta es de ese local registrado: si queda lejos del pin, no es el del punto.
     const numero = metros > 12 ? '' : p.numero;
-    return { calle: p.calle, numero, direccion: componerDireccion(p.calle, numero, p.zona) };
+    return { calle: p.calle, numero, zona: p.zona };
   } catch {
     return null;
   }

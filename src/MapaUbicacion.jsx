@@ -1,5 +1,5 @@
 import React from 'react';
-import { TESELA, aPixeles, aCoordenadas, direccionDeCoordenadas } from './lib/ubicacion.js';
+import { TESELA, aPixeles, aCoordenadas, direccionDeCoordenadas, componerDireccion, partirDireccion } from './lib/ubicacion.js';
 
 const ZOOM_MIN = 14;
 const ZOOM_MAX = 19;
@@ -16,11 +16,17 @@ export default function MapaUbicacion({ lat, lng, precision, afinando, direccion
   const [centro, setCentro] = React.useState({ lat, lng });
   const [arrastrando, setArrastrando] = React.useState(false);
   const [buscando, setBuscando] = React.useState(false);
-  const [texto, setTexto] = React.useState(direccionInicial || '');
+  // La calle se rellena sola y sigue al pin; el número de puerta se escribe aparte porque el mapa
+  // abierto casi nunca lo tiene (si lo trae, también se rellena).
+  const inicial = React.useMemo(() => partirDireccion(direccionInicial), []); // eslint-disable-line react-hooks/exhaustive-deps
+  const [calle, setCalle] = React.useState(inicial.calle);
+  const [numero, setNumero] = React.useState(inicial.numero);
+  const [zona, setZona] = React.useState(inicial.zona);
   const inicioArrastre = React.useRef(null);
   const turno = React.useRef(0);
   // Con una dirección ya guardada no se pisa lo escrito; con una lectura nueva de GPS sí se rellena.
-  const textoEditado = React.useRef(!!direccionInicial);
+  const calleEditada = React.useRef(!!inicial.calle);
+  const numeroEditado = React.useRef(!!inicial.numero);
   const ultimaCalle = React.useRef(null);
   // En cuanto la persona toca el mapa, las lecturas nuevas del GPS ya no lo mueven.
   const tocado = React.useRef(false);
@@ -53,10 +59,15 @@ export default function MapaUbicacion({ lat, lng, precision, afinando, direccion
       if (mio !== turno.current) return;
       setBuscando(false);
       if (!d) return;
-      // Si el pin pasó a otra calle, la dirección anterior ya no vale: vuelve a rellenarse sola.
-      if (ultimaCalle.current !== null && d.calle !== ultimaCalle.current) textoEditado.current = false;
+      // Si el pin pasó a otra calle, lo escrito antes ya no vale: calle y número vuelven a rellenarse solos.
+      if (ultimaCalle.current !== null && d.calle !== ultimaCalle.current) {
+        calleEditada.current = false;
+        numeroEditado.current = false;
+      }
       ultimaCalle.current = d.calle;
-      if (!textoEditado.current) setTexto(d.direccion);
+      if (!calleEditada.current) setCalle(d.calle);
+      if (!numeroEditado.current) setNumero(d.numero);
+      setZona(d.zona);
     }, 450);
     return () => { clearTimeout(t); turno.current += 1; };
   }, [centro, arrastrando]);
@@ -91,7 +102,7 @@ export default function MapaUbicacion({ lat, lng, precision, afinando, direccion
   const alSoltar = () => { inicioArrastre.current = null; setArrastrando(false); };
   const cambiarZoom = (d) => { tocado.current = true; setZoom((z) => Math.min(ZOOM_MAX, Math.max(ZOOM_MIN, z + d))); };
 
-  const falta = texto.trim() && !/\d|s\/n/i.test(texto);
+  const direccion = componerDireccion(calle, numero, zona);
 
   return (
     <div className="fixed inset-0 z-[70] bg-stone-900/40 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4" onClick={onCerrar}>
@@ -155,22 +166,39 @@ export default function MapaUbicacion({ lat, lng, precision, afinando, direccion
         </div>
 
         <div className="px-5 pt-4 pb-5">
-          <label htmlFor="mapa-direccion" className="text-[12px] font-semibold text-[#6b6890]">Dirección</label>
-          <input
-            id="mapa-direccion"
-            type="text"
-            value={texto}
-            onChange={(e) => { textoEditado.current = true; setTexto(e.target.value); }}
-            placeholder={buscando ? 'Buscando la dirección...' : 'Ej. Av. Larco 450, Miraflores'}
-            className={`mt-1 w-full h-12 px-3.5 rounded-2xl bg-[#f7f9ff] ring-1 ring-[#5b4bd6]/10 text-[15px] font-semibold text-[#2d284b] placeholder:font-normal placeholder:text-[#9290a2] focus:outline-none focus:ring-2 focus:ring-[#5b4bd6]/45 transition-opacity ${buscando ? 'opacity-60' : ''}`}
-          />
-          <p className="mt-2 text-[12.5px] text-[#a8650a] min-h-[18px]">{falta ? 'Agrega el número de tu puerta al final de la calle.' : ''}</p>
+          <div className="grid grid-cols-[1fr_96px] gap-2.5">
+            <label className="block min-w-0">
+              <span className="text-[12px] font-semibold text-[#6b6890]">Calle o avenida</span>
+              <input
+                type="text"
+                value={calle}
+                onChange={(e) => { calleEditada.current = true; setCalle(e.target.value); }}
+                placeholder={buscando ? 'Buscando...' : 'Escribe la calle'}
+                className={`mt-1 w-full h-12 px-3.5 rounded-2xl bg-[#f7f9ff] ring-1 ring-[#5b4bd6]/10 text-[15px] font-semibold text-[#2d284b] placeholder:font-normal placeholder:text-[#9290a2] focus:outline-none focus:ring-2 focus:ring-[#5b4bd6]/45 transition-opacity ${buscando ? 'opacity-60' : ''}`}
+              />
+            </label>
+            <label className="block">
+              <span className="text-[12px] font-semibold text-[#6b6890]">Número</span>
+              <input
+                type="text"
+                inputMode="numeric"
+                maxLength={8}
+                value={numero}
+                onChange={(e) => { numeroEditado.current = true; setNumero(e.target.value); }}
+                placeholder="185"
+                className="mt-1 w-full h-12 px-3 rounded-2xl bg-[#f7f9ff] ring-1 ring-[#5b4bd6]/10 text-[15px] font-bold text-[#2d284b] text-center placeholder:font-normal placeholder:text-[#b9b7c9] focus:outline-none focus:ring-2 focus:ring-[#5b4bd6]/45"
+              />
+            </label>
+          </div>
+          <p className="mt-2 text-[12.5px] text-[#6b6890] min-h-[18px] break-words">
+            {calle.trim() && !numero.trim() ? 'Escribe el número de tu puerta.' : direccion}
+          </p>
           <div className="mt-2 grid grid-cols-[1fr_1.4fr] gap-2.5">
             <button type="button" onClick={onCerrar} className="h-12 rounded-full bg-[#f3f5ff] text-[#2d284b] font-bold text-sm transition active:scale-[0.97]">Cancelar</button>
             <button
               type="button"
               disabled={arrastrando || buscando}
-              onClick={() => onConfirmar(texto.trim(), { lat: Number(centro.lat.toFixed(6)), lng: Number(centro.lng.toFixed(6)) })}
+              onClick={() => onConfirmar(calle.trim() ? direccion : '', { lat: Number(centro.lat.toFixed(6)), lng: Number(centro.lng.toFixed(6)) })}
               className="h-12 rounded-full text-white font-bold text-sm bg-gradient-to-br from-[#7466e8] to-[#5b4bd6] shadow-[0_10px_20px_-10px_rgba(91,75,214,0.8)] transition active:scale-[0.97] disabled:opacity-50 disabled:shadow-none"
             >
               {buscando ? 'Buscando dirección...' : 'Confirmar ubicación'}
