@@ -1,5 +1,6 @@
 import React from 'react';
 import Chispa from './Chispa.jsx';
+import { ubicacionActual } from './lib/ubicacion.js';
 
 // Modal separado de main.jsx: se carga al abrirlo (React.lazy). El estado y las acciones
 // siguen en PosApp: aquí solo se dibuja lo que recibe por props.
@@ -54,6 +55,20 @@ export default function DeliveryModal({
   const palabrasNombre = String(sesion?.bodega?.nombre || '').trim().split(/\s+/);
   const ultimaPalabra = palabrasNombre.length > 1 ? palabrasNombre.pop() : '';
   const linkSinProtocolo = KASERITA_DELIVERY_URL.replace(/^https?:\/\//, '');
+  const [ubicando, setUbicando] = React.useState(false);
+  const usarMiUbicacion = async () => {
+    if (ubicando) return;
+    setUbicando(true);
+    try {
+      const { direccion } = await ubicacionActual();
+      setDireccionDelivery(direccion);
+      notificar('Ubicación agregada. Revisa que la dirección sea correcta y guarda.', 'success');
+    } catch (err) {
+      notificar(err.message, 'error');
+    } finally {
+      setUbicando(false);
+    }
+  };
   return (
     <>
               {/* Modal: Mi Link de Pedidos (vitrina pública de KaseritaDelivery).
@@ -239,6 +254,15 @@ export default function DeliveryModal({
                                     className="w-full min-w-0 bg-transparent text-sm text-stone-900 placeholder:text-[#9290a2] focus:outline-none"
                                   />
                                 </div>
+                                <button
+                                  type="button"
+                                  onClick={usarMiUbicacion}
+                                  disabled={ubicando}
+                                  className="mt-2 h-9 px-3.5 rounded-full bg-[#f1efff] text-[#5b4bd6] text-[12.5px] font-bold inline-flex items-center gap-2 transition active:scale-[0.97] hover:bg-[#e6e1ff] disabled:opacity-60"
+                                >
+                                  <i className={`fa-solid ${ubicando ? 'fa-circle-notch fa-spin' : 'fa-location-crosshairs'} text-[13px]`}></i>
+                                  {ubicando ? 'Buscando tu ubicación...' : 'Usar mi ubicación actual'}
+                                </button>
                               </div>
 
                               <div>
