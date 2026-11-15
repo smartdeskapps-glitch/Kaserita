@@ -425,6 +425,7 @@ import PantallaAdmin from './pantallas/PantallaAdmin.jsx';
       const [subiendoLogoDelivery, setSubiendoLogoDelivery] = useState(false);
       const [telefonoDeliveryEditar, setTelefonoDeliveryEditar] = useState('');
       const [direccionDelivery, setDireccionDelivery] = useState('');
+      const [puntoDelivery, setPuntoDelivery] = useState(null);
       const [mostrarQRDelivery, setMostrarQRDelivery] = useState(false);
       const [linkDeliveryCopiado, setLinkDeliveryCopiado] = useState(false);
       // Horario de atención para "Abierto ahora" / "Cerrado" en la vitrina
@@ -1294,12 +1295,12 @@ import PantallaAdmin from './pantallas/PantallaAdmin.jsx';
         marcarPedidoEnCamino, marcarPedidoListo, marcarRetiradoDirecto, resumenEntregaDelivery,
         resumenHorarioDelivery, seccionDelivery, subirLogoDelivery
       } = usePedidosDelivery({
-        bodegaId, carrito, combos, costoEnvioDelivery, deliveryHabilitado, direccionDelivery,
+        bodegaId, carrito, combos, costoEnvioDelivery, deliveryHabilitado, direccionDelivery, puntoDelivery,
         domicilioHabilitado, esModoDemo, horarioDelivery, logoUrlDelivery, modalDelivery,
         notificar, pedidoMinimoDelivery, pedidosCargadosAlCarrito, pedidosRetirar,
         pedirConfirmacion, productos, resumenAvisos, sbClient, seccionesDelivery, sesion,
         setCargandoPedidosRetirar, setCarrito, setCostoEnvioDelivery, setDeliveryHabilitado,
-        setDescuentoTipo, setDescuentoValor, setDireccionDelivery, setDomicilioHabilitado,
+        setDescuentoTipo, setDescuentoValor, setDireccionDelivery, setPuntoDelivery, setDomicilioHabilitado,
         setEnviandoAviso, setGuardandoDelivery, setHorarioDelivery, setLogoUrlDelivery,
         setMarcandoListoId, setModalDelivery, setModalPedidosRetirar, setMostrarPago,
         setMostrarResumenMobile, setPedidoMinimoDelivery, setPedidosCargadosAlCarrito,
@@ -1832,7 +1833,7 @@ import PantallaAdmin from './pantallas/PantallaAdmin.jsx';
             avisarAMisClientes, barberosConHorario, cajerosGestion, cambiarDiaHorario, cargandoAgenda,
             cargandoAuditoria, cargandoCajerosGestion, cargandoComisiones, cargarAgenda,
             cargarComisiones, citasAgenda, combos, copiarHorarioADias, costoEnvioDelivery,
-            deliveryHabilitado, direccionDelivery, domicilioHabilitado, eliminarCajero, enviandoAviso,
+            deliveryHabilitado, direccionDelivery, puntoDelivery, domicilioHabilitado, eliminarCajero, enviandoAviso,
             errorAuditoria, esAdmin, esBarberia, esModoDemo, estadoHorarioActualDelivery, fechaAgenda,
             filasAuditoria, filasComisiones, filtroAuditoria, formNuevoCajero, guardandoDelivery,
             guardandoHorario, guardandoNuevoCajero, guardandoPinCajero, guardarComisionBarbero,
@@ -1842,7 +1843,7 @@ import PantallaAdmin from './pantallas/PantallaAdmin.jsx';
             mostrarFormNuevoCajero, mostrarQRDelivery, notificar, nuevoPinCajero, pedidoMinimoDelivery,
             periodoComisiones, productos, registrarNuevoCajeroCompleto, resumenAvisos,
             resumenEntregaDelivery, resumenHorarioDelivery, seccionDelivery, sesion,
-            setCostoEnvioDelivery, setDeliveryHabilitado, setDireccionDelivery, setDomicilioHabilitado,
+            setCostoEnvioDelivery, setDeliveryHabilitado, setDireccionDelivery, setPuntoDelivery, setDomicilioHabilitado,
             setFechaAgenda, setFiltroAuditoria, setFormNuevoCajero, setHorarioDelivery,
             setLinkDeliveryCopiado, setModalAgenda, setModalAuditoria, setModalComisiones,
             setModalDelivery, setModalGestionCajeros, setModalHorario, setModalPinCajero,

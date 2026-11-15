@@ -16,17 +16,43 @@ export function direccionDesdeRespuesta(r) {
   return completa;
 }
 
-function obtenerPosicion() {
+// Escucha el GPS unos segundos y se queda con la lectura más precisa: la primera lectura
+// suele salir de antenas o wifi y errar por cientos de metros; el GPS real tarda en afinar.
+const PRECISION_BUENA = 12; // metros: con esto se corta la espera
+const ESPERA_MAXIMA = 14000;
+function obtenerPosicion(alMejorar) {
   return new Promise((resolve, reject) => {
     if (typeof navigator === 'undefined' || !navigator.geolocation) {
       reject(new Error('Tu dispositivo no permite obtener la ubicación.'));
       return;
     }
-    navigator.geolocation.getCurrentPosition(resolve, (e) => {
+    let mejor = null;
+    let id = null;
+    let reloj = null;
+    const terminar = () => {
+      if (id !== null) navigator.geolocation.clearWatch(id);
+      clearTimeout(reloj);
+      if (mejor) resolve(mejor);
+    };
+    const fallar = (e) => {
+      if (id !== null) navigator.geolocation.clearWatch(id);
+      clearTimeout(reloj);
+      if (mejor) { resolve(mejor); return; }
       if (e && e.code === 1) reject(new Error('No diste permiso para usar tu ubicación. Actívalo en los ajustes del navegador e inténtalo de nuevo.'));
       else if (e && e.code === 3) reject(new Error('Tardó demasiado en encontrar tu ubicación. Acércate a una ventana e inténtalo de nuevo.'));
       else reject(new Error('No se pudo obtener tu ubicación. Revisa que el GPS esté activo.'));
-    }, { enableHighAccuracy: true, timeout: 15000, maximumAge: 30000 });
+    };
+    id = navigator.geolocation.watchPosition((pos) => {
+      if (!mejor || pos.coords.accuracy < mejor.coords.accuracy) {
+        mejor = pos;
+        if (alMejorar) alMejorar(pos.coords.accuracy);
+      }
+      if (pos.coords.accuracy <= PRECISION_BUENA) terminar();
+    }, fallar, { enableHighAccuracy: true, timeout: ESPERA_MAXIMA, maximumAge: 0 });
+    reloj = setTimeout(() => {
+      if (mejor) terminar();
+      else fallar({ code: 3 });
+    }, ESPERA_MAXIMA);
   });
 }
 
@@ -44,13 +70,14 @@ export async function direccionDeCoordenadas(lat, lng) {
   }
 }
 
-// Devuelve { direccion, lat, lng }. Lanza un Error con texto en español si algo falla.
+// Devuelve { direccion, lat, lng, precision }. Lanza un Error con texto en español si algo falla.
 // Si no se logra la dirección escrita, igual devuelve las coordenadas (direccion = '').
-export async function ubicacionActual() {
-  const pos = await obtenerPosicion();
+// `alMejorar(metros)` avisa cada vez que el GPS afina la lectura. `precision` = margen de error en metros.
+export async function ubicacionActual(alMejorar) {
+  const pos = await obtenerPosicion(alMejorar);
   const lat = pos.coords.latitude;
   const lng = pos.coords.longitude;
-  return { direccion: await direccionDeCoordenadas(lat, lng), lat, lng };
+  return { direccion: await direccionDeCoordenadas(lat, lng), lat, lng, precision: Math.round(pos.coords.accuracy) };
 }
 
 // Matemática del mapa (teselas de 256 px, proyección Web Mercator).

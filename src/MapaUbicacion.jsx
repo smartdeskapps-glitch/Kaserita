@@ -6,10 +6,11 @@ const ZOOM_MAX = 19;
 
 // Mapa para afinar la ubicación del negocio: el pin queda fijo al centro y se arrastra el mapa
 // hasta ponerlo justo sobre la puerta. Sin librerías: teselas de OpenStreetMap + matemática propia.
-export default function MapaUbicacion({ lat, lng, direccionInicial, onConfirmar, onCerrar }) {
+export default function MapaUbicacion({ lat, lng, precision, direccionInicial, onConfirmar, onCerrar }) {
   const caja = React.useRef(null);
   const [tam, setTam] = React.useState({ w: 360, h: 320 });
-  const [zoom, setZoom] = React.useState(18);
+  // Con un GPS fino se acerca más; con poca precisión se deja más vista para corregir a mano.
+  const [zoom, setZoom] = React.useState(precision && precision > 60 ? 17 : 19);
   const [centro, setCentro] = React.useState({ lat, lng });
   const [arrastrando, setArrastrando] = React.useState(false);
   const [direccion, setDireccion] = React.useState(direccionInicial || '');
@@ -49,6 +50,9 @@ export default function MapaUbicacion({ lat, lng, direccionInicial, onConfirmar,
   const izq = c.x - tam.w / 2;
   const arr = c.y - tam.h / 2;
   const n = 2 ** zoom;
+  // Círculo del margen de error del GPS (metros -> píxeles según el zoom y la latitud).
+  const origen = aPixeles(lat, lng, zoom);
+  const radioPx = precision ? precision / ((156543.03392 * Math.cos((lat * Math.PI) / 180)) / n) : 0;
   const tesel = [];
   for (let ty = Math.floor(arr / TESELA); ty <= Math.floor((arr + tam.h) / TESELA); ty += 1) {
     for (let tx = Math.floor(izq / TESELA); tx <= Math.floor((izq + tam.w) / TESELA); tx += 1) {
@@ -96,6 +100,12 @@ export default function MapaUbicacion({ lat, lng, direccionInicial, onConfirmar,
             <img key={t.k} src={t.src} alt="" draggable={false} width={TESELA} height={TESELA} className="absolute max-w-none pointer-events-none" style={{ left: t.x, top: t.y }} />
           ))}
 
+          {radioPx >= 6 && (
+            <span
+              className="absolute rounded-full bg-[#5b4bd6]/10 border border-[#5b4bd6]/35 pointer-events-none"
+              style={{ left: origen.x - izq - radioPx, top: origen.y - arr - radioPx, width: radioPx * 2, height: radioPx * 2 }}
+            ></span>
+          )}
           {/* Pin fijo al centro: sube un poco mientras se arrastra y cae al soltar */}
           <div className="absolute left-1/2 top-1/2 pointer-events-none" style={{ transform: 'translate(-50%, -100%)' }}>
             <div style={{ transform: arrastrando ? 'translateY(-10px) scale(1.06)' : 'translateY(0)', transition: 'transform 180ms cubic-bezier(0.23, 1, 0.32, 1)' }}>
@@ -125,12 +135,18 @@ export default function MapaUbicacion({ lat, lng, direccionInicial, onConfirmar,
             {direccion || (buscando ? 'Buscando dirección...' : 'No encontramos la dirección de este punto')}
             {buscando && direccion && <span className="ml-2 text-xs font-normal text-[#8f8cb0]">actualizando...</span>}
           </p>
+          {precision ? (
+            <p className={`mt-2 text-[12px] ${precision > 50 ? 'text-[#a8650a]' : 'text-[#6b6890]'}`}>
+              <i className="fa-solid fa-satellite-dish mr-1.5"></i>
+              Precisión del GPS: unos {precision} m{precision > 50 ? '. Mueve el mapa para corregirla.' : '. El círculo marca el margen de error.'}
+            </p>
+          ) : null}
           <div className="mt-4 grid grid-cols-[1fr_1.4fr] gap-2.5">
             <button type="button" onClick={onCerrar} className="h-12 rounded-full bg-[#f3f5ff] text-[#2d284b] font-bold text-sm transition active:scale-[0.97]">Cancelar</button>
             <button
               type="button"
               disabled={!direccion || buscando || arrastrando}
-              onClick={() => onConfirmar(direccion, centro)}
+              onClick={() => onConfirmar(direccion, { lat: Number(centro.lat.toFixed(6)), lng: Number(centro.lng.toFixed(6)) })}
               className="h-12 rounded-full text-white font-bold text-sm bg-gradient-to-br from-[#7466e8] to-[#5b4bd6] shadow-[0_10px_20px_-10px_rgba(91,75,214,0.8)] transition active:scale-[0.97] disabled:opacity-50 disabled:shadow-none"
             >
               Confirmar ubicación

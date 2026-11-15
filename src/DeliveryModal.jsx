@@ -13,6 +13,7 @@ export default function DeliveryModal({
   costoEnvioDelivery,
   deliveryHabilitado,
   direccionDelivery,
+  puntoDelivery,
   domicilioHabilitado,
   enviandoAviso,
   esAdmin,
@@ -34,6 +35,7 @@ export default function DeliveryModal({
   setCostoEnvioDelivery,
   setDeliveryHabilitado,
   setDireccionDelivery,
+  setPuntoDelivery,
   setDomicilioHabilitado,
   setHorarioDelivery,
   setLinkDeliveryCopiado,
@@ -57,19 +59,19 @@ export default function DeliveryModal({
   const ultimaPalabra = palabrasNombre.length > 1 ? palabrasNombre.pop() : '';
   const linkSinProtocolo = KASERITA_DELIVERY_URL.replace(/^https?:\/\//, '');
   const [ubicando, setUbicando] = React.useState(false);
+  const [avisoGps, setAvisoGps] = React.useState('');
   const [mapa, setMapa] = React.useState(null);
-  // Último punto confirmado en el mapa: permite volver a abrirlo para afinarlo.
-  const [puntoUbicacion, setPuntoUbicacion] = React.useState(null);
   const usarMiUbicacion = async () => {
     if (ubicando) return;
     setUbicando(true);
     try {
-      const { direccion, lat, lng } = await ubicacionActual();
-      setMapa({ lat, lng, direccion });
+      const { direccion, lat, lng, precision } = await ubicacionActual((m) => setAvisoGps(`Afinando el GPS... ±${Math.round(m)} m`));
+      setMapa({ lat, lng, precision, direccion });
     } catch (err) {
       notificar(err.message, 'error');
     } finally {
       setUbicando(false);
+      setAvisoGps('');
     }
   };
   return (
@@ -264,12 +266,12 @@ export default function DeliveryModal({
                                   className="mt-2 h-9 px-3.5 rounded-full bg-[#f1efff] text-[#5b4bd6] text-[12.5px] font-bold inline-flex items-center gap-2 transition active:scale-[0.97] hover:bg-[#e6e1ff] disabled:opacity-60"
                                 >
                                   <i className={`fa-solid ${ubicando ? 'fa-circle-notch fa-spin' : 'fa-location-crosshairs'} text-[13px]`}></i>
-                                  {ubicando ? 'Buscando tu ubicación...' : 'Usar mi ubicación actual'}
+                                  {ubicando ? (avisoGps || 'Buscando tu ubicación...') : 'Usar mi ubicación actual'}
                                 </button>
-                                {puntoUbicacion && (
+                                {puntoDelivery && (
                                   <button
                                     type="button"
-                                    onClick={() => setMapa({ lat: puntoUbicacion.lat, lng: puntoUbicacion.lng, direccion: direccionDelivery })}
+                                    onClick={() => setMapa({ lat: puntoDelivery.lat, lng: puntoDelivery.lng, precision: null, direccion: direccionDelivery })}
                                     className="mt-2 ml-2 h-9 px-3.5 rounded-full bg-[#f3f5ff] text-[#2d284b] text-[12.5px] font-bold inline-flex items-center gap-2 transition active:scale-[0.97] hover:bg-[#e6ebff]"
                                   >
                                     <i className="fa-solid fa-map-pin text-[13px] text-[#5b4bd6]"></i>
@@ -504,13 +506,14 @@ export default function DeliveryModal({
                 <MapaUbicacion
                   lat={mapa.lat}
                   lng={mapa.lng}
+                  precision={mapa.precision}
                   direccionInicial={mapa.direccion}
                   onCerrar={() => setMapa(null)}
                   onConfirmar={(direccion, punto) => {
                     setDireccionDelivery(direccion);
-                    setPuntoUbicacion(punto);
+                    setPuntoDelivery(punto);
                     setMapa(null);
-                    notificar('Ubicación agregada. Revisa que la dirección sea correcta y guarda.', 'success');
+                    notificar('Ubicación agregada. Toca Guardar cambios para aplicarla.', 'success');
                   }}
                 />
               )}

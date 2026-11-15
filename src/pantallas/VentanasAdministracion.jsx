@@ -10,7 +10,7 @@ export default function VentanasAdministracion({
   avisarAMisClientes, barberosConHorario, cajerosGestion, cambiarDiaHorario, cargandoAgenda,
   cargandoAuditoria, cargandoCajerosGestion, cargandoComisiones, cargarAgenda,
   cargarComisiones, citasAgenda, combos, copiarHorarioADias, costoEnvioDelivery,
-  deliveryHabilitado, direccionDelivery, domicilioHabilitado, eliminarCajero, enviandoAviso,
+  deliveryHabilitado, direccionDelivery, puntoDelivery, domicilioHabilitado, eliminarCajero, enviandoAviso,
   errorAuditoria, esAdmin, esBarberia, esModoDemo, estadoHorarioActualDelivery, fechaAgenda,
   filasAuditoria, filasComisiones, filtroAuditoria, formNuevoCajero, guardandoDelivery,
   guardandoHorario, guardandoNuevoCajero, guardandoPinCajero, guardarComisionBarbero,
@@ -20,7 +20,7 @@ export default function VentanasAdministracion({
   mostrarFormNuevoCajero, mostrarQRDelivery, notificar, nuevoPinCajero, pedidoMinimoDelivery,
   periodoComisiones, productos, registrarNuevoCajeroCompleto, resumenAvisos,
   resumenEntregaDelivery, resumenHorarioDelivery, seccionDelivery, sesion,
-  setCostoEnvioDelivery, setDeliveryHabilitado, setDireccionDelivery, setDomicilioHabilitado,
+  setCostoEnvioDelivery, setDeliveryHabilitado, setDireccionDelivery, setPuntoDelivery, setDomicilioHabilitado,
   setFechaAgenda, setFiltroAuditoria, setFormNuevoCajero, setHorarioDelivery,
   setLinkDeliveryCopiado, setModalAgenda, setModalAuditoria, setModalComisiones,
   setModalDelivery, setModalGestionCajeros, setModalHorario, setModalPinCajero,
@@ -113,6 +113,7 @@ export default function VentanasAdministracion({
             costoEnvioDelivery={costoEnvioDelivery}
             deliveryHabilitado={deliveryHabilitado}
             direccionDelivery={direccionDelivery}
+            puntoDelivery={puntoDelivery}
             domicilioHabilitado={domicilioHabilitado}
             enviandoAviso={enviandoAviso}
             esAdmin={esAdmin}
@@ -134,6 +135,7 @@ export default function VentanasAdministracion({
             setCostoEnvioDelivery={setCostoEnvioDelivery}
             setDeliveryHabilitado={setDeliveryHabilitado}
             setDireccionDelivery={setDireccionDelivery}
+            setPuntoDelivery={setPuntoDelivery}
             setDomicilioHabilitado={setDomicilioHabilitado}
             setHorarioDelivery={setHorarioDelivery}
             setLinkDeliveryCopiado={setLinkDeliveryCopiado}

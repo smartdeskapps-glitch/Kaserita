@@ -7,13 +7,22 @@ import { IconoTrazo } from './componentes.jsx';
 import { comprimirImagenJPEG } from '../PanelAdminCompartido.jsx';
 import { useRef, useEffect } from 'react';
 
+// Punto exacto del negocio guardado en la bodega ({ lat, lng }) o null si no tiene.
+const puntoDeBodega = (b) => {
+  const lat = Number(b?.latitud);
+  const lng = Number(b?.longitud);
+  return b && b.latitud != null && b.longitud != null && Number.isFinite(lat) && Number.isFinite(lng) ? { lat, lng } : null;
+};
+// Texto comparable de un punto: sirve para saber si cambio sin comparar decimales sueltos.
+const huellaPunto = (p) => (p ? `${p.lat.toFixed(6)},${p.lng.toFixed(6)}` : '');
+
 export default function usePedidosDelivery({
-  bodegaId, carrito, combos, costoEnvioDelivery, deliveryHabilitado, direccionDelivery,
+  bodegaId, carrito, combos, costoEnvioDelivery, deliveryHabilitado, direccionDelivery, puntoDelivery,
   domicilioHabilitado, esModoDemo, horarioDelivery, logoUrlDelivery, modalDelivery,
   notificar, pedidoMinimoDelivery, pedidosCargadosAlCarrito, pedidosRetirar,
   pedirConfirmacion, productos, resumenAvisos, sbClient, seccionesDelivery, sesion,
   setCargandoPedidosRetirar, setCarrito, setCostoEnvioDelivery, setDeliveryHabilitado,
-  setDescuentoTipo, setDescuentoValor, setDireccionDelivery, setDomicilioHabilitado,
+  setDescuentoTipo, setDescuentoValor, setDireccionDelivery, setPuntoDelivery, setDomicilioHabilitado,
   setEnviandoAviso, setGuardandoDelivery, setHorarioDelivery, setLogoUrlDelivery,
   setMarcandoListoId, setModalDelivery, setModalPedidosRetirar, setMostrarPago,
   setMostrarResumenMobile, setPedidoMinimoDelivery, setPedidosCargadosAlCarrito,
@@ -95,12 +104,12 @@ export default function usePedidosDelivery({
     const b0 = sesion?.bodega || {};
     const esDueno = sesion?.usuario?.rol === 'dueno';
     const actual = [
-      deliveryHabilitado, logoUrlDelivery || '', direccionDelivery.trim(), domicilioHabilitado,
+      deliveryHabilitado, logoUrlDelivery || '', direccionDelivery.trim(), huellaPunto(puntoDelivery), domicilioHabilitado,
       aNumeroDelivery(costoEnvioDelivery), aNumeroDelivery(pedidoMinimoDelivery), zonaRepartoDelivery.trim(),
       whatsappRepartidor.replace(/\D/g, ''), esDueno ? telefonoDeliveryEditar.trim() : '', huellaHorarioDelivery(horarioDelivery),
     ];
     const guardado = [
-      !!b0.delivery_habilitado, b0.logo_url || '', (b0.direccion || '').trim(), !!b0.delivery_domicilio,
+      !!b0.delivery_habilitado, b0.logo_url || '', (b0.direccion || '').trim(), huellaPunto(puntoDeBodega(b0)), !!b0.delivery_domicilio,
       aNumeroDelivery(b0.costo_envio), aNumeroDelivery(b0.pedido_minimo), (b0.zona_reparto || '').trim(),
       (b0.whatsapp_repartidor || '').replace(/\D/g, ''), esDueno ? (sesion?.usuario?.telefono || '').trim() : '', huellaHorarioDelivery(b0.horario_atencion),
     ];
@@ -145,6 +154,7 @@ export default function usePedidosDelivery({
     setDeliveryHabilitado(!!sesion?.bodega?.delivery_habilitado);
     setLogoUrlDelivery(sesion?.bodega?.logo_url || '');
     setDireccionDelivery(sesion?.bodega?.direccion || '');
+    setPuntoDelivery(puntoDeBodega(sesion?.bodega));
     setDomicilioHabilitado(!!sesion?.bodega?.delivery_domicilio);
     setCostoEnvioDelivery(sesion?.bodega?.costo_envio != null ? String(Number(sesion.bodega.costo_envio)) : '');
     setPedidoMinimoDelivery(sesion?.bodega?.pedido_minimo != null ? String(Number(sesion.bodega.pedido_minimo)) : '');
@@ -210,6 +220,7 @@ export default function usePedidosDelivery({
     setGuardandoDelivery(true);
     try {
       const telefonoLimpio = telefonoDeliveryEditar.trim();
+      let puntoGuardado = true;
       if (esModoDemo) {
         // Modo Demo Local: no hay bodega real en Supabase -- se aplica
         // directo en memoria, igual que el resto de la demo.
@@ -249,6 +260,18 @@ export default function usePedidosDelivery({
           if (errBodega.code === '23505') throw new Error('Ese link ya lo usa otra tienda. Escribe a soporte de Kaserita para que te asignen otro.');
           throw errBodega;
         }
+        // Coordenadas exactas del pin. Si la columna o la funcion todavia no existen en la base
+        // (falta correr ubicacion_bodega.sql) se omite sin romper el guardado de lo demas.
+        if (huellaPunto(puntoDelivery) !== huellaPunto(puntoDeBodega(b0))) {
+          const { error: errPunto } = await sbClient.rpc('actualizar_mi_ubicacion', {
+            p_latitud: puntoDelivery ? puntoDelivery.lat : null,
+            p_longitud: puntoDelivery ? puntoDelivery.lng : null,
+          });
+          if (errPunto) {
+            if (['PGRST202', '42883', '42703'].includes(errPunto.code)) puntoGuardado = false;
+            else throw errPunto;
+          }
+        }
         if (sesion?.usuario?.rol === 'dueno' && telefonoLimpio !== (sesion?.usuario?.telefono || '')) {
           const { error: errTelefono } = await sbClient
             .from('usuarios')
@@ -266,6 +289,8 @@ export default function usePedidosDelivery({
           logo_url: logoUrlDelivery || null,
           banner_url: null,
           direccion: direccionDelivery.trim() || null,
+          latitud: puntoGuardado ? (puntoDelivery ? puntoDelivery.lat : null) : (s.bodega?.latitud ?? null),
+          longitud: puntoGuardado ? (puntoDelivery ? puntoDelivery.lng : null) : (s.bodega?.longitud ?? null),
           horario_atencion: horarioDelivery,
           delivery_domicilio: domicilioHabilitado,
           costo_envio: costoEnvioNum,
@@ -276,7 +301,8 @@ export default function usePedidosDelivery({
         usuario: s.usuario?.rol === 'dueno' ? { ...s.usuario, telefono: telefonoLimpio || null } : s.usuario,
       }));
       setSlugDelivery(slugLimpio);
-      notificar('Listo, tu link de pedidos quedó actualizado.', 'success');
+      if (!puntoGuardado) notificar('Guardamos todo menos el punto exacto del mapa: falta activarlo en la base de datos. Avisa a soporte.', 'error');
+      else notificar('Listo, tu link de pedidos quedó actualizado.', 'success');
     } catch (err) {
       notificar(mensajeError(err, 'No se pudo guardar los cambios.'), 'error');
     } finally {
