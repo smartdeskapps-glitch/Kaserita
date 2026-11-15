@@ -30,22 +30,39 @@ function obtenerPosicion() {
   });
 }
 
-// Devuelve { direccion, lat, lng }. Lanza un Error con texto en español si algo falla.
-export async function ubicacionActual() {
-  const pos = await obtenerPosicion();
-  const lat = pos.coords.latitude;
-  const lng = pos.coords.longitude;
-  let datos = null;
+// Convierte coordenadas en una dirección escrita. Devuelve '' si no se pudo.
+export async function direccionDeCoordenadas(lat, lng) {
   try {
     const ctl = new AbortController();
     const reloj = setTimeout(() => ctl.abort(), 10000);
     const resp = await fetch(`${URL_INVERSA}?format=jsonv2&addressdetails=1&zoom=18&accept-language=es&lat=${lat}&lon=${lng}`, { signal: ctl.signal });
     clearTimeout(reloj);
-    if (resp.ok) datos = await resp.json();
+    if (!resp.ok) return '';
+    return direccionDesdeRespuesta(await resp.json());
   } catch {
-    datos = null;
+    return '';
   }
-  const direccion = direccionDesdeRespuesta(datos);
-  if (!direccion) throw new Error('Encontramos tu ubicación pero no pudimos convertirla en una dirección. Escríbela a mano.');
-  return { direccion, lat, lng };
+}
+
+// Devuelve { direccion, lat, lng }. Lanza un Error con texto en español si algo falla.
+// Si no se logra la dirección escrita, igual devuelve las coordenadas (direccion = '').
+export async function ubicacionActual() {
+  const pos = await obtenerPosicion();
+  const lat = pos.coords.latitude;
+  const lng = pos.coords.longitude;
+  return { direccion: await direccionDeCoordenadas(lat, lng), lat, lng };
+}
+
+// Matemática del mapa (teselas de 256 px, proyección Web Mercator).
+export const TESELA = 256;
+export function aPixeles(lat, lng, z) {
+  const n = TESELA * 2 ** z;
+  const s = Math.sin((lat * Math.PI) / 180);
+  return { x: ((lng + 180) / 360) * n, y: (0.5 - Math.log((1 + s) / (1 - s)) / (4 * Math.PI)) * n };
+}
+export function aCoordenadas(x, y, z) {
+  const n = TESELA * 2 ** z;
+  const lng = (x / n) * 360 - 180;
+  const lat = (Math.atan(Math.sinh(Math.PI * (1 - (2 * y) / n))) * 180) / Math.PI;
+  return { lat, lng };
 }

@@ -1,6 +1,7 @@
 import React from 'react';
 import Chispa from './Chispa.jsx';
 import { ubicacionActual } from './lib/ubicacion.js';
+import MapaUbicacion from './MapaUbicacion.jsx';
 
 // Modal separado de main.jsx: se carga al abrirlo (React.lazy). El estado y las acciones
 // siguen en PosApp: aquí solo se dibuja lo que recibe por props.
@@ -56,13 +57,15 @@ export default function DeliveryModal({
   const ultimaPalabra = palabrasNombre.length > 1 ? palabrasNombre.pop() : '';
   const linkSinProtocolo = KASERITA_DELIVERY_URL.replace(/^https?:\/\//, '');
   const [ubicando, setUbicando] = React.useState(false);
+  const [mapa, setMapa] = React.useState(null);
+  // Último punto confirmado en el mapa: permite volver a abrirlo para afinarlo.
+  const [puntoUbicacion, setPuntoUbicacion] = React.useState(null);
   const usarMiUbicacion = async () => {
     if (ubicando) return;
     setUbicando(true);
     try {
-      const { direccion } = await ubicacionActual();
-      setDireccionDelivery(direccion);
-      notificar('Ubicación agregada. Revisa que la dirección sea correcta y guarda.', 'success');
+      const { direccion, lat, lng } = await ubicacionActual();
+      setMapa({ lat, lng, direccion });
     } catch (err) {
       notificar(err.message, 'error');
     } finally {
@@ -263,6 +266,16 @@ export default function DeliveryModal({
                                   <i className={`fa-solid ${ubicando ? 'fa-circle-notch fa-spin' : 'fa-location-crosshairs'} text-[13px]`}></i>
                                   {ubicando ? 'Buscando tu ubicación...' : 'Usar mi ubicación actual'}
                                 </button>
+                                {puntoUbicacion && (
+                                  <button
+                                    type="button"
+                                    onClick={() => setMapa({ lat: puntoUbicacion.lat, lng: puntoUbicacion.lng, direccion: direccionDelivery })}
+                                    className="mt-2 ml-2 h-9 px-3.5 rounded-full bg-[#f3f5ff] text-[#2d284b] text-[12.5px] font-bold inline-flex items-center gap-2 transition active:scale-[0.97] hover:bg-[#e6ebff]"
+                                  >
+                                    <i className="fa-solid fa-map-pin text-[13px] text-[#5b4bd6]"></i>
+                                    Ajustar en el mapa
+                                  </button>
+                                )}
                               </div>
 
                               <div>
@@ -486,6 +499,20 @@ export default function DeliveryModal({
                     )}
                   </div>
                 </div>
+              )}
+              {mapa && (
+                <MapaUbicacion
+                  lat={mapa.lat}
+                  lng={mapa.lng}
+                  direccionInicial={mapa.direccion}
+                  onCerrar={() => setMapa(null)}
+                  onConfirmar={(direccion, punto) => {
+                    setDireccionDelivery(direccion);
+                    setPuntoUbicacion(punto);
+                    setMapa(null);
+                    notificar('Ubicación agregada. Revisa que la dirección sea correcta y guarda.', 'success');
+                  }}
+                />
               )}
     </>
   );
