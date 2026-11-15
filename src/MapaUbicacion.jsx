@@ -19,8 +19,8 @@ export default function MapaUbicacion({ lat, lng, precision, direccionInicial, o
   const [fallo, setFallo] = React.useState(false);
   const inicioArrastre = React.useRef(null);
   const turno = React.useRef(0);
-  // Si ya hay una dirección para el punto inicial no hace falta buscarla de nuevo al abrir.
-  const primera = React.useRef(!!direccionInicial);
+  // Al abrir también se consulta el punto inicial: así se sabe a qué distancia queda el lugar registrado.
+  const primera = React.useRef(false);
 
   React.useEffect(() => {
     const el = caja.current;
@@ -143,9 +143,11 @@ export default function MapaUbicacion({ lat, lng, precision, direccionInicial, o
               ? `Queda a unos ${lugar.metros} m del pin, así que no se usa como dirección. Se guarda el punto exacto y se mantiene la dirección que ya tenías.`
               : fallo
                 ? 'El servicio de direcciones está ocupado. Espera unos segundos y mueve un poco el mapa. El punto exacto se guarda igual.'
-                : lugar && lugar.metros > 15
-                  ? `Dirección cercana, a unos ${lugar.metros} m del pin.`
-                  : ''}
+                : lugar && lugar.sinNumero
+                  ? 'El mapa no tiene el número de puerta de este punto. Confirma y escríbelo a mano en la dirección.'
+                  : lugar && lugar.metros > 15
+                    ? `Dirección cercana, a unos ${lugar.metros} m del pin.`
+                    : ''}
           </p>
           <p className="mt-1.5 text-[11.5px] text-[#8f8cb0] tabular-nums"><i className="fa-solid fa-location-dot mr-1.5"></i>Pin: {centro.lat.toFixed(6)}, {centro.lng.toFixed(6)}</p>
           {precision ? (
@@ -159,7 +161,7 @@ export default function MapaUbicacion({ lat, lng, precision, direccionInicial, o
             <button
               type="button"
               disabled={buscando || arrastrando}
-              onClick={() => onConfirmar(lugar && !lejos ? lugar.direccion : '', { lat: Number(centro.lat.toFixed(6)), lng: Number(centro.lng.toFixed(6)) })}
+              onClick={() => onConfirmar(lugar && !lejos ? lugar.direccion : '', !!(lugar && !lejos && lugar.sinNumero), { lat: Number(centro.lat.toFixed(6)), lng: Number(centro.lng.toFixed(6)) })}
               className="h-12 rounded-full text-white font-bold text-sm bg-gradient-to-br from-[#7466e8] to-[#5b4bd6] shadow-[0_10px_20px_-10px_rgba(91,75,214,0.8)] transition active:scale-[0.97] disabled:opacity-50 disabled:shadow-none"
             >
               Confirmar ubicación

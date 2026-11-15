@@ -5,12 +5,15 @@
 const URL_INVERSA = 'https://nominatim.openstreetmap.org/reverse';
 
 // Arma "Av. Los Álamos 245, San Miguel" con lo que devuelva el geocodificador.
-export function direccionDesdeRespuesta(r) {
+// Con `sinNumero` omite el número de puerta (cuando pertenece a un local vecino, no al punto).
+export function direccionDesdeRespuesta(r, sinNumero = false) {
   const a = (r && r.address) || {};
-  const calle = [a.road || a.pedestrian || a.footway || '', a.house_number || ''].filter(Boolean).join(' ').trim();
+  const calle = [a.road || a.pedestrian || a.footway || '', sinNumero ? '' : (a.house_number || '')].filter(Boolean).join(' ').trim();
   const zona = a.suburb || a.neighbourhood || a.city_district || a.quarter || '';
   const ciudad = a.city || a.town || a.village || a.municipality || '';
-  const partes = [calle, zona, zona && ciudad && zona !== ciudad ? '' : ciudad].filter(Boolean);
+  // El distrito y la ciudad a veces se llaman igual ("San Miguel"): se escribe una sola vez.
+  const lugares = [zona, ciudad].filter((x, i, todos) => x && todos.indexOf(x) === i);
+  const partes = [calle, ...lugares].filter(Boolean);
   if (partes.length) return partes.join(', ');
   const completa = String((r && r.display_name) || '').split(',').slice(0, 3).join(',').trim();
   return completa;
@@ -74,12 +77,14 @@ export async function direccionDeCoordenadas(lat, lng) {
     clearTimeout(reloj);
     if (!resp.ok) return null;
     const datos = await resp.json();
-    const direccion = direccionDesdeRespuesta(datos);
-    if (!direccion) return null;
     const lt = Number(datos.lat);
     const ln = Number(datos.lon);
     const metros = Number.isFinite(lt) && Number.isFinite(ln) ? metrosEntre(lat, lng, lt, ln) : 0;
-    return { direccion, metros };
+    // El número de puerta es de ese local registrado: si queda lejos del pin, no es el del punto.
+    const sinNumero = !!(datos.address && datos.address.house_number) && metros > 12;
+    const direccion = direccionDesdeRespuesta(datos, sinNumero);
+    if (!direccion) return null;
+    return { direccion, metros, sinNumero };
   } catch {
     return null;
   }

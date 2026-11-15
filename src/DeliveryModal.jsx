@@ -509,11 +509,11 @@ export default function DeliveryModal({
                   precision={mapa.precision}
                   direccionInicial={mapa.direccion}
                   onCerrar={() => setMapa(null)}
-                  onConfirmar={(direccion, punto) => {
+                  onConfirmar={(direccion, falta, punto) => {
                     if (direccion) setDireccionDelivery(direccion);
                     setPuntoDelivery(punto);
                     setMapa(null);
-                    notificar('Ubicación agregada. Toca Guardar cambios para aplicarla.', 'success');
+                    notificar(falta ? 'Punto agregado. Falta el número de puerta: escríbelo al final de la calle y guarda.' : 'Ubicación agregada. Toca Guardar cambios para aplicarla.', 'success');
                   }}
                 />
               )}
