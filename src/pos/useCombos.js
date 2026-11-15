@@ -568,10 +568,16 @@ export default function useCombos({
     () => (categoriaFiltro === 'TODOS' ? productos : productos.filter(p => p.categoria === categoriaFiltro)),
     [productos, categoriaFiltro]
   );
-  const productosFiltrados = useMemo(
-    () => filtroProductosRef.current(productosPorCategoria, busquedaDiferida),
-    [productosPorCategoria, busquedaDiferida]
-  );
+  // Los productos con stock van primero; los agotados (stock 0) pasan al final.
+  // Sin control de stock (vacío) cuenta como disponible. Se conserva el orden previo.
+  const productosFiltrados = useMemo(() => {
+    const lista = filtroProductosRef.current(productosPorCategoria, busquedaDiferida);
+    const agotado = (p) => p.stock_actual !== null && p.stock_actual !== undefined && p.stock_actual !== '' && Number(p.stock_actual) <= 0;
+    const conStock = [];
+    const sinStock = [];
+    for (const p of lista) (agotado(p) ? sinStock : conStock).push(p);
+    return sinStock.length === 0 ? lista : conStock.concat(sinStock);
+  }, [productosPorCategoria, busquedaDiferida]);
 
   // La grilla dibuja los productos por tandas: con catálogos de miles de ítems,
   // montar todas las tarjetas de golpe congela el celular. Al acercarse al final
