@@ -1,4 +1,6 @@
 import React from 'react';
+import { normalizarBusqueda as norm } from './lib/busqueda.js';
+import { dinero } from './lib/dinero.js';
 import VentanaModulo from './VentanaModulo.jsx';
 import { FotoProducto } from './PanelAdminCompartido.jsx';
 
@@ -47,8 +49,6 @@ export default function EntradaMercaderia({
               {/* Modal: Entrada de Mercadería (Compras) */}
               {modalEntradaMercaderia && (() => {
                 const BAJO = 5;
-                const norm = (s) => String(s || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
-                const dinero = (v) => `S/ ${(Number(v) || 0).toFixed(2)}`;
                 const fmtQ = (v, u) => `${Math.round((Number(v) || 0) * 100) / 100}${u === 'KG' ? ' kg' : ''}`;
                 const stockDe = (p) => (p.stock_actual === null || p.stock_actual === undefined || p.stock_actual === '') ? null : Number(p.stock_actual);
                 const esBajo = (p) => { const s = stockDe(p); return s !== null && s <= BAJO; };

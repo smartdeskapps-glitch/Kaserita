@@ -1,8 +1,8 @@
 import React from 'react';
+import { dinero } from './lib/dinero.js';
 import VentanaModulo from './VentanaModulo.jsx';
 import { iniciales } from './lib/nombres.js';
 
-const dinero = (v) => `S/ ${(Number(v) || 0).toFixed(2)}`;
 
 // Modal separado de main.jsx: se carga al abrirlo (React.lazy). El estado y las acciones
 // siguen en PosApp: aquí solo se dibuja lo que recibe por props.

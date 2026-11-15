@@ -1,5 +1,6 @@
 import React from 'react';
 import VentanaModulo from './VentanaModulo.jsx';
+import { iniciales } from './lib/nombres.js';
 import { fechaHoyISO } from './PanelAdminCompartido.jsx';
 
 // Modal del dashboard de ventas (solo Administrador). Vive aparte y se carga al abrirlo
@@ -24,7 +25,6 @@ const COLOR_MEDIO_PAGO = {
   MIXTO: '#78716c',
   OTRO: '#d6d3d1'
 };
-const iniciales = (t) => String(t || '').trim().split(/\s+/).slice(0, 2).map((w) => w[0] || '').join('').toUpperCase();
 const NOMBRE_MEDIO_DIA = (medio) => medio.charAt(0) + medio.slice(1).toLowerCase();
 
 const MESES_CORTOS = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Set', 'Oct', 'Nov', 'Dic'];

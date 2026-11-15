@@ -2,6 +2,8 @@
 // Extraído de src/main.jsx: mismo JSX; recibe por props lo que usa del POS.
 import React from 'react';
 import { totalConteo } from '../lib/arqueo.js';
+import { dinero } from '../lib/dinero.js';
+import { iniciales as inicialesDe } from '../lib/nombres.js';
 import { etiquetaCuandoTurno } from '../pos/utilidades.js';
 import { ContadorEfectivo } from '../pos/componentes.jsx';
 import { PIN_MIN_DUENO, PIN_MAX } from '../PanelAdminCompartido.jsx';
@@ -21,12 +23,11 @@ export default function VentanasTurno({
     <>
       {/* Modal: Apertura Turno */}
       {modalTurno && (() => {
-        const dinero = (v) => `S/ ${(Number(v) || 0).toFixed(2)}`;
         const montoNum = parseFloat(montoApertura);
         const montoInvalido = montoApertura === '' || !(montoNum >= 0);
         const conteoActivo = totalConteo(conteoEfectivo) > 0;
         const elegido = cajeroSeleccionado || listaCajeros[0];
-        const iniciales = (n) => String(n || '?').trim().split(/\s+/).slice(0, 2).map((w) => w[0]).join('').toUpperCase();
+        const iniciales = (n) => inicialesDe(n, '?');
         const esElevado = (c) => c.rol === 'administrador' || c.rol === 'dueno';
         const fijarMonto = (v) => { setConteoEfectivo({}); setMontoApertura(String(v)); };
         const atajo = (activo) => `px-3 py-1.5 rounded-xl border-[1.5px] text-[12.5px] font-bold transition ${activo ? 'border-[#5b4bd6] bg-[#ebf0ff] text-[#2d284b]' : 'border-stone-200 bg-white hover:bg-[#ebf0ff] hover:border-[#d2d9f5]'}`;

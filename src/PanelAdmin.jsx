@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import { iniciales as inicialesDe } from './lib/nombres.js';
 import {
   asegurarXLSX, generarSKU, fechaISOLocal, fechaHoyISO, comprimirImagenJPEG,
   formatearBytes, CATEGORIAS_FALLBACK,
@@ -908,7 +909,7 @@ const RUBROS_NEGOCIO = [
         if (dias <= 7) return { k: 'porv', t: `Vence en ${dias} d`, pill: 'bg-amber-100 text-amber-700', dias };
         return { k: 'ok', t: `Al día · ${dias} d`, pill: 'bg-emerald-100 text-emerald-700', dias };
       };
-      const iniciales = (nombre) => (nombre || '?').split(/\s+/).slice(0, 2).map((x) => x[0] || '').join('').toUpperCase();
+      const iniciales = (nombre) => inicialesDe(nombre, '?');
       const precioPlan = (b) => Number(planDe(b)?.precio_soles) || 0;
 
       const GRUPOS_ADMIN = [

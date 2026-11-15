@@ -1,12 +1,12 @@
 import React, { useEffect, useRef } from 'react';
+// Sin tildes ni mayúsculas para que "inventario" encuentre "Mercadería", etc.
+import { normalizarBusqueda as normalizar } from './lib/busqueda.js';
 
 const TONOS = {
   claro: { primario: 'bg-[#5b4bd6] text-white', rose: 'bg-rose-100 text-rose-600', amber: 'bg-amber-50 text-amber-600' },
   oscuro: { primario: 'bg-[#9687f5] text-white', rose: 'bg-[#ffb3c0]/15 text-[#ffb3c0]', amber: 'bg-amber-300/15 text-amber-200' },
 };
 
-// Sin tildes ni mayúsculas para que "inventario" encuentre "Mercadería", etc.
-const normalizar = (t) => String(t || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
 
 // Paleta de comandos del menú "Más": buscador arriba, opciones agrupadas y navegación con
 // teclado (↑ ↓ Enter Esc). Las opciones son datos para que el buscador y el teclado

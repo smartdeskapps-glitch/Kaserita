@@ -1,4 +1,5 @@
 import React from 'react';
+import { dinero } from './lib/dinero.js';
 import { diferenciaArqueo, totalConteo } from './lib/arqueo.js';
 import { antiguedadTurno } from './lib/turnos.js';
 
@@ -31,7 +32,6 @@ export default function CierreCaja({
     <>
               {/* Modal: Cierre de Caja con Arqueo */}
               {modalCierreCaja && (() => {
-                const dinero = (v) => `S/ ${(Number(v) || 0).toFixed(2)}`;
                 const f = arqueoEsperado;
                 const montoVacio = montoConteoEfectivo === '';
                 const conteoActivo = totalConteo(conteoEfectivo) > 0;
@@ -117,7 +117,6 @@ export default function CierreCaja({
 
               {/* Modal: Resumen de Arqueo */}
               {resumenCierre && (() => {
-                const dinero = (v) => `S/ ${(Number(v) || 0).toFixed(2)}`;
                 const d = resumenCierre.diferencia;
                 const tono = d === 0 ? { fondo: 'bg-emerald-50 text-emerald-600', num: 'text-emerald-600', icono: 'fa-check' } : d > 0 ? { fondo: 'bg-[#eaf1ff] text-blue-600', num: 'text-blue-600', icono: 'fa-arrow-up' } : { fondo: 'bg-rose-50 text-rose-600', num: 'text-rose-600', icono: 'fa-arrow-down' };
                 const titulo = d === 0 ? 'Turno cerrado: cuadra perfecto' : d > 0 ? `Turno cerrado: sobran ${dinero(d)}` : `Turno cerrado: faltan ${dinero(-d)}`;

@@ -1,4 +1,6 @@
 import React from 'react';
+import { normalizarBusqueda as norm } from './lib/busqueda.js';
+import { dinero } from './lib/dinero.js';
 import VentanaModulo from './VentanaModulo.jsx';
 import { FotoProducto } from './PanelAdminCompartido.jsx';
 import { margenCombo } from './lib/combos.js';
@@ -48,8 +50,6 @@ export default function CombosModal({
     <>
               {/* Modal: Combos */}
               {modalCombos && (() => {
-                const dinero = (v) => `S/ ${(Number(v) || 0).toFixed(2)}`;
-                const norm = (s) => String(s || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
                 const unidadesDe = (n) => `${n} combo${n === 1 ? '' : 's'}`;
                 const inputBase = 'w-full h-11 bg-stone-50/70 border-[1.5px] border-stone-200 rounded-[14px] px-3.5 text-sm text-stone-900 placeholder:text-stone-400 outline-none focus:border-[#5b4bd6] focus:bg-white focus:ring-4 focus:ring-[#5b4bd6]/15 transition';
                 const etiquetaCampo = 'flex items-center justify-between gap-2 text-[12.5px] font-semibold text-stone-800 mb-1.5';

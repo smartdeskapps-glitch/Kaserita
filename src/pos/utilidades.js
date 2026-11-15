@@ -2,6 +2,7 @@
 // Extraídas de src/main.jsx.
 import { asegurarXLSX } from '../PanelAdminCompartido.jsx';
 import { reportarFallo } from '../monitoreo.js';
+import { FMT_SOLES, formatoSoles } from '../lib/dinero.js';
 
 export const generarUUID = () => {
   if (typeof crypto !== 'undefined' && crypto.randomUUID) {
@@ -210,11 +211,11 @@ export const COLOR_BILLETE = { 200: '#b45309', 100: '#2563eb', 50: '#a21caf', 20
 // Montos del Dashboard con separador de miles (1,752.90) y siempre 2 decimales.
 // Los formateadores se crean una sola vez: toLocaleString con opciones arma uno
 // nuevo en cada llamada y era de lo más caro al dibujar tarjetas y carrito.
-export const FMT_SOLES = new Intl.NumberFormat('es-PE', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+// El formateador de soles vive en lib/dinero.js; se reexporta para los que ya importan de aquí.
+export { FMT_SOLES, formatoSoles };
 
 export const FMT_ENTERO = new Intl.NumberFormat('es-PE');
 
-export const formatoSoles = (n) => FMT_SOLES.format(Number(n || 0));
 
 // Cifras compactas para el calendario de "Ventas por día", que no se rompe
 // con montos grandes: entero hasta 9,999; luego 12.3k / 123k / 1.2M.
