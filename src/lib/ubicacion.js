@@ -21,51 +21,55 @@ export function componerDireccion(calle, numero, zona) {
   return [via, String(zona || '').trim()].filter(Boolean).join(', ');
 }
 
-// Separa "Av. Los Álamos 245, San Miguel" en calle, número y zona (para reabrir el mapa).
-export function partirDireccion(texto) {
-  const [via = '', ...resto] = String(texto || '').split(',');
-  const m = via.trim().match(/^(.*?)(?:\s+(\d+[\w-]*))?$/);
-  return { calle: m ? m[1].trim() : via.trim(), numero: m && m[2] ? m[2] : '', zona: resto.join(',').trim() };
+// Sigue el GPS sin hacer esperar: avisa en cuanto hay una primera lectura y después solo cuando
+// llega una más precisa. Se detiene solo al llegar a PRECISION_BUENA o pasado ESPERA_MAXIMA.
+// Devuelve una función para detenerlo antes.
+const PRECISION_BUENA = 15; // metros
+const ESPERA_MAXIMA = 20000;
+function mensajeGps(e) {
+  if (e && e.code === 1) return 'No diste permiso para usar tu ubicación. Actívalo en los ajustes del navegador e inténtalo de nuevo.';
+  if (e && e.code === 3) return 'Tardó demasiado en encontrar tu ubicación. Acércate a una ventana e inténtalo de nuevo.';
+  return 'No se pudo obtener tu ubicación. Revisa que el GPS esté activo.';
 }
-
-// Escucha el GPS unos segundos y se queda con la lectura más precisa: la primera lectura
-// suele salir de antenas o wifi y errar por cientos de metros; el GPS real tarda en afinar.
-const PRECISION_BUENA = 12; // metros: con esto se corta la espera
-const ESPERA_MAXIMA = 14000;
-function obtenerPosicion(alMejorar) {
-  return new Promise((resolve, reject) => {
-    if (typeof navigator === 'undefined' || !navigator.geolocation) {
-      reject(new Error('Tu dispositivo no permite obtener la ubicación.'));
-      return;
+export function seguirGps({ alLeer, alFallar, alTerminar }) {
+  if (typeof navigator === 'undefined' || !navigator.geolocation) {
+    alFallar('Tu dispositivo no permite obtener la ubicación.');
+    alTerminar();
+    return () => {};
+  }
+  let activo = true;
+  let mejor = Infinity;
+  let id = null;
+  let reloj = null;
+  const parar = () => {
+    if (!activo) return;
+    activo = false;
+    clearTimeout(reloj);
+    if (id !== null) navigator.geolocation.clearWatch(id);
+    alTerminar();
+  };
+  id = navigator.geolocation.watchPosition((pos) => {
+    if (!activo) return;
+    const precision = pos.coords.accuracy;
+    if (precision < mejor) {
+      mejor = precision;
+      alLeer({ lat: pos.coords.latitude, lng: pos.coords.longitude, precision: Math.round(precision) });
     }
-    let mejor = null;
-    let id = null;
-    let reloj = null;
-    const terminar = () => {
-      if (id !== null) navigator.geolocation.clearWatch(id);
-      clearTimeout(reloj);
-      if (mejor) resolve(mejor);
-    };
-    const fallar = (e) => {
-      if (id !== null) navigator.geolocation.clearWatch(id);
-      clearTimeout(reloj);
-      if (mejor) { resolve(mejor); return; }
-      if (e && e.code === 1) reject(new Error('No diste permiso para usar tu ubicación. Actívalo en los ajustes del navegador e inténtalo de nuevo.'));
-      else if (e && e.code === 3) reject(new Error('Tardó demasiado en encontrar tu ubicación. Acércate a una ventana e inténtalo de nuevo.'));
-      else reject(new Error('No se pudo obtener tu ubicación. Revisa que el GPS esté activo.'));
-    };
-    id = navigator.geolocation.watchPosition((pos) => {
-      if (!mejor || pos.coords.accuracy < mejor.coords.accuracy) {
-        mejor = pos;
-        if (alMejorar) alMejorar(pos.coords.accuracy);
-      }
-      if (pos.coords.accuracy <= PRECISION_BUENA) terminar();
-    }, fallar, { enableHighAccuracy: true, timeout: ESPERA_MAXIMA, maximumAge: 0 });
-    reloj = setTimeout(() => {
-      if (mejor) terminar();
-      else fallar({ code: 3 });
-    }, ESPERA_MAXIMA);
-  });
+    if (precision <= PRECISION_BUENA) parar();
+  }, (e) => {
+    if (!activo) return;
+    // Solo el permiso denegado corta de inmediato: los demás errores suelen ser pasajeros (el GPS
+    // todavía no engancha) y el límite de espera avisa si de verdad no hubo ninguna lectura.
+    if (e && e.code === 1) {
+      alFallar(mensajeGps(e));
+      parar();
+    }
+  }, { enableHighAccuracy: true, timeout: ESPERA_MAXIMA, maximumAge: 15000 });
+  reloj = setTimeout(() => {
+    if (mejor === Infinity) alFallar(mensajeGps({ code: 3 }));
+    parar();
+  }, ESPERA_MAXIMA);
+  return parar;
 }
 
 // Distancia en metros entre dos puntos (fórmula del haversine).
@@ -76,8 +80,8 @@ export function metrosEntre(lat1, lng1, lat2, lng2) {
 }
 
 // Convierte coordenadas en la dirección registrada más cercana. El servicio devuelve el lugar
-// conocido más próximo al punto (un local, una calle), no la dirección exacta del punto, así
-// que también se devuelve a cuántos metros queda ese lugar. Devuelve null si no se pudo.
+// conocido más próximo al punto (un local, una calle), no la dirección exacta del punto: por eso
+// el número de puerta solo se usa si ese lugar está pegado al pin. Devuelve null si no se pudo.
 export async function direccionDeCoordenadas(lat, lng) {
   try {
     const ctl = new AbortController();
@@ -93,21 +97,10 @@ export async function direccionDeCoordenadas(lat, lng) {
     const metros = Number.isFinite(lt) && Number.isFinite(ln) ? metrosEntre(lat, lng, lt, ln) : 0;
     // El número de puerta es de ese local registrado: si queda lejos del pin, no es el del punto.
     const numero = metros > 12 ? '' : p.numero;
-    return { calle: p.calle, numero, zona: p.zona, metros, direccion: componerDireccion(p.calle, numero, p.zona) };
+    return { calle: p.calle, numero, direccion: componerDireccion(p.calle, numero, p.zona) };
   } catch {
     return null;
   }
-}
-
-// Devuelve { direccion, lat, lng, precision }. Lanza un Error con texto en español si algo falla.
-// Si no se logra la dirección escrita, igual devuelve las coordenadas (direccion = '').
-// `alMejorar(metros)` avisa cada vez que el GPS afina la lectura. `precision` = margen de error en metros.
-export async function ubicacionActual(alMejorar) {
-  const pos = await obtenerPosicion(alMejorar);
-  const lat = pos.coords.latitude;
-  const lng = pos.coords.longitude;
-  const d = await direccionDeCoordenadas(lat, lng);
-  return { direccion: d ? d.direccion : '', lat, lng, precision: Math.round(pos.coords.accuracy) };
 }
 
 // Matemática del mapa (teselas de 256 px, proyección Web Mercator).

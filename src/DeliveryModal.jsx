@@ -1,6 +1,6 @@
 import React from 'react';
 import Chispa from './Chispa.jsx';
-import { ubicacionActual } from './lib/ubicacion.js';
+import { seguirGps } from './lib/ubicacion.js';
 import MapaUbicacion from './MapaUbicacion.jsx';
 
 // Modal separado de main.jsx: se carga al abrirlo (React.lazy). El estado y las acciones
@@ -58,21 +58,27 @@ export default function DeliveryModal({
   const palabrasNombre = String(sesion?.bodega?.nombre || '').trim().split(/\s+/);
   const ultimaPalabra = palabrasNombre.length > 1 ? palabrasNombre.pop() : '';
   const linkSinProtocolo = KASERITA_DELIVERY_URL.replace(/^https?:\/\//, '');
+  // "Usar mi ubicación actual": el mapa abre con la primera lectura del GPS y se va corrigiendo
+  // solo mientras el GPS afina (ver seguirGps).
   const [ubicando, setUbicando] = React.useState(false);
-  const [avisoGps, setAvisoGps] = React.useState('');
+  const [afinando, setAfinando] = React.useState(false);
   const [mapa, setMapa] = React.useState(null);
-  const usarMiUbicacion = async () => {
-    if (ubicando) return;
+  const detenerGps = React.useRef(null);
+  React.useEffect(() => () => { if (detenerGps.current) detenerGps.current(); }, []);
+  const cerrarMapa = () => {
+    if (detenerGps.current) detenerGps.current();
+    detenerGps.current = null;
+    setMapa(null);
+  };
+  const usarMiUbicacion = () => {
+    if (ubicando || afinando) return;
     setUbicando(true);
-    try {
-      const { direccion, lat, lng, precision } = await ubicacionActual((m) => setAvisoGps(`Afinando el GPS... ±${Math.round(m)} m`));
-      setMapa({ lat, lng, precision, direccion });
-    } catch (err) {
-      notificar(err.message, 'error');
-    } finally {
-      setUbicando(false);
-      setAvisoGps('');
-    }
+    setAfinando(true);
+    detenerGps.current = seguirGps({
+      alLeer: (g) => { setUbicando(false); setMapa((m) => ({ direccion: '', ...m, ...g })); },
+      alFallar: (mensaje) => { setUbicando(false); notificar(mensaje, 'error'); },
+      alTerminar: () => { setUbicando(false); setAfinando(false); },
+    });
   };
   return (
     <>
@@ -266,7 +272,7 @@ export default function DeliveryModal({
                                   className="mt-2 h-9 px-3.5 rounded-full bg-[#f1efff] text-[#5b4bd6] text-[12.5px] font-bold inline-flex items-center gap-2 transition active:scale-[0.97] hover:bg-[#e6e1ff] disabled:opacity-60"
                                 >
                                   <i className={`fa-solid ${ubicando ? 'fa-circle-notch fa-spin' : 'fa-location-crosshairs'} text-[13px]`}></i>
-                                  {ubicando ? (avisoGps || 'Buscando tu ubicación...') : 'Usar mi ubicación actual'}
+                                  {ubicando ? 'Buscando tu ubicación...' : 'Usar mi ubicación actual'}
                                 </button>
                                 {puntoDelivery && (
                                   <button
@@ -507,13 +513,14 @@ export default function DeliveryModal({
                   lat={mapa.lat}
                   lng={mapa.lng}
                   precision={mapa.precision}
+                  afinando={afinando}
                   direccionInicial={mapa.direccion}
-                  onCerrar={() => setMapa(null)}
-                  onConfirmar={(direccion, falta, punto) => {
+                  onCerrar={cerrarMapa}
+                  onConfirmar={(direccion, punto) => {
                     if (direccion) setDireccionDelivery(direccion);
                     setPuntoDelivery(punto);
-                    setMapa(null);
-                    notificar(falta ? 'Punto agregado sin número de puerta. Puedes completarlo en la dirección y guardar.' : 'Ubicación agregada. Toca Guardar cambios para aplicarla.', 'success');
+                    cerrarMapa();
+                    notificar('Ubicación lista. Toca Guardar cambios para aplicarla.', 'success');
                   }}
                 />
               )}

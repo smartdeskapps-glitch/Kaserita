@@ -1,36 +1,29 @@
 import React from 'react';
-import { TESELA, aPixeles, aCoordenadas, direccionDeCoordenadas, componerDireccion, partirDireccion } from './lib/ubicacion.js';
+import { TESELA, aPixeles, aCoordenadas, direccionDeCoordenadas } from './lib/ubicacion.js';
 
 const ZOOM_MIN = 14;
 const ZOOM_MAX = 19;
+const zoomPara = (precision) => (precision && precision > 60 ? 17 : 19);
 
-// Mapa para afinar la ubicación del negocio: el pin queda fijo al centro y se arrastra el mapa
-// hasta ponerlo justo sobre la puerta. Sin librerías: teselas de OpenStreetMap + matemática propia.
-export default function MapaUbicacion({ lat, lng, precision, direccionInicial, onConfirmar, onCerrar }) {
+// Mapa para ubicar el negocio. Abre al instante en el punto del GPS y se corrige solo mientras el
+// GPS afina; si la persona toca el mapa, deja de moverse. El pin queda fijo al centro: se arrastra
+// el mapa hasta ponerlo sobre la puerta y la dirección se rellena sola. Sin librerías: teselas de
+// OpenStreetMap y matemática propia.
+export default function MapaUbicacion({ lat, lng, precision, afinando, direccionInicial, onConfirmar, onCerrar }) {
   const caja = React.useRef(null);
   const [tam, setTam] = React.useState({ w: 360, h: 320 });
-  // Con un GPS fino se acerca más; con poca precisión se deja más vista para corregir a mano.
-  const [zoom, setZoom] = React.useState(precision && precision > 60 ? 17 : 19);
+  const [zoom, setZoom] = React.useState(zoomPara(precision));
   const [centro, setCentro] = React.useState({ lat, lng });
   const [arrastrando, setArrastrando] = React.useState(false);
   const [buscando, setBuscando] = React.useState(false);
-  // Dirección editable: la calle se actualiza sola al mover el mapa (hasta que la persona la edite)
-  // y el número de puerta se escribe a mano, porque el mapa abierto casi nunca lo tiene.
-  const inicial = React.useMemo(() => partirDireccion(direccionInicial), []); // eslint-disable-line react-hooks/exhaustive-deps
-  const [calle, setCalle] = React.useState(inicial.calle);
-  const [numero, setNumero] = React.useState(inicial.numero);
-  const [zona, setZona] = React.useState(inicial.zona);
-  // Si se reabre el mapa con una dirección ya guardada (sin lectura de GPS), no se pisa lo escrito.
-  const calleEditada = React.useRef(!precision && !!inicial.calle);
-  const numeroEditado = React.useRef(!precision && !!inicial.numero);
-  const ultimaCalleMapa = React.useRef(precision ? inicial.calle : null);
-  // Lugar conocido más cercano al pin: { metros }, o null si no se pudo consultar.
-  const [lugar, setLugar] = React.useState(null);
-  const [fallo, setFallo] = React.useState(false);
+  const [texto, setTexto] = React.useState(direccionInicial || '');
   const inicioArrastre = React.useRef(null);
   const turno = React.useRef(0);
-  // Al abrir también se consulta el punto inicial: así se sabe a qué distancia queda el lugar registrado.
-  const primera = React.useRef(false);
+  // Con una dirección ya guardada no se pisa lo escrito; con una lectura nueva de GPS sí se rellena.
+  const textoEditado = React.useRef(!!direccionInicial);
+  const ultimaCalle = React.useRef(null);
+  // En cuanto la persona toca el mapa, las lecturas nuevas del GPS ya no lo mueven.
+  const tocado = React.useRef(false);
 
   React.useEffect(() => {
     const el = caja.current;
@@ -43,9 +36,15 @@ export default function MapaUbicacion({ lat, lng, precision, direccionInicial, o
     return () => ro.disconnect();
   }, []);
 
+  // El GPS afina: mientras nadie haya tocado el mapa, el pin sigue la lectura más precisa.
+  React.useEffect(() => {
+    if (tocado.current) return;
+    setCentro((c) => (c.lat === lat && c.lng === lng ? c : { lat, lng }));
+    setZoom(zoomPara(precision));
+  }, [lat, lng, precision]);
+
   // Cuando el mapa se queda quieto, se busca la dirección del punto del centro.
   React.useEffect(() => {
-    if (primera.current) { primera.current = false; return undefined; }
     if (arrastrando) return undefined;
     const mio = ++turno.current;
     setBuscando(true);
@@ -53,22 +52,13 @@ export default function MapaUbicacion({ lat, lng, precision, direccionInicial, o
       const d = await direccionDeCoordenadas(centro.lat, centro.lng);
       if (mio !== turno.current) return;
       setBuscando(false);
-      setFallo(!d);
-      setLugar(d);
       if (!d) return;
-      // Otra calle distinta a la anterior: se empieza de nuevo (calle y número del mapa).
-      if (ultimaCalleMapa.current === null) {
-        ultimaCalleMapa.current = d.calle; // primera lectura al reabrir: se respeta lo ya escrito
-      } else if (d.calle !== ultimaCalleMapa.current) {
-        ultimaCalleMapa.current = d.calle;
-        calleEditada.current = false;
-        numeroEditado.current = false;
-      }
-      if (!calleEditada.current) setCalle(d.calle);
-      if (!numeroEditado.current) setNumero(d.numero);
-      setZona(d.zona);
+      // Si el pin pasó a otra calle, la dirección anterior ya no vale: vuelve a rellenarse sola.
+      if (ultimaCalle.current !== null && d.calle !== ultimaCalle.current) textoEditado.current = false;
+      ultimaCalle.current = d.calle;
+      if (!textoEditado.current) setTexto(d.direccion);
     }, 450);
-    return () => { clearTimeout(t); };
+    return () => { clearTimeout(t); turno.current += 1; };
   }, [centro, arrastrando]);
 
   const c = aPixeles(centro.lat, centro.lng, zoom);
@@ -77,8 +67,6 @@ export default function MapaUbicacion({ lat, lng, precision, direccionInicial, o
   const n = 2 ** zoom;
   // Círculo del margen de error del GPS (metros -> píxeles según el zoom y la latitud).
   const origen = aPixeles(lat, lng, zoom);
-  const lejos = !!lugar && lugar.metros > 60;
-  const direccion = componerDireccion(calle, numero, zona);
   const radioPx = precision ? precision / ((156543.03392 * Math.cos((lat * Math.PI) / 180)) / n) : 0;
   const tesel = [];
   for (let ty = Math.floor(arr / TESELA); ty <= Math.floor((arr + tam.h) / TESELA); ty += 1) {
@@ -91,6 +79,7 @@ export default function MapaUbicacion({ lat, lng, precision, direccionInicial, o
 
   const alPresionar = (e) => {
     e.currentTarget.setPointerCapture?.(e.pointerId);
+    tocado.current = true;
     inicioArrastre.current = { x: e.clientX, y: e.clientY, cx: c.x, cy: c.y };
     setArrastrando(true);
   };
@@ -100,7 +89,9 @@ export default function MapaUbicacion({ lat, lng, precision, direccionInicial, o
     setCentro(aCoordenadas(i.cx - (e.clientX - i.x), i.cy - (e.clientY - i.y), zoom));
   };
   const alSoltar = () => { inicioArrastre.current = null; setArrastrando(false); };
-  const cambiarZoom = (d) => setZoom((z) => Math.min(ZOOM_MAX, Math.max(ZOOM_MIN, z + d)));
+  const cambiarZoom = (d) => { tocado.current = true; setZoom((z) => Math.min(ZOOM_MAX, Math.max(ZOOM_MIN, z + d))); };
+
+  const falta = texto.trim() && !/\d|s\/n/i.test(texto);
 
   return (
     <div className="fixed inset-0 z-[70] bg-stone-900/40 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4" onClick={onCerrar}>
@@ -108,7 +99,7 @@ export default function MapaUbicacion({ lat, lng, precision, direccionInicial, o
         <div className="px-5 pt-4 pb-3 flex items-center gap-3">
           <div className="flex-1 min-w-0">
             <h3 className="text-[17px] text-[#2d284b] leading-tight">Ubica tu <b className="font-bold">negocio</b></h3>
-            <p className="text-xs text-[#8f8cb0] mt-0.5">Arrastra el mapa hasta que el pin quede sobre tu puerta.</p>
+            <p className="text-xs text-[#8f8cb0] mt-0.5">Mueve el mapa hasta que el pin quede sobre tu puerta.</p>
           </div>
           <button type="button" aria-label="Cerrar" onClick={onCerrar} className="w-[34px] h-[34px] rounded-full text-[#8f8cb0] hover:bg-[#f3f5ff] grid place-items-center shrink-0">
             <i className="fa-solid fa-xmark"></i>
@@ -147,6 +138,13 @@ export default function MapaUbicacion({ lat, lng, precision, direccionInicial, o
             style={{ transform: `translate(-50%, -50%) scale(${arrastrando ? 0.7 : 1})`, transition: 'transform 180ms cubic-bezier(0.23, 1, 0.32, 1)' }}
           ></span>
 
+          {precision ? (
+            <p className="absolute left-3 top-3 h-7 px-2.5 rounded-full bg-white/90 text-[11.5px] font-semibold text-[#5a5684] inline-flex items-center gap-1.5 shadow-[0_2px_8px_-2px_rgba(45,40,75,0.3)] pointer-events-none">
+              {afinando && <i className="fa-solid fa-circle-notch fa-spin text-[10px] text-[#5b4bd6]"></i>}
+              GPS ±{precision} m
+            </p>
+          ) : null}
+
           <div className="absolute right-3 top-3 flex flex-col rounded-2xl overflow-hidden bg-white shadow-[0_4px_14px_-4px_rgba(45,40,75,0.35)]" onPointerDown={(e) => e.stopPropagation()}>
             <button type="button" aria-label="Acercar" onClick={() => cambiarZoom(1)} disabled={zoom >= ZOOM_MAX} className="w-10 h-10 grid place-items-center text-[#2d284b] hover:bg-[#f3f5ff] disabled:opacity-35"><i className="fa-solid fa-plus text-sm"></i></button>
             <span className="h-px bg-[#eef1fd]"></span>
@@ -157,54 +155,25 @@ export default function MapaUbicacion({ lat, lng, precision, direccionInicial, o
         </div>
 
         <div className="px-5 pt-4 pb-5">
-          <div className="grid grid-cols-[1fr_92px] gap-2.5">
-            <label className="block min-w-0">
-              <span className="text-[12px] font-semibold text-[#6b6890]">Calle o avenida</span>
-              <input
-                type="text"
-                value={calle}
-                onChange={(e) => { calleEditada.current = true; setCalle(e.target.value); }}
-                placeholder={buscando ? 'Buscando...' : 'Escribe la calle'}
-                className={`mt-1 w-full h-12 px-3.5 rounded-2xl bg-[#f7f9ff] ring-1 ring-[#5b4bd6]/10 text-[15px] font-semibold text-[#2d284b] placeholder:font-normal placeholder:text-[#9290a2] focus:outline-none focus:ring-2 focus:ring-[#5b4bd6]/45 transition-opacity ${buscando ? 'opacity-60' : ''}`}
-              />
-            </label>
-            <label className="block">
-              <span className="text-[12px] font-semibold text-[#6b6890]">Número</span>
-              <input
-                type="text"
-                inputMode="numeric"
-                maxLength={8}
-                value={numero}
-                onChange={(e) => { numeroEditado.current = true; setNumero(e.target.value); }}
-                placeholder="185"
-                className="mt-1 w-full h-12 px-3 rounded-2xl bg-[#f7f9ff] ring-1 ring-[#5b4bd6]/10 text-[15px] font-bold text-[#2d284b] text-center placeholder:font-normal placeholder:text-[#b9b7c9] focus:outline-none focus:ring-2 focus:ring-[#5b4bd6]/45"
-              />
-            </label>
-          </div>
-          <p className="mt-2 text-[12.5px] text-[#6b6890] break-words min-h-[18px]">
-            {fallo
-              ? 'El buscador de calles está ocupado. Escribe la calle a mano; el punto exacto se guarda igual.'
-              : lejos
-                ? `La calle registrada más cercana queda a ${lugar.metros} m. Revisa que sea la correcta.`
-                : !numero.trim() && calle.trim()
-                  ? 'Escribe el número de tu puerta: el mapa abierto casi nunca lo tiene.'
-                  : zona
-                    ? <>Se guardará como <b className="font-semibold text-[#2d284b]">{direccion}</b></>
-                    : ''}
-          </p>
-          <p className="mt-1.5 text-[11.5px] text-[#8f8cb0] tabular-nums">
-            <i className="fa-solid fa-location-dot mr-1.5"></i>Pin {centro.lat.toFixed(6)}, {centro.lng.toFixed(6)}
-            {precision ? <span className={precision > 50 ? 'text-[#a8650a]' : ''}> · GPS ±{precision} m{precision > 50 ? ', mueve el mapa para corregirlo' : ''}</span> : null}
-          </p>
-          <div className="mt-4 grid grid-cols-[1fr_1.4fr] gap-2.5">
+          <label htmlFor="mapa-direccion" className="text-[12px] font-semibold text-[#6b6890]">Dirección</label>
+          <input
+            id="mapa-direccion"
+            type="text"
+            value={texto}
+            onChange={(e) => { textoEditado.current = true; setTexto(e.target.value); }}
+            placeholder={buscando ? 'Buscando la dirección...' : 'Ej. Av. Larco 450, Miraflores'}
+            className={`mt-1 w-full h-12 px-3.5 rounded-2xl bg-[#f7f9ff] ring-1 ring-[#5b4bd6]/10 text-[15px] font-semibold text-[#2d284b] placeholder:font-normal placeholder:text-[#9290a2] focus:outline-none focus:ring-2 focus:ring-[#5b4bd6]/45 transition-opacity ${buscando ? 'opacity-60' : ''}`}
+          />
+          <p className="mt-2 text-[12.5px] text-[#a8650a] min-h-[18px]">{falta ? 'Agrega el número de tu puerta al final de la calle.' : ''}</p>
+          <div className="mt-2 grid grid-cols-[1fr_1.4fr] gap-2.5">
             <button type="button" onClick={onCerrar} className="h-12 rounded-full bg-[#f3f5ff] text-[#2d284b] font-bold text-sm transition active:scale-[0.97]">Cancelar</button>
             <button
               type="button"
-              disabled={buscando || arrastrando || !calle.trim()}
-              onClick={() => onConfirmar(direccion, !numero.trim(), { lat: Number(centro.lat.toFixed(6)), lng: Number(centro.lng.toFixed(6)) })}
+              disabled={arrastrando || buscando}
+              onClick={() => onConfirmar(texto.trim(), { lat: Number(centro.lat.toFixed(6)), lng: Number(centro.lng.toFixed(6)) })}
               className="h-12 rounded-full text-white font-bold text-sm bg-gradient-to-br from-[#7466e8] to-[#5b4bd6] shadow-[0_10px_20px_-10px_rgba(91,75,214,0.8)] transition active:scale-[0.97] disabled:opacity-50 disabled:shadow-none"
             >
-              Confirmar ubicación
+              {buscando ? 'Buscando dirección...' : 'Confirmar ubicación'}
             </button>
           </div>
         </div>
