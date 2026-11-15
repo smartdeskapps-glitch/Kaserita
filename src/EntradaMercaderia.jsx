@@ -93,7 +93,7 @@ export default function EntradaMercaderia({
                 const q = norm(busquedaCompra.trim());
                 let lista = productos.filter((p) => filtroCompra !== 'bajo' || esBajo(p));
                 if (q) {
-                  lista = lista.filter((p) => norm(p.descripcion).includes(q) || norm(p.categoria).includes(q) || String(p.cod_ean || '').toLowerCase().includes(q) || String(p.sku || '').toLowerCase().includes(q));
+                  lista = lista.filter((p) => norm(p.descripcion).includes(q) || norm(p.categoria).includes(q) || norm(p.cod_ean).includes(q) || norm(p.sku).includes(q));
                 } else {
                   lista = [...lista].sort((a, b) => (esBajo(a) ? 0 : 1) - (esBajo(b) ? 0 : 1) || (stockDe(a) ?? 1e9) - (stockDe(b) ?? 1e9) || String(a.descripcion).localeCompare(String(b.descripcion)));
                 }

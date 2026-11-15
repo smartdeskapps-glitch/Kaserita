@@ -10,7 +10,7 @@ export default function VentanasAdministracion({
   avisarAMisClientes, barberosConHorario, cajerosGestion, cambiarDiaHorario, cargandoAgenda,
   cargandoAuditoria, cargandoCajerosGestion, cargandoComisiones, cargarAgenda,
   cargarComisiones, citasAgenda, combos, copiarHorarioADias, costoEnvioDelivery,
-  deliveryHabilitado, direccionDelivery, puntoDelivery, domicilioHabilitado, eliminarCajero, enviandoAviso,
+  deliveryHabilitado, direccionDelivery, puntoDelivery, mapaUbicacion, domicilioHabilitado, eliminarCajero, enviandoAviso,
   errorAuditoria, esAdmin, esBarberia, esModoDemo, estadoHorarioActualDelivery, fechaAgenda,
   filasAuditoria, filasComisiones, filtroAuditoria, formNuevoCajero, guardandoDelivery,
   guardandoHorario, guardandoNuevoCajero, guardandoPinCajero, guardarComisionBarbero,
@@ -20,7 +20,7 @@ export default function VentanasAdministracion({
   mostrarFormNuevoCajero, mostrarQRDelivery, notificar, nuevoPinCajero, pedidoMinimoDelivery,
   periodoComisiones, productos, registrarNuevoCajeroCompleto, resumenAvisos,
   resumenEntregaDelivery, resumenHorarioDelivery, seccionDelivery, sesion,
-  setCostoEnvioDelivery, setDeliveryHabilitado, setDireccionDelivery, setPuntoDelivery, setDomicilioHabilitado,
+  setCostoEnvioDelivery, setDeliveryHabilitado, setDireccionDelivery, setPuntoDelivery, setMapaUbicacion, setDomicilioHabilitado,
   setFechaAgenda, setFiltroAuditoria, setFormNuevoCajero, setHorarioDelivery,
   setLinkDeliveryCopiado, setModalAgenda, setModalAuditoria, setModalComisiones,
   setModalDelivery, setModalGestionCajeros, setModalHorario, setModalPinCajero,
@@ -114,6 +114,7 @@ export default function VentanasAdministracion({
             deliveryHabilitado={deliveryHabilitado}
             direccionDelivery={direccionDelivery}
             puntoDelivery={puntoDelivery}
+            mapaUbicacion={mapaUbicacion}
             domicilioHabilitado={domicilioHabilitado}
             enviandoAviso={enviandoAviso}
             esAdmin={esAdmin}
@@ -136,6 +137,7 @@ export default function VentanasAdministracion({
             setDeliveryHabilitado={setDeliveryHabilitado}
             setDireccionDelivery={setDireccionDelivery}
             setPuntoDelivery={setPuntoDelivery}
+            setMapaUbicacion={setMapaUbicacion}
             setDomicilioHabilitado={setDomicilioHabilitado}
             setHorarioDelivery={setHorarioDelivery}
             setLinkDeliveryCopiado={setLinkDeliveryCopiado}

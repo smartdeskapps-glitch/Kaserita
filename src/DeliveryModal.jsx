@@ -14,6 +14,7 @@ export default function DeliveryModal({
   deliveryHabilitado,
   direccionDelivery,
   puntoDelivery,
+  mapaUbicacion: mapa,
   domicilioHabilitado,
   enviandoAviso,
   esAdmin,
@@ -36,6 +37,7 @@ export default function DeliveryModal({
   setDeliveryHabilitado,
   setDireccionDelivery,
   setPuntoDelivery,
+  setMapaUbicacion: setMapa,
   setDomicilioHabilitado,
   setHorarioDelivery,
   setLinkDeliveryCopiado,
@@ -62,14 +64,15 @@ export default function DeliveryModal({
   // solo mientras el GPS afina (ver seguirGps).
   const [ubicando, setUbicando] = React.useState(false);
   const [afinando, setAfinando] = React.useState(false);
-  const [mapa, setMapa] = React.useState(null);
   const detenerGps = React.useRef(null);
-  React.useEffect(() => () => { if (detenerGps.current) detenerGps.current(); }, []);
-  const cerrarMapa = () => {
+  const detenerElGps = () => {
     if (detenerGps.current) detenerGps.current();
     detenerGps.current = null;
-    setMapa(null);
   };
+  // El mapa puede cerrarse desde fuera (botón "atrás"): al cerrarse, el GPS se apaga.
+  React.useEffect(() => { if (!mapa) detenerElGps(); }, [mapa]); // eslint-disable-line react-hooks/exhaustive-deps
+  React.useEffect(() => detenerElGps, []);
+  const cerrarMapa = () => setMapa(null);
   const usarMiUbicacion = () => {
     if (ubicando || afinando) return;
     setUbicando(true);

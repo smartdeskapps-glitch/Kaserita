@@ -103,7 +103,7 @@ export default function CombosModal({
                   }
                   const q = norm(busquedaProductoCombo.trim());
                   const encontrados = q
-                    ? productos.filter((p) => norm(p.descripcion).includes(q) || String(p.cod_ean || '').toLowerCase().includes(q) || String(p.sku || '').toLowerCase().includes(q)).slice(0, 6)
+                    ? productos.filter((p) => norm(p.descripcion).includes(q) || norm(p.cod_ean).includes(q) || norm(p.sku).includes(q)).slice(0, 6)
                     : [];
                   const idxRes = Math.min(resaltadoProductoCombo, Math.max(0, encontrados.length - 1));
                   const teclasBusqueda = (e) => {
