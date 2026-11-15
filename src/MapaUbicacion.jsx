@@ -13,8 +13,10 @@ export default function MapaUbicacion({ lat, lng, precision, direccionInicial, o
   const [zoom, setZoom] = React.useState(precision && precision > 60 ? 17 : 19);
   const [centro, setCentro] = React.useState({ lat, lng });
   const [arrastrando, setArrastrando] = React.useState(false);
-  const [direccion, setDireccion] = React.useState(direccionInicial || '');
   const [buscando, setBuscando] = React.useState(false);
+  // Lugar conocido más cercano al pin: { direccion, metros }, o null si no se pudo consultar.
+  const [lugar, setLugar] = React.useState(direccionInicial ? { direccion: direccionInicial, metros: 0 } : null);
+  const [fallo, setFallo] = React.useState(false);
   const inicioArrastre = React.useRef(null);
   const turno = React.useRef(0);
   // Si ya hay una dirección para el punto inicial no hace falta buscarla de nuevo al abrir.
@@ -41,7 +43,8 @@ export default function MapaUbicacion({ lat, lng, precision, direccionInicial, o
       const d = await direccionDeCoordenadas(centro.lat, centro.lng);
       if (mio !== turno.current) return;
       setBuscando(false);
-      if (d) setDireccion(d);
+      setFallo(!d);
+      setLugar(d);
     }, 450);
     return () => { clearTimeout(t); };
   }, [centro, arrastrando]);
@@ -52,6 +55,7 @@ export default function MapaUbicacion({ lat, lng, precision, direccionInicial, o
   const n = 2 ** zoom;
   // Círculo del margen de error del GPS (metros -> píxeles según el zoom y la latitud).
   const origen = aPixeles(lat, lng, zoom);
+  const lejos = !!lugar && lugar.metros > 60;
   const radioPx = precision ? precision / ((156543.03392 * Math.cos((lat * Math.PI) / 180)) / n) : 0;
   const tesel = [];
   for (let ty = Math.floor(arr / TESELA); ty <= Math.floor((arr + tam.h) / TESELA); ty += 1) {
@@ -130,11 +134,20 @@ export default function MapaUbicacion({ lat, lng, precision, direccionInicial, o
         </div>
 
         <div className="px-5 pt-4 pb-5">
-          <p className="text-[11px] font-bold uppercase tracking-wider text-[#8f8cb0]">Dirección del pin</p>
-          <p className="mt-1 text-[15px] font-semibold text-[#2d284b] min-h-[22px] break-words">
-            {direccion || (buscando ? 'Buscando dirección...' : 'No encontramos la dirección de este punto')}
-            {buscando && direccion && <span className="ml-2 text-xs font-normal text-[#8f8cb0]">actualizando...</span>}
+          <p className="text-[11px] font-bold uppercase tracking-wider text-[#8f8cb0]">{lejos ? 'Lugar registrado más cercano' : 'Dirección del pin'}</p>
+          <p className={`mt-1 text-[15px] font-semibold min-h-[22px] break-words transition-opacity ${buscando ? 'opacity-50' : ''} ${lejos ? 'text-[#8f8cb0]' : 'text-[#2d284b]'}`}>
+            {lugar ? lugar.direccion : (buscando ? 'Buscando dirección...' : fallo ? 'No se pudo consultar la dirección ahora' : 'Sin dirección registrada en este punto')}
           </p>
+          <p className="mt-1 text-[12px] text-[#6b6890]">
+            {lejos
+              ? `Queda a unos ${lugar.metros} m del pin, así que no se usa como dirección. Se guarda el punto exacto y se mantiene la dirección que ya tenías.`
+              : fallo
+                ? 'El servicio de direcciones está ocupado. Espera unos segundos y mueve un poco el mapa. El punto exacto se guarda igual.'
+                : lugar && lugar.metros > 15
+                  ? `Dirección cercana, a unos ${lugar.metros} m del pin.`
+                  : ''}
+          </p>
+          <p className="mt-1.5 text-[11.5px] text-[#8f8cb0] tabular-nums"><i className="fa-solid fa-location-dot mr-1.5"></i>Pin: {centro.lat.toFixed(6)}, {centro.lng.toFixed(6)}</p>
           {precision ? (
             <p className={`mt-2 text-[12px] ${precision > 50 ? 'text-[#a8650a]' : 'text-[#6b6890]'}`}>
               <i className="fa-solid fa-satellite-dish mr-1.5"></i>
@@ -145,8 +158,8 @@ export default function MapaUbicacion({ lat, lng, precision, direccionInicial, o
             <button type="button" onClick={onCerrar} className="h-12 rounded-full bg-[#f3f5ff] text-[#2d284b] font-bold text-sm transition active:scale-[0.97]">Cancelar</button>
             <button
               type="button"
-              disabled={!direccion || buscando || arrastrando}
-              onClick={() => onConfirmar(direccion, { lat: Number(centro.lat.toFixed(6)), lng: Number(centro.lng.toFixed(6)) })}
+              disabled={buscando || arrastrando}
+              onClick={() => onConfirmar(lugar && !lejos ? lugar.direccion : '', { lat: Number(centro.lat.toFixed(6)), lng: Number(centro.lng.toFixed(6)) })}
               className="h-12 rounded-full text-white font-bold text-sm bg-gradient-to-br from-[#7466e8] to-[#5b4bd6] shadow-[0_10px_20px_-10px_rgba(91,75,214,0.8)] transition active:scale-[0.97] disabled:opacity-50 disabled:shadow-none"
             >
               Confirmar ubicación

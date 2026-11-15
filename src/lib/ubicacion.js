@@ -56,17 +56,32 @@ function obtenerPosicion(alMejorar) {
   });
 }
 
-// Convierte coordenadas en una dirección escrita. Devuelve '' si no se pudo.
+// Distancia en metros entre dos puntos (fórmula del haversine).
+export function metrosEntre(lat1, lng1, lat2, lng2) {
+  const rad = (g) => (g * Math.PI) / 180;
+  const a = Math.sin(rad(lat2 - lat1) / 2) ** 2 + Math.cos(rad(lat1)) * Math.cos(rad(lat2)) * Math.sin(rad(lng2 - lng1) / 2) ** 2;
+  return Math.round(12742000 * Math.asin(Math.sqrt(a)));
+}
+
+// Convierte coordenadas en la dirección registrada más cercana. El servicio devuelve el lugar
+// conocido más próximo al punto (un local, una calle), no la dirección exacta del punto, así
+// que también se devuelve a cuántos metros queda ese lugar. Devuelve null si no se pudo.
 export async function direccionDeCoordenadas(lat, lng) {
   try {
     const ctl = new AbortController();
     const reloj = setTimeout(() => ctl.abort(), 10000);
     const resp = await fetch(`${URL_INVERSA}?format=jsonv2&addressdetails=1&zoom=18&accept-language=es&lat=${lat}&lon=${lng}`, { signal: ctl.signal });
     clearTimeout(reloj);
-    if (!resp.ok) return '';
-    return direccionDesdeRespuesta(await resp.json());
+    if (!resp.ok) return null;
+    const datos = await resp.json();
+    const direccion = direccionDesdeRespuesta(datos);
+    if (!direccion) return null;
+    const lt = Number(datos.lat);
+    const ln = Number(datos.lon);
+    const metros = Number.isFinite(lt) && Number.isFinite(ln) ? metrosEntre(lat, lng, lt, ln) : 0;
+    return { direccion, metros };
   } catch {
-    return '';
+    return null;
   }
 }
 
@@ -77,7 +92,8 @@ export async function ubicacionActual(alMejorar) {
   const pos = await obtenerPosicion(alMejorar);
   const lat = pos.coords.latitude;
   const lng = pos.coords.longitude;
-  return { direccion: await direccionDeCoordenadas(lat, lng), lat, lng, precision: Math.round(pos.coords.accuracy) };
+  const d = await direccionDeCoordenadas(lat, lng);
+  return { direccion: d ? d.direccion : '', lat, lng, precision: Math.round(pos.coords.accuracy) };
 }
 
 // Matemática del mapa (teselas de 256 px, proyección Web Mercator).

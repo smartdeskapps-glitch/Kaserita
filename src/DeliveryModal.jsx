@@ -510,7 +510,7 @@ export default function DeliveryModal({
                   direccionInicial={mapa.direccion}
                   onCerrar={() => setMapa(null)}
                   onConfirmar={(direccion, punto) => {
-                    setDireccionDelivery(direccion);
+                    if (direccion) setDireccionDelivery(direccion);
                     setPuntoDelivery(punto);
                     setMapa(null);
                     notificar('Ubicación agregada. Toca Guardar cambios para aplicarla.', 'success');
