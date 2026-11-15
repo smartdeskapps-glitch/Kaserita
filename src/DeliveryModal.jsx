@@ -513,7 +513,7 @@ export default function DeliveryModal({
                     if (direccion) setDireccionDelivery(direccion);
                     setPuntoDelivery(punto);
                     setMapa(null);
-                    notificar(falta ? 'Punto agregado. Falta el número de puerta: escríbelo al final de la calle y guarda.' : 'Ubicación agregada. Toca Guardar cambios para aplicarla.', 'success');
+                    notificar(falta ? 'Punto agregado sin número de puerta. Puedes completarlo en la dirección y guardar.' : 'Ubicación agregada. Toca Guardar cambios para aplicarla.', 'success');
                   }}
                 />
               )}

@@ -4,19 +4,28 @@
 
 const URL_INVERSA = 'https://nominatim.openstreetmap.org/reverse';
 
-// Arma "Av. Los Álamos 245, San Miguel" con lo que devuelva el geocodificador.
-// Con `sinNumero` omite el número de puerta (cuando pertenece a un local vecino, no al punto).
-export function direccionDesdeRespuesta(r, sinNumero = false) {
+// Parte la respuesta del geocodificador en calle, número y zona (distrito / ciudad).
+export function partesDeRespuesta(r) {
   const a = (r && r.address) || {};
-  const calle = [a.road || a.pedestrian || a.footway || '', sinNumero ? '' : (a.house_number || '')].filter(Boolean).join(' ').trim();
-  const zona = a.suburb || a.neighbourhood || a.city_district || a.quarter || '';
-  const ciudad = a.city || a.town || a.village || a.municipality || '';
-  // El distrito y la ciudad a veces se llaman igual ("San Miguel"): se escribe una sola vez.
-  const lugares = [zona, ciudad].filter((x, i, todos) => x && todos.indexOf(x) === i);
-  const partes = [calle, ...lugares].filter(Boolean);
-  if (partes.length) return partes.join(', ');
-  const completa = String((r && r.display_name) || '').split(',').slice(0, 3).join(',').trim();
-  return completa;
+  const calle = a.road || a.pedestrian || a.footway || a.path || '';
+  const numero = a.house_number || '';
+  const zona = [a.suburb || a.neighbourhood || a.city_district || a.quarter || '', a.city || a.town || a.village || a.municipality || '']
+    .filter((x, i, todos) => x && todos.indexOf(x) === i)
+    .join(', ');
+  return { calle, numero, zona };
+}
+
+// Junta las partes en el texto que se guarda: "Av. Los Álamos 245, San Miguel".
+export function componerDireccion(calle, numero, zona) {
+  const via = [String(calle || '').trim(), String(numero || '').trim()].filter(Boolean).join(' ');
+  return [via, String(zona || '').trim()].filter(Boolean).join(', ');
+}
+
+// Separa "Av. Los Álamos 245, San Miguel" en calle, número y zona (para reabrir el mapa).
+export function partirDireccion(texto) {
+  const [via = '', ...resto] = String(texto || '').split(',');
+  const m = via.trim().match(/^(.*?)(?:\s+(\d+[\w-]*))?$/);
+  return { calle: m ? m[1].trim() : via.trim(), numero: m && m[2] ? m[2] : '', zona: resto.join(',').trim() };
 }
 
 // Escucha el GPS unos segundos y se queda con la lectura más precisa: la primera lectura
@@ -77,14 +86,14 @@ export async function direccionDeCoordenadas(lat, lng) {
     clearTimeout(reloj);
     if (!resp.ok) return null;
     const datos = await resp.json();
+    const p = partesDeRespuesta(datos);
+    if (!p.calle && !p.zona) return null;
     const lt = Number(datos.lat);
     const ln = Number(datos.lon);
     const metros = Number.isFinite(lt) && Number.isFinite(ln) ? metrosEntre(lat, lng, lt, ln) : 0;
     // El número de puerta es de ese local registrado: si queda lejos del pin, no es el del punto.
-    const sinNumero = !!(datos.address && datos.address.house_number) && metros > 12;
-    const direccion = direccionDesdeRespuesta(datos, sinNumero);
-    if (!direccion) return null;
-    return { direccion, metros, sinNumero };
+    const numero = metros > 12 ? '' : p.numero;
+    return { calle: p.calle, numero, zona: p.zona, metros, direccion: componerDireccion(p.calle, numero, p.zona) };
   } catch {
     return null;
   }
