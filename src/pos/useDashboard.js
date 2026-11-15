@@ -58,11 +58,18 @@ export default function useDashboard({
 
     if (sbClient && bodegaId) {
       try {
-        // Combos vendidos en el período: el resumen por producto reparte cada
-        // combo entre sus componentes, así que se consulta aparte por combo_id.
-        // Una venta anulada no cuenta. Si falla, simplemente no se muestra.
-        try {
-          const { data: filasCombo } = await sbClient
+        const anioActual = new Date().getFullYear();
+        const zona = zonaLocal();
+        // Si el rango termina en otro anio, el calendario muestra ese anio.
+        const anioRango = Number(hasta.slice(0, 4));
+        const pideOtroAnio = !!anioRango && anioRango !== anioActual;
+
+        // Estas consultas no dependen una de otra: se lanzan todas juntas en vez de esperar
+        // cada respuesta antes de pedir la siguiente (era una carrera de 6 viajes seguidos).
+        const [resCombos, resResumen, resDeudores, resProveedores, resAnio, resOtroAnio] = await Promise.all([
+          // Combos vendidos en el período: el resumen por producto reparte cada combo entre sus
+          // componentes, así que se consulta aparte por combo_id. Una venta anulada no cuenta.
+          sbClient
             .from('ventas_detalle')
             .select('combo_id, producto_id, cantidad, subtotal, utilidad, ventas!inner(fecha_hora, anulada, bodega_id)')
             .not('combo_id', 'is', null)
@@ -70,7 +77,47 @@ export default function useDashboard({
             .eq('ventas.anulada', false)
             .gte('ventas.fecha_hora', inicio.toISOString())
             .lte('ventas.fecha_hora', fin.toISOString())
-            .limit(5000);
+            .limit(5000),
+          sbClient.rpc('dashboard_resumen_periodo', {
+            p_bodega_id: bodegaId,
+            p_desde: desde,
+            p_hasta: hasta,
+            p_zona: zona
+          }),
+          // Deuda de clientes (crédito): es un saldo vigente, no depende del rango de fechas.
+          sbClient
+            .from('clientes')
+            .select('nombre_completo, dni, saldo_actual')
+            .eq('bodega_id', bodegaId)
+            .gt('saldo_actual', 0)
+            .order('saldo_actual', { ascending: false }),
+          // Deuda de la bodega con proveedores: también es un saldo vigente.
+          sbClient
+            .from('proveedores')
+            .select('nombre, saldo_actual')
+            .eq('bodega_id', bodegaId)
+            .gt('saldo_actual', 0)
+            .order('saldo_actual', { ascending: false }),
+          // Ventas del año calendario en curso, para "Ventas por Mes".
+          sbClient.rpc('dashboard_ventas_por_dia', {
+            p_bodega_id: bodegaId,
+            p_desde: `${anioActual}-01-01`,
+            p_hasta: `${anioActual}-12-31`,
+            p_zona: zona
+          }),
+          pideOtroAnio
+            ? sbClient.rpc('dashboard_ventas_por_dia', {
+              p_bodega_id: bodegaId,
+              p_desde: `${anioRango}-01-01`,
+              p_hasta: `${anioRango}-12-31`,
+              p_zona: zona
+            })
+            : null,
+        ]);
+
+        // Si falla el resumen de combos, simplemente no se muestra.
+        try {
+          const filasCombo = resCombos.data;
           const porCombo = new Map();
           (filasCombo || []).forEach((d) => {
             const g = porCombo.get(d.combo_id) || { monto: 0, utilidad: 0, porProducto: new Map() };
@@ -90,12 +137,7 @@ export default function useDashboard({
           setCombosVendidos([]);
         }
 
-        const { data: resumen, error: errResumen } = await sbClient.rpc('dashboard_resumen_periodo', {
-          p_bodega_id: bodegaId,
-          p_desde: desde,
-          p_hasta: hasta,
-          p_zona: zonaLocal()
-        });
+        const { data: resumen, error: errResumen } = resResumen;
         if (!errResumen && resumen && typeof resumen === 'object') {
           setResumenPeriodo(resumen);
         } else {
@@ -127,38 +169,13 @@ export default function useDashboard({
           setResumenPeriodo(resumirVentasPeriodo(data || [], dataAnterior || []));
         }
 
-        // Deuda de clientes (crédito): es un saldo vigente, no depende del
-        // rango de fechas elegido -- se muestra el estado actual siempre.
-        const { data: deudores, error: errDeudores } = await sbClient
-          .from('clientes')
-          .select('nombre_completo, dni, saldo_actual')
-          .eq('bodega_id', bodegaId)
-          .gt('saldo_actual', 0)
-          .order('saldo_actual', { ascending: false });
-        if (errDeudores) throw errDeudores;
-        setClientesDeuda(deudores || []);
+        if (resDeudores.error) throw resDeudores.error;
+        setClientesDeuda(resDeudores.data || []);
 
-        // Deuda de la bodega con proveedores: también es un saldo
-        // vigente, independiente del rango de fechas.
-        const { data: proveedoresConDeuda, error: errProveedores } = await sbClient
-          .from('proveedores')
-          .select('nombre, saldo_actual')
-          .eq('bodega_id', bodegaId)
-          .gt('saldo_actual', 0)
-          .order('saldo_actual', { ascending: false });
-        if (errProveedores) console.warn(errProveedores);
-        setProveedoresDeudaDash(proveedoresConDeuda || []);
+        if (resProveedores.error) console.warn(resProveedores.error);
+        setProveedoresDeudaDash(resProveedores.data || []);
 
-        // Ventas del año calendario en curso, para "Ventas por Mes" --
-        // independiente del rango de fechas elegido en el filtro rápido.
-        const anioActual = new Date().getFullYear();
-        const zona = zonaLocal();
-        const { data: diasAnio, error: errAnio } = await sbClient.rpc('dashboard_ventas_por_dia', {
-          p_bodega_id: bodegaId,
-          p_desde: `${anioActual}-01-01`,
-          p_hasta: `${anioActual}-12-31`,
-          p_zona: zona
-        });
+        const { data: diasAnio, error: errAnio } = resAnio;
         if (!errAnio && Array.isArray(diasAnio)) {
           setDiasAnioDash(diasAnio);
         } else {
@@ -177,19 +194,7 @@ export default function useDashboard({
           setDiasAnioDash(agruparVentasPorDia(ventasAnio || []));
         }
 
-        // Si el rango termina en otro anio, el calendario muestra ese anio.
-        const anioRango = Number(hasta.slice(0, 4));
-        if (anioRango && anioRango !== anioActual) {
-          const { data: diasOtro } = await sbClient.rpc('dashboard_ventas_por_dia', {
-            p_bodega_id: bodegaId,
-            p_desde: `${anioRango}-01-01`,
-            p_hasta: `${anioRango}-12-31`,
-            p_zona: zona
-          });
-          setDiasAnioRango(Array.isArray(diasOtro) ? diasOtro : []);
-        } else {
-          setDiasAnioRango([]);
-        }
+        setDiasAnioRango(pideOtroAnio && resOtroAnio && Array.isArray(resOtroAnio.data) ? resOtroAnio.data : []);
       } catch (err) {
         console.warn(err);
         notificar(mensajeError(err, 'No se pudo cargar el dashboard'), 'error');
