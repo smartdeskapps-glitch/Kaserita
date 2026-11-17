@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { iniciales as inicialesDe } from './lib/nombres.js';
 import {
-  asegurarXLSX, generarSKU, fechaISOLocal, fechaHoyISO, comprimirImagenJPEG,
+  asegurarXLSX, generarSKU, fechaISOLocal, fechaHoyISO, comprimirFotoProducto,
   formatearBytes, CATEGORIAS_FALLBACK,
   normalizarCategoria, CATEGORIA_ESTILO_POR_NOMBRE_NORMALIZADO, CATEGORIA_ALIAS,
   categoriaDesdeTexto, FotoProducto, MiniInterruptor,
@@ -200,6 +200,16 @@ const RUBROS_NEGOCIO = [
       const alternarSubirFotosBodega = async (bodega) => {
         try {
           const { error } = await sbClient.from('bodegas').update({ permitir_subir_fotos: !bodega.permitir_subir_fotos }).eq('id', bodega.id);
+          if (error) throw error;
+          cargarBodegas();
+        } catch (err) {
+          notificar(`No se pudo actualizar: ${err.message}`, 'error');
+        }
+      };
+
+      const alternarFotosAltaCalidadBodega = async (bodega) => {
+        try {
+          const { error } = await sbClient.from('bodegas').update({ fotos_alta_calidad: !bodega.fotos_alta_calidad }).eq('id', bodega.id);
           if (error) throw error;
           cargarBodegas();
         } catch (err) {
@@ -477,7 +487,7 @@ const RUBROS_NEGOCIO = [
       const subirFotoMaestro = async (file) => {
         setSubiendoFotoMaestro(true);
         try {
-          const comprimida = await comprimirImagenJPEG(file);
+          const comprimida = await comprimirFotoProducto(file, { fotos_alta_calidad: true });
           const ruta = `maestro/${formMaestro.id}.jpg`;
           const { error } = await sbClient.storage
             .from('Productos')
@@ -1174,6 +1184,7 @@ const RUBROS_NEGOCIO = [
                               <div className="flex items-center gap-3 md:justify-center">
                                 <MiniInterruptor activo={b.mostrar_catalogo_maestro} onClick={() => alternarCatalogoMaestroBodega(b)} etiqueta="Maestro" title="Mostrar/ocultar el Catálogo Maestro en esta bodega" />
                                 <MiniInterruptor activo={b.permitir_subir_fotos} onClick={() => alternarSubirFotosBodega(b)} etiqueta="Fotos" title="Permitir/bloquear que esta bodega suba fotos de sus productos" />
+                                <MiniInterruptor activo={b.fotos_alta_calidad} onClick={() => alternarFotosAltaCalidadBodega(b)} etiqueta="HD" title="Fotos en alta calidad (900 px, hasta 150 KB) para esta bodega. Apagado: fotos livianas de 480 px y 20 KB" />
                                 <MiniInterruptor activo={b.delivery_permitido} onClick={() => alternarDeliveryPermitidoBodega(b)} etiqueta="Pedidos" title="Habilitar/deshabilitar Pedidos por WhatsApp (KaseritaDelivery) para esta bodega -- función paga aparte del plan base" />
                               </div>
 

@@ -1,7 +1,7 @@
 // Sección del POS extraída de src/main.jsx (hook): mismo código, mismo orden de
 // hooks. Recibe lo que usa del resto del POS y devuelve lo que el resto usa.
 import { useState, useEffect, useCallback } from 'react';
-import { comprimirImagenJPEG, generarSKU } from '../PanelAdminCompartido.jsx';
+import { comprimirFotoProducto, generarSKU } from '../PanelAdminCompartido.jsx';
 import { mensajeError, datosFormularioDesdeProducto, generarCodigoInterno, normalizarCamposPack } from './utilidades.js';
 import { esMontoNoNegativo } from '../lib/validaciones.js';
 
@@ -44,7 +44,7 @@ export default function useInventarioInicial({
     if (!esModoDemo && sesion?.bodega?.permitir_subir_fotos === false) return;
     setSubiendoFotoFilaIdx(idx);
     try {
-      const comprimida = await comprimirImagenJPEG(file);
+      const comprimida = await comprimirFotoProducto(file, sesion?.bodega);
       if (esModoDemo) {
         const urlLocal = URL.createObjectURL(comprimida);
         actualizarFilaInventario(idx, 'foto_url', urlLocal);

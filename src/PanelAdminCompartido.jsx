@@ -42,15 +42,22 @@ import { fechaISOLocal, fechaHoyISO } from './lib/fechas.js';
     // llena el Storage ni tarda en cargar en el catálogo desde un celular
     // con poco dato móvil. La usa solo el admin (catálogo maestro): las
     // bodegas ya no pueden subir fotos, ver bloquear_fotos_bodega.sql.
-    // Foto de producto: lado mayor 900 px y hasta 100 KB (antes 480 px y 20 KB, que en el celular se veía
-    // pixelada). El bucket "Productos" acepta hasta 200 KB por archivo.
-    const comprimirImagenJPEG = (file, maxKB = 100, dimensionInicial = 900) => {
+    // Dos perfiles de compresión. "normal" es el de siempre (liviano: 480 px y 20 KB, baja mucho la
+    // calidad para entrar en el peso). "alta" es para las bodegas con el interruptor HD del panel de
+    // administrador: 900 px y hasta 150 KB, sin bajar la calidad de 0.65 ni la imagen de 640 px (si no
+    // entra en el peso, antes que dejarla con bloques se prefiere que pese un poco más; el bucket
+    // "Productos" acepta hasta 200 KB por archivo). No hay un peso mínimo: depende de la foto.
+    const PERFILES_FOTO = {
+      normal: { maxKB: 20, dimension: 480, calidad: 0.8, calidadMinima: 0.35, calidadTrasAchicar: 0.6, factorAchicar: 0.8, dimensionMinima: 120 },
+      alta: { maxKB: 150, dimension: 900, calidad: 0.85, calidadMinima: 0.65, calidadTrasAchicar: 0.75, factorAchicar: 0.9, dimensionMinima: 640 },
+    };
+    const comprimirImagenJPEG = (file, maxKB = 20, dimensionInicial = 480, perfil = PERFILES_FOTO.normal) => {
       return new Promise((resolve, reject) => {
         const urlTemp = URL.createObjectURL(file);
         const img = new Image();
         img.onload = () => {
           let dimension = dimensionInicial;
-          let calidad = 0.85;
+          let calidad = perfil.calidad;
           let intentos = 0;
           const maxIntentos = 25;
 
@@ -70,17 +77,17 @@ import { fechaISOLocal, fechaHoyISO } from './lib/fechas.js';
                 return;
               }
               const dentroDelLimite = blob.size <= maxKB * 1024;
-              const sinMasMargen = intentos >= maxIntentos || (calidad <= 0.6 && dimension <= 160);
+              const sinMasMargen = intentos >= maxIntentos || (calidad <= perfil.calidadMinima && dimension <= perfil.dimensionMinima);
               if (dentroDelLimite || sinMasMargen) {
                 URL.revokeObjectURL(urlTemp);
                 resolve(blob);
                 return;
               }
-              if (calidad > 0.6) {
+              if (calidad > perfil.calidadMinima) {
                 calidad = +(calidad - 0.1).toFixed(2);
               } else {
-                dimension = Math.round(dimension * 0.85);
-                calidad = 0.75;
+                dimension = Math.round(dimension * perfil.factorAchicar);
+                calidad = perfil.calidadTrasAchicar;
               }
               intentar();
             }, 'image/jpeg', calidad);
@@ -227,10 +234,16 @@ import { fechaISOLocal, fechaHoyISO } from './lib/fechas.js';
       );
     }
 
+// Foto de producto de una bodega: el perfil depende de su interruptor HD (bodegas.fotos_alta_calidad).
+const comprimirFotoProducto = (file, bodega) => {
+  const perfil = bodega && bodega.fotos_alta_calidad ? PERFILES_FOTO.alta : PERFILES_FOTO.normal;
+  return comprimirImagenJPEG(file, perfil.maxKB, perfil.dimension, perfil);
+};
+
 export {
   asegurarXLSX,
   generarSKU, fechaISOLocal, fechaHoyISO,
-  comprimirImagenJPEG, formatearBytes,
+  comprimirImagenJPEG, comprimirFotoProducto, formatearBytes,
   PIN_MIN, PIN_MAX, PIN_MIN_DUENO, pinValido,
   CATEGORIA_ESTILO, CATEGORIAS_FALLBACK, normalizarCategoria,
   CATEGORIA_ESTILO_POR_NOMBRE_NORMALIZADO, CATEGORIA_ALIAS,

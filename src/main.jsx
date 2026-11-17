@@ -3,7 +3,7 @@ import ReactDOM from 'react-dom/client';
 import RielLateral from './RielLateral.jsx';
 import { createClient } from '@supabase/supabase-js';
 import './index.css';
-import { fechaHoyISO, comprimirImagenJPEG, CATEGORIAS_FALLBACK } from './PanelAdminCompartido.jsx';
+import { fechaHoyISO, comprimirFotoProducto, CATEGORIAS_FALLBACK } from './PanelAdminCompartido.jsx';
 import { iniciarMonitoreo, reportarError } from './monitoreo.js';
 import { evitarZoomEnCampos } from './lib/movil.js';
 import { useBotonAtras } from './lib/atras.js';
@@ -594,7 +594,7 @@ import PantallaAdmin from './pantallas/PantallaAdmin.jsx';
         if (!esModoDemo && sesion?.bodega?.permitir_subir_fotos === false) return;
         setSubiendoFotoProducto(true);
         try {
-          const comprimida = await comprimirImagenJPEG(file);
+          const comprimida = await comprimirFotoProducto(file, sesion?.bodega);
           if (esModoDemo) {
             // Modo Demo Local: no hay bodega real en Supabase -- se usa una
             // vista previa local nomás, sin subir nada.
@@ -626,7 +626,7 @@ import PantallaAdmin from './pantallas/PantallaAdmin.jsx';
         if ((formEditarProducto?.fotos_extra || []).length >= 4) return;
         setSubiendoFotoExtra(true);
         try {
-          const comprimida = await comprimirImagenJPEG(file);
+          const comprimida = await comprimirFotoProducto(file, sesion?.bodega);
           if (esModoDemo) {
             const urlLocal = URL.createObjectURL(comprimida);
             setFormEditarProducto((prev) => ({ ...prev, fotos_extra: [...(prev.fotos_extra || []), urlLocal] }));
