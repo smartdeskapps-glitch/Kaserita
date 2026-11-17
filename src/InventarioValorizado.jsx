@@ -23,10 +23,10 @@ const FILTROS = [
 ];
 const ORDENES = [
   ['nombre', 'A–Z'],
-  ['gana-u', 'Más ganancia por unidad'],
+  ['gana-u', 'Ganancia x unidad'],
   ['margen', 'Mayor margen'],
-  ['total', 'Más ganancia total'],
-  ['invertido', 'Más dinero invertido'],
+  ['total', 'Ganancia total'],
+  ['invertido', 'Más invertido'],
 ];
 
 const numero = (v) => Number(v) || 0;
@@ -127,25 +127,34 @@ export default function InventarioValorizado({ productos, onClose }) {
       onClose={onClose}
       onFondo={onClose}
       ancho="max-w-2xl"
-      cifras={[
-        { etiqueta: 'Invertido', valor: verCostos ? dinero(resumen.invertido) : '••••' },
-        { etiqueta: 'Si vendés todo', valor: dinero(resumen.ventaTotal) },
-        { etiqueta: 'Ganancia posible', valor: verCostos ? dinero(resumen.total) : '••••', tono: 'ok' },
-      ]}
+      desplazable={false}
     >
-      <div className="bg-[#f4f6ff] flex-1 min-h-0 flex flex-col">
-        <div className="shrink-0 px-4 sm:px-6 pt-4 pb-3 space-y-3 bg-white border-b border-[#eef1fd]">
+      {/* Todo se desplaza junto; solo el buscador y los filtros se quedan fijos arriba de la lista. */}
+      <div className="flex-1 min-h-0 overflow-y-auto bg-[#f4f6ff]">
+        <section className="bg-white px-4 sm:px-6 pt-4 pb-4 space-y-3.5">
+          <dl className="grid grid-cols-3">
+            <div className="min-w-0 pr-3">
+              <dt className="text-[11.5px] font-semibold text-[#8f8cb0]">Invertido</dt>
+              <dd className="mt-0.5 text-[15px] sm:text-[17px] font-extrabold text-[#2d284b] tabular-nums whitespace-nowrap">{verCostos ? dinero(resumen.invertido) : oculto}</dd>
+            </div>
+            <div className="min-w-0 px-3 border-l border-[#eef1fd]">
+              <dt className="text-[11.5px] font-semibold text-[#8f8cb0]">Si vendés todo</dt>
+              <dd className="mt-0.5 text-[15px] sm:text-[17px] font-extrabold text-[#2d284b] tabular-nums whitespace-nowrap">{dinero(resumen.ventaTotal)}</dd>
+            </div>
+            <div className="min-w-0 pl-3 border-l border-[#eef1fd]">
+              <dt className="text-[11.5px] font-semibold text-[#8f8cb0]">Ganancia posible</dt>
+              <dd className="mt-0.5 text-[15px] sm:text-[17px] font-extrabold text-[#17895c] tabular-nums whitespace-nowrap">{verCostos ? dinero(resumen.total) : oculto}</dd>
+            </div>
+          </dl>
           {verCostos && resumen.ventaTotal > 0 && (
             <div>
               <div className="flex h-2.5 gap-[3px] rounded-full overflow-hidden bg-[#f1efff]" role="img" aria-label={`Costo ${pctCosto.toFixed(0)} por ciento, ganancia ${resumen.margen.toFixed(0)} por ciento`}>
                 <i className="block h-full rounded-full bg-[#9687f5]" style={{ width: `${pctCosto}%` }} />
                 <i className="block h-full rounded-full bg-[#17895c]" style={{ width: `${resumen.margen}%` }} />
               </div>
-              <div className="mt-2 flex flex-wrap justify-between gap-x-4 gap-y-1 text-[12.5px] text-[#6b6890]">
-                <span><i className="inline-block w-2 h-2 rounded-full bg-[#9687f5] mr-1.5"></i>Costo {pctCosto.toFixed(0)} %</span>
-                <span><i className="inline-block w-2 h-2 rounded-full bg-[#17895c] mr-1.5"></i>Ganancia {resumen.margen.toFixed(0)} %</span>
-                <span className="font-semibold text-[#17895c]">Margen promedio {resumen.margen.toFixed(1)} %</span>
-              </div>
+              <p className="mt-2 text-[12.5px] text-[#6b6890]">
+                De cada S/ 100 que vendés, <b className="text-[#2d284b]">S/ {pctCosto.toFixed(0)}</b> es costo y <b className="text-[#17895c]">S/ {resumen.margen.toFixed(0)}</b> es ganancia.
+              </p>
             </div>
           )}
           {atajos.length > 0 && (
@@ -155,36 +164,39 @@ export default function InventarioValorizado({ productos, onClose }) {
               ))}
             </div>
           )}
+        </section>
+
+        <div className="sticky top-0 z-10 bg-[#f4f6ff] px-4 sm:px-6 pt-3 pb-2.5 space-y-2.5 border-y border-[#e6ebff]">
           <label className="relative block">
             <svg className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#8f8cb0] pointer-events-none" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7" /><path d="m20 20-3.5-3.5" /></svg>
             <input
               type="search" value={texto} onChange={(e) => { setTexto(e.target.value); setLimite(PAGINA); }}
-              placeholder="Buscar producto o código de barras" autoComplete="off" aria-label="Buscar producto"
-              className="w-full h-11 rounded-2xl bg-[#f4f6ff] pl-10 pr-3 text-[15px] text-[#2d284b] placeholder:text-[#9a98b4] focus:outline-none focus:ring-2 focus:ring-[#5b4bd6]/40"
+              placeholder="Buscar producto o código" autoComplete="off" aria-label="Buscar producto"
+              className="w-full h-11 rounded-2xl bg-white ring-1 ring-[#5b4bd6]/10 pl-10 pr-3 text-[15px] text-[#2d284b] placeholder:text-[#9a98b4] focus:outline-none focus:ring-2 focus:ring-[#5b4bd6]/40"
             />
           </label>
           <div className="flex gap-1.5 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden -mx-4 px-4 sm:mx-0 sm:px-0" role="group" aria-label="Filtrar productos">
             {FILTROS.map(([f, t]) => (
               <button
                 key={f} type="button" aria-pressed={filtro === f} onClick={() => elegirFiltro(f)}
-                className={`shrink-0 text-[12.5px] font-semibold px-3.5 py-2 rounded-full transition active:scale-95 ${filtro === f ? 'bg-[#5b4bd6] text-white' : 'bg-[#f4f6ff] text-[#6b6890] hover:bg-[#e9edff]'}`}
+                className={`shrink-0 text-[12.5px] font-semibold px-3.5 py-2 rounded-full transition active:scale-95 ${filtro === f ? 'bg-[#5b4bd6] text-white' : 'bg-white ring-1 ring-[#5b4bd6]/10 text-[#6b6890] hover:bg-[#e9edff]'}`}
               >{t}</button>
             ))}
           </div>
-          <div className="flex items-center justify-between gap-3">
-            <span className="text-[13px] font-bold text-[#2d284b]">{visibles.length} {visibles.length === 1 ? 'producto' : 'productos'}</span>
-            <div className="flex items-center gap-3">
-              <button type="button" onClick={() => setVerCostos((v) => !v)} className="inline-flex items-center gap-1.5 text-[12.5px] font-bold text-[#5b4bd6] py-1">
-                <Ojo tachado={verCostos} />{verCostos ? 'Ocultar costos' : 'Mostrar costos'}
-              </button>
-              <select value={orden} onChange={(e) => setOrden(e.target.value)} aria-label="Ordenar por" className="h-8 rounded-lg bg-[#f4f6ff] px-2 text-[12.5px] font-semibold text-[#2d284b] focus:outline-none focus:ring-2 focus:ring-[#5b4bd6]/40">
-                {ORDENES.map(([v, t]) => <option key={v} value={v}>{t}</option>)}
-              </select>
-            </div>
+          <div className="flex items-center gap-2">
+            <span className="flex-1 min-w-0 text-[13px] font-bold text-[#2d284b] whitespace-nowrap">{visibles.length} {visibles.length === 1 ? 'producto' : 'productos'}</span>
+            <button
+              type="button" onClick={() => setVerCostos((v) => !v)} aria-pressed={!verCostos}
+              aria-label={verCostos ? 'Ocultar costos' : 'Mostrar costos'} title={verCostos ? 'Ocultar costos' : 'Mostrar costos'}
+              className="w-9 h-9 rounded-xl bg-white ring-1 ring-[#5b4bd6]/10 text-[#5b4bd6] grid place-items-center shrink-0 active:scale-95 transition-transform duration-150"
+            ><Ojo tachado={verCostos} /></button>
+            <select value={orden} onChange={(e) => setOrden(e.target.value)} aria-label="Ordenar por" className="h-9 w-[150px] shrink-0 rounded-xl bg-white ring-1 ring-[#5b4bd6]/10 px-2.5 text-[13px] font-semibold text-[#2d284b] focus:outline-none focus:ring-2 focus:ring-[#5b4bd6]/40">
+              {ORDENES.map(([v, t]) => <option key={v} value={v}>{t}</option>)}
+            </select>
           </div>
         </div>
 
-        <div className="flex-1 min-h-0 overflow-y-auto px-4 sm:px-6 py-3 space-y-2">
+        <div className="px-4 sm:px-6 py-3 space-y-2.5">
           {visibles.length === 0 && (
             <p className="py-10 text-center text-sm text-[#8f8cb0]">No hay productos con ese filtro.</p>
           )}
@@ -194,12 +206,12 @@ export default function InventarioValorizado({ productos, onClose }) {
             const sinStock = agotado(p);
             const bajo = f.stock > 0 && f.stock <= STOCK_BAJO;
             return (
-              <div key={p.id} className="bg-white rounded-[20px] ring-1 ring-[#5b4bd6]/10 px-3.5 pt-3 pb-3">
-                <div className="flex items-center gap-3">
-                  <span className="w-[42px] h-[42px] rounded-[13px] overflow-hidden shrink-0 bg-[#f1efff]"><FotoProducto fotoUrl={p.foto_url} categoria={p.categoria} className="w-full h-full" iconClassName="text-sm" /></span>
+              <div key={p.id} className="bg-white rounded-[20px] ring-1 ring-[#5b4bd6]/10 p-3.5">
+                <div className="flex items-start gap-3">
+                  <span className="w-11 h-11 rounded-[13px] overflow-hidden shrink-0 bg-[#f1efff]"><FotoProducto fotoUrl={p.foto_url} categoria={p.categoria} className="w-full h-full" iconClassName="text-sm" /></span>
                   <div className="flex-1 min-w-0">
-                    <p className="text-[14px] font-bold text-[#2d284b] truncate">{p.descripcion}</p>
-                    <p className="text-[12.5px] text-[#6b6890] truncate">
+                    <p className="text-[14px] leading-snug font-bold text-[#2d284b] line-clamp-2">{p.descripcion}</p>
+                    <p className="mt-0.5 text-[12.5px] text-[#6b6890] truncate">
                       {sinStock ? <b className="text-[#c2334f]">Agotado</b>
                         : !controlaStock(p) ? 'Sin control de stock'
                         : bajo ? <b className="text-[#a96a00]">Quedan {textoStock(f.stock)}</b>
@@ -207,28 +219,29 @@ export default function InventarioValorizado({ productos, onClose }) {
                       {p.categoria ? ` · ${p.categoria}` : ''}
                     </p>
                   </div>
-                  <span className={`shrink-0 text-[12.5px] font-extrabold ${COLOR[t]}`}>
-                    {f.margen === null ? 'Sin costo' : `${f.margen.toFixed(0)} % de margen`}
+                  <span className={`shrink-0 text-[12.5px] leading-snug font-extrabold whitespace-nowrap pt-0.5 ${COLOR[t]}`}>
+                    {f.margen === null ? 'Sin costo' : `${f.margen.toFixed(0)} % margen`}
                   </span>
                 </div>
-                <dl className="mt-3 pt-2.5 border-t border-[#eef1fd] grid grid-cols-3">
-                  <div className="min-w-0 pr-3">
+                <dl className="mt-3 pt-3 border-t border-[#eef1fd] grid grid-cols-3">
+                  <div className="min-w-0 pr-2">
                     <dt className="text-[11.5px] font-semibold text-[#8f8cb0]">Costo</dt>
-                    <dd className="text-[15px] font-extrabold text-[#2d284b] tabular-nums whitespace-nowrap">{!f.tieneCosto ? <span className="text-[#a96a00]">Falta</span> : verCostos ? dinero(f.costo) : oculto}</dd>
+                    <dd className="mt-0.5 text-[15px] font-extrabold text-[#2d284b] tabular-nums whitespace-nowrap">{!f.tieneCosto ? <span className="text-[#a96a00]">Falta</span> : verCostos ? dinero(f.costo) : oculto}</dd>
                   </div>
-                  <div className="min-w-0 px-3 border-l border-[#eef1fd]">
+                  <div className="min-w-0 px-2 border-l border-[#eef1fd]">
                     <dt className="text-[11.5px] font-semibold text-[#8f8cb0]">Venta</dt>
-                    <dd className="text-[15px] font-extrabold text-[#2d284b] tabular-nums whitespace-nowrap">{dinero(f.venta)}</dd>
+                    <dd className="mt-0.5 text-[15px] font-extrabold text-[#2d284b] tabular-nums whitespace-nowrap">{dinero(f.venta)}</dd>
                   </div>
-                  <div className="min-w-0 pl-3 border-l border-[#eef1fd]">
+                  <div className="min-w-0 pl-2 border-l border-[#eef1fd]">
                     <dt className="text-[11.5px] font-semibold text-[#8f8cb0]">Ganás x unidad</dt>
-                    <dd className={`text-[15px] font-extrabold tabular-nums whitespace-nowrap ${COLOR[t]}`}>{!f.tieneCosto ? '—' : verCostos ? dinero(f.gu) : oculto}</dd>
+                    <dd className={`mt-0.5 text-[15px] font-extrabold tabular-nums whitespace-nowrap ${COLOR[t]}`}>{!f.tieneCosto ? '—' : verCostos ? dinero(f.gu) : oculto}</dd>
                   </div>
                 </dl>
                 {f.stock > 0 && f.tieneCosto && (
-                  <p className="mt-2 text-[12px] text-[#6b6890]">
-                    Con tus {textoStock(f.stock)} unidades: invertiste <b className="text-[#2d284b]">{verCostos ? dinero(f.invertido) : '••••'}</b> · ganarías <b className="text-[#2d284b]">{verCostos ? dinero(f.total) : '••••'}</b>
-                  </p>
+                  <dl className="mt-3 pt-2.5 border-t border-[#eef1fd] flex flex-wrap justify-between gap-x-4 gap-y-1 text-[12px] text-[#6b6890]">
+                    <div className="flex gap-1.5"><dt>Invertido en stock</dt><dd className="font-bold text-[#2d284b] tabular-nums">{verCostos ? dinero(f.invertido) : oculto}</dd></div>
+                    <div className="flex gap-1.5"><dt>Ganarías</dt><dd className="font-bold text-[#17895c] tabular-nums">{verCostos ? dinero(f.total) : oculto}</dd></div>
+                  </dl>
                 )}
               </div>
             );
@@ -238,7 +251,7 @@ export default function InventarioValorizado({ productos, onClose }) {
               Mostrar más ({visibles.length - limite})
             </button>
           )}
-          <p className="pt-1 pb-2 text-[12px] text-[#8f8cb0]">
+          <p className="pt-1 pb-2 text-[12px] leading-relaxed text-[#8f8cb0]">
             Margen = (venta − costo) ÷ venta. Verde desde {MARGEN_BUENO} %, ámbar desde {MARGEN_BAJO} %, rojo por debajo. Los productos sin costo cargado no entran en la ganancia ni en el margen.
           </p>
         </div>
@@ -246,4 +259,3 @@ export default function InventarioValorizado({ productos, onClose }) {
     </VentanaModulo>
   );
 }
-
