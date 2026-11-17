@@ -828,6 +828,9 @@ import PantallaAdmin from './pantallas/PantallaAdmin.jsx';
       const [modalDashboard, setModalDashboard] = useState(false);
       // Intento de cobro en curso: { huella, idLocal } -- ver el cobro en línea.
       const intentoVentaRef = useRef(null);
+      // Candado síncrono del cobro: el botón se deshabilita recién al volver a dibujar, y dos toques seguidos
+      // alcanzan a entrar los dos a handleCobrar (cada uno gastaría un número de boleta).
+      const cobrandoRef = useRef(false);
       // Resumen del rango elegido (venta total, hora pico, medios de pago,
       // top productos, periodo anterior): viene sumado desde la base
       // (dashboard_resumen_periodo.sql) para no chocar con el tope de 1.000 filas.
@@ -1557,7 +1560,7 @@ import PantallaAdmin from './pantallas/PantallaAdmin.jsx';
         arqueoEsperado, avisoTurnoViejo, barberoVentaId, bodegaDireccion, bodegaId, bodegaNombre,
         bodegaTelefono, busqueda, cajeroSeleccionado, cargarProductos, carrito, catalogoDemoRef,
         cierreAlRetomar, clienteActual, efectivoRequeridoMixto, enLinea, esBarberia, esModoDemo,
-        expandirLineaCarrito, guardarVentasPendientesLS, intentoVentaRef, listaCajeros, medioPago,
+        cobrandoRef, expandirLineaCarrito, guardarVentasPendientesLS, intentoVentaRef, listaCajeros, medioPago,
         modalTurno, montoApertura, montoConteoEfectivo, montoDescuento, montoMixtoOtro,
         montoMixtoRecibido, montoRecibido, notificar, pedidosCargadosAlCarrito, pedirConfirmacion,
         refrescarProductosPorId, registrarVentaAtomica, reiniciarClienteYMedioPago, sbClient,

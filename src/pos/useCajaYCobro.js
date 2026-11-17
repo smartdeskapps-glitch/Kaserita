@@ -12,7 +12,7 @@ export default function useCajaYCobro({
   arqueoEsperado, avisoTurnoViejo, barberoVentaId, bodegaDireccion, bodegaId, bodegaNombre,
   bodegaTelefono, busqueda, cajeroSeleccionado, cargarProductos, carrito, catalogoDemoRef,
   cierreAlRetomar, clienteActual, efectivoRequeridoMixto, enLinea, esBarberia, esModoDemo,
-  expandirLineaCarrito, guardarVentasPendientesLS, intentoVentaRef, listaCajeros, medioPago,
+  cobrandoRef, expandirLineaCarrito, guardarVentasPendientesLS, intentoVentaRef, listaCajeros, medioPago,
   modalTurno, montoApertura, montoConteoEfectivo, montoDescuento, montoMixtoOtro,
   montoMixtoRecibido, montoRecibido, notificar, pedidosCargadosAlCarrito, pedirConfirmacion,
   refrescarProductosPorId, registrarVentaAtomica, reiniciarClienteYMedioPago, sbClient,
@@ -534,6 +534,8 @@ export default function useCajaYCobro({
       }
     }
 
+    if (cobrandoRef.current) return; // ya hay un cobro en curso: el segundo toque no hace nada
+    cobrandoRef.current = true;
     setProcesandoVenta(true);
     // Número de boleta correlativo por bodega (siguiente_correlativo, ver
     // concurrencia_ronda2.sql): no se repite aunque dos cajeros cobren a
@@ -861,6 +863,7 @@ export default function useCajaYCobro({
         notificar(mensajeError(err, 'Error al registrar venta'), 'error');
       }
     } finally {
+      cobrandoRef.current = false;
       setProcesandoVenta(false);
     }
   };
