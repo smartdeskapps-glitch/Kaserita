@@ -254,6 +254,63 @@ const RUBROS_NEGOCIO = [
       // baja definitivamente a un negocio (o limpiar una de prueba).
       // ==========================================
       const [generandoBackupId, setGenerandoBackupId] = useState(null);
+      // Fotos de los productos de una bodega (siempre en alta calidad): el super-admin las cambia
+      // por ellos. La subida va al Storage con la política de super-admin y la dirección nueva se
+      // guarda con admin_cambiar_foto_producto (el super-admin no puede editar productos ajenos).
+      const [modalFotosBodega, setModalFotosBodega] = useState(null);
+      const [productosFotosBodega, setProductosFotosBodega] = useState([]);
+      const [cargandoFotosBodega, setCargandoFotosBodega] = useState(false);
+      const [busquedaFotosBodega, setBusquedaFotosBodega] = useState('');
+      const [subiendoFotoBodegaId, setSubiendoFotoBodegaId] = useState(null);
+
+      const abrirFotosBodega = async (bodega) => {
+        setModalFotosBodega(bodega);
+        setBusquedaFotosBodega('');
+        setProductosFotosBodega([]);
+        setCargandoFotosBodega(true);
+        try {
+          const { data, error } = await sbClient
+            .from('productos')
+            .select('id, descripcion, categoria, foto_url, cod_ean')
+            .eq('bodega_id', bodega.id)
+            .order('descripcion')
+            .limit(1000);
+          if (error) throw error;
+          setProductosFotosBodega(data || []);
+        } catch (err) {
+          notificar(`No se pudieron cargar los productos: ${err.message}`, 'error');
+        } finally {
+          setCargandoFotosBodega(false);
+        }
+      };
+
+      const subirFotoProductoBodega = async (producto, file) => {
+        if (!file || !modalFotosBodega) return;
+        if (!/^image\//.test(file.type)) {
+          notificar('Elige un archivo de imagen.', 'error');
+          return;
+        }
+        setSubiendoFotoBodegaId(producto.id);
+        try {
+          const comprimida = await comprimirFotoProducto(file, { fotos_alta_calidad: true });
+          const ruta = `${modalFotosBodega.id}/${producto.id}.jpg`;
+          const { error } = await sbClient.storage
+            .from('Productos')
+            .upload(ruta, comprimida, { upsert: true, cacheControl: '3600', contentType: 'image/jpeg' });
+          if (error) throw error;
+          const { data } = sbClient.storage.from('Productos').getPublicUrl(ruta);
+          const url = `${data.publicUrl}?t=${Date.now()}`;
+          const { error: errGuardar } = await sbClient.rpc('admin_cambiar_foto_producto', { p_producto_id: producto.id, p_foto_url: url });
+          if (errGuardar) throw errGuardar;
+          setProductosFotosBodega((prev) => prev.map((p) => (p.id === producto.id ? { ...p, foto_url: url, _kb: Math.round(comprimida.size / 1024) } : p)));
+          notificar(`Foto actualizada en alta calidad (${Math.round(comprimida.size / 1024)} KB).`, 'success');
+        } catch (err) {
+          notificar(`No se pudo subir la foto: ${err.message}`, 'error');
+        } finally {
+          setSubiendoFotoBodegaId(null);
+        }
+      };
+
       const [modalEliminarBodega, setModalEliminarBodega] = useState(null);
       const [textoConfirmarEliminar, setTextoConfirmarEliminar] = useState('');
       // Por defecto SÍ se guarda el resumen (nombre, plan, cuánto pagó en
@@ -1221,6 +1278,7 @@ const RUBROS_NEGOCIO = [
                                       {[
                                         ['Historial de pagos', 'fa-clock-rotate-left text-sky-600', () => abrirHistorial(b)],
                                         ['Cambiar plan', 'fa-arrows-up-down text-violet-600', () => abrirCambioPlan(b)],
+                                        ['Fotos de productos (HD)', 'fa-image text-violet-600', () => abrirFotosBodega(b)],
                                         [b.activa ? 'Desactivar ahora' : 'Activar', b.activa ? 'fa-power-off text-rose-500' : 'fa-power-off text-emerald-600', () => alternarActiva(b)],
                                         ['+7 días de vigencia', 'fa-calendar-plus', () => extenderVigencia(b, 7)],
                                         ['+30 días de vigencia', 'fa-calendar-plus', () => extenderVigencia(b, 30)],
@@ -2031,6 +2089,64 @@ const RUBROS_NEGOCIO = [
               </div>
             </div>
           )}
+
+          {modalFotosBodega && (() => {
+            const q = busquedaFotosBodega.trim().toLowerCase();
+            const lista = productosFotosBodega.filter((p) => !q || `${p.descripcion || ''} ${p.cod_ean || ''} ${p.categoria || ''}`.toLowerCase().includes(q));
+            const sinFoto = productosFotosBodega.filter((p) => !p.foto_url).length;
+            return (
+              <div className="fixed inset-0 bg-stone-900/30 backdrop-blur-sm flex items-center justify-center z-50 p-4" onClick={() => setModalFotosBodega(null)}>
+                <div className="bg-white rounded-[26px] max-w-xl w-full max-h-[92dvh] shadow-2xl flex flex-col overflow-hidden" onClick={(e) => e.stopPropagation()}>
+                  <header className="shrink-0 px-5 pt-4 pb-3 border-b border-[#eef1fd]">
+                    <div className="flex items-start gap-3">
+                      <div className="flex-1 min-w-0">
+                        <h3 className="text-[17px] font-bold text-[#2d284b] truncate">Fotos de {modalFotosBodega.nombre}</h3>
+                        <p className="text-xs text-[#8f8cb0] mt-0.5">
+                          Se suben en alta calidad (900 px, hasta 150 KB), sin importar el interruptor «HD» de la bodega. {sinFoto > 0 ? `${sinFoto} sin foto.` : ''}
+                        </p>
+                      </div>
+                      <button type="button" aria-label="Cerrar" onClick={() => setModalFotosBodega(null)} className="w-9 h-9 rounded-full text-[#8f8cb0] hover:bg-[#f3f5ff] grid place-items-center shrink-0">
+                        <i className="fa-solid fa-xmark"></i>
+                      </button>
+                    </div>
+                    <input
+                      id="buscar-fotos-bodega"
+                      type="search"
+                      value={busquedaFotosBodega}
+                      onChange={(e) => setBusquedaFotosBodega(e.target.value)}
+                      placeholder="Buscar producto o código"
+                      autoComplete="off"
+                      className="mt-3 w-full h-11 rounded-2xl bg-[#f4f6ff] px-4 text-sm focus:outline-none focus:ring-2 focus:ring-[#5b4bd6]/40"
+                    />
+                  </header>
+                  <div className="flex-1 min-h-0 overflow-y-auto px-5 py-3 space-y-2">
+                    {cargandoFotosBodega && <p className="py-8 text-center text-sm text-[#8f8cb0]">Cargando productos...</p>}
+                    {!cargandoFotosBodega && lista.length === 0 && <p className="py-8 text-center text-sm text-[#8f8cb0]">No hay productos para mostrar.</p>}
+                    {lista.slice(0, 100).map((p) => (
+                      <div key={p.id} className="flex items-center gap-3 rounded-2xl ring-1 ring-[#5b4bd6]/10 p-2.5">
+                        <span className="w-12 h-12 rounded-xl overflow-hidden shrink-0 bg-[#f1efff]"><FotoProducto fotoUrl={p.foto_url} categoria={p.categoria} className="w-full h-full" iconClassName="text-base" /></span>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-bold text-[#2d284b] truncate">{p.descripcion}</p>
+                          <p className="text-xs text-[#8f8cb0] truncate">{p.categoria || 'Sin categoría'}{p._kb ? ` · nueva: ${p._kb} KB` : ''}</p>
+                        </div>
+                        <label className={`shrink-0 text-xs font-bold px-3 py-2 rounded-xl cursor-pointer transition ${subiendoFotoBodegaId === p.id ? 'bg-stone-100 text-stone-400' : 'bg-violet-50 text-violet-700 hover:bg-violet-100'}`}>
+                          {subiendoFotoBodegaId === p.id ? 'Subiendo...' : p.foto_url ? 'Cambiar foto' : 'Subir foto'}
+                          <input
+                            type="file"
+                            accept="image/*"
+                            className="hidden"
+                            disabled={subiendoFotoBodegaId !== null}
+                            onChange={(e) => { const f = e.target.files && e.target.files[0]; e.target.value = ''; subirFotoProductoBodega(p, f); }}
+                          />
+                        </label>
+                      </div>
+                    ))}
+                    {lista.length > 100 && <p className="py-2 text-center text-xs text-[#8f8cb0]">Mostrando 100 de {lista.length}. Usa el buscador para ver otros.</p>}
+                  </div>
+                </div>
+              </div>
+            );
+          })()}
 
           {modalEliminarBodega && (
             <div className="fixed inset-0 bg-stone-900/30 backdrop-blur-sm flex items-center justify-center z-50 p-4">
