@@ -1,6 +1,7 @@
 import React from 'react';
 import { coberturaPago, estadoDeudor, restoPrimeraBoleta } from './lib/deudas.js';
 import { iniciales } from './lib/nombres.js';
+import { dinero } from './lib/dinero.js';
 import Chispa from './Chispa.jsx';
 import VentanaModulo from './VentanaModulo.jsx';
 
@@ -99,7 +100,6 @@ export default function FiadosModal({
                   Banda oscura con el total por cobrar y la ficha del cliente; hoja blanca con la lista
                   y las pestañas Cobrar / Datos. */}
               {modalCobrarDeudas && (() => {
-                const dinero = (v) => `S/ ${formatoSoles(Number(v) || 0)}`;
                 const avatar = (cl, tam) => <span className={`${tam} rounded-full bg-gradient-to-br ${gradienteDe(cl)} text-white grid place-items-center font-bold shrink-0 shadow-[inset_0_0_0_1px_rgba(255,255,255,0.25),0_6px_14px_-6px_rgba(20,10,50,0.4)]`}>{iniciales(cl.nombre_completo, '?')}</span>;
                 const linea = 'border-[#dde4fa]';
                 const botonSeg = (activo) => `h-[30px] px-3 rounded-full text-[12px] whitespace-nowrap flex items-center gap-1.5 transition ${activo ? 'bg-white text-[#2d284b] font-bold' : 'text-[#6b6890] font-semibold hover:text-[#2d284b]'}`;

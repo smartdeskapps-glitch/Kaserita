@@ -109,6 +109,7 @@ export default function InventarioValorizado({ productos, onClose }) {
   }, [filas, texto, filtro, orden]);
 
   const elegirFiltro = (f) => { setFiltro(f); setLimite(PAGINA); };
+  const elegirOrden = (o) => { setOrden(o); setLimite(PAGINA); };
   const oculto = <span className="tracking-[0.12em]">••••</span>;
   const pctCosto = 100 - resumen.margen;
 
@@ -190,7 +191,7 @@ export default function InventarioValorizado({ productos, onClose }) {
               aria-label={verCostos ? 'Ocultar costos' : 'Mostrar costos'} title={verCostos ? 'Ocultar costos' : 'Mostrar costos'}
               className="w-9 h-9 rounded-xl bg-white ring-1 ring-[#5b4bd6]/10 text-[#5b4bd6] grid place-items-center shrink-0 active:scale-95 transition-transform duration-150"
             ><Ojo tachado={verCostos} /></button>
-            <select value={orden} onChange={(e) => setOrden(e.target.value)} aria-label="Ordenar por" className="h-9 w-[150px] shrink-0 rounded-xl bg-white ring-1 ring-[#5b4bd6]/10 px-2.5 text-[13px] font-semibold text-[#2d284b] focus:outline-none focus:ring-2 focus:ring-[#5b4bd6]/40">
+            <select value={orden} onChange={(e) => elegirOrden(e.target.value)} aria-label="Ordenar por" className="h-9 w-[168px] shrink-0 rounded-xl bg-white ring-1 ring-[#5b4bd6]/10 px-2.5 text-[13px] font-semibold text-[#2d284b] focus:outline-none focus:ring-2 focus:ring-[#5b4bd6]/40">
               {ORDENES.map(([v, t]) => <option key={v} value={v}>{t}</option>)}
             </select>
           </div>
@@ -220,7 +221,7 @@ export default function InventarioValorizado({ productos, onClose }) {
                     </p>
                   </div>
                   <span className={`shrink-0 text-[12.5px] leading-snug font-extrabold whitespace-nowrap pt-0.5 ${COLOR[t]}`}>
-                    {f.margen === null ? 'Sin costo' : `${f.margen.toFixed(0)} % margen`}
+                    {f.margen === null ? 'Sin costo' : verCostos ? `${f.margen.toFixed(0)} % margen` : ''}
                   </span>
                 </div>
                 <dl className="mt-3 pt-3 border-t border-[#eef1fd] grid grid-cols-3">

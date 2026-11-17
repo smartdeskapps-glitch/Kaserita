@@ -1,5 +1,6 @@
 import React, { useMemo, useState } from 'react';
 import { FotoProducto } from './PanelAdminCompartido.jsx';
+import { formatoSoles as dinero } from './lib/dinero.js';
 import { precioNormalCombo, costoNormalCombo, margenCombo } from './lib/combos.js';
 
 // Vista "Combos" del catálogo del POS: tarjetas con el mosaico de productos, cuánto ahorra el
@@ -16,7 +17,6 @@ export const comboCoincide = (combo, busqueda) => {
   return !t || texto(combo).includes(t);
 };
 
-const dinero = (n) => Number(n || 0).toFixed(2);
 const nombreCorto = (d) => String(d || '?').replace(/\s*\(unidad\)/i, '');
 
 export default function CombosCatalogo({ combos, estadoCombos, enCarrito, busqueda, esAdmin, onAgregar, onQuitar, onCrear }) {
