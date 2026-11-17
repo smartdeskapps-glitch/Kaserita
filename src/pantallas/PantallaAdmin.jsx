@@ -9,7 +9,7 @@ export default function PantallaAdmin({
   setFormNuevaBodega, setGuardandoNuevaBodega, toast
 }) {
   return <Suspense fallback={
-    <div className="min-h-screen flex items-center justify-center bg-stone-50 text-stone-400 text-sm">
+    <div className="min-h-dvh flex items-center justify-center bg-stone-50 text-stone-400 text-sm">
       Cargando panel de administrador...
     </div>
   }>

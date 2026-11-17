@@ -1,7 +1,7 @@
 // Ventanas de productos e inventario: cantidad/balanza, escáner, registrar productos, combos, merma, toma de inventario, editar producto y entrada de mercadería.
 // Extraído de src/main.jsx: mismo JSX; recibe por props lo que usa del POS.
 import React, { Suspense } from 'react';
-import { EscanerCamara, InventarioInicial, CombosModal, MermaModal, TomaInventario, EditarProducto, EntradaMercaderia } from '../pos/perezosos.js';
+import { EscanerCamara, InventarioInicial, InventarioValorizado, CombosModal, MermaModal, TomaInventario, EditarProducto, EntradaMercaderia } from '../pos/perezosos.js';
 import { IconoTrazo, PestanasModal } from '../pos/componentes.jsx';
 import { formatoSoles } from '../pos/utilidades.js';
 
@@ -29,7 +29,7 @@ export default function VentanasProductos({
   guardarEntradaMercaderia, guardarInventarioInicial, guardarTomaInventario,
   historialConteoAbierto, idsNuevosCompra, inputBusquedaRef, inputCantidad, listaEscaneada,
   modalCantidad, modalCombos, modalEditarProducto, modalEntradaMercaderia, modalEscaner,
-  modalInventarioInicial, modalMerma, modalTomaInventario, modoEscaner, notificar, nuevoCombo,
+  modalInventarioInicial, modalInventarioValorizado, modalMerma, setModalInventarioValorizado, modalTomaInventario, modoEscaner, notificar, nuevoCombo,
   nuevoProductoInlineCompra, pasoInventario, pasoTomaInventario, pedirCerrarEntrada,
   pedirConfirmacion, precioNormalCombo, productoEscaneadoId, productoSeleccionadoCantidad,
   productos, promoverAActivoConteo, proveedoresLista, quitarFotoExtra, quitarHallazgo,
@@ -230,6 +230,12 @@ export default function VentanasProductos({
             setResaltadoProductoCombo={setResaltadoProductoCombo}
             snapshotCombo={snapshotCombo}
           />
+        </Suspense>
+      )}
+
+      {modalInventarioValorizado && (
+        <Suspense fallback={null}>
+          <InventarioValorizado productos={productos} onClose={() => setModalInventarioValorizado(false)} />
         </Suspense>
       )}
 

@@ -8,7 +8,7 @@ export default function MenuMas({
   abrirAgenda, abrirAuditoria, abrirCierreCaja, abrirComisiones, abrirCuentasPorPagar,
   abrirDashboard, abrirDesdeMenu, abrirEntradaMercaderia, abrirGestionCajeros,
   abrirHistorialDelDia, abrirModalCombos, abrirModalDelivery, abrirModuloCobroDeudas,
-  abrirTomaInventario, busquedaMenu, cajeroSeleccionado, cerrarSesion, elevado, esAdmin,
+  abrirInventarioValorizado, abrirTomaInventario, busquedaMenu, cajeroSeleccionado, cerrarSesion, elevado, esAdmin,
   esBarberia, esCajeroDelUsuarioActivo, esModoDemo, indiceMenu, listaCajeros, menuEnRiel,
   menuMas, ranuraRiel, rolActivo, rolesEnServidor, sbClient, setBusquedaMenu,
   setCajeroPendientePin, setIndiceMenu, setMenuMas, setModalInventarioInicial, setModalMerma,
@@ -35,6 +35,7 @@ export default function MenuMas({
           { grupo: 'Inventario', etiqueta: 'Registrar merma', buscar: 'merma perdida vencido roto robo', icono: 'fa-box', accion: () => setModalMerma(true) },
           ...(esAdmin ? [
             { grupo: 'Administración', etiqueta: 'Dashboard de Ventas', icono: 'fa-chart-pie', accion: abrirDashboard },
+            !esBarberia && { grupo: 'Administración', etiqueta: 'Inventario valorizado', buscar: 'costo venta ganancia margen precio valor inversion utilidad', icono: 'fa-tags', accion: abrirInventarioValorizado },
             !esBarberia && { grupo: 'Administración', etiqueta: 'Cuentas por Pagar', icono: 'fa-file-invoice', accion: abrirCuentasPorPagar },
             { grupo: 'Administración', etiqueta: esBarberia ? 'Barberos' : 'Cajeros y Empleados', icono: 'fa-user-group', accion: abrirGestionCajeros },
             esBarberia && { grupo: 'Administración', etiqueta: 'Comisiones de barberos', icono: 'fa-percent', accion: abrirComisiones },
@@ -99,7 +100,7 @@ export default function MenuMas({
         return (
           <div className="fixed inset-0 bg-[#2d284b]/45 z-[60] flex items-end" onClick={cerrarMenu}>
             <div
-              className="menu-hoja relative w-full max-h-[85vh] flex flex-col bg-white/95 border-t border-[#dde4fa] rounded-t-3xl overflow-hidden"
+              className="menu-hoja relative w-full max-h-[85dvh] flex flex-col bg-white/95 border-t border-[#dde4fa] rounded-t-3xl overflow-hidden"
               onClick={(e) => e.stopPropagation()}
             >
               <div className="w-10 h-1 bg-[#c5bcff] rounded-full mx-auto mt-2.5"></div>

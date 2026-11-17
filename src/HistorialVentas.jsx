@@ -166,7 +166,7 @@ export default function HistorialVentas({
                     )}
                     onClose={() => { setModalHistorial(false); setVentaDetalleHistorial(null); setMenuVentaHistorial(null); }}
                     ancho="max-w-xl lg:max-w-6xl"
-                    alto="h-[94vh] max-h-[94vh] lg:h-[780px]"
+                    alto="h-[94dvh] max-h-[94dvh] lg:h-[780px]"
                     desplazable={false}
                   >
                       {ventaElegida && (

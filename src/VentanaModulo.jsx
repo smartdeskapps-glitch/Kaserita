@@ -15,7 +15,7 @@ export default function VentanaModulo({
   onClose,
   onFondo,
   ancho = 'max-w-5xl',
-  alto = 'max-h-[92vh]',
+  alto = 'max-h-[92dvh]',
   z = 'z-50',
   desplazable = true,
   children,

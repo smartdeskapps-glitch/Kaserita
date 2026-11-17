@@ -48,7 +48,7 @@ export default function CierreCaja({
                       : { clase: 'bg-rose-50 text-rose-600', icono: 'fa-arrow-down', titulo: `Faltan ${dinero(-dif)}`, texto: 'Hay menos efectivo del esperado. Vuelve a contar los billetes y revisa los vueltos antes de cerrar.' };
                 return (
                   <div className="fixed inset-0 bg-stone-900/30 backdrop-blur-sm flex items-center justify-center z-50 p-2 sm:p-4">
-                    <div className="bg-gradient-to-br from-[#eef1fb] via-[#f8f9fd] to-[#f4f5fa] border border-white/80 rounded-[28px] max-w-3xl w-full shadow-2xl max-h-[94vh] flex flex-col overflow-hidden">
+                    <div className="bg-gradient-to-br from-[#eef1fb] via-[#f8f9fd] to-[#f4f5fa] border border-white/80 rounded-[28px] max-w-3xl w-full shadow-2xl max-h-[94dvh] flex flex-col overflow-hidden">
                       <div className="bg-white border-b border-stone-100 px-4 sm:px-5 py-3.5 shrink-0 flex items-center gap-3">
                         <span className="w-11 h-11 rounded-[14px] bg-stone-900 text-white grid place-items-center text-xl shrink-0"><i className="fa-solid fa-lock"></i></span>
                         <div className="min-w-0 flex-1">
@@ -122,7 +122,7 @@ export default function CierreCaja({
                 const titulo = d === 0 ? 'Turno cerrado: cuadra perfecto' : d > 0 ? `Turno cerrado: sobran ${dinero(d)}` : `Turno cerrado: faltan ${dinero(-d)}`;
                 return (
                   <div className="fixed inset-0 bg-stone-900/30 backdrop-blur-sm flex items-center justify-center z-50 p-2 sm:p-4">
-                    <div className="bg-gradient-to-br from-[#eef1fb] via-[#f8f9fd] to-[#f4f5fa] border border-white/80 rounded-[28px] max-w-md w-full shadow-2xl max-h-[94vh] flex flex-col overflow-hidden">
+                    <div className="bg-gradient-to-br from-[#eef1fb] via-[#f8f9fd] to-[#f4f5fa] border border-white/80 rounded-[28px] max-w-md w-full shadow-2xl max-h-[94dvh] flex flex-col overflow-hidden">
                       <div className="bg-white border-b border-stone-100 px-4 sm:px-5 py-3.5 shrink-0 flex items-center gap-3">
                         <span className="w-11 h-11 rounded-[14px] bg-[#ebf0ff] text-[#5b4bd6] grid place-items-center text-xl shrink-0"><i className="fa-solid fa-chart-simple"></i></span>
                         <div className="min-w-0 flex-1">

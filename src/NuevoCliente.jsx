@@ -32,7 +32,7 @@ export default function NuevoCliente({
 
   return (
     <div className="ventana-riel fixed inset-0 bg-stone-900/30 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-      <form onSubmit={handleGuardarNuevoCliente} className="rounded-[34px] max-w-sm w-full shadow-2xl max-h-[92vh] flex flex-col overflow-hidden">
+      <form onSubmit={handleGuardarNuevoCliente} className="rounded-[34px] max-w-sm w-full shadow-2xl max-h-[92dvh] flex flex-col overflow-hidden">
         <div className="flex-1 overflow-y-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden bg-white">
           {/* Panel oscuro: documento y nombre */}
           <div

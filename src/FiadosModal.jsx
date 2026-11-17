@@ -372,7 +372,7 @@ export default function FiadosModal({
                           {hojaPagoDeudor && (
                             <div className="md:hidden fixed inset-0 z-[70]">
                               <div className="absolute inset-0 bg-[rgba(20,12,40,0.42)] backdrop-blur-[2px]" onClick={() => setHojaPagoDeudor(false)}></div>
-                              <div className="absolute inset-x-0 bottom-0 bg-white rounded-t-[30px] px-[18px] pt-2.5 pb-6 shadow-[0_-20px_50px_-20px_rgba(20,10,50,0.5)] max-h-[92vh] overflow-y-auto">
+                              <div className="absolute inset-x-0 bottom-0 bg-white rounded-t-[30px] px-[18px] pt-2.5 pb-6 shadow-[0_-20px_50px_-20px_rgba(20,10,50,0.5)] max-h-[92dvh] overflow-y-auto">
                                 <div className="w-10 h-1 rounded-sm bg-[#c5bcff] mx-auto mb-3.5"></div>
                                 <h5 className="text-lg font-bold tracking-tight text-[#2d284b]">Registrar pago</h5>
                                 <p className="text-[13px] text-[#6b6890] mt-0.5 mb-3.5">{cl.nombre_completo} · Deuda {dinero(saldo)}</p>
@@ -403,7 +403,7 @@ export default function FiadosModal({
                       <button type="button" onClick={() => setModalNuevoCliente(true)} className={`kz-pri h-10 px-4 text-[13px] font-bold items-center gap-2 shrink-0 ${hayFicha ? 'hidden md:inline-flex' : 'inline-flex'}`}><i className="fa-solid fa-plus text-[11px]"></i><span>Nuevo<span className="hidden sm:inline"> cliente</span></span></button>
                     )}
                     onClose={cerrar}
-                    alto="h-[95vh] max-h-[780px]"
+                    alto="h-[95dvh] max-h-[780px]"
                     desplazable={false}
                   >
                         {clientesLista.length === 0 ? (

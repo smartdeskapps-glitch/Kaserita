@@ -142,7 +142,7 @@ export default function EditarProducto({
 
                 return (
                 <div className="fixed inset-0 bg-stone-900/30 backdrop-blur-sm flex items-center justify-center z-50 p-2 sm:p-4">
-                  <div className="bg-gradient-to-br from-[#eef1fb] via-[#f8f9fd] to-[#f4f5fa] border border-white/80 rounded-[28px] max-w-4xl w-full shadow-2xl h-[95vh] max-h-[820px] flex flex-col overflow-hidden">
+                  <div className="bg-gradient-to-br from-[#eef1fb] via-[#f8f9fd] to-[#f4f5fa] border border-white/80 rounded-[28px] max-w-4xl w-full shadow-2xl h-[95dvh] max-h-[820px] flex flex-col overflow-hidden">
 
                     {/* Cabecera: ficha del producto + pestañas */}
                     <div className="bg-white border-b border-stone-100 px-4 sm:px-5 pt-3.5 shrink-0">

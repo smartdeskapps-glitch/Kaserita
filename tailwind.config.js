@@ -1,6 +1,9 @@
 /** @type {import('tailwindcss').Config} */
 export default {
   content: ['./index.html', './registro.html', './src/**/*.{js,jsx}'],
+  // Los estilos hover: solo se aplican con mouse. En pantalla táctil el hover se queda pegado
+  // después de tocar un botón.
+  future: { hoverOnlyWhenSupported: true },
   theme: {
     extend: {
       fontFamily: {

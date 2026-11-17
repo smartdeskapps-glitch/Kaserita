@@ -126,7 +126,7 @@ export default function CombosModal({
                       subtitulo={f.id ? 'Edita lo que incluye y su precio.' : 'Elige qué incluye y ponle un precio especial.'}
                       izquierda={<button type="button" aria-label="Volver a combos" onClick={cerrarEditorCombo} className="w-[38px] h-[38px] rounded-full bg-[#f3f5ff] hover:bg-[#e6ebff] text-[#6b6890] grid place-items-center shrink-0 transition"><i className="fa-solid fa-chevron-left text-xs"></i></button>}
                       onClose={cerrarEditorCombo}
-                      alto="h-[95vh] max-h-[800px]"
+                      alto="h-[95dvh] max-h-[800px]"
                       desplazable={false}
                     >
                         <div className="flex-1 overflow-y-auto hide-scrollbar p-4 sm:p-7 grid gap-5 md:gap-6 md:grid-cols-[minmax(0,1fr)_310px] content-start">
@@ -349,7 +349,7 @@ export default function CombosModal({
                     ]}
                     acciones={<button type="button" onClick={nuevoCombo} className="kz-pri h-10 px-4 text-[13px] font-bold inline-flex items-center gap-2 shrink-0"><span>Nuevo<span className="hidden sm:inline"> combo</span></span>{chispa}</button>}
                     onClose={cerrarModalCombos}
-                    alto="h-[95vh] max-h-[800px]"
+                    alto="h-[95dvh] max-h-[800px]"
                     desplazable={false}
                   >
                       <div className="flex-1 overflow-y-auto hide-scrollbar px-4 sm:px-7 py-5 sm:py-6">

@@ -523,7 +523,7 @@ import PantallaAdmin from './pantallas/PantallaAdmin.jsx';
         setModalDashboard(false); setModalCombos(false); setModalDelivery(false);
         setModalGestionCajeros(false); setModalComisiones(false); setModalAgenda(false);
         setModalCuentasPagar(false); setModalAuditoria(false); setModalInventarioInicial(false);
-        setModalEntradaMercaderia(false); setModalHistorialCierres(false);
+        setModalEntradaMercaderia(false); setModalHistorialCierres(false); setModalInventarioValorizado(false);
       };
       const abrirDesdeMenu = (abrir) => () => { cerrarVentanasDelMenu(); abrir(); };
       // En pantallas anchas el menú "Más" se abre dentro del riel; en celular es una hoja.
@@ -664,6 +664,9 @@ import PantallaAdmin from './pantallas/PantallaAdmin.jsx';
 
       // --- Módulo: Mermas (pérdidas de producto) ---
       const [modalMerma, setModalMerma] = useState(false);
+      // Inventario valorizado: costo, venta y ganancia por producto (solo lectura, solo administración).
+      const [modalInventarioValorizado, setModalInventarioValorizado] = useState(false);
+      const abrirInventarioValorizado = abrirDesdeMenu(() => setModalInventarioValorizado(true));
       const [formMerma, setFormMerma] = useState({ productoId: '', cantidad: '', motivo: 'Vencido', motivoOtro: '' });
       const [busquedaMerma, setBusquedaMerma] = useState('');
       const [guardandoMerma, setGuardandoMerma] = useState(false);
@@ -1605,6 +1608,7 @@ import PantallaAdmin from './pantallas/PantallaAdmin.jsx';
         { abierta: modalVentasEspera, cerrar: () => setModalVentasEspera(false) },
         { abierta: modalEntradaMercaderia, cerrar: entradaRegistrada ? cerrarModalEntradaMercaderia : pedirCerrarEntrada },
         { abierta: modalMerma, cerrar: cerrarModalMerma },
+        { abierta: modalInventarioValorizado, cerrar: () => setModalInventarioValorizado(false) },
         { abierta: modalCombos, cerrar: cerrarModalCombos },
         { abierta: modalCobrarDeudas, cerrar: () => setModalCobrarDeudas(false) },
         { abierta: modalHistorial, cerrar: () => setModalHistorial(false) },
@@ -1632,7 +1636,7 @@ import PantallaAdmin from './pantallas/PantallaAdmin.jsx';
       // =========================================================================
       if (verificandoSesion) {
         return (
-          <div className="flex items-center justify-center min-h-screen bg-stone-50">
+          <div className="flex items-center justify-center min-h-dvh bg-stone-50">
             <div className="w-8 h-8 border-4 border-orange-500 border-t-transparent rounded-full animate-spin"></div>
           </div>
         );
@@ -1674,7 +1678,7 @@ import PantallaAdmin from './pantallas/PantallaAdmin.jsx';
       // =========================================================================
       return (
         <div
-          className={`relative flex h-screen text-stone-900 font-sans select-none overflow-hidden ${(!enLinea || ventasPendientesSync.length > 0) ? 'pt-7' : ''}`}
+          className={`relative flex h-dvh text-stone-900 font-sans select-none overflow-hidden ${(!enLinea || ventasPendientesSync.length > 0) ? 'pt-7' : ''}`}
           style={{ background: '#ebf0ff' }}
         >
 
@@ -1742,7 +1746,7 @@ import PantallaAdmin from './pantallas/PantallaAdmin.jsx';
             abrirAgenda, abrirAuditoria, abrirCierreCaja, abrirComisiones, abrirCuentasPorPagar,
             abrirDashboard, abrirDesdeMenu, abrirEntradaMercaderia, abrirGestionCajeros,
             abrirHistorialDelDia, abrirModalCombos, abrirModalDelivery, abrirModuloCobroDeudas,
-            abrirTomaInventario, busquedaMenu, cajeroSeleccionado, cerrarSesion, elevado, esAdmin,
+            abrirInventarioValorizado, abrirTomaInventario, busquedaMenu, cajeroSeleccionado, cerrarSesion, elevado, esAdmin,
             esBarberia, esCajeroDelUsuarioActivo, esModoDemo, indiceMenu, listaCajeros, menuEnRiel,
             menuMas, ranuraRiel, rolActivo, rolesEnServidor, sbClient, setBusquedaMenu,
             setCajeroPendientePin, setIndiceMenu, setMenuMas, setModalInventarioInicial, setModalMerma,
@@ -1778,7 +1782,7 @@ import PantallaAdmin from './pantallas/PantallaAdmin.jsx';
             guardarEntradaMercaderia, guardarInventarioInicial, guardarTomaInventario,
             historialConteoAbierto, idsNuevosCompra, inputBusquedaRef, inputCantidad, listaEscaneada,
             modalCantidad, modalCombos, modalEditarProducto, modalEntradaMercaderia, modalEscaner,
-            modalInventarioInicial, modalMerma, modalTomaInventario, modoEscaner, notificar, nuevoCombo,
+            modalInventarioInicial, modalInventarioValorizado, modalMerma, setModalInventarioValorizado, modalTomaInventario, modoEscaner, notificar, nuevoCombo,
             nuevoProductoInlineCompra, pasoInventario, pasoTomaInventario, pedirCerrarEntrada,
             pedirConfirmacion, precioNormalCombo, productoEscaneadoId, productoSeleccionadoCantidad,
             productos, promoverAActivoConteo, proveedoresLista, quitarFotoExtra, quitarHallazgo,
@@ -1916,7 +1920,7 @@ import PantallaAdmin from './pantallas/PantallaAdmin.jsx';
       render() {
         if (!this.state.fallo) return this.props.children;
         return (
-          <div role="alert" className="min-h-screen flex items-center justify-center bg-stone-100 p-6">
+          <div role="alert" className="min-h-dvh flex items-center justify-center bg-stone-100 p-6">
             <div className="max-w-sm w-full bg-white rounded-2xl shadow p-6 text-center space-y-3">
               <h1 className="text-lg font-bold text-stone-900">Algo salió mal</h1>
               <p className="text-sm text-stone-600">Tuvimos un problema al mostrar esta pantalla. Tus ventas guardadas están a salvo. Recarga para continuar.</p>

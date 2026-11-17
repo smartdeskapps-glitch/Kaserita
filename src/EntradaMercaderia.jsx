@@ -375,7 +375,7 @@ export default function EntradaMercaderia({
                     subtitulo="Anota lo que te dejó el proveedor. El stock y el costo se actualizan al confirmar."
                     onClose={fin ? cerrarModalEntradaMercaderia : pedirCerrarEntrada}
                     ancho="max-w-4xl"
-                    alto="h-[95vh] max-h-[800px]"
+                    alto="h-[95dvh] max-h-[800px]"
                     desplazable={false}
                   >
                     <div className="flex-1 min-h-0 flex flex-col bg-[#f6f8ff]">

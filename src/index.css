@@ -735,3 +735,34 @@ body:has(.ventana-riel) .riel-pos .riel-asa { opacity: 0; }
 body:has(.ventana-riel) .riel-pos { z-index: 60; }
 @media (min-width: 768px) { .fixed.ventana-riel { padding-left: 84px; } }
 @media (prefers-reduced-motion: reduce) { .riel-pos, .riel-pos::before, .riel-pos::after, .riel-ranura { transition: none; } }
+
+/* ===== Sensación de app en el celular =====
+   - Sin destello gris al tocar (cada botón da su propia respuesta al presionar).
+   - Toque inmediato: sin la espera de doble toque para hacer zoom.
+   - Los botones no seleccionan su texto al mantener presionado.
+   - Campos de 16 px en pantallas táctiles: en iPhone, menos de 16 px hace zoom solo al tocar un campo
+     y la pantalla no vuelve. Se usa !important porque las clases de Tailwind (text-sm) le ganarían. */
+html {
+  -webkit-tap-highlight-color: transparent;
+  -webkit-text-size-adjust: 100%;
+}
+button, a, [role="button"], summary, label[for] {
+  touch-action: manipulation;
+}
+button, [role="button"] {
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+}
+@media (pointer: coarse) {
+  input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="file"]):not([type="color"]),
+  textarea,
+  select {
+    font-size: 16px !important;
+  }
+  /* Respuesta al presionar para los botones que no tienen la suya (reemplaza el destello del navegador). */
+  button:not(:disabled):active,
+  [role="button"]:active {
+    filter: brightness(0.95);
+  }
+}

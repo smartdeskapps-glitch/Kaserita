@@ -71,7 +71,7 @@ export default function DashboardVentas({
           </>}
           onClose={() => setModalDashboard(false)}
           ancho="max-w-6xl"
-          alto="max-h-[95vh]"
+          alto="max-h-[95dvh]"
           desplazable={false}
         >
           <div className="flex-1 min-h-0 flex flex-col bg-[#f6f8ff]">
@@ -450,7 +450,7 @@ export default function DashboardVentas({
                           role="dialog"
                           aria-modal="true"
                           onClick={(e) => e.stopPropagation()}
-                          className="kd-hoja w-full sm:max-w-md max-h-[88vh] overflow-y-auto hide-scrollbar bg-white rounded-t-[28px] sm:rounded-[28px] px-[18px] pt-2.5 pb-6 flex flex-col gap-3 shadow-2xl"
+                          className="kd-hoja w-full sm:max-w-md max-h-[88dvh] overflow-y-auto hide-scrollbar bg-white rounded-t-[28px] sm:rounded-[28px] px-[18px] pt-2.5 pb-6 flex flex-col gap-3 shadow-2xl"
                         >
                           <div className="w-[38px] h-1 rounded bg-[#dde4fa] mx-auto shrink-0 sm:hidden"></div>
                           <div className="flex items-center justify-between shrink-0">

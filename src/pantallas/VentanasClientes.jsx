@@ -15,7 +15,7 @@ export default function VentanasClientes({
       {/* Modal: Buscar/Seleccionar Cliente (POS) */}
       {modalBuscarCliente && (
         <div className="fixed inset-0 bg-stone-900/30 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="bg-gradient-to-br from-[#eef1fb] via-[#f8f9fd] to-[#f4f5fa] border border-white/80 rounded-[28px] max-w-sm w-full p-5 shadow-2xl space-y-3 max-h-[85vh] flex flex-col">
+          <div className="bg-gradient-to-br from-[#eef1fb] via-[#f8f9fd] to-[#f4f5fa] border border-white/80 rounded-[28px] max-w-sm w-full p-5 shadow-2xl space-y-3 max-h-[85dvh] flex flex-col">
             <div className="flex justify-between items-center shrink-0">
               <h3 className="text-lg font-bold text-stone-900 flex items-center gap-2"><span className="w-8 h-8 rounded-xl bg-[#dde4fa] text-[#5b4bd6] flex items-center justify-center text-sm"><i className="fa-solid fa-user"></i></span> Seleccionar cliente</h3>
               <button aria-label="Cerrar" onClick={() => setModalBuscarCliente(false)} className="w-8 h-8 rounded-full bg-white/70 hover:bg-white text-stone-500 hover:text-stone-900 shadow-sm"><i className="fa-solid fa-xmark"></i></button>

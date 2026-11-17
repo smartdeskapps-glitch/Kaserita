@@ -57,7 +57,7 @@ export default function PanelCarrito({
           </button>
         </div>
         <section
-          className={`${mostrarResumenMobile ? 'flex' : 'hidden'} md:flex flex-col w-full md:flex-1 bg-white border border-stone-200 md:border-none fixed inset-x-0 bottom-0 top-auto md:static md:inset-auto rounded-t-2xl md:rounded-tl-none md:rounded-tr-2xl md:rounded-bl-2xl md:rounded-br-2xl max-h-[88vh] md:max-h-none md:min-h-0 md:-mt-px shadow-2xl md:shadow-none overflow-hidden z-50 md:z-auto`}
+          className={`${mostrarResumenMobile ? 'flex' : 'hidden'} md:flex flex-col w-full md:flex-1 bg-white border border-stone-200 md:border-none fixed inset-x-0 bottom-0 top-auto md:static md:inset-auto rounded-t-2xl md:rounded-tl-none md:rounded-tr-2xl md:rounded-bl-2xl md:rounded-br-2xl max-h-[88dvh] md:max-h-none md:min-h-0 md:-mt-px shadow-2xl md:shadow-none overflow-hidden z-50 md:z-auto`}
         >
         {/* Manija de arrastre (solo mobile) */}
         <div className="md:hidden w-10 h-1.5 bg-stone-300 rounded-full mx-auto mt-2.5 mb-1 shrink-0"></div>
@@ -564,7 +564,7 @@ export default function PanelCarrito({
 
         {/* Lista Ítems */}
         {/* Celular al cobrar: la lista se achica (unas 2 filas) para dejar espacio a los medios de pago */}
-        <div className={`overflow-y-auto p-2.5 space-y-1.5 hide-scrollbar ${mostrarPago ? `${verDetalleCobro ? 'max-h-[24vh] pb-2.5' : 'hidden'} md:block md:max-h-none md:flex-1 md:pb-16` : 'flex-1 pb-16'}`}>
+        <div className={`overflow-y-auto p-2.5 space-y-1.5 hide-scrollbar ${mostrarPago ? `${verDetalleCobro ? 'max-h-[24dvh] pb-2.5' : 'hidden'} md:block md:max-h-none md:flex-1 md:pb-16` : 'flex-1 pb-16'}`}>
           {carrito.length === 0 ? (
             <div className="flex flex-col items-center justify-center h-full text-stone-500 text-center p-4">
               <i className="fa-solid fa-basket-shopping text-3xl mb-2 text-stone-300"></i>

@@ -18,6 +18,8 @@ export const CombosModal = React.lazy(() => import('../CombosModal.jsx'));
 
 export const MermaModal = React.lazy(() => import('../MermaModal.jsx'));
 
+export const InventarioValorizado = React.lazy(() => import('../InventarioValorizado.jsx'));
+
 export const TomaInventario = React.lazy(() => import('../TomaInventario.jsx'));
 
 export const EditarProducto = React.lazy(() => import('../EditarProducto.jsx'));

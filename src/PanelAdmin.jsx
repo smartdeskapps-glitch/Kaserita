@@ -959,7 +959,7 @@ const RUBROS_NEGOCIO = [
       };
 
       return (
-        <div className="h-screen bg-stone-50 flex flex-col overflow-hidden">
+        <div className="h-dvh bg-stone-50 flex flex-col overflow-hidden">
           {toast.visible && (
             <div className={`fixed top-6 inset-x-4 md:inset-x-auto md:right-6 md:max-w-xs z-50 flex items-center gap-2.5 px-4 py-3 rounded-xl shadow-xl border-l-4 bg-white text-xs font-semibold ${toast.tipo === 'error' ? 'border-rose-500 text-rose-700' : 'border-emerald-500 text-emerald-700'}`}>
               <i className={`fa-solid ${toast.tipo === 'error' ? 'fa-circle-exclamation' : 'fa-circle-check'} text-sm shrink-0`}></i>
@@ -1256,7 +1256,7 @@ const RUBROS_NEGOCIO = [
               const campo = 'w-full bg-stone-50 border border-stone-200 rounded-lg px-3 py-2 text-sm text-stone-900';
               return (
                 <div className="fixed inset-0 z-40 bg-stone-900/50 flex items-center justify-center p-4" onClick={() => !guardandoPago && setModalPago(null)}>
-                  <form onSubmit={registrarPago} className="relative bg-white rounded-2xl shadow-2xl w-full max-w-md max-h-[92vh] overflow-y-auto p-5 space-y-3" onClick={(e) => e.stopPropagation()}>
+                  <form onSubmit={registrarPago} className="relative bg-white rounded-2xl shadow-2xl w-full max-w-md max-h-[92dvh] overflow-y-auto p-5 space-y-3" onClick={(e) => e.stopPropagation()}>
                     <button type="button" onClick={() => setModalPago(null)} aria-label="Cerrar" className="absolute top-3 right-3 w-8 h-8 flex items-center justify-center rounded-full text-stone-400 hover:bg-stone-100">
                       <i className="fa-solid fa-xmark"></i>
                     </button>
@@ -1335,7 +1335,7 @@ const RUBROS_NEGOCIO = [
               const total = vigentes.reduce((acc, pg) => acc + Number(pg.monto || 0), 0);
               return (
                 <div className="fixed inset-0 z-40 bg-stone-900/50 flex items-center justify-center p-4" onClick={() => setModalHistorial(null)}>
-                  <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[92vh] overflow-y-auto p-5" onClick={(e) => e.stopPropagation()}>
+                  <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[92dvh] overflow-y-auto p-5" onClick={(e) => e.stopPropagation()}>
                     <button type="button" onClick={() => setModalHistorial(null)} aria-label="Cerrar" className="absolute top-3 right-3 w-8 h-8 flex items-center justify-center rounded-full text-stone-400 hover:bg-stone-100">
                       <i className="fa-solid fa-xmark"></i>
                     </button>
@@ -1402,7 +1402,7 @@ const RUBROS_NEGOCIO = [
               const total = bajasAdmin.reduce((acc, r) => acc + Number(r.total_pagado || 0), 0);
               return (
                 <div className="fixed inset-0 z-40 bg-stone-900/50 flex items-center justify-center p-4" onClick={() => setModalBajas(false)}>
-                  <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[92vh] overflow-y-auto p-5" onClick={(e) => e.stopPropagation()}>
+                  <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[92dvh] overflow-y-auto p-5" onClick={(e) => e.stopPropagation()}>
                     <button type="button" onClick={() => setModalBajas(false)} aria-label="Cerrar" className="absolute top-3 right-3 w-8 h-8 flex items-center justify-center rounded-full text-stone-400 hover:bg-stone-100">
                       <i className="fa-solid fa-xmark"></i>
                     </button>
@@ -1451,7 +1451,7 @@ const RUBROS_NEGOCIO = [
 
             {modalCambioPlan && (
               <div className="fixed inset-0 z-40 bg-stone-900/50 flex items-center justify-center p-4" onClick={() => !guardandoCambioPlan && setModalCambioPlan(null)}>
-                <form onSubmit={cambiarPlanBodega} className="relative bg-white rounded-2xl shadow-2xl w-full max-w-md max-h-[92vh] overflow-y-auto p-5 space-y-3" onClick={(e) => e.stopPropagation()}>
+                <form onSubmit={cambiarPlanBodega} className="relative bg-white rounded-2xl shadow-2xl w-full max-w-md max-h-[92dvh] overflow-y-auto p-5 space-y-3" onClick={(e) => e.stopPropagation()}>
                   <button
                     type="button"
                     onClick={() => setModalCambioPlan(null)}
@@ -1510,7 +1510,7 @@ const RUBROS_NEGOCIO = [
 
             {modalNueva && (
               <div className="fixed inset-0 z-40 bg-stone-900/50 flex items-center justify-center p-4" onClick={() => !guardandoNuevaBodega && setModalNueva(false)}>
-                <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-xl max-h-[92vh] overflow-y-auto p-5" onClick={(e) => e.stopPropagation()}>
+                <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-xl max-h-[92dvh] overflow-y-auto p-5" onClick={(e) => e.stopPropagation()}>
                   <button
                     type="button"
                     onClick={() => setModalNueva(false)}

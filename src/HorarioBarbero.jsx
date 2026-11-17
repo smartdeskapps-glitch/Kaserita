@@ -16,7 +16,7 @@ export default function HorarioBarbero({
               {/* Modal: horario de atención de un barbero (agenda de reservas) */}
               {modalHorario && esBarberia && (
                 <div className="fixed inset-0 bg-stone-900/30 backdrop-blur-sm flex items-center justify-center z-[60] p-4">
-                  <div className="bg-white border border-stone-200 rounded-[28px] max-w-lg w-full shadow-2xl max-h-[92vh] flex flex-col overflow-hidden">
+                  <div className="bg-white border border-stone-200 rounded-[28px] max-w-lg w-full shadow-2xl max-h-[92dvh] flex flex-col overflow-hidden">
                     <div className="flex items-center justify-between gap-2 px-5 pt-4 pb-1 shrink-0">
                       <h3 className="text-lg font-bold text-stone-900 flex items-center gap-2"><i className="fa-regular fa-calendar text-[#5b4bd6]"></i> Horario de {modalHorario.barbero.nombre}</h3>
                       <button aria-label="Cerrar" onClick={() => setModalHorario(null)} className="text-stone-600 hover:text-stone-900 shrink-0"><i className="fa-solid fa-xmark"></i></button>

@@ -8,7 +8,7 @@ export default function PantallaLogin({
   sbClient, setAdminSesion, setAuthTab, setCargandoAdminLogin, setFormAdminLogin, toast
 }) {
   return (
-    <div className="min-h-screen bg-stone-50 flex flex-col md:flex-row select-none">
+    <div className="min-h-dvh bg-stone-50 flex flex-col md:flex-row select-none">
       {toast.visible && (
         <div className={`fixed top-6 inset-x-4 md:inset-x-auto md:right-6 md:max-w-xs z-50 flex items-center gap-2.5 px-4 py-3 rounded-xl shadow-xl border-l-4 bg-white text-xs font-semibold ${toast.tipo === 'error' ? 'border-rose-500 text-rose-700' : 'border-emerald-500 text-emerald-700'}`}>
           <i className={`fa-solid ${toast.tipo === 'error' ? 'fa-circle-exclamation' : 'fa-circle-check'} text-sm shrink-0`}></i>
@@ -18,7 +18,7 @@ export default function PantallaLogin({
 
       {/* Panel de marca */}
       <div
-        className="login-brand-mesh relative overflow-hidden md:w-1/2 md:min-h-screen flex flex-col items-center justify-center px-6 pt-14 pb-10 md:py-16 shrink-0"
+        className="login-brand-mesh relative overflow-hidden md:w-1/2 md:min-h-dvh flex flex-col items-center justify-center px-6 pt-14 pb-10 md:py-16 shrink-0"
         style={{ animationDelay: `${kgSyncDelayRef.current}s, ${kgSyncDelayRef.current}s` }}
       >
 
