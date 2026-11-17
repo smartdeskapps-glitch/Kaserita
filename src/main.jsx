@@ -594,7 +594,7 @@ import PantallaAdmin from './pantallas/PantallaAdmin.jsx';
         if (!esModoDemo && sesion?.bodega?.permitir_subir_fotos === false) return;
         setSubiendoFotoProducto(true);
         try {
-          const comprimida = await comprimirImagenJPEG(file, 20, 480);
+          const comprimida = await comprimirImagenJPEG(file);
           if (esModoDemo) {
             // Modo Demo Local: no hay bodega real en Supabase -- se usa una
             // vista previa local nomás, sin subir nada.
@@ -626,7 +626,7 @@ import PantallaAdmin from './pantallas/PantallaAdmin.jsx';
         if ((formEditarProducto?.fotos_extra || []).length >= 4) return;
         setSubiendoFotoExtra(true);
         try {
-          const comprimida = await comprimirImagenJPEG(file, 20, 480);
+          const comprimida = await comprimirImagenJPEG(file);
           if (esModoDemo) {
             const urlLocal = URL.createObjectURL(comprimida);
             setFormEditarProducto((prev) => ({ ...prev, fotos_extra: [...(prev.fotos_extra || []), urlLocal] }));

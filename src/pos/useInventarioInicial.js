@@ -44,7 +44,7 @@ export default function useInventarioInicial({
     if (!esModoDemo && sesion?.bodega?.permitir_subir_fotos === false) return;
     setSubiendoFotoFilaIdx(idx);
     try {
-      const comprimida = await comprimirImagenJPEG(file, 20, 480);
+      const comprimida = await comprimirImagenJPEG(file);
       if (esModoDemo) {
         const urlLocal = URL.createObjectURL(comprimida);
         actualizarFilaInventario(idx, 'foto_url', urlLocal);

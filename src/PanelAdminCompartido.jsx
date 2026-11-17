@@ -42,13 +42,15 @@ import { fechaISOLocal, fechaHoyISO } from './lib/fechas.js';
     // llena el Storage ni tarda en cargar en el catálogo desde un celular
     // con poco dato móvil. La usa solo el admin (catálogo maestro): las
     // bodegas ya no pueden subir fotos, ver bloquear_fotos_bodega.sql.
-    const comprimirImagenJPEG = (file, maxKB = 20, dimensionInicial = 480) => {
+    // Foto de producto: lado mayor 900 px y hasta 100 KB (antes 480 px y 20 KB, que en el celular se veía
+    // pixelada). El bucket "Productos" acepta hasta 200 KB por archivo.
+    const comprimirImagenJPEG = (file, maxKB = 100, dimensionInicial = 900) => {
       return new Promise((resolve, reject) => {
         const urlTemp = URL.createObjectURL(file);
         const img = new Image();
         img.onload = () => {
           let dimension = dimensionInicial;
-          let calidad = 0.8;
+          let calidad = 0.85;
           let intentos = 0;
           const maxIntentos = 25;
 
@@ -68,17 +70,17 @@ import { fechaISOLocal, fechaHoyISO } from './lib/fechas.js';
                 return;
               }
               const dentroDelLimite = blob.size <= maxKB * 1024;
-              const sinMasMargen = intentos >= maxIntentos || (calidad <= 0.35 && dimension <= 120);
+              const sinMasMargen = intentos >= maxIntentos || (calidad <= 0.6 && dimension <= 160);
               if (dentroDelLimite || sinMasMargen) {
                 URL.revokeObjectURL(urlTemp);
                 resolve(blob);
                 return;
               }
-              if (calidad > 0.35) {
+              if (calidad > 0.6) {
                 calidad = +(calidad - 0.1).toFixed(2);
               } else {
-                dimension = Math.round(dimension * 0.8);
-                calidad = 0.6;
+                dimension = Math.round(dimension * 0.85);
+                calidad = 0.75;
               }
               intentar();
             }, 'image/jpeg', calidad);

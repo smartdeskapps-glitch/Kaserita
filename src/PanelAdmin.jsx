@@ -477,7 +477,7 @@ const RUBROS_NEGOCIO = [
       const subirFotoMaestro = async (file) => {
         setSubiendoFotoMaestro(true);
         try {
-          const comprimida = await comprimirImagenJPEG(file, 20, 480);
+          const comprimida = await comprimirImagenJPEG(file);
           const ruta = `maestro/${formMaestro.id}.jpg`;
           const { error } = await sbClient.storage
             .from('Productos')
