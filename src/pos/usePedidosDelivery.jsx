@@ -314,6 +314,8 @@ export default function usePedidosDelivery({
     if (esModoDemo || !sbClient) return;
     setCargandoPedidosRetirar(true);
     try {
+      // Espera a que la sesión esté renovada: con un token vencido la consulta vuelve vacía, sin error.
+      await sbClient.auth.getSession().catch(() => {});
       // Trae también "retirado"/"cancelado" (no solo la cola activa) para
       // poder mostrar la pestaña "Historial" con su filtro de fecha --
       // 200 alcanza de sobra para "últimos 30 días" en una bodega chica,
@@ -594,6 +596,11 @@ export default function usePedidosDelivery({
   useEffect(() => {
     if (esModoDemo || !sbClient || !sesion?.bodega?.id) return;
     cargarPedidosRetirar();
+    // Al abrir la app en frío (sobre todo en el celular) la sesión de Supabase puede tardar en
+    // renovarse: una consulta hecha antes de tiempo sale sin error pero VACÍA (la regla de acceso
+    // no te reconoce todavía). Se repite unas veces hasta que ya esté lista.
+    const reintentos = [2000, 6000, 15000].map((ms) => setTimeout(() => refrescarSilenciosoRef.current(), ms));
+    return () => reintentos.forEach(clearTimeout);
   }, [esModoDemo, sesion?.bodega?.id]);
 
   // En el celular, al pasar la app a segundo plano (o bloquear la pantalla) se cae la conexión en
@@ -603,6 +610,7 @@ export default function usePedidosDelivery({
   const refrescarSilencioso = async () => {
     if (esModoDemo || !sbClient || !sesion?.bodega?.id) return;
     try {
+      await sbClient.auth.getSession().catch(() => {});
       const { data, error } = await sbClient
         .from('pedidos_seguimiento')
         .select('*')
@@ -631,12 +639,20 @@ export default function usePedidosDelivery({
     const refrescar = () => {
       if (document.visibilityState === 'visible') refrescarSilenciosoRef.current();
     };
+    // Cuando la sesión termina de restaurarse o renovarse, se vuelve a pedir la lista. Dentro del
+    // aviso no se espera a Supabase (se bloquearía): se difiere con setTimeout.
+    const { data: { subscription } } = sbClient.auth.onAuthStateChange((evento) => {
+      if (evento === 'INITIAL_SESSION' || evento === 'SIGNED_IN' || evento === 'TOKEN_REFRESHED') {
+        setTimeout(() => refrescarSilenciosoRef.current(), 0);
+      }
+    });
     document.addEventListener('visibilitychange', refrescar);
     window.addEventListener('focus', refrescar);
     window.addEventListener('online', refrescar);
     window.addEventListener('pageshow', refrescar);
     const reloj = setInterval(refrescar, 90000);
     return () => {
+      subscription.unsubscribe();
       document.removeEventListener('visibilitychange', refrescar);
       window.removeEventListener('focus', refrescar);
       window.removeEventListener('online', refrescar);
