@@ -1726,6 +1726,7 @@ import PantallaAdmin from './pantallas/PantallaAdmin.jsx';
           }} />
 
           <PanelCarrito {...{
+            bodegaId, notificar, sbClient,
             abrirBuscarClientePOS, abrirPedidosRetirar, aparcarVentaActual, asignarDesdeTeclado,
             avisarPedidosDevueltos, barberoVentaId, borrarVentaEspera, cambiarCantidadCarrito,
             campoTeclado, cargandoPedidosRetirar, cargarPedidoDesdeRetirar, carrito, clienteActual,

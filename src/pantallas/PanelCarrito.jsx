@@ -5,8 +5,10 @@ import { IconoTrazo, NumericKeypad } from '../pos/componentes.jsx';
 import { urlMapa, formatoSoles } from '../pos/utilidades.js';
 import { FotoProducto } from '../PanelAdminCompartido.jsx';
 import DeslizarParaConfirmar from '../DeslizarParaConfirmar.jsx';
+import AvisosPush from '../pos/AvisosPush.jsx';
 
 export default function PanelCarrito({
+  bodegaId, notificar, sbClient,
   abrirBuscarClientePOS, abrirPedidosRetirar, aparcarVentaActual, asignarDesdeTeclado,
   avisarPedidosDevueltos, barberoVentaId, borrarVentaEspera, cambiarCantidadCarrito,
   campoTeclado, cargandoPedidosRetirar, cargarPedidoDesdeRetirar, carrito, clienteActual,
@@ -71,6 +73,8 @@ export default function PanelCarrito({
           </h2>
           <button aria-label="Cerrar" onClick={() => setModalPedidosRetirar(false)} className="text-stone-600 hover:text-stone-900 text-lg"><i className="fa-solid fa-xmark"></i></button>
         </div>
+
+        <AvisosPush sbClient={sbClient} bodegaId={bodegaId} notificar={notificar} />
 
         {/* Pestañas: pendiente -> listo -> historial, el mismo recorrido
             de un pedido de principio a fin. */}
