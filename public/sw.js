@@ -26,9 +26,15 @@ self.addEventListener('notificationclick', (event) => {
   event.notification.close();
   const url = new URL((event.notification.data && event.notification.data.url) || '/pos', self.location.origin).href;
   event.waitUntil(
-    self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((ventanas) => {
-      const abierta = ventanas.find((c) => c.url.startsWith(self.location.origin) && 'focus' in c);
-      if (abierta) return abierta.focus();
+    self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then(async (ventanas) => {
+      // Primero la ventana del POS; si hay otra del sitio (inicio, registro...), se lleva al POS.
+      const pos = ventanas.find((c) => new URL(c.url).pathname.startsWith('/pos') && 'focus' in c);
+      if (pos) return pos.focus();
+      const otra = ventanas.find((c) => 'navigate' in c && 'focus' in c);
+      if (otra) {
+        const navegada = await otra.navigate(url);
+        return navegada ? navegada.focus() : undefined;
+      }
       if (self.clients.openWindow) return self.clients.openWindow(url);
     })
   );

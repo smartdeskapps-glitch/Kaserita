@@ -599,7 +599,10 @@ export default function usePedidosDelivery({
     // Al abrir la app en frío (sobre todo en el celular) la sesión de Supabase puede tardar en
     // renovarse: una consulta hecha antes de tiempo sale sin error pero VACÍA (la regla de acceso
     // no te reconoce todavía). Se repite unas veces hasta que ya esté lista.
-    const reintentos = [2000, 6000, 15000].map((ms) => setTimeout(() => refrescarSilenciosoRef.current(), ms));
+    // Solo si la lista sigue vacía: si ya trajo pedidos, no hace falta volver a pedirla.
+    const reintentos = [2000, 6000, 15000].map((ms) => setTimeout(() => {
+      if (pedidosRetirarRef.current.length === 0) refrescarSilenciosoRef.current();
+    }, ms));
     return () => reintentos.forEach(clearTimeout);
   }, [esModoDemo, sesion?.bodega?.id]);
 
@@ -607,10 +610,15 @@ export default function usePedidosDelivery({
   // vivo y los pedidos que llegan mientras tanto no aparecen hasta tocar "actualizar". Por eso, al
   // volver a la app, recuperar la conexión o cada 90 s con la pantalla visible, se vuelve a pedir
   // la lista sin spinner ni errores, y se avisa de lo que llegó mientras no se miraba.
+  // visibilitychange, focus y pageshow llegan juntos: con uno en curso, los demás no repiten la consulta
+  // (si no, el sonido y el aviso de "Nuevo pedido" saldrían dos o tres veces).
+  const refrescandoRef = useRef(false);
   const refrescarSilencioso = async () => {
-    if (esModoDemo || !sbClient || !sesion?.bodega?.id) return;
+    if (esModoDemo || !sbClient || !sesion?.bodega?.id || refrescandoRef.current) return;
+    refrescandoRef.current = true;
     try {
       await sbClient.auth.getSession().catch(() => {});
+      const base = pedidosRetirarRef.current;
       const { data, error } = await sbClient
         .from('pedidos_seguimiento')
         .select('*')
@@ -618,7 +626,10 @@ export default function usePedidosDelivery({
         .order('creado_en', { ascending: false })
         .limit(200);
       if (error || !data) return;
-      const antes = pedidosRetirarRef.current;
+      // Si mientras tanto la lista cambió (un pedido marcado como listo, uno que entró en vivo), esta
+      // respuesta ya es vieja: no se pisa, el siguiente refresco la trae al día.
+      if (pedidosRetirarRef.current !== base) return;
+      const antes = base;
       if (antes.length > 0) {
         const conocidos = new Set(antes.map((p) => p.id));
         const nuevos = data.filter((p) => p.estado === 'pendiente' && !conocidos.has(p.id));
@@ -630,6 +641,8 @@ export default function usePedidosDelivery({
       setPedidosRetirar(data);
     } catch {
       // sin conexión: se reintenta en el siguiente aviso
+    } finally {
+      refrescandoRef.current = false;
     }
   };
   const refrescarSilenciosoRef = useRef(refrescarSilencioso);

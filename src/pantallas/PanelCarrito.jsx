@@ -7,6 +7,10 @@ import { FotoProducto } from '../PanelAdminCompartido.jsx';
 import DeslizarParaConfirmar from '../DeslizarParaConfirmar.jsx';
 import AvisosPush from '../pos/AvisosPush.jsx';
 
+// Los pedidos anteriores a esta fecha se hicieron antes de que Delivery registrara si el cliente tocó
+// WhatsApp: no tienen el dato y no se les puede reclamar nada.
+const INICIO_CONTROL_WHATSAPP = new Date('2026-11-18T22:00:00Z');
+
 export default function PanelCarrito({
   bodegaId, notificar, sbClient,
   abrirBuscarClientePOS, abrirPedidosRetirar, aparcarVentaActual, asignarDesdeTeclado,
@@ -193,7 +197,7 @@ export default function PanelCarrito({
 
                   {/* El cliente no tocó "Enviar por WhatsApp": la tienda solo se entera mirando esta lista.
                       Se espera 3 min porque puede seguir en su pantalla de confirmación. */}
-                  {p.estado === 'pendiente' && !p.whatsapp_abierto_en && !p.cita_barbero_id && minutos >= 3 && (
+                  {p.estado === 'pendiente' && !p.whatsapp_abierto_en && !p.cita_barbero_id && minutos >= 3 && new Date(p.creado_en) >= INICIO_CONTROL_WHATSAPP && (
                     <p className="text-[11.5px] text-amber-800 bg-amber-50 border border-amber-200 rounded-lg px-2.5 py-1.5 leading-snug">
                       <i className="fa-brands fa-whatsapp mr-1"></i>
                       Este cliente no avisó por WhatsApp.{p.telefono_contacto ? ` Escríbele al ${p.telefono_contacto} si hace falta confirmar.` : ''}

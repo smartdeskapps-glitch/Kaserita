@@ -29,6 +29,7 @@ import useHistorialVentas from './pos/useHistorialVentas.js';
 import useDashboard from './pos/useDashboard.js';
 import useCajaYCobro from './pos/useCajaYCobro.js';
 import useImpresoraBluetooth from './pos/useImpresoraBluetooth.js';
+import { quitarAvisosDispositivo } from './pos/AvisosPush.jsx';
 import AvisosSuperiores from './pantallas/AvisosSuperiores.jsx';
 import Catalogo from './pantallas/Catalogo.jsx';
 import CarritoMovil from './pantallas/CarritoMovil.jsx';
@@ -1062,6 +1063,8 @@ import PantallaAdmin from './pantallas/PantallaAdmin.jsx';
           try { await sbClient.rpc('bajar_admin'); } catch (err) { /* ya se cae con la sesión */ }
         }
         setElevado(false);
+        // Antes de salir (aún con sesión): este celular deja de recibir los avisos de pedidos de la bodega.
+        if (sbClient && !esModoDemo) await quitarAvisosDispositivo(sbClient);
         if (sbClient) {
           try { await sbClient.auth.signOut({ scope: 'local' }); } catch (err) { console.warn(err); }
         }

@@ -1,6 +1,7 @@
 // "Avisarme de pedidos nuevos en este celular": suscribe el dispositivo al push web y guarda la
-// suscripción en push_dueno (una fila por dispositivo). La función de servidor
-// enviar-aviso-pedido-tienda la lee cuando entra un pedido, aunque el POS esté cerrado.
+// suscripción en push_dueno (una fila por dispositivo) mediante la función registrar_push_dueno, que
+// valida el endpoint. La función de servidor enviar-aviso-pedido-tienda la lee cuando entra un
+// pedido, aunque el POS esté cerrado.
 import React, { useEffect, useState } from 'react';
 
 // Clave pública VAPID (la misma de Kaserita Delivery; es pública a propósito).
@@ -23,6 +24,25 @@ function mismaClave(sub) {
 const soportado = () =>
   typeof window !== 'undefined' && 'Notification' in window && 'serviceWorker' in navigator && 'PushManager' in window;
 
+async function suscripcionActual() {
+  const reg = await navigator.serviceWorker.getRegistration('/');
+  return reg ? reg.pushManager.getSubscription() : null;
+}
+
+// Al cerrar sesión: este celular deja de recibir los pedidos de la bodega que acaba de salir
+// (si no, el siguiente que entre en el mismo celular vería los pedidos de la bodega anterior).
+export async function quitarAvisosDispositivo(sbClient) {
+  try {
+    if (!soportado()) return;
+    const sub = await suscripcionActual();
+    if (!sub) return;
+    await sbClient.from('push_dueno').delete().eq('endpoint', sub.endpoint);
+    await sub.unsubscribe();
+  } catch {
+    // sin conexión: la próxima activación en este celular lo reasigna
+  }
+}
+
 export default function AvisosPush({ sbClient, bodegaId, notificar }) {
   // 'cargando' | 'no-soportado' | 'bloqueado' | 'apagado' | 'activo'
   const [estado, setEstado] = useState('cargando');
@@ -34,15 +54,21 @@ export default function AvisosPush({ sbClient, bodegaId, notificar }) {
       if (!soportado()) return vivo && setEstado('no-soportado');
       if (Notification.permission === 'denied') return vivo && setEstado('bloqueado');
       try {
-        const reg = await navigator.serviceWorker.getRegistration('/');
-        const sub = reg ? await reg.pushManager.getSubscription() : null;
-        if (vivo) setEstado(sub && Notification.permission === 'granted' ? 'activo' : 'apagado');
+        const sub = await suscripcionActual();
+        let activo = false;
+        if (sub && Notification.permission === 'granted') {
+          // "Activo" solo si la base también tiene este celular para esta bodega: si el servidor lo
+          // dio de baja o falló el registro, se muestra apagado y se puede volver a activar.
+          const { data } = await sbClient.from('push_dueno').select('id').eq('endpoint', sub.endpoint).eq('bodega_id', bodegaId).maybeSingle();
+          activo = !!data;
+        }
+        if (vivo) setEstado(activo ? 'activo' : 'apagado');
       } catch {
         if (vivo) setEstado('apagado');
       }
     })();
     return () => { vivo = false; };
-  }, []);
+  }, [sbClient, bodegaId]);
 
   const activar = async () => {
     setOcupado(true);
@@ -62,10 +88,7 @@ export default function AvisosPush({ sbClient, bodegaId, notificar }) {
       if (!sub) {
         sub = await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: aUint8Array(VAPID_PUBLIC_KEY) });
       }
-      const json = sub.toJSON();
-      const { error } = await sbClient
-        .from('push_dueno')
-        .upsert({ bodega_id: bodegaId, endpoint: json.endpoint, suscripcion: json }, { onConflict: 'endpoint' });
+      const { error } = await sbClient.rpc('registrar_push_dueno', { p_suscripcion: sub.toJSON() });
       if (error) throw error;
       setEstado('activo');
       notificar?.('Listo: este celular recibirá un aviso por cada pedido nuevo.');
@@ -79,15 +102,8 @@ export default function AvisosPush({ sbClient, bodegaId, notificar }) {
   const apagar = async () => {
     setOcupado(true);
     try {
-      const reg = await navigator.serviceWorker.getRegistration('/');
-      const sub = reg ? await reg.pushManager.getSubscription() : null;
-      if (sub) {
-        await sbClient.from('push_dueno').delete().eq('endpoint', sub.endpoint);
-        await sub.unsubscribe();
-      }
+      await quitarAvisosDispositivo(sbClient);
       setEstado('apagado');
-    } catch {
-      notificar?.('No se pudieron apagar los avisos. Inténtalo de nuevo.');
     } finally {
       setOcupado(false);
     }
