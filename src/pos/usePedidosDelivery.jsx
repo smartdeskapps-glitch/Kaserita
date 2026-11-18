@@ -596,6 +596,55 @@ export default function usePedidosDelivery({
     cargarPedidosRetirar();
   }, [esModoDemo, sesion?.bodega?.id]);
 
+  // En el celular, al pasar la app a segundo plano (o bloquear la pantalla) se cae la conexión en
+  // vivo y los pedidos que llegan mientras tanto no aparecen hasta tocar "actualizar". Por eso, al
+  // volver a la app, recuperar la conexión o cada 90 s con la pantalla visible, se vuelve a pedir
+  // la lista sin spinner ni errores, y se avisa de lo que llegó mientras no se miraba.
+  const refrescarSilencioso = async () => {
+    if (esModoDemo || !sbClient || !sesion?.bodega?.id) return;
+    try {
+      const { data, error } = await sbClient
+        .from('pedidos_seguimiento')
+        .select('*')
+        .eq('bodega_id', sesion.bodega.id)
+        .order('creado_en', { ascending: false })
+        .limit(200);
+      if (error || !data) return;
+      const antes = pedidosRetirarRef.current;
+      if (antes.length > 0) {
+        const conocidos = new Set(antes.map((p) => p.id));
+        const nuevos = data.filter((p) => p.estado === 'pendiente' && !conocidos.has(p.id));
+        if (nuevos.length > 0) {
+          sonarAvisoPedidoNuevo();
+          notificar(nuevos.length === 1 ? `Nuevo pedido: ${nuevos[0].codigo_corto}` : `Tienes ${nuevos.length} pedidos nuevos.`, 'success');
+        }
+      }
+      setPedidosRetirar(data);
+    } catch {
+      // sin conexión: se reintenta en el siguiente aviso
+    }
+  };
+  const refrescarSilenciosoRef = useRef(refrescarSilencioso);
+  refrescarSilenciosoRef.current = refrescarSilencioso;
+  useEffect(() => {
+    if (esModoDemo || !sbClient || !sesion?.bodega?.id) return;
+    const refrescar = () => {
+      if (document.visibilityState === 'visible') refrescarSilenciosoRef.current();
+    };
+    document.addEventListener('visibilitychange', refrescar);
+    window.addEventListener('focus', refrescar);
+    window.addEventListener('online', refrescar);
+    window.addEventListener('pageshow', refrescar);
+    const reloj = setInterval(refrescar, 90000);
+    return () => {
+      document.removeEventListener('visibilitychange', refrescar);
+      window.removeEventListener('focus', refrescar);
+      window.removeEventListener('online', refrescar);
+      window.removeEventListener('pageshow', refrescar);
+      clearInterval(reloj);
+    };
+  }, [esModoDemo, sesion?.bodega?.id]);
+
   return {
     DIAS_DELIVERY, abrirModalDelivery, avisarAMisClientes, cargarPedidoDesdeRetirar,
     cargarPedidosRetirar, desgloseComboPedido, eliminarPedidoRetirar, enviarPedidoAlRepartidor,
