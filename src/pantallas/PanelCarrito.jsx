@@ -187,6 +187,15 @@ export default function PanelCarrito({
                     </span>
                   </div>
 
+                  {/* El cliente no tocó "Enviar por WhatsApp": la tienda solo se entera mirando esta lista.
+                      Se espera 3 min porque puede seguir en su pantalla de confirmación. */}
+                  {p.estado === 'pendiente' && !p.whatsapp_abierto_en && !p.cita_barbero_id && minutos >= 3 && (
+                    <p className="text-[11.5px] text-amber-800 bg-amber-50 border border-amber-200 rounded-lg px-2.5 py-1.5 leading-snug">
+                      <i className="fa-brands fa-whatsapp mr-1"></i>
+                      Este cliente no avisó por WhatsApp.{p.telefono_contacto ? ` Escríbele al ${p.telefono_contacto} si hace falta confirmar.` : ''}
+                    </p>
+                  )}
+
                   <div className="divide-y divide-stone-100 border-y border-stone-100">
                     {(p.items || []).map((it, i) => {
                       const desglose = desgloseComboPedido(it);
