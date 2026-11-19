@@ -137,7 +137,9 @@ export default function PanelCarrito({
           }`}
         >
         {/* Manija de arrastre (solo celular, en la hoja del carrito) */}
-        <div className={`${mostrarPago ? 'hidden' : 'md:hidden'} w-10 h-1.5 bg-stone-300 rounded-full mx-auto mt-2.5 mb-1 shrink-0`}></div>
+        <div className={`${mostrarPago ? 'hidden' : 'md:hidden'} shrink-0 pt-2.5 pb-1 ${modalPedidosRetirar ? '' : 'bg-[#f3f5ff]'}`}>
+          <div className="w-10 h-1.5 bg-stone-300 rounded-full mx-auto"></div>
+        </div>
 
         {modalPedidosRetirar ? (
         <>
@@ -503,14 +505,14 @@ export default function PanelCarrito({
         <>
         {/* Encabezado del carrito: una sola fila de título (con el cierre en
             mobile) y debajo las acciones rápidas. En desktop todo va en una fila. */}
-        <div className={`${mostrarPago ? 'hidden md:flex' : 'flex'} flex-wrap md:flex-nowrap items-center justify-between gap-y-2.5 px-4 pt-2 pb-3 md:py-3 bg-white border-b border-stone-100 shrink-0`}>
+        <div className={`${mostrarPago ? 'hidden md:flex' : 'flex'} flex-wrap md:flex-nowrap items-center justify-between gap-y-2.5 px-4 pt-2 pb-3 md:py-3 bg-[#f3f5ff] md:bg-white border-b border-[#dde4fa] md:border-stone-100 shrink-0`}>
           <h2 className="text-[19px] md:text-sm font-bold md:font-extrabold tracking-tight text-stone-900">
             <span className="md:hidden">Carrito</span>
             <span className="ml-1.5 md:ml-0 text-[13px] md:text-sm text-stone-400 font-semibold">{carrito.reduce((a, c) => a + c.cantidad, 0)} ítems</span>
           </h2>
           <button
             onClick={() => setMostrarResumenMobile(false)}
-            className="md:hidden w-9 h-9 rounded-full bg-[#ebf0ff] hover:bg-[#dde4fa] text-stone-500 flex items-center justify-center transition"
+            className="md:hidden w-10 h-10 rounded-full bg-white shadow-[0_1px_0_#dde4fa,0_6px_14px_-10px_rgba(45,40,75,0.35)] hover:bg-[#ebf0ff] text-stone-500 flex items-center justify-center transition active:scale-95"
             aria-label="Cerrar"
           >
             <IconoTrazo nombre="x" className="w-[15px] h-[15px]" />
@@ -528,7 +530,7 @@ export default function PanelCarrito({
             {carrito.length > 0 && (
               <button
                 onClick={aparcarVentaActual}
-                className="px-3.5 py-2.5 md:py-1.5 rounded-full bg-[#ebf0ff] hover:bg-[#dde4fa] text-xs text-[#2d284b] font-semibold transition"
+                className="px-3.5 py-2.5 md:py-1.5 rounded-full bg-white md:bg-[#ebf0ff] shadow-[0_1px_0_#dde4fa] md:shadow-none hover:bg-[#dde4fa] text-xs text-[#2d284b] font-semibold transition"
               >
                 Pausar
               </button>
@@ -661,7 +663,7 @@ export default function PanelCarrito({
 
         {/* Lista Ítems */}
         {/* Celular al cobrar: la lista se achica (unas 2 filas) para dejar espacio a los medios de pago */}
-        <div className={`overflow-y-auto p-2.5 space-y-1.5 hide-scrollbar ${mostrarPago ? `${verDetalleCobro ? 'max-h-[24dvh] pb-2.5' : 'hidden'} md:block md:max-h-none md:flex-1 md:pb-16` : 'flex-1 pb-16'}`}>
+        <div className={`overflow-y-auto p-2.5 space-y-2 md:space-y-1.5 hide-scrollbar bg-[#f3f5ff] md:bg-transparent ${mostrarPago ? `${verDetalleCobro ? 'max-h-[24dvh] pb-2.5' : 'hidden'} md:block md:max-h-none md:flex-1 md:pb-16` : 'flex-1 pb-16'}`}>
           {carrito.length === 0 ? (
             <div className="flex flex-col items-center justify-center h-full text-stone-500 text-center p-4">
               <i className="fa-solid fa-basket-shopping text-3xl mb-2 text-stone-300"></i>
@@ -674,7 +676,7 @@ export default function PanelCarrito({
             carrito.map((item) => (
               <div
                 key={item.claveCarrito || item.productoId}
-                className="flex items-center gap-2.5 p-2 bg-[#f7f9ff] rounded-[20px]"
+                className="flex items-center gap-2.5 p-2 bg-white md:bg-[#f7f9ff] rounded-[20px] shadow-[0_1px_0_#dde4fa,0_6px_14px_-12px_rgba(45,40,75,0.3)] md:shadow-none"
               >
                 <FotoProducto
                   fotoUrl={item.foto_url}
@@ -691,7 +693,7 @@ export default function PanelCarrito({
                   </p>
                 </div>
 
-                <div className="flex items-center bg-white rounded-full ring-1 ring-[#5b4bd6]/10 shrink-0">
+                <div className="flex items-center bg-[#f3f5ff] md:bg-white rounded-full md:ring-1 md:ring-[#5b4bd6]/10 shrink-0">
                   <button
                     onClick={() => cambiarCantidadCarrito(item.claveCarrito || item.productoId, -1)}
                     className="w-10 h-10 md:w-8 md:h-8 flex items-center justify-center text-[#5b4bd6] hover:bg-[#ebf0ff] rounded-full transition"
@@ -725,12 +727,12 @@ export default function PanelCarrito({
         <div
           className={`relative z-10 p-4 min-h-0 overflow-y-auto overscroll-contain ${mostrarPago
             ? 'flex-1 flex flex-col gap-3 pt-4 scroll-pb-44 bg-[#f3f5ff] border-t border-[#dde4fa] shadow-[0_-14px_26px_-20px_rgba(40,20,100,0.4)]'
-            : 'space-y-3 -mt-10 pt-14 backdrop-blur-xl bg-gradient-to-b from-white/60 to-white/90'}`}
+            : 'space-y-3 -mt-10 pt-14 backdrop-blur-xl bg-gradient-to-b from-[#f3f5ff]/60 to-[#f3f5ff]/95 md:from-white/60 md:to-white/90'}`}
           style={mostrarPago ? undefined : { WebkitMaskImage: 'linear-gradient(to bottom, transparent 0, black 44px)', maskImage: 'linear-gradient(to bottom, transparent 0, black 44px)' }}
         >
           {!mostrarPago ? (
             <>
-              <div className="bg-[#ebf0ff] border border-[#dde4fa] rounded-[22px] px-4 py-3 space-y-1.5">
+              <div className="bg-white md:bg-[#ebf0ff] md:border md:border-[#dde4fa] rounded-[24px] md:rounded-[22px] px-4 py-3 space-y-1.5 shadow-[0_1px_0_#dde4fa,0_10px_22px_-16px_rgba(45,40,75,0.35)] md:shadow-none">
                 <div className="flex items-baseline justify-between text-[12.5px] text-stone-500">
                   <span>Subtotal</span>
                   <span className="tabular-nums">S/ {formatoSoles(totalVenta)}</span>
