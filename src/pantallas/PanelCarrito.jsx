@@ -549,7 +549,7 @@ export default function PanelCarrito({
         {/* Celular, paso de cobro: pantalla propia con el total grande arriba. Los productos
             se resumen y se abren con "Ver detalle de la venta". */}
         {mostrarPago && (
-          <div className="md:hidden shrink-0 px-4 pt-3 pb-2 space-y-3.5 bg-[#f3f5ff]">
+          <div className="md:hidden shrink-0 px-4 pt-2 pb-2.5 space-y-2.5 bg-[#f3f5ff]">
             <div className="flex items-center justify-between">
               <button
                 type="button"
@@ -563,29 +563,35 @@ export default function PanelCarrito({
                 {unidadesCarrito} {unidadesCarrito === 1 ? 'ítem' : 'ítems'}
               </span>
             </div>
-            <div className="relative overflow-hidden rounded-[24px] px-5 pt-5 pb-4 text-white bg-gradient-to-br from-[#7466e8] via-[#5b4bd6] to-[#473bb5] shadow-[0_16px_28px_-16px_rgba(91,75,214,0.9),inset_0_1px_0_rgba(255,255,255,0.25)]">
-              <span aria-hidden="true" className="absolute -right-10 -top-12 w-44 h-44 rounded-full bg-[#c5bcff]/40 blur-2xl"></span>
-              <p className="relative text-[11px] font-semibold uppercase tracking-[0.08em] text-white/80">Total a cobrar</p>
-              <p className="relative flex items-baseline gap-1.5 mt-1.5 text-[46px] leading-none font-extrabold tracking-tight tabular-nums">
-                <small className="text-lg font-semibold tracking-normal text-white/70">S/</small>{formatoSoles(totalConDescuento)}
-              </p>
+            {/* Compacta a propósito: en celular esta tarjeta queda fija arriba y todo lo demás
+                (medios, monto, vuelto, descuento) se desliza en el espacio que sobra. */}
+            <div className="relative overflow-hidden rounded-[22px] px-4 py-3 text-white bg-gradient-to-br from-[#7466e8] via-[#5b4bd6] to-[#473bb5] shadow-[0_14px_24px_-16px_rgba(91,75,214,0.9),inset_0_1px_0_rgba(255,255,255,0.25)]">
+              <span aria-hidden="true" className="absolute -right-10 -top-12 w-40 h-40 rounded-full bg-[#c5bcff]/40 blur-2xl"></span>
+              <div className="relative flex items-end justify-between gap-3">
+                <div className="min-w-0">
+                  <p className="text-[10.5px] font-semibold uppercase tracking-[0.08em] text-white/80">Total a cobrar</p>
+                  <p className="flex items-baseline gap-1.5 mt-0.5 text-[40px] leading-none font-extrabold tracking-tight tabular-nums">
+                    <small className="text-base font-semibold tracking-normal text-white/70">S/</small>{formatoSoles(totalConDescuento)}
+                  </p>
+                </div>
+                <div className="flex flex-col items-end gap-1.5 shrink-0">
+                  <span className="text-xs text-white/80">{unidadesCarrito} {unidadesCarrito === 1 ? 'producto' : 'productos'}</span>
+                  <button
+                    type="button"
+                    aria-expanded={verDetalleCobro}
+                    onClick={() => setVerDetalleCobro((v) => !v)}
+                    className="flex items-center gap-1 pl-3 pr-2.5 py-1.5 rounded-full bg-white/20 hover:bg-white/30 text-[12.5px] font-semibold transition"
+                  >
+                    {verDetalleCobro ? 'Ocultar detalle' : 'Ver detalle'}
+                    <i className={`fa-solid fa-chevron-down text-[10px] transition-transform ${verDetalleCobro ? 'rotate-180' : ''}`}></i>
+                  </button>
+                </div>
+              </div>
               {montoDescuento > 0 && (
-                <p className="relative text-xs text-white/80 mt-2 tabular-nums">
+                <p className="relative text-xs text-white/80 mt-2 pt-2 border-t border-white/20 tabular-nums">
                   Subtotal S/ {totalVenta.toFixed(2)} · Descuento - S/ {montoDescuento.toFixed(2)}
                 </p>
               )}
-              <div className="relative flex items-center justify-between mt-3.5 pt-3 border-t border-white/20">
-                <span className="text-[12.5px] text-white/80">{unidadesCarrito} {unidadesCarrito === 1 ? 'producto' : 'productos'}</span>
-                <button
-                  type="button"
-                  aria-expanded={verDetalleCobro}
-                  onClick={() => setVerDetalleCobro((v) => !v)}
-                  className="flex items-center gap-1 pl-3 pr-2.5 py-1.5 rounded-full bg-white/20 hover:bg-white/30 text-[12.5px] font-semibold transition"
-                >
-                  {verDetalleCobro ? 'Ocultar detalle' : 'Ver detalle'}
-                  <i className={`fa-solid fa-chevron-down text-[10px] transition-transform ${verDetalleCobro ? 'rotate-180' : ''}`}></i>
-                </button>
-              </div>
             </div>
           </div>
         )}
@@ -780,7 +786,7 @@ export default function PanelCarrito({
                       abrirBuscarClientePOS();
                     }
                   }}
-                  className={`relative flex flex-col items-center justify-center gap-1.5 h-[72px] text-[12.5px] font-semibold rounded-[18px] border-[1.5px] transition active:scale-[0.97] ${
+                  className={`relative flex flex-col items-center justify-center gap-1 h-[62px] md:h-[72px] md:gap-1.5 text-[12.5px] font-semibold rounded-[18px] border-[1.5px] transition active:scale-[0.97] ${
                     medioPago === m.id
                       ? 'border-[#5b4bd6] bg-gradient-to-b from-white to-[#f3f5ff] text-[#2d284b] shadow-[0_1px_0_#dde4fa]'
                       : 'border-transparent bg-white text-stone-600 shadow-[0_1px_0_#dde4fa,0_6px_14px_-10px_rgba(45,40,75,0.35)] hover:bg-[#fbfbff]'
