@@ -56,12 +56,12 @@ export default function VentanasProductos({
       {/* Modal: Cantidad / Balanza para Peso KG */}
       {modalCantidad && productoSeleccionadoCantidad && (
         <div className="fixed inset-0 bg-stone-900/30 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="bg-gradient-to-br from-[#eef1fb] via-[#f8f9fd] to-[#f4f5fa] border border-white/80 rounded-[28px] max-w-xs w-full p-5 shadow-2xl space-y-4 text-center">
-            <h3 className="text-sm font-bold text-stone-900 leading-tight">{productoSeleccionadoCantidad.descripcion}</h3>
+          <div className="bg-white rounded-[26px] max-w-xs w-full p-5 shadow-2xl space-y-4 text-center">
+            <h3 className="text-[17px] font-bold text-[#2d284b] leading-tight tracking-tight">{productoSeleccionadoCantidad.descripcion}</h3>
 
             {productoSeleccionadoCantidad.unidad === 'KG' ? (
               <>
-                <p className="text-xs text-stone-600">Ingresa la cantidad o peso en KG:</p>
+                <p className="text-[13px] text-[#8f8cb0]">Ingresa la cantidad o peso en KG</p>
                 <div className="flex items-center justify-center gap-2">
                   <input
                     type="number"
@@ -69,33 +69,35 @@ export default function VentanasProductos({
                     min="0.001"
                     value={inputCantidad}
                     onChange={(e) => setInputCantidad(e.target.value)}
-                    className="w-32 bg-stone-50 border border-stone-200 text-center font-mono font-bold text-xl text-orange-600 p-2 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#c5bcff]"
+                    className="w-36 h-14 bg-[#f3f5ff] text-center font-bold text-3xl tabular-nums text-[#2d284b] rounded-2xl focus:outline-none focus:ring-2 focus:ring-[#c5bcff]"
                     autoFocus
                   />
-                  <span className="text-sm font-bold text-stone-700">KG</span>
+                  <span className="text-sm font-bold text-[#8f8cb0]">KG</span>
                 </div>
               </>
             ) : (
               <>
                 {Number(productoSeleccionadoCantidad.unidades_por_pack) > 1 && (
-                  <div className="flex bg-stone-200/60 p-1 rounded-xl border border-stone-200">
+                  <div className="flex bg-[#f3f5ff] p-1 rounded-full">
                     <button
                       type="button"
                       onClick={() => setTipoVentaSeleccionado('UNIDAD')}
-                      className={`flex-1 py-2 text-xs font-bold rounded-lg transition ${tipoVentaSeleccionado === 'UNIDAD' ? 'bg-stone-900 text-white shadow' : 'text-stone-600'}`}
+                      aria-pressed={tipoVentaSeleccionado === 'UNIDAD'}
+                      className={`flex-1 py-2.5 text-[12.5px] font-bold rounded-full transition ${tipoVentaSeleccionado === 'UNIDAD' ? 'bg-white text-[#473bb5] shadow-[0_1px_0_#dde4fa,0_6px_14px_-8px_rgba(45,40,75,0.35)]' : 'text-[#8f8cb0]'}`}
                     >
                       Suelto · S/ {Number(productoSeleccionadoCantidad.precio_venta).toFixed(2)}
                     </button>
                     <button
                       type="button"
                       onClick={() => setTipoVentaSeleccionado('PACK')}
-                      className={`flex-1 py-2 text-xs font-bold rounded-lg transition ${tipoVentaSeleccionado === 'PACK' ? 'bg-stone-900 text-white shadow' : 'text-stone-600'}`}
+                      aria-pressed={tipoVentaSeleccionado === 'PACK'}
+                      className={`flex-1 py-2.5 text-[12.5px] font-bold rounded-full transition ${tipoVentaSeleccionado === 'PACK' ? 'bg-white text-[#473bb5] shadow-[0_1px_0_#dde4fa,0_6px_14px_-8px_rgba(45,40,75,0.35)]' : 'text-[#8f8cb0]'}`}
                     >
                       Pack x{productoSeleccionadoCantidad.unidades_por_pack} · S/ {(Number(productoSeleccionadoCantidad.precio_venta_pack) || Number(productoSeleccionadoCantidad.precio_venta) * Number(productoSeleccionadoCantidad.unidades_por_pack)).toFixed(2)}
                     </button>
                   </div>
                 )}
-                <p className="text-xs text-stone-600">
+                <p className="text-[13px] text-[#8f8cb0]">
                   {tipoVentaSeleccionado === 'PACK' ? `¿Cuántos packs de ${productoSeleccionadoCantidad.unidades_por_pack}?` : '¿Cuántas unidades sueltas?'}
                 </p>
                 <div className="flex items-center justify-center gap-2">
@@ -105,17 +107,17 @@ export default function VentanasProductos({
                     min="1"
                     value={inputCantidad}
                     onChange={(e) => setInputCantidad(e.target.value)}
-                    className="w-32 bg-stone-50 border border-stone-200 text-center font-mono font-bold text-xl text-orange-600 p-2 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#c5bcff]"
+                    className="w-36 h-14 bg-[#f3f5ff] text-center font-bold text-3xl tabular-nums text-[#2d284b] rounded-2xl focus:outline-none focus:ring-2 focus:ring-[#c5bcff]"
                     autoFocus
                   />
-                  <span className="text-sm font-bold text-stone-700">{tipoVentaSeleccionado === 'PACK' ? 'pack(s)' : 'und'}</span>
+                  <span className="text-sm font-bold text-[#8f8cb0]">{tipoVentaSeleccionado === 'PACK' ? 'pack(s)' : 'und'}</span>
                 </div>
               </>
             )}
 
             <div className="flex gap-2 pt-1">
-              <button onClick={() => setModalCantidad(false)} className="flex-1 py-2 bg-white/70 rounded-full text-xs font-semibold shadow-sm">Cancelar</button>
-              <button onClick={confirmarCantidadBalanza} className="flex-1 py-2 bg-[#5b4bd6] hover:bg-[#473bb5] text-white rounded-full text-xs font-bold shadow">Aceptar</button>
+              <button onClick={() => setModalCantidad(false)} className="flex-1 h-12 bg-[#f3f5ff] hover:bg-[#dde4fa] text-[#473bb5] rounded-full text-sm font-bold transition">Cancelar</button>
+              <button onClick={confirmarCantidadBalanza} className="flex-1 h-12 bg-[#5b4bd6] hover:bg-[#473bb5] text-white rounded-full text-sm font-bold shadow-[0_8px_18px_-8px_rgba(91,75,214,0.6)] transition">Aceptar</button>
             </div>
           </div>
         </div>

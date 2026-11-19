@@ -114,36 +114,44 @@ export default function VentanasVenta({
 
       {/* Modal: Reimpresión de Boleta desde el Historial */}
       {reciboReimpresion && (
-        <div className="fixed inset-0 bg-black/85 flex items-center justify-center z-50 p-4">
-          <div className="bg-stone-100 border border-stone-200 rounded-2xl max-w-sm w-full p-5 shadow-2xl text-center space-y-3">
-            <div className="w-12 h-12 bg-stone-200 text-stone-800 rounded-full flex items-center justify-center mx-auto text-xl"><i className="fa-solid fa-print"></i></div>
-            <h3 className="text-lg font-black text-stone-900">Reimpresión de Boleta</h3>
-            <p className="text-xs text-stone-700 font-mono">Boleta: <span className="text-orange-600 font-bold">{reciboReimpresion.nro_boleta}</span></p>
+        <div className="fixed inset-0 bg-stone-900/30 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-[26px] max-w-sm w-full p-5 shadow-2xl space-y-4">
+            <div className="flex items-center gap-3">
+              <span className="w-[42px] h-[42px] rounded-xl bg-[#f1efff] text-[#5b4bd6] grid place-items-center shrink-0"><IconoTrazo nombre="print" className="w-5 h-5" /></span>
+              <div className="min-w-0 flex-1">
+                <h3 className="text-[19px] leading-tight tracking-tight text-[#2d284b]">Reimpresión de <b className="font-bold">boleta</b></h3>
+                <p className="text-xs text-[#8f8cb0] tabular-nums mt-0.5">{reciboReimpresion.nro_boleta}</p>
+              </div>
+              <button type="button" aria-label="Cerrar" onClick={() => setReciboReimpresion(null)} className="w-[34px] h-[34px] rounded-full text-[#8f8cb0] hover:bg-[#f3f5ff] hover:text-[#2d284b] grid place-items-center shrink-0 transition">
+                <IconoTrazo nombre="x" className="w-4 h-4" />
+              </button>
+            </div>
             {reciboReimpresion.anulada && (
-              <p className="text-xs font-bold text-rose-600"><i className="fa-solid fa-triangle-exclamation mr-1"></i> Esta venta está ANULADA</p>
+              <p className="flex items-center gap-2 text-[12.5px] font-bold text-[#c0262d] bg-[#fde0e5] rounded-2xl px-3.5 py-2.5"><IconoTrazo nombre="warn" className="w-4 h-4 shrink-0" /> Esta venta está ANULADA</p>
             )}
-            <div className="bg-stone-50 p-3 rounded-lg text-left text-xs font-mono space-y-1 text-stone-700 border border-stone-100 max-h-56 overflow-y-auto">
-              <p><strong>Pago:</strong> {reciboReimpresion.medio_pago}</p>
-              <p><strong>Cliente:</strong> {nombreClienteHistorial(reciboReimpresion)}</p>
+            <div className="bg-[#f3f5ff] p-4 rounded-[20px] text-[13px] text-[#2d284b] max-h-60 overflow-y-auto">
+              <div className="flex justify-between gap-3"><span className="text-[#8f8cb0]">Pago</span><b className="font-semibold">{reciboReimpresion.medio_pago}</b></div>
+              <div className="flex justify-between gap-3 mt-1"><span className="text-[#8f8cb0]">Cliente</span><b className="font-semibold text-right">{nombreClienteHistorial(reciboReimpresion)}</b></div>
               {(reciboReimpresion.ventas_detalle || []).length > 0 ? (
-                <div className="border-t border-stone-200 pt-1 mt-1 space-y-0.5">
+                <div className="border-t border-[#dde4fa] pt-2.5 mt-2.5 space-y-1.5">
                   {reciboReimpresion.ventas_detalle.map((d, i) => (
-                    <div key={i} className="flex justify-between">
-                      <span>{d.productos?.descripcion || 'Producto'} x{d.cantidad}</span>
-                      <span>S/ {Number(d.subtotal).toFixed(2)}</span>
+                    <div key={i} className="flex justify-between gap-3">
+                      <span className="min-w-0">{d.productos?.descripcion || 'Producto'} <span className="text-[#8f8cb0]">x{d.cantidad}</span></span>
+                      <span className="tabular-nums whitespace-nowrap">S/ {Number(d.subtotal).toFixed(2)}</span>
                     </div>
                   ))}
                 </div>
               ) : (
-                <p className="text-stone-500 border-t border-stone-200 pt-1 mt-1">Sin detalle de productos disponible.</p>
+                <p className="text-[#8f8cb0] border-t border-[#dde4fa] pt-2.5 mt-2.5">Sin detalle de productos disponible.</p>
               )}
-              <div className="border-t border-stone-200 pt-1 mt-1 flex justify-between font-bold text-sm text-orange-600">
-                <span>TOTAL:</span><span>S/ {Number(reciboReimpresion.total_venta).toFixed(2)}</span>
+              <div className="border-t border-[#dde4fa] pt-2.5 mt-2.5 flex items-baseline justify-between">
+                <span className="font-semibold">Total</span>
+                <span className="text-xl font-bold tracking-tight tabular-nums"><small className="text-[13px] font-semibold text-[#8f8cb0] mr-1">S/</small>{Number(reciboReimpresion.total_venta).toFixed(2)}</span>
               </div>
             </div>
             <div className="flex gap-2">
-              <button onClick={imprimirBoletaTermica} className="flex-1 py-2 bg-stone-200 text-stone-900 font-bold text-xs rounded-xl"><i className="fa-solid fa-print mr-1"></i> Imprimir</button>
-              <button onClick={() => setReciboReimpresion(null)} className="flex-1 py-2 bg-stone-900 text-white font-bold text-xs rounded-xl shadow">Cerrar</button>
+              <button onClick={() => setReciboReimpresion(null)} className="h-12 px-5 bg-[#f3f5ff] hover:bg-[#dde4fa] text-[#473bb5] font-bold text-sm rounded-full transition">Cerrar</button>
+              <button onClick={imprimirBoletaTermica} className="flex-1 h-12 inline-flex items-center justify-center gap-2 bg-[#5b4bd6] hover:bg-[#473bb5] text-white font-bold text-sm rounded-full shadow-[0_8px_18px_-8px_rgba(91,75,214,0.6)] transition"><IconoTrazo nombre="print" className="w-4 h-4" /> Imprimir</button>
             </div>
           </div>
           <ReciboImprimible
