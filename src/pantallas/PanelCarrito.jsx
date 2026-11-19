@@ -538,9 +538,9 @@ export default function PanelCarrito({
             {carrito.length > 0 && (
               <button
                 onClick={async () => {
-                  // Con varias líneas se pregunta antes: un toque sin querer borraría toda la venta.
-                  if (carrito.length > 1) {
-                    const ok = await pedirConfirmacion({ titulo: 'Vaciar el carrito', mensaje: `Se quitarán los ${carrito.length} productos de esta venta.`, textoBoton: 'Sí, vaciar', peligroso: true });
+                  // Con varias líneas o varias unidades se pregunta antes: un toque sin querer borraría toda la venta.
+                  if (carrito.length > 1 || carrito.some((it) => Number(it.cantidad) > 1)) {
+                    const ok = await pedirConfirmacion({ titulo: 'Vaciar el carrito', mensaje: `Se quitarán ${unidadesCarrito} ${unidadesCarrito === 1 ? 'producto' : 'productos'} de esta venta.`, textoBoton: 'Sí, vaciar', peligroso: true });
                     if (!ok) return;
                   }
                   avisarPedidosDevueltos(); setCarrito([]); setDescuentoTipo(null); setDescuentoValor(''); setMostrarPago(false); reiniciarClienteYMedioPago(); setPedidosCargadosAlCarrito([]);
@@ -713,7 +713,7 @@ export default function PanelCarrito({
                   </button>
                 </div>
 
-                <span className="w-[58px] text-right text-[13px] font-bold text-stone-900 tabular-nums shrink-0">
+                <span className="min-w-[58px] whitespace-nowrap text-right text-[13px] font-bold text-stone-900 tabular-nums shrink-0">
                   S/ {item.subtotal.toFixed(2)}
                 </span>
               </div>

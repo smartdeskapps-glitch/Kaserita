@@ -257,6 +257,17 @@ export default function useMermasYToma({
       notificar('Agrega al menos un producto al conteo.', 'error');
       return;
     }
+    // Lo que quedó escrito en "packs"/"sueltas" sin tocar "Agregar" se suma solo: si no,
+    // se perdía en silencio y la revisión mostraba el producto sin contar.
+    const sumarPendiente = (f) => {
+      if (f.pendientePacks === '' && f.pendienteSueltas === '') return f;
+      const porPack = Number(f.pendienteUnidadesPorPack) || 1;
+      const cantidad = (Number(f.pendientePacks) || 0) * porPack + (Number(f.pendienteSueltas) || 0);
+      const historial = [...f.historial, { id: `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`, cantidad }];
+      const total = historial.reduce((acc, h) => acc + h.cantidad, 0);
+      return { ...f, historial, stockContado: String(total), pendientePacks: '', pendienteSueltas: '' };
+    };
+    setFilasTomaInventario((prev) => prev.map(sumarPendiente));
     if (!esModoDemo && sbClient) {
       const { data: stockFresco, error } = await sbClient
         .from('productos')
