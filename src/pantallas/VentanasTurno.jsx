@@ -33,8 +33,8 @@ export default function VentanasTurno({
         const atajo = (activo) => `px-3 py-1.5 rounded-xl border-[1.5px] text-[12.5px] font-bold transition ${activo ? 'border-[#5b4bd6] bg-[#ebf0ff] text-[#2d284b]' : 'border-stone-200 bg-white hover:bg-[#ebf0ff] hover:border-[#d2d9f5]'}`;
         const esIgual = (v) => !conteoActivo && !montoInvalido && montoNum === v;
         return (
-          <div className="fixed inset-0 bg-stone-900/30 backdrop-blur-sm flex items-center justify-center z-50 p-2 sm:p-4">
-            <div className="bg-gradient-to-br from-[#eef1fb] via-[#f8f9fd] to-[#f4f5fa] border border-white/80 rounded-[28px] max-w-md w-full shadow-2xl max-h-[94dvh] flex flex-col overflow-hidden">
+          <div className="pantalla-movil fixed inset-0 bg-stone-900/30 backdrop-blur-sm flex items-center justify-center z-50 p-2 sm:p-4">
+            <div className="pantalla-movil-panel bg-gradient-to-br from-[#eef1fb] via-[#f8f9fd] to-[#f4f5fa] border border-white/80 rounded-[28px] max-w-md w-full shadow-2xl max-h-[94dvh] flex flex-col overflow-hidden">
               <div className="bg-white border-b border-stone-100 px-4 sm:px-5 py-3.5 shrink-0 flex items-center gap-3">
                 <span className="w-11 h-11 rounded-[14px] bg-[#ebf0ff] text-[#5b4bd6] grid place-items-center text-xl shrink-0"><i className="fa-solid fa-cash-register"></i></span>
                 <div className="min-w-0 flex-1">

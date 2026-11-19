@@ -592,6 +592,37 @@
 /* Menu "Mas": tarjeta flotante con linea de luz (Crocus sobre blanco) */
 .menu-hoja { box-shadow: 0 30px 70px -20px rgba(91,75,214,.45), 0 0 0 8px rgba(255,255,255,.35); }
 @media (max-width: 767px) { .menu-hoja { box-shadow: 0 -16px 50px -12px rgba(91,75,214,.4); } }
+/* ===== Módulos a pantalla completa en el celular =====
+   En pantallas angostas las ventanas de los módulos (Fiados, Historial, Merma, Cerrar turno...) ocupan toda
+   la pantalla: sin márgenes, sin esquinas, sin velo borroso y respetando la zona segura. Entran subiendo con la
+   misma curva del menú. En escritorio no cambia nada. Se aplica con .pantalla-movil (velo) y
+   .pantalla-movil-panel (la ventana); los diálogos cortos (confirmaciones, PIN) no la llevan. */
+@media (max-width: 767px) {
+  .pantalla-movil {
+    padding: 0 !important;
+    background: #f3f5ff !important;
+    -webkit-backdrop-filter: none !important;
+    backdrop-filter: none !important;
+    align-items: stretch !important;
+    justify-content: stretch !important;
+  }
+  .pantalla-movil-panel {
+    max-width: none !important;
+    width: 100% !important;
+    height: 100dvh !important;
+    max-height: none !important;
+    border-radius: 0 !important;
+    border: 0 !important;
+    box-shadow: none !important;
+    padding-top: env(safe-area-inset-top);
+    padding-bottom: env(safe-area-inset-bottom);
+    animation: menu-sube 320ms cubic-bezier(0.32, 0.72, 0, 1) backwards;
+  }
+}
+@media (max-width: 767px) and (prefers-reduced-motion: reduce) {
+  .pantalla-movil-panel { animation: menu-vela 200ms ease backwards; }
+}
+
 /* Menú del celular: la hoja sube con curva de cajón. Solo "backwards": después de la entrada el
    estilo en línea (el arrastre para cerrar) manda sobre la animación. */
 @keyframes menu-sube { from { transform: translateY(100%); } }
