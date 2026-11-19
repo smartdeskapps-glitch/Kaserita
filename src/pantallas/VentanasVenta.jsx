@@ -2,6 +2,7 @@
 // Extraído de src/main.jsx: mismo JSX; recibe por props lo que usa del POS.
 import React from 'react';
 import { IconoTrazo, imprimirBoletaTermica, ReciboImprimible, QRPagoModal } from '../pos/componentes.jsx';
+import { ventaHistorialParaBoleta } from '../lib/boletaHistorial.js';
 import { CONFETI_BOLETA, formatoFechaHoraBoleta, formatoSoles, ICONO_MEDIO_PAGO } from '../pos/utilidades.js';
 
 export default function VentanasVenta({
@@ -151,6 +152,9 @@ export default function VentanasVenta({
             </div>
             <div className="flex gap-2">
               <button onClick={() => setReciboReimpresion(null)} className="h-12 px-5 bg-[#f3f5ff] hover:bg-[#dde4fa] text-[#473bb5] font-bold text-sm rounded-full transition">Cerrar</button>
+              {!reciboReimpresion.anulada && (
+                <button onClick={() => enviarBoletaWhatsApp(ventaHistorialParaBoleta(reciboReimpresion))} className="flex-1 h-12 inline-flex items-center justify-center gap-2 bg-[#e4f6ec] hover:bg-[#d3efe0] text-[#0f7b4a] font-bold text-sm rounded-full transition"><IconoTrazo nombre="chat" className="w-4 h-4" /> WhatsApp</button>
+              )}
               <button onClick={imprimirBoletaTermica} className="flex-1 h-12 inline-flex items-center justify-center gap-2 bg-[#5b4bd6] hover:bg-[#473bb5] text-white font-bold text-sm rounded-full shadow-[0_8px_18px_-8px_rgba(91,75,214,0.6)] transition"><IconoTrazo nombre="print" className="w-4 h-4" /> Imprimir</button>
             </div>
           </div>

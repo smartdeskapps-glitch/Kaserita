@@ -36,7 +36,7 @@ export default function useHistorialVentas({
       try {
         const { data, error } = await sbClient
           .from('ventas')
-          .select('*, clientes(nombre_completo), ventas_detalle(*, productos(descripcion, unidad))')
+          .select('*, clientes(nombre_completo, telefono), ventas_detalle(*, productos(descripcion, unidad))')
           .eq('bodega_id', bodegaId)
           .gte('fecha_hora', inicio.toISOString())
           .lte('fecha_hora', fin.toISOString())

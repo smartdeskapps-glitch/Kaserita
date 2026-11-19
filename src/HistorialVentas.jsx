@@ -1,5 +1,7 @@
 import React from 'react';
 import VentanaModulo from './VentanaModulo.jsx';
+import { IconoTrazo } from './pos/componentes.jsx';
+import { ventaHistorialParaBoleta } from './lib/boletaHistorial.js';
 
 // Modal separado de main.jsx: se carga al abrirlo (React.lazy). El estado y las acciones
 // siguen en PosApp: aquí solo se dibuja lo que recibe por props.
@@ -12,6 +14,7 @@ export default function HistorialVentas({
   cargarHistorialPorRango,
   elegirAtajoHistorial,
   esAdmin,
+  enviarBoletaWhatsApp,
   etiquetaDiaHistorial,
   exportarVentasExcel,
   fechaFinHistorial,
@@ -82,12 +85,18 @@ export default function HistorialVentas({
                 const tarjeta = `relative overflow-hidden bg-white border ${borde} rounded-[18px] px-5 py-[18px] shadow-[0_1px_2px_rgba(20,10,50,0.04),0_16px_36px_-26px_rgba(20,10,50,0.3)]`;
                 const chispa = (<svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor" aria-hidden="true"><path d="M12 3c.6 4.6 2.4 6.4 7 7-4.6.6-6.4 2.4-7 7-.6-4.6-2.4-6.4-7-7 4.6-.6 6.4-2.4 7-7Z" /><path d="M19 15c.3 1.8 1 2.5 2.8 2.8-1.8.3-2.5 1-2.8 2.8-.3-1.8-1-2.5-2.8-2.8 1.8-.3 2.5-1 2.8-2.8Z" /></svg>);
 
+                // Reenvía la boleta (PDF) por WhatsApp, por si no se mandó al cobrar.
+                const enviarWsp = (v) => enviarBoletaWhatsApp(ventaHistorialParaBoleta(v));
+
                 const menuVenta = (v) => (
                   <>
                     <div className="fixed inset-0 z-[5]" onClick={() => setMenuVentaHistorial(null)}></div>
                     <div className={`absolute right-3 top-10 z-10 bg-white border ${borde} rounded-xl p-1 min-w-[190px] shadow-[0_12px_30px_-8px_rgba(20,10,50,0.25)] text-left`}>
                       <button onClick={() => { setMenuVentaHistorial(null); setVentaDetalleHistorial(v.id); }} className="w-full flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-[13px] font-medium text-stone-700 hover:bg-[#f7f8fc]"><i className="fa-regular fa-eye w-4 text-stone-500"></i> Ver detalle</button>
                       <button onClick={() => { setMenuVentaHistorial(null); setReciboReimpresion(v); }} className="w-full flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-[13px] font-medium text-stone-700 hover:bg-[#f7f8fc]"><i className="fa-solid fa-print w-4 text-stone-500"></i> Reimprimir boleta</button>
+                      {!v.anulada && (
+                        <button onClick={() => { setMenuVentaHistorial(null); enviarWsp(v); }} className="w-full flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-[13px] font-medium text-stone-700 hover:bg-[#f7f8fc]"><IconoTrazo nombre="chat" className="w-4 h-4 text-stone-500" /> Enviar por WhatsApp</button>
+                      )}
                       {!v.anulada && esAdmin && (
                         <>
                           <div className={`border-t ${borde} my-1`}></div>
@@ -135,10 +144,15 @@ export default function HistorialVentas({
                         </div>
                       </div>
                     </div>
-                    <div className={`grid gap-2.5 ${!v.anulada && esAdmin ? 'grid-cols-[1.3fr_1fr]' : 'grid-cols-1'}`}>
+                    <div className="flex flex-col gap-2.5">
                       <button onClick={() => setReciboReimpresion(v)} className="kz-pri h-12 text-sm font-semibold inline-flex items-center justify-center gap-2"><i className="fa-solid fa-print text-xs"></i><span>Reimprimir</span>{chispa}</button>
-                      {!v.anulada && esAdmin && (
-                        <button onClick={() => anularVentaHoy(v)} className={`${botonFantasma} h-12 !text-[#c0262d]`}><i className="fa-solid fa-ban text-xs"></i> Anular</button>
+                      {!v.anulada && (
+                        <div className={`grid gap-2.5 ${esAdmin ? 'grid-cols-2' : 'grid-cols-1'}`}>
+                          <button onClick={() => enviarWsp(v)} className={`${botonFantasma} h-12`}><IconoTrazo nombre="chat" className="w-4 h-4" /> Enviar por WhatsApp</button>
+                          {esAdmin && (
+                            <button onClick={() => anularVentaHoy(v)} className={`${botonFantasma} h-12 !text-[#c0262d]`}><i className="fa-solid fa-ban text-xs"></i> Anular</button>
+                          )}
+                        </div>
                       )}
                     </div>
                   </div>

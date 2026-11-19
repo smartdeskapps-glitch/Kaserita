@@ -10,7 +10,7 @@ export default function VentanasReportes({
   busquedaBoletaHistorial, cajeroSeleccionado, cambiarConteo, cargandoDashboard,
   cargandoHistorial, cargarDashboard, cargarHistorialPorRango, clientesDeuda, combosVendidos,
   confirmarCierreConArqueo, conteoAbierto, conteoEfectivo, dashStats, diaCalendarioSel,
-  diasAnioDash, diasAnioRango, elegirAtajoHistorial, esAdmin, etiquetaDiaHistorial,
+  diasAnioDash, diasAnioRango, elegirAtajoHistorial, enviarBoletaWhatsApp, esAdmin, etiquetaDiaHistorial,
   exportarDashboardExcel, exportarVentasExcel, fechaFinDash, fechaFinHistorial,
   fechaInicioDash, fechaInicioHistorial, horaResaltada, limiteHistorial, menuVentaHistorial,
   mesCalendario, mesResaltado, modalCierreCaja, modalDashboard, modalHistorial,
@@ -71,6 +71,7 @@ export default function VentanasReportes({
             cargandoHistorial={cargandoHistorial}
             cargarHistorialPorRango={cargarHistorialPorRango}
             elegirAtajoHistorial={elegirAtajoHistorial}
+            enviarBoletaWhatsApp={enviarBoletaWhatsApp}
             esAdmin={esAdmin}
             etiquetaDiaHistorial={etiquetaDiaHistorial}
             exportarVentasExcel={exportarVentasExcel}
