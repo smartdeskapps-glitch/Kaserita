@@ -129,10 +129,15 @@ export default function PanelCarrito({
           </button>
         </div>
         <section
-          className={`${mostrarResumenMobile ? 'flex' : 'hidden'} md:flex flex-col w-full md:flex-1 bg-white border border-stone-200 md:border-none fixed inset-x-0 bottom-0 top-auto md:static md:inset-auto rounded-t-2xl md:rounded-tl-none md:rounded-tr-2xl md:rounded-bl-2xl md:rounded-br-2xl max-h-[88dvh] md:max-h-none md:min-h-0 md:-mt-px shadow-2xl md:shadow-none overflow-hidden z-50 md:z-auto`}
+          className={`${mostrarResumenMobile ? 'flex' : 'hidden'} md:flex flex-col w-full md:flex-1 border border-stone-200 md:border-none fixed inset-x-0 bottom-0 md:static md:inset-auto md:rounded-tl-none md:rounded-tr-2xl md:rounded-bl-2xl md:rounded-br-2xl md:max-h-none md:h-auto md:min-h-0 md:-mt-px shadow-2xl md:shadow-none overflow-hidden z-50 md:z-auto ${
+            // Celular, paso de cobro: pantalla completa (sin hoja a medias). Con el carrito, hoja de abajo.
+            mostrarPago
+              ? 'top-0 h-[100dvh] rounded-none bg-[#f3f5ff] md:bg-white pt-[env(safe-area-inset-top)] md:pt-0'
+              : 'top-auto max-h-[88dvh] rounded-t-2xl bg-white'
+          }`}
         >
-        {/* Manija de arrastre (solo mobile) */}
-        <div className="md:hidden w-10 h-1.5 bg-stone-300 rounded-full mx-auto mt-2.5 mb-1 shrink-0"></div>
+        {/* Manija de arrastre (solo celular, en la hoja del carrito) */}
+        <div className={`${mostrarPago ? 'hidden' : 'md:hidden'} w-10 h-1.5 bg-stone-300 rounded-full mx-auto mt-2.5 mb-1 shrink-0`}></div>
 
         {modalPedidosRetirar ? (
         <>
@@ -995,7 +1000,7 @@ export default function PanelCarrito({
 
           {/* Total y botón de cobro siempre a la vista: si las opciones de pago no
               caben en pantallas bajas, lo de arriba hace scroll y esto se queda abajo. */}
-          <div className="sticky bottom-0 -mx-4 -mb-4 px-4 pb-4 pt-3 space-y-3 bg-[#f3f5ff] shadow-[0_-12px_18px_-14px_rgba(40,20,100,0.28)]">
+          <div className="sticky bottom-0 -mx-4 -mb-4 px-4 pb-[max(1rem,env(safe-area-inset-bottom))] pt-3 space-y-3 bg-[#f3f5ff] shadow-[0_-12px_18px_-14px_rgba(40,20,100,0.28)]">
           <div className="hidden md:block bg-[#ebf0ff] border border-[#dde4fa] rounded-[22px] px-4 py-3 space-y-1.5">
             {montoDescuento > 0 && (
               <>
