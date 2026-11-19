@@ -243,13 +243,44 @@ export function ReciboImprimible({ bodega, direccion, telefono, boleta, fecha, c
 // guardada en este navegador). No se genera un QR "falso" porque Yape/Plin
 // usan un formato propietario del banco — aquí se reutiliza la imagen
 // física/oficial del negocio.
-export function QRPagoModal({ bodegaId, medioPago, monto, onClose }) {
+// El QR vive en la base de datos (tabla qr_pago, uno por bodega y medio): así aparece en todos los
+// celulares y computadoras de la bodega. En este navegador queda una copia para abrir al instante y
+// para seguir funcionando sin internet. En modo demo no se toca la base.
+const MAX_QR_BASE = 600000; // el mismo tope que la tabla
+
+export function QRPagoModal({ bodegaId, medioPago, monto, onClose, sbClient, esModoDemo }) {
   const storageKey = `qr_pago_${medioPago}_${bodegaId}`;
+  const usarBase = !!sbClient && !esModoDemo && !!bodegaId;
   const [qrImg, setQrImg] = useState(() => localStorage.getItem(storageKey));
   const [procesando, setProcesando] = useState(false);
   const [aviso, setAviso] = useState('');
   const nombreMedio = medioPago === 'YAPE' ? 'Yape' : medioPago === 'PLIN' ? 'Plin' : medioPago;
   const inputRef = useRef(null);
+
+  // Al abrir: si la base ya tiene el QR de la bodega, se usa ese. Si no lo tiene pero este dispositivo
+  // sí (subido antes de que existiera la tabla), se sube solo para que quede en todos lados.
+  useEffect(() => {
+    if (!usarBase) return undefined;
+    let vivo = true;
+    (async () => {
+      try {
+        const { data, error } = await sbClient.from('qr_pago').select('imagen').eq('bodega_id', bodegaId).eq('medio', medioPago).maybeSingle();
+        if (error || !vivo) return;
+        if (data && data.imagen) {
+          try { localStorage.setItem(storageKey, data.imagen); } catch (err) { /* sin espacio: se usa desde la base */ }
+          setQrImg(data.imagen);
+          return;
+        }
+        const local = localStorage.getItem(storageKey);
+        if (local && local.startsWith('data:image/') && local.length <= MAX_QR_BASE) {
+          await sbClient.from('qr_pago').upsert({ bodega_id: bodegaId, medio: medioPago, imagen: local, actualizado: new Date().toISOString() }, { onConflict: 'bodega_id,medio' });
+        }
+      } catch (err) {
+        // sin conexión: se queda con la copia de este dispositivo
+      }
+    })();
+    return () => { vivo = false; };
+  }, [bodegaId, medioPago]);
 
   // La foto suele traer el logo, el nombre y el fondo de color: se busca el QR y se guarda solo él.
   const guardarQRDesdeArchivo = async (file) => {
@@ -258,14 +289,28 @@ export function QRPagoModal({ bodegaId, medioPago, monto, onClose }) {
     setAviso('');
     try {
       const { dataUrl, recortado } = await prepararImagenQR(file);
+      let enBase = false;
+      if (usarBase) {
+        try {
+          const { error } = await sbClient.from('qr_pago').upsert({ bodega_id: bodegaId, medio: medioPago, imagen: dataUrl, actualizado: new Date().toISOString() }, { onConflict: 'bodega_id,medio' });
+          enBase = !error;
+        } catch (err) {
+          enBase = false;
+        }
+      }
+      let enDispositivo = true;
       try {
         localStorage.setItem(storageKey, dataUrl);
       } catch (err) {
-        setAviso('No se pudo guardar el QR en este dispositivo. Prueba con una imagen más liviana.');
+        enDispositivo = false;
+      }
+      if (!enBase && !enDispositivo) {
+        setAviso('No se pudo guardar el QR. Prueba con una imagen más liviana.');
         return;
       }
       setQrImg(dataUrl);
-      if (!recortado) setAviso('No encontramos el código dentro de la foto y se guardó tal cual. Si se ven otros adornos, sube una captura con solo el QR.');
+      if (usarBase && !enBase) setAviso('Se guardó solo en este dispositivo porque no hubo conexión con el servidor. Súbelo de nuevo cuando tengas internet para que aparezca en los demás.');
+      else if (!recortado) setAviso('No encontramos el código dentro de la foto y se guardó tal cual. Si se ven otros adornos, sube una captura con solo el QR.');
     } catch (err) {
       setAviso('No se pudo abrir esa imagen. Prueba con otra.');
     } finally {

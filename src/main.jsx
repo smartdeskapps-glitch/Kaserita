@@ -1905,7 +1905,7 @@ import PantallaAdmin from './pantallas/PantallaAdmin.jsx';
           <VentanasVenta {...{
             bodegaDireccion, bodegaId, bodegaNombre, bodegaTelefono, enviarBoletaWhatsApp,
             imprimirBoletaBluetooth, medioQR, nombreClienteHistorial, reciboReimpresion, setMedioQR,
-            setReciboReimpresion, setVentaCompletada, totalConDescuento, ventaCompletada
+            setReciboReimpresion, setVentaCompletada, totalConDescuento, ventaCompletada, sbClient, esModoDemo
           }} />
 
           <DialogosGenericos {...{

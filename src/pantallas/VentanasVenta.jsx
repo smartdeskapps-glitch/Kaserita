@@ -7,7 +7,7 @@ import { CONFETI_BOLETA, formatoFechaHoraBoleta, formatoSoles, ICONO_MEDIO_PAGO 
 export default function VentanasVenta({
   bodegaDireccion, bodegaId, bodegaNombre, bodegaTelefono, enviarBoletaWhatsApp,
   imprimirBoletaBluetooth, medioQR, nombreClienteHistorial, reciboReimpresion, setMedioQR,
-  setReciboReimpresion, setVentaCompletada, totalConDescuento, ventaCompletada
+  setReciboReimpresion, setVentaCompletada, totalConDescuento, ventaCompletada, sbClient, esModoDemo
 }) {
   return (
     <>
@@ -104,6 +104,8 @@ export default function VentanasVenta({
       {medioQR && (
         <QRPagoModal
           bodegaId={bodegaId}
+          sbClient={sbClient}
+          esModoDemo={esModoDemo}
           medioPago={medioQR}
           monto={totalConDescuento}
           onClose={() => setMedioQR(null)}
