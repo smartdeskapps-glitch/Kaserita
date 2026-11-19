@@ -1758,7 +1758,7 @@ import PantallaAdmin from './pantallas/PantallaAdmin.jsx';
             menuMas, productos, ranuraRiel, rolActivo, rolesEnServidor, sbClient, setBusquedaMenu,
             setCajeroPendientePin, setIndiceMenu, setMenuMas, setModalInventarioInicial, setModalMerma,
             setModalPinCajero, setModalTurno, setNuevoPinCajero, setPinConfirmarCajero, soltarAdmin,
-            turnoActivo
+            turnoActivo, bodegaNombre, usuarioActivo
           }} />
 
           {/* ========================================================================= */}

@@ -14,8 +14,11 @@ export default function MenuMas({
   menuMas, productos, ranuraRiel, rolActivo, rolesEnServidor, sbClient, setBusquedaMenu,
   setCajeroPendientePin, setIndiceMenu, setMenuMas, setModalInventarioInicial, setModalMerma,
   setModalPinCajero, setModalTurno, setNuevoPinCajero, setPinConfirmarCajero, soltarAdmin,
-  turnoActivo
+  turnoActivo, bodegaNombre, usuarioActivo
 }) {
+  // Referencias de la hoja del celular: el arrastre para cerrar mueve la hoja y atenúa el velo directamente.
+  const hojaRef = React.useRef(null);
+  const velaRef = React.useRef(null);
   return (
     <>
       {/* Menú "Más módulos" estilo paleta de comandos: buscador arriba,
@@ -101,21 +104,24 @@ export default function MenuMas({
           );
         }
 
-        // Celular: hoja que sube desde abajo.
+        // Celular: hoja que sube desde abajo (y se puede arrastrar hacia abajo para cerrarla).
         return (
-          <div className="fixed inset-0 bg-[#2d284b]/45 z-[60] flex items-end" onClick={cerrarMenu}>
+          <div ref={velaRef} className="menu-vela-anim fixed inset-0 bg-[#2d284b]/45 z-[60] flex items-end" onClick={cerrarMenu}>
             <div
-              className="menu-hoja relative w-full max-h-[88dvh] flex flex-col bg-white rounded-t-[28px] overflow-hidden"
+              ref={hojaRef}
+              className="menu-hoja menu-hoja-anim relative w-full max-h-[88dvh] flex flex-col bg-[#f3f5ff] rounded-t-[28px] overflow-hidden"
               onClick={(e) => e.stopPropagation()}
             >
-              <div className="w-10 h-1 bg-[#c5bcff] rounded-full mx-auto mt-2.5 shrink-0"></div>
               <MenuMovil
                 opciones={propsPaleta.opciones}
                 busqueda={busquedaMenu}
                 setBusqueda={setBusquedaMenu}
                 onClose={cerrarMenu}
                 turnoActivo={turnoActivo}
-                nombreCajero={cajeroSeleccionado?.nombre}
+                nombreUsuario={cajeroSeleccionado?.nombre || usuarioActivo?.nombre}
+                bodegaNombre={bodegaNombre}
+                hojaRef={hojaRef}
+                velaRef={velaRef}
               />
             </div>
           </div>

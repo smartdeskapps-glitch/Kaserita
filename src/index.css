@@ -592,9 +592,16 @@
 /* Menu "Mas": tarjeta flotante con linea de luz (Crocus sobre blanco) */
 .menu-hoja { box-shadow: 0 30px 70px -20px rgba(91,75,214,.45), 0 0 0 8px rgba(255,255,255,.35); }
 @media (max-width: 767px) { .menu-hoja { box-shadow: 0 -16px 50px -12px rgba(91,75,214,.4); } }
-.menu-tile-edita { animation: menu-tiembla 0.5s ease-in-out infinite alternate; }
-@keyframes menu-tiembla { from { transform: rotate(-0.6deg); } to { transform: rotate(0.6deg); } }
-@media (prefers-reduced-motion: reduce) { .menu-tile-edita { animation: none; } }
+/* Menú del celular: la hoja sube con curva de cajón. Solo "backwards": después de la entrada el
+   estilo en línea (el arrastre para cerrar) manda sobre la animación. */
+@keyframes menu-sube { from { transform: translateY(100%); } }
+@keyframes menu-vela { from { opacity: 0; } }
+.menu-hoja-anim { animation: menu-sube 380ms cubic-bezier(0.32, 0.72, 0, 1) backwards; }
+.menu-vela-anim { animation: menu-vela 240ms ease backwards; }
+@media (prefers-reduced-motion: reduce) { .menu-hoja-anim { animation: menu-vela 200ms ease backwards; } }
+.menu-cuerpo > * { flex: none; }
+/* Línea de 1 px entre filas, que empieza donde empieza el texto. */
+.menu-fila + .menu-fila::before { content: ''; position: absolute; left: 50px; right: 0; top: 0; height: 1px; background: rgba(91, 75, 214, 0.07); }
 .menu-it-on { background: linear-gradient(90deg, #ebf0ff, #f6f4ff); box-shadow: 0 8px 22px -10px rgba(91,75,214,.45); }
 .menu-it-on .menu-ic.bg-\[\#ebf0ff\] { background: linear-gradient(135deg, #9687f5, #5b4bd6); color: #fff; box-shadow: 0 6px 14px -4px rgba(91,75,214,.6); }
 
