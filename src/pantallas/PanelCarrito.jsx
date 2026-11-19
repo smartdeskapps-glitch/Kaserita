@@ -4,7 +4,6 @@ import React from 'react';
 import { IconoTrazo, NumericKeypad } from '../pos/componentes.jsx';
 import { urlMapa, formatoSoles } from '../pos/utilidades.js';
 import { FotoProducto } from '../PanelAdminCompartido.jsx';
-import DeslizarParaConfirmar from '../DeslizarParaConfirmar.jsx';
 import AvisosPush from '../pos/AvisosPush.jsx';
 
 // --- Pantalla de cobro: piezas que se repiten ---
@@ -1024,15 +1023,36 @@ export default function PanelCarrito({
             </div>
           </div>
 
-          <div className="md:hidden">
-            <DeslizarParaConfirmar
-              onConfirm={handleCobrar}
-              ocupado={procesandoVenta}
-              disabled={carrito.length === 0 || !turnoActivo || (medioPago === 'EFECTIVO' && vuelto < 0)}
-              texto={medioPago === 'CREDITO' ? 'Desliza para fiar' : 'Desliza para cobrar'}
-              textoBloqueado={!turnoActivo ? 'Abre un turno para cobrar' : (medioPago === 'EFECTIVO' && vuelto < 0) ? `Falta S/ ${Math.abs(vuelto).toFixed(2)}` : ''}
-            />
-          </div>
+          {/* Celular: un solo toque. Antes era "desliza para cobrar", pero a mucha gente se le complicaba el gesto.
+              La pantalla de cobro ya muestra el total y el medio de pago, y una venta mal cobrada se puede anular. */}
+          {(() => {
+            const faltaEfectivo = medioPago === 'EFECTIVO' && vuelto < 0;
+            const bloqueado = carrito.length === 0 || !turnoActivo || faltaEfectivo;
+            return (
+              <button
+                type="button"
+                onClick={handleCobrar}
+                disabled={bloqueado || procesandoVenta}
+                className={`md:hidden w-full h-[58px] rounded-full font-bold text-[17px] tracking-tight inline-flex items-center justify-center gap-2.5 transition active:scale-[0.98] ${
+                  bloqueado
+                    ? 'bg-[#e6e9f5] text-[#8b869a] cursor-not-allowed'
+                    : 'bg-gradient-to-r from-[#6a5ae0] to-[#473bb5] text-white shadow-[0_12px_24px_-12px_rgba(71,59,181,0.75)]'
+                } ${procesandoVenta ? 'opacity-80' : ''}`}
+              >
+                {procesandoVenta ? (
+                  <><i className="fa-solid fa-spinner fa-spin"></i> Registrando venta...</>
+                ) : !turnoActivo ? (
+                  <><IconoTrazo nombre="warn" className="w-5 h-5" /> Abre un turno para cobrar</>
+                ) : faltaEfectivo ? (
+                  <>Falta S/ {Math.abs(vuelto).toFixed(2)}</>
+                ) : medioPago === 'CREDITO' ? (
+                  <><IconoTrazo nombre="credito" className="w-5 h-5" /> Fiar S/ {formatoSoles(totalConDescuento)}</>
+                ) : (
+                  <><IconoTrazo nombre="check" className="w-5 h-5" grosor={2.6} /> Cobrar S/ {formatoSoles(totalConDescuento)}</>
+                )}
+              </button>
+            );
+          })()}
           <button
             onClick={handleCobrar}
             disabled={procesandoVenta || carrito.length === 0 || !turnoActivo}
