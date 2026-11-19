@@ -3,6 +3,7 @@
 import React from 'react';
 import { createPortal } from 'react-dom';
 import PaletaMenu from '../PaletaMenu.jsx';
+import MenuMovil from './MenuMovil.jsx';
 
 export default function MenuMas({
   abrirAgenda, abrirAuditoria, abrirCierreCaja, abrirComisiones, abrirCuentasPorPagar,
@@ -10,7 +11,7 @@ export default function MenuMas({
   abrirHistorialDelDia, abrirModalCombos, abrirModalDelivery, abrirModuloCobroDeudas,
   abrirInventarioValorizado, abrirTomaInventario, busquedaMenu, cajeroSeleccionado, cerrarSesion, elevado, esAdmin,
   esBarberia, esCajeroDelUsuarioActivo, esModoDemo, indiceMenu, listaCajeros, menuEnRiel,
-  menuMas, ranuraRiel, rolActivo, rolesEnServidor, sbClient, setBusquedaMenu,
+  menuMas, productos, ranuraRiel, rolActivo, rolesEnServidor, sbClient, setBusquedaMenu,
   setCajeroPendientePin, setIndiceMenu, setMenuMas, setModalInventarioInicial, setModalMerma,
   setModalPinCajero, setModalTurno, setNuevoPinCajero, setPinConfirmarCajero, soltarAdmin,
   turnoActivo
@@ -25,32 +26,36 @@ export default function MenuMas({
           superior. Las opciones son datos (no botones sueltos) para que
           el buscador y el teclado funcionen sobre la misma lista. */}
       {menuMas && (() => {
+        // Productos con 5 o menos unidades: mismo criterio que "Por reponer" en Entrada de mercadería.
+        const porReponer = (productos || []).filter((p) => p.stock_actual !== null && p.stock_actual !== undefined && p.stock_actual !== '' && Number(p.stock_actual) <= 5).length;
+        // `id`, `trazo` (icono de trazo) y `sub` (subtítulo) los usa la hoja del celular; la paleta de
+        // escritorio solo lee etiqueta, grupo, buscar e icono.
         const opciones = [
           turnoActivo
-            ? { grupo: '', etiqueta: 'Cerrar Caja', icono: 'fa-lock', tono: 'rose', accion: abrirCierreCaja }
-            : { grupo: '', etiqueta: 'Abrir Turno', icono: 'fa-bolt', tono: 'primario', soloMovil: true, accion: () => setModalTurno(true) },
-          { grupo: 'Ventas y caja', etiqueta: 'Fiados', buscar: 'cuentas por cobrar deudas credito', icono: 'fa-hand-holding-dollar', accion: abrirModuloCobroDeudas },
-          { grupo: 'Ventas y caja', etiqueta: 'Historial', icono: 'fa-receipt', accion: abrirHistorialDelDia },
-          !esBarberia && { grupo: 'Inventario', etiqueta: 'Toma de Inventario', icono: 'fa-clipboard-check', accion: abrirTomaInventario },
-          { grupo: 'Inventario', etiqueta: 'Registrar merma', buscar: 'merma perdida vencido roto robo', icono: 'fa-box', accion: () => setModalMerma(true) },
+            ? { grupo: '', etiqueta: 'Cerrar Caja', icono: 'fa-lock', trazo: 'candado', tono: 'rose', esTurno: true, accion: abrirCierreCaja }
+            : { grupo: '', etiqueta: 'Abrir Turno', icono: 'fa-bolt', trazo: 'rayo', tono: 'primario', soloMovil: true, esTurno: true, accion: () => setModalTurno(true) },
+          { id: 'fiados', grupo: 'Ventas y caja', etiqueta: 'Fiados', buscar: 'cuentas por cobrar deudas credito deuda', icono: 'fa-hand-holding-dollar', trazo: 'hand', sub: 'Cuentas por cobrar', accion: abrirModuloCobroDeudas },
+          { id: 'historial', grupo: 'Ventas y caja', etiqueta: 'Historial', buscar: 'ventas boletas anular reimprimir whatsapp', icono: 'fa-receipt', trazo: 'recibo', sub: 'Ventas, boletas y anulaciones', accion: abrirHistorialDelDia },
+          !esBarberia && { id: 'toma', grupo: 'Inventario', etiqueta: 'Toma de Inventario', buscar: 'conteo stock contar', icono: 'fa-clipboard-check', trazo: 'clip', sub: 'Cuenta y ajusta el stock', accion: abrirTomaInventario },
+          { id: 'merma', grupo: 'Inventario', etiqueta: 'Registrar merma', buscar: 'merma perdida vencido roto robo', icono: 'fa-box', trazo: 'warn', sub: 'Vencidos, rotos o perdidos', accion: () => setModalMerma(true) },
           ...(esAdmin ? [
-            { grupo: 'Administración', etiqueta: 'Dashboard de Ventas', icono: 'fa-chart-pie', accion: abrirDashboard },
-            !esBarberia && { grupo: 'Administración', etiqueta: 'Inventario valorizado', buscar: 'costo venta ganancia margen precio valor inversion utilidad', icono: 'fa-tags', accion: abrirInventarioValorizado },
-            !esBarberia && { grupo: 'Administración', etiqueta: 'Cuentas por Pagar', icono: 'fa-file-invoice', accion: abrirCuentasPorPagar },
-            { grupo: 'Administración', etiqueta: esBarberia ? 'Barberos' : 'Cajeros y Empleados', icono: 'fa-user-group', accion: abrirGestionCajeros },
-            esBarberia && { grupo: 'Administración', etiqueta: 'Comisiones de barberos', icono: 'fa-percent', accion: abrirComisiones },
-            esBarberia && { grupo: 'Administración', etiqueta: 'Agenda de citas', icono: 'fa-calendar-days', accion: abrirAgenda },
-            { grupo: 'Administración', etiqueta: 'Registro de actividad', icono: 'fa-clipboard-check', accion: abrirAuditoria },
-            { grupo: 'Administración', etiqueta: 'Mi Link de Pedidos', icono: 'fa-share-nodes', accion: abrirModalDelivery },
-            { grupo: 'Entradas', etiqueta: esBarberia ? 'Registrar Servicios y Productos' : 'Registrar Productos', icono: 'fa-boxes-stacked', accion: () => setModalInventarioInicial(true) },
-            !esBarberia && { grupo: 'Entradas', etiqueta: 'Entrada de Mercadería', icono: 'fa-truck-ramp-box', accion: abrirEntradaMercaderia },
-            { grupo: 'Catálogo', etiqueta: 'Combos', icono: 'fa-gift', accion: abrirModalCombos },
+            { id: 'dashboard', grupo: 'Administración', etiqueta: 'Dashboard de Ventas', buscar: 'reportes ganancia analisis', icono: 'fa-chart-pie', trazo: 'pie', sub: 'Ventas, ganancia y tendencias', accion: abrirDashboard },
+            !esBarberia && { id: 'valorizado', grupo: 'Administración', etiqueta: 'Inventario valorizado', buscar: 'costo venta ganancia margen precio valor inversion utilidad', icono: 'fa-tags', trazo: 'etiqueta', sub: 'Costo, venta y ganancia', accion: abrirInventarioValorizado },
+            !esBarberia && { id: 'pagar', grupo: 'Administración', etiqueta: 'Cuentas por Pagar', buscar: 'proveedores deuda', icono: 'fa-file-invoice', trazo: 'credito', sub: 'Lo que debes a proveedores', accion: abrirCuentasPorPagar },
+            { id: 'cajeros', grupo: 'Administración', etiqueta: esBarberia ? 'Barberos' : 'Cajeros y Empleados', buscar: 'personal usuarios pin', icono: 'fa-user-group', trazo: 'users', sub: 'Quién puede entrar y vender', accion: abrirGestionCajeros },
+            esBarberia && { id: 'comisiones', grupo: 'Administración', etiqueta: 'Comisiones de barberos', icono: 'fa-percent', trazo: 'porcentaje', sub: 'Pagos por barbero', accion: abrirComisiones },
+            esBarberia && { id: 'agenda', grupo: 'Administración', etiqueta: 'Agenda de citas', icono: 'fa-calendar-days', trazo: 'calendario', sub: 'Citas del día', accion: abrirAgenda },
+            { id: 'actividad', grupo: 'Administración', etiqueta: 'Registro de actividad', buscar: 'auditoria cambios anulaciones', icono: 'fa-clipboard-check', trazo: 'act', sub: 'Cambios y anulaciones', accion: abrirAuditoria },
+            { id: 'link', grupo: 'Administración', etiqueta: 'Mi Link de Pedidos', buscar: 'delivery tienda pedidos online', icono: 'fa-share-nodes', trazo: 'compartir', sub: 'Tu tienda para clientes', accion: abrirModalDelivery },
+            { id: 'registrar', grupo: 'Entradas', etiqueta: esBarberia ? 'Registrar Servicios y Productos' : 'Registrar Productos', buscar: 'crear producto nuevo catalogo', icono: 'fa-boxes-stacked', trazo: 'boxes', sub: 'Agrega productos nuevos', accion: () => setModalInventarioInicial(true) },
+            !esBarberia && { id: 'entrada', grupo: 'Entradas', etiqueta: 'Entrada de Mercadería', buscar: 'compra proveedor reponer stock', icono: 'fa-truck-ramp-box', trazo: 'truck', sub: porReponer > 0 ? `${porReponer} por reponer` : 'Suma stock de tus compras', subTono: porReponer > 0 ? 'amb' : undefined, accion: abrirEntradaMercaderia },
+            { id: 'combos', grupo: 'Catálogo', etiqueta: 'Combos', buscar: 'promociones ofertas packs', icono: 'fa-gift', trazo: 'gift', sub: 'Promociones y packs', accion: abrirModalCombos },
           ] : []),
           // El manual solo lo sirve /api/manual a quien tiene sesión: antes de abrirlo se
           // renueva el token por si venció, y la pestaña se abre primero para que el
           // navegador no la bloquee como ventana emergente.
           !esModoDemo && {
-            grupo: 'Cuenta', etiqueta: 'Manual de uso', icono: 'fa-circle-question',
+            grupo: 'Cuenta', etiqueta: 'Manual de uso', icono: 'fa-circle-question', trazo: 'ayuda',
             accion: () => {
               const pestana = window.open('', '_blank');
               Promise.resolve(sbClient?.auth.getSession()).catch(() => {}).finally(() => {
@@ -62,9 +67,9 @@ export default function MenuMas({
           // Administración protegida por PIN en el servidor.
           (!esModoDemo && rolesEnServidor && (rolActivo === 'dueno' || rolActivo === 'administrador')) && (
             elevado
-              ? { grupo: 'Cuenta', etiqueta: 'Bloquear administración', icono: 'fa-lock', accion: soltarAdmin }
+              ? { grupo: 'Cuenta', etiqueta: 'Bloquear administración', icono: 'fa-lock', trazo: 'candado', accion: soltarAdmin }
               : {
-                  grupo: 'Cuenta', etiqueta: 'Desbloquear administración', icono: 'fa-lock-open', tono: 'amber',
+                  grupo: 'Cuenta', etiqueta: 'Desbloquear administración', icono: 'fa-lock-open', trazo: 'candadoAbierto', tono: 'amber',
                   insignia: 'PIN',
                   accion: () => {
                     const c = cajeroSeleccionado || listaCajeros.find(esCajeroDelUsuarioActivo);
@@ -73,10 +78,10 @@ export default function MenuMas({
                 }
           ),
           (!esModoDemo && rolesEnServidor && elevado && rolActivo === 'dueno' && cajeroSeleccionado) && {
-            grupo: 'Cuenta', etiqueta: 'Cambiar mi PIN de administrador', icono: 'fa-key',
+            grupo: 'Cuenta', etiqueta: 'Cambiar mi PIN de administrador', icono: 'fa-key', trazo: 'llave',
             accion: () => { setNuevoPinCajero(''); setModalPinCajero(cajeroSeleccionado); }
           },
-          { grupo: 'Cuenta', etiqueta: 'Cerrar Sesión', icono: 'fa-right-from-bracket', tono: 'rose', accion: cerrarSesion },
+          { grupo: 'Cuenta', etiqueta: 'Cerrar Sesión', icono: 'fa-right-from-bracket', trazo: 'salir', tono: 'rose', accion: cerrarSesion },
         ].filter(Boolean);
         // El botón "Abrir Turno" del encabezado ya está visible desde sm (640px);
         // en pantallas más chicas se oculta y solo queda este ítem del menú.
@@ -100,11 +105,18 @@ export default function MenuMas({
         return (
           <div className="fixed inset-0 bg-[#2d284b]/45 z-[60] flex items-end" onClick={cerrarMenu}>
             <div
-              className="menu-hoja relative w-full max-h-[85dvh] flex flex-col bg-white/95 border-t border-[#dde4fa] rounded-t-3xl overflow-hidden"
+              className="menu-hoja relative w-full max-h-[88dvh] flex flex-col bg-white rounded-t-[28px] overflow-hidden"
               onClick={(e) => e.stopPropagation()}
             >
-              <div className="w-10 h-1 bg-[#c5bcff] rounded-full mx-auto mt-2.5"></div>
-              <PaletaMenu {...propsPaleta} />
+              <div className="w-10 h-1 bg-[#c5bcff] rounded-full mx-auto mt-2.5 shrink-0"></div>
+              <MenuMovil
+                opciones={propsPaleta.opciones}
+                busqueda={busquedaMenu}
+                setBusqueda={setBusquedaMenu}
+                onClose={cerrarMenu}
+                turnoActivo={turnoActivo}
+                nombreCajero={cajeroSeleccionado?.nombre}
+              />
             </div>
           </div>
         );

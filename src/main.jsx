@@ -1755,7 +1755,7 @@ import PantallaAdmin from './pantallas/PantallaAdmin.jsx';
             abrirHistorialDelDia, abrirModalCombos, abrirModalDelivery, abrirModuloCobroDeudas,
             abrirInventarioValorizado, abrirTomaInventario, busquedaMenu, cajeroSeleccionado, cerrarSesion, elevado, esAdmin,
             esBarberia, esCajeroDelUsuarioActivo, esModoDemo, indiceMenu, listaCajeros, menuEnRiel,
-            menuMas, ranuraRiel, rolActivo, rolesEnServidor, sbClient, setBusquedaMenu,
+            menuMas, productos, ranuraRiel, rolActivo, rolesEnServidor, sbClient, setBusquedaMenu,
             setCajeroPendientePin, setIndiceMenu, setMenuMas, setModalInventarioInicial, setModalMerma,
             setModalPinCajero, setModalTurno, setNuevoPinCajero, setPinConfirmarCajero, soltarAdmin,
             turnoActivo

@@ -592,6 +592,9 @@
 /* Menu "Mas": tarjeta flotante con linea de luz (Crocus sobre blanco) */
 .menu-hoja { box-shadow: 0 30px 70px -20px rgba(91,75,214,.45), 0 0 0 8px rgba(255,255,255,.35); }
 @media (max-width: 767px) { .menu-hoja { box-shadow: 0 -16px 50px -12px rgba(91,75,214,.4); } }
+.menu-tile-edita { animation: menu-tiembla 0.5s ease-in-out infinite alternate; }
+@keyframes menu-tiembla { from { transform: rotate(-0.6deg); } to { transform: rotate(0.6deg); } }
+@media (prefers-reduced-motion: reduce) { .menu-tile-edita { animation: none; } }
 .menu-it-on { background: linear-gradient(90deg, #ebf0ff, #f6f4ff); box-shadow: 0 8px 22px -10px rgba(91,75,214,.45); }
 .menu-it-on .menu-ic.bg-\[\#ebf0ff\] { background: linear-gradient(135deg, #9687f5, #5b4bd6); color: #fff; box-shadow: 0 6px 14px -4px rgba(91,75,214,.6); }
 
