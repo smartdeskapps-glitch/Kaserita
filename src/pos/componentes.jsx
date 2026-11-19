@@ -32,13 +32,16 @@ export function PestanasModal({ pestanas }) {
 // Teclado numérico en pantalla, reutilizable para efectivo y pagos mixtos.
 export function NumericKeypad({ value, onChange }) {
   const teclas = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '.', '0', 'BORRAR'];
+  // Al abrirse, se desliza hasta quedar entero a la vista (en celular el botón de cobrar tapaba las últimas teclas).
+  const cajaRef = useRef(null);
+  useEffect(() => { cajaRef.current?.scrollIntoView?.({ block: 'nearest', behavior: 'smooth' }); }, []);
   const presionar = (t) => {
     if (t === 'BORRAR') { onChange(value.slice(0, -1)); return; }
     if (t === '.' && value.includes('.')) return;
     onChange(value + t);
   };
   return (
-    <div className="grid grid-cols-3 gap-1.5 mt-3">
+    <div ref={cajaRef} className="grid grid-cols-3 gap-1.5 mt-3">
       {teclas.map((t) => (
         <button
           key={t}
@@ -245,6 +248,7 @@ export function QRPagoModal({ bodegaId, medioPago, monto, onClose }) {
   const [qrImg, setQrImg] = useState(() => localStorage.getItem(storageKey));
   const [procesando, setProcesando] = useState(false);
   const [aviso, setAviso] = useState('');
+  const nombreMedio = medioPago === 'YAPE' ? 'Yape' : medioPago === 'PLIN' ? 'Plin' : medioPago;
   const inputRef = useRef(null);
 
   // La foto suele traer el logo, el nombre y el fondo de color: se busca el QR y se guarda solo él.
@@ -284,36 +288,37 @@ export function QRPagoModal({ bodegaId, medioPago, monto, onClose }) {
   }, [storageKey]);
 
   return (
-    <div className="fixed inset-0 bg-black/85 flex items-center justify-center z-50 p-4">
-      <div className="bg-stone-100 border border-stone-200 rounded-2xl max-w-xs w-full p-5 shadow-2xl text-center space-y-3">
-        <h3 className="text-base font-bold text-stone-900">Pago con {medioPago}</h3>
-        <p className="text-sm text-stone-700">
-          Monto: <span className="font-black text-orange-600 text-lg">S/ {Number(monto).toFixed(2)}</span>
+    <div className="fixed inset-0 bg-[#2d284b]/70 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+      <div className="bg-white rounded-[28px] max-w-xs w-full p-5 shadow-2xl text-center space-y-3.5">
+        <h3 className="text-base font-bold text-stone-900">Pago con {nombreMedio}</h3>
+        <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-stone-500">
+          Monto a cobrar
+          <span className="block mt-0.5 text-[28px] leading-none font-extrabold normal-case tracking-tight text-[#5b4bd6] tabular-nums">S/ {Number(monto).toFixed(2)}</span>
         </p>
         {procesando ? (
-          <div className="bg-stone-50 border border-dashed border-stone-300 rounded-xl p-5 text-xs text-stone-600">
+          <div className="bg-[#f3f5ff] border border-dashed border-[#c5bcff] rounded-2xl p-6 text-xs text-stone-600">
             Buscando el código en la imagen…
           </div>
         ) : qrImg ? (
-          <div className="bg-white p-3 rounded-xl inline-block">
-            <img src={qrImg} alt={`QR ${medioPago}`} className="w-52 h-52 object-contain" />
+          <div className="bg-white p-3 rounded-2xl inline-block ring-1 ring-[#dde4fa] shadow-[0_10px_22px_-16px_rgba(45,40,75,0.45)]">
+            <img src={qrImg} alt={`QR de ${nombreMedio}`} className="w-52 h-52 object-contain" />
           </div>
         ) : (
-          <div className="bg-stone-50 border border-dashed border-stone-300 rounded-xl p-5 text-xs text-stone-600">
-            Aún no has guardado el QR de {medioPago} de tu bodega.
+          <div className="bg-[#f3f5ff] border border-dashed border-[#c5bcff] rounded-2xl p-6 text-xs text-stone-600 leading-snug">
+            Aún no has guardado el QR de {nombreMedio} de tu bodega.
           </div>
         )}
         <input ref={inputRef} type="file" accept="image/*" onChange={handleSubirQR} className="hidden" />
         <button
           type="button"
           onClick={() => inputRef.current?.click()}
-          className="w-full py-2 bg-stone-200 hover:bg-stone-300 text-stone-900 text-xs font-semibold rounded-lg"
+          className="w-full h-11 bg-[#ebf0ff] hover:bg-[#dde4fa] text-[#473bb5] text-[13px] font-bold rounded-full transition"
         >
-          {qrImg ? 'Cambiar imagen del QR' : `Subir QR de ${medioPago}`}
+          {qrImg ? 'Cambiar imagen del QR' : `Subir QR de ${nombreMedio}`}
         </button>
-        {aviso && <p role="alert" className="text-[11px] text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-2.5 py-2 leading-snug">{aviso}</p>}
-        <p className="text-[10px] text-stone-400">o copia la imagen y pégala aquí con Ctrl+V</p>
-        <button onClick={onClose} className="w-full py-2.5 bg-stone-900 hover:bg-stone-800 text-white font-bold text-xs rounded-xl">
+        {aviso && <p role="alert" className="text-[11px] text-amber-800 bg-amber-50 border border-amber-200 rounded-xl px-3 py-2 leading-snug">{aviso}</p>}
+        <p className="hidden md:block text-[10px] text-stone-400">En computadora también puedes pegar la imagen con Ctrl+V.</p>
+        <button onClick={onClose} className="w-full h-12 bg-[#2d284b] hover:bg-[#3b3466] text-white font-bold text-sm rounded-full transition">
           Cerrar
         </button>
       </div>

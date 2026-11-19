@@ -723,9 +723,9 @@ export default function PanelCarrito({
         {/* El panel es vidrio esmerilado y se monta 40px sobre el final de la lista:
             los items pasan por debajo, borrosos, y el borde superior se desvanece. */}
         <div
-          className={`relative z-10 p-4 space-y-3 min-h-0 overflow-y-auto overscroll-contain ${mostrarPago
-            ? 'pt-4 scroll-pb-44 bg-[#f3f5ff] border-t border-[#dde4fa] shadow-[0_-14px_26px_-20px_rgba(40,20,100,0.4)]'
-            : '-mt-10 pt-14 backdrop-blur-xl bg-gradient-to-b from-white/60 to-white/90'}`}
+          className={`relative z-10 p-4 min-h-0 overflow-y-auto overscroll-contain ${mostrarPago
+            ? 'flex-1 flex flex-col gap-3 pt-4 scroll-pb-44 bg-[#f3f5ff] border-t border-[#dde4fa] shadow-[0_-14px_26px_-20px_rgba(40,20,100,0.4)]'
+            : 'space-y-3 -mt-10 pt-14 backdrop-blur-xl bg-gradient-to-b from-white/60 to-white/90'}`}
           style={mostrarPago ? undefined : { WebkitMaskImage: 'linear-gradient(to bottom, transparent 0, black 44px)', maskImage: 'linear-gradient(to bottom, transparent 0, black 44px)' }}
         >
           {!mostrarPago ? (
@@ -1000,7 +1000,7 @@ export default function PanelCarrito({
 
           {/* Total y botón de cobro siempre a la vista: si las opciones de pago no
               caben en pantallas bajas, lo de arriba hace scroll y esto se queda abajo. */}
-          <div className="sticky bottom-0 -mx-4 -mb-4 px-4 pb-[max(1rem,env(safe-area-inset-bottom))] pt-3 space-y-3 bg-[#f3f5ff] shadow-[0_-12px_18px_-14px_rgba(40,20,100,0.28)]">
+          <div className="sticky bottom-0 mt-auto -mx-4 -mb-4 px-4 pb-[max(1rem,env(safe-area-inset-bottom))] pt-3 space-y-3 bg-[#f3f5ff] shadow-[0_-12px_18px_-14px_rgba(40,20,100,0.28)]">
           <div className="hidden md:block bg-[#ebf0ff] border border-[#dde4fa] rounded-[22px] px-4 py-3 space-y-1.5">
             {montoDescuento > 0 && (
               <>
