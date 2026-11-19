@@ -102,7 +102,7 @@ export default function FiadosModal({
               {modalCobrarDeudas && (() => {
                 const avatar = (cl, tam) => <span className={`${tam} rounded-full bg-gradient-to-br ${gradienteDe(cl)} text-white grid place-items-center font-bold shrink-0 shadow-[inset_0_0_0_1px_rgba(255,255,255,0.25),0_6px_14px_-6px_rgba(20,10,50,0.4)]`}>{iniciales(cl.nombre_completo, '?')}</span>;
                 const linea = 'border-[#dde4fa]';
-                const botonSeg = (activo) => `h-[30px] px-3 rounded-full text-[12px] whitespace-nowrap flex items-center gap-1.5 transition ${activo ? 'bg-white text-[#2d284b] font-bold' : 'text-[#6b6890] font-semibold hover:text-[#2d284b]'}`;
+                const botonSeg = (activo) => `h-[30px] max-md:h-9 px-3 rounded-full text-[12px] whitespace-nowrap flex items-center gap-1.5 transition ${activo ? 'bg-white text-[#2d284b] font-bold' : 'text-[#6b6890] font-semibold hover:text-[#2d284b]'}`;
                 const colorBarra = (uso) => (uso >= 1 ? 'bg-gradient-to-r from-[#e0565c] to-[#c0262d]' : uso >= 0.8 ? 'bg-gradient-to-r from-[#f0b24a] to-[#d98a14]' : 'bg-gradient-to-r from-[#aeb4cf] to-[#9a9dbd]');
                 const botonFantasma = `h-12 px-6 rounded-full border-[1.5px] ${linea} bg-white hover:bg-[#f3f5ff] text-[13.5px] font-bold text-[#6b6890] inline-flex items-center justify-center gap-2 transition whitespace-nowrap`;
                 const botonFicha = 'h-[34px] px-3.5 rounded-full bg-[#f3f5ff] hover:bg-[#e6ebff] text-[#6b6890] text-[12px] font-bold inline-flex items-center gap-1.5 transition';
@@ -419,7 +419,7 @@ export default function FiadosModal({
                             )}
                           </div>
                         ) : (
-                          <div className="flex-1 min-h-0 grid md:grid-cols-[340px_minmax(0,1fr)]">
+                          <div className="flex-1 min-h-0 grid grid-cols-[minmax(0,1fr)] md:grid-cols-[340px_minmax(0,1fr)]">
                             <div className={`${hayFicha ? 'hidden md:flex' : 'flex'} flex-col min-h-0 md:border-r ${linea} pt-5 pl-4 sm:pl-6 pr-2 sm:pr-3`}>
                               <div className="space-y-3 pr-2 sm:pr-3 md:pr-2">
                                 <label className="flex items-center gap-2.5 h-[42px] bg-[#f3f5ff] rounded-full px-4 text-[#8f8cb0] focus-within:ring-2 focus-within:ring-[#5b4bd6]/40 focus-within:bg-white transition">

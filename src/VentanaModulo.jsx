@@ -26,7 +26,7 @@ export default function VentanaModulo({
   return (
     <div className={`ventana-riel pantalla-movil fixed inset-0 bg-stone-900/30 backdrop-blur-sm flex items-center justify-center ${z} p-2 sm:p-4`} onClick={onFondo}>
       <div onClick={onFondo ? (e) => e.stopPropagation() : undefined} className={`pantalla-movil-panel bg-white rounded-[26px] ${ancho} w-full ${alto} shadow-2xl flex flex-col overflow-hidden`}>
-        <header className="shrink-0 px-4 sm:px-6 pt-4 pb-4 border-b border-[#eef1fd]">
+        <header className="shrink-0 px-4 sm:px-6 pt-4 pb-4 max-md:pt-3 max-md:pb-3 border-b border-[#eef1fd]">
           <div className="flex items-center gap-3">
             {izquierda}
             <span className={`w-[38px] h-[38px] rounded-xl bg-[#f1efff] text-[#5b4bd6] place-items-center shrink-0 max-md:hidden ${izquierda ? 'hidden lg:grid' : 'grid'}`}>
@@ -43,12 +43,13 @@ export default function VentanaModulo({
               <i className="fa-solid fa-xmark"></i>
             </button>
           </div>
+          {/* En celular las cifras van en una sola fila compacta (el encabezado pasa de ~131 a ~100 px). */}
           {visibles.length > 0 && (
-            <dl className="flex flex-wrap gap-y-2.5 mt-3.5 sm:pl-[50px]">
+            <dl className="flex flex-wrap gap-y-2.5 mt-3.5 sm:pl-[50px] max-md:mt-2 max-md:gap-y-1 max-md:flex-nowrap max-md:overflow-x-auto hide-scrollbar">
               {visibles.map((c, i) => (
-                <div key={c.etiqueta} className={i === 0 ? 'pr-5 sm:pr-6' : 'px-5 sm:px-6 border-l border-[#dde4fa]'}>
-                  <dt className="text-[11.5px] text-[#8f8cb0]">{c.etiqueta}</dt>
-                  <dd className={`text-lg leading-snug font-bold tracking-tight tabular-nums ${TONOS[c.tono] || 'text-[#2d284b]'}`}>{c.valor}</dd>
+                <div key={c.etiqueta} className={`shrink-0 ${i === 0 ? 'pr-5 sm:pr-6 max-md:pr-3.5' : 'px-5 sm:px-6 max-md:px-3.5 border-l border-[#dde4fa]'}`}>
+                  <dt className="text-[11.5px] text-[#8f8cb0] whitespace-nowrap">{c.etiqueta}</dt>
+                  <dd className={`text-lg max-md:text-[15px] leading-snug font-bold tracking-tight tabular-nums whitespace-nowrap ${TONOS[c.tono] || 'text-[#2d284b]'}`}>{c.valor}</dd>
                 </div>
               ))}
             </dl>
