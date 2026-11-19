@@ -5,6 +5,7 @@ import { detalleComboTicket } from '../lib/combos.js';
 import { fechaHoyISO, fechaISOLocal, FotoProducto } from '../PanelAdminCompartido.jsx';
 import { COLOR_BILLETE, tonoCategoria } from './utilidades.js';
 import { DENOMINACIONES, totalConteo } from '../lib/arqueo.js';
+import { prepararImagenQR } from './qrPago.js';
 
 // Selector de pestañas en pastilla para las ventanas que agrupan dos vistas
 // (Toma/Historial de inventario, Ventas/Cierres). La pestaña activa no lleva
@@ -242,16 +243,30 @@ export function ReciboImprimible({ bodega, direccion, telefono, boleta, fecha, c
 export function QRPagoModal({ bodegaId, medioPago, monto, onClose }) {
   const storageKey = `qr_pago_${medioPago}_${bodegaId}`;
   const [qrImg, setQrImg] = useState(() => localStorage.getItem(storageKey));
+  const [procesando, setProcesando] = useState(false);
+  const [aviso, setAviso] = useState('');
   const inputRef = useRef(null);
 
-  const guardarQRDesdeArchivo = (file) => {
+  // La foto suele traer el logo, el nombre y el fondo de color: se busca el QR y se guarda solo él.
+  const guardarQRDesdeArchivo = async (file) => {
     if (!file) return;
-    const reader = new FileReader();
-    reader.onload = () => {
-      localStorage.setItem(storageKey, reader.result);
-      setQrImg(reader.result);
-    };
-    reader.readAsDataURL(file);
+    setProcesando(true);
+    setAviso('');
+    try {
+      const { dataUrl, recortado } = await prepararImagenQR(file);
+      try {
+        localStorage.setItem(storageKey, dataUrl);
+      } catch (err) {
+        setAviso('No se pudo guardar el QR en este dispositivo. Prueba con una imagen más liviana.');
+        return;
+      }
+      setQrImg(dataUrl);
+      if (!recortado) setAviso('No encontramos el código dentro de la foto y se guardó tal cual. Si se ven otros adornos, sube una captura con solo el QR.');
+    } catch (err) {
+      setAviso('No se pudo abrir esa imagen. Prueba con otra.');
+    } finally {
+      setProcesando(false);
+    }
   };
 
   const handleSubirQR = (e) => guardarQRDesdeArchivo(e.target.files?.[0]);
@@ -275,9 +290,13 @@ export function QRPagoModal({ bodegaId, medioPago, monto, onClose }) {
         <p className="text-sm text-stone-700">
           Monto: <span className="font-black text-orange-600 text-lg">S/ {Number(monto).toFixed(2)}</span>
         </p>
-        {qrImg ? (
+        {procesando ? (
+          <div className="bg-stone-50 border border-dashed border-stone-300 rounded-xl p-5 text-xs text-stone-600">
+            Buscando el código en la imagen…
+          </div>
+        ) : qrImg ? (
           <div className="bg-white p-3 rounded-xl inline-block">
-            <img src={qrImg} alt={`QR ${medioPago}`} className="w-44 h-44 object-contain" />
+            <img src={qrImg} alt={`QR ${medioPago}`} className="w-52 h-52 object-contain" />
           </div>
         ) : (
           <div className="bg-stone-50 border border-dashed border-stone-300 rounded-xl p-5 text-xs text-stone-600">
@@ -292,6 +311,7 @@ export function QRPagoModal({ bodegaId, medioPago, monto, onClose }) {
         >
           {qrImg ? 'Cambiar imagen del QR' : `Subir QR de ${medioPago}`}
         </button>
+        {aviso && <p role="alert" className="text-[11px] text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-2.5 py-2 leading-snug">{aviso}</p>}
         <p className="text-[10px] text-stone-400">o copia la imagen y pégala aquí con Ctrl+V</p>
         <button onClick={onClose} className="w-full py-2.5 bg-stone-900 hover:bg-stone-800 text-white font-bold text-xs rounded-xl">
           Cerrar
