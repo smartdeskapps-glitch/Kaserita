@@ -74,7 +74,8 @@ export default function DashboardVentas({
           alto="max-h-[95dvh]"
           desplazable={false}
         >
-          <div className="flex-1 min-h-0 flex flex-col bg-[#f6f8ff]">
+          <div className="flex-1 min-h-0 flex flex-col bg-[#f6f8ff] max-md:overflow-y-auto hide-scrollbar">
+            {/* Celular: los filtros se desplazan junto con los gráficos (no quedan fijos ocupando la pantalla). */}
             <div className="shrink-0 px-5 md:px-7 pt-4 pb-4">
               <FiltroFechasRapido
                 desde={fechaInicioDash}
@@ -97,7 +98,7 @@ export default function DashboardVentas({
               </FiltroFechasRapido>
             </div>
 
-            <div className="flex-1 overflow-y-auto hide-scrollbar px-5 md:px-7 pb-7 pt-1 space-y-4">
+            <div className="flex-1 overflow-y-auto max-md:flex-none max-md:overflow-visible hide-scrollbar px-5 md:px-7 pb-7 pt-1 space-y-4">
             {cargandoDashboard ? (
               <p className="text-xs text-center py-10 text-stone-600">Calculando estadísticas...</p>
             ) : dashStats.numVentas === 0 ? (

@@ -8,6 +8,7 @@ const TONOS = { ok: 'text-[#0f7b4a]', mal: 'text-[#c0262d]', aviso: 'text-[#a865
 export default function VentanaModulo({
   icono,
   titulo,
+  tituloCorto,
   subtitulo,
   cifras,
   acciones,
@@ -34,7 +35,11 @@ export default function VentanaModulo({
             </span>
             <div className="flex-1 min-w-0">
               <h3 className="text-[19px] leading-tight tracking-tight text-[#2d284b] truncate">
-                {palabras.length > 0 && `${palabras.join(' ')} `}<b className="font-bold">{ultima}</b>
+                {/* tituloCorto: en celular, donde el encabezado va apretado, se muestra esta versión. */}
+                {tituloCorto && <b className="font-bold md:hidden">{tituloCorto}</b>}
+                <span className={tituloCorto ? 'max-md:hidden' : undefined}>
+                  {palabras.length > 0 && `${palabras.join(' ')} `}<b className="font-bold">{ultima}</b>
+                </span>
               </h3>
               {subtitulo && <p className="text-xs text-[#8f8cb0] mt-0.5 truncate">{subtitulo}</p>}
             </div>

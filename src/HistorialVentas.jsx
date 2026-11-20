@@ -168,6 +168,7 @@ export default function HistorialVentas({
                   <VentanaModulo
                     icono="fa-receipt"
                     titulo="Historial de ventas"
+                    tituloCorto="Historial"
                     subtitulo={`${activas.length} venta${activas.length === 1 ? '' : 's'} · S/ ${formatoSoles(totalGeneral)}`}
                     izquierda={ventaElegida && (
                       <button type="button" aria-label="Volver a la lista" onClick={() => setVentaDetalleHistorial(null)} className="lg:hidden w-[38px] h-[38px] rounded-full bg-[#f3f5ff] text-[#6b6890] grid place-items-center shrink-0"><i className="fa-solid fa-chevron-left text-xs"></i></button>
@@ -187,7 +188,7 @@ export default function HistorialVentas({
                         <div className="lg:hidden flex-1 min-h-0 overflow-y-auto hide-scrollbar p-4">{detalleVenta(ventaElegida)}</div>
                       )}
 
-                      <div className={`${ventaElegida ? 'hidden lg:flex' : 'flex'} flex-1 min-h-0 flex-col`}>
+                      <div className={`${ventaElegida ? 'hidden lg:flex' : 'flex'} flex-1 min-h-0 flex-col max-lg:overflow-y-auto hide-scrollbar`}>
                         <div className="px-4 sm:px-7 pt-4 lg:pt-5 shrink-0 grid grid-cols-2 lg:grid-cols-[1.25fr_1fr_1fr] gap-3 lg:gap-3.5">
                           <div className={`${tarjeta} col-span-2 lg:col-span-1`}>
                             <span className="absolute -right-14 -top-[70px] w-[200px] h-[200px] rounded-full pointer-events-none" style={{ background: 'radial-gradient(closest-side, rgba(150,135,245,0.16), rgba(150,135,245,0))' }}></span>
@@ -214,15 +215,16 @@ export default function HistorialVentas({
                           </div>
                         </div>
 
-                        <div className="px-4 sm:px-7 py-3.5 shrink-0 flex flex-wrap items-center gap-x-3 gap-y-2.5">
-                          <div className="flex bg-[#e8ecf7] rounded-full p-[3px] max-w-full overflow-x-auto hide-scrollbar">
+                        {/* Celular: todo (resumen, periodos y lista) se desplaza junto; solo la búsqueda queda pegada arriba. `contents` deja a estos hijos directos del contenedor que se desplaza. */}
+                        <div className="px-4 sm:px-7 py-3.5 shrink-0 flex flex-wrap items-center gap-x-3 gap-y-2.5 max-lg:contents">
+                          <div className="flex bg-[#e8ecf7] rounded-full p-[3px] max-w-full overflow-x-auto hide-scrollbar max-lg:mx-4 max-lg:sm:mx-7 max-lg:mt-3.5 max-lg:self-start max-lg:shrink-0 max-lg:max-w-[calc(100%-2rem)]">
                             {ATAJOS.map(([id, texto]) => (
                               <button key={id} type="button" onClick={() => elegirAtajoHistorial(id)} className={`h-8 px-2.5 sm:px-[15px] rounded-full text-[12.5px] sm:text-[13px] whitespace-nowrap transition ${atajoHistorial === id ? 'bg-white text-stone-900 font-semibold shadow-[0_1px_3px_rgba(20,10,50,0.14)]' : 'text-stone-500 font-medium hover:text-stone-900'}`}>{texto}</button>
                             ))}
                           </div>
-                          <span className="text-[13px] text-stone-500">{rangoTexto}</span>
+                          <span className="text-[13px] text-stone-500 max-lg:mx-4 max-lg:sm:mx-7 max-lg:mt-2.5 max-lg:shrink-0">{rangoTexto}</span>
                           <span className="flex-1 hidden lg:block"></span>
-                          <div className="flex items-center gap-2 w-full lg:w-auto">
+                          <div className="flex items-center gap-2 w-full lg:w-auto max-lg:sticky max-lg:top-0 max-lg:z-[2] max-lg:bg-white max-lg:px-4 max-lg:sm:px-7 max-lg:py-2.5 max-lg:shrink-0">
                             <label className={`flex items-center gap-2.5 h-10 flex-1 lg:flex-none lg:w-[280px] px-4 rounded-full border ${borde} bg-white text-stone-400 focus-within:border-[#5b4bd6] focus-within:ring-[3px] focus-within:ring-[#5b4bd6]/10 transition`}>
                               <i className="fa-solid fa-magnifying-glass text-xs"></i>
                               <input type="text" placeholder="Buscar boleta o cliente" value={busquedaBoletaHistorial} onChange={(e) => { setBusquedaBoletaHistorial(e.target.value); setLimiteHistorial(40); }} className="flex-1 min-w-0 bg-transparent text-[13.5px] text-stone-900 outline-none placeholder:text-stone-400" />
@@ -232,7 +234,7 @@ export default function HistorialVentas({
                             )}
                           </div>
                           {atajoHistorial === 'fechas' && (
-                            <div className="flex flex-wrap items-center gap-2 w-full">
+                            <div className="flex flex-wrap items-center gap-2 w-full max-lg:w-auto max-lg:mx-4 max-lg:sm:mx-7 max-lg:mb-2 max-lg:shrink-0">
                               <input type="date" aria-label="Desde" value={fechaInicioHistorial} onChange={(e) => setFechaInicioHistorial(e.target.value)} className={`h-10 px-3.5 rounded-full border ${borde} bg-white text-[13px] text-stone-900`} />
                               <span className="text-xs text-stone-400">a</span>
                               <input type="date" aria-label="Hasta" value={fechaFinHistorial} onChange={(e) => setFechaFinHistorial(e.target.value)} className={`h-10 px-3.5 rounded-full border ${borde} bg-white text-[13px] text-stone-900`} />
@@ -241,8 +243,8 @@ export default function HistorialVentas({
                           )}
                         </div>
 
-                        <div className="flex-1 min-h-0 px-4 sm:px-7 pb-5 grid grid-rows-[minmax(0,1fr)] lg:grid-cols-[minmax(0,1fr)_330px] gap-4">
-                          <div className="min-h-0 overflow-y-auto hide-scrollbar lg:bg-white lg:border lg:border-[#e6e9f5] lg:rounded-[18px]">
+                        <div className="flex-1 min-h-0 px-4 sm:px-7 pb-5 grid grid-rows-[minmax(0,1fr)] lg:grid-cols-[minmax(0,1fr)_330px] gap-4 max-lg:block max-lg:flex-none">
+                          <div className="min-h-0 overflow-y-auto max-lg:overflow-visible hide-scrollbar lg:bg-white lg:border lg:border-[#e6e9f5] lg:rounded-[18px]">
                             {cargandoHistorial ? (
                               <p className="text-sm text-center py-10 text-stone-500">Cargando ventas...</p>
                             ) : filtradas.length === 0 ? (
