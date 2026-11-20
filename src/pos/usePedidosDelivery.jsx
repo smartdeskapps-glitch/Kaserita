@@ -5,6 +5,7 @@
 import { mensajeError, urlMapa, sonarAvisoPedidoNuevo } from './utilidades.js';
 import { IconoTrazo } from './componentes.jsx';
 import { comprimirImagenJPEG } from '../PanelAdminCompartido.jsx';
+import { estadoAtencion } from '../lib/horario.js';
 import { useRef, useEffect } from 'react';
 
 // Punto exacto del negocio guardado en la bodega ({ lat, lng }) o null si no tiene.
@@ -81,15 +82,11 @@ export default function usePedidosDelivery({
   const DIAS_DELIVERY = [[1, 'Lu'], [2, 'Ma'], [3, 'Mi'], [4, 'Ju'], [5, 'Vi'], [6, 'Sá'], [0, 'Do']];
   const aNumeroDelivery = (t) => Math.max(0, parseFloat(String(t ?? '').replace(',', '.')) || 0);
   const rangoHorarioDelivery = (h) => Object.values(h || {}).find((v) => v?.abierto) || null;
+  // La misma regla que usa la tienda y el servidor (src/lib/horario.js): hora de Lima y horarios que cruzan la medianoche.
   const estadoHorarioDelivery = (h) => {
-    if (!rangoHorarioDelivery(h)) return null;
-    const hoy = h?.[new Date().getDay()];
-    const ahora = new Date().toTimeString().slice(0, 5);
-    let abierto = false;
-    if (hoy?.abierto && hoy.desde && hoy.hasta) {
-      abierto = hoy.hasta > hoy.desde ? ahora >= hoy.desde && ahora < hoy.hasta : ahora >= hoy.desde || ahora < hoy.hasta;
-    }
-    return abierto ? { abierto: true, texto: `Abierta ahora · hasta ${hoy.hasta}` } : { abierto: false, texto: 'Cerrada ahora' };
+    const e = estadoAtencion(h);
+    if (!e) return null;
+    return e.abierto ? { abierto: true, texto: `Abierta ahora · hasta ${e.cierra}` } : { abierto: false, texto: 'Cerrada ahora' };
   };
   const resumenHorarioDelivery = (h) => {
     const rango = rangoHorarioDelivery(h);
