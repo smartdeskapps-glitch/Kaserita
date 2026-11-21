@@ -3,8 +3,8 @@ import { IconoTrazo } from '../pos/componentes.jsx';
 import { normalizarBusqueda as normalizar } from '../lib/busqueda.js';
 
 // Menú del celular: tarjeta de turno, 4 accesos rápidos que cada persona elige (se guardan en
-// este dispositivo) y el resto de opciones por tema. La versión de escritorio sigue siendo la
-// paleta de comandos (PaletaMenu); las dos leen la misma lista de opciones.
+// este dispositivo) y el resto de opciones por tema. La versión de escritorio es MenuEscritorio;
+// las dos leen la misma lista de opciones.
 // Estética: superficies planas con líneas de 1 px, un solo acento (el violeta del cobro) y los
 // íconos en tinta neutra. La hoja se puede arrastrar hacia abajo para cerrarla.
 const CLAVE = 'kaserita-menu-accesos';

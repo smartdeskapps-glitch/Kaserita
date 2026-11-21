@@ -1,17 +1,16 @@
 // Menú «Más» (paleta de comandos con buscador) con todas las opciones del POS.
 // Extraído de src/main.jsx: mismo JSX; recibe por props lo que usa del POS.
 import React from 'react';
-import { createPortal } from 'react-dom';
-import PaletaMenu from '../PaletaMenu.jsx';
 import MenuMovil from './MenuMovil.jsx';
+import MenuEscritorio from './MenuEscritorio.jsx';
 
 export default function MenuMas({
   abrirAgenda, abrirAuditoria, abrirCierreCaja, abrirComisiones, abrirCuentasPorPagar,
   abrirDashboard, abrirDesdeMenu, abrirEntradaMercaderia, abrirGestionCajeros,
   abrirHistorialDelDia, abrirModalCombos, abrirModalDelivery, abrirModuloCobroDeudas,
   abrirInventarioValorizado, abrirTomaInventario, busquedaMenu, cajeroSeleccionado, cerrarSesion, elevado, esAdmin,
-  esBarberia, esCajeroDelUsuarioActivo, esModoDemo, indiceMenu, listaCajeros, menuEnRiel,
-  menuMas, productos, ranuraRiel, rolActivo, rolesEnServidor, sbClient, setBusquedaMenu,
+  esBarberia, esCajeroDelUsuarioActivo, esModoDemo, indiceMenu, listaCajeros, menuEscritorio,
+  menuMas, productos, rolActivo, rolesEnServidor, sbClient, setBusquedaMenu,
   setCajeroPendientePin, setIndiceMenu, setMenuMas, setModalInventarioInicial, setModalMerma,
   setModalPinCajero, setModalTurno, setNuevoPinCajero, setPinConfirmarCajero, soltarAdmin,
   turnoActivo, bodegaNombre, usuarioActivo
@@ -19,14 +18,35 @@ export default function MenuMas({
   // Referencias de la hoja del celular: el arrastre para cerrar mueve la hoja y atenúa el velo directamente.
   const hojaRef = React.useRef(null);
   const velaRef = React.useRef(null);
+  // Escritorio: el panel sigue en pantalla durante su animación de salida, así que guarda la última lista de opciones.
+  const opcionesEscritorio = React.useRef([]);
+  // Ctrl K abre y cierra el menú sin animación (se usa cientos de veces al día).
+  const [porTeclado, setPorTeclado] = React.useState(false);
+  React.useEffect(() => {
+    if (!menuEscritorio) return undefined;
+    const alTeclear = (e) => {
+      if (!((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k')) return;
+      e.preventDefault();
+      if (menuMas) { setPorTeclado(true); setMenuMas(false); return; }
+      if (document.querySelector('div.fixed.inset-0')) return; // hay otra ventana abierta
+      setBusquedaMenu(''); setIndiceMenu(0); setPorTeclado(true); setMenuMas(true);
+    };
+    window.addEventListener('keydown', alTeclear);
+    return () => window.removeEventListener('keydown', alTeclear);
+  }, [menuEscritorio, menuMas]); // eslint-disable-line
+  React.useEffect(() => {
+    if (menuMas) return undefined;
+    const t = setTimeout(() => setPorTeclado(false), 250);
+    return () => clearTimeout(t);
+  }, [menuMas]);
   return (
     <>
       {/* Menú "Más módulos" estilo paleta de comandos: buscador arriba,
           opciones agrupadas y navegación con teclado (↑ ↓ Enter Esc).
           Es el único punto de entrada a estas funciones en cualquier
           tamaño de pantalla -- en mobile sigue siendo una hoja que sube
-          desde abajo, en desktop es un panel centrado cerca del borde
-          superior. Las opciones son datos (no botones sueltos) para que
+          desde abajo, en desktop es un panel que cae del botón ☰ del
+          encabezado (MenuEscritorio). Las opciones son datos (no botones sueltos) para que
           el buscador y el teclado funcionen sobre la misma lista. */}
       {menuMas && (() => {
         // Productos con 5 o menos unidades: mismo criterio que "Por reponer" en Entrada de mercadería.
@@ -92,17 +112,11 @@ export default function MenuMas({
         const opcionesMenu = esEscritorio ? opciones.filter((o) => !o.soloMovil) : opciones;
 
         const cerrarMenu = () => setMenuMas(false);
-        const propsPaleta = { opciones: opcionesMenu.map((o) => ({ ...o, accion: abrirDesdeMenu(o.accion) })), busqueda: busquedaMenu, setBusqueda: setBusquedaMenu, indice: indiceMenu, setIndice: setIndiceMenu, onClose: cerrarMenu };
+        const opcionesConAccion = opcionesMenu.map((o) => ({ ...o, accion: abrirDesdeMenu(o.accion) }));
+        opcionesEscritorio.current = opcionesConAccion;
 
-        // Escritorio: la paleta vive dentro del riel (que se ensancha para contenerla).
-        if (menuEnRiel) {
-          return (
-            <>
-              <div className="fixed inset-0 z-[25] bg-[#2d284b]/30 backdrop-blur-[2px]" onClick={cerrarMenu}></div>
-              {ranuraRiel && createPortal(<PaletaMenu {...propsPaleta} oscuro autoFocus />, ranuraRiel)}
-            </>
-          );
-        }
+        // Escritorio: lo dibuja <MenuEscritorio /> más abajo (así puede animar su salida).
+        if (menuEscritorio) return null;
 
         // Celular: hoja que sube desde abajo (y se puede arrastrar hacia abajo para cerrarla).
         return (
@@ -113,7 +127,7 @@ export default function MenuMas({
               onClick={(e) => e.stopPropagation()}
             >
               <MenuMovil
-                opciones={propsPaleta.opciones}
+                opciones={opcionesConAccion}
                 busqueda={busquedaMenu}
                 setBusqueda={setBusquedaMenu}
                 onClose={cerrarMenu}
@@ -127,6 +141,16 @@ export default function MenuMas({
           </div>
         );
       })()}
+      <MenuEscritorio
+        abierto={menuMas && menuEscritorio}
+        opciones={opcionesEscritorio.current}
+        busqueda={busquedaMenu}
+        setBusqueda={setBusquedaMenu}
+        indice={indiceMenu}
+        setIndice={setIndiceMenu}
+        onClose={() => setMenuMas(false)}
+        instantaneo={porTeclado}
+      />
     </>
   );
 }

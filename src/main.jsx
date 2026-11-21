@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import ReactDOM from 'react-dom/client';
-import RielLateral from './RielLateral.jsx';
 import { createClient } from '@supabase/supabase-js';
 import './index.css';
 import { fechaHoyISO, comprimirFotoProducto, CATEGORIAS_FALLBACK } from './PanelAdminCompartido.jsx';
@@ -514,9 +513,7 @@ import PantallaAdmin from './pantallas/PantallaAdmin.jsx';
       const [dniCliente, setDniCliente] = useState('99999999');
       const [clienteActual, setClienteActual] = useState(null);
       const [modalNuevoCliente, setModalNuevoCliente] = useState(false);
-      // Hueco del riel donde se dibuja el menú "Más" en escritorio.
-      const [ranuraRiel, setRanuraRiel] = useState(null);
-      // Al abrir una ventana desde el riel o desde "Más" se cierran las otras que estuvieran abiertas,
+      // Al abrir una ventana desde el menú se cierran las otras que estuvieran abiertas,
       // para que no queden apiladas. (Turno, cierre de caja, cobro y escáner no se tocan.)
       const cerrarVentanasDelMenu = () => {
         setModalCobrarDeudas(false); setModalNuevoCliente(false); setModalHistorial(false);
@@ -527,8 +524,8 @@ import PantallaAdmin from './pantallas/PantallaAdmin.jsx';
         setModalEntradaMercaderia(false); setModalHistorialCierres(false); setModalInventarioValorizado(false);
       };
       const abrirDesdeMenu = (abrir) => () => { cerrarVentanasDelMenu(); abrir(); };
-      // En pantallas anchas el menú "Más" se abre dentro del riel; en celular es una hoja.
-      const menuEnRiel = typeof window !== 'undefined' && window.matchMedia('(min-width: 768px)').matches;
+      // En pantallas anchas el menú es un panel que cae del botón ☰; en celular es una hoja.
+      const menuEscritorio = typeof window !== 'undefined' && window.matchMedia('(min-width: 768px)').matches;
       const [formCliente, setFormCliente] = useState({ dni: '', nombre: '', telefono: '', correo: '', limiteCredito: '300.00' });
       const [modalCobrarDeudas, setModalCobrarDeudas] = useState(false);
       const [deudorSeleccionado, setDeudorSeleccionado] = useState(null);
@@ -1695,21 +1692,6 @@ import PantallaAdmin from './pantallas/PantallaAdmin.jsx';
           }} />
 
 
-          {/* Escritorio: riel de íconos en el borde izquierdo (el catálogo se corre a la derecha). */}
-          <RielLateral
-            opciones={[
-              { clave: 'vender', etiqueta: 'Vender', accion: () => {}, activo: true },
-              { clave: 'fiados', etiqueta: 'Fiados', accion: abrirDesdeMenu(abrirModuloCobroDeudas) },
-              { clave: 'historial', etiqueta: 'Historial', accion: abrirDesdeMenu(abrirHistorialDelDia) },
-              !esBarberia && { clave: 'inventario', etiqueta: 'Toma de inventario', accion: abrirDesdeMenu(abrirTomaInventario) },
-              esAdmin && { clave: 'dashboard', etiqueta: 'Dashboard de ventas', accion: abrirDesdeMenu(abrirDashboard) },
-            ].filter(Boolean)}
-            onMas={() => { setBusquedaMenu(''); setIndiceMenu(0); setMenuMas(true); }}
-            paletaAbierta={menuMas && menuEnRiel}
-            activa={modalCobrarDeudas ? 'fiados' : modalHistorial ? 'historial' : modalTomaInventario ? 'inventario' : modalDashboard ? 'dashboard' : null}
-            ranuraRef={setRanuraRiel}
-          />
-
           <Catalogo {...{
             abrirCierreCaja, abrirEdicionProducto, abrirEscanerParaVenta, abrirModalCombos,
             abrirPedidosRetirar, agregarComboAlCarrito, bodegaNombre, busqueda, busquedaCategoria,
@@ -1720,7 +1702,7 @@ import PantallaAdmin from './pantallas/PantallaAdmin.jsx';
             hayMasEnGrid, inputBusquedaRef, limiteGrid, menuCategoriasAbierto, notificar,
             pedidosListosSinCargar, pedidosPorRetirarPendientes, productos, productosEnCombo,
             productosFiltrados, setBusqueda, setBusquedaCategoria, setBusquedaMenu, setCategoriaFiltro,
-            setIndiceMenu, setMenuCategoriasAbierto, setMenuMas, setModalInventarioInicial,
+            menuMas, setIndiceMenu, setMenuCategoriasAbierto, setMenuMas, setModalInventarioInicial,
             setModalTurno, turnoActivo, usuarioActivo, verCombosDesdeTarjeta
           }} />
 
@@ -1754,8 +1736,8 @@ import PantallaAdmin from './pantallas/PantallaAdmin.jsx';
             abrirDashboard, abrirDesdeMenu, abrirEntradaMercaderia, abrirGestionCajeros,
             abrirHistorialDelDia, abrirModalCombos, abrirModalDelivery, abrirModuloCobroDeudas,
             abrirInventarioValorizado, abrirTomaInventario, busquedaMenu, cajeroSeleccionado, cerrarSesion, elevado, esAdmin,
-            esBarberia, esCajeroDelUsuarioActivo, esModoDemo, indiceMenu, listaCajeros, menuEnRiel,
-            menuMas, productos, ranuraRiel, rolActivo, rolesEnServidor, sbClient, setBusquedaMenu,
+            esBarberia, esCajeroDelUsuarioActivo, esModoDemo, indiceMenu, listaCajeros, menuEscritorio,
+            menuMas, productos, rolActivo, rolesEnServidor, sbClient, setBusquedaMenu,
             setCajeroPendientePin, setIndiceMenu, setMenuMas, setModalInventarioInicial, setModalMerma,
             setModalPinCajero, setModalTurno, setNuevoPinCajero, setPinConfirmarCajero, soltarAdmin,
             turnoActivo, bodegaNombre, usuarioActivo

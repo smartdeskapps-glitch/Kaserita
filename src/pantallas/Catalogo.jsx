@@ -14,13 +14,13 @@ export default function Catalogo({
   hayMasEnGrid, inputBusquedaRef, limiteGrid, menuCategoriasAbierto, notificar,
   pedidosListosSinCargar, pedidosPorRetirarPendientes, productos, productosEnCombo,
   productosFiltrados, setBusqueda, setBusquedaCategoria, setBusquedaMenu, setCategoriaFiltro,
-  setIndiceMenu, setMenuCategoriasAbierto, setMenuMas, setModalInventarioInicial,
+  menuMas, setIndiceMenu, setMenuCategoriasAbierto, setMenuMas, setModalInventarioInicial,
   setModalTurno, turnoActivo, usuarioActivo, verCombosDesdeTarjeta
 }) {
   return (
     <>
       {/* Columna Central: Catálogo (Order Line) */}
-      <div className="flex-1 flex flex-col overflow-hidden md:ml-[36px]">
+      <div className="flex-1 flex flex-col overflow-hidden">
         <header className="flex items-center justify-between mx-3 mt-3 px-2 md:px-3 py-2 gap-3">
           <div className="flex items-center gap-3 min-w-0 max-w-full pl-1">
             <img src="/logo-horizontal-color.svg" width="2068" height="642" alt="Kaserita" className="h-7 md:h-8 w-auto shrink-0" />
@@ -62,12 +62,21 @@ export default function Catalogo({
               <i className="fa-solid fa-cash-register text-[15px]"></i>
               <span className={`absolute -top-1 -right-1 w-3.5 h-3.5 rounded-full border-2 border-white ${turnoActivo ? 'bg-green-500' : 'bg-amber-400'}`}></span>
             </button>
+            {/* Menú: en celular abre la hoja; en escritorio, el panel que cae de este botón. Con el panel
+                abierto el botón queda por encima del velo y se vuelve ✕ para poder cerrarlo. */}
             <button
-              onClick={() => { setBusquedaMenu(''); setIndiceMenu(0); setMenuMas(true); }}
-              className="md:hidden w-10 h-10 flex items-center justify-center bg-white border border-stone-200 rounded-xl text-stone-700 hover:text-stone-900 shadow-sm transition"
-              title="Más opciones"
+              onClick={() => { if (menuMas) { setMenuMas(false); return; } setBusquedaMenu(''); setIndiceMenu(0); setMenuMas(true); }}
+              className={`relative h-10 w-10 md:w-auto md:px-3.5 md:gap-2.5 flex items-center justify-center border rounded-xl shadow-sm transition-[transform,background-color,border-color,color] duration-150 active:scale-[0.97] ${menuMas ? 'md:z-[70] bg-[#f3f5ff] border-[#b9b0f7] text-[#5b4bd6]' : 'bg-white border-stone-200 text-stone-700 hover:text-stone-900'}`}
+              title="Menú (Ctrl K)"
+              aria-label="Menú"
+              aria-expanded={!!menuMas}
             >
-              <i className="fa-solid fa-bars"></i>
+              <span className="relative w-[18px] h-[18px] block">
+                <i className={`fa-solid fa-bars absolute inset-0 flex items-center justify-center transition-[opacity,transform,filter] duration-[180ms] ease-out ${menuMas ? 'opacity-0 scale-[0.6] rotate-45 blur-[2px]' : ''}`}></i>
+                <i className={`fa-solid fa-xmark absolute inset-0 flex items-center justify-center transition-[opacity,transform,filter] duration-[180ms] ease-out ${menuMas ? '' : 'opacity-0 scale-[0.6] -rotate-45 blur-[2px]'}`}></i>
+              </span>
+              <span className="hidden md:inline text-[13px] font-semibold text-[#2d284b]">Menú</span>
+              <kbd className="hidden xl:inline text-[10.5px] font-bold bg-[#ebf0ff] text-[#473bb5] rounded-md px-1.5 py-0.5">Ctrl K</kbd>
             </button>
           </div>
         </header>

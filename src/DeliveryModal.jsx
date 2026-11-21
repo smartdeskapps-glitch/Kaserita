@@ -89,7 +89,7 @@ export default function DeliveryModal({
                   Panel superior oscuro (Ebony) con lo principal del link y, debajo, una hoja
                   blanca con los ajustes de la tienda. */}
               {modalDelivery && (
-                <div className="ventana-riel pantalla-movil fixed inset-0 bg-stone-900/30 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+                <div className="pantalla-movil fixed inset-0 bg-stone-900/30 backdrop-blur-sm flex items-center justify-center z-50 p-4">
                   <div className={`pantalla-movil-panel ${sesion?.bodega?.delivery_permitido ? '' : 'bg-[#f6f8ff]'} rounded-[34px] max-w-md w-full shadow-2xl max-h-[92dvh] flex flex-col overflow-hidden`}>
                     {!sesion?.bodega?.delivery_permitido ? (
                       <>

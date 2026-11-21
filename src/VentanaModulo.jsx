@@ -4,7 +4,6 @@ const TONOS = { ok: 'text-[#0f7b4a]', mal: 'text-[#c0262d]', aviso: 'text-[#a865
 
 // Ventana común de los módulos (Fiados, Historial, Dashboard, Cajeros...): encabezado blanco
 // y sobrio con icono, título, cifras clave y cerrar; debajo va el contenido del módulo.
-// El velo lleva `ventana-riel` para que el riel quede encima y la ventana se centre a su lado.
 export default function VentanaModulo({
   icono,
   titulo,
@@ -25,7 +24,7 @@ export default function VentanaModulo({
   const ultima = palabras.pop();
   const visibles = (cifras || []).filter(Boolean);
   return (
-    <div className={`ventana-riel pantalla-movil fixed inset-0 bg-stone-900/30 backdrop-blur-sm flex items-center justify-center ${z} p-2 sm:p-4`} onClick={onFondo}>
+    <div className={`pantalla-movil fixed inset-0 bg-stone-900/30 backdrop-blur-sm flex items-center justify-center ${z} p-2 sm:p-4`} onClick={onFondo}>
       <div onClick={onFondo ? (e) => e.stopPropagation() : undefined} className={`pantalla-movil-panel bg-white rounded-[26px] ${ancho} w-full ${alto} shadow-2xl flex flex-col overflow-hidden`}>
         <header className="shrink-0 px-4 sm:px-6 pt-4 pb-4 max-md:pt-3 max-md:pb-3 border-b border-[#eef1fd]">
           <div className="flex items-center gap-3">
