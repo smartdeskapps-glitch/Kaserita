@@ -65,6 +65,7 @@ export default function Catalogo({
             {/* Menú: en celular abre la hoja; en escritorio, el panel que cae de este botón. Con el panel
                 abierto el botón queda por encima del velo y se vuelve ✕ para poder cerrarlo. */}
             <button
+              id="boton-menu"
               onClick={() => { if (menuMas) { setMenuMas(false); return; } setBusquedaMenu(''); setIndiceMenu(0); setMenuMas(true); }}
               className={`relative h-10 w-10 md:w-auto md:px-3.5 md:gap-2.5 flex items-center justify-center border rounded-xl shadow-sm transition-[transform,background-color,border-color,color] duration-150 active:scale-[0.97] ${menuMas ? 'md:z-[70] bg-[#f3f5ff] border-[#b9b0f7] text-[#5b4bd6]' : 'bg-white border-stone-200 text-stone-700 hover:text-stone-900'}`}
               title="Menú (Ctrl K)"
@@ -76,7 +77,6 @@ export default function Catalogo({
                 <i className={`fa-solid fa-xmark absolute inset-0 flex items-center justify-center transition-[opacity,transform,filter] duration-[180ms] ease-out ${menuMas ? '' : 'opacity-0 scale-[0.6] -rotate-45 blur-[2px]'}`}></i>
               </span>
               <span className="hidden md:inline text-[13px] font-semibold text-[#2d284b]">Menú</span>
-              <kbd className="hidden xl:inline text-[10.5px] font-bold bg-[#ebf0ff] text-[#473bb5] rounded-md px-1.5 py-0.5">Ctrl K</kbd>
             </button>
           </div>
         </header>

@@ -24,6 +24,7 @@ export default function MenuEscritorio({ abierto, opciones, busqueda, setBusqued
   const [pestana, setPestana] = useState(0);
   const [pos, setPos] = useState(null);
   const [desliza, setDesliza] = useState(false);
+  const [ancla, setAncla] = useState(null);
   const entradaRef = useRef(null);
   const refsPestana = useRef([]);
   const porTeclado = useRef(false);
@@ -47,6 +48,24 @@ export default function MenuEscritorio({ abierto, opciones, busqueda, setBusqued
   useEffect(() => {
     if (visible) entradaRef.current?.focus({ preventScroll: true });
   }, [visible]);
+
+  // El panel cuelga del botón ☰ (#boton-menu): su borde derecho se alinea con el del botón, sin salirse de la
+  // pantalla, y la animación nace desde el centro del botón. El botón no siempre está en el borde de la ventana
+  // (a su derecha puede haber el carrito), por eso se mide en vez de fijarlo al borde.
+  const medir = () => {
+    const b = document.getElementById('boton-menu');
+    if (!b) return;
+    const r = b.getBoundingClientRect();
+    const ancho = Math.min(416, window.innerWidth - 24);
+    const left = Math.max(12, Math.min(r.right - ancho, window.innerWidth - ancho - 12));
+    setAncla({ left, top: Math.round(r.bottom + 8), origen: Math.round(r.left + r.width / 2 - left) });
+  };
+  useLayoutEffect(() => { if (montado) medir(); }, [montado]); // eslint-disable-line
+  useEffect(() => {
+    if (!montado) return undefined;
+    window.addEventListener('resize', medir);
+    return () => window.removeEventListener('resize', medir);
+  }, [montado]); // eslint-disable-line
 
   const q = normalizar(busqueda).trim();
   const pestanas = useMemo(
@@ -99,7 +118,13 @@ export default function MenuEscritorio({ abierto, opciones, busqueda, setBusqued
   return (
     <div className={`mx-raiz ${visible ? 'mx-abierto' : ''} ${seco ? 'mx-seco' : ''}`}>
       <div className="mx-velo" onClick={onClose}></div>
-      <section className="mx-panel" role="dialog" aria-label="Menú" onKeyDown={alTeclear}>
+      <section
+        className="mx-panel"
+        role="dialog"
+        aria-label="Menú"
+        onKeyDown={alTeclear}
+        style={ancla ? { left: ancla.left, top: ancla.top, right: 'auto', transformOrigin: `${ancla.origen}px -8px` } : undefined}
+      >
         <div className="mx-caja">
           <label className={`mx-busq ${busqueda ? 'mx-lleno' : ''}`}>
             <i className="fa-solid fa-magnifying-glass text-[14px]"></i>
