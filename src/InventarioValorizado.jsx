@@ -127,7 +127,7 @@ export default function InventarioValorizado({ productos, onClose }) {
       subtitulo="Costo, venta y ganancia de cada producto"
       onClose={onClose}
       onFondo={onClose}
-      ancho="max-w-2xl"
+      ancho="max-w-2xl lg:max-w-5xl"
       desplazable={false}
     >
       {/* Todo se desplaza junto; solo el buscador y los filtros se quedan fijos arriba de la lista. */}
@@ -201,13 +201,65 @@ export default function InventarioValorizado({ productos, onClose }) {
           {visibles.length === 0 && (
             <p className="py-10 text-center text-sm text-[#8f8cb0]">No hay productos con ese filtro.</p>
           )}
+          {/* PC: una tabla, para comparar costo, venta y margen de muchos productos de un vistazo. */}
+          {visibles.length > 0 && (
+            <div className="hidden lg:block bg-white rounded-[18px] ring-1 ring-[#5b4bd6]/10 overflow-hidden">
+              <table className="w-full text-[13px] border-collapse">
+                <thead>
+                  <tr className="text-left text-[11.5px] font-semibold text-[#8f8cb0] bg-[#fafbff]">
+                    <th className="px-4 py-3 font-semibold">Producto</th>
+                    <th className="px-3 py-3 font-semibold text-right">Stock</th>
+                    <th className="px-3 py-3 font-semibold text-right">Costo</th>
+                    <th className="px-3 py-3 font-semibold text-right">Venta</th>
+                    <th className="px-3 py-3 font-semibold text-right">Ganás x u.</th>
+                    <th className="px-3 py-3 font-semibold text-right">Margen</th>
+                    <th className="px-3 py-3 font-semibold text-right">Invertido</th>
+                    <th className="px-4 py-3 font-semibold text-right">Ganarías</th>
+                  </tr>
+                </thead>
+                <tbody className="tabular-nums">
+                  {visibles.slice(0, limite).map((f) => {
+                    const p = f.p;
+                    const t = tonoMargen(f.margen);
+                    const sinStock = agotado(p);
+                    const bajo = f.stock > 0 && f.stock <= STOCK_BAJO;
+                    return (
+                      <tr key={p.id} className="border-t border-[#eef1fd] hover:bg-[#f9faff] transition-colors">
+                        <td className="px-4 py-2.5">
+                          <div className="flex items-center gap-3 min-w-0">
+                            <span className="w-9 h-9 rounded-[11px] overflow-hidden shrink-0 bg-[#f1efff]"><FotoProducto fotoUrl={p.foto_url} categoria={p.categoria} className="w-full h-full" iconClassName="text-xs" /></span>
+                            <div className="min-w-0">
+                              <p className="font-bold text-[#2d284b] leading-snug truncate max-w-[300px]">{p.descripcion}</p>
+                              {p.categoria && <p className="text-[12px] text-[#8f8cb0] truncate">{p.categoria}</p>}
+                            </div>
+                          </div>
+                        </td>
+                        <td className="px-3 py-2.5 text-right whitespace-nowrap">
+                          {sinStock ? <b className="text-[#c2334f]">Agotado</b>
+                            : !controlaStock(p) ? <span className="text-[#8f8cb0]">Sin control</span>
+                            : bajo ? <b className="text-[#a96a00]">{textoStock(f.stock)}</b>
+                            : <span className="text-[#2d284b]">{textoStock(f.stock)}</span>}
+                        </td>
+                        <td className="px-3 py-2.5 text-right whitespace-nowrap">{!f.tieneCosto ? <span className="font-semibold text-[#a96a00]">Falta</span> : verCostos ? dinero(f.costo) : oculto}</td>
+                        <td className="px-3 py-2.5 text-right whitespace-nowrap font-semibold text-[#2d284b]">{dinero(f.venta)}</td>
+                        <td className={`px-3 py-2.5 text-right whitespace-nowrap font-semibold ${COLOR[t]}`}>{!f.tieneCosto ? '—' : verCostos ? dinero(f.gu) : oculto}</td>
+                        <td className={`px-3 py-2.5 text-right whitespace-nowrap font-extrabold ${COLOR[t]}`}>{f.margen === null ? 'Sin costo' : verCostos ? `${f.margen.toFixed(0)} %` : oculto}</td>
+                        <td className="px-3 py-2.5 text-right whitespace-nowrap text-[#6b6890]">{f.stock > 0 && f.tieneCosto ? (verCostos ? dinero(f.invertido) : oculto) : '—'}</td>
+                        <td className="px-4 py-2.5 text-right whitespace-nowrap font-semibold text-[#17895c]">{f.stock > 0 && f.tieneCosto ? (verCostos ? dinero(f.total) : oculto) : '—'}</td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          )}
           {visibles.slice(0, limite).map((f) => {
             const p = f.p;
             const t = tonoMargen(f.margen);
             const sinStock = agotado(p);
             const bajo = f.stock > 0 && f.stock <= STOCK_BAJO;
             return (
-              <div key={p.id} className="bg-white rounded-[20px] ring-1 ring-[#5b4bd6]/10 p-3.5">
+              <div key={p.id} className="lg:hidden bg-white rounded-[20px] ring-1 ring-[#5b4bd6]/10 p-3.5">
                 <div className="flex items-start gap-3">
                   <span className="w-11 h-11 rounded-[13px] overflow-hidden shrink-0 bg-[#f1efff]"><FotoProducto fotoUrl={p.foto_url} categoria={p.categoria} className="w-full h-full" iconClassName="text-sm" /></span>
                   <div className="flex-1 min-w-0">

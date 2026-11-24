@@ -31,11 +31,11 @@ export default function RegistroActividad({
       cifras={!cargandoAuditoria && !esModoDemo && [{ etiqueta: 'Movimientos de hoy', valor: deHoy }]}
       onClose={cerrar}
       onFondo={cerrar}
-      ancho="max-w-2xl"
+      ancho="max-w-2xl lg:max-w-4xl"
       z="z-[60]"
       desplazable={false}
     >
-      <div className="shrink-0 px-4 sm:px-6 pt-4 pb-2 flex gap-1.5 overflow-x-auto hide-scrollbar">
+      <div className="shrink-0 px-4 sm:px-6 pt-4 pb-2 flex gap-1.5 overflow-x-auto hide-scrollbar lg:flex-wrap lg:overflow-visible">
         {FILTROS.map(([valor, etiqueta]) => (
           <button
             type="button"
@@ -61,10 +61,13 @@ export default function RegistroActividad({
               <li key={f.id} className="relative flex gap-3.5 py-2.5">
                 {i < visibles.length - 1 && <span className="absolute left-[13px] top-[42px] -bottom-1 w-0.5 bg-[#eef1fd]" aria-hidden="true"></span>}
                 <span className="relative w-7 h-7 rounded-full bg-[#f1efff] text-[#5b4bd6] grid place-items-center shrink-0"><i className={`fa-solid ${ICONOS[f.tabla] || 'fa-circle-dot'} text-[11px]`}></i></span>
-                <div className="flex-1 min-w-0">
-                  <p className="text-[13px] font-semibold text-[#2d284b] break-words">{d.titulo}</p>
-                  {d.detalle.length > 0 && <p className="text-xs text-[#6b6890] mt-0.5 break-words">{d.detalle.join(' · ')}</p>}
-                  <p className="text-[11.5px] text-[#8f8cb0] mt-0.5">
+                {/* En PC la fecha pasa a una columna a la derecha, para que se lea como un registro y no como una lista de celular. */}
+                <div className="flex-1 min-w-0 lg:flex lg:items-start lg:gap-6">
+                  <div className="min-w-0 lg:flex-1">
+                    <p className="text-[13px] font-semibold text-[#2d284b] break-words">{d.titulo}</p>
+                    {d.detalle.length > 0 && <p className="text-xs text-[#6b6890] mt-0.5 break-words">{d.detalle.join(' · ')}</p>}
+                  </div>
+                  <p className="text-[11.5px] text-[#8f8cb0] mt-0.5 lg:mt-0.5 lg:w-[250px] lg:shrink-0 lg:text-right">
                     {new Date(f.creado_en).toLocaleString('es-PE', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
                     {f.turnos_abiertos && f.turnos_abiertos.length > 0 ? ` · Turno abierto de: ${f.turnos_abiertos.join(', ')}` : ' · Sin turnos abiertos'}
                   </p>

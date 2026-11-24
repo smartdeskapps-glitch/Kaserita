@@ -30,7 +30,7 @@ export default function HistorialInventario({
                   titulo="Historial de inventario"
                   subtitulo="Tomas de inventario anteriores y sus diferencias"
                   onClose={() => setModalHistorialInventario(false)}
-                  ancho="max-w-2xl"
+                  ancho="max-w-2xl lg:max-w-4xl"
                   desplazable={false}
                 >
                   <div className="flex-1 min-h-0 flex flex-col p-4 sm:p-6 space-y-3">
@@ -48,7 +48,7 @@ export default function HistorialInventario({
                       diasAtras={30}
                     />
 
-                    <div className="flex gap-2 shrink-0">
+                    <div className="flex gap-2 shrink-0 lg:max-w-xl">
                       <input
                         type="text"
                         placeholder="Buscar producto..."
@@ -77,7 +77,7 @@ export default function HistorialInventario({
                             <p className="text-[11px] font-bold text-stone-500 uppercase tracking-wide mb-1.5">
                               {new Date(`${grupo.dia}T00:00:00`).toLocaleDateString('es-PE', { weekday: 'long', day: '2-digit', month: 'long' })}
                             </p>
-                            <div className="space-y-1.5">
+                            <div className="space-y-1.5 lg:space-y-0 lg:grid lg:grid-cols-2 lg:gap-2">
                               {grupo.items.map((h) => {
                                 const dif = Number(h.diferencia);
                                 const cajero = listaCajeros.find((c) => c.id === h.cajero_id);

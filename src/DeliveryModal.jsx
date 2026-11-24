@@ -90,7 +90,7 @@ export default function DeliveryModal({
                   blanca con los ajustes de la tienda. */}
               {modalDelivery && (
                 <div className="pantalla-movil fixed inset-0 bg-stone-900/30 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-                  <div className={`pantalla-movil-panel ${sesion?.bodega?.delivery_permitido ? '' : 'bg-[#f6f8ff]'} rounded-[34px] max-w-md w-full shadow-2xl max-h-[92dvh] flex flex-col overflow-hidden`}>
+                  <div className={`pantalla-movil-panel ${sesion?.bodega?.delivery_permitido ? '' : 'bg-[#f6f8ff]'} rounded-[34px] max-w-md lg:max-w-4xl w-full shadow-2xl max-h-[92dvh] flex flex-col overflow-hidden`}>
                     {!sesion?.bodega?.delivery_permitido ? (
                       <>
                         <div className="flex items-start gap-2.5 px-4 pt-4 pb-2.5 shrink-0">
@@ -121,10 +121,10 @@ export default function DeliveryModal({
                       </>
                     ) : (
                       <>
-                        <div className="flex-1 overflow-y-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden" style={{ scrollbarWidth: 'none' }}>
+                        <div className="flex-1 min-h-0 overflow-y-auto lg:overflow-hidden lg:flex [scrollbar-width:none] [&::-webkit-scrollbar]:hidden" style={{ scrollbarWidth: 'none' }}>
                           {/* Panel oscuro */}
                           <div
-                            className="relative bg-white text-[#2d284b] px-5 pt-4 pb-5"
+                            className="relative bg-white text-[#2d284b] px-5 pt-4 pb-5 lg:w-[380px] lg:shrink-0 lg:overflow-y-auto lg:border-r lg:border-[#eef1fd] hide-scrollbar"
                           >
                             <div className="flex items-center justify-between">
                               <span className="w-10 h-10 rounded-full bg-[#f3f5ff] flex items-center justify-center">
@@ -253,7 +253,7 @@ export default function DeliveryModal({
                           </div>
 
                           {/* Hoja blanca con los ajustes de la tienda */}
-                          <div className="relative border-t border-[#eef1fd] bg-white px-4 pt-4 pb-3">
+                          <div className="relative border-t border-[#eef1fd] lg:border-t-0 bg-white px-4 lg:px-6 pt-4 pb-3 lg:flex-1 lg:min-w-0 lg:overflow-y-auto hide-scrollbar">
                             <p className="text-sm font-bold text-[#2d284b] mx-1 mb-3">Tu tienda</p>
                           {seccionDelivery('donde', 'ubicacion', 'Ubicación y horarios', `${direccionDelivery.trim() || 'Sin dirección'} · ${resumenHorarioDelivery(horarioDelivery)}`, (
                             <>
