@@ -662,7 +662,7 @@ export default function PanelCarrito({
 
         {/* Lista Ítems */}
         {/* Celular al cobrar: la lista se achica (unas 2 filas) para dejar espacio a los medios de pago */}
-        <div className={`overflow-y-auto p-2.5 space-y-2 md:space-y-1.5 hide-scrollbar bg-[#f3f5ff] md:bg-transparent ${mostrarPago ? `${verDetalleCobro ? 'max-h-[24dvh] pb-2.5' : 'hidden'} md:block md:max-h-none md:flex-1 md:pb-16` : 'flex-1 pb-16'}`}>
+        <div className={`overflow-y-auto p-2.5 space-y-2 md:space-y-1.5 hide-scrollbar bg-[#f3f5ff] md:bg-transparent ${mostrarPago ? `${verDetalleCobro ? 'max-h-[24dvh] pb-2.5' : 'hidden'} md:block md:max-h-[34dvh] md:flex-none md:pb-2.5` : 'flex-1 pb-16'}`}>
           {carrito.length === 0 ? (
             <div className="flex flex-col items-center justify-center h-full text-stone-500 text-center p-4">
               <i className="fa-solid fa-basket-shopping text-3xl mb-2 text-stone-300"></i>
