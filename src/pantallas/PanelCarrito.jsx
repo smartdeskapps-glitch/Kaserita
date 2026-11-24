@@ -23,7 +23,7 @@ const BILLETES = [10, 20, 50, 100, 200];
 
 // Campo de monto con su botón de teclado numérico (se usa en efectivo y en las dos partes del mixto).
 function CampoMonto({ valor, onCambio, tecladoActivo, onTeclado, etiqueta, grande = true }) {
-  const alto = grande ? 'h-[60px]' : 'h-[54px]';
+  const alto = grande ? 'h-[60px] md:h-[48px]' : 'h-[54px] md:h-[46px]';
   return (
     <div className="flex items-center gap-2">
       <label
@@ -39,7 +39,7 @@ function CampoMonto({ valor, onCambio, tecladoActivo, onTeclado, etiqueta, grand
           onChange={(e) => onCambio(e.target.value)}
           placeholder="0.00"
           aria-label={etiqueta}
-          className={`w-full min-w-0 bg-transparent ${grande ? 'text-[28px]' : 'text-[24px]'} font-bold tracking-tight text-stone-900 tabular-nums placeholder:text-[#b3b0c8] focus:outline-none`}
+          className={`w-full min-w-0 bg-transparent ${grande ? 'text-[28px] md:text-[24px]' : 'text-[24px] md:text-[22px]'} font-bold tracking-tight text-stone-900 tabular-nums placeholder:text-[#b3b0c8] focus:outline-none`}
         />
       </label>
       <button
@@ -48,7 +48,7 @@ function CampoMonto({ valor, onCambio, tecladoActivo, onTeclado, etiqueta, grand
         aria-pressed={tecladoActivo}
         aria-label="Teclado numérico"
         title="Teclado numérico"
-        className={`shrink-0 ${grande ? 'w-[60px] h-[60px]' : 'w-[54px] h-[54px]'} flex items-center justify-center rounded-[18px] transition active:scale-95 ${
+        className={`shrink-0 ${grande ? 'w-[60px] h-[60px] md:w-[48px] md:h-[48px]' : 'w-[54px] h-[54px] md:w-[46px] md:h-[46px]'} flex items-center justify-center rounded-[18px] transition active:scale-95 ${
           tecladoActivo ? 'bg-[#5b4bd6] text-white' : 'bg-[#ebf0ff] text-[#473bb5] hover:bg-[#dde4fa]'
         }`}
       >
@@ -64,7 +64,7 @@ function FilaVuelto({ valor, className = '' }) {
   return (
     <div className={`flex items-baseline justify-between ${className}`}>
       <span className="text-[13.5px] font-medium text-stone-500">{falta ? 'Falta' : 'Vuelto'}</span>
-      <span className={`text-[24px] font-bold tracking-tight tabular-nums ${falta ? 'text-rose-600' : 'text-green-700'}`}>
+      <span className={`text-[24px] md:text-[20px] font-bold tracking-tight tabular-nums ${falta ? 'text-rose-600' : 'text-green-700'}`}>
         <small className="text-xs font-semibold text-stone-400 mr-1">S/</small>{(Number.isFinite(valor) ? Math.abs(valor) : 0).toFixed(2)}
       </span>
     </div>
@@ -505,10 +505,23 @@ export default function PanelCarrito({
         {/* Encabezado del carrito: una sola fila de título (con el cierre en
             mobile) y debajo las acciones rápidas. En desktop todo va en una fila. */}
         <div className={`${mostrarPago ? 'hidden md:flex' : 'flex'} flex-wrap md:flex-nowrap items-center justify-between gap-y-2.5 px-4 pt-2 pb-3 md:py-3 bg-[#f3f5ff] md:bg-white border-b border-[#dde4fa] md:border-stone-100 shrink-0`}>
-          <h2 className="text-[19px] md:text-sm font-bold md:font-extrabold tracking-tight text-stone-900">
-            <span className="md:hidden">Carrito</span>
-            <span className="ml-1.5 md:ml-0 text-[13px] md:text-sm text-stone-400 font-semibold">{carrito.reduce((a, c) => a + c.cantidad, 0)} ítems</span>
-          </h2>
+          <div className="flex items-center gap-2 min-w-0">
+            {mostrarPago && (
+              <button
+                type="button"
+                onClick={() => { setMostrarPago(false); reiniciarClienteYMedioPago(); }}
+                aria-label="Volver al carrito"
+                title="Volver al carrito"
+                className="hidden md:flex w-8 h-8 rounded-full bg-[#f3f5ff] hover:bg-[#ebf0ff] text-[#473bb5] items-center justify-center transition active:scale-95"
+              >
+                <IconoTrazo nombre="back" className="w-[15px] h-[15px]" />
+              </button>
+            )}
+            <h2 className="text-[19px] md:text-sm font-bold md:font-extrabold tracking-tight text-stone-900">
+              <span className="md:hidden">Carrito</span>
+              <span className="ml-1.5 md:ml-0 text-[13px] md:text-sm text-stone-400 font-semibold">{carrito.reduce((a, c) => a + c.cantidad, 0)} ítems</span>
+            </h2>
+          </div>
           <button
             onClick={() => setMostrarResumenMobile(false)}
             className="md:hidden w-10 h-10 rounded-full bg-white shadow-[0_1px_0_#dde4fa,0_6px_14px_-10px_rgba(45,40,75,0.35)] hover:bg-[#ebf0ff] text-stone-500 flex items-center justify-center transition active:scale-95"
@@ -662,7 +675,7 @@ export default function PanelCarrito({
 
         {/* Lista Ítems */}
         {/* Celular al cobrar: la lista se achica (unas 2 filas) para dejar espacio a los medios de pago */}
-        <div className={`overflow-y-auto p-2.5 space-y-2 md:space-y-1.5 hide-scrollbar bg-[#f3f5ff] md:bg-transparent ${mostrarPago ? `${verDetalleCobro ? 'max-h-[24dvh] pb-2.5' : 'hidden'} md:block md:max-h-[34dvh] md:flex-none md:pb-2.5` : 'flex-1 pb-16'}`}>
+        <div className={`overflow-y-auto p-2.5 space-y-2 md:space-y-1.5 hide-scrollbar bg-[#f3f5ff] md:bg-transparent ${mostrarPago ? `${verDetalleCobro ? 'max-h-[24dvh] pb-2.5' : 'hidden'} md:block md:max-h-none md:flex-1 md:min-h-[140px] md:pb-2.5` : 'flex-1 pb-16'}`}>
           {carrito.length === 0 ? (
             <div className="flex flex-col items-center justify-center h-full text-stone-500 text-center p-4">
               <i className="fa-solid fa-basket-shopping text-3xl mb-2 text-stone-300"></i>
@@ -725,7 +738,7 @@ export default function PanelCarrito({
             los items pasan por debajo, borrosos, y el borde superior se desvanece. */}
         <div
           className={`relative z-10 p-4 min-h-0 overflow-y-auto overscroll-contain ${mostrarPago
-            ? 'flex-1 flex flex-col gap-3 pt-4 scroll-pb-44 bg-[#f3f5ff] border-t border-[#dde4fa] shadow-[0_-14px_26px_-20px_rgba(40,20,100,0.4)]'
+            ? 'flex-1 md:flex-none md:max-h-[72dvh] flex flex-col gap-3 md:gap-2.5 pt-4 md:pt-3 scroll-pb-44 bg-[#f3f5ff] border-t border-[#dde4fa] shadow-[0_-14px_26px_-20px_rgba(40,20,100,0.4)]'
             : 'space-y-3 -mt-10 pt-14 backdrop-blur-xl bg-gradient-to-b from-[#f3f5ff]/60 to-[#f3f5ff]/95 md:from-white/60 md:to-white/90'}`}
           style={mostrarPago ? undefined : { WebkitMaskImage: 'linear-gradient(to bottom, transparent 0, black 44px)', maskImage: 'linear-gradient(to bottom, transparent 0, black 44px)' }}
         >
@@ -769,16 +782,8 @@ export default function PanelCarrito({
             </>
           ) : (
           <>
-          <button
-            type="button"
-            onClick={() => { setMostrarPago(false); reiniciarClienteYMedioPago(); }}
-            className="self-start hidden md:flex items-center gap-1 pl-2 pr-3 py-1.5 rounded-full bg-[#ebf0ff] hover:bg-[#dde4fa] text-[13px] font-semibold text-[#2d284b] transition"
-          >
-            <IconoTrazo nombre="back" className="w-[15px] h-[15px]" /> Volver
-          </button>
-
           <div>
-            <h3 className={TITULO_SECCION}>Medio de pago</h3>
+            <h3 className={`${TITULO_SECCION} md:!mb-1.5`}>Medio de pago</h3>
             <div className="grid grid-cols-3 gap-2" role="group" aria-label="Medio de pago">
               {MEDIOS_PAGO.map((m) => (
                 <button
@@ -792,14 +797,14 @@ export default function PanelCarrito({
                       abrirBuscarClientePOS();
                     }
                   }}
-                  className={`relative flex flex-col items-center justify-center gap-1 h-[62px] md:h-[72px] md:gap-1.5 text-[12.5px] font-semibold rounded-[18px] border-[1.5px] transition active:scale-[0.97] ${
+                  className={`relative flex flex-col md:flex-row items-center justify-center gap-1 h-[62px] md:h-11 md:gap-2 text-[12.5px] font-semibold rounded-[18px] border-[1.5px] transition active:scale-[0.97] ${
                     medioPago === m.id
                       ? 'border-[#5b4bd6] bg-gradient-to-b from-white to-[#f3f5ff] text-[#2d284b] shadow-[0_1px_0_#dde4fa]'
                       : 'border-transparent bg-white text-stone-600 shadow-[0_1px_0_#dde4fa,0_6px_14px_-10px_rgba(45,40,75,0.35)] hover:bg-[#fbfbff]'
                   }`}
                 >
-                  {medioPago === m.id && <span aria-hidden="true" className="absolute top-2 right-2 w-[7px] h-[7px] rounded-full bg-[#5b4bd6] ring-[3px] ring-[#5b4bd6]/15"></span>}
-                  <IconoTrazo nombre={m.icono} className="w-[21px] h-[21px] text-[#5b4bd6]" />
+                  {medioPago === m.id && <span aria-hidden="true" className="absolute top-2 right-2 md:top-1.5 md:right-1.5 w-[7px] h-[7px] rounded-full bg-[#5b4bd6] ring-[3px] ring-[#5b4bd6]/15"></span>}
+                  <IconoTrazo nombre={m.icono} className="w-[21px] h-[21px] md:w-[18px] md:h-[18px] text-[#5b4bd6]" />
                   {m.texto}
                 </button>
               ))}
@@ -808,8 +813,8 @@ export default function PanelCarrito({
 
           {medioPago === 'EFECTIVO' && (
             <div data-campo-pago>
-              <h3 className={TITULO_SECCION}>Paga con</h3>
-              <div className={CAJA_COBRO}>
+              <h3 className={`${TITULO_SECCION} md:!mb-1.5`}>Paga con</h3>
+              <div className={`${CAJA_COBRO} md:!p-3`}>
                 <CampoMonto
                   valor={montoRecibido}
                   onCambio={setMontoRecibido}
@@ -817,7 +822,7 @@ export default function PanelCarrito({
                   onTeclado={() => setCampoTeclado(campoTeclado === 'recibido' ? null : 'recibido')}
                   etiqueta="Monto con el que paga"
                 />
-                <div className="flex gap-2 mt-2.5">
+                <div className="flex gap-2 mt-2.5 md:mt-2">
                   {[
                     { t: 'Exacto', v: totalConDescuento },
                     ...BILLETES.filter((n) => n >= totalConDescuento).slice(0, 3).map((n) => ({ t: `S/ ${n}`, v: n }))
@@ -829,7 +834,7 @@ export default function PanelCarrito({
                         type="button"
                         aria-pressed={activo}
                         onClick={() => setMontoRecibido(String(+Number(c.v).toFixed(2)))}
-                        className={`flex-1 min-w-0 h-11 rounded-[14px] border-[1.5px] text-[13px] font-bold transition active:scale-95 ${
+                        className={`flex-1 min-w-0 h-11 md:h-9 rounded-[14px] border-[1.5px] text-[13px] font-bold transition active:scale-95 ${
                           activo ? 'bg-[#5b4bd6] border-[#5b4bd6] text-white' : 'bg-[#f3f5ff] border-[#dde4fa] text-[#2d284b] hover:bg-[#ebf0ff]'
                         }`}
                       >
@@ -838,7 +843,7 @@ export default function PanelCarrito({
                     );
                   })}
                 </div>
-                <FilaVuelto valor={vuelto} className="mt-3 pt-3 border-t border-[#dde4fa]" />
+                <FilaVuelto valor={vuelto} className="mt-3 pt-3 md:mt-2 md:pt-2 border-t border-[#dde4fa]" />
                 {campoTeclado === 'recibido' && <NumericKeypad value={montoRecibido} onChange={asignarDesdeTeclado} />}
               </div>
             </div>
@@ -937,13 +942,13 @@ export default function PanelCarrito({
             </div>
           )}
 
-          <div>
+          <div className={descuentoTipo ? undefined : 'md:hidden'}>
             {!descuentoTipo ? (
               carrito.length > 0 && (
                 <button
                   type="button"
                   onClick={() => { setDescuentoTipo('PORCENTAJE'); setDescuentoValor(''); }}
-                  className={`${CAJA_COBRO} !py-3 w-full flex items-center justify-between text-left transition active:scale-[0.99]`}
+                  className={`${CAJA_COBRO} !py-3 w-full flex md:hidden items-center justify-between text-left transition active:scale-[0.99]`}
                 >
                   <span className="flex items-center gap-2.5 text-sm font-semibold text-stone-600">
                     <IconoTrazo nombre="etiqueta" className="w-[18px] h-[18px] text-[#5b4bd6]" /> Descuento
@@ -1016,7 +1021,18 @@ export default function PanelCarrito({
               </>
             )}
             <div className={`flex items-baseline justify-between ${montoDescuento > 0 ? 'pt-2 border-t border-[#5b4bd6]/10' : ''}`}>
-              <span className="text-xs font-semibold text-[#2d284b]">Total a cobrar</span>
+              <span className="flex flex-col items-start gap-0.5 text-xs font-semibold text-[#2d284b]">
+                Total a cobrar
+                {!descuentoTipo && carrito.length > 0 && (
+                  <button
+                    type="button"
+                    onClick={() => { setDescuentoTipo('PORCENTAJE'); setDescuentoValor(''); }}
+                    className="text-[11.5px] font-bold text-[#5b4bd6] hover:underline"
+                  >
+                    + Aplicar descuento
+                  </button>
+                )}
+              </span>
               <span className="text-[28px] font-bold tracking-tight text-stone-900 tabular-nums">
                 <small className="text-sm text-stone-500 font-semibold mr-1">S/</small>{formatoSoles(totalConDescuento)}
               </span>
