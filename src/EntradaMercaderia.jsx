@@ -377,6 +377,7 @@ export default function EntradaMercaderia({
                     ancho="max-w-4xl"
                     alto="h-[95dvh] max-h-[800px]"
                     desplazable={false}
+                    flotante
                   >
                     <div className="flex-1 min-h-0 flex flex-col bg-[#f6f8ff]">
                       {fin ? (

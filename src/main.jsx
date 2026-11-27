@@ -524,7 +524,14 @@ import PantallaAdmin from './pantallas/PantallaAdmin.jsx';
         setModalGastos(false);
         setModalEntradaMercaderia(false); setModalHistorialCierres(false); setModalInventarioValorizado(false);
       };
-      const abrirDesdeMenu = (abrir) => () => { cerrarVentanasDelMenu(); abrir(); };
+      // En PC los módulos (VentanaModulo) se abren como pestañas dentro de la venta y varios pueden estar
+      // abiertos a la vez: solo se cierran las ventanas flotantes (flujos de varios pasos). En celular
+      // se mantiene lo de siempre: abrir una cierra las demás.
+      const cerrarVentanasFlotantes = () => {
+        setModalTomaInventario(false); setModalMerma(false); setModalEntradaMercaderia(false);
+        setModalInventarioInicial(false); setModalDelivery(false); setModalNuevoCliente(false);
+      };
+      const abrirDesdeMenu = (abrir) => () => { if (menuEscritorio) cerrarVentanasFlotantes(); else cerrarVentanasDelMenu(); abrir(); };
       // En pantallas anchas el menú es un panel que cae del botón ☰; en celular es una hoja.
       const menuEscritorio = typeof window !== 'undefined' && window.matchMedia('(min-width: 768px)').matches;
       const [formCliente, setFormCliente] = useState({ dni: '', nombre: '', telefono: '', correo: '', limiteCredito: '300.00' });

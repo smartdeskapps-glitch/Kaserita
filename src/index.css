@@ -770,3 +770,14 @@ button, [role="button"] {
   .gst-item.entra .gst-fila, .gst-conf, .gst-bump { animation: none; }
   .gst-barra, .gst-otros, .gst-fecha, .gst-item { transition-duration: 1ms; }
 }
+
+/* ===== Módulos dentro de la pantalla de venta (PC): VentanaModulo + PestanasModulos ===== */
+.vista-modulo-entra { animation: vista-modulo-entra 200ms cubic-bezier(0.23, 1, 0.32, 1) both; }
+.pestana-entra { animation: pestana-entra 220ms cubic-bezier(0.23, 1, 0.32, 1) both; }
+@keyframes vista-modulo-entra { from { opacity: 0; transform: translateY(6px); } }
+@keyframes pestana-entra { from { opacity: 0; transform: translateY(8px) scale(0.96); } }
+@media (prefers-reduced-motion: reduce) {
+  .vista-modulo-entra { animation: vista-modulo-fundido 150ms ease both; }
+  .pestana-entra { animation: none; }
+  @keyframes vista-modulo-fundido { from { opacity: 0; } }
+}

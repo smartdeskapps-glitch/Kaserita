@@ -3,6 +3,10 @@
 import React from 'react';
 import MenuMovil from './MenuMovil.jsx';
 import MenuEscritorio from './MenuEscritorio.jsx';
+import { activarPestanaPorIcono } from '../pos/pestanas.js';
+
+// Opciones cuya ventana sigue flotando sobre la pantalla (flujos de varios pasos): no son pestañas.
+const OPCIONES_FLOTANTES = ['toma', 'merma', 'registrar', 'entrada', 'link'];
 
 export default function MenuMas({
   abrirAgenda, abrirAuditoria, abrirCierreCaja, abrirComisiones, abrirCuentasPorPagar,
@@ -113,7 +117,11 @@ export default function MenuMas({
         const opcionesMenu = esEscritorio ? opciones.filter((o) => !o.soloMovil) : opciones;
 
         const cerrarMenu = () => setMenuMas(false);
-        const opcionesConAccion = opcionesMenu.map((o) => ({ ...o, accion: abrirDesdeMenu(o.accion) }));
+        // Si el módulo ya estaba abierto como pestaña (PC), reabrirlo desde el menú lleva a su pestaña.
+        const opcionesConAccion = opcionesMenu.map((o) => ({
+          ...o,
+          accion: () => { abrirDesdeMenu(o.accion)(); if (o.icono && !OPCIONES_FLOTANTES.includes(o.id)) activarPestanaPorIcono(o.icono); }
+        }));
         opcionesEscritorio.current = opcionesConAccion;
 
         // Escritorio: lo dibuja <MenuEscritorio /> más abajo (así puede animar su salida).

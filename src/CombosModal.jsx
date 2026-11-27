@@ -128,6 +128,7 @@ export default function CombosModal({
                       onClose={cerrarEditorCombo}
                       alto="h-[95dvh] max-h-[800px]"
                       desplazable={false}
+                      flotante
                     >
                         <div className="flex-1 overflow-y-auto hide-scrollbar p-4 sm:p-7 grid gap-5 md:gap-6 md:grid-cols-[minmax(0,1fr)_310px] content-start">
                           <div className="min-w-0 space-y-4">

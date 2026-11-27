@@ -68,6 +68,7 @@ export default function TomaInventario({
                   onClose={() => setModalTomaInventario(false)}
                   ancho="max-w-2xl"
                   desplazable={false}
+                  flotante
                 >
                   <div className="flex-1 min-h-0 flex flex-col p-4 sm:p-6 gap-3.5">
                     <PestanasModal pestanas={[

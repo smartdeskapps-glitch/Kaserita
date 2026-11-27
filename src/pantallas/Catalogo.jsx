@@ -3,6 +3,7 @@
 import React from 'react';
 import CombosCatalogo, { comboCoincide } from '../CombosCatalogo.jsx';
 import { ProductoCard } from '../pos/componentes.jsx';
+import PestanasModulos from '../PestanasModulos.jsx';
 
 export default function Catalogo({
   abrirCierreCaja, abrirEdicionProducto, abrirEscanerParaVenta, abrirModalCombos,
@@ -81,7 +82,12 @@ export default function Catalogo({
           </div>
         </header>
 
-        <div className="flex-1 flex flex-col overflow-hidden p-3 md:p-4">
+        <PestanasModulos />
+
+        <div className="flex-1 flex flex-col overflow-hidden p-3 md:p-4 relative">
+          {/* PC: aquí se abren los módulos (VentanaModulo) como pestañas, sobre el catálogo; el carrito queda a la derecha.
+              Pasa los clics al catálogo mientras no haya un módulo visible. */}
+          <div id="zona-modulo" className="hidden md:block absolute inset-3 md:inset-4 z-20 pointer-events-none"></div>
           {/* Panel blanco del catálogo: barra única (categoría + buscador + combos + pedidos) y grilla. */}
           <div className="flex-1 flex flex-col overflow-hidden bg-white rounded-2xl p-3 md:p-4 gap-3 relative z-10">
             {/* Barra: selector Productos | Combos, categoría, buscador con contador y cámara, y "Por retirar". */}
