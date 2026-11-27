@@ -103,15 +103,17 @@ export default function VentanaModulo({
   const cuerpo = <div className={`flex-1 min-h-0 flex flex-col ${desplazable ? 'overflow-y-auto' : ''}`}>{children}</div>;
 
   if (enHost) {
-    // Dentro del área de la venta: ocupa todo el alto, el ancho del módulo queda centrado y solo la
-    // pestaña activa se ve (las demás siguen montadas, con su estado).
+    // Dentro del área de la venta: solo la pestaña activa se ve (las demás siguen montadas, con su estado).
     return createPortal(
-      // Fondo opaco (si no, el catálogo se transparenta en los costados de los módulos angostos). Los
-      // módulos de contenido corto se ajustan a su alto; los de varias zonas con scroll propio ocupan todo.
-      <div className={`${activa === id ? 'flex vista-modulo-entra' : 'hidden'} absolute inset-0 justify-center items-start bg-[#ebf0ff] rounded-2xl pointer-events-auto`}>
-        <div className={`bg-white rounded-2xl ${ancho} w-full ${desplazable ? 'max-h-full' : 'h-full'} shadow-sm flex flex-col overflow-hidden`}>
+      // El módulo ocupa todo el espacio de la zona de venta (igual que el catálogo). Los módulos de
+      // contenido simple (lista con scroll) mantienen su columna centrada con su ancho de siempre para
+      // que no queden estirados; los de varias zonas (tablas, paneles) usan todo el ancho.
+      <div className={`${activa === id ? 'flex vista-modulo-entra' : 'hidden'} absolute inset-0 bg-[#ebf0ff] rounded-2xl pointer-events-auto`}>
+        <div className="bg-white rounded-2xl w-full h-full shadow-sm flex flex-col overflow-hidden">
           {cabecera}
-          {cuerpo}
+          <div className={`flex-1 min-h-0 flex flex-col ${desplazable ? 'overflow-y-auto' : ''}`}>
+            {desplazable ? <div className={`mx-auto w-full ${ancho}`}>{children}</div> : children}
+          </div>
         </div>
       </div>,
       host
