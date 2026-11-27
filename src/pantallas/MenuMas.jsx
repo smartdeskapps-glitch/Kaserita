@@ -13,7 +13,7 @@ export default function MenuMas({
   menuMas, productos, rolActivo, rolesEnServidor, sbClient, setBusquedaMenu,
   setCajeroPendientePin, setIndiceMenu, setMenuMas, setModalInventarioInicial, setModalMerma,
   setModalPinCajero, setModalTurno, setNuevoPinCajero, setPinConfirmarCajero, soltarAdmin,
-  turnoActivo, bodegaNombre, usuarioActivo
+  turnoActivo, bodegaNombre, usuarioActivo, setModalGastos
 }) {
   // Referencias de la hoja del celular: el arrastre para cerrar mueve la hoja y atenúa el velo directamente.
   const hojaRef = React.useRef(null);
@@ -65,6 +65,7 @@ export default function MenuMas({
             { id: 'dashboard', grupo: 'Administración', etiqueta: 'Dashboard de Ventas', buscar: 'reportes ganancia analisis', icono: 'fa-chart-pie', trazo: 'pie', sub: 'Ventas, ganancia y tendencias', accion: abrirDashboard },
             !esBarberia && { id: 'valorizado', grupo: 'Administración', etiqueta: 'Inventario valorizado', buscar: 'costo venta ganancia margen precio valor inversion utilidad', icono: 'fa-tags', trazo: 'etiqueta', sub: 'Costo, venta y ganancia', accion: abrirInventarioValorizado },
             !esBarberia && { id: 'pagar', grupo: 'Administración', etiqueta: 'Cuentas por Pagar', buscar: 'proveedores deuda', icono: 'fa-file-invoice', trazo: 'credito', sub: 'Lo que debes a proveedores', accion: abrirCuentasPorPagar },
+            { id: 'gastos', grupo: 'Administración', etiqueta: 'Gastos', buscar: 'gasto alquiler luz agua sueldos egresos salidas cuanto queda ganancia neta', icono: 'fa-wallet', trazo: 'efectivo', sub: 'Anota lo que gastas', accion: () => setModalGastos(true) },
             { id: 'cajeros', grupo: 'Administración', etiqueta: esBarberia ? 'Barberos' : 'Cajeros y Empleados', buscar: 'personal usuarios pin', icono: 'fa-user-group', trazo: 'users', sub: 'Quién puede entrar y vender', accion: abrirGestionCajeros },
             esBarberia && { id: 'comisiones', grupo: 'Administración', etiqueta: 'Comisiones de barberos', icono: 'fa-percent', trazo: 'porcentaje', sub: 'Pagos por barbero', accion: abrirComisiones },
             esBarberia && { id: 'agenda', grupo: 'Administración', etiqueta: 'Agenda de citas', icono: 'fa-calendar-days', trazo: 'calendario', sub: 'Citas del día', accion: abrirAgenda },

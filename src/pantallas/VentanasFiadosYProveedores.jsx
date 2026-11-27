@@ -1,7 +1,7 @@
 // Ventanas de Fiados (cobrar deudas) y Cuentas por pagar (proveedores).
 // Extraído de src/main.jsx: mismo JSX; recibe por props lo que usa del POS.
 import React, { Suspense } from 'react';
-import { FiadosModal, CuentasPagar, NuevoProveedor } from '../pos/perezosos.js';
+import { FiadosModal, CuentasPagar, NuevoProveedor, Gastos } from '../pos/perezosos.js';
 import { IconoTrazo } from '../pos/componentes.jsx';
 import { etiquetaCuandoTurno, formatoSoles } from '../pos/utilidades.js';
 
@@ -19,10 +19,24 @@ export default function VentanasFiadosYProveedores({
   setFormEditarCliente, setFormProveedor, setHojaPagoDeudor, setModalCobrarDeudas,
   setModalCuentasPagar, setModalNuevoCliente, setModalNuevoProveedor, setMontoAbonoDeuda,
   setMontoMovimientoProveedor, setMostrarHistorialCompletoDeuda, setOrdenDeudores,
-  setPagoRegistrado, setProveedorSeleccionado
+  setPagoRegistrado, setProveedorSeleccionado,
+  modalGastos, setModalGastos, bodegaId, cajeroId, esModoDemo, notificar, sbClient
 }) {
   return (
     <>
+      {modalGastos && (
+        <Suspense fallback={null}>
+          <Gastos
+            bodegaId={bodegaId}
+            cajeroId={cajeroId}
+            esModoDemo={esModoDemo}
+            notificar={notificar}
+            onClose={() => setModalGastos(false)}
+            sbClient={sbClient}
+          />
+        </Suspense>
+      )}
+
       {modalCobrarDeudas && (
         <Suspense fallback={null}>
           <FiadosModal

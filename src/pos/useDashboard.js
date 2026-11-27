@@ -66,7 +66,7 @@ export default function useDashboard({
 
         // Estas consultas no dependen una de otra: se lanzan todas juntas en vez de esperar
         // cada respuesta antes de pedir la siguiente (era una carrera de 6 viajes seguidos).
-        const [resCombos, resResumen, resDeudores, resProveedores, resAnio, resOtroAnio] = await Promise.all([
+        const [resCombos, resResumen, resDeudores, resProveedores, resAnio, resOtroAnio, resGastos] = await Promise.all([
           // Combos vendidos en el período: el resumen por producto reparte cada combo entre sus
           // componentes, así que se consulta aparte por combo_id. Una venta anulada no cuenta.
           sbClient
@@ -113,7 +113,19 @@ export default function useDashboard({
               p_zona: zona
             })
             : null,
+          // Gastos anotados en el período (módulo Gastos): se restan de la utilidad. Si la consulta
+          // falla simplemente no se muestran (no rompe el dashboard).
+          sbClient
+            .from('gastos')
+            .select('monto')
+            .eq('bodega_id', bodegaId)
+            .gte('fecha', desde)
+            .lte('fecha', hasta)
+            .limit(5000),
         ]);
+        const gastosPeriodo = resGastos.error
+          ? null
+          : +(resGastos.data || []).reduce((s, g) => s + (Number(g.monto) || 0), 0).toFixed(2);
 
         // Si falla el resumen de combos, simplemente no se muestra.
         try {
@@ -139,7 +151,7 @@ export default function useDashboard({
 
         const { data: resumen, error: errResumen } = resResumen;
         if (!errResumen && resumen && typeof resumen === 'object') {
-          setResumenPeriodo(resumen);
+          setResumenPeriodo({ ...resumen, gastos: gastosPeriodo });
         } else {
           // Plan B si la funcion SQL aun no existe: las consultas de
           // siempre (Supabase las corta en 1.000 filas, por eso se prefiere
@@ -166,7 +178,7 @@ export default function useDashboard({
             .gte('fecha_hora', inicioAnterior.toISOString())
             .lte('fecha_hora', finAnterior.toISOString());
           if (errAnterior) throw errAnterior;
-          setResumenPeriodo(resumirVentasPeriodo(data || [], dataAnterior || []));
+          setResumenPeriodo({ ...resumirVentasPeriodo(data || [], dataAnterior || []), gastos: gastosPeriodo });
         }
 
         if (resDeudores.error) throw resDeudores.error;
@@ -227,6 +239,10 @@ export default function useDashboard({
     const numVentas = Number(R.n) || 0;
     const ticketPromedio = numVentas ? totalVenta / numVentas : 0;
     const margenPct = totalVenta ? (totalUtilidad / totalVenta) * 100 : 0;
+    // Gastos del período (null = no disponible, p. ej. modo demo): lo que queda es utilidad - gastos.
+    const hayGastos = R.gastos != null && Number.isFinite(Number(R.gastos));
+    const totalGastos = hayGastos ? Number(R.gastos) : 0;
+    const utilidadNeta = totalUtilidad - totalGastos;
 
     const porHora = Array.from({ length: 24 }, (_, h) => ({
       hora: h,
@@ -299,6 +315,7 @@ export default function useDashboard({
 
     return {
       totalVenta, totalUtilidad, totalCosto, numVentas, ticketPromedio, margenPct,
+      hayGastos, totalGastos, utilidadNeta,
       porHora, maxHora, horaPico, porDia, maxDia, porMedio, topProductos, maxProducto,
       numDeudores, totalDeuda, maxDeuda,
       numProveedoresDeuda, totalPorPagar, maxPorPagar,

@@ -188,6 +188,24 @@ export default function DashboardVentas({
                       ))}
                     </div>
 
+                    {dashStats.hayGastos && dashStats.totalGastos > 0 && (
+                      <section className="dsh-card p-5 max-lg:order-2">
+                        <div className="flex flex-wrap items-end justify-between gap-x-6 gap-y-3">
+                          <div className="min-w-0">
+                            <h4 className="text-xs font-medium text-[#6b6890]">Lo que te queda</h4>
+                            <p className="text-[11px] text-[#8f8cb0] mt-0.5">Utilidad de ventas menos gastos del período</p>
+                            <p className={`mt-2 text-[28px] font-normal tracking-tight tabular-nums leading-none ${dashStats.utilidadNeta >= 0 ? 'text-[#0f7b4a]' : 'text-rose-600'}`}>
+                              <small className="text-base font-light text-[#8f8cb0] mr-1">S/</small>{formatoSoles(dashStats.utilidadNeta)}
+                            </p>
+                          </div>
+                          <dl className="flex gap-6 text-[13px] tabular-nums">
+                            <div><dt className="text-[11px] text-[#6b6890]">Utilidad</dt><dd className="font-semibold text-[#2D284B]">S/ {formatoSoles(dashStats.totalUtilidad)}</dd></div>
+                            <div><dt className="text-[11px] text-[#6b6890]">Gastos</dt><dd className="font-semibold text-rose-600">− S/ {formatoSoles(dashStats.totalGastos)}</dd></div>
+                          </dl>
+                        </div>
+                      </section>
+                    )}
+
                     <section className="dsh-card p-5 max-lg:order-3">
                       <div className="flex items-center justify-between gap-2">
                         <h4 className="text-xs font-medium text-[#6b6890]">Actividad por hora</h4>

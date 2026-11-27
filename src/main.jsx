@@ -521,6 +521,7 @@ import PantallaAdmin from './pantallas/PantallaAdmin.jsx';
         setModalDashboard(false); setModalCombos(false); setModalDelivery(false);
         setModalGestionCajeros(false); setModalComisiones(false); setModalAgenda(false);
         setModalCuentasPagar(false); setModalAuditoria(false); setModalInventarioInicial(false);
+        setModalGastos(false);
         setModalEntradaMercaderia(false); setModalHistorialCierres(false); setModalInventarioValorizado(false);
       };
       const abrirDesdeMenu = (abrir) => () => { cerrarVentanasDelMenu(); abrir(); };
@@ -550,6 +551,7 @@ import PantallaAdmin from './pantallas/PantallaAdmin.jsx';
 
       // --- Cuentas por Pagar (deuda de la bodega con proveedores) ---
       const [modalCuentasPagar, setModalCuentasPagar] = useState(false);
+      const [modalGastos, setModalGastos] = useState(false);
       const [proveedoresLista, setProveedoresLista] = useState([]);
       const [proveedorSeleccionado, setProveedorSeleccionado] = useState(null);
       const [montoMovimientoProveedor, setMontoMovimientoProveedor] = useState('');
@@ -1621,6 +1623,7 @@ import PantallaAdmin from './pantallas/PantallaAdmin.jsx';
         { abierta: modalInventarioInicial, cerrar: () => setModalInventarioInicial(false) },
         { abierta: modalDashboard, cerrar: () => setModalDashboard(false) },
         { abierta: modalCuentasPagar, cerrar: () => setModalCuentasPagar(false) },
+        { abierta: modalGastos, cerrar: () => setModalGastos(false) },
         { abierta: modalGestionCajeros, cerrar: () => setModalGestionCajeros(false) },
         { abierta: modalComisiones, cerrar: () => setModalComisiones(false) },
         { abierta: modalAgenda, cerrar: () => setModalAgenda(false) },
@@ -1740,7 +1743,7 @@ import PantallaAdmin from './pantallas/PantallaAdmin.jsx';
             menuMas, productos, rolActivo, rolesEnServidor, sbClient, setBusquedaMenu,
             setCajeroPendientePin, setIndiceMenu, setMenuMas, setModalInventarioInicial, setModalMerma,
             setModalPinCajero, setModalTurno, setNuevoPinCajero, setPinConfirmarCajero, soltarAdmin,
-            turnoActivo, bodegaNombre, usuarioActivo
+            turnoActivo, bodegaNombre, usuarioActivo, setModalGastos
           }} />
 
           {/* ========================================================================= */}
@@ -1808,7 +1811,8 @@ import PantallaAdmin from './pantallas/PantallaAdmin.jsx';
             setFormEditarCliente, setFormProveedor, setHojaPagoDeudor, setModalCobrarDeudas,
             setModalCuentasPagar, setModalNuevoCliente, setModalNuevoProveedor, setMontoAbonoDeuda,
             setMontoMovimientoProveedor, setMostrarHistorialCompletoDeuda, setOrdenDeudores,
-            setPagoRegistrado, setProveedorSeleccionado
+            setPagoRegistrado, setProveedorSeleccionado,
+            modalGastos, setModalGastos, bodegaId, cajeroId: cajeroSeleccionado?.id, esModoDemo, notificar, sbClient
           }} />
 
           <VentanasHistoriales {...{

@@ -34,7 +34,9 @@ export const FiadosModal = React.lazy(() => import('../FiadosModal.jsx'));
 
 export const CuentasPagar = React.lazy(() => import('../CuentasPagar.jsx'));
 
-export const NuevoProveedor = React.lazy(() => import('../NuevoProveedor.jsx'));
+export const Gastos = React.lazy(() => import('../Gastos.jsx'));
+
+export const NuevoProveedor =React.lazy(() => import('../NuevoProveedor.jsx'));
 
 export const HistorialInventario = React.lazy(() => import('../HistorialInventario.jsx'));
 
