@@ -735,3 +735,38 @@ button, [role="button"] {
     filter: brightness(0.95);
   }
 }
+
+/* ===== Gastos del negocio (src/Gastos.jsx) =====
+   Movimiento con propósito: responder al toque, entradas con ease-out fuerte, salidas más
+   rápidas que las entradas y solo transform/opacity (las barras usan scaleX, no width). */
+.gst-press { transition: transform 160ms cubic-bezier(0.23, 1, 0.32, 1), background-color 160ms ease, color 160ms ease; }
+.gst-press:active:not(:disabled) { transform: scale(0.97); }
+@media (hover: hover) and (pointer: fine) {
+  .gst-hv:hover:not(:disabled):not([aria-pressed='true']) { background-color: #e6ebff; }
+}
+.gst-otros { display: grid; grid-template-rows: 0fr; opacity: 0; transition: grid-template-rows 220ms cubic-bezier(0.23, 1, 0.32, 1), opacity 180ms ease; }
+.gst-otros.abierto { grid-template-rows: 1fr; opacity: 1; }
+.gst-otros > div { overflow: hidden; min-height: 0; }
+.gst-fecha { width: 0; opacity: 0; padding: 0 !important; transition: width 200ms cubic-bezier(0.23, 1, 0.32, 1), opacity 160ms ease; }
+.gst-fecha.abierto { width: 140px; opacity: 1; padding: 0 0.625rem !important; }
+.gst-barra { transform-origin: left; transition: transform 420ms cubic-bezier(0.23, 1, 0.32, 1); }
+.gst-panel { transition: opacity 140ms ease, transform 140ms cubic-bezier(0.23, 1, 0.32, 1); }
+.gst-panel.sale { opacity: 0; transform: translateY(4px); }
+.gst-item { display: grid; grid-template-rows: 1fr; transition: grid-template-rows 180ms cubic-bezier(0.77, 0, 0.175, 1), opacity 150ms ease; }
+.gst-item > div { overflow: hidden; min-height: 0; }
+.gst-item.sale { grid-template-rows: 0fr; opacity: 0; }
+.gst-fila { position: relative; }
+.gst-item.entra .gst-fila { animation: gst-entra 260ms cubic-bezier(0.23, 1, 0.32, 1) both; }
+.gst-item.entra .gst-fila::after { content: ''; position: absolute; inset: 0; background: rgba(150, 135, 245, 0.16); pointer-events: none; animation: gst-resalte 1200ms ease-out both; }
+.gst-conf { animation: gst-conf 160ms cubic-bezier(0.23, 1, 0.32, 1) both; }
+.gst-bump { animation: gst-bump 220ms cubic-bezier(0.23, 1, 0.32, 1); }
+@keyframes gst-entra { from { opacity: 0; transform: translateY(8px); } }
+@keyframes gst-resalte { from { opacity: 1; } to { opacity: 0; } }
+@keyframes gst-conf { from { opacity: 0; transform: translateX(6px); } }
+@keyframes gst-bump { from { opacity: 0.35; transform: translateY(3px); } }
+@media (prefers-reduced-motion: reduce) {
+  .gst-press:active:not(:disabled) { transform: none; }
+  .gst-panel, .gst-panel.sale { transform: none; }
+  .gst-item.entra .gst-fila, .gst-conf, .gst-bump { animation: none; }
+  .gst-barra, .gst-otros, .gst-fecha, .gst-item { transition-duration: 1ms; }
+}
