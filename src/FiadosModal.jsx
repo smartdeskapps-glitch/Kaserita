@@ -175,7 +175,7 @@ export default function FiadosModal({
                     return (
                       <div className="flex-1 min-h-0 overflow-y-auto hide-scrollbar p-5 flex">
                         <div className="text-center max-w-sm w-full mx-auto my-auto py-8">
-                          <div className="relative w-[78px] h-[78px] rounded-full bg-gradient-to-br from-[#2fa972] to-[#0f7b4a] text-white grid place-items-center text-[32px] mx-auto mb-[18px] shadow-[0_14px_28px_-10px_rgba(15,123,74,0.6)]"><i className="fa-solid fa-check"></i><span className="absolute -inset-2.5 rounded-full border-2 border-[#0f7b4a]/25 animate-ping"></span></div>
+                          <div className="relative w-[78px] h-[78px] rounded-full bg-gradient-to-br from-[#2fa972] to-[#0f7b4a] text-white grid place-items-center text-[32px] mx-auto mb-[18px] shadow-[0_14px_28px_-10px_rgba(15,123,74,0.6)]"><i className="fa-solid fa-check"></i><span className="absolute -inset-2.5 rounded-full border-2 border-[#0f7b4a]/25 animate-[ping_800ms_cubic-bezier(0,0,0.2,1)_1_both] motion-reduce:hidden"></span></div>
                           <h4 className="text-2xl font-bold text-[#2d284b] tracking-tight">Pago registrado</h4>
                           <p className="text-sm text-[#6b6890] mt-2 mb-5 leading-snug">{pagoRegistrado.nombre} {pagoRegistrado.despues <= 0.004 ? 'quedó sin deuda.' : `sigue debiendo ${dinero(pagoRegistrado.despues)}.`}</p>
                           <div className="bg-[#f3f5ff] rounded-[20px] px-[18px] py-1 text-left mb-[18px]">

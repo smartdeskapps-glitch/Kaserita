@@ -315,9 +315,9 @@
   position: relative;
   width: min(344px, 100%);
   filter: drop-shadow(0 30px 40px rgba(20, 10, 60, 0.35));
-  animation: bol-sube 0.7s cubic-bezier(0.3, 1.2, 0.4, 1) both;
+  animation: bol-sube 0.28s cubic-bezier(0.23, 1, 0.32, 1) both;
 }
-@keyframes bol-sube { from { transform: translateY(60px) scale(0.96); opacity: 0; } }
+@keyframes bol-sube { from { transform: translateY(24px) scale(0.97); opacity: 0; } }
 .bol-a, .bol-b { background: #fff; position: relative; }
 .bol-a {
   border-radius: 26px 26px 0 0;
@@ -349,12 +349,12 @@
   color: #fff;
   display: flex; align-items: center; justify-content: center;
   box-shadow: 0 12px 24px -10px rgba(91,75,214, 0.8);
-  animation: bol-pop 0.55s 0.25s cubic-bezier(0.3, 1.2, 0.4, 1) both;
+  animation: bol-pop 0.3s 0.08s cubic-bezier(0.23, 1, 0.32, 1) both;
 }
-@keyframes bol-pop { from { transform: scale(0); } }
-.bol-ok i { position: absolute; border-radius: 50%; animation: bol-confeti 1s 0.45s ease-out both; }
+@keyframes bol-pop { from { transform: scale(0.6); opacity: 0; } }
+.bol-ok i { position: absolute; border-radius: 50%; animation: bol-confeti 0.7s 0.15s ease-out both; }
 @keyframes bol-confeti {
-  from { transform: translate(0, 0) scale(0); opacity: 1; }
+  from { transform: translate(0, 0) scale(0.4); opacity: 1; }
   60% { opacity: 1; }
   to { transform: translate(var(--x), var(--y)) scale(1); opacity: 0; }
 }
@@ -747,8 +747,8 @@ button, [role="button"] {
 .gst-otros { display: grid; grid-template-rows: 0fr; opacity: 0; transition: grid-template-rows 220ms cubic-bezier(0.23, 1, 0.32, 1), opacity 180ms ease; }
 .gst-otros.abierto { grid-template-rows: 1fr; opacity: 1; }
 .gst-otros > div { overflow: hidden; min-height: 0; }
-.gst-fecha { width: 0; opacity: 0; padding: 0 !important; transition: width 200ms cubic-bezier(0.23, 1, 0.32, 1), opacity 160ms ease; }
-.gst-fecha.abierto { width: 140px; opacity: 1; padding: 0 0.625rem !important; }
+.gst-fecha { display: none; }
+.gst-fecha.abierto { display: block; width: 140px; padding: 0 0.625rem; animation: gst-conf 160ms cubic-bezier(0.23, 1, 0.32, 1) both; }
 .gst-barra { transform-origin: left; transition: transform 420ms cubic-bezier(0.23, 1, 0.32, 1); }
 .gst-panel { transition: opacity 140ms ease, transform 140ms cubic-bezier(0.23, 1, 0.32, 1); }
 .gst-panel.sale { opacity: 0; transform: translateY(4px); }
@@ -768,11 +768,11 @@ button, [role="button"] {
   .gst-press:active:not(:disabled) { transform: none; }
   .gst-panel, .gst-panel.sale { transform: none; }
   .gst-item.entra .gst-fila, .gst-conf, .gst-bump { animation: none; }
-  .gst-barra, .gst-otros, .gst-fecha, .gst-item { transition-duration: 1ms; }
+  .gst-barra, .gst-otros, .gst-item { transition-duration: 1ms; }
 }
 
 /* ===== Módulos dentro de la pantalla de venta (PC): VentanaModulo + PestanasModulos ===== */
-.vista-modulo-entra { animation: vista-modulo-entra 140ms ease-out both; }
+.vista-modulo-entra { animation: vista-modulo-entra 140ms cubic-bezier(0.23, 1, 0.32, 1) both; }
 .pestana-entra { animation: pestana-entra 220ms cubic-bezier(0.23, 1, 0.32, 1) both; }
 /* Cambiar de pestaña se hace decenas de veces al día: solo un fundido corto, sin desplazamiento. */
 @keyframes vista-modulo-entra { from { opacity: 0; } }

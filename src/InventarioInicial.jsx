@@ -139,7 +139,7 @@ export default function InventarioInicial({
                           const estado = n < paso ? 'hecho' : n === paso ? 'activo' : 'pendiente';
                           return (
                             <li key={n} className="flex-1 relative flex flex-col items-center text-center min-w-0">
-                              {i > 0 && <span className={`absolute top-[17px] right-1/2 w-full h-[3px] rounded-full transition-colors duration-500 ${n <= paso ? 'bg-[#5b4bd6]' : 'bg-stone-200'}`}></span>}
+                              {i > 0 && <span className={`absolute top-[17px] right-1/2 w-full h-[3px] rounded-full transition-colors duration-200 ${n <= paso ? 'bg-[#5b4bd6]' : 'bg-stone-200'}`}></span>}
                               <button
                                 type="button"
                                 onClick={() => irAPaso(n)}
@@ -570,7 +570,7 @@ export default function InventarioInicial({
                         </div>
                         <div className="mt-3 md:mt-3.5">
                           <div className="flex justify-between text-xs font-bold text-stone-700 mb-1.5"><span className="hidden md:inline">Producto completo</span><span className="ml-auto md:ml-0">{completitud}%</span></div>
-                          <div className="h-2 rounded-full bg-[#e6e8f1] overflow-hidden"><div className="h-full rounded-full bg-gradient-to-r from-[#7466e8] to-[#5b4bd6] transition-all duration-500" style={{ width: `${completitud}%` }}></div></div>
+                          <div className="h-2 rounded-full bg-[#e6e8f1] overflow-hidden"><div className="h-full w-full origin-left rounded-full bg-gradient-to-r from-[#7466e8] to-[#5b4bd6] transition-transform duration-300 ease-out" style={{ transform: `scaleX(${completitud / 100})` }}></div></div>
                           <ul className="hidden md:grid gap-1.5 mt-2.5 text-xs">
                             {checklist.map(([texto, ok]) => (
                               <li key={texto} className={`flex items-center gap-2 ${ok ? 'text-stone-800' : 'text-stone-400'}`}>
