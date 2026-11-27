@@ -79,8 +79,8 @@ export default function VentanaModulo({
         </div>
         {acciones}
         {enHost && (
-          <button type="button" onClick={() => activarPestana(null)} className="gst-press h-[34px] px-3.5 rounded-full bg-[#f3f5ff] hover:bg-[#e6ebff] text-[12.5px] font-bold text-[#6b6890] inline-flex items-center gap-2 shrink-0 transition-colors">
-            <i className="fa-solid fa-arrow-left text-[10px]"></i>Volver a la venta
+          <button type="button" onClick={() => activarPestana(null)} aria-label="Volver a la venta" title="Volver a la venta (Esc)" className="gst-press w-[34px] h-[34px] rounded-full bg-[#f3f5ff] hover:bg-[#e6ebff] text-[#6b6890] grid place-items-center shrink-0 transition-colors">
+            <i className="fa-solid fa-cart-shopping text-[12px]"></i>
           </button>
         )}
         <button type="button" aria-label="Cerrar" onClick={onClose} className="w-[34px] h-[34px] max-md:w-10 max-md:h-10 rounded-full text-[#8f8cb0] hover:bg-[#f3f5ff] hover:text-[#2d284b] grid place-items-center shrink-0 transition">
@@ -106,8 +106,10 @@ export default function VentanaModulo({
     // Dentro del área de la venta: ocupa todo el alto, el ancho del módulo queda centrado y solo la
     // pestaña activa se ve (las demás siguen montadas, con su estado).
     return createPortal(
-      <div className={`${activa === id ? 'flex vista-modulo-entra' : 'hidden'} absolute inset-0 justify-center pointer-events-auto`}>
-        <div className={`bg-white rounded-2xl ${ancho} w-full h-full shadow-sm flex flex-col overflow-hidden`}>
+      // Fondo opaco (si no, el catálogo se transparenta en los costados de los módulos angostos). Los
+      // módulos de contenido corto se ajustan a su alto; los de varias zonas con scroll propio ocupan todo.
+      <div className={`${activa === id ? 'flex vista-modulo-entra' : 'hidden'} absolute inset-0 justify-center items-start bg-[#ebf0ff] rounded-2xl pointer-events-auto`}>
+        <div className={`bg-white rounded-2xl ${ancho} w-full ${desplazable ? 'max-h-full' : 'h-full'} shadow-sm flex flex-col overflow-hidden`}>
           {cabecera}
           {cuerpo}
         </div>

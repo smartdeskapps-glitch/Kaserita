@@ -772,9 +772,10 @@ button, [role="button"] {
 }
 
 /* ===== Módulos dentro de la pantalla de venta (PC): VentanaModulo + PestanasModulos ===== */
-.vista-modulo-entra { animation: vista-modulo-entra 200ms cubic-bezier(0.23, 1, 0.32, 1) both; }
+.vista-modulo-entra { animation: vista-modulo-entra 140ms ease-out both; }
 .pestana-entra { animation: pestana-entra 220ms cubic-bezier(0.23, 1, 0.32, 1) both; }
-@keyframes vista-modulo-entra { from { opacity: 0; transform: translateY(6px); } }
+/* Cambiar de pestaña se hace decenas de veces al día: solo un fundido corto, sin desplazamiento. */
+@keyframes vista-modulo-entra { from { opacity: 0; } }
 @keyframes pestana-entra { from { opacity: 0; transform: translateY(8px) scale(0.96); } }
 @media (prefers-reduced-motion: reduce) {
   .vista-modulo-entra { animation: vista-modulo-fundido 150ms ease both; }

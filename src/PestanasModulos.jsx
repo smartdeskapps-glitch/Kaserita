@@ -40,7 +40,8 @@ export default function PestanasModulos() {
           className={`pestana-entra shrink-0 h-9 pl-3.5 pr-1.5 rounded-full text-[13px] font-bold inline-flex items-center gap-2 transition-colors duration-150 ${activa === t.id ? 'bg-[#2d284b] text-white' : 'bg-white text-[#6b6890] hover:bg-[#f3f5ff]'}`}
         >
           <button type="button" onClick={() => activarPestana(t.id)} className="gst-press inline-flex items-center gap-2 h-full">
-            <i className={`fa-solid ${t.icono} text-[11px] ${activa === t.id ? 'text-[#c5bcff]' : 'text-[#5b4bd6]'}`}></i>{t.titulo}
+            <i className={`fa-solid ${t.icono} text-[11px] shrink-0 ${activa === t.id ? 'text-[#c5bcff]' : 'text-[#5b4bd6]'}`}></i>
+            <span className="truncate max-w-[130px]">{t.titulo}</span>
           </button>
           <button
             type="button"
