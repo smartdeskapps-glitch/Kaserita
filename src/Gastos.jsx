@@ -90,6 +90,7 @@ export default function Gastos({ bodegaId, cajeroId, esModoDemo, notificar, onCl
     const monto = Math.round((parseFloat(form.monto) || 0) * 100) / 100;
     if (monto <= 0) { notificar('Ingresa el monto del gasto.', 'error'); return; }
     if (!form.categoria) { notificar('Elige la categoría del gasto.', 'error'); return; }
+    if (form.categoria === 'Otros' && !form.descripcion.trim()) { notificar('Escribe qué gasto es.', 'error'); return; }
     if (!form.fecha || form.fecha > hoy) { notificar('La fecha no puede ser futura.', 'error'); return; }
     const fila = {
       bodega_id: bodegaId,
@@ -201,12 +202,15 @@ export default function Gastos({ bodegaId, cajeroId, esModoDemo, notificar, onCl
 
             <div className="grid grid-cols-[1fr_auto] gap-2.5">
               <div className="min-w-0">
-                <label htmlFor="gasto-desc" className="text-[13px] font-bold text-[#2d284b]">Detalle <span className="font-medium text-[#8f8cb0]">(opcional)</span></label>
+                <label htmlFor="gasto-desc" className="text-[13px] font-bold text-[#2d284b]">
+                  {form.categoria === 'Otros' ? '¿Qué gasto es?' : <>Detalle <span className="font-medium text-[#8f8cb0]">(opcional)</span></>}
+                </label>
                 <input
                   id="gasto-desc"
                   type="text"
                   maxLength={80}
-                  placeholder="Ej: recibo de luz"
+                  autoFocus={form.categoria === 'Otros'}
+                  placeholder={form.categoria === 'Otros' ? 'Ej: reparación de la refrigeradora' : 'Ej: recibo de luz'}
                   value={form.descripcion}
                   onChange={(e) => setForm((f) => ({ ...f, descripcion: e.target.value }))}
                   className="mt-2 w-full h-11 rounded-[14px] bg-white px-3.5 text-sm text-[#2d284b] placeholder:text-[#9290a2] outline-none focus:ring-2 focus:ring-[#5b4bd6]/40"
@@ -298,8 +302,9 @@ export default function Gastos({ bodegaId, cajeroId, esModoDemo, notificar, onCl
                     {d.items.map((g) => (
                       <li key={g.id} className="flex items-center gap-3 px-3.5 py-2.5 bg-white">
                         <div className="flex-1 min-w-0">
-                          <b className="block text-[13.5px] text-[#2d284b] truncate">{g.categoria}</b>
-                          {g.descripcion && <span className="block text-xs text-[#8f8cb0] truncate">{g.descripcion}</span>}
+                          <b className="block text-[13.5px] text-[#2d284b] truncate">{g.categoria === 'Otros' && g.descripcion ? g.descripcion : g.categoria}</b>
+                          {g.descripcion && g.categoria !== 'Otros' && <span className="block text-xs text-[#8f8cb0] truncate">{g.descripcion}</span>}
+                          {g.categoria === 'Otros' && g.descripcion && <span className="block text-xs text-[#8f8cb0]">Otros</span>}
                         </div>
                         <b className="text-[14px] tabular-nums text-[#2d284b] whitespace-nowrap">{dinero(g.monto)}</b>
                         {borrando === g.id ? (
